@@ -26,25 +26,25 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 
 ## Specs, in build order
 
-| Spec | Project | Service or capability |
+| Spec | Project (one per brand, named by its slug; shared projects named) | Service or capability |
 |---|---|---|
 | 001 | all | brands and projects: layout, manifests, topic contract, realms, the port method |
-| 002 | brand `money` | wallet |
-| 003 | brand `casino` | game-provider (ST8 and the generic provider API) |
+| 002 | brand | wallet |
+| 003 | brand | game-provider (ST8 and the generic provider API) |
 | 004 | shared `payments` | merchant (hierarchy, deposit workflow) |
 | 005 | shared `payments` | psp-gateway (nine adapters) |
 | 006 | shared `payments` | ingest (webhooks) |
-| 007 | brand `money` | payouts |
-| 008 | brand `casino` | players |
-| 009 | brand `casino` | kyc |
-| 010 | brand `casino` | responsible-gambling |
-| 011 | brand `casino` | rewards |
-| 012 | brand `casino` | affiliate-protocol (attribution tag and facts a brand emits) |
+| 007 | brand | payouts |
+| 008 | brand | players |
+| 009 | brand | kyc |
+| 010 | brand | responsible-gambling |
+| 011 | brand | rewards |
+| 012 | brand | attribution (the affiliate protocol a brand emits) |
 | 013 | shared `programme` | affiliate-programme (accounts, plans, ledger, payouts, portal) |
-| 014 | brand `casino` | engagement |
-| 015 | brand `casino` | reporting |
-| 016 | brand `casino` | partner-api |
-| 017 | brand `casino` | support-agent |
+| 014 | brand | engagement |
+| 015 | brand | reporting |
+| 016 | brand | partner-api |
+| 017 | brand | support-agent |
 | 018 | shared `reasoner` | audit and proposals |
 | 019 | all | the Spinvibe migration |
 
