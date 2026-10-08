@@ -124,19 +124,11 @@ service's version in the second, and confirm the first is untouched.
 
 **Acceptance Scenarios**:
 
-1. **Given** an installation with the shared projects running, **When** an operator applies the manifest
-   for a brand named "goldvibe", **Then** a project "goldvibe" exists holding every brand service at
-   the version the manifest pins, every topic the contract names, a realm for the brand's players, and
-   the grants the shared projects need.
-2. **Given** two brands created from the same manifest, **When** one brand's wallet is moved to a new
-   version, **Then** the other brand's wallet keeps its version and serves without interruption.
-3. **Given** a brand project, **When** any of its services is asked about a brand other than its own,
-   **Then** it refuses, and the refusal names the brand it serves.
-4. **Given** a brand's manifest, **When** it names a service or a topic the contract does not list,
-   **Then** the manifest is refused before anything is created, naming the unknown entry.
-5. **Given** a brand project, **When** a service in it keeps a wallet, a player or a session, **Then**
-   the key it keeps it under carries no brand, and the same key in another brand's project names a
-   different thing.
+- added `features/brands/manifest.feature`: a brand is created from its manifest with every part at the version the manifest pins
+- added `features/brands/manifest.feature`: moving one brand to a new version leaves another brand untouched
+- added `features/brands/access.feature`: a brand refuses to answer about any brand but its own
+- added `features/brands/manifest.feature`: a manifest naming a part or a fact the contract does not list is refused before anything is created
+- added `features/brands/manifest.feature`: the same key in two brands names two different things
 
 ---
 
@@ -155,22 +147,12 @@ consumer, and check the key, the family, the version and the fields the contract
 
 **Acceptance Scenarios**:
 
-1. **Given** a brand's wallet, **When** a bet is placed, **Then** a message of family
-   "bet_placed" version 1 appears on the brand's "money.transactions" topic, keyed by the wallet it
-   belongs to, carrying the player id as its subject.
-2. **Given** a topic the contract lists as a fact topic, **When** it is declared, **Then** its
-   retention is the longest the installation allows, and a view rebuilt from it a year later sees
-   every fact.
-3. **Given** a message family at version 1 read by two brands, **When** a field is added to it,
-   **Then** the family stays at version 1 and both brands keep reading it.
-4. **Given** a message family at version 1 whose meaning changes, **When** the change is made,
-   **Then** it is a new version beside the old, and the old is produced until no brand reads it.
-5. **Given** the shared "payments" project, **When** a deposit is captured for a player of brand
-   "goldvibe", **Then** the brand's wallet is credited once, however many times the capture is
-   delivered, and a "deposit_confirmed" message appears on the brand's "money.transactions" topic.
-6. **Given** a brand's "platform.audit" topic granted to the shared audit service, **When** a service
-   of the brand records an audit fact, **Then** the audit service reads it, and the record it keeps
-   names the player by a pseudonym and never by a real id.
+- added `features/brands/facts.feature`: a bet placed is published as a fact about the wallet it belongs to
+- added `features/brands/facts.feature`: a view rebuilt from a brand's facts a year later sees every fact
+- added `features/brands/facts.feature`: adding a field to a kind of fact keeps its version
+- added `features/brands/facts.feature`: changing what a kind of fact means is a new version beside the old
+- added `features/brands/facts.feature`: a deposit captured by the shared payments credits the brand's wallet once however many times it is delivered
+- added `features/brands/facts.feature`: the shared audit keeps a brand's audit records naming the player by a pseudonym
 
 ---
 
@@ -190,18 +172,14 @@ affiliate token and a service identity, call one route of each class and check w
 
 **Acceptance Scenarios**:
 
-1. **Given** a player of brand "goldvibe", **When** they call a player route of brand "goldvibe" with
-   their realm's token, **Then** they are served, and the same token at brand "spinvibe" is refused.
-2. **Given** an operator whose roles name brand "goldvibe" only, **When** they call an operator route
-   of brand "spinvibe", **Then** they are refused, whatever the client that issued their token.
-3. **Given** a service in the brand's project, **When** it calls another service's internal route in
-   the same project, **Then** it is admitted by its identity and carries no token.
-4. **Given** the shared "merchant" service, **When** it calls the deposit route a brand granted it,
-   **Then** it is admitted; **When** it calls any other route of the brand, **Then** it is refused.
-5. **Given** a public route — registration, a tracking click, a PSP's webhook — **When** it is called
-   with no token, **Then** it is served, and a webhook is served only when its signature verifies.
-6. **Given** a person created in a brand's realm, **When** the realm reports the registration, **Then**
-   the brand's players service learns of it and no other service of the brand is told by the realm.
+- added `features/brands/access.feature`: a player who signed in at their brand is served there and refused at another brand
+- added `features/brands/access.feature`: an operator is refused at a brand their roles do not name however they signed in
+- added `features/brands/access.feature`: one part of a brand is admitted to another by its identity with no sign-in
+- added `features/brands/access.feature`: the shared payments is admitted to the deposit the brand allowed it
+- added `features/brands/access.feature`: the shared payments is refused anything the brand did not allow it
+- added `features/brands/access.feature`: a public action is served with no sign-in
+- added `features/brands/access.feature`: a payment provider's webhook is served only when its signature verifies
+- added `features/brands/access.feature`: a registration is reported to the brand's player records and to no other part of the brand
 
 ---
 
@@ -222,18 +200,11 @@ personal.
 
 **Acceptance Scenarios**:
 
-1. **Given** a registered player, **When** any service of the brand keeps their name, email address,
-   telephone number, postal address, date of birth, identity documents or network address, **Then** it
-   keeps each as personal data under the player's id.
-2. **Given** a fact about a player emitted on a topic, **When** it carries a personal field, **Then**
-   the field is personal data under the player's id in the message too.
-3. **Given** a player erased, **When** any service, any shared project or the affiliate programme reads
-   a fact about that player, **Then** every personal field reads as erased and every amount, id and
-   time reads as before.
-4. **Given** a shared project, **When** it holds anything about a player, **Then** it holds the
-   player's id and nothing else that identifies the player.
-5. **Given** a player under a regulatory hold, **When** erasure is requested, **Then** the request is
-   held until the hold lapses, and it is applied then without being asked again.
+- added `features/brands/personal-data.feature`: every field that identifies a player is kept as personal data under the player
+- added `features/brands/personal-data.feature`: a personal field in a fact is personal data under the player in the fact too
+- added `features/brands/personal-data.feature`: an erased player's personal fields read as erased and every amount, id and time reads as before
+- added `features/brands/personal-data.feature`: the shared payments and the shared audit hold a player's id and nothing else that identifies them
+- added `features/brands/personal-data.feature`: an erasure requested under a retention hold waits for the hold to lapse and is then applied unasked
 
 ---
 
@@ -250,13 +221,10 @@ an amount with a fraction and check it is refused.
 
 **Acceptance Scenarios**:
 
-1. **Given** a wallet in "EUR", **When** a bet of "1050" is placed, **Then** the balance falls by ten
-   euros and fifty cents, and the amount is recorded as the whole number "1050".
-2. **Given** a money command sent under key "tx-1", **When** the same command is sent again under
-   "tx-1", **Then** the first answer is returned and the balance is unchanged.
-3. **Given** a money command, **When** its amount is not a whole number of minor units, **Then** it is
-   refused, naming the amount.
-4. **Given** a command that moves money, **When** it carries no key, **Then** it is refused.
+- added `features/wallet/money.feature`: an amount is a whole number of minor units
+- added `features/wallet/money.feature`: a money command sent again under its key returns the first answer and moves nothing
+- added `features/wallet/money.feature`: an amount that is not a whole number of minor units is refused naming the amount
+- added `features/wallet/money.feature`: a money command without a key is refused
 
 ---
 
@@ -275,17 +243,11 @@ the Go suite produced one and every PSP the original calls was answered by a stu
 
 **Acceptance Scenarios**:
 
-1. **Given** the original running locally with the game provider and every payment provider stubbed,
-   **When** its end-to-end suite runs, **Then** one recording exists per scenario, kept in this
-   repository, and no request left the machine.
-2. **Given** a payment provider the original calls that has no stub, **When** the recording is
-   started, **Then** it is refused, naming the provider.
-3. **Given** a service spec, **When** it is written, **Then** every requirement it carries names the
-   recording, the original's source or the decision that established it.
-4. **Given** a rebuilt service, **When** its parity tests run, **Then** every recording its spec names
-   replays, and a changed answer fails the test naming the recording and the field.
-5. **Given** a frontend, **When** it is pointed at a rebuilt brand, **Then** the original's Playwright
-   suite passes with only base URLs changed.
+- added `features/brands/recordings.feature`: running the original's end-to-end suite with every provider stubbed leaves one recording per scenario and nothing leaves the machine
+- added `features/brands/recordings.feature`: recording refuses to start while a payment provider the original calls has no stub
+- added `features/brands/recordings.feature`: every requirement in a spec names what established it
+- added `features/brands/recordings.feature`: a rebuilt part replays every recording its spec names and a changed answer fails naming the recording and the field
+- added `features/brands/recordings.feature`: the original's frontend suite passes against a rebuilt brand with only its addresses changed
 
 ---
 
@@ -305,14 +267,9 @@ one of the conditions and check the refusal names it.
 
 **Acceptance Scenarios**:
 
-1. **Given** an installation without backups that copy outside the cluster, **When** a brand marked
-   for real money is applied, **Then** it is refused, naming backups.
-2. **Given** an installation whose broker has one node, **When** a brand marked for real money is
-   applied, **Then** it is refused, naming the broker.
-3. **Given** an installation meeting every condition, **When** a brand marked for real money is
-   applied, **Then** it is created, and its status says which conditions were checked.
-4. **Given** a brand not marked for real money, **When** it is applied to a local installation,
-   **Then** it is created with the local installation's store, broker and no cloud provider.
+- added `features/brands/manifest.feature`: a brand marked for real money is refused on an installation that is not fit for it
+- added `features/brands/manifest.feature`: a brand marked for real money is created on an installation meeting every condition
+- added `features/brands/manifest.feature`: a brand not marked for real money is created on a local installation
 
 ---
 

@@ -69,11 +69,13 @@ An affiliate who already sends traffic to one brand applies to a second. They si
 
 **Acceptance Scenarios**:
 
-1. **Given** an affiliate with an active membership at brand A, **When** they apply to brand B, **Then** brand B shows one pending application, brand A's membership is unchanged, and the affiliate's portal lists A as active and B as pending.
-2. **Given** a pending application at brand B, **When** a manager holding brand B's role approves it on brand B's default plan, **Then** the membership is active on that plan, the affiliate is told, and a manager holding only brand A's role cannot see or act on it.
-3. **Given** active memberships at A and B with facts at each, **When** the affiliate reads revenue for brand A, **Then** only A's facts are folded; **When** they read with no brand filter, **Then** each brand's figures are listed separately and totals are given per currency, never summed across currencies.
-4. **Given** an affiliate suspended at brand A, **When** facts arrive from brand A for players attributed to them, **Then** the facts are recorded against the ledger and no new payable fact is written while the membership is suspended; brand B is unaffected.
-5. **Given** an affiliate rejected at brand B, **When** they apply to brand B again, **Then** the application is accepted (as today, a rejected applicant may reapply); **When** an applicant's email already has a pending or active membership at that brand, **Then** the application is refused as a duplicate.
+- added `features/programme/memberships.feature`: applying to a second brand leaves the first membership unchanged and shows the second as pending
+- added `features/programme/memberships.feature`: a manager for a brand approves an application on that brand's default plan and a manager for another brand cannot see it
+- added `features/programme/memberships.feature`: revenue read for one brand folds only that brand's facts
+- added `features/programme/memberships.feature`: revenue read with no brand filter lists each brand separately with totals per currency
+- added `features/programme/memberships.feature`: a suspended membership still records facts and writes no new payable fact while another brand is unaffected
+- added `features/programme/memberships.feature`: a rejected applicant may apply again
+- added `features/programme/memberships.feature`: an application from an email with a pending or active membership at that brand is refused as a duplicate
 
 ---
 
@@ -87,14 +89,19 @@ A brand emits attribution facts; the programme turns each into the commission th
 
 **Acceptance Scenarios**:
 
-1. **Given** a registration fact naming the programme, an affiliate, a link and a pseudonymous player, **When** it is consumed, **Then** the player is recorded as attributed to that affiliate at that brand with the link, the campaign, the sub-ids, the click and the country, and a second registration fact for the same player at the same brand is ignored as a duplicate.
-2. **Given** an attributed player on a CPA or hybrid plan with a minimum deposit threshold, **When** a `first-deposit` fact at or above the threshold arrives, **Then** one CPA fact for the plan's amount is written in the deposit's currency, dated when the deposit occurred; **When** a later deposit fact arrives in any period, **Then** no second CPA fact is written and the deposit is still counted in the player's totals.
-3. **Given** a first-deposit fact below the threshold, **When** it is consumed, **Then** no CPA fact is written and the player's first-deposit guard is not set, so a later deposit that meets the threshold pays CPA.
-4. **Given** an attributed player on a RevShare or hybrid plan, **When** `ggr-daily`, `ggr-adjustment` (or `ggr-round`), `bonus-cost` and `chargeback` facts arrive, **Then** NGR is folded as GGR minus bonus cost, chargebacks and the brand's admin, payment and provider fee percentages, and a RevShare fact is written for exactly the difference between the commission on the cumulative NGR and what has already been emitted, positive or negative.
-5. **Given** a plan without negative carryover, **When** a period's NGR is negative, **Then** that period's RevShare floors at zero and the next period starts fresh; **Given** a plan with negative carryover, **Then** the deficit persists until positive NGR covers it.
-6. **Given** a fact whose idempotency id has been consumed before, **When** it arrives again on any channel, **Then** nothing is written and the duplicate is counted.
-7. **Given** a fact for a player the programme has no attribution for at that brand, **When** it is consumed, **Then** it is recorded as unattributed for the brand's manager to see and no commission is written.
-8. **Given** a `withdrawal-completed` fact and later a `withdrawal-reversed` fact with the same reference, **When** both are consumed, **Then** the player's withdrawal total rises then falls by that amount and never below zero; a `withdrawal-requested` or `withdrawal-failed` fact changes no total, and a reversal without a matching completed withdrawal is ignored.
+- added `features/programme/commission.feature`: a registration fact records the player as attributed to the affiliate at that brand
+- added `features/programme/commission.feature`: a second registration fact for the same player at the same brand is ignored as a duplicate
+- added `features/programme/commission.feature`: a first deposit at or above the plan's minimum deposit writes one CPA fact in the deposit's currency
+- added `features/programme/commission.feature`: a later deposit in any period writes no second CPA fact and is still counted in the player's totals
+- added `features/programme/commission.feature`: a first deposit below the minimum deposit writes no CPA fact and leaves the first-deposit guard unset
+- added `features/programme/commission.feature`: GGR, bonus cost and chargeback facts fold into NGR and a RevShare fact for the delta
+- added `features/programme/commission.feature`: without negative carryover a negative period floors RevShare at zero and the next period starts fresh
+- added `features/programme/commission.feature`: with negative carryover a deficit persists until positive NGR covers it
+- added `features/programme/commission.feature`: a fact whose id was consumed before writes nothing and is counted as a duplicate
+- added `features/programme/commission.feature`: a fact for a player without attribution at that brand is recorded as unattributed and writes no commission
+- added `features/programme/commission.feature`: a completed withdrawal then its reversal raise and lower the player's withdrawal total, never below zero
+- added `features/programme/commission.feature`: a withdrawal requested or failed changes no total
+- added `features/programme/commission.feature`: a reversal without a matching completed withdrawal is ignored
 
 ---
 
@@ -108,12 +115,15 @@ A parent affiliate invites sub-affiliates, approves, suspends and reactivates th
 
 **Acceptance Scenarios**:
 
-1. **Given** a tier-1 with 5% override over a tier-2 with 3% override over a tier-3, **When** tier-3 earns 1,000.00 of commission at brand A in a period, **Then** tier-2 is written an override fact of 30.00 and tier-1 one of 50.00, each scoped to tier-3 as the source, and each recomputed as a delta when tier-3's earnings change.
-2. **Given** a parent and a sub who both have memberships at brand A but only the parent at brand B, **When** the sub earns at brand A, **Then** the parent's override is written at brand A; **When** facts for the sub arrive from brand B, **Then** they are unattributed at B and no override is written.
-3. **Given** a parent, **When** they invite a sub by email or share an invite link, **Then** the sub's account is created pending under the parent, inherits the parent's plan at each brand the parent names unless the invitation says otherwise, and the parent is notified when the sub applies.
-4. **Given** a parent, **When** they approve, suspend or reactivate a sub, or change its plan or override, **Then** it applies within their own subtree and is audited as the parent's action; **When** an operator suspends that sub, **Then** the operator's action stands and the parent sees it but cannot reverse it.
-5. **Given** an affiliate, **When** they read their network, **Then** they see every descendant with status, plan, override and revenue for the period, and nothing above or beside them; a request about an affiliate outside their subtree is refused.
-6. **Given** a corrupted parent chain that forms a cycle, **When** override is computed, **Then** each ancestor is visited once and the computation ends.
+- added `features/programme/network.feature`: each ancestor is written an override fact for its percentage of the source's earnings, recomputed as a delta
+- added `features/programme/network.feature`: a parent earns override at a brand where both hold a membership
+- added `features/programme/network.feature`: a parent earns nothing at a brand where the sub has no membership
+- added `features/programme/network.feature`: an invitation creates the sub pending under the parent with the parent's plan unless it says otherwise
+- added `features/programme/network.feature`: a parent's action on a sub applies within their own subtree and is audited as the parent's
+- added `features/programme/network.feature`: an operator's suspension of a sub stands over the parent
+- added `features/programme/network.feature`: an affiliate sees every descendant and nothing above or beside them
+- added `features/programme/network.feature`: a request about an affiliate outside the subtree is refused
+- added `features/programme/network.feature`: a parent chain that forms a cycle is visited once and the computation ends
 
 ---
 
@@ -127,13 +137,14 @@ A manager closes a period for a brand. Every unsettled payable fact that occurre
 
 **Acceptance Scenarios**:
 
-1. **Given** unsettled payable facts for an affiliate at brand A in EUR, **When** a manager closes the period for brand A, **Then** every unsettled payable fact that occurred on or before the period's end is stamped with the payout for (affiliate, brand A, EUR, period), the payout's total is the fold of everything stamped with it, and the payout is pending.
-2. **Given** an affiliate whose claimed total is below their minimum payout threshold, **When** the period closes, **Then** nothing is stamped, no payout is written, and the facts carry forward to the next close.
-3. **Given** a pending payout, **When** a manager approves it, optionally overriding the override-commission figure, **Then** it is approved with the figure recorded; **When** a late fact is swept into an approved payout by a later close, **Then** the payout reverts to pending and the affiliate's previous approval is recorded as superseded.
-4. **Given** a paid payout, **When** a late fact arrives that would have belonged to it, **Then** the payout is unchanged and the fact is claimed by the next close, dated when it occurred.
-5. **Given** an affiliate with facts in EUR and in USD at brand A, **When** the period closes, **Then** two payouts are written, one per currency, and the export lists both.
-6. **Given** approved payouts for a period, **When** finance exports them, **Then** the file lists affiliate, display name, email, payment details, brand, currency, period, CPA, RevShare, override, adjustments, total, who approved and when; **When** the export is taken, **Then** it is audited as a read of payment details.
-7. **Given** a payout, **When** a transition is requested that the status machine does not allow (paid to pending, rejected to paid), **Then** it is refused naming the current status.
+- added `features/programme/settlement.feature`: a close claims every unclaimed payable fact up to the period's end for a pending payout
+- added `features/programme/settlement.feature`: a close below the affiliate's minimum payout threshold claims nothing and carries the facts forward
+- added `features/programme/settlement.feature`: approving a pending payout records the override figure the manager chose
+- added `features/programme/settlement.feature`: a late fact swept into an approved payout reverts it to pending and supersedes the approval
+- added `features/programme/settlement.feature`: a late fact for a paid payout leaves it unchanged and is claimed by the next close
+- added `features/programme/settlement.feature`: facts in two currencies close as two payouts
+- added `features/programme/settlement.feature`: an export of approved payouts lists every figure and is audited as a read of payment details
+- added `features/programme/settlement.feature`: a payout transition the status machine does not allow is refused naming the current status
 
 ---
 
@@ -147,12 +158,16 @@ An affiliate creates tracking links, bonus codes and invite links; each carries 
 
 **Acceptance Scenarios**:
 
-1. **Given** an affiliate with an active membership at brand A, **When** they create a tracking link for A with a campaign and sub-ids, **Then** the link exists with a signed tag naming the programme, the affiliate, the link and the sub-ids, and the brand's landing URL carries it as `btag`.
-2. **Given** a brand that recorded a click on the programme's link, **When** its `click` fact arrives, **Then** the programme records the click against the link with the click id, device type and country the fact carries, and the link's click count rises by one.
-3. **Given** a brand holding the programme's published key document, **When** a player registers with a tag, **Then** the brand verifies it without calling the programme; **When** the tag belongs to a link on the programme's revocation list, **Then** the brand binds no one and the programme receives no fact for the affiliate.
-4. **Given** an affiliate, **When** they create a bonus code for brand A, **Then** the code is unique at brand A (case-insensitive), two concurrent creations of the same text yield one, and revoking it frees the text for later reuse.
-5. **Given** a legacy `btag` UUID from Spinvibe, **When** the programme publishes its legacy tag document during the transition, **Then** the document maps it to the affiliate and the link it was imported against; after the transition the document is withdrawn.
-6. **Given** an affiliate's link, **When** they read it, **Then** click counts come from the `click` facts received, never from a counter on the account.
+- added `features/programme/links.feature`: a new link carries a tag signed by the programme naming the affiliate, the link and the sub-ids
+- added `features/programme/links.feature`: a click fact from a brand is recorded against its link and raises the link's click count
+- added `features/programme/links.feature`: a brand holding the programme's key document verifies a tag without calling the programme
+- added `features/programme/links.feature`: a tag for a link on the programme's revocation list binds no one and the programme receives no fact for the affiliate
+- added `features/programme/links.feature`: a bonus code is unique at a brand regardless of case
+- added `features/programme/links.feature`: two concurrent creations of the same bonus code text yield one code
+- added `features/programme/links.feature`: revoking a bonus code frees its text for later reuse
+- added `features/programme/links.feature`: the legacy tag document maps each imported legacy tag to its affiliate and link during the transition period
+- added `features/programme/links.feature`: the legacy tag document is withdrawn after the transition period
+- added `features/programme/links.feature`: a link's click count comes from click facts and never from a counter on the account
 
 ---
 
@@ -166,14 +181,16 @@ A programme manager applies, approves and rejects applications, manages plans, s
 
 **Acceptance Scenarios**:
 
-1. **Given** a manager with brand A's role only, **When** they list accounts, revenue, payouts or fraud flags, **Then** only brand A's memberships and facts are listed; a request naming brand B is refused.
-2. **Given** a manager with roles for A and B, **When** they read revenue with no brand filter, **Then** figures are listed per brand and per currency.
-3. **Given** a manager, **When** they create or change a commission plan for brand A (CPA, RevShare, hybrid; CPA amount; RevShare percentage; minimum deposit; negative carryover), **Then** it applies to that brand's memberships that name it, from the next fact onward, and the change is audited.
-4. **Given** a manager, **When** they enter a credit or debit adjustment for an affiliate at brand A in a currency with a reason, **Then** an adjustment fact is written, debits negative, and it is swept by the next close like any payable fact.
-5. **Given** the programme's fraud thresholds for brand A, **When** a player's bonus cost or chargebacks cross them, **Then** a fraud flag is raised once per (player, brand, reason) for the manager to review; **When** a manager dismisses it, **Then** the affiliate is told the flag was reviewed and dismissed.
-6. **Given** a manager, **When** they open an affiliate's read-only view, **Then** they see the dashboard, stats, commission, links, payouts and notifications the affiliate would see, and can change nothing from there.
-7. **Given** a manager with the right role, **When** they add a programme manager for brand A, reset their password or revoke them, **Then** the manager is provisioned in the realm with `affiliate_manager` and brand A's role and the action is audited.
-8. **Given** a brand's programme page (terms, contact, payout cycle, public description), **When** a manager changes it, **Then** affiliates applying to that brand see the new text.
+- added `features/programme/managers.feature`: a manager for one brand lists only that brand's memberships and facts
+- added `features/programme/managers.feature`: a manager's request naming a brand their roles do not cover is refused
+- added `features/programme/managers.feature`: a manager for several brands reads revenue per brand and per currency
+- added `features/programme/managers.feature`: a plan created or changed applies to the memberships that name it from the next fact onward and is audited
+- added `features/programme/managers.feature`: a manager's adjustment is a payable fact, negative for a debit, swept by the next close
+- added `features/programme/managers.feature`: a fraud flag is raised once per player, brand and reason when a brand's thresholds are crossed
+- added `features/programme/managers.feature`: dismissing a fraud flag tells the affiliate it was reviewed and dismissed
+- added `features/programme/managers.feature`: a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing
+- added `features/programme/managers.feature`: adding, resetting or revoking a manager for a brand provisions them with the manager role and the brand's role and is audited
+- added `features/programme/managers.feature`: a change to a brand's programme page is what new applicants see
 
 ---
 
@@ -187,10 +204,11 @@ Affiliates are told what happened to them: application received, approved, rejec
 
 **Acceptance Scenarios**:
 
-1. **Given** an affiliate with a postback URL, **When** a registration, first deposit, deposit or commission event occurs for their player, **Then** a postback is sent with the event, the click id, the payout amount and the status substituted; **When** it fails, **Then** it is retried with backoff for up to 24 hours and the last outcome is visible to the affiliate and a manager.
-2. **Given** an application, approval, rejection, payout paid, invitation or password reset, **When** it happens, **Then** an in-portal notification is written and a transactional email is sent with the brand's sender configuration, and a failed send never blocks the action.
-3. **Given** a sub applies under a parent, **When** the application is recorded, **Then** the parent is notified that an approval is pending.
-4. **Given** notifications, **When** the affiliate reads them or marks all read, **Then** they are marked read for that affiliate only.
+- added `features/programme/communications.feature`: a postback is sent for a registration, first deposit, deposit or commission with the click id, payout amount and status substituted
+- added `features/programme/communications.feature`: a failed postback is retried with backoff for up to a day and its last outcome is visible
+- added `features/programme/communications.feature`: an affiliate is told what happened to them by notification and by email, and a failed send never blocks the action
+- added `features/programme/communications.feature`: a parent is told when a sub's application is pending approval
+- added `features/programme/communications.feature`: reading notifications or marking all read marks them read for that affiliate only
 
 ---
 
@@ -204,10 +222,10 @@ An affiliate's name, email, company, website and payment details are personal da
 
 **Acceptance Scenarios**:
 
-1. **Given** an affiliate account, **When** its identity and payment fields are written, **Then** they are personal values under the affiliate's subject; a database dump holds no readable name, email or payment details.
-2. **Given** a closed account, **When** a manager files its erasure, **Then** the request carries a hold until the end of the retention period finance names, and when it lapses the account's identity fields read as erased while every fact, payout amount and audit entry remains.
-3. **Given** facts and the players view, **When** a manager or affiliate reads a player, **Then** they see the pseudonym the brand gave, the country and the figures, and nothing that names the player.
-4. **Given** a brand closes or erases a player, **When** the `player-closed` fact arrives, **Then** the programme forgets the pseudonym's country and click details and keeps the facts' amounts; it cannot tell an erasure from a closure, and does not need to.
+- added `features/programme/data-subjects.feature`: an affiliate's identity and payment fields are personal data under the affiliate
+- added `features/programme/data-subjects.feature`: a closed account's erasure waits for the retention hold and then erases identity while facts, payouts and audit remain
+- added `features/programme/data-subjects.feature`: a player read in the programme shows a pseudonym, a country and figures, and nothing that names the player
+- added `features/programme/data-subjects.feature`: a player-closed fact makes the programme forget the pseudonym's country and click details and keep the amounts
 
 ---
 
@@ -221,11 +239,11 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 
 **Acceptance Scenarios**:
 
-1. **Given** Spinvibe's affiliate accounts, **When** they are imported, **Then** each becomes one account with one active, pending, suspended or rejected membership at Spinvibe on its plan, with its parent, override, threshold and postback URL, and the realm user is unchanged.
-2. **Given** the commission ledger, **When** it is imported, **Then** every fact keeps its type, amount, currency, occurred-at, recorded-at, source affiliate and the payout that settled it; every payout keeps its status, figures and approval; and a fold of the imported facts equals the original's revenue for every affiliate and period.
-3. **Given** tracking links and bonus codes, **When** they are imported, **Then** each keeps its legacy `btag` for the transition and gains a signed tag.
-4. **Given** the import, **When** a fact arrives from Spinvibe for a player attributed before the import, **Then** it is attributed because the import carried the player's pseudonym and attribution.
-5. **Given** the import ran, **When** it is run again, **Then** nothing is duplicated.
+- added `features/programme/import.feature`: each imported account becomes one account with one membership at the brand on its plan
+- added `features/programme/import.feature`: the imported ledger keeps every fact and payout and folds to the original's revenue
+- added `features/programme/import.feature`: imported links and bonus codes keep their legacy tag for the transition period and gain a signed tag
+- added `features/programme/import.feature`: a fact for a player attributed before the import is attributed because the import carried the pseudonym and attribution
+- added `features/programme/import.feature`: running the import again duplicates nothing
 
 ---
 

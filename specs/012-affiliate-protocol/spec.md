@@ -120,25 +120,12 @@ naming the same network, affiliate, link, sub-ids and click.
 
 **Acceptance Scenarios**:
 
-1. **Given** a link whose `btag` is a valid token from a network the brand knows, **When** a
-   visitor lands on it, **Then** the brand records one click for that link in this browser session,
-   with the device type and a digest of the address and never the address itself, and emits a click
-   fact naming the network, affiliate, link, campaign, sub-ids and click id.
-2. **Given** a visitor who landed with a valid token, **When** they register before the window
-   has passed, **Then** the player is bound to that network, affiliate, link and sub-ids with the
-   click id, and a registration fact is emitted naming all of them and the player's pseudonym for
-   that network.
-3. **Given** a visitor whose token is older than the brand's window, **When** they register,
-   **Then** the player is recorded as organic, the stale tag is kept on the record for reporting,
-   and no registration fact is emitted for the affiliate.
-4. **Given** a player already bound to an affiliate, **When** they later arrive with a different
-   token, log in, and play, **Then** the binding does not change and the later touch is recorded on
-   the player's attribution record.
-5. **Given** a visitor who lands with a token the brand cannot verify (a bad signature, an unknown
-   network, a key the network has withdrawn), **When** they register, **Then** the registration
-   succeeds, the player is organic, and the refused tag is kept with the reason.
-6. **Given** a visitor who lands with a token for a link the network has revoked, **When** they
-   register, **Then** the player is organic and the record says the link was revoked.
+- added `features/attribution/landing.feature`: a landing with a valid tag records one click per browser session and emits a click fact
+- added `features/attribution/landing.feature`: a visitor who registers within the attribution window is bound once and for good
+- added `features/attribution/landing.feature`: a tag older than the attribution window binds nothing and the registration is organic
+- added `features/attribution/landing.feature`: a later tag does not change a binding and is recorded as a later touch
+- added `features/attribution/landing.feature`: a tag the brand cannot verify never fails a registration and is kept with its reason
+- added `features/attribution/landing.feature`: a tag for a revoked link binds nothing and the record says the link was revoked
 
 ---
 
@@ -156,14 +143,9 @@ the topic: registration, first-deposit, deposit and daily GGR facts all name the
 
 **Acceptance Scenarios**:
 
-1. **Given** a code the network issued to an affiliate, **When** a visitor registers with it and no
-   tag, **Then** the player is bound to that affiliate and link as a tag would bind them, with no
-   click id, and a registration fact is emitted.
-2. **Given** a player who registered organically, **When** they enter an affiliate's code later,
-   within the window counted from registration, **Then** the player is bound to that affiliate, a
-   registration fact is emitted dated to the binding, and their later facts are attributed.
-3. **Given** a player already bound to one affiliate, **When** they enter another affiliate's
-   code, **Then** the code's bonus applies as the rewards rules say and the binding does not change.
+- added `features/attribution/bonus-codes.feature`: a bonus code presented at registration binds the player as a tag would
+- added `features/attribution/bonus-codes.feature`: a bonus code entered after an organic registration within the window binds the player
+- added `features/attribution/bonus-codes.feature`: a bonus code entered by a player already bound applies its reward and changes no binding
 
 ---
 
@@ -182,25 +164,13 @@ every fact and check all three readers hold the same facts with the same ids.
 
 **Acceptance Scenarios**:
 
-1. **Given** the programme project holds a consume grant on the brand's attribution topic,
-   **When** the brand emits a fact, **Then** the programme reads it within a minute, with the fact
-   id, the fact's kind and the protocol version readable without decoding the payload.
-2. **Given** a network registered as a machine with an accepted consume grant, **When** it
-   connects to the installation's broker with its own Kafka client, **Then** it reads the same facts
-   under its own consumer group and is refused every other topic.
-3. **Given** a network with no Kafka client and a machine token, **When** it reads the brand's feed
-   from a cursor, **Then** it receives facts in emission order from that cursor, each page carrying
-   a signature over its facts under the brand's key, and a cursor to continue from; reading from
-   the same cursor twice returns the same page.
-4. **Given** a webhook subscription the brand's operator created for a network, **When** a fact is
-   emitted, **Then** the brand posts the fact to the subscription's address, retries with backoff
-   on failure for a day, and after that holds the fact in a dead letter the operator can see and
-   resend.
-5. **Given** any carrier, **When** a reader receives a fact whose id it has seen, **Then** it can
-   discard it, because the id and the content are the same both times.
-6. **Given** an affiliate who sends traffic to two brands, **When** both brands emit facts,
-   **Then** each fact names its brand, the affiliate's id is the same in both, and the player
-   pseudonyms differ.
+- added `features/attribution/carriers.feature`: the programme reads a fact it was allowed within a minute with its id, kind and protocol version in the open
+- added `features/attribution/carriers.feature`: a network registered as a machine reads the same facts with its own reader and nothing else of the brand's
+- added `features/attribution/carriers.feature`: the feed returns facts from a cursor in the order they were emitted, each page signed by the brand
+- added `features/attribution/carriers.feature`: reading the feed from the same cursor twice returns the same page
+- added `features/attribution/carriers.feature`: a webhook posts each fact, retries for a day, then holds the fact in a dead letter the operator can resend
+- added `features/attribution/carriers.feature`: a reader can discard a fact whose id it has seen because the id and the content are the same both times
+- added `features/attribution/carriers.feature`: facts from two brands about one affiliate name their brand, share the affiliate's id and differ in pseudonym
 
 ---
 
@@ -220,26 +190,14 @@ the commission inputs the original's notifications carried for the same recordin
 
 **Acceptance Scenarios**:
 
-1. **Given** an attributed player with no deposit, **When** a deposit is captured, **Then** a
-   first-deposit fact and a deposit fact are emitted, each with the amount, the currency and the
-   payment's reference, and the first-deposit fact is emitted once in the player's life.
-2. **Given** an attributed player who has deposited before, **When** a deposit is captured,
-   **Then** only a deposit fact is emitted.
-3. **Given** an attributed player who played during a day, **When** the brand's reporting day
-   closes, **Then** one daily GGR fact is emitted for the player and the day, with total stake,
-   total win and their difference as signed minor units.
-4. **Given** a round of a closed day that settles after the close, **When** it settles, **Then** a
-   GGR adjustment fact is emitted for that day with the difference, and the day's earlier fact is
-   not re-emitted.
-5. **Given** a brand that has turned on the per-round stream for a network, **When** a round
-   settles, **Then** a round fact is emitted with the round's stake, win and GGR, and the daily fact
-   is still emitted at the close.
-6. **Given** an attributed player, **When** a bonus is granted, forfeited or converted, a deposit
-   is charged back, a withdrawal is requested, completed, failed or reversed, or the account is
-   closed, **Then** the matching fact is emitted with its amount where there is one and the
-   reference of the thing it is about.
-7. **Given** a fact of any kind, **When** a reader inspects it, **Then** it holds no name, address,
-   email, date of birth, document or other personal field, and no `Personal` value.
+- added `features/attribution/facts.feature`: a player's first captured deposit emits a first-deposit fact and a deposit fact, the first once in the player's life
+- added `features/attribution/facts.feature`: a later captured deposit emits only a deposit fact
+- added `features/attribution/facts.feature`: one daily GGR fact is emitted per player when the brand's reporting day closes
+- added `features/attribution/facts.feature`: a round of a closed day that settles after the close emits a GGR adjustment for that day
+- added `features/attribution/facts.feature`: a brand with the round stream turned on emits a round fact at settlement and the daily fact at the close
+- added `features/attribution/facts.feature`: what happens to an attributed player's money is emitted as the matching fact with its amount and reference
+- added `features/attribution/closure.feature`: closing, permanently self-excluding or erasing an attributed player emits one player-closed fact with a category and no reason
+- added `features/attribution/facts.feature`: no fact carries a personal field
 
 ---
 
@@ -257,20 +215,11 @@ land with all three kinds of token.
 
 **Acceptance Scenarios**:
 
-1. **Given** a network the brand's operator has added with the address of its key document,
-   **When** the brand first sees a token naming a key id it does not hold, **Then** it fetches the
-   document, caches the keys for the time the document states, and verifies the token.
-2. **Given** a token signed with a key the network has withdrawn from its document, **When** a
-   visitor lands with it after the brand's cache has refreshed, **Then** the tag is refused and the
-   reason is kept.
-3. **Given** a bare UUID `btag` that the programme's legacy tag document lists, **When** a visitor
-   lands with it during the transition period, **Then** it is treated as a token from eitheror's own
-   programme for that link's affiliate, with no sub-ids.
-4. **Given** the transition period has ended, **When** a visitor lands with a bare UUID, **Then**
-   the tag is refused as legacy and the player is organic.
-5. **Given** a network the operator has removed from the brand, **When** a visitor lands with its
-   token, **Then** the tag is refused as unknown, and facts already emitted for its affiliates are
-   unchanged.
+- added `features/attribution/networks.feature`: a tag naming a signing key the brand does not hold makes the brand fetch and cache the network's key document
+- added `features/attribution/networks.feature`: a tag signed with a key the network has withdrawn is refused once the brand's cache has refreshed
+- added `features/attribution/networks.feature`: a legacy tag the programme's legacy tag document lists is treated as the programme's tag during the transition period
+- added `features/attribution/networks.feature`: a legacy tag after the transition period is refused and the player is organic
+- added `features/attribution/networks.feature`: a tag from a network the operator removed is refused and facts already emitted are unchanged
 
 ---
 
@@ -288,12 +237,9 @@ message the reverse channel does not define.
 
 **Acceptance Scenarios**:
 
-1. **Given** a network's revocation list names a link, **When** the brand refreshes it, **Then** a
-   token for that link binds no new player from then on, and players already bound stay bound.
-2. **Given** a network's revocation list names a whole affiliate, **When** the brand refreshes it,
-   **Then** every token naming that affiliate is refused for new bindings.
-3. **Given** anything else a network sends to the brand, **When** it arrives, **Then** it is
-   refused: the reverse channel carries keys and revocations and nothing more.
+- added `features/attribution/networks.feature`: a revoked link binds no new player and players already bound stay bound
+- added `features/attribution/networks.feature`: a revoked affiliate has every tag naming them refused for new bindings
+- added `features/attribution/networks.feature`: anything but signing keys and revocations from a network is refused
 
 ---
 
@@ -310,14 +256,9 @@ attribution record.
 
 **Acceptance Scenarios**:
 
-1. **Given** an attributed player, **When** their account is closed, self-excluded permanently or
-   erased, **Then** one closed-player fact is emitted with the category `closed` or
-   `self-excluded` and never a reason text.
-2. **Given** an erased player, **When** the brand's attribution record is read, **Then** the
-   binding (network, affiliate, link, sub-ids, click, pseudonym, dates) remains and every
-   `Personal` field of the player reads as erased.
-3. **Given** facts already emitted about an erased player, **When** a reader reads them again,
-   **Then** they are unchanged.
+- added `features/attribution/closure.feature`: closing, permanently self-excluding or erasing an attributed player emits one player-closed fact with a category and no reason
+- added `features/attribution/closure.feature`: an erased player's attribution record keeps its binding and every personal field reads as erased
+- added `features/attribution/closure.feature`: facts already emitted about an erased player are unchanged
 
 ---
 

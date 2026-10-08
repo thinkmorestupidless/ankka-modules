@@ -97,32 +97,16 @@ entity's handlers directly.
 
 **Acceptance Scenarios**:
 
-1. **Given** a wallet with real balance 10,000 and no restricted funds, **When** a bet of 1,000 is
-   placed for round "r1", **Then** real balance is 9,000, the bet transaction records a real leg of
-   1,000 and no record legs, its wallet type is "real", and round "r1" is open.
-2. **Given** round "r1" open with a bet of 1,000, **When** a win of 2,500 is credited for "r1",
-   **Then** real balance rises by 2,500, the bet is settled, "r1" is no longer open, and the win's
-   wallet type mirrors the bet's.
-3. **Given** round "r1" open with a bet of 1,000, **When** the bet is rolled back, **Then** real
-   balance rises by 1,000, the bet is voided, "r1" is no longer open, and deposit turnover pending
-   is not restored.
-4. **Given** round "r1" open, **When** the round is settled as a loss, **Then** no balance changes,
-   the bet is marked loss, and "r1" is no longer open.
-5. **Given** a wallet with real balance 500, **When** a bet of 1,000 is placed, **Then** it is refused
-   as `INSUFFICIENT_FUNDS` with the message "Insufficient funds in real and bonus wallets", no
-   transaction is written, and no round opens.
-6. **Given** a wallet with real balance 0, **When** a correction debit of 1,000 is placed with
-   allow-negative, **Then** real balance is −1,000, the bet is funded entirely from real, and no
-   wagering contribution is recorded.
-7. **Given** a wallet with real balance 50,000, **When** a bet of 50,000 is placed and a win of
-   500,000 is credited, **Then** real balance is 500,000 (the #662 case: no overflow, no negative
-   credit).
-8. **Given** round "r1" open with a bet of 1,000, **When** a win is credited twice for "r1" under the
-   same key, **Then** the second call returns the first call's balances and writes nothing.
-9. **Given** no open bet for round "r9", **When** a win is credited for "r9", **Then** it is refused
-   as `ROUND_NOT_FOUND`.
-10. **Given** a bet of 0 for round "r0", **When** it is placed, **Then** it is accepted, funds
-    nothing, and opens the round.
+- added `features/wallet/bets.feature`: a bet funded from real balance alone opens its round with one real leg
+- added `features/wallet/bets.feature`: a win settles the bet and closes the round
+- added `features/wallet/bets.feature`: a rollback restores the stake, voids the bet and closes the round
+- added `features/wallet/bets.feature`: settling a round as a loss moves no money and closes the round
+- added `features/wallet/bets.feature`: a bet the wallet cannot fund is refused and opens no round
+- added `features/wallet/bets.feature`: a correction debit that allows a negative balance is funded from real balance with no contribution
+- added `features/wallet/bets.feature`: a large win on a large stake is credited exactly
+- added `features/wallet/bets.feature`: a win credited twice under the same key returns the first balances and writes nothing
+- added `features/wallet/bets.feature`: a win for a round with no open bet is refused
+- added `features/wallet/bets.feature`: a bet of zero is accepted, funds nothing and opens its round
 
 ---
 
@@ -149,51 +133,29 @@ point of porting the wallet first.
 
 **Acceptance Scenarios**:
 
-1. **Given** a wallet with real balance 0, **When** a bonus of 2,000 with wagering multiplier 10 is
-   awarded, **Then** restricted balance is 2,000, one record is open and active with release
-   requirement 20,000 and released progress 0, and a `bonus_credit` transaction is written.
-2. **Given** an active record of 2,000 and real balance 1,000 under funding order `real_first`
-   with partial splits on, **When** a bet of 1,500 is placed, **Then** the real leg is 1,000, the
-   record leg is 500, the bet's wallet type is "split", and the record's open round count is 1.
-3. **Given** the same wallet with partial splits off, **When** a bet of 1,500 is placed, **Then**
-   the record funds all 1,500 (real cannot cover it alone, the record can), and the wallet type is
-   "bonus".
-4. **Given** two active records A (priority 0) and B (priority 1), **When** a bet larger than A's
-   balance is funded from records, **Then** A is drawn to zero first and B funds the remainder.
-5. **Given** an active record with release requirement 20,000 and released progress 19,500 at
-   contribution rate 100, **When** a real-funded bet of 1,000 is placed, **Then** the record converts:
-   its balance is credited to real, it becomes `CONVERTED_PENDING_CAP` with remaining allowance set
-   to its maximum convertible amount, and the bet reports the conversion.
-6. **Given** a bet funded 50/50 from real and a record under win allocation `follow_source`,
-   **When** a win of 1,001 is credited, **Then** real receives 500 and the record 501 (the last
-   record leg absorbs the rounding remainder), and open round count falls by one.
-7. **Given** a bet funded partly from a record that has since converted, **When** its win is
-   credited, **Then** the record's share is paid to real, not to the converted record.
-8. **Given** an active record whose scope excludes the bet's game with violation mode `block`,
-   **When** a bet is placed on that game, **Then** it is refused as `SCOPE_BLOCKED`.
-9. **Given** an active record with maximum stake 500 enforced as `cap`, **When** a bet of 800 is
-   placed, **Then** the bet is funded in full and its contribution base is 500.
-10. **Given** an active record with maximum stake 500 enforced as `block`, **When** a bet of 800 is
-    placed, **Then** it is refused as `MAX_STAKE_EXCEEDED`.
-11. **Given** an active record of balance 0 with one open round, **When** that round settles as a
-    loss, **Then** the record is forfeited automatically and restricted balance is reported as 0.
-12. **Given** an active record, **When** rewards forfeits it, **Then** its balance is 0, it is
-    `FORFEITED`, and a second forfeit is refused as `NO_ACTIVE_BONUS`.
-13. **Given** an active record and real balance 300, **When** rewards cancels it with a clawback of
-    500, **Then** the record is forfeited, the clawback applied is 300 (clamped to real), and real
-    balance is 0.
-14. **Given** no active record, **When** rewards cancels with a clawback, **Then** no record changes,
-    the clawback clamp still applies to real, and a `bonus_cancel` transaction is written.
-15. **Given** a `CONVERTED_PENDING_CAP` record, **When** rewards closes the pending cap, **Then** it
-    is `CLOSED` and no balance changes; with none pending the call is refused as `NOT_PENDING_CAP`.
-16. **Given** active records A (primary) and B, **When** rewards switches to B's grant, **Then** B
-    sorts first on the next bet; switching to a grant that is not active is refused as
-    `GRANT_NOT_ACTIVE`, and to an unknown grant as `GRANT_NOT_FOUND`.
-17. **Given** a brand limit of one concurrent grant and one active record, **When** a second award
-    arrives, **Then** it is refused as `BONUS_ALREADY_ACTIVE`; with no limit set it is accepted.
-18. **Given** a restricted balance with no open record (an unmigrated wallet), **When** any bet-path
-    command runs, **Then** it is refused as `RESTRICTED_FUNDS_UNMIGRATED` rather than funded from
-    real alone.
+- added `features/wallet/restricted-funds.feature`: an award creates an active restricted funds record with its wagering requirement
+- added `features/wallet/restricted-funds.feature`: under real first funding with partial splits on, a bet real balance cannot cover alone is split
+- added `features/wallet/restricted-funds.feature`: under real first funding with partial splits off, a bet real balance cannot cover alone is funded from the record in full
+- added `features/wallet/restricted-funds.feature`: records fund a bet in priority order, the first drawn to zero before the next
+- added `features/wallet/restricted-funds.feature`: a record whose release progress meets its wagering requirement converts on the bet that completes it
+- added `features/wallet/restricted-funds.feature`: a win follows its source, with the last restricted funds leg absorbing the rounding remainder
+- added `features/wallet/restricted-funds.feature`: a win's share for a record that has since converted is paid to real balance
+- added `features/wallet/restricted-funds.feature`: a bet on a game a record's scope excludes with violation mode block is refused
+- added `features/wallet/restricted-funds.feature`: a bet above a maximum stake enforced as cap is funded in full with its contribution base capped
+- added `features/wallet/restricted-funds.feature`: a bet above a maximum stake enforced as block is refused
+- added `features/wallet/restricted-funds.feature`: a record at zero balance is forfeited when its last open round settles as a loss
+- added `features/wallet/restricted-funds.feature`: forfeiting an active record zeroes it and closes it as forfeited
+- added `features/wallet/restricted-funds.feature`: forfeiting when no record is active is refused
+- added `features/wallet/restricted-funds.feature`: cancelling an award forfeits its record and applies the clawback clamped to real balance
+- added `features/wallet/restricted-funds.feature`: cancelling with no active record still applies the clawback to real balance
+- added `features/wallet/restricted-funds.feature`: closing the pending cap of a converted record closes it with no balance change
+- added `features/wallet/restricted-funds.feature`: closing a pending cap when no record awaits one is refused
+- added `features/wallet/restricted-funds.feature`: making another active award primary makes its record sort first on the next bet
+- added `features/wallet/restricted-funds.feature`: making an award that is not active primary is refused
+- added `features/wallet/restricted-funds.feature`: making an unknown award primary is refused
+- added `features/wallet/restricted-funds.feature`: a second award is refused when the brand allows one concurrent award
+- added `features/wallet/restricted-funds.feature`: a second award is accepted when the brand sets no limit on concurrent awards
+- added `features/wallet/restricted-funds.feature`: a wallet with a restricted balance and no open record refuses every bet-path command
 
 ---
 
@@ -213,20 +175,14 @@ call across a 040 grant keyed by the payment id, and double credit is the failur
 
 **Acceptance Scenarios**:
 
-1. **Given** a wallet with real balance 0, **When** a deposit of 5,000 under payment reference "p1"
-   with turnover multiplier 1 is confirmed, **Then** real balance is 5,000, a deposit record holds
-   required turnover 5,000 and status `PENDING`, and deposit turnover pending is 5,000.
-2. **Given** "p1" confirmed, **When** a deposit under "p1" arrives again, **Then** the balances are
-   returned unchanged and no transaction is written.
-3. **Given** turnover multiplier 0, **When** a deposit is confirmed, **Then** its record is `CLEARED`
-   and turnover pending does not change.
-4. **Given** turnover pending 5,000, **When** a bet with a real leg of 2,000 is placed, **Then**
-   turnover pending is 3,000; a bet funded only from records leaves it unchanged; a rollback does
-   not restore it.
-5. **Given** a `CONVERTED_PENDING_CAP` record with deposits since release 0, **When** a deposit of
-   1,000 is confirmed, **Then** that record's deposits since release is 1,000.
-6. **Given** a wallet that does not exist for the currency, **When** a deposit arrives, **Then** the
-   wallet is created with that deposit (a wallet is `player/currency`; a first touch creates it).
+- added `features/wallet/deposits.feature`: a confirmed deposit credits real balance and records its required turnover
+- added `features/wallet/deposits.feature`: a deposit confirmed again under the same payment reference moves nothing
+- added `features/wallet/deposits.feature`: a deposit with a turnover multiplier of zero is cleared at once
+- added `features/wallet/deposits.feature`: a bet's real leg reduces deposit turnover pending
+- added `features/wallet/deposits.feature`: a bet funded only from restricted funds leaves deposit turnover pending unchanged
+- added `features/wallet/deposits.feature`: a rollback does not restore deposit turnover pending
+- added `features/wallet/deposits.feature`: a deposit while a converted record awaits its cap advances that record's deposits since conversion
+- added `features/wallet/deposits.feature`: a first deposit in a currency creates the wallet for that currency
 
 ---
 
@@ -248,35 +204,19 @@ fail and reverse handlers' `.test.tl` fixtures.
 
 **Acceptance Scenarios**:
 
-1. **Given** real balance 10,000, no grants and no turnover pending, **When** a hold of 4,000 is
-   placed for request "w1", **Then** real balance is 6,000, "w1" is the pending request, and a
-   withdrawal transaction of 4,000 is written.
-2. **Given** "w1" pending, **When** a second hold is placed, **Then** it is refused as
-   `WITHDRAWAL_REQUEST_ALREADY_PENDING`.
-3. **Given** real balance 3,000, **When** a hold of 4,000 is placed, **Then** it is refused as
-   `INSUFFICIENT_FUNDS` with the message "Insufficient real balance for withdrawal".
-4. **Given** deposit turnover pending 1, **When** a hold is placed, **Then** it is refused as
-   `WITHDRAWAL_BLOCKED_TURNOVER`.
-5. **Given** an active record of 2,000 under policy `funds_and_winnings` and a clawback of 1,500
-   computed for it, **When** a hold of 4,000 is placed on real balance 5,000, **Then** the record is
-   forfeited, the clawback of 1,500 is applied once, and it is refused as
-   `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT` because 3,500 is less than 4,000.
-6. **Given** two active records under policies `funds` and `none`, **When** a hold is placed,
-   **Then** the first is forfeited with no clawback, the second is untouched, and the hold
-   requires the player's confirmation (a record under any policy but `none` was open).
-7. **Given** a record under `cancel_promotion`, **When** a hold is placed, **Then** the record is
-   forfeited and its grant is reported for cancellation with reason "withdrawal".
-8. **Given** a `CONVERTED_PENDING_CAP` record with deposits since release 1,000 and remaining
-   allowance 2,000, **When** a hold of 4,000 is placed, **Then** 1,000 is drawn from deposits, 2,000
-   from the allowance, 1,000 is voided as `bonus_cap_void`, the paid amount is 3,000, real is
-   debited by the full 4,000, and the record closes because its allowance is exhausted.
-9. **Given** "w1" held for 4,000, **When** it is released as cancelled, rejected or failed, **Then**
-   real balance rises by 4,000 as a `withdrawal_return`, and no request is pending.
-10. **Given** "w1" held, **When** it is confirmed, **Then** no balance changes and no request is
-    pending; **When** it is then reversed, **Then** real balance rises by 4,000; a second reversal
-    returns the first outcome.
-11. **Given** "w1" not the pending request, **When** a release or confirmation names it, **Then** it
-    is refused as `REQUEST_NOT_PENDING`.
+- added `features/wallet/withdrawals.feature`: a hold takes the amount out of real balance and records the pending request
+- added `features/wallet/withdrawals.feature`: a second hold while a request is pending is refused
+- added `features/wallet/withdrawals.feature`: a hold above real balance is refused
+- added `features/wallet/withdrawals.feature`: a hold while deposit turnover is pending is refused
+- added `features/wallet/withdrawals.feature`: a hold forfeits an award under a funds and winnings policy, applies its clawback once, and is refused when real balance is then short
+- added `features/wallet/withdrawals.feature`: a hold forfeits a record under a funds policy without clawback, leaves a record under no policy untouched, and requires the player's confirmation
+- added `features/wallet/withdrawals.feature`: a hold forfeits a record under a cancel promotion policy and reports its award for cancellation
+- added `features/wallet/withdrawals.feature`: a hold draws down a converted record's cap, voids the excess and closes the record when its allowance is exhausted
+- added `features/wallet/withdrawals.feature`: a release returns the held amount and clears the pending request
+- added `features/wallet/withdrawals.feature`: a confirmation clears the pending request with no money movement
+- added `features/wallet/withdrawals.feature`: a reversal after confirmation returns the amount
+- added `features/wallet/withdrawals.feature`: a second reversal returns the first outcome
+- added `features/wallet/withdrawals.feature`: a release or confirmation naming a request that is not the pending one is refused
 
 ---
 
@@ -292,21 +232,15 @@ and `TestScenario15_St8Wallet_StandaloneCredit`.
 
 **Acceptance Scenarios**:
 
-1. **Given** real balance 1,000, **When** an operator credits 500 with reason "goodwill", **Then**
-   real balance is 1,500 and an `admin_adjust` transaction carries the reason and the actor.
-2. **Given** real balance 1,000, **When** an operator debits 1,500, **Then** it is refused as
-   `DEBIT_EXCEEDS_BALANCE` naming both amounts.
-3. **Given** no reason, **When** an adjustment is requested, **Then** it is refused as
-   `REASON_REQUIRED`.
-4. **Given** an active record of 800, **When** an operator debits 800 from restricted balance and
-   the record has no open round, **Then** the record is forfeited and restricted balance is 0; a
-   debit of 300 leaves it active at 500.
-5. **Given** no active record, **When** an operator adjusts restricted balance, **Then** it is
-   refused as `NO_OPEN_RESTRICTED_FUNDS`.
-6. **Given** an active record, **When** a provider credit of 700 arrives, **Then** the record's
-   balance rises by 700; with no active record, real rises by 700.
-7. **Given** any adjustment, **When** deposit totals, GGR or deposit-limit usage are computed,
-   **Then** `admin_adjust` transactions are not counted as deposits.
+- added `features/wallet/adjustments.feature`: an operator's credit to real balance carries its reason and actor
+- added `features/wallet/adjustments.feature`: an operator's debit above real balance is refused naming both amounts
+- added `features/wallet/adjustments.feature`: an adjustment without a reason is refused
+- added `features/wallet/adjustments.feature`: an operator's debit that leaves a record at zero with no open round forfeits it
+- added `features/wallet/adjustments.feature`: an operator's debit that leaves a record above zero leaves it active
+- added `features/wallet/adjustments.feature`: an adjustment to restricted funds with no active record is refused
+- added `features/wallet/adjustments.feature`: a provider credit lands on the primary active record
+- added `features/wallet/adjustments.feature`: a provider credit with no active record lands on real balance
+- added `features/wallet/adjustments.feature`: an adjustment is never counted as a deposit
 
 ---
 
@@ -320,17 +254,10 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
 
 **Acceptance Scenarios**:
 
-1. **Given** a wallet, **When** its balance is read, **Then** real balance, restricted balance
-   (the sum of open records' balances), currency and, when a record is active, its status,
-   wagering requirement, wagered amount and progress are returned, as major-unit strings.
-2. **Given** open records, **When** restricted-funds status is read, **Then** every open record is
-   listed in resolver order with its balance, requirement, progress, cap fields, priority and
-   withdrawal policy, and the primary record's view is the headline.
-3. **Given** transactions, **When** they are listed by type, wallet type, date range and page,
-   **Then** each row carries type, wallet type, amount, balance before and after, currency,
-   status, payment reference, round, bonus reference, reason, terminal, PSP and created time.
-4. **Given** transactions, **When** a sum by type over a date range is asked, **Then** the total and
-   count are returned; lifetime totals report deposited, wagered and won.
+- added `features/wallet/reads.feature`: a balance read returns real balance, restricted balance, currency and the primary record's progress
+- added `features/wallet/reads.feature`: a restricted funds status read lists every open record in order with the primary record's view as the headline
+- added `features/wallet/reads.feature`: transactions are listed by type, wallet type, date range and page with every field of the row
+- added `features/wallet/reads.feature`: a sum by type over a date range returns the total and the count, and lifetime totals report deposited, wagered and won
 
 ---
 
