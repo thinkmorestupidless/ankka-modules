@@ -1,0 +1,10 @@
+target/
+.bsp/
+.metals/
+.bloop/
+node_modules/
+.venv/
+__pycache__/
+.DS_Store
+.claude/settings.local.json
+.claude/worktrees/
