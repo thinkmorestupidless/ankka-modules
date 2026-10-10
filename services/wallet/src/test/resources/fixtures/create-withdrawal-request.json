@@ -1,0 +1,2210 @@
+{
+  "handler" : "create-withdrawal-request",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/create-withdrawal-request.test.tl",
+  "cases" : [ {
+    "name" : "happy path — creates withdrawal request and deducts balance",
+    "line" : 32,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "wallet_ref" : "wallet/test1",
+        "player_ref" : "p1",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "real_balance" : 400,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "wallet_ref" : "wallet/test1",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "amount" : 100,
+          "currency" : "GBP",
+          "terminal_id" : "t1",
+          "psp_id" : "dreamzpay",
+          "status" : "PENDING_REVIEW",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "wallet_type" : "real",
+          "amount" : 100,
+          "balance_before" : 500,
+          "balance_after" : 400,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminalId" : "t1",
+        "createdAt" : "2026-06-15T10:00:00Z",
+        "voidedAmount" : 0,
+        "bonus_closed" : "false",
+        "bonusForfeited" : "false",
+        "forfeitedAmount" : 0,
+        "clawbackAmount" : 0,
+        "forfeited_records" : "",
+        "closed_records" : "",
+        "cancel_grants" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 7
+    }
+  }, {
+    "name" : "error — INSUFFICIENT_FUNDS when balance < amount",
+    "line" : 66,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 50,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "wallet_ref" : "wallet/test2",
+        "player_ref" : "p2",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "INSUFFICIENT_FUNDS",
+        "message" : "Insufficient real balance for withdrawal"
+      }
+    }
+  }, {
+    "name" : "error — WITHDRAWAL_REQUEST_ALREADY_PENDING when existing request",
+    "line" : 92,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500,
+      "restricted_balance" : 0,
+      "pending_withdrawal_request_ref" : "withdrawal-request/existing-123",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "wallet_ref" : "wallet/test3",
+        "player_ref" : "p3",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "WITHDRAWAL_REQUEST_ALREADY_PENDING",
+        "message" : "A withdrawal request is already pending review"
+      }
+    }
+  }, {
+    "name" : "error — WITHDRAWAL_BLOCKED_TURNOVER when pending turnover exists",
+    "line" : 119,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 200,
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "wallet_ref" : "wallet/test4",
+        "player_ref" : "p4",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "WITHDRAWAL_BLOCKED_TURNOVER",
+        "message" : "Deposit turnover requirements not yet met"
+      }
+    }
+  }, {
+    "name" : "withdrawal cap — worked example: deposits drawn first, cap exhausted, record closes",
+    "line" : 151,
+    "given" : [ {
+      "id" : "wallet/cap1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 350,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/cap1|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pcap1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/cap1",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap1",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 200,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 350,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-08-23T10:00:00Z",
+        "wallet_ref" : "wallet/cap1",
+        "player_ref" : "pcap1",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap1",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "closed_at" : "2026-08-23T10:00:00Z",
+          "updated_at" : "2026-08-23T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/cap1",
+        "properties" : {
+          "real_balance" : 0,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 300,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/cap1",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "wallet_type" : "real",
+          "amount" : 300,
+          "balance_before" : 350,
+          "balance_after" : 0,
+          "status" : "settled"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/cap1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 8,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cap_void",
+          "wallet_type" : "real",
+          "amount" : 50,
+          "balance_before" : 350,
+          "balance_after" : 0,
+          "currency" : "GBP",
+          "status" : "voided",
+          "player_ref" : "pcap1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-08-23T10:00:00Z"
+        }
+      }, {
+        "index" : 9,
+        "op" : "add_concept",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 10,
+        "op" : "add_edge",
+        "target" : "wallet/cap1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 300,
+        "voidedAmount" : 50,
+        "currency" : "GBP",
+        "bonus_closed" : "true",
+        "closed_records" : "|restricted-funds/cap1|",
+        "forfeited_records" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 11
+    }
+  }, {
+    "name" : "withdrawal cap — request within the cap pays out in full, record stays open",
+    "line" : 205,
+    "given" : [ {
+      "id" : "wallet/cap2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 350,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/cap2|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pcap2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/cap2",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap2",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 200,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 150,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-08-23T10:00:00Z",
+        "wallet_ref" : "wallet/cap2",
+        "player_ref" : "pcap2",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap2",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0,
+          "remaining_allowance" : 100,
+          "deposits_since_release" : 50,
+          "updated_at" : "2026-08-23T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/cap2",
+        "properties" : {
+          "real_balance" : 200,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : "restricted-funds/cap2|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 150,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/cap2",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 150,
+          "balance_before" : 350,
+          "balance_after" : 200
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/cap2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 150,
+        "voidedAmount" : 0,
+        "currency" : "GBP",
+        "bonus_closed" : "false",
+        "closed_records" : ""
+      },
+      "error" : null,
+      "mutation_count" : 8
+    }
+  }, {
+    "name" : "withdrawal cap — request beyond deposits draws down remaining_allowance partially, no closure",
+    "line" : 256,
+    "given" : [ {
+      "id" : "wallet/cap3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 350,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/cap3|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pcap3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/cap3",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap3",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 200,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 250,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-08-23T10:00:00Z",
+        "wallet_ref" : "wallet/cap3",
+        "player_ref" : "pcap3",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap3",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "remaining_allowance" : 50,
+          "deposits_since_release" : 0,
+          "updated_at" : "2026-08-23T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/cap3",
+        "properties" : {
+          "real_balance" : 100,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : "restricted-funds/cap3|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 250,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 250,
+          "balance_before" : 350,
+          "balance_after" : 100
+        }
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 250,
+        "voidedAmount" : 0,
+        "currency" : "GBP",
+        "bonus_closed" : "false"
+      },
+      "error" : null,
+      "mutation_count" : 8
+    }
+  }, {
+    "name" : "withdrawal cap — closure trigger: real_balance reaching zero closes the record even with allowance left",
+    "line" : 304,
+    "given" : [ {
+      "id" : "wallet/cap4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/cap4|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pcap4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/cap4",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap4",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 500,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-08-23T10:00:00Z",
+        "wallet_ref" : "wallet/cap4",
+        "player_ref" : "pcap4",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap4",
+        "properties" : {
+          "status" : "CLOSED",
+          "remaining_allowance" : 400,
+          "deposits_since_release" : 0,
+          "closed_at" : "2026-08-23T10:00:00Z",
+          "updated_at" : "2026-08-23T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/cap4",
+        "properties" : {
+          "real_balance" : 0,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 100,
+          "balance_before" : 100,
+          "balance_after" : 0
+        }
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "voidedAmount" : 0,
+        "currency" : "GBP",
+        "bonus_closed" : "true",
+        "closed_records" : "|restricted-funds/cap4|"
+      },
+      "error" : null,
+      "mutation_count" : 8
+    }
+  }, {
+    "name" : "ACTIVE bonus — forfeits the record in full and marks it FORFEITED",
+    "line" : 354,
+    "given" : [ {
+      "id" : "wallet/test6",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500,
+      "restricted_balance" : 75,
+      "open_restricted_funds_refs" : "restricted-funds/rf6|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p6",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf6",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g6",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 75,
+      "release_requirement" : 1000,
+      "released_progress" : 250,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/test6",
+        "player_ref" : "p6",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 0
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf6",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "release_requirement" : 1000,
+          "released_progress" : 250,
+          "max_convertible_amount" : 1000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z",
+          "updated_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test6",
+        "properties" : {
+          "real_balance" : 400,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "wallet_ref" : "wallet/test6",
+          "player_ref" : "p6",
+          "brand_ref" : "testbrand",
+          "amount" : 100,
+          "currency" : "GBP",
+          "terminal_id" : "t1",
+          "psp_id" : "dreamzpay",
+          "status" : "PENDING_REVIEW",
+          "created_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test6",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "wallet_type" : "real",
+          "amount" : 100,
+          "balance_before" : 500,
+          "balance_after" : 400,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p6",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test6",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 8,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : 75,
+          "balance_before" : 75,
+          "balance_after" : 0,
+          "clawback_amount" : 0,
+          "real_balance_before" : 500,
+          "real_balance_after" : 500,
+          "currency" : "GBP",
+          "status" : "voided",
+          "player_ref" : "p6",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 9,
+        "op" : "add_concept",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 10,
+        "op" : "add_edge",
+        "target" : "wallet/test6",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminalId" : "t1",
+        "createdAt" : "2026-09-01T10:00:00Z",
+        "bonusForfeited" : "true",
+        "forfeitedAmount" : 75,
+        "clawbackAmount" : 0,
+        "bonus_closed" : "true",
+        "forfeited_records" : "|restricted-funds/rf6|",
+        "closed_records" : "|restricted-funds/rf6|",
+        "cancel_grants" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 11
+    }
+  }, {
+    "name" : "ACTIVE bonus with clawback — forfeits the record AND claws back winnings from real_balance",
+    "line" : 414,
+    "given" : [ {
+      "id" : "wallet/test7",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1000,
+      "restricted_balance" : 100,
+      "open_restricted_funds_refs" : "restricted-funds/rf7|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p7",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf7",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g7",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 100,
+      "release_requirement" : 1000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 50,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/test7",
+        "player_ref" : "p7",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 900
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf7",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test7",
+        "properties" : {
+          "real_balance" : 50,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 50,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test7",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "wallet_type" : "real",
+          "amount" : 50,
+          "balance_before" : 100,
+          "balance_after" : 50,
+          "currency" : "GBP",
+          "status" : "settled"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test7",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 8,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : 100,
+          "balance_before" : 100,
+          "balance_after" : 0,
+          "clawback_amount" : 900,
+          "real_balance_before" : 1000,
+          "real_balance_after" : 100,
+          "currency" : "GBP",
+          "status" : "voided"
+        }
+      }, {
+        "index" : 9,
+        "op" : "add_concept",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 10,
+        "op" : "add_edge",
+        "target" : "wallet/test7",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 50,
+        "currency" : "GBP",
+        "terminalId" : "t1",
+        "createdAt" : "2026-09-01T10:00:00Z",
+        "bonusForfeited" : "true",
+        "forfeitedAmount" : 100,
+        "clawbackAmount" : 900,
+        "forfeited_records" : "|restricted-funds/rf7|",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 11
+    }
+  }, {
+    "name" : "error — WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT when clawback leaves too little to withdraw",
+    "line" : 482,
+    "given" : [ {
+      "id" : "wallet/test8",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 200,
+      "restricted_balance" : 50,
+      "open_restricted_funds_refs" : "restricted-funds/rf8|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p8",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf8",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g8",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 50,
+      "release_requirement" : 1000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/test8",
+        "player_ref" : "p8",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 150
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT",
+        "message" : "insufficient real balance after bonus forfeiture"
+      }
+    }
+  }, {
+    "name" : "happy path — destination_id stored on withdrawal-request twin",
+    "line" : 525,
+    "given" : [ {
+      "id" : "wallet/test5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 200,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p5",
+      "brand_id" : "testbrand",
+      "currency" : "EUR"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "EUR",
+        "terminal_id" : "terminal/uf-eubanking-1",
+        "psp_id" : "",
+        "destination_id" : "payout-destination/dest1",
+        "created_at" : "2026-07-31T10:00:00Z",
+        "wallet_ref" : "wallet/test5",
+        "player_ref" : "p5",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test5",
+        "properties" : {
+          "real_balance" : 100
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "wallet_ref" : "wallet/test5",
+          "player_ref" : "p5",
+          "brand_ref" : "testbrand",
+          "amount" : 100,
+          "currency" : "EUR",
+          "terminal_id" : "terminal/uf-eubanking-1",
+          "psp_id" : "",
+          "destination_id" : "payout-destination/dest1",
+          "status" : "PENDING_REVIEW",
+          "created_at" : "2026-07-31T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test5",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "wallet_type" : "real",
+          "amount" : 100,
+          "balance_before" : 200,
+          "balance_after" : 100,
+          "currency" : "EUR",
+          "status" : "settled",
+          "player_ref" : "p5",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-07-31T10:00:00Z"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test5",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "currency" : "EUR",
+        "terminalId" : "terminal/uf-eubanking-1",
+        "createdAt" : "2026-07-31T10:00:00Z"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "forfeit_on_withdrawal none — withdrawal proceeds, the record is untouched and still ACTIVE",
+    "line" : 564,
+    "given" : [ {
+      "id" : "wallet/pol-none",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500,
+      "restricted_balance" : 75,
+      "open_restricted_funds_refs" : "restricted-funds/rf-none|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pnone",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-none",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g-none",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 75,
+      "release_requirement" : 1000,
+      "released_progress" : 250,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "forfeit_on_withdrawal" : "none"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/pol-none",
+        "player_ref" : "pnone",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 300
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pol-none",
+        "properties" : {
+          "real_balance" : 400,
+          "restricted_balance" : 75,
+          "open_restricted_funds_refs" : "restricted-funds/rf-none|"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 100,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/pol-none",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 100,
+          "balance_before" : 500,
+          "balance_after" : 400
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/pol-none",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "bonusForfeited" : "false",
+        "forfeitedAmount" : 0,
+        "clawbackAmount" : 0,
+        "bonus_closed" : "false",
+        "forfeited_records" : "",
+        "closed_records" : "",
+        "cancel_grants" : "",
+        "restricted_balance" : 75
+      },
+      "error" : null,
+      "mutation_count" : 7
+    }
+  }, {
+    "name" : "forfeit_on_withdrawal funds — the record is forfeited, nothing is clawed back from real",
+    "line" : 619,
+    "given" : [ {
+      "id" : "wallet/pol-funds",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1000,
+      "restricted_balance" : 75,
+      "open_restricted_funds_refs" : "restricted-funds/rf-funds|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pfunds",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-funds",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g-funds",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 75,
+      "release_requirement" : 1000,
+      "released_progress" : 250,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "forfeit_on_withdrawal" : "funds"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/pol-funds",
+        "player_ref" : "pfunds",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 900
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-funds",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z",
+          "updated_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/pol-funds",
+        "properties" : {
+          "real_balance" : 900,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 100,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/pol-funds",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 100,
+          "balance_before" : 1000,
+          "balance_after" : 900
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/pol-funds",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 8,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : 75,
+          "balance_before" : 75,
+          "balance_after" : 0,
+          "clawback_amount" : 0,
+          "real_balance_before" : 1000,
+          "real_balance_after" : 1000,
+          "status" : "voided"
+        }
+      }, {
+        "index" : 9,
+        "op" : "add_concept",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 10,
+        "op" : "add_edge",
+        "target" : "wallet/pol-funds",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "bonusForfeited" : "true",
+        "forfeitedAmount" : 75,
+        "clawbackAmount" : 0,
+        "bonus_closed" : "true",
+        "forfeited_records" : "|restricted-funds/rf-funds|",
+        "closed_records" : "|restricted-funds/rf-funds|",
+        "cancel_grants" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 11
+    }
+  }, {
+    "name" : "forfeit_on_withdrawal funds_and_winnings — forfeited and the clawback applies, as unset",
+    "line" : 677,
+    "given" : [ {
+      "id" : "wallet/pol-faw",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1000,
+      "restricted_balance" : 75,
+      "open_restricted_funds_refs" : "restricted-funds/rf-faw|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pfaw",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-faw",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g-faw",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 75,
+      "release_requirement" : 1000,
+      "released_progress" : 250,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "forfeit_on_withdrawal" : "funds_and_winnings"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/pol-faw",
+        "player_ref" : "pfaw",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 100
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-faw",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/pol-faw",
+        "properties" : {
+          "real_balance" : 800,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 100,
+          "balance_before" : 900,
+          "balance_after" : 800
+        }
+      }, {
+        "index" : 8,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "amount" : 75,
+          "clawback_amount" : 100,
+          "real_balance_before" : 1000,
+          "real_balance_after" : 900,
+          "status" : "voided"
+        }
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "bonusForfeited" : "true",
+        "forfeitedAmount" : 75,
+        "clawbackAmount" : 100,
+        "forfeited_records" : "|restricted-funds/rf-faw|",
+        "cancel_grants" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 11
+    }
+  }, {
+    "name" : "forfeit_on_withdrawal cancel_promotion — forfeited with clawback and cancel_grants names the grant",
+    "line" : 728,
+    "given" : [ {
+      "id" : "wallet/pol-cp",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1000,
+      "restricted_balance" : 75,
+      "open_restricted_funds_refs" : "restricted-funds/rf-cp|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pcp",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-cp",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g-cp",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 75,
+      "release_requirement" : 1000,
+      "released_progress" : 250,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "forfeit_on_withdrawal" : "cancel_promotion"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/pol-cp",
+        "player_ref" : "pcp",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 100
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-cp",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/pol-cp",
+        "properties" : {
+          "real_balance" : 800,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 100,
+          "balance_before" : 900,
+          "balance_after" : 800
+        }
+      }, {
+        "index" : 8,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "amount" : 75,
+          "clawback_amount" : 100,
+          "real_balance_before" : 1000,
+          "real_balance_after" : 900,
+          "status" : "voided"
+        }
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 100,
+        "bonusForfeited" : "true",
+        "forfeitedAmount" : 75,
+        "clawbackAmount" : 100,
+        "forfeited_records" : "|restricted-funds/rf-cp|",
+        "closed_records" : "|restricted-funds/rf-cp|",
+        "cancel_grants" : "|reward-grant/g-cp|",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 11
+    }
+  }, {
+    "name" : "error — WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT when the clawback exceeds real entirely",
+    "line" : 779,
+    "given" : [ {
+      "id" : "wallet/test9",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 200,
+      "restricted_balance" : 50,
+      "open_restricted_funds_refs" : "restricted-funds/rf9|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p9",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf9",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g9",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 50,
+      "release_requirement" : 1000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 100,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/test9",
+        "player_ref" : "p9",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 500
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT",
+        "message" : "insufficient real balance after bonus forfeiture"
+      }
+    }
+  }, {
+    "name" : "two-cap draw-down — 45.00 draws 30.00 then 15.00 in priority order, first closes, none voided",
+    "line" : 827,
+    "given" : [ {
+      "id" : "wallet/twocap1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/cap-a|restricted-funds/cap-b|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "ptwocap1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/cap-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap-b",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-08-02T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 2000,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    }, {
+      "id" : "restricted-funds/cap-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap-a",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 3000,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 4500,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/twocap1",
+        "player_ref" : "ptwocap1",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap-a",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z",
+          "updated_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap-b",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0,
+          "remaining_allowance" : 500,
+          "deposits_since_release" : 0,
+          "updated_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/twocap1",
+        "properties" : {
+          "real_balance" : 5500,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : "restricted-funds/cap-b|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 4500,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/twocap1",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 6,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "wallet_type" : "real",
+          "amount" : 4500,
+          "balance_before" : 10000,
+          "balance_after" : 5500,
+          "status" : "settled"
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 8,
+        "op" : "add_edge",
+        "target" : "wallet/twocap1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 4500,
+        "voidedAmount" : 0,
+        "bonus_closed" : "true",
+        "closed_records" : "|restricted-funds/cap-a|",
+        "forfeited_records" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 9
+    }
+  }, {
+    "name" : "two-cap draw-down — 60.00 pays 50.00, voids 10.00 as bonus_cap_void, both close",
+    "line" : 896,
+    "given" : [ {
+      "id" : "wallet/twocap2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/cap-a|restricted-funds/cap-b|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "ptwocap2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/cap-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap-b",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-08-02T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 2000,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    }, {
+      "id" : "restricted-funds/cap-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gcap-a",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 3000,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 6000,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/twocap2",
+        "player_ref" : "ptwocap2",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap-a",
+        "properties" : {
+          "status" : "CLOSED",
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap-b",
+        "properties" : {
+          "status" : "CLOSED",
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/twocap2",
+        "properties" : {
+          "real_balance" : 4000,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 5000,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/twocap2",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 6,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "wallet_type" : "real",
+          "amount" : 5000,
+          "balance_before" : 10000,
+          "balance_after" : 4000,
+          "status" : "settled"
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 8,
+        "op" : "add_edge",
+        "target" : "wallet/twocap2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 9,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cap_void",
+          "wallet_type" : "real",
+          "amount" : 1000,
+          "balance_before" : 10000,
+          "balance_after" : 4000,
+          "status" : "voided"
+        }
+      }, {
+        "index" : 10,
+        "op" : "add_concept",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 11,
+        "op" : "add_edge",
+        "target" : "wallet/twocap2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 5000,
+        "voidedAmount" : 1000,
+        "bonus_closed" : "true",
+        "closed_records" : "|restricted-funds/cap-a|restricted-funds/cap-b|",
+        "forfeited_records" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 12
+    }
+  }, {
+    "name" : "ACTIVE + cap together — the ACTIVE record forfeits, the cap draws down and voids the excess",
+    "line" : 971,
+    "given" : [ {
+      "id" : "wallet/mixed1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 75,
+      "open_restricted_funds_refs" : "restricted-funds/act|restricted-funds/cap|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pmixed1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/act",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g-act",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 75,
+      "release_requirement" : 1000,
+      "released_progress" : 250,
+      "max_convertible_amount" : 1000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    }, {
+      "id" : "restricted-funds/cap",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g-cap",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-08-02T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 3000,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 4000,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-09-01T10:00:00Z",
+        "wallet_ref" : "wallet/mixed1",
+        "player_ref" : "pmixed1",
+        "brand_ref" : "testbrand",
+        "clawback_amount" : 0
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/act",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z",
+          "updated_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/cap",
+        "properties" : {
+          "status" : "CLOSED",
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "closed_at" : "2026-09-01T10:00:00Z",
+          "updated_at" : "2026-09-01T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/mixed1",
+        "properties" : {
+          "real_balance" : 6000,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 3000,
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/mixed1",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 6,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 3000,
+          "balance_before" : 10000,
+          "balance_after" : 6000
+        }
+      }, {
+        "index" : 7,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 8,
+        "op" : "add_edge",
+        "target" : "wallet/mixed1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 9,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "type" : "bonus_cap_void",
+          "amount" : 1000,
+          "balance_before" : 10000,
+          "balance_after" : 6000,
+          "status" : "voided"
+        }
+      }, {
+        "index" : 10,
+        "op" : "add_concept",
+        "target" : "transaction.new-id-2",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 11,
+        "op" : "add_edge",
+        "target" : "wallet/mixed1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 12,
+        "op" : "set_properties",
+        "target" : "transaction.new-id-3",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "amount" : 75,
+          "balance_before" : 75,
+          "balance_after" : 0,
+          "clawback_amount" : 0,
+          "real_balance_before" : 10000,
+          "real_balance_after" : 10000,
+          "status" : "voided"
+        }
+      }, {
+        "index" : 13,
+        "op" : "add_concept",
+        "target" : "transaction.new-id-3",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 14,
+        "op" : "add_edge",
+        "target" : "wallet/mixed1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "status" : "PENDING_REVIEW",
+        "amount" : 3000,
+        "voidedAmount" : 1000,
+        "bonusForfeited" : "true",
+        "forfeitedAmount" : 75,
+        "clawbackAmount" : 0,
+        "bonus_closed" : "true",
+        "forfeited_records" : "|restricted-funds/act|",
+        "closed_records" : "|restricted-funds/act|restricted-funds/cap|",
+        "cancel_grants" : "",
+        "restricted_balance" : 0
+      },
+      "error" : null,
+      "mutation_count" : 15
+    }
+  } ]
+}

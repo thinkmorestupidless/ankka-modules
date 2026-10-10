@@ -24,8 +24,8 @@ calls to the provider's bonus API, the per-brand credentials) and `casino-provid
 process the chart calls a dev stub, forwarding a generic bet/win/rollback shape to substrate actions
 with decimal amounts and no idempotency; its end-to-end tests are skipped as blocked. The build plan
 ("eitheror on ankka", 2026-10-08) folds the first two into one brand service, `game-provider`, with a
-launch-token entity, a round entity per provider round, idempotent on the transaction id, views over
-rounds, and a consumer producing `casino.rounds`.
+launch-token entity, a bet workflow per provider transaction (idempotent on the transaction id), a
+round entity per provider round, views over rounds, and a consumer producing `casino.rounds`.
 
 Everything a provider does with money goes through the wallet (spec 002) over HTTP within the brand
 project, keyed by the provider's transaction id. The provider's protocol is decimal strings on the
@@ -93,7 +93,9 @@ What the original does that nobody wrote down, established from its source and i
   transaction id when the provider sends no round) holds every transaction the provider sent for it
   with the outcome answered; a transaction index finds a round by transaction id. These replace the
   adapter's transaction, round-index and callback-failure stores. Kept for the ledger's life (spec 001
-  FR-015): a provider may dispute a round years later.
+  FR-015): a provider may dispute a round years later. *Revised 2026-10-10:* the idempotency and the
+  transaction's outcome are a workflow per transaction; the round entity keeps the round's history
+  and the transaction index is dropped (session 2026-10-10).
 - Q: Does the test-control surface (`/st8/test/*`) survive? → A: No. It was the original's harness.
   Recordings are replayed by parity tests in this service's test kit, where the provider's public key
   and a player's wallet are set up directly. The provider's public key is a brand setting in the
@@ -128,7 +130,8 @@ Settled with specs 008–011 once they existed.
 - Q: How does a debit know a player is locked? → A: Suspension, closure and blocking from this
   service's view of `casino.players`; a break or exclusion from the wallet's refusal, which asks
   `responsible-gambling` before funding (FR-012, spec 002 FR-007a). Nothing here reads a flag over
-  HTTP and nothing fails open.
+  HTTP and nothing fails open. *Revised 2026-10-10:* the `may-bet` question is this service's own
+  step, before the wallet call (session 2026-10-10).
 
 ### Session 2026-10-08 (reconciliation 3)
 
@@ -136,6 +139,28 @@ Settled with specs 008–011 once they existed.
   currency, stake, win and outcome it already carried: the wallet transaction ids of the round's
   movements (FR-019), so `reporting`'s day-end and dispute report match a provider round to the
   wallet's facts without calling either service (spec 015 FR-017, FR-018).
+
+### Session 2026-10-10
+
+- Q: Where does a provider transaction's idempotency live, now that the wallet keeps only its recent
+  1,000 keys? → A: In a **bet workflow per provider transaction**, id the transaction id (the cancel
+  id for a cancel). The wallet's key store was unbounded (spec 002 research R4: 4.3 MB at 10,000
+  transactions) and has been bounded; the caller's workflow is the lifetime record. Its `start` is
+  the atomic claim (a second start is refused `Conflict`, which the endpoint treats as "already
+  started"); its steps are `may-bet` to `responsible-gambling` (fail closed: `PLAYER_LOCKED`,
+  `RG_UNAVAILABLE` become the outcome and the wallet is never called), the wallet call keyed by the
+  transaction id, and `record-round`, which records the transaction and its outcome on the round
+  entity before ending, off the reply path. The wallet keeps its recent keys as the atomic backstop:
+  a step runs at least once, and a re-run after a crash is answered with the first outcome. The
+  transaction index is dropped: the workflow's id is the transaction id. The round entity stays as
+  the round's history for disputes and as the source of the views and `casino.rounds` (an ankka view
+  cannot source a workflow).
+- Q: How does the callback answer ST8 when the outcome is a workflow's? → A: ankka 0.11 has no await
+  on a workflow, so the endpoint starts it and polls its `status` every 1 ms, bounded; it answers ST8
+  from the state as soon as the outcome is present. Past the bound it answers ST8's `error`, so the
+  provider retries and the retry is answered from the workflow's state. Measured in spec 002's
+  prototype (`it.proto.BetWorkflowItSuite`, research R17): median 9.7 ms and p99 121.8 ms on a
+  10,000-transaction wallet through the component client.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -367,11 +392,14 @@ outbound money-adjacent calls.
 **The service and its shape**
 
 - **FR-001**: `game-provider` MUST be one service of the brand project (spec 001 FR-002), holding a
-  **launch token** key value entity per token, a **round** event sourced entity per provider round,
-  a **transaction index** key value entity per provider transaction id naming its round, a
-  **catalogue** key value entity per game, a **brand catalogue configuration** key value entity, and
-  a **provider configuration** per brand in the secret store; with views over rounds (by player, by
-  session, unacknowledged callbacks) and a consumer producing `casino.rounds`.
+  **launch token** key value entity per token, a **bet workflow** per provider transaction id (the
+  cancel id for a cancel) whose `start` is the claim and whose state is the transaction's outcome for
+  the life of the ledger, a **round** event sourced entity per provider round (the round's history,
+  the source of the views and of `casino.rounds`), a **catalogue** key value entity per game, a
+  **brand catalogue configuration** key value entity, and a **provider configuration** per brand in
+  the secret store; with views over rounds (by player, by session, unacknowledged callbacks) and a
+  consumer producing `casino.rounds`. (The transaction index was dropped on 2026-10-10: the
+  workflow's id is the transaction id.)
 - **FR-002**: Every callback route MUST be served both under the provider's prefix (`/st8`) and at
   the root, with the `{brand}` segment kept (spec 001 FR-005), as a public route served only when its
   signature verifies (spec 001 FR-020).
@@ -422,13 +450,17 @@ outbound money-adjacent calls.
 **Money callbacks**
 
 - **FR-011**: Every money callback MUST be idempotent under the provider's transaction id (the cancel
-  id for a cancel): a repeat MUST be answered with the stored status, balance and currency without
-  calling the wallet; a repeat whose amount, kind or round differs MUST still be answered with the
-  first outcome and MUST be recorded as a conflicting repeat on the round.
+  id for a cancel), by starting the bet workflow of that id: a repeat finds it started (`Conflict`)
+  and MUST be answered with the stored status, balance and currency from the workflow's state without
+  calling `responsible-gambling` or the wallet; a repeat whose amount, kind or round differs MUST
+  still be answered with the first outcome and MUST be recorded as a conflicting repeat on the round.
+  The endpoint polls the workflow's status (1 ms, bounded) and answers as soon as the outcome is
+  present; past the bound it answers `error`, and the provider's retry is answered from the workflow.
 - **FR-012**: A debit MUST require a registered wallet token (`session_expired` otherwise), MUST
   answer `player_locked` for a suspended, closed or blocked player (from this service's view of
-  `casino.players`) and for a cooling-off or excluded one (from the wallet's `PLAYER_LOCKED` refusal,
-  which asks `responsible-gambling`'s `may-bet`, spec 002 FR-007a), and otherwise MUST
+  `casino.players`) and for a cooling-off or excluded one (from its own `may-bet` step to
+  `responsible-gambling`, spec 010 FR-010, failing closed: no answer within 500 ms is `error`; this
+  was spec 002 FR-007a until 2026-10-10), and otherwise MUST
   place a wallet bet keyed by the transaction id with the game, the game category and the provider,
   allowed below zero only for kind `correction_debit`; the wallet's refusals MUST map to
   `not_enough_money` (insufficient funds), `player_locked` (cooling off, self-excluded) and
@@ -562,9 +594,12 @@ outbound money-adjacent calls.
   state in the test kit.
 - The jurisdiction in the player profile answer comes from the brand's configuration (FR-018), not
   the constant `CW`.
-- The transaction store, round index, player-brand map and callback-failure store become the round
-  entity, the transaction index and the unacknowledged view; the player-brand map is unneeded in a
-  brand project (the known-player record remains, for the profile callback).
+- The transaction store, round index, player-brand map and callback-failure store become the bet
+  workflow per transaction, the round entity and the unacknowledged view; the player-brand map is
+  unneeded in a brand project (the known-player record remains, for the profile callback).
+- The bet-time `responsible-gambling` check is this service's workflow step, failing closed; the
+  original's lives in the ST8 adapter and fails open (spec 001's defect list; moved here from spec
+  002 on 2026-10-10).
 - Session wagered and won totals are not written to the session; readers derive them from
   `casino.rounds`.
 - The bet and round twins, their edges and the read-model projection are replaced by the round entity,
@@ -619,7 +654,11 @@ and describe the dropped generic API.
 ## Dependencies
 
 - Spec 001 (project, topic contract, route classes, money and port rules), spec 002 (the wallet's
-  commands), spec 008 (`players`), spec 009 (`kyc`, the play gate), spec 010
+  commands; as built on 2026-10-09: `POST `/v1/casino/brands/<brand>/wallets/{player}/{currency}`/bets`, `/wins`, `/rollbacks`, `/losses`,
+  `/provider-credits` and `GET …/balance`, minor units, the provider's transaction id as `key`, a win,
+  rollback or loss naming the bet it settles as `betKey` in a round with several bets; since 2026-10-10
+  the wallet keeps only its recent 1,000 keys and asks no `may-bet`: this service's bet workflow is the
+  transaction's lifetime record and asks `may-bet` itself; specs/002-wallet/contracts/routes.md), spec 008 (`players`), spec 009 (`kyc`, the play gate), spec 010
   (`responsible-gambling`), spec 011 (`rewards`).
 - ankka 022 (player and operator tokens), 038 (the provider configuration), 032 (the nightly refresh
   as a recurring timer), 024/043 (`casino.rounds` as a fact topic).

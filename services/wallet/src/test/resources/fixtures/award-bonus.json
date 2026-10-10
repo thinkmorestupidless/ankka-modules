@@ -1,0 +1,392 @@
+{
+  "handler" : "award-bonus",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/award-bonus.test.tl",
+  "cases" : [ {
+    "name" : "simple bonus — no wagering requirement, restricted_balance is the record's balance, record ACTIVE",
+    "line" : 20,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/rf1|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf1",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 1000,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c1"
+    } ],
+    "when" : {
+      "command" : "AwardBonus",
+      "params" : {
+        "record_ref" : "restricted-funds/rf1",
+        "grant_ref" : "bonus-claims/c1",
+        "bonus_ref" : "bonus-001",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "wagering_multiplier" : 0,
+        "max_win" : 0,
+        "operator_id" : "ops-001",
+        "created_at" : "2026-06-01T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "restricted_balance" : 1000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_credit",
+          "wallet_type" : "bonus",
+          "amount" : "10.00",
+          "balance_before" : 0,
+          "balance_after" : 1000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "bonus_ref" : "bonus-001",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-01T00:00:00Z",
+          "funded_restricted_amount" : 1000,
+          "grant_refs" : "|bonus-claims/c1|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "restricted_balance" : 1000,
+        "bonus_status" : "ACTIVE",
+        "wagering_requirement" : 0,
+        "wagered_amount" : 0,
+        "max_win" : 0,
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "wagering bonus — result reads ACTIVE status, wagering_requirement, wagered_amount, max_win off the record",
+    "line" : 59,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/rf2|",
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf2",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 1000,
+      "release_requirement" : 5000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 3000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c2"
+    } ],
+    "when" : {
+      "command" : "AwardBonus",
+      "params" : {
+        "record_ref" : "restricted-funds/rf2",
+        "grant_ref" : "bonus-claims/c2",
+        "bonus_ref" : "bonus-002",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "wagering_multiplier" : 5,
+        "max_win" : 3000,
+        "operator_id" : "ops-001",
+        "created_at" : "2026-06-01T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test2",
+        "properties" : {
+          "restricted_balance" : 1000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_credit",
+          "wallet_type" : "bonus",
+          "amount" : "10.00",
+          "balance_before" : 0,
+          "balance_after" : 1000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "bonus_ref" : "bonus-002",
+          "player_ref" : "p2",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-01T00:00:00Z",
+          "funded_restricted_amount" : 1000,
+          "grant_refs" : "|bonus-claims/c2|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "restricted_balance" : 1000,
+        "bonus_status" : "ACTIVE",
+        "wagering_requirement" : 5000,
+        "wagered_amount" : 0,
+        "max_win" : 3000,
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "second grant — restricted_balance sums both open records, result describes the awarded record",
+    "line" : 99,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "open_restricted_funds_refs" : "restricted-funds/rf3-a|restricted-funds/rf3-b|",
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf3-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 20000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c3-a"
+    }, {
+      "id" : "restricted-funds/rf3-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 1000,
+      "release_requirement" : 5000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 3000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c3-b"
+    } ],
+    "when" : {
+      "command" : "AwardBonus",
+      "params" : {
+        "record_ref" : "restricted-funds/rf3-b",
+        "grant_ref" : "bonus-claims/c3-b",
+        "bonus_ref" : "bonus-003",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "wagering_multiplier" : 5,
+        "max_win" : 3000,
+        "operator_id" : "ops-001",
+        "created_at" : "2026-06-02T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test3",
+        "properties" : {
+          "restricted_balance" : 3000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_credit",
+          "wallet_type" : "bonus",
+          "amount" : "10.00",
+          "balance_before" : 0,
+          "balance_after" : 1000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "bonus_ref" : "bonus-003",
+          "player_ref" : "p3",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-02T00:00:00Z",
+          "funded_restricted_amount" : 1000,
+          "grant_refs" : "|bonus-claims/c3-b|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test3",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "restricted_balance" : 3000,
+        "bonus_status" : "ACTIVE",
+        "wagering_requirement" : 5000,
+        "wagered_amount" : 0,
+        "max_win" : 3000,
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "record_ref names a missing record — RESTRICTED_FUNDS_UNAVAILABLE, nothing written",
+    "line" : 155,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/rf4-missing|",
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "AwardBonus",
+      "params" : {
+        "record_ref" : "restricted-funds/rf4-missing",
+        "grant_ref" : "bonus-claims/c4",
+        "bonus_ref" : "bonus-004",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "wagering_multiplier" : 0,
+        "max_win" : 0,
+        "operator_id" : "ops-001",
+        "created_at" : "2026-06-01T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNAVAILABLE",
+        "message" : "restricted-funds record not found or not active"
+      }
+    }
+  }, {
+    "name" : "record_ref names a CLOSED record — RESTRICTED_FUNDS_UNAVAILABLE, nothing written",
+    "line" : 174,
+    "given" : [ {
+      "id" : "wallet/test5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/rf5|",
+      "player_id" : "p5",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf5",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CLOSED",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c5"
+    } ],
+    "when" : {
+      "command" : "AwardBonus",
+      "params" : {
+        "record_ref" : "restricted-funds/rf5",
+        "grant_ref" : "bonus-claims/c5",
+        "bonus_ref" : "bonus-005",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "wagering_multiplier" : 0,
+        "max_win" : 0,
+        "operator_id" : "ops-001",
+        "created_at" : "2026-06-01T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNAVAILABLE",
+        "message" : "restricted-funds record not found or not active"
+      }
+    }
+  } ]
+}

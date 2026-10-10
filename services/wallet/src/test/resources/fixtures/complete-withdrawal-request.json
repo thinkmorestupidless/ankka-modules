@@ -1,0 +1,47 @@
+{
+  "handler" : "complete-withdrawal-request",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/complete-withdrawal-request.test.tl",
+  "cases" : [ {
+    "name" : "happy path — completes an approved withdrawal request and clears pending ref",
+    "line" : 1,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "real_balance" : 400.00,
+      "bonus_balance" : 0.00,
+      "pending_withdrawal_request_ref" : "withdrawal-request.test-123",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "CompleteWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.test-123",
+        "resolved_at" : "2026-06-15T12:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.test-123",
+        "properties" : {
+          "status" : "COMPLETED",
+          "resolved_at" : "2026-06-15T12:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "pending_withdrawal_request_ref" : null
+        }
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request.test-123",
+        "status" : "COMPLETED"
+      },
+      "error" : null
+    }
+  } ]
+}

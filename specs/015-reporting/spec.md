@@ -341,7 +341,8 @@ deleted.
   per view, the earliest reporting day its figures are complete from; a report for an earlier
   period MUST be refused naming that day.
 - **FR-005**: GGR MUST be total stake minus total win over `bet_placed`, `win_credited`,
-  `bet_rolled_back` and `round_settled_as_loss`; bonus cost MUST be the fold of `casino.rewards`
+  `bet_rolled_back`, `round_settled_as_loss` and `provider_credited` (a free-spin or promotional
+  win paid outside a round, counted as a win; added with spec 002 on 2026-10-09); bonus cost MUST be the fold of `casino.rewards`
   per spec 011 FR-028; chargebacks MUST be `payment.dispute.closed` against the brand; NGR in this
   service MUST be GGR minus bonus cost minus chargebacks, and every report that shows NGR MUST say
   it is before the programme's fees (spec 013 FR-012). Net cash flow MUST be deposits confirmed

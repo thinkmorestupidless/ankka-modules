@@ -1,0 +1,680 @@
+{
+  "handler" : "cancel-bonus",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/cancel-bonus.test.tl",
+  "cases" : [ {
+    "name" : "cancel bonus — no clawback, closes the record FORFEITED and zeroes restricted_balance",
+    "line" : 17,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "open_restricted_funds_refs" : "restricted-funds/rf1|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf1",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c1"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 0,
+        "bonus_balance_str" : "20.00",
+        "created_at" : "2026-06-15T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf1",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "release_requirement" : 10000,
+          "released_progress" : 4000,
+          "max_convertible_amount" : 5000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-06-15T10:00:00Z",
+          "closed_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : "20.00",
+          "balance_before" : 2000,
+          "balance_after" : 0,
+          "clawback_amount" : 0,
+          "real_balance_before" : 10000,
+          "real_balance_after" : 10000,
+          "currency" : "GBP",
+          "status" : "voided",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "clawback_applied" : 0,
+        "restricted_balance" : 0,
+        "closed_records" : "|restricted-funds/rf1|",
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "cancel bonus — clawback less than real balance",
+    "line" : 55,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "open_restricted_funds_refs" : "restricted-funds/rf2|",
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf2",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c2"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 1500,
+        "bonus_balance_str" : "20.00",
+        "created_at" : "2026-06-15T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf2",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "release_requirement" : 10000,
+          "released_progress" : 4000,
+          "max_convertible_amount" : 5000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-06-15T10:00:00Z",
+          "closed_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test2",
+        "properties" : {
+          "real_balance" : 8500,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : "20.00",
+          "balance_before" : 2000,
+          "balance_after" : 0,
+          "clawback_amount" : 1500,
+          "real_balance_before" : 10000,
+          "real_balance_after" : 8500,
+          "currency" : "GBP",
+          "status" : "voided",
+          "player_ref" : "p2",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 8500,
+        "clawback_applied" : 1500,
+        "restricted_balance" : 0,
+        "closed_records" : "|restricted-funds/rf2|",
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "cancel bonus — clawback floored to real balance when clawback exceeds balance",
+    "line" : 95,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1000,
+      "restricted_balance" : 5000,
+      "open_restricted_funds_refs" : "restricted-funds/rf3|",
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "EUR"
+    }, {
+      "id" : "restricted-funds/rf3",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 5000,
+      "release_requirement" : 25000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c3"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 5000,
+        "bonus_balance_str" : "50.00",
+        "created_at" : "2026-06-15T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf3",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "release_requirement" : 25000,
+          "released_progress" : 0,
+          "max_convertible_amount" : 10000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-06-15T10:00:00Z",
+          "closed_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test3",
+        "properties" : {
+          "real_balance" : 0,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : "50.00",
+          "balance_before" : 5000,
+          "balance_after" : 0,
+          "clawback_amount" : 5000,
+          "real_balance_before" : 1000,
+          "real_balance_after" : 0,
+          "currency" : "EUR",
+          "status" : "voided",
+          "player_ref" : "p3",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test3",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0,
+        "clawback_applied" : 1000,
+        "restricted_balance" : 0,
+        "closed_records" : "|restricted-funds/rf3|",
+        "currency" : "EUR"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "cancel bonus — lenient with no open record: clawback still applied, transaction still written",
+    "line" : 137,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "",
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 1500,
+        "bonus_balance_str" : "0.00",
+        "created_at" : "2026-06-15T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test4",
+        "properties" : {
+          "real_balance" : 8500,
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : "0.00",
+          "balance_before" : 0,
+          "balance_after" : 0,
+          "clawback_amount" : 1500,
+          "real_balance_before" : 10000,
+          "real_balance_after" : 8500,
+          "currency" : "GBP",
+          "status" : "voided",
+          "player_ref" : "p4",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test4",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 8500,
+        "clawback_applied" : 1500,
+        "restricted_balance" : 0,
+        "closed_records" : "",
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "cancel bonus — two open records: closes only the primary, restricted_balance sums the rest, refs drop only the closed id",
+    "line" : 162,
+    "given" : [ {
+      "id" : "wallet/test5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 5000,
+      "open_restricted_funds_refs" : "restricted-funds/rf5-a|restricted-funds/rf5-b|",
+      "player_id" : "p5",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf5-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 3000,
+      "release_requirement" : 15000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 9000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c5-b"
+    }, {
+      "id" : "restricted-funds/rf5-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c5-a"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 500,
+        "bonus_balance_str" : "20.00",
+        "created_at" : "2026-06-15T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf5-a",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "release_requirement" : 10000,
+          "released_progress" : 4000,
+          "max_convertible_amount" : 5000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-06-15T10:00:00Z",
+          "closed_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test5",
+        "properties" : {
+          "real_balance" : 9500,
+          "restricted_balance" : 3000,
+          "open_restricted_funds_refs" : "restricted-funds/rf5-b|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : "20.00",
+          "balance_before" : 5000,
+          "balance_after" : 0,
+          "clawback_amount" : 500,
+          "real_balance_before" : 10000,
+          "real_balance_after" : 9500,
+          "currency" : "GBP",
+          "status" : "voided",
+          "player_ref" : "p5",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test5",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 9500,
+        "clawback_applied" : 500,
+        "restricted_balance" : 3000,
+        "closed_records" : "|restricted-funds/rf5-a|",
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "cancel bonus — grant_ref scoped to secondary: closes secondary, primary untouched, restricted_balance is primary balance only",
+    "line" : 220,
+    "given" : [ {
+      "id" : "wallet/test6",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 5000,
+      "open_restricted_funds_refs" : "restricted-funds/rf6-a|restricted-funds/rf6-b|",
+      "player_id" : "p6",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf6-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 3000,
+      "release_requirement" : 15000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 9000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c6-b"
+    }, {
+      "id" : "restricted-funds/rf6-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c6-a"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 0,
+        "bonus_balance_str" : "30.00",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "grant_ref" : "bonus-claims/c6-b"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf6-b",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "release_requirement" : 15000,
+          "released_progress" : 0,
+          "max_convertible_amount" : 9000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-06-15T10:00:00Z",
+          "closed_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test6",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 2000,
+          "open_restricted_funds_refs" : "restricted-funds/rf6-a|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_cancel",
+          "wallet_type" : "bonus",
+          "amount" : "30.00",
+          "balance_before" : 5000,
+          "balance_after" : 0,
+          "clawback_amount" : 0,
+          "real_balance_before" : 10000,
+          "real_balance_after" : 10000,
+          "currency" : "GBP",
+          "status" : "voided",
+          "player_ref" : "p6",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test6",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "clawback_applied" : 0,
+        "restricted_balance" : 2000,
+        "closed_records" : "|restricted-funds/rf6-b|",
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "cancel bonus — grant_ref names no open record: GRANT_NOT_OPEN, primary untouched",
+    "line" : 277,
+    "given" : [ {
+      "id" : "wallet/test7",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "open_restricted_funds_refs" : "restricted-funds/rf7-a|",
+      "player_id" : "p7",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf7-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c7-a"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 500,
+        "bonus_balance_str" : "20.00",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "grant_ref" : "bonus-claims/someone-else"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "GRANT_NOT_OPEN",
+        "message" : "No open bonus for grant_ref"
+      }
+    }
+  } ]
+}

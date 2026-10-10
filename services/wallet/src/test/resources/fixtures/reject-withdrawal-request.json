@@ -1,0 +1,108 @@
+{
+  "handler" : "reject-withdrawal-request",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/reject-withdrawal-request.test.tl",
+  "cases" : [ {
+    "name" : "happy path — rejects pending request and restores balance",
+    "line" : 1,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "real_balance" : 400.00,
+      "bonus_balance" : 0.00,
+      "pending_withdrawal_request_ref" : "withdrawal-request.test-123",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "RejectWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.test-123",
+        "resolved_by" : "operator1",
+        "resolved_at" : "2026-06-15T11:30:00Z",
+        "failure_reason" : "Duplicate",
+        "amount" : 100.00,
+        "currency" : "GBP"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.test-123",
+        "properties" : {
+          "status" : "REJECTED",
+          "resolved_by" : "operator1",
+          "resolved_at" : "2026-06-15T11:30:00Z",
+          "failure_reason" : "Duplicate"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "real_balance" : 500.00,
+          "pending_withdrawal_request_ref" : null
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal_return",
+          "wallet_type" : "real",
+          "amount" : 100.00,
+          "balance_before" : 400.00,
+          "balance_after" : 500.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T11:30:00Z",
+          "reason" : "Duplicate"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request.test-123",
+        "status" : "REJECTED"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "error — REQUEST_NOT_PENDING when request_id doesn't match pending ref",
+    "line" : 28,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "real_balance" : 400.00,
+      "bonus_balance" : 0.00,
+      "pending_withdrawal_request_ref" : "withdrawal-request.other-456",
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "RejectWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.test-123",
+        "resolved_by" : "operator1",
+        "resolved_at" : "2026-06-15T11:30:00Z",
+        "failure_reason" : "Duplicate",
+        "amount" : 100.00,
+        "currency" : "GBP"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "REQUEST_NOT_PENDING"
+      }
+    }
+  } ]
+}

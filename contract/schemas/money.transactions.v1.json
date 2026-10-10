@@ -323,6 +323,11 @@
         "award_id": {
           "type": "string"
         },
+        "clawback_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
@@ -353,7 +358,7 @@
           "const": "restricted_funds_forfeited"
         }
       },
-      "required": ["type", "player_id", "currency", "transaction_id", "award_id", "amount_cents", "reason", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "required": ["type", "player_id", "currency", "transaction_id", "award_id", "amount_cents", "reason", "clawback_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
       "title": "restricted_funds_forfeited",
       "type": "object"
     },
@@ -438,11 +443,16 @@
         "type": {
           "const": "hold_placed"
         },
+        "voided_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "withdrawal_request_id": {
           "type": "string"
         }
       },
-      "required": ["type", "player_id", "currency", "transaction_id", "withdrawal_request_id", "amount_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "required": ["type", "player_id", "currency", "transaction_id", "withdrawal_request_id", "amount_cents", "voided_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
       "title": "hold_placed",
       "type": "object"
     },
@@ -486,6 +496,96 @@
       },
       "required": ["type", "player_id", "currency", "transaction_id", "withdrawal_request_id", "amount_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
       "title": "hold_released",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "withdrawal_reversed"
+        },
+        "withdrawal_request_id": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "withdrawal_request_id", "amount_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "withdrawal_reversed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "award_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "landed_on": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "provider_ref": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "provider_credited"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "provider_ref", "amount_cents", "landed_on", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "provider_credited",
       "type": "object"
     }
   ],

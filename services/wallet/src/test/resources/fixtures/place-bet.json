@@ -1,0 +1,3585 @@
+{
+  "handler" : "place-bet",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/place-bet.test.tl",
+  "cases" : [ {
+    "name" : "real-funded bet — deducts from real balance",
+    "line" : 18,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 30.00,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "real_balance" : 70.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 70.00,
+          "currency" : "GBP",
+          "status" : "open",
+          "round_id" : "r1",
+          "session_ref" : "s1",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 30.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 70.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "converting_records" : "",
+        "restricted_funds_refs" : "",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unmigrated guard — real is short and a stray restricted_balance with no record would fund the stake",
+    "line" : 41,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r2",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s2",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus balance present with no open restricted-funds record and the stake would draw on it"
+      }
+    }
+  }, {
+    "name" : "bonus fallback — deducts from the record when real is zero",
+    "line" : 61,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test2",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c2"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r2",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s2",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test2",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 30.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test2",
+        "properties" : {
+          "real_balance" : 0.00,
+          "restricted_balance" : 30.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 50.00,
+          "balance_after" : 30.00,
+          "currency" : "GBP",
+          "status" : "open",
+          "round_id" : "r2",
+          "session_ref" : "s2",
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 20.00,
+          "funded_breakdown" : "restricted-funds/test2:20|",
+          "contribution_breakdown" : "",
+          "grant_refs" : "|bonus-claims/c2|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 30.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/test2|",
+        "funded_breakdown" : "restricted-funds/test2:20|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unmigrated guard — real is short of the stake and a stray restricted_balance with no record exists",
+    "line" : 100,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10.00,
+      "restricted_balance" : 5.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r3",
+        "amount" : 30.00,
+        "currency" : "GBP",
+        "session_id" : "s3",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus balance present with no open restricted-funds record and the stake would draw on it"
+      }
+    }
+  }, {
+    "name" : "insufficient funds — error when real and the record together cannot cover the bet",
+    "line" : 117,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10.00,
+      "restricted_balance" : 5.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test3",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 5.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c3"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r3",
+        "amount" : 30.00,
+        "currency" : "GBP",
+        "session_id" : "s3",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "INSUFFICIENT_FUNDS",
+        "message" : "Insufficient funds in real and bonus wallets"
+      }
+    }
+  }, {
+    "name" : "wagering progress — increments wagered_amount on real-funded bet with active bonus",
+    "line" : 150,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test4",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c4"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r4",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "s4",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test4",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 50.00,
+          "release_requirement" : 50.00,
+          "released_progress" : 10.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test4",
+        "properties" : {
+          "real_balance" : 90.00,
+          "deposit_turnover_pending" : 0.00,
+          "restricted_balance" : 50.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 90.00,
+          "currency" : "GBP",
+          "status" : "open",
+          "round_id" : "r4",
+          "session_ref" : "s4",
+          "wagering_contribution" : 10.00,
+          "funded_real_amount" : 10.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : "restricted-funds/test4:10|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test4",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 90.00,
+        "restricted_balance" : 50.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/test4|",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "wagering lifecycle — bet crosses threshold, bonus auto-converts to real",
+    "line" : 188,
+    "given" : [ {
+      "id" : "wallet/test5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p5",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test5",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 40.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c5"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r5",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s5",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test5",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0.00,
+          "release_requirement" : 0.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 0.00,
+          "remaining_allowance" : 100.00,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test5",
+        "properties" : {
+          "real_balance" : 130.00,
+          "restricted_balance" : 0.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_conversion",
+          "wallet_type" : "real",
+          "amount" : 50.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p5",
+          "brand_ref" : "testbrand"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 80.00,
+          "currency" : "GBP",
+          "status" : "open",
+          "round_id" : "r5",
+          "session_ref" : "s5",
+          "wagering_contribution" : 20.00,
+          "funded_real_amount" : 20.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : "restricted-funds/test5:20|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test5",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test5",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 130.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "true",
+        "converting_records" : "|restricted-funds/test5|",
+        "restricted_funds_refs" : "|restricted-funds/test5|",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "wagering lifecycle — conversion is uncapped even when bonus_balance exceeds max_win",
+    "line" : 245,
+    "given" : [ {
+      "id" : "wallet/test6",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 100.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p6",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test6",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 100.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 40.00,
+      "max_convertible_amount" : 60.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c6"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r6",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s6",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test6",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0.00,
+          "release_requirement" : 0.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 0.00,
+          "remaining_allowance" : 60.00,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test6",
+        "properties" : {
+          "real_balance" : 180.00,
+          "restricted_balance" : 0.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_conversion",
+          "wallet_type" : "real",
+          "amount" : 100.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p6",
+          "brand_ref" : "testbrand"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 80.00,
+          "currency" : "GBP",
+          "status" : "open",
+          "round_id" : "r6",
+          "session_ref" : "s6",
+          "wagering_contribution" : 20.00,
+          "funded_real_amount" : 20.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : "restricted-funds/test6:20|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test6",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test6",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 180.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "true",
+        "converting_records" : "|restricted-funds/test6|",
+        "restricted_funds_refs" : "|restricted-funds/test6|",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "turnover gate — real-money bet reduces deposit_turnover_pending",
+    "line" : 299,
+    "given" : [ {
+      "id" : "wallet/test7",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 200.00,
+      "player_id" : "p7",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r7",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "session_id" : "s7",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test7",
+        "properties" : {
+          "real_balance" : 450.00,
+          "deposit_turnover_pending" : 150.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 500.00,
+          "balance_after" : 450.00,
+          "funded_real_amount" : 50.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test7",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 450.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "turnover gate — real-money bet clears remaining turnover without going negative",
+    "line" : 320,
+    "given" : [ {
+      "id" : "wallet/test8",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 30.00,
+      "player_id" : "p8",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r8",
+        "amount" : 100.00,
+        "currency" : "GBP",
+        "session_id" : "s8",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test8",
+        "properties" : {
+          "real_balance" : 400.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 500.00,
+          "balance_after" : 400.00,
+          "funded_real_amount" : 100.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test8",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 400.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unmigrated guard — turnover-pending wallet with a stray restricted_balance with no record and zero real",
+    "line" : 342,
+    "given" : [ {
+      "id" : "wallet/test9",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 500.00,
+      "deposit_turnover_pending" : 200.00,
+      "player_id" : "p9",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r9",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "session_id" : "s9",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus balance present with no open restricted-funds record and the stake would draw on it"
+      }
+    }
+  }, {
+    "name" : "turnover gate — record-funded bet does NOT reduce deposit_turnover_pending",
+    "line" : 359,
+    "given" : [ {
+      "id" : "wallet/test9",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 500.00,
+      "deposit_turnover_pending" : 200.00,
+      "player_id" : "p9",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test9",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 500.00,
+      "release_requirement" : 5000.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 1000.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c9"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r9",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "session_id" : "s9",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test9",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 450.00,
+          "release_requirement" : 5000.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 1000.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test9",
+        "properties" : {
+          "real_balance" : 0.00,
+          "restricted_balance" : 450.00,
+          "deposit_turnover_pending" : 200.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 500.00,
+          "balance_after" : 450.00,
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 50.00,
+          "funded_breakdown" : "restricted-funds/test9:50|",
+          "contribution_breakdown" : "",
+          "grant_refs" : "|bonus-claims/c9|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test9",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 450.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/test9|",
+        "funded_breakdown" : "restricted-funds/test9:50|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "turnover gate — bet when deposit_turnover_pending is 0 leaves it at 0",
+    "line" : 397,
+    "given" : [ {
+      "id" : "wallet/test10",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 200.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p10",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r10",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "session_id" : "s10",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test10",
+        "properties" : {
+          "real_balance" : 150.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 200.00,
+          "balance_after" : 150.00,
+          "funded_real_amount" : 50.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test10",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 150.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "contribution rate — 50% rate on €10 bet advances wagered_amount by €5",
+    "line" : 418,
+    "given" : [ {
+      "id" : "wallet/test11",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p11",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test11",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c11"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r11",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "s11",
+        "game_contribution_rate" : 50,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test11",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 50.00,
+          "release_requirement" : 50.00,
+          "released_progress" : 5.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test11",
+        "properties" : {
+          "real_balance" : 90.00,
+          "deposit_turnover_pending" : 0.00,
+          "restricted_balance" : 50.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 90.00,
+          "wagering_contribution" : 5.00,
+          "funded_real_amount" : 10.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : "restricted-funds/test11:5|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test11",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 90.00,
+        "restricted_balance" : 50.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/test11|",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "bonus wagering counts — enabled, bonus-funded bet advances wagered_amount",
+    "line" : 456,
+    "given" : [ {
+      "id" : "wallet/test12",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p12",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test12",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c12"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r12",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "s12",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test12",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 40.00,
+          "release_requirement" : 50.00,
+          "released_progress" : 10.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test12",
+        "properties" : {
+          "restricted_balance" : 40.00,
+          "real_balance" : 0.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 50.00,
+          "balance_after" : 40.00,
+          "wagering_contribution" : 10.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 10.00,
+          "funded_breakdown" : "restricted-funds/test12:10|",
+          "contribution_breakdown" : "restricted-funds/test12:10|",
+          "grant_refs" : "|bonus-claims/c12|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test12",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 40.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/test12|",
+        "funded_breakdown" : "restricted-funds/test12:10|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "bonus wagering counts — disabled, bonus-funded bet does NOT advance wagered_amount",
+    "line" : 494,
+    "given" : [ {
+      "id" : "wallet/test13",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p13",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test13",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c13"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r13",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "s13",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test13",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 40.00,
+          "release_requirement" : 50.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test13",
+        "properties" : {
+          "restricted_balance" : 40.00,
+          "real_balance" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 50.00,
+          "balance_after" : 40.00,
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 10.00,
+          "funded_breakdown" : "restricted-funds/test13:10|",
+          "contribution_breakdown" : "",
+          "grant_refs" : "|bonus-claims/c13|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test13",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 40.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/test13|",
+        "funded_breakdown" : "restricted-funds/test13:10|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unmigrated guard — split would draw on a stray restricted_balance with no record",
+    "line" : 533,
+    "given" : [ {
+      "id" : "wallet/test14",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 3.00,
+      "restricted_balance" : 10.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p14",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r14",
+        "amount" : 5.00,
+        "currency" : "GBP",
+        "session_id" : "s14",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : true,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus balance present with no open restricted-funds record and the stake would draw on it"
+      }
+    }
+  }, {
+    "name" : "partial split — real £3 + record £10, bet £5, splits ON → funded_from split",
+    "line" : 552,
+    "given" : [ {
+      "id" : "wallet/test14",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 3.00,
+      "restricted_balance" : 10.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p14",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test14",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 10.00,
+      "release_requirement" : 100.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 50.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c14"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r14",
+        "amount" : 5.00,
+        "currency" : "GBP",
+        "session_id" : "s14",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : true,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test14",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 8.00,
+          "release_requirement" : 100.00,
+          "released_progress" : 3.00,
+          "max_convertible_amount" : 50.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test14",
+        "properties" : {
+          "real_balance" : 0.00,
+          "restricted_balance" : 8.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "split",
+          "balance_before" : 3.00,
+          "balance_after" : 0.00,
+          "wagering_contribution" : 3.00,
+          "funded_real_amount" : 3.00,
+          "funded_restricted_amount" : 2.00,
+          "funded_breakdown" : "restricted-funds/test14:2|",
+          "contribution_breakdown" : "restricted-funds/test14:3|",
+          "grant_refs" : "|bonus-claims/c14|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test14",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 8.00,
+        "currency" : "GBP",
+        "wallet_type" : "split",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/test14|",
+        "funded_breakdown" : "restricted-funds/test14:2|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unmigrated guard — split short of the stake with a stray restricted_balance with no record",
+    "line" : 591,
+    "given" : [ {
+      "id" : "wallet/test15",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 3.00,
+      "restricted_balance" : 1.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p15",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r15",
+        "amount" : 5.00,
+        "currency" : "GBP",
+        "session_id" : "s15",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : true,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus balance present with no open restricted-funds record and the stake would draw on it"
+      }
+    }
+  }, {
+    "name" : "partial split insufficient — real £3 + record £1, bet £5, splits ON → INSUFFICIENT_FUNDS",
+    "line" : 608,
+    "given" : [ {
+      "id" : "wallet/test15",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 3.00,
+      "restricted_balance" : 1.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p15",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test15",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 1.00,
+      "release_requirement" : 100.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 50.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c15"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r15",
+        "amount" : 5.00,
+        "currency" : "GBP",
+        "session_id" : "s15",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : true,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "INSUFFICIENT_FUNDS",
+        "message" : "Insufficient funds in real and bonus wallets"
+      }
+    }
+  }, {
+    "name" : "allow_negative — real 0, bet 1, no bonus → real goes to -1 funded from real",
+    "line" : 641,
+    "given" : [ {
+      "id" : "wallet/test16",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p16",
+      "brand_id" : "testbrand",
+      "currency" : "EUR"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r16",
+        "amount" : 1.00,
+        "currency" : "EUR",
+        "session_id" : "s16",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : true
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test16",
+        "properties" : {
+          "real_balance" : -1.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 0.00,
+          "balance_after" : -1.00,
+          "currency" : "EUR",
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 1.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test16",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : -1.00,
+        "restricted_balance" : 0.00,
+        "currency" : "EUR",
+        "wallet_type" : "real",
+        "bonus_converted" : "false"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "allow_negative — insufficient real+bonus, splits ON, allow_negative → real goes negative for full amount",
+    "line" : 664,
+    "given" : [ {
+      "id" : "wallet/test17",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 3.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p17",
+      "brand_id" : "testbrand",
+      "currency" : "EUR"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r17",
+        "amount" : 5.00,
+        "currency" : "EUR",
+        "session_id" : "s17",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : true,
+        "allow_negative" : true
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test17",
+        "properties" : {
+          "real_balance" : -2.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 3.00,
+          "balance_after" : -2.00,
+          "currency" : "EUR",
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 5.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test17",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : -2.00,
+        "restricted_balance" : 0.00,
+        "currency" : "EUR",
+        "wallet_type" : "real",
+        "bonus_converted" : "false"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "allow_negative false — real 0, bet 1, no bonus → still INSUFFICIENT_FUNDS",
+    "line" : 685,
+    "given" : [ {
+      "id" : "wallet/test18",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p18",
+      "brand_id" : "testbrand",
+      "currency" : "EUR"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r18",
+        "amount" : 1.00,
+        "currency" : "EUR",
+        "session_id" : "s18",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "INSUFFICIENT_FUNDS",
+        "message" : "Insufficient funds in real and bonus wallets"
+      }
+    }
+  }, {
+    "name" : "open_rounds — real-funded bet appends without disturbing other wallet state",
+    "line" : 713,
+    "given" : [ {
+      "id" : "wallet/or1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "open_rounds" : "",
+      "player_id" : "or1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 30.00,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/or1",
+        "properties" : {
+          "real_balance" : 70.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "funded_real_amount" : 30.00,
+          "funded_restricted_amount" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/or1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 70.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "wagering lifecycle — bonus-only bet crosses threshold, bonus auto-converts to real",
+    "line" : 742,
+    "given" : [ {
+      "id" : "wallet/test18",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p18",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test18",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 40.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c18"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r18",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s18",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test18",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0.00,
+          "release_requirement" : 0.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 0.00,
+          "remaining_allowance" : 100.00,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test18",
+        "properties" : {
+          "real_balance" : 30.00,
+          "restricted_balance" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_conversion",
+          "wallet_type" : "real",
+          "amount" : 30.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p18",
+          "brand_ref" : "testbrand"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 50.00,
+          "balance_after" : 30.00,
+          "wagering_contribution" : 20.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 20.00,
+          "funded_breakdown" : "restricted-funds/test18:20|",
+          "contribution_breakdown" : "restricted-funds/test18:20|",
+          "grant_refs" : "|bonus-claims/c18|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test18",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test18",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 30.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "true",
+        "converting_records" : "|restricted-funds/test18|",
+        "restricted_funds_refs" : "|restricted-funds/test18|",
+        "funded_breakdown" : "restricted-funds/test18:20|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "wagering lifecycle — bonus-only conversion is uncapped even when remaining bonus exceeds max_win",
+    "line" : 797,
+    "given" : [ {
+      "id" : "wallet/test19",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 100.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p19",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test19",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 100.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 40.00,
+      "max_convertible_amount" : 60.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c19"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r19",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s19",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test19",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0.00,
+          "release_requirement" : 0.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 0.00,
+          "remaining_allowance" : 60.00,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test19",
+        "properties" : {
+          "real_balance" : 80.00,
+          "restricted_balance" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_conversion",
+          "wallet_type" : "real",
+          "amount" : 80.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p19",
+          "brand_ref" : "testbrand"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 100.00,
+          "balance_after" : 80.00,
+          "wagering_contribution" : 20.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 20.00,
+          "funded_breakdown" : "restricted-funds/test19:20|",
+          "contribution_breakdown" : "restricted-funds/test19:20|",
+          "grant_refs" : "|bonus-claims/c19|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test19",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test19",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 80.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "true",
+        "converting_records" : "|restricted-funds/test19|",
+        "restricted_funds_refs" : "|restricted-funds/test19|",
+        "funded_breakdown" : "restricted-funds/test19:20|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unmigrated guard — bonus_wagering_counts bet on a stray restricted_balance with no record",
+    "line" : 853,
+    "given" : [ {
+      "id" : "wallet/test20",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p20",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r20",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "s20",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus balance present with no open restricted-funds record and the stake would draw on it"
+      }
+    }
+  }, {
+    "name" : "wagering lifecycle — real-funded bet does not spuriously convert when the record is not ACTIVE",
+    "line" : 875,
+    "given" : [ {
+      "id" : "wallet/test20",
+      "concepts" : [ "Wallet" ],
+      "open_restricted_funds_refs" : "restricted-funds/test20|",
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p20",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test20",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0.00,
+      "release_requirement" : 0.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 0.00,
+      "remaining_allowance" : 100.00,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c20"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r20",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "s20",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test20",
+        "properties" : {
+          "real_balance" : 90.00,
+          "restricted_balance" : 0.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 90.00,
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 10.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test20",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 90.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "",
+        "funded_breakdown" : ""
+      },
+      "error" : null,
+      "mutation_count" : 4
+    }
+  }, {
+    "name" : "wagering lifecycle — split bet crosses threshold (bonus_wagering_counts true), bonus auto-converts",
+    "line" : 914,
+    "given" : [ {
+      "id" : "wallet/test21",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 5.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p21",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test21",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 40.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c21"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r21",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s21",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : true,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test21",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0.00,
+          "release_requirement" : 0.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 0.00,
+          "remaining_allowance" : 100.00,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test21",
+        "properties" : {
+          "real_balance" : 35.00,
+          "restricted_balance" : 0.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_conversion",
+          "wallet_type" : "real",
+          "amount" : 35.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p21",
+          "brand_ref" : "testbrand"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "split",
+          "balance_before" : 5.00,
+          "balance_after" : 0.00,
+          "wagering_contribution" : 20.00,
+          "funded_real_amount" : 5.00,
+          "funded_restricted_amount" : 15.00,
+          "funded_breakdown" : "restricted-funds/test21:15|",
+          "contribution_breakdown" : "restricted-funds/test21:20|",
+          "grant_refs" : "|bonus-claims/c21|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test21",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test21",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 35.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "split",
+        "bonus_converted" : "true",
+        "converting_records" : "|restricted-funds/test21|",
+        "restricted_funds_refs" : "|restricted-funds/test21|",
+        "funded_breakdown" : "restricted-funds/test21:15|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "wagering lifecycle — split bet crosses threshold (bonus_wagering_counts false, real portion only), bonus auto-converts",
+    "line" : 968,
+    "given" : [ {
+      "id" : "wallet/test22",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 5.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "p22",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/test22",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 50.00,
+      "released_progress" : 45.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c22"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r22",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "s22",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : true,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/test22",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0.00,
+          "release_requirement" : 0.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 0.00,
+          "remaining_allowance" : 100.00,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test22",
+        "properties" : {
+          "real_balance" : 35.00,
+          "restricted_balance" : 0.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bonus_conversion",
+          "wallet_type" : "real",
+          "amount" : 35.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "player_ref" : "p22",
+          "brand_ref" : "testbrand"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "split",
+          "balance_before" : 5.00,
+          "balance_after" : 0.00,
+          "wagering_contribution" : 5.00,
+          "funded_real_amount" : 5.00,
+          "funded_restricted_amount" : 15.00,
+          "funded_breakdown" : "restricted-funds/test22:15|",
+          "contribution_breakdown" : "restricted-funds/test22:5|",
+          "grant_refs" : "|bonus-claims/c22|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/test22",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 7,
+        "op" : "add_edge",
+        "target" : "wallet/test22",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 35.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "split",
+        "bonus_converted" : "true",
+        "converting_records" : "|restricted-funds/test22|",
+        "restricted_funds_refs" : "|restricted-funds/test22|",
+        "funded_breakdown" : "restricted-funds/test22:15|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "max_stake block — stake above the record's max_stake is refused",
+    "line" : 1026,
+    "given" : [ {
+      "id" : "wallet/rule-a",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "ra",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "max_stake" : 10.00,
+      "max_stake_enforcement" : "block",
+      "grant_ref" : "bonus-claims/ra"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "ra",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "sa",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "MAX_STAKE_EXCEEDED",
+        "message" : "stake exceeds the binding max_stake"
+      }
+    }
+  }, {
+    "name" : "max_stake cap — stake above max_stake is funded, contribution capped at max_stake",
+    "line" : 1062,
+    "given" : [ {
+      "id" : "wallet/rule-b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rb",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "max_stake" : 10.00,
+      "max_stake_enforcement" : "cap",
+      "grant_ref" : "bonus-claims/rb"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rb",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "sb",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rule-b",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 50.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 10.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/rule-b",
+        "properties" : {
+          "real_balance" : 80.00,
+          "restricted_balance" : 50.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 80.00,
+          "created_at" : "2026-06-15T10:00:00Z",
+          "wagering_contribution" : 10.00,
+          "funded_real_amount" : 20.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : "restricted-funds/rule-b:10|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/rule-b",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 80.00,
+        "restricted_balance" : 50.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/rule-b|",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "scope block — excluded provider with scope_violation_mode block is refused",
+    "line" : 1102,
+    "given" : [ {
+      "id" : "wallet/rule-c",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rc",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-c",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "scope_exclude" : "|provider:evil|",
+      "scope_violation_mode" : "block",
+      "grant_ref" : "bonus-claims/rc"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rc",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "sc",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_id" : "g1",
+        "game_category" : "slots",
+        "provider" : "evil",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "SCOPE_BLOCKED",
+        "message" : "stake is out of scope for a blocking restricted-funds record"
+      }
+    }
+  }, {
+    "name" : "scope zero_contribution — excluded provider with mode unset is funded with contribution 0",
+    "line" : 1139,
+    "given" : [ {
+      "id" : "wallet/rule-d",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rd",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-d",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "scope_exclude" : "|provider:evil|",
+      "grant_ref" : "bonus-claims/rd"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rd",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "sd",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_id" : "g1",
+        "game_category" : "slots",
+        "provider" : "evil",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/rule-d",
+        "properties" : {
+          "real_balance" : 80.00,
+          "restricted_balance" : 50.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 80.00,
+          "provider" : "evil",
+          "game_id" : "g1",
+          "game_category" : "slots",
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 20.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/rule-d",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 80.00,
+        "restricted_balance" : 50.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "",
+        "funded_breakdown" : ""
+      },
+      "error" : null,
+      "mutation_count" : 4
+    }
+  }, {
+    "name" : "contribution override — category:table at 10% overrides the 100% route rate",
+    "line" : 1179,
+    "given" : [ {
+      "id" : "wallet/rule-e",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "re",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-e",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "contribution_overrides" : "category:table:10|",
+      "grant_ref" : "bonus-claims/re"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "re",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "se",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_id" : "blackjack-1",
+        "game_category" : "table",
+        "provider" : "acme",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rule-e",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 50.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 2.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/rule-e",
+        "properties" : {
+          "real_balance" : 80.00,
+          "restricted_balance" : 50.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 80.00,
+          "game_id" : "blackjack-1",
+          "game_category" : "table",
+          "provider" : "acme",
+          "wagering_contribution" : 2.00,
+          "funded_real_amount" : 20.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : "restricted-funds/rule-e:2|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/rule-e",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 80.00,
+        "restricted_balance" : 50.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/rule-e|",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "funding_order restricted_first — record funds the whole stake ahead of real",
+    "line" : 1220,
+    "given" : [ {
+      "id" : "wallet/rule-f",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 40.00,
+      "player_id" : "rf",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-f",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "funding_order" : "restricted_first",
+      "grant_ref" : "bonus-claims/rf"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rf",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "sf",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rule-f",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 30.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 20.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1,
+          "updated_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/rule-f",
+        "properties" : {
+          "real_balance" : 100.00,
+          "restricted_balance" : 30.00,
+          "deposit_turnover_pending" : 40.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 50.00,
+          "balance_after" : 30.00,
+          "wagering_contribution" : 20.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 20.00,
+          "funded_breakdown" : "restricted-funds/rule-f:20|",
+          "contribution_breakdown" : "restricted-funds/rule-f:20|",
+          "grant_refs" : "|bonus-claims/rf|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/rule-f",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 100.00,
+        "restricted_balance" : 30.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/rule-f|",
+        "funded_breakdown" : "restricted-funds/rule-f:20|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "funding_order proportional — stake split by share of the combined pool, truncating",
+    "line" : 1261,
+    "given" : [ {
+      "id" : "wallet/rule-g",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rg",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-g",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "funding_order" : "proportional",
+      "grant_ref" : "bonus-claims/rg"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rg",
+        "amount" : 25.00,
+        "currency" : "GBP",
+        "session_id" : "sg",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rule-g",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 41.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 16.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1,
+          "updated_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/rule-g",
+        "properties" : {
+          "real_balance" : 84.00,
+          "restricted_balance" : 41.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "split",
+          "balance_before" : 100.00,
+          "balance_after" : 84.00,
+          "wagering_contribution" : 16.00,
+          "funded_real_amount" : 16.00,
+          "funded_restricted_amount" : 9.00,
+          "funded_breakdown" : "restricted-funds/rule-g:9|",
+          "contribution_breakdown" : "restricted-funds/rule-g:16|",
+          "grant_refs" : "|bonus-claims/rg|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/rule-g",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 84.00,
+        "restricted_balance" : 41.00,
+        "currency" : "GBP",
+        "wallet_type" : "split",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/rule-g|",
+        "funded_breakdown" : "restricted-funds/rule-g:9|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "two records — stake drawn across both in priority order, breakdowns name each record",
+    "line" : 1304,
+    "given" : [ {
+      "id" : "wallet/rule-h",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 60.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rh",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-h-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 30.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/rh-b"
+    }, {
+      "id" : "restricted-funds/rule-h-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 30.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/rh-a"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rh",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "session_id" : "sh",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rule-h-a",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 0.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 30.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1,
+          "updated_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rule-h-b",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 10.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 20.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1,
+          "updated_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/rule-h",
+        "properties" : {
+          "real_balance" : 0.00,
+          "restricted_balance" : 10.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 30.00,
+          "balance_after" : 0.00,
+          "wagering_contribution" : 50.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 50.00,
+          "funded_breakdown" : "restricted-funds/rule-h-a:30|restricted-funds/rule-h-b:20|",
+          "contribution_breakdown" : "restricted-funds/rule-h-a:30|restricted-funds/rule-h-b:20|",
+          "grant_refs" : "|bonus-claims/rh-a|bonus-claims/rh-b|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/rule-h",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 10.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/rule-h-a|restricted-funds/rule-h-b|",
+        "funded_breakdown" : "restricted-funds/rule-h-a:30|restricted-funds/rule-h-b:20|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unmigrated guard — a stray restricted_balance with no record refuses even a real-funded stake",
+    "line" : 1361,
+    "given" : [ {
+      "id" : "wallet/rule-i",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "ri",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "ri",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "si",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus status open with no open restricted-funds record"
+      }
+    }
+  }, {
+    "name" : "restricted funds ref — record reachable only via open_restricted_funds_refs, not traversal",
+    "line" : 1384,
+    "given" : [ {
+      "id" : "wallet/f219-a",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 50.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "f219a",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "open_restricted_funds_refs" : "restricted-funds/f219-a|"
+    }, {
+      "id" : "restricted-funds/f219-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 50.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f219-a"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "f219a",
+        "amount" : 20.00,
+        "currency" : "GBP",
+        "session_id" : "sf219a",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f219-a",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 30.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 0.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/f219-a",
+        "properties" : {
+          "real_balance" : 0.00,
+          "restricted_balance" : 30.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 50.00,
+          "balance_after" : 30.00,
+          "currency" : "GBP",
+          "status" : "open",
+          "round_id" : "f219a",
+          "session_ref" : "sf219a",
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 20.00,
+          "funded_breakdown" : "restricted-funds/f219-a:20|",
+          "contribution_breakdown" : "",
+          "grant_refs" : "|bonus-claims/f219-a|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/f219-a",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 30.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/f219-a|",
+        "funded_breakdown" : "restricted-funds/f219-a:20|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "restricted funds ref — stale ref is skipped, falls back to traversal, real-funded proceeds",
+    "line" : 1427,
+    "given" : [ {
+      "id" : "wallet/f219-b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "f219b",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "open_restricted_funds_refs" : "restricted-funds/f219-stale|"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "f219b",
+        "amount" : 30.00,
+        "currency" : "GBP",
+        "session_id" : "sf219b",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/f219-b",
+        "properties" : {
+          "real_balance" : 70.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "real",
+          "balance_before" : 100.00,
+          "balance_after" : 70.00,
+          "currency" : "GBP",
+          "status" : "open",
+          "round_id" : "f219b",
+          "session_ref" : "sf219b",
+          "player_ref" : "f219b",
+          "brand_ref" : "testbrand",
+          "wagering_contribution" : 0.00,
+          "funded_real_amount" : 30.00,
+          "funded_restricted_amount" : 0.00,
+          "funded_breakdown" : "",
+          "contribution_breakdown" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/f219-b",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 70.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "",
+        "funded_breakdown" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "identity — wallet with no player_ref/brand_ref still stamps bare refs on the bet transaction",
+    "line" : 1453,
+    "given" : [ {
+      "id" : "wallet/legacy-bet",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "05da2ea3-0000-4000-8000-000000000004",
+      "brand_id" : "spinvibe",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r-legacy",
+        "amount" : 30.00,
+        "amount_str" : "30.00",
+        "currency" : "GBP",
+        "session_id" : "s-legacy",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "player_ref" : "05da2ea3-0000-4000-8000-000000000004",
+          "brand_ref" : "spinvibe"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 70.00,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  } ]
+}

@@ -1,0 +1,219 @@
+{
+  "handler" : "close-pending-cap-bonus",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/close-pending-cap-bonus.test.tl",
+  "cases" : [ {
+    "name" : "CONVERTED_PENDING_CAP bonus closes on its own expiry — no balance change",
+    "line" : 16,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 35000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/rf1|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf1",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 7500,
+      "released_progress" : 7500,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 10000,
+      "deposits_since_release" : 20000,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c1"
+    } ],
+    "when" : {
+      "command" : "ClosePendingCapBonus",
+      "params" : {
+        "created_at" : "2026-08-23T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf1",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "release_requirement" : 7500,
+          "released_progress" : 7500,
+          "max_convertible_amount" : 5000,
+          "remaining_allowance" : 10000,
+          "deposits_since_release" : 20000,
+          "open_round_count" : 0,
+          "updated_at" : "2026-08-23T00:00:00Z",
+          "closed_at" : "2026-08-23T00:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "open_restricted_funds_refs" : ""
+        }
+      } ],
+      "result" : {
+        "closed_records" : "|restricted-funds/rf1|",
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "no CONVERTED_PENDING_CAP bonus — returns error",
+    "line" : 52,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "",
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "ClosePendingCapBonus",
+      "params" : {
+        "created_at" : "2026-08-23T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "NOT_PENDING_CAP",
+        "message" : "No CONVERTED_PENDING_CAP bonus to close"
+      }
+    }
+  }, {
+    "name" : "only an ACTIVE record open — NOT_PENDING_CAP, record untouched",
+    "line" : 70,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "open_restricted_funds_refs" : "restricted-funds/rf3|",
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf3",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c3"
+    } ],
+    "when" : {
+      "command" : "ClosePendingCapBonus",
+      "params" : {
+        "created_at" : "2026-08-23T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "NOT_PENDING_CAP",
+        "message" : "No CONVERTED_PENDING_CAP bonus to close"
+      }
+    }
+  }, {
+    "name" : "close pending cap — ACTIVE primary plus a pending-cap secondary: closes only the pending-cap record, refs drop only its id",
+    "line" : 106,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 35000,
+      "restricted_balance" : 2000,
+      "open_restricted_funds_refs" : "restricted-funds/rf4-a|restricted-funds/rf4-b|",
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf4-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 7500,
+      "released_progress" : 7500,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 10000,
+      "deposits_since_release" : 20000,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c4-b"
+    }, {
+      "id" : "restricted-funds/rf4-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/c4-a"
+    } ],
+    "when" : {
+      "command" : "ClosePendingCapBonus",
+      "params" : {
+        "created_at" : "2026-08-23T00:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf4-b",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "release_requirement" : 7500,
+          "released_progress" : 7500,
+          "max_convertible_amount" : 5000,
+          "remaining_allowance" : 10000,
+          "deposits_since_release" : 20000,
+          "open_round_count" : 0,
+          "updated_at" : "2026-08-23T00:00:00Z",
+          "closed_at" : "2026-08-23T00:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test4",
+        "properties" : {
+          "open_restricted_funds_refs" : "restricted-funds/rf4-a|"
+        }
+      } ],
+      "result" : {
+        "closed_records" : "|restricted-funds/rf4-b|",
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  } ]
+}

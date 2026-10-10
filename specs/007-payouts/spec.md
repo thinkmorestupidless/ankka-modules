@@ -526,6 +526,15 @@ provider reference and status; the queue's needs-review set is visible at a glan
 
 - Spec 001 (project, routes, realms, grants, topic contract, money and personal-data rules).
 - Spec 002 (hold preview, hold, release, confirm, reverse; `money.transactions` deposit families).
+  As built on 2026-10-09: `GET `/v1/casino/brands/<brand>/wallets/{player}/{currency}`/holds/preview?amount=`, `POST …/holds` with the request id as `key`,
+  and `POST …/holds/release` (`outcome` cancelled, rejected or failed), `…/holds/confirm`,
+  `…/holds/reverse`, each naming `requestId` in the body; a release as cancelled of a request that is
+  not pending answers the original's `WITHDRAWAL_REQUEST_NOT_CANCELLABLE`. Since 2026-10-10 the wallet
+  keeps only its most recent 1,000 keys: the lifetime record of a request's wallet commands is this
+  service's own (the workflow per request, started as the atomic claim, is the shape spec 003 uses),
+  and a repeat older than the wallet's recent keys is answered from that record, never resent to the
+  wallet
+  (specs/002-wallet/contracts/routes.md).
 - Spec 005 (the gateway's payout routes and outcome calls); spec 004 (terminals' capabilities).
 - Spec 008 and 009 (`casino.players` identity and account families); spec 012 (the withdrawal fact
   kinds derived from `casino.withdrawals`).

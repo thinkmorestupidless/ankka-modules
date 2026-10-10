@@ -72,3 +72,10 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   (record the original locally, write `surface.md` and a spec from the recordings, keep one parity
   test per recording) and check a running service with `ankka-inspect`.
 - Scala by default; British spelling; `eitheror` lowercase; money in minor units as `Long`.
+- The first service is `services/wallet/` (spec 002); its README says how to run and test it, and
+  `just wallet-test`, `wallet-it`, `wallet-perf` and `wallet-run` drive it. Its pattern for the next
+  services: a pure domain package ported from the original with the original's own tests, an entity
+  that records what that package decides, one endpoint per prefix with the brand in it, codecs from
+  `WalletCodecs` for stored types, a workflow per keyed command at the caller (`start` as the atomic
+  claim, the outcome in its state, the endpoint polling it) with the wallet keeping only recent keys,
+  and suites at three levels (unit kit, bound features, the integration kit over Postgres).

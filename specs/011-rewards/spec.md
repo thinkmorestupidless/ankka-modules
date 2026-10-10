@@ -78,8 +78,11 @@ only VIP behaviour today is an eligibility floor on a player's tier, and it stay
 - Q: Cancel and revoke clawback? → A: The clawback is real balance now, less the real balance at
   activation, less deposits confirmed since activation, floored at zero; without an activation
   baseline it is zero (feature 244: player-favourable). A player's cancel and an operator's
-  `reclaim` revoke apply it; an operator's `forfeit` revoke moves no real money. The wallet applies
-  the figure this service computes (spec 002 FR-017) — this service holds the baselines.
+  `reclaim` revoke apply it; an operator's `forfeit` revoke moves no real money. *Corrected
+  2026-10-09 with spec 002:* the wallet computes the figure from the baseline it records at award
+  (spec 002 FR-015a, FR-017) — award and activation are one moment — and this service supplies no
+  clawback and keeps no baseline; a `reclaim` revoke or a cancel is the wallet's cancel, a `forfeit`
+  revoke the wallet's forfeit.
 
 ### Session 2026-10-08 (reconciliation 2)
 
@@ -344,8 +347,8 @@ and `reporting` learn of it without a call.
 - **FR-010**: A grant MUST record player, offer, source (`customerio_webhook`, `player_code`,
   `operator_manual`, `affiliate_code`, `system`), payload type, face value, currency, priority,
   the clocks (granted, expires, wagering expires, cap expires, terminated), the rule snapshot copied
-  from the offer at creation, the activation baselines (real balance and total deposits at
-  activation), the code used, and the programme's tag when an affiliate code was used.
+  from the offer at creation, the code used, and the programme's tag when an affiliate code was
+  used. The clawback baseline is the wallet's (spec 002 FR-015a), not held here.
 - **FR-011**: Selecting an offer MUST create or move the grant to pending; a no-deposit offer MUST
   activate at once; deselecting MUST return it to available; a pending selection MUST expire by
   timer at its claim window.
@@ -356,9 +359,9 @@ and `reporting` learn of it without a call.
   the reason; the deposit itself is never withheld.
 - **FR-013**: Activation MUST ask the wallet to award restricted funds under the grant id as the
   key with amount, wagering multiplier, maximum convertible amount, priority, expiry and the rule
-  snapshot; MUST record the activation baselines from the wallet's balance and the player's deposit
-  total; and MUST mark the grant active only after the wallet confirms. A wallet refusal is recorded
-  on the grant with its reason.
+  snapshot; and MUST mark the grant active only after the wallet confirms. A wallet refusal is
+  recorded on the grant with its reason. The wallet records the clawback baseline on its record at
+  that award (spec 002 FR-015a); this service holds none.
 - **FR-014**: Each grant MUST be told of its record's conversion, forfeit, cancel and zeroing from
   `money.transactions` and move state accordingly, setting the cap timer from the wagering window
   days at conversion.
@@ -367,8 +370,8 @@ and `reporting` learn of it without a call.
   the pending-selection window; each MUST be a no-op on a grant already terminal or a wallet answer
   of `NO_ACTIVE_BONUS` or `NOT_PENDING_CAP`.
 - **FR-016**: A player MUST be able to switch an open grant to primary (the wallet's switch, then
-  the record), cancel their active grant or a named grant they hold (the clawback of the
-  Clarifications, then the wallet's cancel), and read their state and history; an explicit empty
+  the record), cancel their active grant or a named grant they hold (the wallet's cancel, which
+  computes and applies the clawback, spec 002 FR-017), and read their state and history; an explicit empty
   grant reference MUST be refused as `grant_not_found`, no active grant as `NO_ACTIVE_BONUS`.
 - **FR-017**: An operator MUST be able to award an offer manually with an optional deposit amount
   (operator override), and revoke an active grant as `forfeit` or `reclaim`, with `INVALID_MODE`,
@@ -449,7 +452,7 @@ and `reporting` learn of it without a call.
 
 - **Offer**: a brand's promotion with its terms, rules, codes, validity and order.
 - **Grant**: one player's instance of an offer in one of ten states, with its clocks, snapshot,
-  baselines, source and code; its events are the fact source.
+  source and code; its events are the fact source.
 - **Free-rounds grant**: a grant whose payload is rounds at the provider: count, spin value, game,
   rounds used, accumulated winnings, provisioning state, expiry.
 - **Code**: a brand code on an offer, or an entry in the programme's code document naming an offer.
@@ -544,7 +547,14 @@ Unit fixtures replayed against the entity and evaluator: `EligibilityEvaluator`'
 ## Dependencies
 
 - Spec 002 wallet: award, forfeit, cancel with clawback, close pending cap, switch, balance read,
-  `money.transactions`.
+  `money.transactions`. As built on 2026-10-09: `POST `/v1/casino/brands/<brand>/wallets/{player}/{currency}`/awards` (the grant id as `key`, the rule
+  snapshot in the body), `/awards/forfeit`, `/awards/cancel`, `/awards/close-pending-cap`,
+  `/awards/switch` (the grant in the body), `GET …/restricted-funds`, and
+  `PUT /v1/casino/brands/<brand>/wallet-config/bet-switches` (specs/002-wallet/contracts/routes.md).
+  Since 2026-10-10 the wallet keeps only its most recent 1,000 keys: the lifetime record of a grant's
+  wallet commands is this service's own (a workflow per grant, started as the atomic claim, is the
+  shape spec 003 uses), and a repeat older than the wallet's recent keys is answered from that record,
+  never resent to the wallet.
 - Spec 003 game-provider: FR-025 bonus routes; `round_settled` carrying the grant.
 - Spec 008 players: `casino.players` fields the evaluator reads.
 - Spec 012 attribution: `bonus-cost` from `bonus_granted` and `free_spins_settled`; the code and tag

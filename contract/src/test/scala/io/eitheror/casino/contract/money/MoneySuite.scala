@@ -56,8 +56,27 @@ class MoneySuite extends munit.FunSuite:
 
   test("a command answered once under its key is answered the same way again, and decided once") {
     var decided = 0
+    val digest  = Digest.of(Seq("type" -> "bet", "amount" -> "1050"))
     val outcomes0 = KeyedOutcomes[String]()
-    val (outcomes1, first, fresh1) = outcomes0.answer(Key.unsafe("tx-1")) { decided += 1; "debited 1050" }
-    val (_, again, fresh2)         = outcomes1.answer(Key.unsafe("tx-1")) { decided += 1; "debited 1050 again" }
-    assertEquals((first, again, fresh1, fresh2, decided), ("debited 1050", "debited 1050", true, false, 1))
+    val (outcomes1, first) = outcomes0.answer(Key.unsafe("tx-1"), digest) { decided += 1; "debited 1050" }
+    val (_, again)         = outcomes1.answer(Key.unsafe("tx-1"), digest) { decided += 1; "debited 1050 again" }
+    assertEquals((first, again, decided), (Answer.First("debited 1050"), Answer.Repeated("debited 1050"), 1))
+  }
+
+  test("another command under a seen key is told apart from a repeat, and decided never") {
+    var decided = 0
+    val first   = Digest.of(Seq("type" -> "bet", "amount" -> "1000"))
+    val other   = Digest.of(Seq("type" -> "bet", "amount" -> "2000"))
+    val (seen, _)    = KeyedOutcomes[String]().answer(Key.unsafe("tx-1"), first)("debited 1000")
+    val (after, ans) = seen.answer(Key.unsafe("tx-1"), other) { decided += 1; "debited 2000" }
+    assertEquals(ans, Answer.Reused(Seen(first, "debited 1000")))
+    assertEquals((after, decided), (seen, 0))
+  }
+
+  test("a digest is the same whatever order the fields are given in, and differs when any field does") {
+    val a = Digest.of(Seq("type" -> "bet", "amount" -> "1000", "round" -> "r1"))
+    assertEquals(Digest.of(Seq("round" -> "r1", "amount" -> "1000", "type" -> "bet")), a)
+    assertNotEquals(Digest.of(Seq("type" -> "bet", "amount" -> "1000", "round" -> "r2")), a)
+    // a field boundary cannot be forged by moving text between a name and a value
+    assertNotEquals(Digest.of(Seq("ab" -> "c")), Digest.of(Seq("a" -> "bc")))
   }

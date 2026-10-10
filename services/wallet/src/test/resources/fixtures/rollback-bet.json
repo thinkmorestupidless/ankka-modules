@@ -1,0 +1,1405 @@
+{
+  "handler" : "rollback-bet",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/rollback-bet.test.tl",
+  "cases" : [ {
+    "name" : "real-funded rollback — refunds real balance",
+    "line" : 22,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 14000,
+      "restricted_balance" : 0,
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-001",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r1",
+        "bet_tx_id" : "transaction/bet-001",
+        "settled_bet_tx_id" : "transaction/bet-001",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "real_balance" : 15000,
+          "open_rounds" : ""
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction/bet-001",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "real",
+          "amount" : "10.00",
+          "balance_before" : 14000,
+          "balance_after" : 15000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r1",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "funded_real_amount" : 1000,
+          "funded_restricted_amount" : 0,
+          "funded_breakdown" : ""
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 15000,
+        "restricted_balance" : 0,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "restricted_funds_refs" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "modern real-only bet — funded_breakdown empty, funded_real_amount set: real balance moves, no LEGACY_BET_NO_LEGS",
+    "line" : 52,
+    "given" : [ {
+      "id" : "wallet/modern-real",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 39000,
+      "restricted_balance" : 0,
+      "player_id" : "modern-real",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-modern-real",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r-modern-real",
+        "bet_tx_id" : "transaction/bet-modern-real",
+        "settled_bet_tx_id" : "transaction/bet-modern-real",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "funded_real_amount" : 1000,
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/modern-real",
+        "properties" : {
+          "real_balance" : 40000,
+          "open_rounds" : ""
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction/bet-modern-real",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "real",
+          "amount" : "10.00",
+          "balance_before" : 39000,
+          "balance_after" : 40000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r-modern-real",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "funded_real_amount" : 1000,
+          "funded_restricted_amount" : 0,
+          "funded_breakdown" : ""
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/modern-real",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 40000,
+        "restricted_balance" : 0,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "restricted_funds_refs" : "",
+        "records_errors" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "legacy bet with no funded_breakdown — whole amount restored to real, LEGACY_BET_NO_LEGS recorded; the open record's balance is untouched (F14: legacy funding-input synthesis retired, research.md Q9 D3)",
+    "line" : 80,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 3000,
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf2",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/g2",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 3000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-002",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r2",
+        "bet_tx_id" : "transaction/bet-002",
+        "settled_bet_tx_id" : "transaction/bet-002",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf2",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 3000,
+          "release_requirement" : 10000,
+          "released_progress" : 0,
+          "max_convertible_amount" : 10000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1,
+          "updated_at" : "2026-09-22T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test2",
+        "properties" : {
+          "real_balance" : 11000,
+          "restricted_balance" : 3000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-002",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "real",
+          "amount" : "10.00",
+          "balance_before" : 10000,
+          "balance_after" : 11000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r2",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "funded_real_amount" : 1000,
+          "funded_restricted_amount" : 0,
+          "funded_breakdown" : ""
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/test2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 11000,
+        "restricted_balance" : 3000,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "restricted_funds_refs" : "|restricted-funds/rf2|",
+        "records_errors" : "LEGACY_BET_NO_LEGS:transaction/bet-002"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "restricted funds ref — record reachable only via open_restricted_funds_refs, records_source refs",
+    "line" : 128,
+    "given" : [ {
+      "id" : "wallet/f219-rb",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 3000,
+      "player_id" : "f219rb",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "open_restricted_funds_refs" : "restricted-funds/f219-rb|"
+    }, {
+      "id" : "restricted-funds/f219-rb",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/f219-rb",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 3000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-f219-rb",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r-f219-rb",
+        "bet_tx_id" : "transaction/bet-f219-rb",
+        "settled_bet_tx_id" : "transaction/bet-f219-rb",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/f219-rb:1000|",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f219-rb",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 4000,
+          "release_requirement" : 10000,
+          "released_progress" : 0,
+          "max_convertible_amount" : 10000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-09-22T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/f219-rb",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 4000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-f219-rb",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "bonus",
+          "amount" : "10.00",
+          "balance_before" : 3000,
+          "balance_after" : 4000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r-f219-rb",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "funded_real_amount" : 0,
+          "funded_restricted_amount" : 1000,
+          "funded_breakdown" : "restricted-funds/f219-rb:1000|",
+          "grant_refs" : "|reward-grant/f219-rb|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/f219-rb",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "restricted_balance" : 4000,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "restricted_funds_refs" : "|restricted-funds/f219-rb|",
+        "records_source" : "refs",
+        "records_errors" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "bonus-funded rollback — explicit funded_breakdown produces the same mutations as the legacy synthesis",
+    "line" : 171,
+    "given" : [ {
+      "id" : "wallet/test2b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 3000,
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf2",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/g2",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 3000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-002",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r2",
+        "bet_tx_id" : "transaction/bet-002",
+        "settled_bet_tx_id" : "transaction/bet-002",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf2:1000|",
+        "contribution_breakdown" : "restricted-funds/rf2:0|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf2",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 4000,
+          "release_requirement" : 10000,
+          "released_progress" : 0,
+          "max_convertible_amount" : 10000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-09-22T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test2b",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 4000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-002",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "bonus",
+          "amount" : "10.00",
+          "balance_before" : 3000,
+          "balance_after" : 4000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r2",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "funded_real_amount" : 0,
+          "funded_restricted_amount" : 1000,
+          "funded_breakdown" : "restricted-funds/rf2:1000|",
+          "grant_refs" : "|reward-grant/g2|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/test2b",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "restricted_balance" : 4000,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "restricted_funds_refs" : "|restricted-funds/rf2|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "real-funded rollback with active wagering bonus — reverses the record's released_progress (legacy wagering_contribution synthesised onto the primary record)",
+    "line" : 214,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 5000,
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf3",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 5000,
+      "release_requirement" : 25000,
+      "released_progress" : 5000,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    }, {
+      "id" : "transaction/bet-wagering-real",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r3",
+        "bet_tx_id" : "transaction/bet-wagering-real",
+        "settled_bet_tx_id" : "transaction/bet-wagering-real",
+        "bet_amount" : 5000,
+        "bet_amount_str" : "50.00",
+        "wagering_contribution" : 5000,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf3",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 5000,
+          "released_progress" : 0,
+          "release_requirement" : 25000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test3",
+        "properties" : {
+          "real_balance" : 15000,
+          "restricted_balance" : 5000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-wagering-real",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "real",
+          "balance_before" : 10000,
+          "balance_after" : 15000,
+          "funded_real_amount" : 5000,
+          "funded_restricted_amount" : 0
+        }
+      } ],
+      "result" : {
+        "real_balance" : 15000,
+        "restricted_balance" : 5000,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "restricted_funds_refs" : "|restricted-funds/rf3|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "contribution-weighted rollback — real-funded bet with 50% rate reverses released_progress by the recorded contribution_breakdown, not the bet amount",
+    "line" : 254,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 9000,
+      "restricted_balance" : 5000,
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf4",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 5000,
+      "release_requirement" : 5000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    }, {
+      "id" : "transaction/bet-4",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r4",
+        "bet_tx_id" : "transaction/bet-4",
+        "settled_bet_tx_id" : "transaction/bet-4",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 500,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : "restricted-funds/rf4:500|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf4",
+        "properties" : {
+          "balance" : 5000,
+          "released_progress" : 0,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test4",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 5000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-4",
+        "properties" : {
+          "status" : "voided"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "restricted_balance" : 5000,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "split bet rollback — both real and the record restored, round count decremented",
+    "line" : 293,
+    "given" : [ {
+      "id" : "wallet/test5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 800,
+      "player_id" : "p5",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf5",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 800,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-5",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r5",
+        "bet_tx_id" : "transaction/bet-5",
+        "settled_bet_tx_id" : "transaction/bet-5",
+        "bet_amount" : 500,
+        "bet_amount_str" : "5.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf5:200|",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf5",
+        "properties" : {
+          "balance" : 1000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test5",
+        "properties" : {
+          "real_balance" : 300,
+          "restricted_balance" : 1000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-5",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "split",
+          "balance_before" : 0,
+          "balance_after" : 300,
+          "funded_real_amount" : 300,
+          "funded_restricted_amount" : 200,
+          "funded_breakdown" : "restricted-funds/rf5:200|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 300,
+        "restricted_balance" : 1000,
+        "currency" : "GBP",
+        "wallet_type" : "split"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "split bet rollback with active bonus — released_progress decremented by the recorded contribution",
+    "line" : 333,
+    "given" : [ {
+      "id" : "wallet/test6",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 800,
+      "player_id" : "p6",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf6",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 800,
+      "release_requirement" : 5000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-6",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r6",
+        "bet_tx_id" : "transaction/bet-6",
+        "settled_bet_tx_id" : "transaction/bet-6",
+        "bet_amount" : 500,
+        "bet_amount_str" : "5.00",
+        "wagering_contribution" : 500,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf6:200|",
+        "contribution_breakdown" : "restricted-funds/rf6:500|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf6",
+        "properties" : {
+          "balance" : 1000,
+          "released_progress" : 0,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test6",
+        "properties" : {
+          "real_balance" : 300,
+          "restricted_balance" : 1000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-6",
+        "properties" : {
+          "status" : "voided"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 300,
+        "restricted_balance" : 1000,
+        "currency" : "GBP",
+        "wallet_type" : "split"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "converted record — the bonus leg of a bet placed before the conversion is restored to real (research Q10.1)",
+    "line" : 377,
+    "given" : [ {
+      "id" : "wallet/conv1",
+      "concepts" : [ "Wallet" ],
+      "open_restricted_funds_refs" : "restricted-funds/rf-conv|",
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "player_id" : "conv1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-conv",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 10000,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-conv",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r-conv",
+        "bet_tx_id" : "transaction/bet-conv",
+        "settled_bet_tx_id" : "transaction/bet-conv",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 100,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-conv:1000|",
+        "contribution_breakdown" : "restricted-funds/rf-conv:100|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-conv",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0,
+          "released_progress" : 0,
+          "remaining_allowance" : 10000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/conv1",
+        "properties" : {
+          "real_balance" : 11000,
+          "restricted_balance" : 0
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-conv",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "bonus",
+          "funded_real_amount" : 1000,
+          "funded_restricted_amount" : 0,
+          "funded_breakdown" : ""
+        }
+      } ],
+      "result" : {
+        "real_balance" : 11000,
+        "restricted_balance" : 0,
+        "wallet_type" : "bonus",
+        "restricted_funds_refs" : "|restricted-funds/rf-conv|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "two-record legs — each record gets its leg back and its own contribution reversed, in resolver order",
+    "line" : 418,
+    "given" : [ {
+      "id" : "wallet/two1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 1500,
+      "player_id" : "two1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/gb",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-09-02T00:00:00Z",
+      "balance" : 500,
+      "release_requirement" : 5000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "restricted-funds/rf-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/ga",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 1000,
+      "release_requirement" : 10000,
+      "released_progress" : 1000,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-two",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r-two",
+        "bet_tx_id" : "transaction/bet-two",
+        "settled_bet_tx_id" : "transaction/bet-two",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 500,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-a:600|restricted-funds/rf-b:400|",
+        "contribution_breakdown" : "restricted-funds/rf-a:300|restricted-funds/rf-b:200|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-a",
+        "properties" : {
+          "balance" : 1600,
+          "released_progress" : 700,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-b",
+        "properties" : {
+          "balance" : 900,
+          "released_progress" : 300,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/two1",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 2500
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction/bet-two",
+        "properties" : {
+          "status" : "voided"
+        }
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "wallet_type" : "bonus",
+          "funded_real_amount" : 0,
+          "funded_restricted_amount" : 1000,
+          "funded_breakdown" : "restricted-funds/rf-a:600|restricted-funds/rf-b:400|",
+          "grant_refs" : "|reward-grant/ga|reward-grant/gb|"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/two1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "restricted_balance" : 2500,
+        "wallet_type" : "bonus",
+        "restricted_funds_refs" : "|restricted-funds/rf-a|restricted-funds/rf-b|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "guard — a stray restricted_balance with no RestrictedFunds record is refused RESTRICTED_FUNDS_UNMIGRATED",
+    "line" : 480,
+    "given" : [ {
+      "id" : "wallet/guard1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 3000,
+      "player_id" : "guard1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-guard",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r-guard",
+        "bet_tx_id" : "transaction/bet-guard",
+        "settled_bet_tx_id" : "transaction/bet-guard",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus status open with no open restricted-funds record to restore the rollback to"
+      }
+    }
+  }, {
+    "name" : "open_rounds — real-funded rollback prunes the settled bet tx",
+    "line" : 503,
+    "given" : [ {
+      "id" : "wallet/or1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 14000,
+      "restricted_balance" : 0,
+      "open_rounds" : "transaction/bet-A|transaction/bet-B|",
+      "player_id" : "or1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-A",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r1",
+        "bet_tx_id" : "transaction/bet-A",
+        "settled_bet_tx_id" : "transaction/bet-A",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/or1",
+        "properties" : {
+          "real_balance" : 15000,
+          "open_rounds" : "transaction/bet-B|"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction/bet-A",
+        "properties" : {
+          "status" : "voided"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 15000,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "open_rounds — real-funded rollback with active bonus prunes the settled bet tx",
+    "line" : 527,
+    "given" : [ {
+      "id" : "wallet/or2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 5000,
+      "open_rounds" : "transaction/bet-A|transaction/bet-B|",
+      "player_id" : "or2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-or2",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 5000,
+      "release_requirement" : 25000,
+      "released_progress" : 5000,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    }, {
+      "id" : "transaction/bet-B",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r1",
+        "bet_tx_id" : "transaction/bet-B",
+        "settled_bet_tx_id" : "transaction/bet-B",
+        "bet_amount" : 5000,
+        "bet_amount_str" : "50.00",
+        "wagering_contribution" : 5000,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : "restricted-funds/rf-or2:5000|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-or2",
+        "properties" : {
+          "released_progress" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/or2",
+        "properties" : {
+          "real_balance" : 15000,
+          "open_rounds" : "transaction/bet-A|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 15000,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "open_rounds — bonus-funded rollback prunes down to empty",
+    "line" : 566,
+    "given" : [ {
+      "id" : "wallet/or3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 3000,
+      "open_rounds" : "transaction/bet-C|",
+      "player_id" : "or3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-or3",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 3000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-C",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r1",
+        "bet_tx_id" : "transaction/bet-C",
+        "settled_bet_tx_id" : "transaction/bet-C",
+        "bet_amount" : 1000,
+        "bet_amount_str" : "10.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-or3:1000|",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-or3",
+        "properties" : {
+          "balance" : 4000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/or3",
+        "properties" : {
+          "restricted_balance" : 4000,
+          "open_rounds" : ""
+        }
+      } ],
+      "result" : {
+        "restricted_balance" : 4000,
+        "currency" : "GBP",
+        "wallet_type" : "bonus"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "open_rounds — split rollback prunes, no-op tolerant when token already gone",
+    "line" : 605,
+    "given" : [ {
+      "id" : "wallet/or4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 800,
+      "open_rounds" : "transaction/bet-D|",
+      "player_id" : "or4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-or4",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 800,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-absent",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r1",
+        "bet_tx_id" : "transaction/bet-absent",
+        "settled_bet_tx_id" : "transaction/bet-absent",
+        "bet_amount" : 500,
+        "bet_amount_str" : "5.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-or4:200|",
+        "contribution_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-or4",
+        "properties" : {
+          "balance" : 1000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/or4",
+        "properties" : {
+          "real_balance" : 300,
+          "restricted_balance" : 1000,
+          "open_rounds" : "transaction/bet-D|"
+        }
+      } ],
+      "result" : {
+        "currency" : "GBP",
+        "wallet_type" : "split"
+      },
+      "error" : null
+    }
+  } ]
+}

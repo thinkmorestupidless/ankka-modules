@@ -40,15 +40,15 @@ Feature: An active reward converts, completes, is switched, cancelled, revoked o
     And the reward records the switch
 
   Scenario: a player cancelling a reward with an activation baseline forfeits the record and claws back winnings since activation less deposits since
-    Given the reward has an activation baseline
+    Given the wallet's record has a baseline from its award
     When the player cancels it
     Then the wallet forfeits the record
-    And the clawback is the real winnings since activation less the deposits since, floored at zero
+    And the wallet's clawback is the real winnings since the award less the deposits since, floored at zero
 
   Scenario: a player cancelling a reward with no activation baseline claws back nothing
-    Given the reward has no activation baseline
+    Given the wallet's record has no baseline
     When the player cancels it
-    Then the clawback is "0"
+    Then the wallet's clawback is "0"
 
   Scenario: a cancel naming a reward the player does not hold is answered reward not found
     Given a reward id the player does not hold

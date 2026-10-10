@@ -24,3 +24,9 @@ Feature: Money is exact and a repeated command does nothing twice
   Scenario: a money command without a key is refused
     When a money command is sent with no key
     Then it is refused
+
+  Scenario: a seen key carried by a different money command is refused naming the first
+    Given a bet of "1000" was placed under key "tx-1"
+    When a bet of "2000" is sent under key "tx-1"
+    Then it is refused as "key reused", naming "tx-1" and the first bet of "1000"
+    And no transaction is written

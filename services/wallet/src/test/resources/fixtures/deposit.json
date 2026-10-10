@@ -1,0 +1,646 @@
+{
+  "handler" : "deposit",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/deposit.test.tl",
+  "cases" : [ {
+    "name" : "happy path — deposit into funded wallet",
+    "line" : 1,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "real_balance" : 50.00,
+      "restricted_balance" : 10.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-001",
+        "amount" : 100.00,
+        "currency" : "GBP",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "real_balance" : 150.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "deposit",
+          "wallet_type" : "real",
+          "amount" : 100.00,
+          "balance_before" : 50.00,
+          "balance_after" : 150.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "payment_ref" : "psp-001",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "wallet.deposit_recorded"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "wallet_ref" : "wallet/test1",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "payment_ref" : "psp-001",
+          "amount" : 100.00,
+          "currency" : "GBP",
+          "terminal_id" : "t1",
+          "psp_id" : "dreamzpay",
+          "turnover_multiplier" : 0,
+          "turnover_definition" : "gross_wagered",
+          "turnover_required_amount" : 0.00,
+          "wagered_toward_turnover" : 0,
+          "turnover_status" : "CLEARED",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_DEPOSIT_RECORD", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 150.00,
+        "restricted_balance" : 10.00,
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "happy path — deposit into zero balance",
+    "line" : 33,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "real_balance" : 0.00,
+      "restricted_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-002",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test2",
+        "properties" : {
+          "real_balance" : 50.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "deposit",
+          "wallet_type" : "real",
+          "amount" : 50.00,
+          "balance_before" : 0.00,
+          "balance_after" : 50.00,
+          "currency" : "GBP",
+          "status" : "settled",
+          "payment_ref" : "psp-002",
+          "player_ref" : "p2",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "wallet.deposit_recorded"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "wallet_ref" : "wallet/test2",
+          "player_ref" : "p2",
+          "brand_ref" : "testbrand",
+          "payment_ref" : "psp-002",
+          "amount" : 50.00,
+          "currency" : "GBP",
+          "terminal_id" : "t1",
+          "psp_id" : "dreamzpay",
+          "turnover_multiplier" : 0,
+          "turnover_definition" : "gross_wagered",
+          "turnover_required_amount" : 0.00,
+          "wagered_toward_turnover" : 0,
+          "turnover_status" : "CLEARED",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/test2",
+        "args" : [ "HAS_DEPOSIT_RECORD", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 50.00,
+        "restricted_balance" : 0.00,
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit does not append payment_ref to processed_payment_refs (ADR 0043)",
+    "line" : 68,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "real_balance" : 200.00,
+      "restricted_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "EUR",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "test-ref-001",
+        "amount" : 75.00,
+        "currency" : "EUR",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test3",
+        "properties" : {
+          "real_balance" : 275.00
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "deposit",
+          "wallet_type" : "real",
+          "amount" : 75.00,
+          "balance_before" : 200.00,
+          "balance_after" : 275.00,
+          "currency" : "EUR",
+          "status" : "settled",
+          "payment_ref" : "test-ref-001",
+          "player_ref" : "p3",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "wallet.deposit_recorded"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/test3",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "wallet_ref" : "wallet/test3",
+          "player_ref" : "p3",
+          "brand_ref" : "testbrand",
+          "payment_ref" : "test-ref-001",
+          "amount" : 75.00,
+          "currency" : "EUR",
+          "terminal_id" : "t1",
+          "psp_id" : "dreamzpay",
+          "turnover_multiplier" : 0,
+          "turnover_definition" : "gross_wagered",
+          "turnover_required_amount" : 0.00,
+          "wagered_toward_turnover" : 0,
+          "turnover_status" : "CLEARED",
+          "created_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/test3",
+        "args" : [ "HAS_DEPOSIT_RECORD", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 275.00,
+        "restricted_balance" : 0.00,
+        "currency" : "EUR"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "DepositRecord created with CLEARED status when multiplier is 0",
+    "line" : 100,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-004",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "turnover_required_amount" : 0.00,
+          "turnover_status" : "CLEARED",
+          "wagered_toward_turnover" : 0
+        }
+      } ],
+      "result" : {
+        "real_balance" : 150.00
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "DepositRecord created with PENDING status when multiplier > 0",
+    "line" : 127,
+    "given" : [ {
+      "id" : "wallet/test5",
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p5",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-005",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 2,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "turnover_required_amount" : 100.00,
+          "turnover_status" : "PENDING",
+          "wagered_toward_turnover" : 0
+        }
+      } ],
+      "result" : {
+        "real_balance" : 150.00
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "wallet deposit_turnover_pending updated when multiplier > 0",
+    "line" : 154,
+    "given" : [ {
+      "id" : "wallet/test6",
+      "real_balance" : 100.00,
+      "restricted_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p6",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-006",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 2,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "wallet/test6",
+        "properties" : {
+          "deposit_turnover_pending" : 100.00
+        }
+      } ],
+      "result" : {
+        "real_balance" : 150.00
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit records the scheme on the DepositRecord, not just the transaction",
+    "line" : 187,
+    "given" : [ {
+      "id" : "wallet/test-scheme",
+      "real_balance" : 0.00,
+      "restricted_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p-scheme",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-scheme-001",
+        "amount" : 25.00,
+        "currency" : "GBP",
+        "created_at" : "2026-07-30T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "scheme" : "CARD_VISA",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "psp_id" : "dreamzpay",
+          "scheme" : "CARD_VISA"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 25.00
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit echoes the wallet's restricted_balance untouched",
+    "line" : 218,
+    "given" : [ {
+      "id" : "wallet/test-restricted-echo",
+      "real_balance" : 100.00,
+      "restricted_balance" : 40.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p-restricted-echo",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-restricted-echo-001",
+        "amount" : 50.00,
+        "currency" : "GBP",
+        "created_at" : "2026-09-23T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test-restricted-echo",
+        "properties" : {
+          "real_balance" : 150.00
+        }
+      } ],
+      "result" : {
+        "real_balance" : 150.00,
+        "restricted_balance" : 40.00,
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit records the scheme on a turnover-pending DepositRecord too",
+    "line" : 245,
+    "given" : [ {
+      "id" : "wallet/test-scheme2",
+      "real_balance" : 0.00,
+      "restricted_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "p-scheme2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-scheme-002",
+        "amount" : 25.00,
+        "currency" : "GBP",
+        "created_at" : "2026-07-30T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "scheme" : "OPEN_BANKING",
+        "turnover_multiplier" : 1,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "scheme" : "OPEN_BANKING",
+          "turnover_status" : "PENDING"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 25.00
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "identity — wallet with no player_ref/brand_ref still stamps bare refs on the transaction",
+    "line" : 278,
+    "given" : [ {
+      "id" : "wallet/legacy-no-ref",
+      "real_balance" : 0.00,
+      "bonus_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "05da2ea3-0000-4000-8000-000000000001",
+      "brand_id" : "spinvibe",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-legacy-001",
+        "amount" : 40.00,
+        "currency" : "GBP",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "deposit",
+          "player_ref" : "05da2ea3-0000-4000-8000-000000000001",
+          "brand_ref" : "spinvibe"
+        }
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "deposit-record.new-id",
+        "properties" : {
+          "player_ref" : "05da2ea3-0000-4000-8000-000000000001",
+          "brand_ref" : "spinvibe"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 40.00
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "identity — refs written to the transaction are bare, never namespace-qualified",
+    "line" : 311,
+    "given" : [ {
+      "id" : "wallet/bare-refs",
+      "real_balance" : 10.00,
+      "bonus_balance" : 0.00,
+      "processed_payment_refs" : "||",
+      "player_id" : "05da2ea3-0000-4000-8000-000000000002",
+      "brand_id" : "spinvibe",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0.00
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-bare-001",
+        "amount" : 5.00,
+        "currency" : "GBP",
+        "created_at" : "2026-09-22T11:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "player_ref" : "05da2ea3-0000-4000-8000-000000000002",
+          "brand_ref" : "spinvibe"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 15.00
+      },
+      "error" : null
+    }
+  } ]
+}

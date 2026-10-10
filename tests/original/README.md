@@ -45,6 +45,43 @@ cd .. && just brands recordings check
 Each run uses fresh ids because the suite mints them per run. A recording that did not repeat step for
 step keeps `runs: 1`, and `recordings check` refuses it until the scenario is made repeatable.
 
+## Recording the wallet directly
+
+The suite reaches the wallet only through casino-service and the ST8 adapter, so its recordings
+are those services'. `wallet-driver/` drives the original's `wallet-service` itself (spec 002
+research R13): one scenario per scenario of `features/wallet/*.feature`, each named exactly as the
+feature names it, plus the ST8 wallet shapes and `TestScenario22`'s resolver shapes.
+
+- It calls the `/internal/v1/wallet/{brand}/{player}/{currency}/...` routes, the same handlers as
+  the player-token `/v1/wallet/...` routes, signed as casino-service signs them:
+  `X-Internal-Brand-Id: <brand>` and `X-Internal-Secret: hex(HMAC-SHA256(WALLET_INTERNAL_SECRET, brand))`.
+  The secret is never recorded.
+- Each scenario takes a fresh player and creates its player and wallet twins on substrate as
+  casino-service does at registration (the original's deposit refuses `WALLET_NOT_FOUND`
+  without them). Those calls are `setup:` steps; reads of the wallet twin the original has no
+  route for (deposit turnover pending) are `observe:` steps. A replay skips both kinds.
+- Requests carry placeholders, never a run's values: `{brand}`, `{player}`, `{walletTwin}`, an id
+  the scenario minted (`{r1}`, `{p1}`, `{session}`, a grant's UUID by its award's name) and an id
+  the original minted, captured from the answer that gave it (`{w1}` from `$.requestId`). The
+  parity harness mints the first kinds and fills captures from the rebuild's answers.
+- Amounts go in as the original takes them: major-unit decimal strings on deposit, bet, win,
+  award and create-withdrawal-request; cents as numbers on the withdrawal lifecycle routes.
+
+```bash
+just dev-wallet-service                     # in the original: wallet-service on :8081, substrate on :8080
+cd tests
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/wallet-$run EITHEROR_ORIGINAL_COMMIT=$(git -C ../../eitheror-platform rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -json ./original/wallet-driver/... \
+      -args -wallet-url http://localhost:8081 -substrate-url http://localhost:8080 -brand spinvibe > /tmp/wallet-$run.json
+done
+go run ./original/merge -run1 /tmp/wallet-1 -run2 /tmp/wallet-2 -results1 /tmp/wallet-1.json -results2 /tmp/wallet-2.json -out port
+```
+
+A scenario whose answer differs from what its feature expects fails in the run's result and is
+still recorded: the recording is the original's behaviour, and the failure is a finding for the
+spec. `go test ./original/wallet-driver/...` without the tag checks the driver against a stub.
+
 ## What a stub cannot do
 
 Each stub's README says what it does not reproduce. The ones that change a recording:

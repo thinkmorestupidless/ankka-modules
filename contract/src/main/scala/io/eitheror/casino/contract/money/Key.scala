@@ -38,23 +38,59 @@ trait MoneyCommand:
   def key: Key
 
 /**
- * The keys a money-moving entity has seen and what it answered, so a repeat is answered with the
- * first outcome and moves nothing (FR-027). Immutable, to be held in an entity's state.
+ * What a key remembers: the digest of the command first sent under it and the outcome it was given.
+ * The digest tells a repeat (same command) from a reuse (another command under the same key).
+ */
+final case class Seen[A](digest: String, outcome: A)
+
+/** How a money command under a key is answered (spec 002 FR-002). */
+enum Answer[+A]:
+  /** The key was new: `outcome` was decided now and recorded. */
+  case First(outcome: A)
+  /** The same command again: the first outcome, and nothing moves. */
+  case Repeated(first: A)
+  /** Another command under a seen key: refused naming the first (`KEY_REUSED`). */
+  case Reused(first: Seen[A @scala.annotation.unchecked.uncheckedVariance])
+
+/**
+ * The digest of a command: SHA-256 over its fields in name order, its key left out, so two commands
+ * that differ in any field (type, amount, round, …) differ here and an identical repeat does not.
+ */
+object Digest:
+  def of(fields: Iterable[(String, String)]): String =
+    sha256(fields.toVector.sortBy(_._1).map((k, v) => s"${k.length}:$k=${v.length}:$v").mkString(";"))
+
+  def sha256(text: String): String =
+    java.security.MessageDigest.getInstance("SHA-256")
+      .digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+      .map(b => f"${b & 0xff}%02x").mkString
+
+/**
+ * The keys a money-moving entity has seen, the digest of each key's command and what it answered,
+ * so a repeat is answered with the first outcome and moves nothing, and another command under a
+ * seen key is told apart (FR-027; spec 002 FR-002). Immutable, to be held in an entity's state.
  *
  * Bounded by nothing here on purpose: a wallet must remember every key it ever answered, or a late
  * retry moves money; the owning spec decides retention.
  */
-final case class KeyedOutcomes[A](seen: Map[String, A] = Map.empty[String, A]):
+final case class KeyedOutcomes[A](seen: Map[String, Seen[A]] = Map.empty[String, Seen[A]]):
 
-  def outcomeOf(key: Key): Option[A] = seen.get(key.value)
+  def outcomeOf(key: Key): Option[A] = seen.get(key.value).map(_.outcome)
 
-  /**
-   * Answers `command`: the first outcome when its key was seen, else `decide`'s, recorded. The
-   * boolean says whether this was the first time, so the caller emits events only then.
-   */
-  def answer(key: Key)(decide: => A): (KeyedOutcomes[A], A, Boolean) =
-    seen.get(key.value) match
-      case Some(first) => (this, first, false)
+  def seenOf(key: Key): Option[Seen[A]] = seen.get(key.value)
+
+  /** A seen key's answer for a command with this digest, or `None` when the key is new. */
+  def check(key: Key, digest: String): Option[Answer[A]] =
+    seen.get(key.value).map(first => if first.digest == digest then Answer.Repeated(first.outcome) else Answer.Reused(first))
+
+  /** Records a new key's outcome; a seen key is never overwritten. */
+  def record(key: Key, digest: String, outcome: A): KeyedOutcomes[A] =
+    if seen.contains(key.value) then this else copy(seen = seen.updated(key.value, Seen(digest, outcome)))
+
+  /** Answers a command: the stored answer for a seen key, else `decide`'s outcome, recorded. */
+  def answer(key: Key, digest: String)(decide: => A): (KeyedOutcomes[A], Answer[A]) =
+    check(key, digest) match
+      case Some(stored) => (this, stored)
       case None =>
         val outcome = decide
-        (copy(seen = seen.updated(key.value, outcome)), outcome, true)
+        (record(key, digest, outcome), Answer.First(outcome))

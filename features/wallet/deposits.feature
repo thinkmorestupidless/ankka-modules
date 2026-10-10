@@ -5,7 +5,8 @@ Feature: A deposit is confirmed and turnover is accounted
 
   Scenario: a confirmed deposit credits real balance and records its required turnover
     Given a player with a wallet in "EUR" and a real balance of "0"
-    When a deposit of "5000" under payment reference "p1" with a turnover multiplier of "1" is confirmed
+    And the brand's turnover multiplier is "1"
+    When a deposit of "5000" under payment reference "p1" is confirmed
     Then the real balance is "5000"
     And a deposit record holds a required turnover of "5000" with status "pending"
     And deposit turnover pending is "5000"
@@ -13,12 +14,13 @@ Feature: A deposit is confirmed and turnover is accounted
   Scenario: a deposit confirmed again under the same payment reference moves nothing
     Given a player with a wallet in "EUR" whose deposit under payment reference "p1" is confirmed
     When a deposit under payment reference "p1" arrives again
-    Then the balances are returned unchanged
+    Then the first answer is returned
     And no transaction is written
 
   Scenario: a deposit with a turnover multiplier of zero is cleared at once
     Given a player with a wallet in "EUR" and a real balance of "0"
-    When a deposit of "5000" under payment reference "p2" with a turnover multiplier of "0" is confirmed
+    And the brand's turnover multiplier is "0"
+    When a deposit of "5000" under payment reference "p2" is confirmed
     Then the deposit record is "cleared"
     And deposit turnover pending does not change
 

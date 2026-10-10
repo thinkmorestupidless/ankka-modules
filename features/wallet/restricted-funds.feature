@@ -89,14 +89,16 @@ Feature: Restricted funds are awarded, wagered, converted and forfeited
 
   Scenario: cancelling an award forfeits its record and applies the clawback clamped to real balance
     Given an active restricted funds record of "2000" and a real balance of "300"
-    When the award is cancelled with a clawback of "500"
+    And the clawback computed from the record's baseline is "500"
+    When the award is cancelled
     Then the record is forfeited
     And the clawback applied is "300"
     And the real balance is "0"
 
   Scenario: cancelling with no active record still applies the clawback to real balance
     Given no active restricted funds record and a real balance of "300"
-    When the award is cancelled with a clawback of "500"
+    And the clawback computed from the award's baseline is "500"
+    When the award is cancelled
     Then no record changes
     And the clawback applied is "300"
     And a "bonus_cancel" transaction is written

@@ -9,7 +9,7 @@ val munitVersion = "1.3.6"
 
 ThisBuild / scalaVersion := "3.9.0"
 ThisBuild / organization := "io.eitheror"
-ThisBuild / version      := sys.env.getOrElse("CASINO_VERSION", "0.1.0-SNAPSHOT")
+ThisBuild / version      := sys.env.getOrElse("CASINO_VERSION", "0.2.0-SNAPSHOT")
 ThisBuild / scalacOptions ++= Seq("-deprecation", "-feature", "-Wunused:all")
 
 /** The repository root, so suites read `features/` and `tests/` wherever sbt forks them. */
@@ -82,7 +82,26 @@ lazy val brandsIt = project
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
+/**
+ * The one-off converter of the original's wallet handler fixtures (`*.test.tl`) into the JSON case
+ * files the wallet's fixture suites replay (spec 002 research R13). Run once: `just tl-fixtures`.
+ * Not aggregated: it reads the original's checkout, which CI does not have.
+ */
+lazy val tlFixtures = project
+  .in(file("tools/tl-fixtures"))
+  .settings(commonTest)
+  .settings(
+    name := "casino-tl-fixtures",
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.18.2",
+      "org.scalameta"             %% "munit"            % munitVersion % Test
+    ),
+    Compile / run / fork := true,
+    Compile / run / baseDirectory := (ThisBuild / repoRoot).value
+  )
+
 lazy val root = project
   .in(file("."))
-  .aggregate(contract, brands)  // brandsIt is not aggregated: `just it` runs it on purpose
+  .aggregate(contract, brands)  // brandsIt and tlFixtures are not aggregated: each runs on purpose
   .settings(publish / skip := true, name := "ankka-casino")

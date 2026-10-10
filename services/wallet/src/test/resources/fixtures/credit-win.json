@@ -1,0 +1,1690 @@
+{
+  "handler" : "credit-win",
+  "source" : "eitheror-platform/starter-packs/wallet/handlers/credit-win.test.tl",
+  "cases" : [ {
+    "name" : "real-funded win — credits real balance",
+    "line" : 21,
+    "given" : [ {
+      "id" : "wallet/test1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-001",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 3000,
+        "amount_str" : "30.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-001",
+        "settled_bet_tx_id" : "transaction/bet-001",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test1",
+        "properties" : {
+          "real_balance" : 13000,
+          "open_rounds" : ""
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction/bet-001",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "real",
+          "amount" : "30.00",
+          "balance_before" : 10000,
+          "balance_after" : 13000,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r1",
+          "player_ref" : "p1",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "won_real_amount" : 3000,
+          "won_restricted_amount" : 0,
+          "won_breakdown" : ""
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 13000,
+        "restricted_balance" : 0,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "won_restricted_amount" : 0,
+        "won_breakdown" : "",
+        "restricted_funds_refs" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "turnover gate — real-money win does NOT affect deposit_turnover_pending (net_loss deferred to v2)",
+    "line" : 47,
+    "given" : [ {
+      "id" : "wallet/test3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 15000,
+      "player_id" : "p3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-003",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r3",
+        "amount" : 5000,
+        "amount_str" : "50.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-003",
+        "settled_bet_tx_id" : "transaction/bet-003",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test3",
+        "properties" : {
+          "real_balance" : 15000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction/bet-003",
+        "properties" : {
+          "status" : "settled"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 15000,
+        "restricted_balance" : 0,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "modern real-only bet — funded_breakdown empty, funded_real_amount set: real balance moves, no LEGACY_BET_NO_LEGS",
+    "line" : 74,
+    "given" : [ {
+      "id" : "wallet/modern-real",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 4000,
+      "restricted_balance" : 0,
+      "player_id" : "modern-real",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-modern-real",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-modern-real",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-modern-real",
+        "settled_bet_tx_id" : "transaction/bet-modern-real",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "",
+        "funded_real_amount" : 1500
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/modern-real",
+        "properties" : {
+          "real_balance" : 5500,
+          "open_rounds" : ""
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction/bet-modern-real",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "real",
+          "amount" : "15.00",
+          "balance_before" : 4000,
+          "balance_after" : 5500,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r-modern-real",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "won_real_amount" : 1500,
+          "won_restricted_amount" : 0,
+          "won_breakdown" : ""
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/modern-real",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 5500,
+        "restricted_balance" : 0,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "won_restricted_amount" : 0,
+        "won_breakdown" : "",
+        "restricted_funds_refs" : "",
+        "records_errors" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "legacy bet with no funded_breakdown — whole win treated as real, LEGACY_BET_NO_LEGS recorded, the open record is untouched (F14: legacy funding-input synthesis retired, research.md Q9 D3)",
+    "line" : 102,
+    "given" : [ {
+      "id" : "wallet/test2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf1",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/g1",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-002",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r2",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-002",
+        "settled_bet_tx_id" : "transaction/bet-002",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/test2",
+        "properties" : {
+          "real_balance" : 11500,
+          "restricted_balance" : 2000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction/bet-002",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "real",
+          "amount" : "15.00",
+          "balance_before" : 10000,
+          "balance_after" : 11500,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r2",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "won_real_amount" : 1500,
+          "won_restricted_amount" : 0,
+          "won_breakdown" : ""
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test2",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 11500,
+        "restricted_balance" : 2000,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "won_restricted_amount" : 0,
+        "won_breakdown" : "",
+        "restricted_funds_refs" : "",
+        "records_errors" : "LEGACY_BET_NO_LEGS:transaction/bet-002"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "restricted funds ref — record reachable only via open_restricted_funds_refs, records_source refs",
+    "line" : 149,
+    "given" : [ {
+      "id" : "wallet/f219-cw",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "player_id" : "f219cw",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "open_restricted_funds_refs" : "restricted-funds/f219-cw|"
+    }, {
+      "id" : "restricted-funds/f219-cw",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/f219-cw",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-f219-cw",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-f219-cw",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-f219-cw",
+        "settled_bet_tx_id" : "transaction/bet-f219-cw",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/f219-cw:1500|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f219-cw",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 3500,
+          "release_requirement" : 10000,
+          "released_progress" : 500,
+          "max_convertible_amount" : 10000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-09-22T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/f219-cw",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 3500
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-f219-cw",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "bonus",
+          "amount" : "15.00",
+          "balance_before" : 2000,
+          "balance_after" : 3500,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r-f219-cw",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "won_real_amount" : 0,
+          "won_restricted_amount" : 1500,
+          "won_breakdown" : "restricted-funds/f219-cw:1500|",
+          "grant_refs" : "|reward-grant/f219-cw|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/f219-cw",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "restricted_balance" : 3500,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "won_restricted_amount" : 1500,
+        "won_breakdown" : "restricted-funds/f219-cw:1500|",
+        "restricted_funds_refs" : "|restricted-funds/f219-cw|",
+        "records_source" : "refs",
+        "records_errors" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "no refs, edge only — traversal discovery path, records_source traversal",
+    "line" : 196,
+    "given" : [ {
+      "id" : "wallet/f219-cw-trav",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "player_id" : "f219cwtrav",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/f219-cw-trav",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/f219-cw-trav",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-f219-cw-trav",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-f219-cw-trav",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-f219-cw-trav",
+        "settled_bet_tx_id" : "transaction/bet-f219-cw-trav",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/f219-cw-trav:1500|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f219-cw-trav",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 3500,
+          "release_requirement" : 10000,
+          "released_progress" : 500,
+          "max_convertible_amount" : 10000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-09-22T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/f219-cw-trav",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 3500
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-f219-cw-trav",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "bonus",
+          "amount" : "15.00",
+          "balance_before" : 2000,
+          "balance_after" : 3500,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r-f219-cw-trav",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "won_real_amount" : 0,
+          "won_restricted_amount" : 1500,
+          "won_breakdown" : "restricted-funds/f219-cw-trav:1500|",
+          "grant_refs" : "|reward-grant/f219-cw-trav|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/f219-cw-trav",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "restricted_balance" : 3500,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "won_restricted_amount" : 1500,
+        "won_breakdown" : "restricted-funds/f219-cw-trav:1500|",
+        "restricted_funds_refs" : "|restricted-funds/f219-cw-trav|",
+        "records_source" : "traversal",
+        "records_errors" : ""
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "bonus-funded win — explicit funded_breakdown produces the same mutations as the legacy synthesis",
+    "line" : 239,
+    "given" : [ {
+      "id" : "wallet/test2b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "player_id" : "p2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf1",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/g1",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-002",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r2",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-002",
+        "settled_bet_tx_id" : "transaction/bet-002",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf1:2000|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf1",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 3500,
+          "release_requirement" : 10000,
+          "released_progress" : 500,
+          "max_convertible_amount" : 10000,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "updated_at" : "2026-09-22T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test2b",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 3500
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-002",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "bonus",
+          "amount" : "15.00",
+          "balance_before" : 2000,
+          "balance_after" : 3500,
+          "currency" : "GBP",
+          "status" : "settled",
+          "round_id" : "r2",
+          "created_at" : "2026-09-22T10:00:00Z",
+          "won_real_amount" : 0,
+          "won_restricted_amount" : 1500,
+          "won_breakdown" : "restricted-funds/rf1:1500|",
+          "grant_refs" : "|reward-grant/g1|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/test2b",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "restricted_balance" : 3500,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "won_restricted_amount" : 1500,
+        "won_breakdown" : "restricted-funds/rf1:1500|",
+        "restricted_funds_refs" : "|restricted-funds/rf1|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "bonus-funded win — win transaction twin gets created_at (regression: was omitted, left the graph node's created_at permanently null and broke recency-ordered HAS_TRANSACTION scans)",
+    "line" : 282,
+    "given" : [ {
+      "id" : "wallet/test6",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "player_id" : "p6",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf6",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-006",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r6",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-006",
+        "settled_bet_tx_id" : "transaction/bet-006",
+        "created_at" : "2026-08-18T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf6:1000|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "bonus",
+          "created_at" : "2026-08-18T10:00:00Z"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 10000,
+        "restricted_balance" : 3500,
+        "currency" : "GBP",
+        "wallet_type" : "bonus"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "split-funded win — credits real and bonus proportionally to how the stake was split (F14: funded_real_amount restores the proportional split, research.md Q9 D3)",
+    "line" : 328,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 2000,
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf4",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-004",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r4",
+        "amount" : 5000,
+        "amount_str" : "50.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-004",
+        "settled_bet_tx_id" : "transaction/bet-004",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_real_amount" : 600,
+        "funded_breakdown" : "restricted-funds/rf4:400|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf4",
+        "properties" : {
+          "balance" : 4000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test4",
+        "properties" : {
+          "real_balance" : 3000,
+          "restricted_balance" : 4000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-004",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "split",
+          "balance_before" : 0,
+          "balance_after" : 3000,
+          "won_real_amount" : 3000,
+          "won_restricted_amount" : 2000,
+          "won_breakdown" : "restricted-funds/rf4:2000|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 3000,
+        "restricted_balance" : 4000,
+        "currency" : "GBP",
+        "wallet_type" : "split",
+        "won_restricted_amount" : 2000
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "credit_win has no real-leg signal — funded_real_amount absent on a breakdown-bearing bet, the whole win follows the record leg (post-220 behaviour, now explicit)",
+    "line" : 378,
+    "given" : [ {
+      "id" : "wallet/test4b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 2000,
+      "player_id" : "p4b",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf4b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-004b",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r4b",
+        "amount" : 5000,
+        "amount_str" : "50.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-004b",
+        "settled_bet_tx_id" : "transaction/bet-004b",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf4b:400|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf4b",
+        "properties" : {
+          "balance" : 7000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test4b",
+        "properties" : {
+          "real_balance" : 0,
+          "restricted_balance" : 7000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-004b",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "bonus",
+          "balance_before" : 2000,
+          "balance_after" : 7000,
+          "won_real_amount" : 0,
+          "won_restricted_amount" : 5000,
+          "won_breakdown" : "restricted-funds/rf4b:5000|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 0,
+        "restricted_balance" : 7000,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "won_restricted_amount" : 5000
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "win_allocation all_restricted — the whole win goes to the funding record even for a split bet",
+    "line" : 429,
+    "given" : [ {
+      "id" : "wallet/alloc1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1000,
+      "restricted_balance" : 2000,
+      "player_id" : "alloc1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-alloc",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1,
+      "win_allocation" : "all_restricted"
+    }, {
+      "id" : "transaction/bet-alloc",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-alloc",
+        "amount" : 5000,
+        "amount_str" : "50.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-alloc",
+        "settled_bet_tx_id" : "transaction/bet-alloc",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_real_amount" : 600,
+        "funded_breakdown" : "restricted-funds/rf-alloc:400|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-alloc",
+        "properties" : {
+          "balance" : 7000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/alloc1",
+        "properties" : {
+          "real_balance" : 1000,
+          "restricted_balance" : 7000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-alloc",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "split",
+          "won_real_amount" : 0,
+          "won_restricted_amount" : 5000,
+          "won_breakdown" : "restricted-funds/rf-alloc:5000|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 1000,
+        "restricted_balance" : 7000,
+        "wallet_type" : "split",
+        "won_restricted_amount" : 5000,
+        "won_breakdown" : "restricted-funds/rf-alloc:5000|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "converted record — the bonus share of a win placed before the conversion is credited to real (research Q10.1)",
+    "line" : 473,
+    "given" : [ {
+      "id" : "wallet/conv1",
+      "concepts" : [ "Wallet" ],
+      "open_restricted_funds_refs" : "restricted-funds/rf-conv|",
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "player_id" : "conv1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-conv",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 10000,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-conv",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-conv",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-conv",
+        "settled_bet_tx_id" : "transaction/bet-conv",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-conv:1000|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-conv",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "balance" : 0,
+          "remaining_allowance" : 10000,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/conv1",
+        "properties" : {
+          "real_balance" : 11500,
+          "restricted_balance" : 0
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-conv",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "bonus",
+          "won_real_amount" : 1500,
+          "won_restricted_amount" : 0,
+          "won_breakdown" : ""
+        }
+      } ],
+      "result" : {
+        "real_balance" : 11500,
+        "restricted_balance" : 0,
+        "wallet_type" : "bonus",
+        "won_restricted_amount" : 0,
+        "orphaned_restricted_share" : 1500,
+        "restricted_funds_refs" : "|restricted-funds/rf-conv|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "win decrements the funding record's open_round_count (research Q10.5)",
+    "line" : 516,
+    "given" : [ {
+      "id" : "wallet/rc1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 500,
+      "player_id" : "rc1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-rc",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 500,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 2
+    }, {
+      "id" : "transaction/bet-rc",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-rc",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-rc",
+        "settled_bet_tx_id" : "transaction/bet-rc",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-rc:500|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-rc",
+        "properties" : {
+          "balance" : 1500,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/rc1",
+        "properties" : {
+          "restricted_balance" : 1500
+        }
+      } ],
+      "result" : {
+        "restricted_balance" : 1500,
+        "wallet_type" : "bonus"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "two-record legs — each record is credited its proportional share, the last absorbs the rounding remainder",
+    "line" : 554,
+    "given" : [ {
+      "id" : "wallet/two1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 1500,
+      "player_id" : "two1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/ga",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 1000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "restricted-funds/rf-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/gb",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-09-02T00:00:00Z",
+      "balance" : 500,
+      "release_requirement" : 5000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-two",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-two",
+        "amount" : 2000,
+        "amount_str" : "20.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-two",
+        "settled_bet_tx_id" : "transaction/bet-two",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-a:600|restricted-funds/rf-b:400|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-a",
+        "properties" : {
+          "balance" : 2200,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-b",
+        "properties" : {
+          "balance" : 1300,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/two1",
+        "properties" : {
+          "real_balance" : 10000,
+          "restricted_balance" : 3500
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction/bet-two",
+        "properties" : {
+          "status" : "settled"
+        }
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "wallet_type" : "bonus",
+          "won_real_amount" : 0,
+          "won_restricted_amount" : 2000,
+          "won_breakdown" : "restricted-funds/rf-a:1200|restricted-funds/rf-b:800|",
+          "grant_refs" : "|reward-grant/ga|reward-grant/gb|"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 6,
+        "op" : "add_edge",
+        "target" : "wallet/two1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "restricted_balance" : 3500,
+        "wallet_type" : "bonus",
+        "won_breakdown" : "restricted-funds/rf-a:1200|restricted-funds/rf-b:800|",
+        "restricted_funds_refs" : "|restricted-funds/rf-a|restricted-funds/rf-b|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "guard — a stray restricted_balance with no RestrictedFunds record is refused RESTRICTED_FUNDS_UNMIGRATED",
+    "line" : 616,
+    "given" : [ {
+      "id" : "wallet/guard1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "player_id" : "guard1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-guard",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r-guard",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-guard",
+        "settled_bet_tx_id" : "transaction/bet-guard",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "RESTRICTED_FUNDS_UNMIGRATED",
+        "message" : "bonus status open with no open restricted-funds record to credit the win to"
+      }
+    }
+  }, {
+    "name" : "open_rounds — real-funded win prunes the settled bet tx from the index",
+    "line" : 639,
+    "given" : [ {
+      "id" : "wallet/or1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_rounds" : "transaction/bet-A|transaction/bet-B|",
+      "player_id" : "or1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-A",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 3000,
+        "amount_str" : "30.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-A",
+        "settled_bet_tx_id" : "transaction/bet-A",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/or1",
+        "properties" : {
+          "real_balance" : 13000,
+          "open_rounds" : "transaction/bet-B|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 13000,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "open_rounds — multi-debit: settling the other bet of the same round leaves the first",
+    "line" : 662,
+    "given" : [ {
+      "id" : "wallet/or2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_rounds" : "transaction/bet-A|transaction/bet-B|",
+      "player_id" : "or2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-B",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-B",
+        "settled_bet_tx_id" : "transaction/bet-B",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/or2",
+        "properties" : {
+          "open_rounds" : "transaction/bet-A|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 11000,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "open_rounds — prune is a no-op when the settled bet tx is absent from the index",
+    "line" : 685,
+    "given" : [ {
+      "id" : "wallet/or3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_rounds" : "transaction/bet-B|",
+      "player_id" : "or3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-Z",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 1000,
+        "amount_str" : "10.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-Z",
+        "settled_bet_tx_id" : "transaction/bet-Z",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/or3",
+        "properties" : {
+          "open_rounds" : "transaction/bet-B|"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 11000,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "open_rounds — bonus-funded win prunes down to empty when it was the only open round",
+    "line" : 708,
+    "given" : [ {
+      "id" : "wallet/or4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 2000,
+      "open_rounds" : "transaction/bet-C|",
+      "player_id" : "or4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-or4",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-C",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 1500,
+        "amount_str" : "15.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-C",
+        "settled_bet_tx_id" : "transaction/bet-C",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/rf-or4:1000|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-or4",
+        "properties" : {
+          "balance" : 3500,
+          "open_round_count" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/or4",
+        "properties" : {
+          "restricted_balance" : 3500,
+          "open_rounds" : ""
+        }
+      } ],
+      "result" : {
+        "restricted_balance" : 3500,
+        "currency" : "GBP",
+        "wallet_type" : "bonus"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "open_rounds — split-funded win prunes the settled bet tx",
+    "line" : 747,
+    "given" : [ {
+      "id" : "wallet/or5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 2000,
+      "open_rounds" : "transaction/bet-D|transaction/bet-E|",
+      "player_id" : "or5",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rf-or5",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 2
+    }, {
+      "id" : "transaction/bet-D",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 5000,
+        "amount_str" : "50.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-D",
+        "settled_bet_tx_id" : "transaction/bet-D",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_real_amount" : 600,
+        "funded_breakdown" : "restricted-funds/rf-or5:400|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rf-or5",
+        "properties" : {
+          "balance" : 4000,
+          "open_round_count" : 1
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/or5",
+        "properties" : {
+          "real_balance" : 3000,
+          "restricted_balance" : 4000,
+          "open_rounds" : "transaction/bet-E|"
+        }
+      } ],
+      "result" : {
+        "currency" : "GBP",
+        "wallet_type" : "split"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "identity — wallet with no player_ref/brand_ref still stamps bare refs on the win transaction",
+    "line" : 791,
+    "given" : [ {
+      "id" : "wallet/legacy-win",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 20.00,
+      "restricted_balance" : 0.00,
+      "open_rounds" : "transaction/bet-L|",
+      "player_id" : "05da2ea3-0000-4000-8000-000000000003",
+      "brand_id" : "spinvibe",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-L",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "CreditWin",
+      "params" : {
+        "round_id" : "r9",
+        "amount" : 30.00,
+        "amount_str" : "30.00",
+        "currency" : "GBP",
+        "bet_tx_id" : "transaction/bet-L",
+        "settled_bet_tx_id" : "transaction/bet-L",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : ""
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "win",
+          "player_ref" : "05da2ea3-0000-4000-8000-000000000003",
+          "brand_ref" : "spinvibe"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 50.00,
+        "currency" : "GBP",
+        "wallet_type" : "real"
+      },
+      "error" : null
+    }
+  } ]
+}

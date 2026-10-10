@@ -65,6 +65,15 @@ class FactsSuite extends munit.FunSuite:
     }
   }
 
+  test("spec 002's additions: the reversal and the provider credit are families, the clawback and the void are on the fact") {
+    def fields(family: String) = MoneyTransactions.families.find(_.name == family).map(_.fields.map(_._1).toSet).getOrElse(Set.empty)
+    assert(Set("withdrawal_request_id", "amount_cents").subsetOf(fields("withdrawal_reversed")))
+    assert(Set("provider_ref", "amount_cents", "landed_on", "award_id").subsetOf(fields("provider_credited")))
+    assert(fields("restricted_funds_forfeited").contains("clawback_cents"))
+    assert(fields("hold_placed").contains("voided_cents"))
+    assert(MoneyTransactions.families.find(_.name == "provider_credited").get.fields.exists((n, t) => n == "award_id" && t.optional))
+  }
+
   test("an amount is written as a whole number, never a decimal") {
     val json = writeToString(MoneyTransactions.families.head.sample.asInstanceOf[MoneyTransactionsFact])(using MoneyTransactions.codec)
     assert(json.contains("\"amount_cents\":1050"), json)

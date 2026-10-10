@@ -57,8 +57,8 @@ final case class RestrictedFundsConverted(playerId: String, currency: Currency, 
 
 @named("restricted_funds_forfeited")
 final case class RestrictedFundsForfeited(playerId: String, currency: Currency, transactionId: String, awardId: String,
-    amountCents: MinorUnits, reason: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
-    occurredAt: Instant) extends MoneyTransactionsFact
+    amountCents: MinorUnits, reason: String, clawbackCents: MinorUnits, realBalanceAfter: SignedMinorUnits,
+    restrictedBalanceAfter: MinorUnits, occurredAt: Instant) extends MoneyTransactionsFact
 
 @named("admin_adjusted")
 final case class AdminAdjusted(playerId: String, currency: Currency, transactionId: String, amount: SignedMinorUnits,
@@ -67,13 +67,29 @@ final case class AdminAdjusted(playerId: String, currency: Currency, transaction
 
 @named("hold_placed")
 final case class HoldPlaced(playerId: String, currency: Currency, transactionId: String, withdrawalRequestId: String,
-    amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant)
+    amountCents: MinorUnits, voidedCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant)
     extends MoneyTransactionsFact
 
 @named("hold_released")
 final case class HoldReleased(playerId: String, currency: Currency, transactionId: String, withdrawalRequestId: String,
     amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant)
     extends MoneyTransactionsFact
+
+/**
+ * A confirmed withdrawal returned to real balance (spec 002 FR-025). Named apart from
+ * `casino.withdrawals`' `WithdrawalReversed`, which is `payouts`' fact about the request; the family
+ * on this topic is `withdrawal_reversed`.
+ */
+@named("withdrawal_reversed")
+final case class WalletWithdrawalReversed(playerId: String, currency: Currency, transactionId: String,
+    withdrawalRequestId: String, amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits,
+    restrictedBalanceAfter: MinorUnits, occurredAt: Instant) extends MoneyTransactionsFact
+
+/** A game provider's standalone credit (spec 002 FR-027), landing on `real` or `restricted`. */
+@named("provider_credited")
+final case class ProviderCredited(playerId: String, currency: Currency, transactionId: String, providerRef: String,
+    amountCents: MinorUnits, landedOn: String, awardId: Option[String], realBalanceAfter: SignedMinorUnits,
+    restrictedBalanceAfter: MinorUnits, occurredAt: Instant) extends MoneyTransactionsFact
 
 object MoneyTransactionsFact:
   given JsonValueCodec[MoneyTransactionsFact] = FactCodecs.make
@@ -90,5 +106,7 @@ object MoneyTransactions extends Topic[MoneyTransactionsFact]("money.transaction
     FamilyDef.of[RestrictedFundsForfeited]("restricted_funds_forfeited"),
     FamilyDef.of[AdminAdjusted]("admin_adjusted"),
     FamilyDef.of[HoldPlaced]("hold_placed"),
-    FamilyDef.of[HoldReleased]("hold_released")
+    FamilyDef.of[HoldReleased]("hold_released"),
+    FamilyDef.of[WalletWithdrawalReversed]("withdrawal_reversed"),
+    FamilyDef.of[ProviderCredited]("provider_credited")
   )

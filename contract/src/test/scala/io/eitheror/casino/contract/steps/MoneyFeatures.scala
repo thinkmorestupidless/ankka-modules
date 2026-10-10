@@ -23,11 +23,16 @@ class MoneyFeatures extends GherkinSuite("features/wallet/money.feature"):
     for
       k <- Key.from(key).left.map(_.message)
       a <- MinorUnits.parse(amount).left.map(_.message)
-    yield
-      val (outcomes, answer, first) = ledger.outcomes.answer(k)(s"debited ${a.value}")
-      ledger = ledger.copy(outcomes = outcomes)
-      if first then ledger = ledger.copy(balance = ledger.balance - a.value, amounts = ledger.amounts :+ a)
-      answer
+      answer <-
+        val (outcomes, answer) = ledger.outcomes.answer(k, Digest.of(Seq("type" -> "bet", "amount" -> a.value.toString)))(s"debited ${a.value}")
+        ledger = ledger.copy(outcomes = outcomes)
+        answer match
+          case Answer.First(outcome) =>
+            ledger = ledger.copy(balance = ledger.balance - a.value, amounts = ledger.amounts :+ a)
+            Right(outcome)
+          case Answer.Repeated(first) => Right(first)
+          case Answer.Reused(first)   => Left(s"key reused: ${k.value} was used by a bet of ${first.outcome.stripPrefix("debited ")}")
+    yield answer
 
   Given("a player with a wallet in {string}") { (currency: String) =>
     assert(Currency.from(currency).isRight); ledger = Ledger(0, KeyedOutcomes(), Vector.empty); answers = Vector.empty; refusal = None
@@ -74,3 +79,21 @@ class MoneyFeatures extends GherkinSuite("features/wallet/money.feature"):
   }
 
   Then("it is refused") { () => assert(refusal.isDefined) }
+
+  Given("a bet of {string} was placed under key {string}") { (amount: String, key: String) =>
+    ledger = ledger.copy(balance = 10000)
+    answers :+= command(Some(key), amount).fold(e => fail(e), identity)
+    lastSeen = ledger.balance
+  }
+
+  When("a bet of {string} is sent under key {string}") { (amount: String, key: String) =>
+    refusal = command(Some(key), amount).left.toOption
+  }
+
+  Then("it is refused as {string}, naming {string} and the first bet of {string}") { (code: String, key: String, amount: String) =>
+    assert(refusal.exists(r => r.startsWith(code) && r.contains(key) && r.endsWith(s"a bet of $amount")), refusal.toString)
+  }
+
+  Then("no transaction is written") { () =>
+    assertEquals((ledger.balance, ledger.amounts.size), (lastSeen, 1))
+  }
