@@ -1,0 +1,843 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/affiliates.attribution.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on affiliates.attribution, produced by attribution (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "device_type": {
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "click"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids"],
+      "title": "click",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "registration"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym"],
+      "title": "registration",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "first-deposit"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "first-deposit",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "deposit"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "deposit",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "ggr": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "reporting_day": {
+          "type": "string"
+        },
+        "stake": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "ggr-daily"
+        },
+        "win": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "reporting_day", "stake", "win", "ggr", "reference"],
+      "title": "ggr-daily",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "ggr": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "reporting_day": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "ggr-adjustment"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "reporting_day", "ggr", "reference"],
+      "title": "ggr-adjustment",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "ggr": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "stake": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "ggr-round"
+        },
+        "win": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "stake", "win", "ggr", "reference"],
+      "title": "ggr-round",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "bonus-cost"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "bonus-cost",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "chargeback"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "chargeback",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "withdrawal-requested"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "withdrawal-requested",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "withdrawal-completed"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "withdrawal-completed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "withdrawal-failed"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "withdrawal-failed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "amount": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "withdrawal-reversed"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "currency", "amount", "reference"],
+      "title": "withdrawal-reversed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "affiliate": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "fact_id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "protocol_version": {
+          "type": "integer"
+        },
+        "pseudonym": {
+          "type": "string"
+        },
+        "sub_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "player-closed"
+        }
+      },
+      "required": ["type", "protocol_version", "fact_id", "occurred_at", "brand", "network", "affiliate", "link", "sub_ids", "pseudonym", "category"],
+      "title": "player-closed",
+      "type": "object"
+    }
+  ],
+  "title": "affiliates.attribution.v1"
+}

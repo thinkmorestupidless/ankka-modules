@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - uses: astral-sh/setup-uv@v5
+      - name: Features, glossary and specs
+        run: .github/features-check.sh
+      - name: Unit suites and bound features
+        run: sbt test
+      - name: Schemas match the families
+        run: |
+          sbt contract/schemas
+          git diff --exit-code -- contract/schemas
+      - name: Payment-provider stubs
+        working-directory: tests
+        run: go test ./...
+
+  # The integration suites, on a kind installation of ankka. Manual only: it takes the time a full
+  # platform install takes, and it needs the ankka repository's local installer.
+  kind:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: thinkmorestupidless/ankka
+          ref: v0.11.0
+          path: ankka
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: ankka
+      - name: Install ankka locally
+        working-directory: ankka
+        run: ./deploy-local.sh
+      - name: Integration suites
+        env:
+          CASINO_IT: "1"
+        run: sbt brandsIt/test

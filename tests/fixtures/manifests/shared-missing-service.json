@@ -1,0 +1,51 @@
+{
+  "project": {
+    "id": "payments",
+    "name": "Payments"
+  },
+  "ankka": {
+    "runtime": "0.11.0"
+  },
+  "keycloak": {
+    "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"
+  },
+  "services": [
+    {
+      "name": "merchant",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/merchant:0.1.0",
+      "expose": false
+    },
+    {
+      "name": "psp-gateway",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/psp-gateway:0.1.0",
+      "expose": true
+    }
+  ],
+  "topics": [
+    {
+      "name": "payments.merchants",
+      "partitions": 6,
+      "retention": "fact"
+    }
+  ],
+  "grants": {
+    "made": [
+      {
+        "principal": "service:{brand}/payouts",
+        "target": {
+          "route": {
+            "service": "psp-gateway",
+            "method": "POST",
+            "path": "/v1/payments/withdrawals"
+          }
+        }
+      },
+      {
+        "principal": "service:{brand}/players",
+        "target": {
+          "erasure": true
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,251 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/payments.payments.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on payments.payments, produced by wallet (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "terminal": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.initiated"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "terminal", "amount_cents", "currency", "occurred_at"],
+      "title": "payment.initiated",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.captured"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "amount_cents", "currency", "occurred_at"],
+      "title": "payment.captured",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.failed"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "code", "reason", "occurred_at"],
+      "title": "payment.failed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.expired"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "occurred_at"],
+      "title": "payment.expired",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.abandoned"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "occurred_at"],
+      "title": "payment.abandoned",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.refunded"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "amount_cents", "currency", "occurred_at"],
+      "title": "payment.refunded",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.dispute.opened"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "amount_cents", "currency", "reason", "occurred_at"],
+      "title": "payment.dispute.opened",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "payment_id": {
+          "type": "string"
+        },
+        "payment_provider": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "payment.dispute.closed"
+        }
+      },
+      "required": ["type", "payment_id", "player_id", "payment_provider", "outcome", "occurred_at"],
+      "title": "payment.dispute.closed",
+      "type": "object"
+    }
+  ],
+  "title": "payments.payments.v1"
+}

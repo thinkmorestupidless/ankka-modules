@@ -1,0 +1,53 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/payments.merchants.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on payments.merchants, produced by merchant (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "digest": {
+          "type": "string"
+        },
+        "key_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "sub_brand": {
+          "type": "string"
+        },
+        "type": {
+          "const": "merchant_key_issued"
+        }
+      },
+      "required": ["type", "key_id", "sub_brand", "digest", "occurred_at"],
+      "title": "merchant_key_issued",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "key_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "sub_brand": {
+          "type": "string"
+        },
+        "type": {
+          "const": "merchant_key_deactivated"
+        }
+      },
+      "required": ["type", "key_id", "sub_brand", "occurred_at"],
+      "title": "merchant_key_deactivated",
+      "type": "object"
+    }
+  ],
+  "title": "payments.merchants.v1"
+}

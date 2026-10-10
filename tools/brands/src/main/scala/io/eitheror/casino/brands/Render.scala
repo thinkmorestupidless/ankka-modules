@@ -1,0 +1,127 @@
+package io.eitheror.casino.brands
+
+import com.thinkmorestupidless.ankka.controlplane.api.*
+import io.eitheror.casino.contract.Layout
+import io.eitheror.casino.contract.Layout.{Grant, GrantTarget, Retention}
+
+/** One topic as it will be declared, and what the brand's status should say about it. */
+final case class TopicPlan(declaration: TopicDeclaration, request: TopicRequest, notes: Vector[String])
+
+/** Everything an apply will make true, computed from the manifest without a call. */
+final case class Plan(
+    projectId: String,
+    name: String,
+    topics: Vector[TopicPlan],
+    descriptors: Vector[ServiceDescriptor],
+    exposed: Vector[String],
+    secrets: Vector[SecretRef],
+    grantsMade: Vector[GrantRequest],
+    grantsReceived: Vector[GrantRequest],
+    realm: Option[String]
+)
+
+object Render:
+
+  /** Services written in TypeScript, hosted as a process beside ankka's sidecar (specs 005, 016). */
+  val ProcessHosted: Set[String] = Set("psp-gateway", "partner-api")
+
+  /** `secret:<name>/<key>` in a manifest's env is a reference to a project secret, never a value. */
+  private val SecretReference = "secret:([a-z][a-z0-9-]*)/([A-Z][A-Z0-9_]*)".r
+
+  def plan(manifest: Manifest, installation: Option[Installation], brands: Vector[String] = Vector.empty): Plan =
+    Plan(
+      projectId = manifest.projectId,
+      name = manifest.name,
+      topics = manifest.topics.map(topic(_, installation)),
+      descriptors = manifest.services.map(descriptor(manifest, _)),
+      exposed = manifest.services.filter(_.expose).map(_.name),
+      secrets = manifest.secrets,
+      grantsMade = (manifest match
+        case shared: SharedManifest => shared.grantsFor(brands)
+        case other                  => other.grantsMade
+      ).map(request),
+      grantsReceived = manifest match
+        case brand: BrandManifest => brand.grantsReceived.map(request)
+        case _                    => Vector.empty,
+      realm = manifest match
+        case brand: BrandManifest => Some(s"casino-${brand.slug}")
+        case _                    => None
+    )
+
+  def request(grant: Grant): GrantRequest = GrantRequest(grant.principal, target(grant.target))
+
+  def target(target: GrantTarget): String = target match
+    case GrantTarget.Route(service, method, path) => s"route:$service $method $path"
+    case GrantTarget.Topic(name, right)           => s"topic:$name:$right"
+    case GrantTarget.Erasure                      => "erasure"
+
+  /** The contract's schema for a topic, from the contract artifact (`contract/schemas`). */
+  def schema(topic: String): Option[String] =
+    Option(getClass.getResourceAsStream(s"/$topic.v1.json")).map { in =>
+      try String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8) finally in.close()
+    }
+
+  def topic(declaration: TopicDeclaration, installation: Option[Installation]): TopicPlan =
+    val contractName = s"${declaration.name}.v1"
+    val schemaText   = schema(declaration.name)
+    // ankka 0.11 declares partitions and a contract; retention is ankka 043's. Until then the topic
+    // gets the installation's default, and the status says so rather than pretending otherwise.
+    val retentionNotes =
+      Vector("retention unset: platform lacks 043") ++
+        installation.flatMap(_.longestRetentionDays).flatMap { longest =>
+          (declaration.retention, longest) match
+            case (Retention.Fact, Some(days)) =>
+              Some(s"retention below intent: kept for a fact topic, the installation allows $days days")
+            case (Retention.Days(want), Some(days)) if want > days =>
+              Some(s"retention below intent: $want days wanted, the installation allows $days")
+            case _ => None
+        }
+    val schemaNotes = Option.when(schemaText.isEmpty)(s"no schema for $contractName in the contract artifact").toVector
+    TopicPlan(
+      declaration,
+      TopicRequest(declaration.partitions, schemaText.map(contractName -> _.trim)),
+      retentionNotes ++ schemaNotes
+    )
+
+  def descriptor(manifest: Manifest, pin: ServicePin): ServiceDescriptor =
+    val auth = manifest match
+      case brand: BrandManifest =>
+        Vector("ANKKA_AUTH_ISSUERS" -> "player,staff", "ANKKA_AUTH_REALM" -> s"casino-${brand.slug}") ++
+          issuer("PLAYER", s"${brand.issuerBase.stripSuffix("/")}/realms/casino-${brand.slug}", brand.playerAudience) ++
+          issuer("STAFF", s"${brand.issuerBase.stripSuffix("/")}/realms/eitheror", brand.staffAudience)
+      case shared: SharedManifest =>
+        Vector("ANKKA_AUTH_ISSUERS" -> "staff", "ANKKA_AUTH_REALM" -> "eitheror") ++
+          issuer("STAFF", s"${shared.issuerBase.stripSuffix("/")}/realms/eitheror", shared.staffAudience)
+    val identity = Vector("CASINO_PROJECT" -> manifest.projectId) ++ (manifest match
+      case brand: BrandManifest => Vector("CASINO_BRAND" -> brand.slug)
+      case _                    => Vector.empty)
+    val env =
+      (identity ++ auth).map((k, v) => EnvVar(k, value = Some(v))) ++
+        pin.env.toVector.sortBy(_._1).map {
+          case (k, SecretReference(name, key)) => EnvVar(k, secretKeyRef = Some(SecretKeyRef(name, key)))
+          case (k, v)                          => EnvVar(k, value = Some(v))
+        }
+    val hosting = if ProcessHosted.contains(pin.name) then ServiceSpec.Process else ServiceSpec.Embedded
+    val process = for
+      cpu    <- pin.cpu
+      memory <- pin.memory
+    yield ProcessResources(cpu, memory)
+    ServiceDescriptor(
+      pin.name,
+      ServiceSpec(
+        image = pin.image,
+        env = env,
+        runtime = Some(manifest.runtime),
+        hosting = hosting,
+        protocol = Option.when(hosting == ServiceSpec.Process)("1.0"),
+        resources = ServiceResources(instanceType = pin.instanceType.getOrElse("small"), process = process),
+        provisionObjectStorage = pin.objectStorage
+      )
+    )
+
+  private def issuer(name: String, issuer: String, audience: String): Vector[(String, String)] =
+    Vector(
+      s"ANKKA_AUTH_${name}_ISSUER"   -> issuer,
+      s"ANKKA_AUTH_${name}_JWKS_URL" -> s"$issuer/protocol/openid-connect/certs",
+      s"ANKKA_AUTH_${name}_AUDIENCE" -> audience
+    )

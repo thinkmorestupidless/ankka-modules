@@ -1,0 +1,2046 @@
+diff --git a/tests/e2e/scenario26_rg_limits_e2e_test.go b/tests/e2e/scenario26_rg_limits_e2e_test.go
+new file mode 100644
+index 0000000..3eec136
+--- /dev/null
++++ b/tests/e2e/scenario26_rg_limits_e2e_test.go
+@@ -0,0 +1,538 @@
++//go:build e2e
++
++// Scenario 26 — responsible gambling: limits a player sets, lowers, raises and removes, and the
++// operator's changes to them.
++//
++// Drives the casino-service routes the frontends use:
++//
++//	PUT/DELETE /v1/casino/rg/{brandId}/{playerId}/limits/{type}        (RgRoutes, player JWT)
++//	GET        /v1/casino/rg/{brandId}/{playerId}/limits               (RgRoutes, player JWT)
++//	PUT/DELETE /v1/casino/{brandId}/players/{playerId}/rg/limits/{type} (BackofficePlayerRoutes, operator JWT)
++//
++// Each test names the living-feature scenario it covers (ankka-casino features/responsible-gambling).
++// Where the original does not have the behaviour a scenario describes, the test (or the subtest
++// for that part) skips with "original defect: ..." so the gap is visible in the suite's result.
++//
++// This file also holds the rk* helpers shared by scenarios 26–29.
++//
++// Requires: EITHEROR_CASINO_URL (player and operator routes), Keycloak admin access for clearing
++// email verification on fresh players (EITHEROR_KEYCLOAK_URL, EITHEROR_KEYCLOAK_ADMIN_PASSWORD);
++// operator tests also need TEST_OPERATOR_EMAIL / TEST_OPERATOR_PASSWORD and skip without them.
++package e2e_test
++
++import (
++	"bytes"
++	"encoding/json"
++	"fmt"
++	"io"
++	"net/http"
++	"testing"
++	"time"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/require"
++
++	"github.com/eitheror-io/eitheror-platform/tests/e2e/internal/setup"
++)
++
++// ---------------------------------------------------------------------------
++// Shared helpers (scenarios 26–29)
++// ---------------------------------------------------------------------------
++
++// rkResult is one HTTP answer: status, raw body, and the body decoded as an object when it is one.
++type rkResult struct {
++	status int
++	raw    string
++	body   map[string]any
++}
++
++// rkDo sends a request with an optional JSON body, bearer token and extra headers.
++func rkDo(t *testing.T, method, fullURL, token string, body any, headers map[string]string) rkResult {
++	t.Helper()
++	var reader io.Reader
++	if body != nil {
++		b, err := json.Marshal(body)
++		require.NoError(t, err)
++		reader = bytes.NewReader(b)
++	}
++	req, err := http.NewRequest(method, fullURL, reader)
++	require.NoError(t, err, "build %s %s", method, fullURL)
++	if body != nil {
++		req.Header.Set("Content-Type", "application/json")
++	}
++	if token != "" {
++		req.Header.Set("Authorization", "Bearer "+token)
++	}
++	for k, v := range headers {
++		req.Header.Set(k, v)
++	}
++	resp, err := http.DefaultClient.Do(req)
++	require.NoError(t, err, "%s %s", method, fullURL)
++	defer resp.Body.Close()
++	raw, err := io.ReadAll(resp.Body)
++	require.NoError(t, err)
++	var parsed map[string]any
++	_ = json.Unmarshal(raw, &parsed)
++	return rkResult{status: resp.StatusCode, raw: string(raw), body: parsed}
++}
++
++// rkRequireStatus asserts the status code, printing the body on failure.
++func rkRequireStatus(t *testing.T, want int, r rkResult, what string) {
++	t.Helper()
++	require.Equal(t, want, r.status, "%s: expected %d, body: %s", what, want, r.raw)
++}
++
++// rkPlayer is a freshly registered, signed-in casino player of the suite's casino brand.
++type rkPlayer struct {
++	brandId  string
++	playerId string
++	token    string
++	email    string
++	password string
++}
++
++// rkNewPlayer registers a player with a run-unique identity (no SUSPECTED_DUPLICATE on a shared
++// KinD), clears email verification and signs in — the same path scenarios 19 and FreeSpinsPlay use.
++func rkNewPlayer(t *testing.T, s setup.Suite) rkPlayer {
++	t.Helper()
++	brandId := setup.CasinoBrandID()
++	runId := uuid.New().String()[:8]
++	playerId := s14RegisterPlayerWithIdentity(t, s, brandId, runId)
++	token := s19LoginAndGetToken(t, s, brandId, runId)
++	return rkPlayer{
++		brandId:  brandId,
++		playerId: playerId,
++		token:    token,
++		email:    fmt.Sprintf("e2e-%s@example.com", runId),
++		password: fmt.Sprintf("E2e-%s!Pwd", runId),
++	}
++}
++
++// rkOperatorToken returns an operator JWT or skips the test when the operator credentials are absent.
++func rkOperatorToken(t *testing.T, s setup.Suite) string {
++	t.Helper()
++	token := s18GetOperatorToken(t, s)
++	if token == "" {
++		t.Skip("TEST_OPERATOR_EMAIL / TEST_OPERATOR_PASSWORD not set — skipping operator-driven scenario")
++	}
++	return token
++}
++
++// rkRgURL is the player RG route: /v1/casino/rg/{brandId}/{playerId}{suffix}.
++func rkRgURL(s setup.Suite, p rkPlayer, suffix string) string {
++	return fmt.Sprintf("%s/v1/casino/rg/%s/%s%s", s.CasinoURL, p.brandId, p.playerId, suffix)
++}
++
++// rkPlayerURL is the per-player route under the brand: /v1/casino/{brandId}/players/{playerId}{suffix}
++// (operator RG, self-exclude, reinstate, and both the player and operator KYC routes).
++func rkPlayerURL(s setup.Suite, p rkPlayer, suffix string) string {
++	return fmt.Sprintf("%s/v1/casino/%s/players/%s%s", s.CasinoURL, p.brandId, p.playerId, suffix)
++}
++
++// rkSetLimit is the player's PUT .../limits/{type} with {"value": value}.
++func rkSetLimit(t *testing.T, s setup.Suite, p rkPlayer, limitType, value string) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPut, rkRgURL(s, p, "/limits/"+limitType), p.token, map[string]string{"value": value}, nil)
++}
++
++// rkGetRg is the player's GET .../limits (the RgStatus read).
++func rkGetRg(t *testing.T, s setup.Suite, p rkPlayer) rkRgStatus {
++	t.Helper()
++	r := rkDo(t, http.MethodGet, rkRgURL(s, p, "/limits"), p.token, nil, nil)
++	rkRequireStatus(t, http.StatusOK, r, "GET rg limits")
++	return rkDecodeRg(t, r)
++}
++
++// rkLogin posts the player's credentials to /v1/casino/players/{brandId}/login and returns the
++// answer without asserting it.
++func rkLogin(t *testing.T, s setup.Suite, p rkPlayer) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPost, fmt.Sprintf("%s/v1/casino/players/%s/login", s.CasinoURL, p.brandId), "",
++		map[string]string{"email": p.email, "password": p.password}, nil)
++}
++
++// rkLaunch asks casino-service to open a game session (POST /v1/casino/sessions/{brandId}/launch).
++// The RG and KYC preflight runs before the game id is resolved, so a probe game id suffices for
++// refusals.
++func rkLaunch(t *testing.T, s setup.Suite, p rkPlayer) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPost, fmt.Sprintf("%s/v1/casino/sessions/%s/launch", s.CasinoURL, p.brandId), p.token,
++		map[string]any{"playerId": p.playerId, "gameId": "e2e-rk-probe", "currency": "EUR"}, nil)
++}
++
++// rkNotifyDeposit calls the internal deposit notification casino-service runs its deposit
++// preflight on (POST /internal/v1/casino/{brandId}/notify/deposit on the casino-service NodePort,
++// X-Internal-Secret). In the original this route is called by deposit-on-payment-capture-fn after
++// the wallet has credited; its 403 is the refusal the port moves before the credit.
++func rkNotifyDeposit(t *testing.T, s setup.Suite, p rkPlayer, amount string) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPost,
++		fmt.Sprintf("%s/internal/v1/casino/%s/notify/deposit", s.CasinoInternalURL, p.brandId), "",
++		map[string]string{
++			"playerId":      p.playerId,
++			"amount":        amount,
++			"currency":      "EUR",
++			"transactionId": "e2e-rk-" + uuid.New().String(),
++		},
++		map[string]string{"X-Internal-Secret": setup.WalletInternalSecret()})
++}
++
++// rkRgStatus is the RgStatus JSON RgRoutes answers (and, with fewer fields, the operator route).
++type rkRgStatus struct {
++	Limits []struct {
++		LimitType string  `json:"limitType"`
++		Value     float64 `json:"value"`
++	} `json:"limits"`
++	PendingChanges []rkPending `json:"pendingChanges"`
++	UsedAmounts    []struct {
++		LimitType  string  `json:"limitType"`
++		UsedAmount float64 `json:"usedAmount"`
++	} `json:"usedAmounts"`
++	CoolingOffUntil    *string  `json:"coolingOffUntil"`
++	IsCoolingOff       bool     `json:"isCoolingOff"`
++	ActiveRestrictions []string `json:"activeRestrictions"`
++}
++
++type rkPending struct {
++	LimitType    string  `json:"limitType"`
++	PendingValue *string `json:"pendingValue"`
++	AppliesAt    string  `json:"appliesAt"`
++}
++
++func rkDecodeRg(t *testing.T, r rkResult) rkRgStatus {
++	t.Helper()
++	var st rkRgStatus
++	require.NoError(t, json.Unmarshal([]byte(r.raw), &st), "decode RgStatus: %s", r.raw)
++	return st
++}
++
++func (st rkRgStatus) limit(limitType string) (float64, bool) {
++	for _, l := range st.Limits {
++		if l.LimitType == limitType {
++			return l.Value, true
++		}
++	}
++	return 0, false
++}
++
++func (st rkRgStatus) pending(limitType string) (rkPending, bool) {
++	for _, p := range st.PendingChanges {
++		if p.LimitType == limitType {
++			return p, true
++		}
++	}
++	return rkPending{}, false
++}
++
++func (st rkRgStatus) used(limitType string) (float64, bool) {
++	for _, u := range st.UsedAmounts {
++		if u.LimitType == limitType {
++			return u.UsedAmount, true
++		}
++	}
++	return 0, false
++}
++
++// rkRequireAppliesAt asserts a pending change's appliesAt is 24 hours after the request, within
++// a couple of minutes either way for clock skew between the test host and the cluster.
++func rkRequireAppliesAt(t *testing.T, appliesAt string, before, after time.Time) time.Time {
++	t.Helper()
++	at, err := time.Parse(time.RFC3339, appliesAt)
++	require.NoError(t, err, "appliesAt %q should be an ISO-8601 instant", appliesAt)
++	slack := 2 * time.Minute
++	require.True(t, !at.Before(before.Add(24*time.Hour-slack)) && !at.After(after.Add(24*time.Hour+slack)),
++		"appliesAt %s should be 24 hours after the change (between %s and %s)",
++		at, before.Add(24*time.Hour), after.Add(24*time.Hour))
++	return at
++}
++
++// rkRequireLimit asserts a limit type applies with the given value.
++func rkRequireLimit(t *testing.T, st rkRgStatus, limitType string, want float64) {
++	t.Helper()
++	v, ok := st.limit(limitType)
++	require.True(t, ok, "%s should apply, limits: %+v", limitType, st.Limits)
++	require.InDelta(t, want, v, 0.001, "%s should be %v", limitType, want)
++}
++
++// ---------------------------------------------------------------------------
++// limits.feature — A player sets, lowers, raises and removes a limit
++// ---------------------------------------------------------------------------
++
++// features/responsible-gambling/limits.feature
++// Scenario: a first daily deposit limit applies at once and shows with the amount used in the last day
++func TestScenario26_RGLimits_FirstDailyDepositLimitAppliesAtOnce(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	res := rkSetLimit(t, s, p, "DEPOSIT_DAILY", "100")
++	rkRequireStatus(t, http.StatusOK, res, "PUT limits/DEPOSIT_DAILY")
++	st := rkDecodeRg(t, res)
++	rkRequireLimit(t, st, "DEPOSIT_DAILY", 100)
++	_, pending := st.pending("DEPOSIT_DAILY")
++	require.False(t, pending, "a first limit is more restrictive than none and must not be staged: %s", res.raw)
++
++	read := rkGetRg(t, s, p)
++	rkRequireLimit(t, read, "DEPOSIT_DAILY", 100)
++	used, ok := read.used("DEPOSIT_DAILY")
++	require.True(t, ok, "usedAmounts should carry DEPOSIT_DAILY (the last 24 hours' deposits)")
++	require.InDelta(t, 0, used, 0.001, "a fresh player has deposited nothing in the last 24 hours")
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: lowering a deposit limit applies at once and cancels any pending change for it
++func TestScenario26_RGLimits_LoweringAppliesAtOnceAndCancelsPending(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "100"), "set 100")
++	raise := rkSetLimit(t, s, p, "DEPOSIT_DAILY", "200")
++	rkRequireStatus(t, http.StatusOK, raise, "raise to 200")
++	_, pending := rkDecodeRg(t, raise).pending("DEPOSIT_DAILY")
++	require.True(t, pending, "the raise should be pending before the lowering: %s", raise.raw)
++
++	lower := rkSetLimit(t, s, p, "DEPOSIT_DAILY", "50")
++	rkRequireStatus(t, http.StatusOK, lower, "lower to 50")
++	st := rkDecodeRg(t, lower)
++	rkRequireLimit(t, st, "DEPOSIT_DAILY", 50)
++	_, pending = st.pending("DEPOSIT_DAILY")
++	require.False(t, pending, "lowering must cancel the pending raise: %s", lower.raw)
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: raising a deposit limit keeps the old one and applies the new one a day later
++func TestScenario26_RGLimits_RaisingKeepsOldLimitAndStagesNewOne(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "50"), "set 50")
++
++	before := time.Now()
++	raise := rkSetLimit(t, s, p, "DEPOSIT_DAILY", "200")
++	after := time.Now()
++	rkRequireStatus(t, http.StatusOK, raise, "raise to 200")
++	st := rkDecodeRg(t, raise)
++	rkRequireLimit(t, st, "DEPOSIT_DAILY", 50)
++	pc, ok := st.pending("DEPOSIT_DAILY")
++	require.True(t, ok, "the raise should be a pending change: %s", raise.raw)
++	require.NotNil(t, pc.PendingValue)
++	require.Equal(t, "200", *pc.PendingValue)
++	rkRequireAppliesAt(t, pc.AppliesAt, before, after)
++
++	t.Run("at that time the new limit applies and the pending change is gone", func(t *testing.T) {
++		t.Skip("original defect: a staged limit loosening never applies — rg-pending-apply is not registered " +
++			"(spec 001 Known defects; spec 010 Changes from the original)")
++	})
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: removing a deposit limit keeps it for a day and then no limit applies
++func TestScenario26_RGLimits_RemovingKeepsLimitForADay(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "50"), "set 50")
++
++	before := time.Now()
++	removal := rkDo(t, http.MethodDelete, rkRgURL(s, p, "/limits/DEPOSIT_DAILY"), p.token, nil, nil)
++	after := time.Now()
++	rkRequireStatus(t, http.StatusOK, removal, "DELETE limits/DEPOSIT_DAILY")
++	st := rkDecodeRg(t, removal)
++	rkRequireLimit(t, st, "DEPOSIT_DAILY", 50)
++	pc, ok := st.pending("DEPOSIT_DAILY")
++	require.True(t, ok, "the removal should be a pending change: %s", removal.raw)
++	require.Nil(t, pc.PendingValue, "a pending removal carries no value: %s", removal.raw)
++	rkRequireAppliesAt(t, pc.AppliesAt, before, after)
++
++	t.Run("at that time no daily deposit limit applies", func(t *testing.T) {
++		t.Skip("original defect: a staged limit loosening never applies — rg-pending-apply is not registered " +
++			"(spec 001 Known defects; spec 010 Changes from the original)")
++	})
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: a new raise while one is pending replaces the pending change and restarts its day
++func TestScenario26_RGLimits_NewRaiseReplacesPendingChange(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "50"), "set 50")
++	first := rkSetLimit(t, s, p, "DEPOSIT_DAILY", "200")
++	rkRequireStatus(t, http.StatusOK, first, "raise to 200")
++	firstPending, ok := rkDecodeRg(t, first).pending("DEPOSIT_DAILY")
++	require.True(t, ok, "first raise should be pending: %s", first.raw)
++	firstAt, err := time.Parse(time.RFC3339, firstPending.AppliesAt)
++	require.NoError(t, err)
++
++	before := time.Now()
++	second := rkSetLimit(t, s, p, "DEPOSIT_DAILY", "300")
++	after := time.Now()
++	rkRequireStatus(t, http.StatusOK, second, "raise to 300")
++	st := rkDecodeRg(t, second)
++	rkRequireLimit(t, st, "DEPOSIT_DAILY", 50)
++
++	count := 0
++	for _, pc := range st.PendingChanges {
++		if pc.LimitType == "DEPOSIT_DAILY" {
++			count++
++		}
++	}
++	require.Equal(t, 1, count, "only one pending change per limit type: %s", second.raw)
++	pc, _ := st.pending("DEPOSIT_DAILY")
++	require.NotNil(t, pc.PendingValue)
++	require.Equal(t, "300", *pc.PendingValue, "the new raise replaces the earlier pending change")
++	secondAt := rkRequireAppliesAt(t, pc.AppliesAt, before, after)
++	require.False(t, secondAt.Before(firstAt), "the replacement restarts the day: %s should not be before %s", secondAt, firstAt)
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: a session limit below the brand's minimum is refused naming the minimum
++func TestScenario26_RGLimits_SessionLimitBelowMinimumRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	res := rkSetLimit(t, s, p, "SESSION_MINUTES", "30")
++	rkRequireStatus(t, http.StatusBadRequest, res, "PUT SESSION_MINUTES 30")
++	require.Equal(t, "below_minimum_session_minutes", res.body["error"], "body: %s", res.raw)
++	minimum, ok := res.body["minimumMinutes"].(float64)
++	require.True(t, ok, "the refusal names the minimum: %s", res.raw)
++	require.Greater(t, minimum, 30.0, "the named minimum is above the refused value")
++	t.Logf("scenario26: brand %s minimum session limit is %v minutes (default 60)", p.brandId, minimum)
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: a session limit at the brand's minimum is accepted
++func TestScenario26_RGLimits_SessionLimitAtMinimumAccepted(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	// Learn the brand's minimum from the refusal of a one-minute limit (60 unless the brand set one).
++	probe := rkSetLimit(t, s, p, "SESSION_MINUTES", "1")
++	minimum := 1.0
++	if probe.status == http.StatusBadRequest {
++		m, ok := probe.body["minimumMinutes"].(float64)
++		require.True(t, ok, "the refusal names the minimum: %s", probe.raw)
++		minimum = m
++	} else {
++		rkRequireStatus(t, http.StatusOK, probe, "PUT SESSION_MINUTES 1")
++	}
++
++	value := fmt.Sprintf("%d", int(minimum))
++	res := rkSetLimit(t, s, p, "SESSION_MINUTES", value)
++	rkRequireStatus(t, http.StatusOK, res, "PUT SESSION_MINUTES at the minimum")
++	rkRequireLimit(t, rkDecodeRg(t, res), "SESSION_MINUTES", minimum)
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario Outline: a session limit that is not a positive whole number is refused
++func TestScenario26_RGLimits_SessionLimitNotPositiveWholeNumberRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	for _, value := range []string{"0", "-5", "abc"} {
++		value := value
++		t.Run(value, func(t *testing.T) {
++			res := rkSetLimit(t, s, p, "SESSION_MINUTES", value)
++			rkRequireStatus(t, http.StatusBadRequest, res, "PUT SESSION_MINUTES "+value)
++			require.Equal(t, "invalid_value", res.body["error"], "body: %s", res.raw)
++		})
++	}
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: a weekly loss limit shows with the losses of the last week and refuses no bet
++//
++// The read is driven; "refuses no bet" is the original's behaviour too (loss limits are never
++// enforced), and is not driven here because a bet needs the ST8 adapter (scenario 15).
++func TestScenario26_RGLimits_WeeklyLossLimitShowsWithLossesOfLastWeek(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "LOSS_WEEKLY", "500"), "PUT LOSS_WEEKLY 500")
++	st := rkGetRg(t, s, p)
++	rkRequireLimit(t, st, "LOSS_WEEKLY", 500)
++	used, ok := st.used("LOSS_WEEKLY")
++	require.True(t, ok, "usedAmounts should carry LOSS_WEEKLY (the last 7 days' losses)")
++	require.InDelta(t, 0, used, 0.001, "a fresh player has lost nothing")
++}
++
++// features/responsible-gambling/limits.feature
++// Scenario: a limit change by the player is recorded in the history and published as a limit applied fact
++func TestScenario26_RGLimits_LimitChangeRecordedInHistory(t *testing.T) {
++	t.Skip("original defect: the RG history lists RGCase twins only, never limit changes, and no limit fact " +
++		"is published (spec 010 Changes from the original: history lists limit changes and case events with actors)")
++}
++
++// ---------------------------------------------------------------------------
++// operators.feature — An operator sees and changes a player's protections (limits)
++// ---------------------------------------------------------------------------
++
++// features/responsible-gambling/operators.feature
++// Scenario: an operator setting a limit with a pending raise applies it at once, cancels the pending change and is named in the history
++func TestScenario26_RGOperator_SetLimitWithPendingRaiseAppliesAtOnce(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "50"), "player sets 50")
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "200"), "player raises to 200")
++
++	res := rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/rg/limits/DEPOSIT_DAILY"), op, map[string]string{"value": "200"}, nil)
++	rkRequireStatus(t, http.StatusOK, res, "operator PUT rg/limits/DEPOSIT_DAILY")
++	rkRequireLimit(t, rkDecodeRg(t, res), "DEPOSIT_DAILY", 200)
++	rkRequireLimit(t, rkGetRg(t, s, p), "DEPOSIT_DAILY", 200)
++
++	t.Run("the pending change is cancelled", func(t *testing.T) {
++		t.Skip("original defect: the operator limit route writes rg_limit_<TYPE> only and leaves the player's " +
++			"rg_pending_<TYPE> in place (BackofficePlayerRoutes rg/limits PUT; spec 010 Context)")
++	})
++	t.Run("the history names the operator", func(t *testing.T) {
++		t.Skip("original defect: the RG history lists RGCase twins only and operator limit changes are not " +
++			"recorded (spec 010 Changes from the original)")
++	})
++}
++
++// features/responsible-gambling/operators.feature
++// Scenario: an operator's session limit below the brand's minimum is accepted, because the minimum binds players and not operators
++func TestScenario26_RGOperator_SessionLimitBelowMinimumAccepted(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	res := rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/rg/limits/SESSION_MINUTES"), op, map[string]string{"value": "30"}, nil)
++	rkRequireStatus(t, http.StatusOK, res, "operator PUT rg/limits/SESSION_MINUTES 30")
++	rkRequireLimit(t, rkDecodeRg(t, res), "SESSION_MINUTES", 30)
++	rkRequireLimit(t, rkGetRg(t, s, p), "SESSION_MINUTES", 30)
++}
++
++// features/responsible-gambling/operators.feature
++// Scenario: an operator removing a limit leaves no limit of that type at once
++func TestScenario26_RGOperator_RemovingLimitLeavesNoLimitAtOnce(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "100"), "player sets 100")
++
++	res := rkDo(t, http.MethodDelete, rkPlayerURL(s, p, "/rg/limits/DEPOSIT_DAILY"), op, nil, nil)
++	rkRequireStatus(t, http.StatusOK, res, "operator DELETE rg/limits/DEPOSIT_DAILY")
++	_, applies := rkDecodeRg(t, res).limit("DEPOSIT_DAILY")
++	require.False(t, applies, "no daily deposit limit applies after the operator removes it: %s", res.raw)
++
++	st := rkGetRg(t, s, p)
++	_, applies = st.limit("DEPOSIT_DAILY")
++	require.False(t, applies, "the player's read shows no daily deposit limit")
++	_, pending := st.pending("DEPOSIT_DAILY")
++	require.False(t, pending, "an operator removal is not staged")
++}
+diff --git a/tests/e2e/scenario27_rg_breaks_exclusion_e2e_test.go b/tests/e2e/scenario27_rg_breaks_exclusion_e2e_test.go
+new file mode 100644
+index 0000000..9346ac0
+--- /dev/null
++++ b/tests/e2e/scenario27_rg_breaks_exclusion_e2e_test.go
+@@ -0,0 +1,449 @@
++//go:build e2e
++
++// Scenario 27 — responsible gambling: breaks (cooling-off), self-exclusion and operator
++// exclusion, and their effect on sign-in, game launch and deposits.
++//
++// Drives:
++//
++//	PUT    /v1/casino/rg/{brandId}/{playerId}/cooling-off            (RgRoutes, player JWT)
++//	PUT    /v1/casino/rg/{brandId}/{playerId}/permanent-exclusion    (RgRoutes, player JWT)
++//	GET    /v1/casino/rg/{brandId}/{playerId}/history                (RgRoutes, player JWT)
++//	PUT/DELETE /v1/casino/{brandId}/players/{playerId}/rg/cooling-off (BackofficePlayerRoutes, operator JWT)
++//	POST   /v1/casino/{brandId}/players/{playerId}/self-exclude      (BackofficePlayerRoutes, operator JWT)
++//	POST   /v1/casino/players/{brandId}/login                        (PlayerRoutes)
++//	POST   /v1/casino/sessions/{brandId}/launch                      (SessionRoutes, player JWT)
++//	POST   /internal/v1/casino/{brandId}/notify/deposit              (CasinoServiceMain, X-Internal-Secret)
++//
++// The deposit refusals are the answers of the internal notify route. In the original that route
++// runs after the wallet has credited the deposit and its 403 is logged and ignored by the caller
++// (spec 001 Known defects); the recording here is of the route's answer, which the port moves
++// before the credit.
++//
++// Launch and notify tests first make sure the brand's KYC policy has no gate or threshold
++// (rkEnsureNoKycGates, scenario 29), because the original checks KYC before RG on both paths.
++//
++// Requires EITHEROR_CASINO_URL and EITHEROR_CASINO_INTERNAL_URL (casino-service NodePort, for the
++// internal notify route); operator tests need TEST_OPERATOR_EMAIL / TEST_OPERATOR_PASSWORD.
++package e2e_test
++
++import (
++	"encoding/json"
++	"fmt"
++	"net/http"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/require"
++
++	"github.com/eitheror-io/eitheror-platform/tests/e2e/internal/setup"
++	"github.com/eitheror-io/eitheror-platform/tests/e2e/internal/wait"
++)
++
++// rkBreakUntil is a break end a week out, at whole seconds so it reads back unchanged.
++func rkBreakUntil() string {
++	return time.Now().Add(7 * 24 * time.Hour).UTC().Truncate(time.Second).Format(time.RFC3339)
++}
++
++// rkPlayerBreak is the player's PUT .../cooling-off {"until": until}.
++func rkPlayerBreak(t *testing.T, s setup.Suite, p rkPlayer, until string) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPut, rkRgURL(s, p, "/cooling-off"), p.token, map[string]string{"until": until}, nil)
++}
++
++// rkSelfExclude is the player's PUT .../permanent-exclusion.
++func rkSelfExclude(t *testing.T, s setup.Suite, p rkPlayer) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPut, rkRgURL(s, p, "/permanent-exclusion"), p.token, nil, nil)
++}
++
++// rkHistoryHas reports whether the player's RG history holds an entry of eventType by actor.
++func rkHistoryHas(t *testing.T, s setup.Suite, p rkPlayer, eventType, actor string) (bool, error) {
++	r := rkDo(t, http.MethodGet, rkRgURL(s, p, "/history"), p.token, nil, nil)
++	if r.status != http.StatusOK {
++		return false, fmt.Errorf("GET history: %d %s", r.status, r.raw)
++	}
++	var entries []map[string]any
++	if err := json.Unmarshal([]byte(r.raw), &entries); err != nil {
++		return false, err
++	}
++	for _, e := range entries {
++		if e["eventType"] == eventType && e["actor"] == actor {
++			return true, nil
++		}
++	}
++	return false, nil
++}
++
++// ---------------------------------------------------------------------------
++// breaks.feature — A player takes a break or excludes themselves, and an operator does the same
++// ---------------------------------------------------------------------------
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a break set by the player applies at once, opens a case with its end and publishes one case opened fact
++//
++// The case is the original's RGCase twin, seen through the history read; the original publishes
++// no fact.
++func TestScenario27_RGBreaks_PlayerBreakAppliesAtOnceAndOpensCase(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	until := rkBreakUntil()
++	res := rkPlayerBreak(t, s, p, until)
++	rkRequireStatus(t, http.StatusOK, res, "PUT cooling-off")
++	st := rkDecodeRg(t, res)
++	require.True(t, st.IsCoolingOff, "the break applies at once: %s", res.raw)
++	require.NotNil(t, st.CoolingOffUntil)
++	require.Equal(t, until, *st.CoolingOffUntil)
++	require.Contains(t, st.ActiveRestrictions, "COOLING_OFF")
++
++	wait.WaitUntil(t, func() (bool, error) {
++		return rkHistoryHas(t, s, p, "cooling_off_applied", "player")
++	}, 15*time.Second, "the RG history should show the player's cooling-off case")
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a player asking to end or shorten their break is refused
++func TestScenario27_RGBreaks_PlayerCannotEndBreak(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkPlayerBreak(t, s, p, rkBreakUntil()), "PUT cooling-off")
++
++	// The player's cooling-off route is PUT only: a DELETE is refused as a method not allowed.
++	end := rkDo(t, http.MethodDelete, rkRgURL(s, p, "/cooling-off"), p.token, nil, nil)
++	rkRequireStatus(t, http.StatusMethodNotAllowed, end, "player DELETE cooling-off")
++	require.True(t, rkGetRg(t, s, p).IsCoolingOff, "the break still applies")
++
++	t.Run("shortening the break is refused", func(t *testing.T) {
++		t.Skip("original defect: the player's PUT cooling-off accepts any until, earlier or past, so a break can be " +
++			"shortened (spec 010 Changes from the original: a break has bounds; today any until is accepted)")
++	})
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a break ends by itself when its end passes and its case closes as expired
++func TestScenario27_RGBreaks_BreakEndsByItself(t *testing.T) {
++	t.Skip("original defect: a cooling-off never ends by itself — rg-cool-off-expiry is disabled, matches no case " +
++		"and clears no flag (spec 001 Known defects; spec 010 Changes from the original)")
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: an operator lifting a break with a reason ends it and closes the case naming them
++func TestScenario27_RGBreaks_OperatorLiftsBreak(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkPlayerBreak(t, s, p, rkBreakUntil()), "PUT cooling-off")
++
++	lift := rkDo(t, http.MethodDelete, rkPlayerURL(s, p, "/rg/cooling-off"), op, nil, nil)
++	rkRequireStatus(t, http.StatusOK, lift, "operator DELETE rg/cooling-off")
++	lifted := rkDecodeRg(t, lift)
++	require.False(t, lifted.IsCoolingOff, "the break ends: %s", lift.raw)
++	require.Nil(t, lifted.CoolingOffUntil, "no break end remains: %s", lift.raw)
++	require.False(t, rkGetRg(t, s, p).IsCoolingOff, "the player's read shows no break")
++
++	login := rkLogin(t, s, p)
++	rkRequireStatus(t, http.StatusOK, login, "the player may sign in")
++
++	t.Run("the case closes as lifted, naming the operator and the reason", func(t *testing.T) {
++		t.Skip("original defect: the operator's DELETE cooling-off takes no reason and leaves the RGCase open " +
++			"(BackofficePlayerRoutes rg/cooling-off; spec 010 Changes from the original: cases open and close with a reason)")
++	})
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a player excluding themselves permanently is excluded at once with every game session ended
++func TestScenario27_RGBreaks_PlayerSelfExcludesPermanently(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	res := rkSelfExclude(t, s, p)
++	rkRequireStatus(t, http.StatusOK, res, "PUT permanent-exclusion")
++	require.Equal(t, "self_excluded", res.body["status"], "body: %s", res.raw)
++
++	st := rkGetRg(t, s, p)
++	require.True(t, st.IsCoolingOff, "the original records the exclusion as a cool-off to the year 9999 beside the status")
++	require.NotNil(t, st.CoolingOffUntil)
++	require.Equal(t, "9999-12-31T23:59:59Z", *st.CoolingOffUntil)
++
++	wait.WaitUntil(t, func() (bool, error) {
++		return rkHistoryHas(t, s, p, "self_exclusion_applied", "player")
++	}, 15*time.Second, "the RG history should show the self-exclusion case")
++
++	t.Run("every open game session of theirs is ended", func(t *testing.T) {
++		t.Skip("original defect: self-exclusion records the status only and ends no game session " +
++			"(spec 010 Changes from the original)")
++	})
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: an operator's exclusion shorter than 183 days is refused naming the minimum
++func TestScenario27_RGBreaks_OperatorExclusionUnder183DaysRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	res := rkDo(t, http.MethodPost, rkPlayerURL(s, p, "/self-exclude"), op, map[string]string{"period": "60d"}, nil)
++	rkRequireStatus(t, http.StatusBadRequest, res, "operator POST self-exclude 60d")
++	require.Equal(t, "period_too_short", res.body["error"], "body: %s", res.raw)
++	require.EqualValues(t, 183, res.body["minimumDays"], "body: %s", res.raw)
++	require.EqualValues(t, 60, res.body["providedDays"], "body: %s", res.raw)
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario Outline: an operator's exclusion of 183 days or permanent is accepted
++func TestScenario27_RGBreaks_OperatorExclusionOf183DaysOrPermanentAccepted(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++
++	for _, period := range []string{"183d", "permanent"} {
++		period := period
++		t.Run(period, func(t *testing.T) {
++			p := rkNewPlayer(t, s)
++			res := rkDo(t, http.MethodPost, rkPlayerURL(s, p, "/self-exclude"), op, map[string]string{"period": period}, nil)
++			rkRequireStatus(t, http.StatusOK, res, "operator POST self-exclude "+period)
++			require.Equal(t, "self_excluded", res.body["status"], "body: %s", res.raw)
++		})
++	}
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a reinstatement before an exclusion's period ends is refused naming the end
++func TestScenario27_RGBreaks_ReinstatementBeforePeriodEndRefused(t *testing.T) {
++	t.Skip("original defect: a period exclusion's period is written and never read, so reinstatement is never " +
++		"refused for it (spec 001 Known defects; spec 010 Changes from the original)")
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a reinstatement after an exclusion's period ends is accepted and the player may sign in
++func TestScenario27_RGBreaks_ReinstatementAfterPeriodEndAccepted(t *testing.T) {
++	t.Skip("original defect: reinstating leaves rg_is_cooling_off set so the player stays blocked, and the period " +
++		"is never read (spec 001 Known defects; spec 010 Changes from the original)")
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a reinstatement of a permanently self-excluded player is refused
++func TestScenario27_RGBreaks_ReinstatementOfPermanentSelfExclusionRefused(t *testing.T) {
++	t.Skip("original defect: PATCH .../reinstate checks no exclusion and sets account_status active for any player " +
++		"(BackofficePlayerRoutes reinstate; spec 010 Context and Changes from the original)")
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a player both excluded and on a break is answered with the exclusion
++//
++// The original's permanent exclusion writes both the status and a cool-off; the launch and the
++// deposit preflight both check account_status before the cool-off.
++func TestScenario27_RGBreaks_ExcludedAndOnBreakAnsweredWithExclusion(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSelfExclude(t, s, p), "PUT permanent-exclusion")
++	require.True(t, rkGetRg(t, s, p).IsCoolingOff, "the player is both excluded and cooling off")
++
++	launch := rkLaunch(t, s, p)
++	rkRequireStatus(t, http.StatusForbidden, launch, "launch")
++	require.Equal(t, "account_restricted", launch.body["error"], "body: %s", launch.raw)
++	require.Equal(t, "self_excluded", launch.body["reason"], "body: %s", launch.raw)
++
++	deposit := rkNotifyDeposit(t, s, p, "10")
++	rkRequireStatus(t, http.StatusForbidden, deposit, "notify deposit")
++	require.Equal(t, "account_restricted", deposit.body["error"], "body: %s", deposit.raw)
++	require.Equal(t, "self_excluded", deposit.body["reason"], "body: %s", deposit.raw)
++}
++
++// features/responsible-gambling/breaks.feature
++// Scenario: a break ending on a suspended player leaves them suspended
++func TestScenario27_RGBreaks_BreakEndingOnSuspendedPlayerLeavesThemSuspended(t *testing.T) {
++	t.Skip("original defect: a cooling-off never ends by itself (spec 001 Known defects; spec 010 Changes from the original)")
++}
++
++// ---------------------------------------------------------------------------
++// play.feature — Play and sign-in are refused while a break or an exclusion stands
++// ---------------------------------------------------------------------------
++
++// features/responsible-gambling/play.feature
++// Scenario: a sign-in by a player on a break is refused with the date the break ends, by the brand and by the realm alike
++func TestScenario27_RGPlay_SignInOnBreakRefused(t *testing.T) {
++	t.Skip("original defect: casino-service login refuses only self_excluded, suspended and blocked, not a cooling-off; " +
++		"the RG Keycloak authenticator is wired by hand into the browser flow only (spec 010 Context: Login)")
++}
++
++// features/responsible-gambling/play.feature
++// Scenario: a sign-in by a self-excluded player is refused as permanently excluded, directing them to support
++//
++// The original answers account_restricted / self_excluded; directing to support is the frontend's.
++func TestScenario27_RGPlay_SignInSelfExcludedRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSelfExclude(t, s, p), "PUT permanent-exclusion")
++
++	login := rkLogin(t, s, p)
++	rkRequireStatus(t, http.StatusForbidden, login, "login after self-exclusion")
++	require.Equal(t, "account_restricted", login.body["error"], "body: %s", login.raw)
++	require.Equal(t, "self_excluded", login.body["reason"], "body: %s", login.raw)
++}
++
++// features/responsible-gambling/play.feature
++// Scenario: a launch for a player on a break is answered cooling off with the end of the break and refused
++func TestScenario27_RGPlay_LaunchOnBreakRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	until := rkBreakUntil()
++	rkRequireStatus(t, http.StatusOK, rkPlayerBreak(t, s, p, until), "PUT cooling-off")
++
++	launch := rkLaunch(t, s, p)
++	rkRequireStatus(t, http.StatusForbidden, launch, "launch on a break")
++	require.Equal(t, "cooling_off_active", launch.body["error"], "body: %s", launch.raw)
++	require.Equal(t, until, launch.body["coolingOffUntil"], "body: %s", launch.raw)
++}
++
++// features/responsible-gambling/play.feature
++// Scenario: a player whose break ended is refused nothing for the break
++func TestScenario27_RGPlay_BreakEndedRefusesNothing(t *testing.T) {
++	t.Skip("original defect: a cooling-off never ends by itself and rg_is_cooling_off stays set, so the player " +
++		"stays refused (spec 001 Known defects; spec 010 Changes from the original)")
++}
++
++// ---------------------------------------------------------------------------
++// deposits.feature — A deposit is refused before it is credited
++// ---------------------------------------------------------------------------
++
++// The feature's "a daily deposit limit of 100 and 80 deposited in the last 24 hours" is driven as
++// a daily deposit limit of 20 with nothing deposited: the remaining allowance is the same 20, and
++// a fresh player needs no wallet deposits seeded.
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit over the daily deposit limit is refused naming the limit, what was used and what remains, and no balance changes
++func TestScenario27_RGDeposits_OverDailyLimitRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "20"), "PUT DEPOSIT_DAILY 20")
++
++	res := rkNotifyDeposit(t, s, p, "30")
++	rkRequireStatus(t, http.StatusForbidden, res, "notify deposit 30")
++	require.Equal(t, "deposit_limit_exceeded", res.body["error"], "body: %s", res.raw)
++	require.Equal(t, "DEPOSIT_DAILY", res.body["limitType"], "body: %s", res.raw)
++	require.EqualValues(t, 20, res.body["limitValue"], "body: %s", res.raw)
++	require.EqualValues(t, 0, res.body["usedAmount"], "body: %s", res.raw)
++	require.EqualValues(t, 20, res.body["remainingAmount"], "body: %s", res.raw)
++	require.Equal(t, "EUR", res.body["currency"], "body: %s", res.raw)
++
++	t.Run("no balance changes", func(t *testing.T) {
++		t.Skip("original defect: no deposit is ever refused for a limit — the check runs after the wallet credit and " +
++			"its refusal is a logged warning (spec 001 Known defects; spec 010 Changes from the original)")
++	})
++}
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit exactly at what remains of the daily deposit limit is accepted
++func TestScenario27_RGDeposits_ExactlyAtRemainingAccepted(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "20"), "PUT DEPOSIT_DAILY 20")
++
++	res := rkNotifyDeposit(t, s, p, "20")
++	rkRequireStatus(t, http.StatusOK, res, "notify deposit 20")
++	require.Equal(t, true, res.body["ok"], "body: %s", res.raw)
++}
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit a minor unit over what remains of the daily deposit limit is refused
++func TestScenario27_RGDeposits_MinorUnitOverRemainingRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "20"), "PUT DEPOSIT_DAILY 20")
++
++	res := rkNotifyDeposit(t, s, p, "20.01")
++	rkRequireStatus(t, http.StatusForbidden, res, "notify deposit 20.01")
++	require.Equal(t, "deposit_limit_exceeded", res.body["error"], "body: %s", res.raw)
++}
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit that would pass any of the daily, weekly or monthly deposit limits is refused naming the first it would pass
++func TestScenario27_RGDeposits_FirstLimitPassedIsNamed(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_DAILY", "100"), "PUT DEPOSIT_DAILY 100")
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_WEEKLY", "50"), "PUT DEPOSIT_WEEKLY 50")
++	rkRequireStatus(t, http.StatusOK, rkSetLimit(t, s, p, "DEPOSIT_MONTHLY", "40"), "PUT DEPOSIT_MONTHLY 40")
++
++	// 60 passes the weekly and the monthly limit but not the daily: the weekly is named, being first in order.
++	res := rkNotifyDeposit(t, s, p, "60")
++	rkRequireStatus(t, http.StatusForbidden, res, "notify deposit 60")
++	require.Equal(t, "deposit_limit_exceeded", res.body["error"], "body: %s", res.raw)
++	require.Equal(t, "DEPOSIT_WEEKLY", res.body["limitType"], "body: %s", res.raw)
++}
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit for a player on a break is refused as cooling off naming the end of the break
++//
++// The original answers account_restricted / cooling_off_active and does not name the end.
++func TestScenario27_RGDeposits_OnBreakRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkPlayerBreak(t, s, p, rkBreakUntil()), "PUT cooling-off")
++
++	res := rkNotifyDeposit(t, s, p, "10")
++	rkRequireStatus(t, http.StatusForbidden, res, "notify deposit on a break")
++	require.Equal(t, "account_restricted", res.body["error"], "body: %s", res.raw)
++	require.Equal(t, "cooling_off_active", res.body["reason"], "body: %s", res.raw)
++}
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit for a self-excluded player is refused as excluded
++func TestScenario27_RGDeposits_SelfExcludedRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	rkEnsureNoKycGates(t, s)
++	p := rkNewPlayer(t, s)
++
++	rkRequireStatus(t, http.StatusOK, rkSelfExclude(t, s, p), "PUT permanent-exclusion")
++
++	res := rkNotifyDeposit(t, s, p, "10")
++	rkRequireStatus(t, http.StatusForbidden, res, "notify deposit when self-excluded")
++	require.Equal(t, "account_restricted", res.body["error"], "body: %s", res.raw)
++	require.Equal(t, "self_excluded", res.body["reason"], "body: %s", res.raw)
++}
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit for a player whose break ended is not refused for the break
++func TestScenario27_RGDeposits_AfterBreakEndedNotRefused(t *testing.T) {
++	t.Skip("original defect: a cooling-off never ends by itself and rg_is_cooling_off stays set " +
++		"(spec 001 Known defects; spec 010 Changes from the original)")
++}
++
++// features/responsible-gambling/deposits.feature
++// Scenario: a deposit refused for a limit is recorded captured and not credited, and the player is told the remaining allowance
++func TestScenario27_RGDeposits_RefusedDepositRecordedCapturedNotCredited(t *testing.T) {
++	t.Skip("original defect: the deposit is credited before the limit check and the refusal is a logged warning " +
++		"(spec 001 Known defects; spec 010 Changes from the original)")
++}
+diff --git a/tests/e2e/scenario28_kyc_documents_review_e2e_test.go b/tests/e2e/scenario28_kyc_documents_review_e2e_test.go
+new file mode 100644
+index 0000000..1ccd14a
+--- /dev/null
++++ b/tests/e2e/scenario28_kyc_documents_review_e2e_test.go
+@@ -0,0 +1,644 @@
++//go:build e2e
++
++// Scenario 28 — KYC: a player's documents, an operator's review, and the account's KYC status.
++//
++// Drives (all under /v1/casino/{brandId}/players/{playerId}/kyc, BackofficePlayerRoutes):
++//
++//	POST  /upload-url                         player JWT — presigned PUT (MinIO)
++//	GET   /documents, POST /documents         player JWT — list; confirm an upload
++//	GET   /documents/{docKey}/view-url        player or operator JWT — presigned GET
++//	PATCH /documents/{docKey}/approve|reject  operator JWT (brand_admin, brand_compliance, ...)
++//	PUT   /verification-mode, /status, /required-doc-types; PATCH /verify, /reject   operator JWT
++//
++// plus PATCH /v1/casino/backoffice/{brandId}/players/{playerId}/profile (PlayerProfileRoutes) to
++// complete a profile, and the brand's KYC policy (scenario 29 helpers) to fix the required
++// categories. The account's KYC status in automatic mode is derived by the kyc-status-rollup TL
++// function off kyc_documents_updated_at (just kind-register-casino-functions), so those tests
++// poll the player's documents read for it.
++//
++// Confirming an upload records metadata only; the tests confirm keys under the player's prefix
++// without uploading bytes, as the original's Playwright suite 33 does.
++//
++// Requires EITHEROR_CASINO_URL, EITHEROR_SUBSTRATE_URL (the view-log read), MinIO configured on
++// casino-service (upload and view addresses), and TEST_OPERATOR_EMAIL / TEST_OPERATOR_PASSWORD
++// for every review test.
++package e2e_test
++
++import (
++	"encoding/json"
++	"fmt"
++	"net/http"
++	"net/url"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/require"
++
++	"github.com/eitheror-io/eitheror-platform/tests/e2e/internal/setup"
++	"github.com/eitheror-io/eitheror-platform/tests/e2e/internal/wait"
++)
++
++// rkKycDocs is the player's GET .../kyc/documents answer.
++type rkKycDocs struct {
++	Documents        []map[string]any `json:"documents"`
++	RequiredDocTypes []string         `json:"requiredDocTypes"`
++	KycStatus        string           `json:"kycStatus"`
++}
++
++func rkGetKycDocs(t *testing.T, s setup.Suite, p rkPlayer) rkKycDocs {
++	t.Helper()
++	r := rkDo(t, http.MethodGet, rkPlayerURL(s, p, "/kyc/documents"), p.token, nil, nil)
++	rkRequireStatus(t, http.StatusOK, r, "player GET kyc/documents")
++	var d rkKycDocs
++	require.NoError(t, json.Unmarshal([]byte(r.raw), &d), "decode kyc/documents: %s", r.raw)
++	return d
++}
++
++// rkDoc returns the document with key.
++func (d rkKycDocs) doc(key string) (map[string]any, bool) {
++	for _, doc := range d.Documents {
++		if doc["key"] == key {
++			return doc, true
++		}
++	}
++	return nil, false
++}
++
++// rkConfirmDocResult confirms a document of docType under the player's own prefix and returns the
++// key and the answer.
++func rkConfirmDocResult(t *testing.T, s setup.Suite, p rkPlayer, docType string) (string, rkResult) {
++	t.Helper()
++	key := fmt.Sprintf("%s/%s/%s-e2e-%s.jpg", p.brandId, p.playerId, docType, uuid.New().String()[:8])
++	r := rkDo(t, http.MethodPost, rkPlayerURL(s, p, "/kyc/documents"), p.token,
++		map[string]string{"key": key, "docType": docType}, nil)
++	return key, r
++}
++
++// rkConfirmDoc confirms a document and requires it recorded.
++func rkConfirmDoc(t *testing.T, s setup.Suite, p rkPlayer, docType string) string {
++	t.Helper()
++	key, r := rkConfirmDocResult(t, s, p, docType)
++	rkRequireStatus(t, http.StatusOK, r, "player POST kyc/documents "+docType)
++	require.Equal(t, "recorded", r.body["status"], "body: %s", r.raw)
++	return key
++}
++
++// rkDocURL is the per-document route; the key is a path segment, so its slashes are encoded.
++func rkDocURL(s setup.Suite, p rkPlayer, key, action string) string {
++	return rkPlayerURL(s, p, "/kyc/documents/"+url.PathEscape(key)+"/"+action)
++}
++
++func rkApproveDoc(t *testing.T, s setup.Suite, p rkPlayer, op, key string) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPatch, rkDocURL(s, p, key, "approve"), op, nil, nil)
++}
++
++func rkRejectDoc(t *testing.T, s setup.Suite, p rkPlayer, op, key, reason string) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPatch, rkDocURL(s, p, key, "reject"), op, map[string]string{"reason": reason}, nil)
++}
++
++// rkWaitKycStatus polls the player's documents read until the account's KYC status is want.
++func rkWaitKycStatus(t *testing.T, s setup.Suite, p rkPlayer, want string, timeout time.Duration) {
++	t.Helper()
++	last := ""
++	wait.WaitUntil(t, func() (bool, error) {
++		last = rkGetKycDocs(t, s, p).KycStatus
++		return last == want, nil
++	}, timeout, fmt.Sprintf("KYC status of %s should become %q (kyc-status-rollup)", p.playerId, want))
++}
++
++// rkRequireKycStatusNever asserts the KYC status does not become unwanted for d.
++func rkRequireKycStatusNever(t *testing.T, s setup.Suite, p rkPlayer, unwanted string, d time.Duration) {
++	t.Helper()
++	wait.WithinDuration(t, func() (bool, error) {
++		return rkGetKycDocs(t, s, p).KycStatus == unwanted, nil
++	}, d, fmt.Sprintf("KYC status of %s must not become %q", p.playerId, unwanted))
++}
++
++// rkCompleteProfile fills the profile fields a fresh registration lacks (phone and address), as an
++// operator; registration already carries names, date of birth and country.
++func rkCompleteProfile(t *testing.T, s setup.Suite, p rkPlayer, op string) {
++	t.Helper()
++	r := rkDo(t, http.MethodPatch,
++		fmt.Sprintf("%s/v1/casino/backoffice/%s/players/%s/profile", s.CasinoURL, p.brandId, p.playerId), op,
++		map[string]string{
++			"phone":        "+447700900123",
++			"addressLine1": "1 E2E Street",
++			"city":         "London",
++			"postalCode":   "E1 6AN",
++		}, nil)
++	rkRequireStatus(t, http.StatusOK, r, "operator PATCH profile")
++}
++
++// rkTwinProps reads the player twin from the substrate.
++func rkTwinProps(t *testing.T, s setup.Suite, p rkPlayer) map[string]any {
++	t.Helper()
++	props, err := s18GetTwinProps(s, "casino-"+p.brandId, p.playerId)
++	require.NoError(t, err)
++	return props
++}
++
++// ---------------------------------------------------------------------------
++// documents.feature — A player submits documents and sees where they stand
++// ---------------------------------------------------------------------------
++
++// features/kyc/documents.feature
++// Scenario: a player with no documents sees all six categories with upload actions and the required ones marked
++//
++// The six categories and their upload actions are the frontend's; the original answers the
++// player's documents, the per-player required categories and the status, and the brand's required
++// categories on the public requirements read.
++func TestScenario28_KYCDocuments_NoDocumentsShowsRequiredCategories(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	d := rkGetKycDocs(t, s, p)
++	require.Empty(t, d.Documents, "a fresh player has no documents")
++	require.Empty(t, d.RequiredDocTypes, "no per-player required categories")
++	require.Equal(t, "unverified", d.KycStatus)
++
++	req := rkDo(t, http.MethodGet, fmt.Sprintf("%s/v1/casino/players/%s/kyc/requirements", s.CasinoURL, p.brandId), "", nil, nil)
++	rkRequireStatus(t, http.StatusOK, req, "GET kyc/requirements")
++	required, ok := req.body["requiredDocTypes"].([]any)
++	require.True(t, ok, "the brand's required categories are listed: %s", req.raw)
++	require.NotEmpty(t, required)
++}
++
++// features/kyc/documents.feature
++// Scenario: asking to upload a file for a category gives an upload address valid for an hour and a document id, and the upload lands under the player's own prefix
++func TestScenario28_KYCDocuments_UploadAddressValidForAnHourUnderPlayersPrefix(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	for _, ct := range []struct{ contentType, ext string }{
++		{"image/jpeg", "jpg"}, {"image/png", "png"}, {"application/pdf", "pdf"},
++	} {
++		ct := ct
++		t.Run(ct.contentType, func(t *testing.T) {
++			r := rkDo(t, http.MethodPost, rkPlayerURL(s, p, "/kyc/upload-url"), p.token,
++				map[string]string{"docType": "identity_front", "contentType": ct.contentType}, nil)
++			rkRequireStatus(t, http.StatusOK, r, "player POST kyc/upload-url (needs MinIO configured)")
++			uploadURL, _ := r.body["url"].(string)
++			key, _ := r.body["key"].(string)
++			require.Contains(t, uploadURL, "X-Amz-Expires=3600", "the upload address is valid for an hour: %s", r.raw)
++			require.True(t, strings.HasPrefix(key, p.brandId+"/"+p.playerId+"/identity_front-"),
++				"the document id (key) lies under the player's own prefix: %s", key)
++			require.True(t, strings.HasSuffix(key, "."+ct.ext), "key %s should end .%s", key, ct.ext)
++			require.Equal(t, ct.contentType, r.body["contentType"], "body: %s", r.raw)
++		})
++	}
++}
++
++// features/kyc/documents.feature
++// Scenario: confirming a completed upload shows the category pending review and locks the document
++func TestScenario28_KYCDocuments_ConfirmedUploadIsPendingAndLocked(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "identity_front")
++	doc, ok := rkGetKycDocs(t, s, p).doc(key)
++	require.True(t, ok, "the confirmed document is listed")
++	require.Equal(t, "identity_front", doc["docType"])
++	require.Equal(t, "pending", doc["reviewStatus"], "the category shows pending review")
++
++	_, again := rkConfirmDocResult(t, s, p, "identity_front")
++	rkRequireStatus(t, http.StatusConflict, again, "a second identity_front while one is pending")
++	require.Equal(t, "document_locked", again.body["error"], "body: %s", again.raw)
++}
++
++// features/kyc/documents.feature
++// Scenario Outline: a category whose latest document is pending or approved refuses another upload as locked
++//
++// The original refuses at confirmation (POST .../documents), not when the upload address is asked for.
++func TestScenario28_KYCDocuments_PendingOrApprovedCategoryRefusesAnotherUpload(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++
++	t.Run("pending", func(t *testing.T) {
++		p := rkNewPlayer(t, s)
++		rkConfirmDoc(t, s, p, "proof_of_address")
++		_, again := rkConfirmDocResult(t, s, p, "proof_of_address")
++		rkRequireStatus(t, http.StatusConflict, again, "another proof_of_address while pending")
++		require.Equal(t, "document_locked", again.body["error"], "body: %s", again.raw)
++	})
++
++	t.Run("approved", func(t *testing.T) {
++		op := rkOperatorToken(t, s)
++		p := rkNewPlayer(t, s)
++		key := rkConfirmDoc(t, s, p, "proof_of_address")
++		rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, key), "approve")
++		_, again := rkConfirmDocResult(t, s, p, "proof_of_address")
++		rkRequireStatus(t, http.StatusConflict, again, "another proof_of_address once approved")
++		require.Equal(t, "document_locked", again.body["error"], "body: %s", again.raw)
++	})
++}
++
++// features/kyc/documents.feature
++// Scenario: the category other is never locked and every upload to it is a document of its own
++func TestScenario28_KYCDocuments_CategoryOtherNeverLocked(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	first := rkConfirmDoc(t, s, p, "other")
++	second := rkConfirmDoc(t, s, p, "other")
++	d := rkGetKycDocs(t, s, p)
++	_, ok1 := d.doc(first)
++	_, ok2 := d.doc(second)
++	require.True(t, ok1 && ok2, "both documents in other are listed, each its own: %+v", d.Documents)
++}
++
++// features/kyc/documents.feature
++// Scenario: a replacement for a rejected document shows the category pending review and hides the rejection reason
++//
++// Hiding the reason is the frontend's (it shows the latest document); the original lists both.
++func TestScenario28_KYCDocuments_ReplacementForRejectedIsPending(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	rejected := rkConfirmDoc(t, s, p, "identity_front")
++	rkRequireStatus(t, http.StatusOK, rkRejectDoc(t, s, p, op, rejected, "document_unclear"), "reject")
++
++	replacement := rkConfirmDoc(t, s, p, "identity_front")
++	doc, ok := rkGetKycDocs(t, s, p).doc(replacement)
++	require.True(t, ok, "the replacement is listed")
++	require.Equal(t, "pending", doc["reviewStatus"], "the replacement shows pending review")
++	_, hasReason := doc["rejectReason"]
++	require.False(t, hasReason, "the replacement carries no rejection reason: %+v", doc)
++}
++
++// features/kyc/documents.feature
++// Scenario: a rejected document's reason is shown as one of the reason codes in the player's language and never as free text
++func TestScenario28_KYCDocuments_RejectedReasonIsAReasonCode(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "proof_of_address")
++	rkRequireStatus(t, http.StatusOK, rkRejectDoc(t, s, p, op, key, "address_mismatch"), "reject")
++
++	doc, ok := rkGetKycDocs(t, s, p).doc(key)
++	require.True(t, ok)
++	require.Equal(t, "rejected", doc["reviewStatus"])
++	require.Equal(t, "address_mismatch", doc["rejectReason"], "the player sees the reason code: %+v", doc)
++}
++
++// features/kyc/documents.feature
++// Scenario: a player viewing one of their documents is given a view address valid for fifteen minutes to it alone, and the view is recorded
++func TestScenario28_KYCDocuments_PlayerViewsOwnDocument(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "identity_front")
++	before := time.Now()
++	r := rkDo(t, http.MethodGet, rkDocURL(s, p, key, "view-url"), p.token, nil, nil)
++	rkRequireStatus(t, http.StatusOK, r, "player GET view-url (needs MinIO configured)")
++	viewURL, _ := r.body["url"].(string)
++	require.Contains(t, viewURL, "X-Amz-Expires=900", "the view address is valid for 15 minutes: %s", r.raw)
++	require.Contains(t, viewURL, p.playerId, "the address is to the player's document: %s", viewURL)
++	expiresAt, err := time.Parse(time.RFC3339, fmt.Sprint(r.body["expiresAt"]))
++	require.NoError(t, err, "body: %s", r.raw)
++	require.WithinDuration(t, before.Add(15*time.Minute), expiresAt, 2*time.Minute)
++
++	wait.WaitUntil(t, func() (bool, error) {
++		log := fmt.Sprint(rkTwinProps(t, s, p)["kyc_view_log"])
++		return strings.Contains(log, key) && strings.Contains(log, "player:"), nil
++	}, 15*time.Second, "the view should be recorded on the player (kyc_view_log)")
++
++	t.Run("every view is recorded", func(t *testing.T) {
++		t.Skip("original defect: only the latest document view is audited — kyc_view_log is one property " +
++			"overwritten on each issue (spec 001 Known defects; spec 009 Changes from the original)")
++	})
++}
++
++// features/kyc/documents.feature
++// Scenario: a player asking to view another player's document is refused
++func TestScenario28_KYCDocuments_PlayerViewingAnotherPlayersDocumentRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	owner := rkNewPlayer(t, s)
++	other := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, owner, "identity_front")
++	r := rkDo(t, http.MethodGet, rkDocURL(s, owner, key, "view-url"), other.token, nil, nil)
++	require.Contains(t, []int{http.StatusForbidden, http.StatusUnauthorized}, r.status,
++		"another player's token on the owner's document must be refused, got %d: %s", r.status, r.raw)
++}
++
++// features/kyc/documents.feature
++// Scenario Outline: a file of a type or size the brand does not take is refused naming the rule
++func TestScenario28_KYCDocuments_FileOfUnacceptedTypeOrSizeRefused(t *testing.T) {
++	t.Skip("original defect: upload-url maps any content type to .jpg and refuses none, and the 5 MiB limit is the " +
++		"player site's ingress, not casino-service's (spec 009 Changes from the original: the limit becomes the brand's setting)")
++}
++
++// ---------------------------------------------------------------------------
++// review.feature — An operator reviews documents and the KYC status follows the rules
++// ---------------------------------------------------------------------------
++
++// features/kyc/review.feature
++// Scenario: approving a pending document records the operator and time, and a second review of it is refused
++func TestScenario28_KYCReview_ApprovePendingDocumentSecondReviewRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "identity_front")
++	r := rkApproveDoc(t, s, p, op, key)
++	rkRequireStatus(t, http.StatusOK, r, "approve")
++	require.Equal(t, "APPROVED", r.body["status"], "body: %s", r.raw)
++	require.Equal(t, key, r.body["docKey"], "body: %s", r.raw)
++
++	doc, ok := rkGetKycDocs(t, s, p).doc(key)
++	require.True(t, ok)
++	require.Equal(t, "approved", doc["reviewStatus"])
++	require.NotEmpty(t, doc["reviewedAt"], "the review time is recorded: %+v", doc)
++
++	again := rkApproveDoc(t, s, p, op, key)
++	rkRequireStatus(t, http.StatusConflict, again, "second approval")
++	require.Equal(t, "document_already_reviewed", again.body["error"], "body: %s", again.raw)
++	reject := rkRejectDoc(t, s, p, op, key, "other")
++	rkRequireStatus(t, http.StatusConflict, reject, "rejection after approval")
++	require.Equal(t, "document_already_reviewed", reject.body["error"], "body: %s", reject.raw)
++
++	t.Run("the operator is recorded on the document", func(t *testing.T) {
++		t.Skip("original defect: a document approval writes status, reviewStatus and reviewedAt only, never the " +
++			"reviewer (BackofficePlayerRoutes.applyApproval)")
++	})
++}
++
++// features/kyc/review.feature
++// Scenario: rejecting a pending document with a known reason code records the code
++func TestScenario28_KYCReview_RejectWithKnownReasonCode(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "identity_front")
++	r := rkRejectDoc(t, s, p, op, key, "document_unclear")
++	rkRequireStatus(t, http.StatusOK, r, "reject")
++	require.Equal(t, "REJECTED", r.body["status"], "body: %s", r.raw)
++
++	doc, ok := rkGetKycDocs(t, s, p).doc(key)
++	require.True(t, ok)
++	require.Equal(t, "rejected", doc["reviewStatus"])
++	require.Equal(t, "document_unclear", doc["rejectReason"])
++}
++
++// features/kyc/review.feature
++// Scenario: rejecting a document with an unknown reason code is refused
++func TestScenario28_KYCReview_RejectWithUnknownReasonCodeRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "identity_front")
++	r := rkRejectDoc(t, s, p, op, key, "looks_odd")
++	rkRequireStatus(t, http.StatusBadRequest, r, "reject with looks_odd")
++	require.Equal(t, "invalid_rejection_reason", r.body["error"], "body: %s", r.raw)
++
++	doc, ok := rkGetKycDocs(t, s, p).doc(key)
++	require.True(t, ok)
++	require.Equal(t, "pending", doc["reviewStatus"], "the document is still pending")
++}
++
++// features/kyc/review.feature
++// Scenario: in automatic mode an account whose required categories are approved with a complete profile becomes verified with the system as actor
++func TestScenario28_KYCReview_AutomaticModeVerifiesWhenRequiredApproved(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK,
++		rkPutPolicy(t, s, op, map[string]any{"requiredDocTypes": []string{"identity", "proof_of_address"}}),
++		"PUT kyc-policy requiredDocTypes")
++	p := rkNewPlayer(t, s)
++	rkCompleteProfile(t, s, p, op)
++
++	identity := rkConfirmDoc(t, s, p, "identity_front")
++	address := rkConfirmDoc(t, s, p, "proof_of_address")
++	rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, identity), "approve identity_front")
++	rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, address), "approve proof_of_address")
++
++	rkWaitKycStatus(t, s, p, "verified", 30*time.Second)
++}
++
++// features/kyc/review.feature
++// Scenario: in automatic mode an account with only the identity front approved stays pending
++func TestScenario28_KYCReview_AutomaticModeOnlyIdentityApprovedStaysPending(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK,
++		rkPutPolicy(t, s, op, map[string]any{"requiredDocTypes": []string{"identity", "proof_of_address"}}),
++		"PUT kyc-policy requiredDocTypes")
++	p := rkNewPlayer(t, s)
++	rkCompleteProfile(t, s, p, op)
++
++	identity := rkConfirmDoc(t, s, p, "identity_front")
++	rkConfirmDoc(t, s, p, "proof_of_address")
++	rkWaitKycStatus(t, s, p, "pending", 30*time.Second)
++
++	rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, identity), "approve identity_front")
++	rkRequireKycStatusNever(t, s, p, "verified", 8*time.Second)
++	require.Equal(t, "pending", rkGetKycDocs(t, s, p).KycStatus)
++}
++
++// features/kyc/review.feature
++// Scenario: a rejected latest document in any category makes the account rejected, required or not
++func TestScenario28_KYCReview_RejectedLatestDocumentRejectsAccount(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "proof_of_address")
++	rkRequireStatus(t, http.StatusOK, rkRejectDoc(t, s, p, op, key, "document_expired"), "reject")
++	rkWaitKycStatus(t, s, p, "rejected", 30*time.Second)
++}
++
++// features/kyc/review.feature
++// Scenario: a rejected document in the category other does not reject the account
++func TestScenario28_KYCReview_RejectedOtherDoesNotRejectAccount(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "other")
++	rkWaitKycStatus(t, s, p, "pending", 30*time.Second)
++	rkRequireStatus(t, http.StatusOK, rkRejectDoc(t, s, p, op, key, "other"), "reject other")
++	rkRequireKycStatusNever(t, s, p, "rejected", 8*time.Second)
++}
++
++// features/kyc/review.feature
++// Scenario Outline: an account with every required category approved but an incomplete profile stays unverified and the player is told
++//
++// Driven for the "required profile field missing" row (a fresh registration has no phone or
++// address); telling the player is the frontend's.
++func TestScenario28_KYCReview_IncompleteProfileStaysUnverified(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK,
++		rkPutPolicy(t, s, op, map[string]any{"requiredDocTypes": []string{"identity"}}),
++		"PUT kyc-policy requiredDocTypes")
++	p := rkNewPlayer(t, s)
++
++	identity := rkConfirmDoc(t, s, p, "identity_front")
++	rkWaitKycStatus(t, s, p, "pending", 30*time.Second)
++	rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, identity), "approve identity_front")
++	rkWaitKycStatus(t, s, p, "unverified", 30*time.Second)
++}
++
++// features/kyc/review.feature
++// Scenario: in manual mode approving every required document changes nothing
++func TestScenario28_KYCReview_ManualModeApprovingChangesNothing(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++	rkCompleteProfile(t, s, p, op)
++
++	mode := rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/kyc/verification-mode"), op, map[string]string{"mode": "manual"}, nil)
++	rkRequireStatus(t, http.StatusOK, mode, "PUT verification-mode manual")
++	require.Equal(t, "manual", mode.body["mode"], "body: %s", mode.raw)
++
++	identity := rkConfirmDoc(t, s, p, "identity_front")
++	address := rkConfirmDoc(t, s, p, "proof_of_address")
++	rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, identity), "approve identity_front")
++	rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, address), "approve proof_of_address")
++
++	rkRequireKycStatusNever(t, s, p, "verified", 8*time.Second)
++	require.Equal(t, "unverified", rkGetKycDocs(t, s, p).KycStatus, "manual mode leaves the status to the operator")
++}
++
++// features/kyc/review.feature
++// Scenario: in manual mode the operator setting the account verified verifies it at once
++func TestScenario28_KYCReview_ManualModeOperatorSetsVerified(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++	rkCompleteProfile(t, s, p, op)
++
++	rkRequireStatus(t, http.StatusOK,
++		rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/kyc/verification-mode"), op, map[string]string{"mode": "manual"}, nil),
++		"PUT verification-mode manual")
++
++	r := rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/kyc/status"), op, map[string]string{"status": "verified"}, nil)
++	rkRequireStatus(t, http.StatusOK, r, "PUT kyc/status verified")
++	require.Equal(t, "verified", r.body["kycStatus"], "body: %s", r.raw)
++	rkWaitKycStatus(t, s, p, "verified", 15*time.Second)
++}
++
++// features/kyc/review.feature
++// Scenario: setting an account verified while the profile is incomplete is refused naming the missing fields
++func TestScenario28_KYCReview_SetVerifiedWithIncompleteProfileRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	r := rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/kyc/status"), op, map[string]string{"status": "verified"}, nil)
++	rkRequireStatus(t, http.StatusConflict, r, "PUT kyc/status verified with an incomplete profile")
++	require.Equal(t, "profile_incomplete", r.body["error"], "body: %s", r.raw)
++	missing, ok := r.body["missingProfileFields"].([]any)
++	require.True(t, ok, "the refusal names the missing fields: %s", r.raw)
++	for _, field := range []string{"phone", "addressLine1", "city", "postalCode"} {
++		require.Contains(t, missing, field, "a fresh registration has no %s: %s", field, r.raw)
++	}
++	require.Equal(t, "unverified", rkGetKycDocs(t, s, p).KycStatus)
++}
++
++// features/kyc/review.feature
++// Scenario: marking a category required for one player puts the account in manual mode and pending without affecting any other player
++func TestScenario28_KYCReview_MarkingCategoryRequiredForOnePlayer(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++	bystander := rkNewPlayer(t, s)
++
++	r := rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/kyc/required-doc-types"), op,
++		map[string]any{"docTypes": []string{"proof_of_address"}}, nil)
++	rkRequireStatus(t, http.StatusOK, r, "PUT kyc/required-doc-types")
++	require.Equal(t, "manual", r.body["verificationMode"], "body: %s", r.raw)
++	require.Equal(t, "pending", r.body["kycStatus"], "body: %s", r.raw)
++
++	d := rkGetKycDocs(t, s, p)
++	require.Equal(t, []string{"proof_of_address"}, d.RequiredDocTypes, "the player sees the category as required")
++	require.Equal(t, "pending", d.KycStatus)
++
++	other := rkGetKycDocs(t, s, bystander)
++	require.Empty(t, other.RequiredDocTypes, "no other player is affected")
++	require.Equal(t, "unverified", other.KycStatus)
++}
++
++// features/kyc/review.feature
++// Scenario Outline: an operator with a compliance or admin role for the brand views a document by a fifteen-minute address and the view is recorded
++//
++// Driven with whichever role TEST_OPERATOR holds.
++func TestScenario28_KYCReview_OperatorViewsDocument(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	p := rkNewPlayer(t, s)
++
++	key := rkConfirmDoc(t, s, p, "identity_front")
++	r := rkDo(t, http.MethodGet, rkDocURL(s, p, key, "view-url"), op, nil, nil)
++	rkRequireStatus(t, http.StatusOK, r, "operator GET view-url (needs MinIO configured)")
++	viewURL, _ := r.body["url"].(string)
++	require.Contains(t, viewURL, "X-Amz-Expires=900", "the view address is valid for 15 minutes: %s", r.raw)
++
++	wait.WaitUntil(t, func() (bool, error) {
++		log := fmt.Sprint(rkTwinProps(t, s, p)["kyc_view_log"])
++		return strings.Contains(log, key) && strings.Contains(log, "operator:"), nil
++	}, 15*time.Second, "the operator's view should be recorded with their id (kyc_view_log)")
++}
++
++// features/kyc/review.feature
++// Scenario Outline: an operator verifying or rejecting an account directly changes the status regardless of the documents, audited
++//
++// Driven on players with no documents: in the original, kyc-status-rollup recomputes the status
++// from the documents on every player write within 15 minutes of a document change, so a direct
++// decision taken shortly after an upload is overwritten by the rollup. The audit record
++// (AccountEvent) is not read back here.
++func TestScenario28_KYCReview_OperatorVerifiesOrRejectsDirectly(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++
++	for _, tc := range []struct {
++		action string
++		body   any
++		want   string
++	}{
++		{"verify", nil, "verified"},
++		{"reject", map[string]string{"reason": "e2e direct rejection"}, "rejected"},
++	} {
++		tc := tc
++		t.Run(tc.action, func(t *testing.T) {
++			p := rkNewPlayer(t, s)
++			r := rkDo(t, http.MethodPatch, rkPlayerURL(s, p, "/kyc/"+tc.action), op, tc.body, nil)
++			rkRequireStatus(t, http.StatusOK, r, "PATCH kyc/"+tc.action)
++			require.Equal(t, tc.want, r.body["kycStatus"], "body: %s", r.raw)
++			rkWaitKycStatus(t, s, p, tc.want, 15*time.Second)
++		})
++	}
++}
+diff --git a/tests/e2e/scenario29_kyc_policy_gates_e2e_test.go b/tests/e2e/scenario29_kyc_policy_gates_e2e_test.go
+new file mode 100644
+index 0000000..1260d1b
+--- /dev/null
++++ b/tests/e2e/scenario29_kyc_policy_gates_e2e_test.go
+@@ -0,0 +1,391 @@
++//go:build e2e
++
++// Scenario 29 — KYC: the brand's KYC policy and the gates it puts on deposits and play.
++//
++// Drives:
++//
++//	GET/PUT /v1/casino/backoffice/{brandId}/kyc-policy           (BackofficeKycPolicyRoutes, operator JWT)
++//	POST    /v1/casino/backoffice/{brandId}/kyc-policy/profile   (BackofficeKycPolicyRoutes, operator JWT)
++//	GET     /v1/casino/players/{brandId}/kyc/requirements        (PlayerRoutes, no auth)
++//	POST    /v1/casino/backoffice/{brandId}/{playerId}/kyc/approve (manual KYC override, operator JWT)
++//	PUT     /v1/casino/{brandId}/players/{playerId}/kyc/status, PATCH .../kyc/reject (operator JWT)
++//	POST    /internal/v1/casino/{brandId}/notify/deposit         (the deposit gate, X-Internal-Secret)
++//	POST    /v1/casino/sessions/{brandId}/launch                 (the play gate, player JWT)
++//
++// The policy is the brand's, shared by every test on the brand: each test that changes it
++// snapshots it first and restores it on cleanup (rkPolicyGuard). Go runs these tests one at a time
++// unless a test calls t.Parallel, which none here does.
++//
++// Requires EITHEROR_CASINO_URL, EITHEROR_CASINO_INTERNAL_URL and TEST_OPERATOR_EMAIL /
++// TEST_OPERATOR_PASSWORD (an operator with brand_admin on the casino brand).
++package e2e_test
++
++import (
++	"fmt"
++	"net/http"
++	"testing"
++
++	"github.com/google/uuid"
++	"github.com/stretchr/testify/require"
++
++	"github.com/eitheror-io/eitheror-platform/tests/e2e/internal/setup"
++)
++
++// ---------------------------------------------------------------------------
++// Policy helpers (also used by scenarios 27 and 28)
++// ---------------------------------------------------------------------------
++
++func rkPolicyURL(s setup.Suite, suffix string) string {
++	return fmt.Sprintf("%s/v1/casino/backoffice/%s/kyc-policy%s", s.CasinoURL, setup.CasinoBrandID(), suffix)
++}
++
++func rkGetPolicy(t *testing.T, s setup.Suite, op string) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodGet, rkPolicyURL(s, ""), op, nil, nil)
++}
++
++func rkPutPolicy(t *testing.T, s setup.Suite, op string, fields map[string]any) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPut, rkPolicyURL(s, ""), op, fields, nil)
++}
++
++func rkApplyProfile(t *testing.T, s setup.Suite, op, profile string) rkResult {
++	t.Helper()
++	return rkDo(t, http.MethodPost, rkPolicyURL(s, "/profile"), op, map[string]string{"profile": profile}, nil)
++}
++
++// rkPolicyGuard snapshots the brand's KYC policy and restores it when the test ends. The PUT
++// treats a JSON null as "no value" for the three optional fields, so an absent field restores as
++// absent.
++func rkPolicyGuard(t *testing.T, s setup.Suite, op string) {
++	t.Helper()
++	snap := rkGetPolicy(t, s, op)
++	rkRequireStatus(t, http.StatusOK, snap, "GET kyc-policy (snapshot)")
++	restore := map[string]any{}
++	for _, k := range []string{
++		"depositGate", "playGate", "requiredDocTypes", "autoSuspendOnWindowExpiry", "licenceProfile",
++		"depositThresholdMinorUnits", "kycWindowDays", "sofThresholdMinorUnits",
++	} {
++		restore[k] = snap.body[k] // absent → nil → null
++	}
++	t.Cleanup(func() {
++		r := rkPutPolicy(t, s, op, restore)
++		if r.status != http.StatusOK {
++			t.Errorf("restoring the brand's KYC policy failed: %d %s (snapshot was %s)", r.status, r.raw, snap.raw)
++		}
++	})
++}
++
++// rkEnsureNoKycGates makes sure the brand's KYC policy neither gates nor thresholds deposits and
++// play, so an RG refusal is not pre-empted by a KYC one (the original checks KYC first). With no
++// operator credentials the policy cannot be read and the brand's own is used as it stands.
++func rkEnsureNoKycGates(t *testing.T, s setup.Suite) {
++	t.Helper()
++	op := s18GetOperatorToken(t, s)
++	if op == "" {
++		t.Logf("no operator credentials: assuming the brand's KYC policy has no deposit or play gate")
++		return
++	}
++	pol := rkGetPolicy(t, s, op)
++	rkRequireStatus(t, http.StatusOK, pol, "GET kyc-policy")
++	_, depThreshold := pol.body["depositThresholdMinorUnits"]
++	_, sofThreshold := pol.body["sofThresholdMinorUnits"]
++	if pol.body["depositGate"] == "NONE" && pol.body["playGate"] == "NONE" && !depThreshold && !sofThreshold {
++		return
++	}
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "curacao"), "apply the curacao profile")
++}
++
++// rkOverrideVerified verifies a player with the operator's manual KYC override.
++func rkOverrideVerified(t *testing.T, s setup.Suite, p rkPlayer, op string) {
++	t.Helper()
++	r := rkDo(t, http.MethodPost,
++		fmt.Sprintf("%s/v1/casino/backoffice/%s/%s/kyc/approve", s.CasinoURL, p.brandId, p.playerId), op,
++		map[string]string{"reason": "e2e: verified for a gate test"}, nil)
++	rkRequireStatus(t, http.StatusOK, r, "POST backoffice kyc/approve")
++	require.Equal(t, "verified", r.body["kycStatus"], "body: %s", r.raw)
++}
++
++// rkRequirePolicy asserts the policy fields a profile sets. A nil threshold or window means absent.
++func rkRequirePolicy(t *testing.T, r rkResult, depositGate, playGate string, depositThreshold, windowDays, sofThreshold any,
++	required []string, suspend bool, profile string) {
++	t.Helper()
++	b := r.body
++	require.Equal(t, depositGate, b["depositGate"], "depositGate: %s", r.raw)
++	require.Equal(t, playGate, b["playGate"], "playGate: %s", r.raw)
++	for field, want := range map[string]any{
++		"depositThresholdMinorUnits": depositThreshold,
++		"kycWindowDays":              windowDays,
++		"sofThresholdMinorUnits":     sofThreshold,
++	} {
++		got, present := b[field]
++		if want == nil {
++			require.False(t, present, "%s should be absent: %s", field, r.raw)
++		} else {
++			require.EqualValues(t, want, got, "%s: %s", field, r.raw)
++		}
++	}
++	list, ok := b["requiredDocTypes"].([]any)
++	require.True(t, ok, "requiredDocTypes is a list: %s", r.raw)
++	var gotRequired []string
++	for _, v := range list {
++		gotRequired = append(gotRequired, fmt.Sprint(v))
++	}
++	require.ElementsMatch(t, required, gotRequired, "requiredDocTypes: %s", r.raw)
++	require.Equal(t, suspend, b["autoSuspendOnWindowExpiry"], "autoSuspendOnWindowExpiry: %s", r.raw)
++	require.Equal(t, profile, b["licenceProfile"], "licenceProfile: %s", r.raw)
++}
++
++// ---------------------------------------------------------------------------
++// policy.feature — The brand's KYC policy comes from its licence
++// ---------------------------------------------------------------------------
++
++// features/kyc/policy.feature
++// Scenario: a brand with no KYC policy reads the Curaçao default
++//
++// A brand with no policy twin is one the operator has no access to, so the default is read on the
++// unauthenticated requirements route, which shows the required categories only.
++func TestScenario29_KYCPolicy_BrandWithNoPolicyReadsCuracaoDefault(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++
++	brand := "e2e-nopolicy-" + uuid.New().String()[:8]
++	r := rkDo(t, http.MethodGet, fmt.Sprintf("%s/v1/casino/players/%s/kyc/requirements", s.CasinoURL, brand), "", nil, nil)
++	rkRequireStatus(t, http.StatusOK, r, "GET kyc/requirements for a brand with no policy")
++	require.Equal(t, []any{"identity"}, r.body["requiredDocTypes"], "the Curaçao default requires identity: %s", r.raw)
++}
++
++// features/kyc/policy.feature
++// Scenario: applying the UKGC profile sets its gates, window, threshold and categories
++func TestScenario29_KYCPolicy_ApplyingUKGCProfile(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++
++	r := rkApplyProfile(t, s, op, "ukgc")
++	rkRequireStatus(t, http.StatusOK, r, "apply ukgc")
++	rkRequirePolicy(t, r, "KYC_APPROVED", "KYC_APPROVED", nil, 3, 200000,
++		[]string{"identity", "proof_of_address"}, true, "UKGC")
++}
++
++// features/kyc/policy.feature
++// Scenario: applying the MGA profile sets its thresholds and categories with no window and no suspension
++func TestScenario29_KYCPolicy_ApplyingMGAProfile(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++
++	r := rkApplyProfile(t, s, op, "mga")
++	rkRequireStatus(t, http.StatusOK, r, "apply mga")
++	rkRequirePolicy(t, r, "NONE", "NONE", 200000, nil, 1000000,
++		[]string{"identity", "proof_of_address"}, false, "MGA")
++}
++
++// features/kyc/policy.feature
++// Scenario: changing one field of a profile's policy changes only that field and marks the profile custom
++func TestScenario29_KYCPolicy_ChangingOneFieldChangesOnlyThatField(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++
++	rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "mga"), "apply mga")
++	r := rkPutPolicy(t, s, op, map[string]any{"kycWindowDays": 60})
++	rkRequireStatus(t, http.StatusOK, r, "PUT kycWindowDays 60")
++	rkRequirePolicy(t, r, "NONE", "NONE", 200000, 60, 1000000,
++		[]string{"identity", "proof_of_address"}, false, "MGA")
++
++	t.Run("the licence profile reads custom", func(t *testing.T) {
++		t.Skip("original defect: the policy PUT keeps licenceProfile unless the caller sends one, so a changed field " +
++			"leaves the profile named MGA (BackofficeKycPolicyRoutes PUT)")
++	})
++}
++
++// features/kyc/policy.feature
++// Scenario: applying an unknown licence profile is refused naming the known profiles
++func TestScenario29_KYCPolicy_UnknownProfileRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++
++	r := rkApplyProfile(t, s, op, "atlantis")
++	rkRequireStatus(t, http.StatusBadRequest, r, "apply atlantis")
++	require.Equal(t, "unknown_profile", r.body["error"], "body: %s", r.raw)
++	require.Equal(t, []any{"CURACAO", "MGA", "UKGC"}, r.body["knownProfiles"], "body: %s", r.raw)
++}
++
++// features/kyc/policy.feature
++// Scenario: an unauthenticated client asking the brand's requirements is told the required categories and nothing else
++func TestScenario29_KYCPolicy_UnauthenticatedRequirementsRead(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++
++	r := rkDo(t, http.MethodGet, fmt.Sprintf("%s/v1/casino/players/%s/kyc/requirements", s.CasinoURL, setup.CasinoBrandID()), "", nil, nil)
++	rkRequireStatus(t, http.StatusOK, r, "GET kyc/requirements")
++	require.Len(t, r.body, 1, "only the required categories are told: %s", r.raw)
++	_, ok := r.body["requiredDocTypes"].([]any)
++	require.True(t, ok, "requiredDocTypes is a list: %s", r.raw)
++}
++
++// ---------------------------------------------------------------------------
++// gates.feature — A deposit or a game launch is allowed or refused by the KYC policy
++// ---------------------------------------------------------------------------
++
++// features/kyc/gates.feature
++// Scenario Outline: a brand whose deposit gate is verified refuses a deposit by an unverified, pending or rejected player with the status's own words
++func TestScenario29_KYCGates_DepositGateRefusesUnverifiedPendingRejected(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "ukgc"), "apply ukgc (deposit gate verified)")
++
++	for _, tc := range []struct {
++		status string
++		words  string
++		set    func(t *testing.T, p rkPlayer)
++	}{
++		{"unverified", "Please verify your identity before depositing", func(t *testing.T, p rkPlayer) {}},
++		{"pending", "Your identity documents are under review", func(t *testing.T, p rkPlayer) {
++			r := rkDo(t, http.MethodPut, rkPlayerURL(s, p, "/kyc/status"), op, map[string]string{"status": "pending"}, nil)
++			rkRequireStatus(t, http.StatusOK, r, "PUT kyc/status pending")
++		}},
++		{"rejected", "Your identity documents were not accepted — please re-submit", func(t *testing.T, p rkPlayer) {
++			r := rkDo(t, http.MethodPatch, rkPlayerURL(s, p, "/kyc/reject"), op, map[string]string{"reason": "e2e"}, nil)
++			rkRequireStatus(t, http.StatusOK, r, "PATCH kyc/reject")
++		}},
++	} {
++		tc := tc
++		t.Run(tc.status, func(t *testing.T) {
++			p := rkNewPlayer(t, s)
++			tc.set(t, p)
++			r := rkNotifyDeposit(t, s, p, "10")
++			rkRequireStatus(t, http.StatusForbidden, r, "notify deposit")
++			require.Equal(t, "DEPOSIT_BLOCKED_KYC", r.body["error"], "body: %s", r.raw)
++			require.Equal(t, tc.status, r.body["kycStatus"], "body: %s", r.raw)
++			require.Equal(t, tc.words, r.body["message"], "body: %s", r.raw)
++		})
++	}
++}
++
++// The threshold scenarios are driven from lifetime deposits of zero: a fresh player's cumulative
++// deposits are 0, so a deposit of 2000.01 (200001 minor units) crosses a 200000 threshold the way
++// the feature's 190000 + 20000 does.
++
++// features/kyc/gates.feature
++// Scenario: a deposit that would take an unverified player over the deposit threshold is refused and flags them for review
++func TestScenario29_KYCGates_DepositOverThresholdRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "mga"), "apply mga (deposit threshold 200000)")
++	p := rkNewPlayer(t, s)
++
++	r := rkNotifyDeposit(t, s, p, "2000.01")
++	rkRequireStatus(t, http.StatusForbidden, r, "notify deposit 2000.01")
++	require.Equal(t, "DEPOSIT_BLOCKED_KYC_THRESHOLD", r.body["error"], "body: %s", r.raw)
++
++	t.Run("the player is flagged for review with reason threshold", func(t *testing.T) {
++		t.Skip("not observable over HTTP in the original: the flag is a kyc_review action proposal on the reasoner's " +
++			"topic, not a read (spec 009 Changes from the original: review proposals become a queue)")
++	})
++}
++
++// features/kyc/gates.feature
++// Scenario: a deposit that keeps an unverified player under the deposit threshold is allowed
++func TestScenario29_KYCGates_DepositUnderThresholdAllowed(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "mga"), "apply mga (deposit threshold 200000)")
++	p := rkNewPlayer(t, s)
++
++	r := rkNotifyDeposit(t, s, p, "1999.99")
++	rkRequireStatus(t, http.StatusOK, r, "notify deposit 1999.99")
++	require.Equal(t, true, r.body["ok"], "body: %s", r.raw)
++}
++
++// features/kyc/gates.feature
++// Scenario: a deposit that would take a player whose source of funds is not cleared over the source of funds threshold is refused and flags them
++//
++// The player is verified so the deposit threshold does not refuse first.
++func TestScenario29_KYCGates_DepositOverSofThresholdRefused(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "mga"), "apply mga (source of funds threshold 1000000)")
++	p := rkNewPlayer(t, s)
++	rkOverrideVerified(t, s, p, op)
++
++	r := rkNotifyDeposit(t, s, p, "10000.01")
++	rkRequireStatus(t, http.StatusForbidden, r, "notify deposit 10000.01")
++	require.Equal(t, "DEPOSIT_BLOCKED_SOF", r.body["error"], "body: %s", r.raw)
++
++	t.Run("the player is flagged for review with reason source of funds", func(t *testing.T) {
++		t.Skip("not observable over HTTP in the original: the flag is a sof_review action proposal on the reasoner's " +
++			"topic (spec 009 Changes from the original: review proposals become a queue)")
++	})
++}
++
++// features/kyc/gates.feature
++// Scenario: a deposit over the source of funds threshold by a player whose source of funds is cleared is allowed
++func TestScenario29_KYCGates_DepositOverSofThresholdClearedAllowed(t *testing.T) {
++	t.Skip("original defect: no action sets sof_status to cleared, so a player over the threshold is refused every " +
++		"deposit for good (spec 001 Known defects; spec 009 Changes from the original)")
++}
++
++// features/kyc/gates.feature
++// Scenario: a brand whose play gate is verified refuses play by an unverified player with the status's words
++func TestScenario29_KYCGates_PlayGateRefusesUnverified(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++	rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "ukgc"), "apply ukgc (play gate verified)")
++	p := rkNewPlayer(t, s)
++
++	r := rkLaunch(t, s, p)
++	rkRequireStatus(t, http.StatusForbidden, r, "launch by an unverified player")
++	require.Equal(t, "PLAY_BLOCKED_KYC", r.body["error"], "body: %s", r.raw)
++	require.Equal(t, "unverified", r.body["kycStatus"], "body: %s", r.raw)
++	require.Equal(t, "Please verify your identity before playing", r.body["message"], "body: %s", r.raw)
++}
++
++// features/kyc/gates.feature
++// Scenario Outline: play is allowed for a verified player or on a brand whose play gate is none
++//
++// "Allowed" is asserted as the launch not being refused by the KYC gate: past the gate, the
++// launch goes on to resolve the brand's ST8 credentials, whose answer depends on the cluster.
++func TestScenario29_KYCGates_PlayAllowedForVerifiedOrGateNone(t *testing.T) {
++	setup.SkipIfMissing(t)
++	s := setup.New()
++	op := rkOperatorToken(t, s)
++	rkPolicyGuard(t, s, op)
++
++	requireNotKycRefused := func(t *testing.T, r rkResult) {
++		t.Helper()
++		require.NotEqual(t, "PLAY_BLOCKED_KYC", r.body["error"], "the KYC gate must not refuse: %d %s", r.status, r.raw)
++		require.NotEqual(t, "account_restricted", r.body["error"], "nothing restricts this player: %d %s", r.status, r.raw)
++		t.Logf("scenario29: launch past the KYC gate answered %d %s", r.status, r.raw)
++	}
++
++	t.Run("the brand's play gate is verified and the player is verified", func(t *testing.T) {
++		rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "ukgc"), "apply ukgc")
++		p := rkNewPlayer(t, s)
++		rkOverrideVerified(t, s, p, op)
++		requireNotKycRefused(t, rkLaunch(t, s, p))
++	})
++
++	t.Run("the brand's play gate is none and the player is unverified", func(t *testing.T) {
++		rkRequireStatus(t, http.StatusOK, rkApplyProfile(t, s, op, "curacao"), "apply curacao")
++		p := rkNewPlayer(t, s)
++		requireNotKycRefused(t, rkLaunch(t, s, p))
++	})
++}

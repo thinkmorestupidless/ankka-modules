@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -50,3 +50,5 @@
   holds no player id; `player_registered` and `bonus_granted` carry what `attribution` binds from.
 - The acceptance scenarios have not been moved into `features/`; `/speckit-bdd-features` runs after
   the other foundation specs (002, 012, 013) are written, so the glossary is built once.
+
+- Reconciliation 3 (2026-10-08, after specs 014–019): changes recorded under the spec's Clarifications; the checklist above still holds.

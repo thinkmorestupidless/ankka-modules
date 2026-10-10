@@ -1,0 +1,3 @@
+- **FR-001**: A bet MUST debit the wallet once (recording tests/port/wallet/TestScenario07.json).
+- **FR-002**: A win MUST credit the real leg first, as the original's credit_win does.
+- **FR-003**: A brand MUST pin its versions (decision: clarification 2026-10-08).

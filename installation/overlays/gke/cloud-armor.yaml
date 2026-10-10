@@ -1,0 +1,11 @@
+# Cloud Armor in front of ankka's gateway (spec 001 FR-034): the gateway does no rate limiting. The
+# security policy casino-edge-policy is created in the GCP project (rate-based ban, OWASP rules); this
+# attaches it to the gateway's load-balanced service.
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: casino-edge
+  namespace: ankka-gateway
+spec:
+  securityPolicy:
+    name: casino-edge-policy

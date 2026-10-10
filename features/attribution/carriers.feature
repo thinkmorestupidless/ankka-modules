@@ -27,12 +27,12 @@ Feature: A programme reads a brand's facts
     When it reads the feed from cursor "c1" again
     Then it receives the same page
 
-  Scenario: a webhook posts each fact, retries for a day, then holds the fact in a dead letter the operator can resend
-    Given a webhook the brand's operator created for a network
+  Scenario: a network webhook posts each fact, retries for a day, then keeps it as an undelivered fact the operator can resend
+    Given a network webhook the brand's operator created
     When a fact is emitted
-    Then the brand posts the fact to the webhook's address
+    Then the brand posts the fact to the network webhook's address
     And the brand retries with backoff on failure for a day
-    And after that the fact is held in a dead letter the operator can see and resend
+    And after that the fact is kept as an undelivered fact the operator can see and resend
 
   Scenario: a reader can discard a fact whose id it has seen because the id and the content are the same both times
     Given a reader on any carrier

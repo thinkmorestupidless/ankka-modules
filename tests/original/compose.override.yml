@@ -1,0 +1,71 @@
+# Beside the original's dev/compose/full-stack.yml when it is recorded (spec 001 FR-029; tests/original/README.md):
+#   docker compose -f dev/compose/full-stack.yml -f ../ankka-casino/tests/original/compose.override.yml up -d
+# Each payment provider the original calls answers from a stub in this repository, and the gateway is
+# pointed at it. Without these settings three adapters fall back to production hosts.
+x-stub: &stub
+  image: golang:1.22
+  working_dir: /tests
+  volumes: ["../../../ankka-casino/tests:/tests:ro", "go-cache:/root/go"]
+
+services:
+  bouncemoney-stub:
+    <<: *stub
+    command: ["go", "run", "./stubs/bouncemoney"]
+    ports: ["18101:18101"]
+    environment:
+      PORT: "18101"
+      BOUNCEMONEY_STUB_WEBHOOK_URL: "http://psp-gateway:8087/v1/webhooks/bouncemoney"
+  cozeni-stub:
+    <<: *stub
+    command: ["go", "run", "./stubs/cozeni"]
+    ports: ["18102:18102"]
+    environment:
+      PORT: "18102"
+  dreamzpay-stub:
+    <<: *stub
+    command: ["go", "run", "./stubs/dreamzpay"]
+    ports: ["18103:18103"]
+    environment:
+      PORT: "18103"
+  eupaymentz-stub:
+    <<: *stub
+    command: ["go", "run", "./stubs/eupaymentz"]
+    ports: ["18104:18104"]
+    environment:
+      PORT: "18104"
+  gigadat-stub:
+    <<: *stub
+    command: ["go", "run", "./stubs/gigadat"]
+    ports: ["18105:18105"]
+    environment:
+      PORT: "18105"
+      GIGADAT_STUB_WEBHOOK_URL: "http://psp-gateway:8087/v1/webhooks/gigadat"
+  morphosis-stub:
+    <<: *stub
+    command: ["go", "run", "./stubs/morphosis"]
+    ports: ["18106:18106"]
+    environment:
+      PORT: "18106"
+  t365-stub:
+    <<: *stub
+    command: ["go", "run", "./stubs/t365"]
+    ports: ["18107:18107"]
+    environment:
+      PORT: "18107"
+      T365_STUB_PUBLIC_URL: "http://localhost:18107"
+
+  psp-gateway:
+    environment:
+      BOUNCEMONEY_BASE_URL: "http://bouncemoney-stub:18101"
+      COZENI_BASE_URL: "http://cozeni-stub:18102"
+      DREAMZPAY_BASE_URL: "http://localhost:18103"
+      EUPAYMENTZ_BASE_URL: "http://eupaymentz-stub:18104"
+      GIGADAT_BASE_URL: "http://gigadat-stub:18105"
+      MORPHOSIS_BASE_URL: "http://morphosis-stub:18106/"
+      T365_BASE_URL: "http://t365-stub:18107"
+      # the stubs post webhooks here; a browser cannot resolve it, so hosted pages are driven by the suite
+      PSP_GATEWAY_BASE_URL: "http://psp-gateway:8087"
+    depends_on: [bouncemoney-stub, cozeni-stub, dreamzpay-stub, eupaymentz-stub, gigadat-stub, morphosis-stub, t365-stub]
+
+volumes:
+  go-cache: {}

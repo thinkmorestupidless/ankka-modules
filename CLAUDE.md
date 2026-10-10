@@ -26,29 +26,45 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 
 ## Specs, in build order
 
-| Spec | Project (one per brand, named by its slug; shared projects named) | Service or capability |
-|---|---|---|
-| 001 | all | brands and projects: layout, manifests, topic contract, realms, the port method |
-| 002 | brand | wallet |
-| 003 | brand | game-provider (ST8 and the generic provider API) |
-| 004 | shared `payments` | merchant (hierarchy, deposit workflow) |
-| 005 | shared `payments` | psp-gateway (nine adapters) |
-| 006 | shared `payments` | ingest (webhooks) |
-| 007 | brand | payouts |
-| 008 | brand | players |
-| 009 | brand | kyc |
-| 010 | brand | responsible-gambling |
-| 011 | brand | rewards |
-| 012 | brand | attribution (the affiliate protocol a brand emits) |
-| 013 | shared `programme` | affiliate-programme (accounts, plans, ledger, payouts, portal) |
-| 014 | brand | engagement |
-| 015 | brand | reporting |
-| 016 | brand | partner-api |
-| 017 | brand | support-agent |
-| 018 | shared `reasoner` | audit and proposals |
-| 019 | all | the Spinvibe migration |
+| Spec | Project (one per brand, named by its slug; shared projects named) | Service or capability | Language |
+|---|---|---|---|
+| 001 | all | brands and projects: layout, manifests, topic contract, realms, the port method | — |
+| 002 | brand | wallet | Scala |
+| 003 | brand | game-provider (ST8; the generic provider API was a stub and is dropped) | Scala |
+| 004 | shared `payments` | merchant (hierarchy, deposit workflow; serves `ingest` and `psp-gateway` only) | Scala |
+| 005 | shared `payments` | psp-gateway (eight adapters; ConnecX dropped) | TypeScript |
+| 006 | shared `payments` | ingest (the merchant-facing edge: cashier routes under a merchant key) | Scala |
+| 007 | brand | payouts | Scala |
+| 008 | brand | players | Scala |
+| 009 | brand | kyc | Scala |
+| 010 | brand | responsible-gambling | Scala |
+| 011 | brand | rewards | Scala |
+| 012 | brand | attribution (the affiliate protocol a brand emits) | Scala |
+| 013 | shared `programme` | affiliate-programme (accounts, plans, ledger, payouts, portal) | Scala |
+| 014 | brand | engagement (CRM, suppression, transactional sends, push, presence) | Scala |
+| 015 | brand | reporting (views, dashboard, day-end, compliance exports) | Scala |
+| 016 | brand | partner-api (built last, not in the pilot; only when a partner is contracted) | TypeScript |
+| 017 | brand | support-agent (Motoko on ankka's agent model; off per brand by default) | Scala |
+| 018 | shared `reasoner` | audit (proposals are not carried over) | Scala |
+| 019 | all | the Spinvibe migration | — |
+| 020 | `tools` | game-provider-simulator: ST8's protocol, scripted, for parity and failure tests | Scala |
 
 ## Working here
+
+- The root build holds two things: `contract/` (`io.eitheror:casino-contract`: the facts on every
+  topic, money in minor units with keys, the six route classes, the personal-data markers, the
+  recording replayer) and `tools/brands/` (the tool that applies a brand's or a shared project's
+  manifest). `just build`, `just test`, `just schemas`, `just brands …`, `just it` (integration, on
+  purpose only: it creates projects on the installation `ANKKA_URL` names).
+- A service is one sbt build of its own under `services/<name>/` (`ankka init`), depending on the
+  published contract (`sbt contract/publishLocal`). It declares ACLs only through
+  `contract.access.Routes`, money only through `contract.money`, facts only through `contract.facts`.
+- `brands/<slug>/manifest.json` and `shared/<project>/manifest.json` are how anything is deployed;
+  `installation/overlays/<name>/settings.env` is what decides whether a brand may take real money.
+- `tests/original/` records the original (`README.md` there); `tests/port/<service>/` holds the
+  recordings a service's parity tests replay.
+- The `ankka@ankka` plugin must be installed (`/plugin install ankka@ankka`) for `ankka-port` and
+  `ankka-inspect`.
 
 - Spec-kit with the bdd extension: `/speckit-specify` writes a spec, `/speckit-bdd-features` moves
   its scenarios into `features/`, `just features` checks them (needs `uv`).

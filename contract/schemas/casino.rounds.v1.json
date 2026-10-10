@@ -1,0 +1,68 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/casino.rounds.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on casino.rounds, produced by game-provider (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "net_result_cents": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "provider_round_id": {
+          "type": "string"
+        },
+        "round_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "stake_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "type": {
+          "const": "round_settled"
+        },
+        "win_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        }
+      },
+      "required": ["type", "player_id", "currency", "round_id", "provider", "provider_round_id", "game_id", "session_id", "stake_cents", "win_cents", "net_result_cents", "outcome", "transaction_ids", "occurred_at"],
+      "title": "round_settled",
+      "type": "object"
+    }
+  ],
+  "title": "casino.rounds.v1"
+}

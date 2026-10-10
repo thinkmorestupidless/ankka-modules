@@ -1,0 +1,2 @@
+- **FR-001**: A bet MUST debit the wallet once (recording tests/port/wallet/TestScenario07.json).
+- **FR-002**: A win MUST be credited within a second.

@@ -1,0 +1,203 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/casino.withdrawals.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on casino.withdrawals, produced by payouts (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payout_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "terminal": {
+          "type": "string"
+        },
+        "type": {
+          "const": "withdrawal_requested"
+        }
+      },
+      "required": ["type", "player_id", "payout_id", "amount_cents", "currency", "terminal", "occurred_at"],
+      "title": "withdrawal_requested",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payout_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "withdrawal_approved"
+        }
+      },
+      "required": ["type", "player_id", "payout_id", "amount_cents", "currency", "actor_id", "occurred_at"],
+      "title": "withdrawal_approved",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payout_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "withdrawal_completed"
+        }
+      },
+      "required": ["type", "player_id", "payout_id", "amount_cents", "currency", "occurred_at"],
+      "title": "withdrawal_completed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payout_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "withdrawal_cancelled"
+        }
+      },
+      "required": ["type", "player_id", "payout_id", "amount_cents", "currency", "actor", "occurred_at"],
+      "title": "withdrawal_cancelled",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "failure_reason": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payout_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "withdrawal_failed"
+        }
+      },
+      "required": ["type", "player_id", "payout_id", "amount_cents", "currency", "failure_reason", "occurred_at"],
+      "title": "withdrawal_failed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payout_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "withdrawal_reversed"
+        }
+      },
+      "required": ["type", "player_id", "payout_id", "amount_cents", "currency", "reason", "occurred_at"],
+      "title": "withdrawal_reversed",
+      "type": "object"
+    }
+  ],
+  "title": "casino.withdrawals.v1"
+}

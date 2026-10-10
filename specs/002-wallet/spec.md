@@ -35,10 +35,12 @@ balance, transactions and restricted-funds status with the player's own token.
 
 ### Session 2026-10-08
 
-- Q: Does the wallet enforce responsible-gambling deposit limits? → A: No, as today. The original's
-  casino-service checks a deposit against the player's limits before it ever reaches the wallet,
-  by summing the wallet's deposit transactions over the last 1, 7 and 30 days. The wallet's part is
-  to answer those sums exactly (FR-030); the decision is `responsible-gambling`'s (spec 010).
+- Q: Does the wallet enforce responsible-gambling deposit limits? → A: *Corrected at reconciliation
+  2.* The original's check runs after the wallet has credited the deposit and its refusal is logged
+  and ignored (spec 010 Context), so nothing enforces a limit today. The wallet asks
+  `responsible-gambling`'s `may-deposit` before crediting (FR-022) and `may-bet` before funding a
+  bet (FR-007a), failing closed; the decision stays `responsible-gambling`'s (spec 010), and the
+  wallet's part is to carry its own exact sums (FR-030) in the call.
 - Q: Where do a bet's brand-level switches come from (contribution rate per game type, whether
   bonus wagering counts, partial splits)? → A: Today `wallet-service` reads the brand's bonus
   configuration on every bet. Here the wallet keeps that configuration itself, as one key value
@@ -75,6 +77,40 @@ balance, transactions and restricted-funds status with the player's own token.
   refused at the boundary (FR-003, spec 001 FR-026), one idempotency key per money command with
   the first outcome on a repeat (FR-002, spec 001 FR-027), one currency per wallet (FR-001, spec
   001 FR-028).
+
+### Session 2026-10-08 (reconciliation, wave 1)
+
+- Q: Who computes the clawback a hold or cancel applies? → A: The wallet (settled with spec 007). It
+  records the real balance and total deposits at award (FR-015a) and computes the clawback by the
+  original's formula at cancel (FR-017) and at hold (FR-023); it serves a hold preview (FR-023a) so
+  `payouts` can tell the player what a hold would forfeit before placing it. No caller supplies a
+  clawback.
+- Q: Where do deposit turnover terms resolve? → A: In the wallet (FR-004a). The brand's terms move
+  here from `casino-service`'s brand configuration (spec 004 lists them as moved); the player's
+  override is held on the player's wallet; the deposit resolves override, then brand terms, then
+  the default, and calls nothing.
+- Q: Does `payments.payments` carry an `initiated` outcome? → A: Yes (spec 001 FR-011): `merchant`
+  reports `initiated` on the outcome route at the start of every attempt (spec 004 FR-022) and the
+  wallet produces `payment.initiated` from it, moving nothing, so the brand lists a player's attempts
+  from its own facts.
+
+### Session 2026-10-08 (reconciliation 2)
+
+Settled with specs 008–011 once they existed.
+
+- Q: Does the wallet ask `responsible-gambling` before moving money? → A: Yes, on both paths
+  (FR-007a, FR-022), failing closed. The earlier answer that "casino-service checks before the
+  wallet, as today" was wrong: nothing checks today (spec 010 Context).
+- Q: Does a deposit fact carry the deposit number? → A: Yes, the wallet's deposit ordinal on
+  `deposit_confirmed` (FR-031), per player and currency; a player with two wallets has two counts,
+  stated so `rewards` and the migration know.
+
+### Session 2026-10-08 (reconciliation 3)
+
+- Q: What do the wallet's facts carry for the third wave? → A: The real and restricted balance after
+  every movement on `money.transactions` (FR-031), so `engagement`'s profile and `reporting`'s views
+  are folds of facts; and the payment provider on every `payments.payments` family (FR-022a), which
+  `merchant` names on the capture and on each outcome it reports.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -303,6 +339,12 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   counts toward release, whether partial splits are allowed — MUST be held in one key value entity
   per brand inside the wallet service, written by an operator route admitted to `rewards`, and read
   by the bet handler; a bet MUST NOT call another service.
+- **FR-004a**: A brand's deposit turnover terms — the multiplier and the definition the original
+  keeps as the sub-brand's `withdrawal_turnover_*` in `casino-service`'s brand configuration — MUST
+  be held in the same key value entity, written by a route for the brand's operator realm; a
+  player's override (`turnover_*_override`) MUST be held on the player's wallet, written by an
+  operator route; and a deposit MUST resolve its terms from the override when set, else the brand's
+  terms, defaulting to 1× gross wagered, without calling another service.
 
 **Bets and rounds**
 
@@ -318,6 +360,11 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   violation mode is `block` excludes the game (by game, provider or category key), and as
   `MAX_STAKE_EXCEEDED` when the smallest active maximum stake is enforced as `block` and the stake
   exceeds it; a `cap` enforcement caps the contribution base instead.
+- **FR-007a**: Before FR-007, a bet MUST ask `responsible-gambling`'s `may-bet` within the project
+  (spec 010 FR-010) and MUST be refused as `PLAYER_LOCKED` when the answer is locked (cooling off or
+  excluded) and as `RG_UNAVAILABLE` when there is no answer; neither opens a round. A bet allowed
+  below zero (`correction_debit`) asks too. **Change from the original**, whose bet-time check lives
+  in the ST8 adapter and fails open.
 - **FR-008**: Each active record's contribution MUST be its base × its rate ÷ 100, where the rate
   is the record's override for the game, then provider, then category, then its default, then the
   brand's rate for the game type; the base is the record's own leg (when bonus wagering counts)
@@ -359,11 +406,15 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   `bonus_credit` transaction; and MUST be refused as `BONUS_ALREADY_ACTIVE` when the brand's
   maximum concurrent grants is set and that many records are active (absent = no limit), and as
   `MISSING_BONUS_REF` without a bonus reference.
+- **FR-015a**: An award MUST record on the record the real balance and the total deposits at the
+  moment of award — the baseline from which the wallet computes the clawback a cancel or a hold
+  applies (FR-017, FR-023) by the formula `casino-service` applies today; a caller MUST NOT supply
+  a clawback.
 - **FR-016**: Forfeit MUST zero and close as `FORFEITED` the primary active record, or the active
   record a grant reference names; none open is `NO_ACTIVE_BONUS`; a named grant that is not active
   is `NO_ACTIVE_BONUS`.
-- **FR-017**: Cancel MUST apply the requested clawback to real, clamped to real balance, whether or
-  not a record is open; MUST forfeit the primary active record or the named grant's; a named grant
+- **FR-017**: Cancel MUST compute the clawback from the record's baseline (FR-015a) and apply it to
+  real, clamped to real balance, whether or not a record is open; MUST forfeit the primary active record or the named grant's; a named grant
   not active is `GRANT_NOT_OPEN`; MUST write a `bonus_cancel` transaction whose balance before is
   the sum of active balances before the cancel.
 - **FR-018**: Close pending cap MUST close as `CLOSED` the first `CONVERTED_PENDING_CAP` record with
@@ -379,32 +430,47 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
 **Deposits and holds**
 
 - **FR-022**: A deposit MUST arrive on the deposit route the brand grants `payments`/`merchant` under
-  ankka 040 (spec 001 FR-016), keyed by the payment id (spec 001 FR-017); it MUST credit real balance, write a `deposit` transaction with payment
-  reference, terminal, PSP and scheme, create a deposit record with required turnover = amount ×
-  multiplier (`CLEARED` at multiplier 0, else `PENDING`), add the requirement to deposit turnover
+  ankka 040 (spec 001 FR-016), keyed by the payment id (spec 001 FR-017); before any credit it MUST
+  ask `responsible-gambling`'s `may-deposit` within the project with the player, currency, amount and
+  the wallet's deposit sums of the last 24 hours, 7 days and 30 days (FR-030; spec 010 FR-007), and
+  MUST refuse the deposit — crediting nothing, writing nothing but the refusal under the key — as
+  `EXCLUDED`, `COOLING_OFF` (naming the end) or `OVER_LIMIT` (naming the limit, the amount used and
+  the remaining allowance) as answered, or `RG_UNAVAILABLE` when there is no answer; the refusal is
+  final to `merchant` (spec 004 FR-021). When allowed, it MUST credit real balance, write a `deposit` transaction with payment
+  reference, terminal, PSP and scheme, resolve the turnover multiplier and definition (FR-004a),
+  create a deposit record with required turnover = amount × multiplier (`CLEARED` at multiplier 0,
+  else `PENDING`), add the requirement to deposit turnover
   pending, and add the amount to deposits since release on every `CONVERTED_PENDING_CAP` record.
   A repeated payment reference returns current balances and writes nothing.
 - **FR-022a**: The wallet MUST serve a second route granted to `payments`/`merchant`, on which
-  `merchant` reports a payment's later outcomes (failed, expired, abandoned, refunded, dispute opened,
-  dispute closed), keyed by the payment id and the outcome; an outcome MUST move no money in the
+  `merchant` reports a payment's start and later outcomes (initiated, failed, expired, abandoned,
+  refunded, dispute opened, dispute closed), keyed by the payment id and the outcome; an outcome MUST move no money in the
   wallet (the original's wallet moves money on capture only). From the captured deposit and from each
-  outcome the wallet MUST produce the brand's `payments.payments` messages — `payment.captured`,
+  outcome the wallet MUST produce the brand's `payments.payments` messages — `payment.initiated`,
+  `payment.captured`,
   `payment.failed`, `payment.expired`, `payment.abandoned`, `payment.refunded`,
-  `payment.dispute.opened`, `payment.dispute.closed` — keyed by the payment id and carrying the player
-  id as subject, so the brand's readers never depend on the shared project's topics (spec 001 FR-011).
+  `payment.dispute.opened`, `payment.dispute.closed` — keyed by the payment id, carrying the player
+  id as subject and the payment provider on every family (as `merchant` names it on the capture and
+  on each outcome, spec 004 FR-022), so the brand's readers never depend on the shared project's
+  topics and `reporting` groups payments by provider (spec 001 FR-011, spec 015 FR-011).
 - **FR-023**: A hold MUST be refused, in this order, as `WITHDRAWAL_REQUEST_ALREADY_PENDING` while a
   request is pending, `INSUFFICIENT_FUNDS` ("Insufficient real balance for withdrawal") when real
   is below the amount, and `WITHDRAWAL_BLOCKED_TURNOVER` ("Deposit turnover requirements not yet
   met") while turnover is pending. It MUST then forfeit every active record by its policy (`none`
   untouched; `funds`, `funds_and_winnings`, `cancel_promotion` forfeited; the last also reporting
-  the grant for cancellation with reason "withdrawal"), apply the supplied clawback once to real
-  only when a forfeited policy is `funds_and_winnings` or `cancel_promotion`, refuse as
+  the grant for cancellation with reason "withdrawal"), compute the clawback from the forfeited
+  records' baselines (FR-015a) and apply it once to real only when a forfeited policy is
+  `funds_and_winnings` or `cancel_promotion`, refuse as
   `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT` when real after clawback is below the amount, draw
   the amount down across `CONVERTED_PENDING_CAP` records in order (deposits since release first,
   then remaining allowance), void the excess as `bonus_cap_void`, close a record whose allowance is
   exhausted and every cap record when real after payout is at or below zero, debit real by the
   full amount, record the request as pending, and report whether confirmation was required (any
   active record under a policy other than `none`).
+- **FR-023a**: The wallet MUST serve a hold preview: for an amount, the refusal the hold would give,
+  whether confirmation would be required, the bonus balance, the clawback and the total forfeit,
+  computed exactly as the hold computes them and moving nothing; `payouts` (spec 007 FR-006) reads
+  it before placing the hold.
 - **FR-024**: A release (cancelled, rejected or failed) MUST credit the held amount back as a
   `withdrawal_return` and clear the pending request; a confirmation MUST clear it with no money
   movement; either naming a request that is not the pending one is `REQUEST_NOT_PENDING`.
@@ -438,7 +504,11 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   `bet_rolled_back`, `round_settled_as_loss`, `restricted_funds_awarded`,
   `restricted_funds_converted`, `restricted_funds_forfeited`, `admin_adjusted`, `hold_placed`,
   `hold_released`), keyed by the wallet and carrying the player id as subject (spec 001 FR-012), each
-  a stable `.v1` shape that leaks no event class;
+  a stable `.v1` shape that leaks no event class; every family MUST carry the real and restricted
+  balance after the movement, so `engagement` (spec 014) and `reporting` (spec 015) keep a balance
+  view from facts and never read the wallet; `deposit_confirmed` MUST carry the wallet's deposit
+  ordinal (1 for the wallet's first confirmed deposit, counted per player and currency), which
+  `rewards` reads as the deposit number (spec 011 FR-012);
   and `platform.audit` records for every money command and refusal.
 - **FR-032**: Every money command MUST be admitted by caller identity (spec 001 FR-020, the service
   class): the callers inside the brand project — `game-provider`, `rewards`, `payouts`,
@@ -500,11 +570,24 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
 
 ## Changes from the original
 
+- A deposit is refused before it is credited, and a bet before it is funded, when
+  `responsible-gambling` says so, and both fail closed (FR-007a, FR-022); today the deposit check
+  runs after the credit and is ignored, and the bet check fails open (spec 001's defect list).
+- `deposit_confirmed` carries the wallet's deposit ordinal (FR-031); the original has no such field
+  and `rewards`' evaluator counted deposits itself.
+- The brand's deposit turnover terms and a player's override move into the wallet from
+  `casino-service`'s brand configuration (FR-004a); the clawback is computed by the wallet from a
+  baseline recorded at award (FR-015a), not supplied by the caller; a hold preview is served
+  (FR-023a).
+
 - The twin, the HTTP dispatch to guests, the graph projection of records, the
   `open_restricted_funds_refs` pipe set and the `HAS_TRANSACTION` scan fallback are gone: records
   are part of the wallet's state and a round is found by key.
 - Idempotency by key moves into the wallet for every money command (today only deposits are
-  idempotent in the wallet; providers' retries are absorbed by the ST8 adapter's store).
+  idempotent in the wallet, by `hasDepositTransaction` on the payment reference; providers' retries
+  are absorbed by the ST8 adapter's store). The original's `WalletActionDispatcher` mints a random
+  UUID as the idempotency key of every dispatch, so a retried bet, win or adjustment that passes the
+  adapter moves money twice (spec 001, known defects; research R10 of spec 001).
 - `create-withdrawal-request` and the request lifecycle become hold, release, confirm and reverse;
   the withdrawal request and payout destination twins move to `payouts` (spec 007). Money movement
   is unchanged.
@@ -543,16 +626,13 @@ create-withdrawal-request and the withdrawal lifecycle), and the resolver's Go t
 
 ## Assumptions
 
-- The clawback a hold or cancel applies is computed by the caller from the grant's activation
-  baseline, as today (`casino-service` computes it; `rewards` will). [NEEDS CLARIFICATION: should
-  the wallet instead record real balance at award time on the record and compute the clawback
-  itself, so `rewards` never has to read the wallet first? It holds every input.]
-- A deposit's turnover multiplier and definition are resolved by the caller (today: the sub-brand's
-  `withdrawal_turnover_*`, overridden by the player's `turnover_*_override`, defaulting to 1× gross
-  wagered) and arrive on the deposit command. [NEEDS CLARIFICATION: in the new split the brand
-  terms belong to `players` or to the brand's configuration and the player override to `players`;
-  the deposit route must resolve one of them before confirming — which, or does the wallet keep the
-  brand terms beside its bet switches (FR-004)?]
+- The clawback a hold or cancel applies is the wallet's to compute from the baseline it records at
+  award (FR-015a); the formula is the one `casino-service` applies today, read from its code at
+  planning, and no caller supplies a clawback (settled at reconciliation with spec 007).
+- A deposit's turnover multiplier and definition are the wallet's to resolve (FR-004a): the brand's
+  terms live beside its bet switches and a player's override on the player's wallet, both written by
+  operator routes; nothing arrives on the deposit command (settled at reconciliation with spec 004,
+  which lists the fields as moved here).
 - Free-spin rounds that never debit the wallet (a grant-funded round) are the game provider's to
   settle; the wallet sees only a provider credit for the win.
 - Expiry of a record is `rewards`' timer: it calls forfeit; the wallet keeps the expiry time only
@@ -567,3 +647,5 @@ create-withdrawal-request and the withdrawal lifecycle), and the resolver's Go t
   retention spec 001 FR-015 requires of `money.transactions` and `payments.payments`.
 - Spec 003 (game-provider), 007 (payouts), 011 (rewards) as callers; their specs name the routes
   they call here by wire name.
+- Spec 010 (responsible-gambling): `may-deposit` and `may-bet`, asked within the project and failing
+  closed (FR-007a, FR-022).

@@ -1,0 +1,40 @@
+# The casino's own Keycloak (spec 001 FR-019, research R6): realms casino-<slug> and eitheror, with the
+# original's authenticators and audit listener. Its admin credential is the out-of-band Secret
+# casino-keycloak-admin; its database is supplied by the overlay.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: casino-keycloak
+  labels: { app: casino-keycloak }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: casino-keycloak }
+  template:
+    metadata:
+      labels: { app: casino-keycloak }
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:24.0.5
+          args: ["start", "--optimized"]
+          env:
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              valueFrom: { secretKeyRef: { name: casino-keycloak-admin, key: username } }
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: casino-keycloak-admin, key: password } }
+            - name: KEYCLOAK_ADMIN
+              valueFrom: { secretKeyRef: { name: casino-keycloak-admin, key: username } }
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom: { secretKeyRef: { name: casino-keycloak-admin, key: password } }
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            - name: KC_HOSTNAME
+              valueFrom: { configMapKeyRef: { name: casino-installation, key: KEYCLOAK_HOSTNAME } }
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /realms/master, port: http }
+            initialDelaySeconds: 20

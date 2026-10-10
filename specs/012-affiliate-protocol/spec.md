@@ -101,6 +101,10 @@ Settled with specs 001 and 013 once all three existed.
   and spec 013 keeps that; a country code identifies no one and spec 001 FR-024 lists it as not
   personal. The open question that excluded it is closed.
 
+- Q: Which `casino.withdrawals` families become withdrawal facts? → A: Four of spec 007's six, one to
+  one by name (FR-030); an approval and a cancellation produce nothing, since the programme counts
+  only completed and reversed withdrawals (spec 013).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A visitor arrives on an affiliate's link and registers (Priority: P1)
@@ -168,7 +172,7 @@ every fact and check all three readers hold the same facts with the same ids.
 - added `features/attribution/carriers.feature`: a network registered as a machine reads the same facts with its own reader and nothing else of the brand's
 - added `features/attribution/carriers.feature`: the feed returns facts from a cursor in the order they were emitted, each page signed by the brand
 - added `features/attribution/carriers.feature`: reading the feed from the same cursor twice returns the same page
-- added `features/attribution/carriers.feature`: a webhook posts each fact, retries for a day, then holds the fact in a dead letter the operator can resend
+- added `features/attribution/carriers.feature`: a network webhook posts each fact, retries for a day, then keeps it as an undelivered fact the operator can resend
 - added `features/attribution/carriers.feature`: a reader can discard a fact whose id it has seen because the id and the content are the same both times
 - added `features/attribution/carriers.feature`: facts from two brands about one affiliate name their brand, share the affiliate's id and differ in pseudonym
 
@@ -427,8 +431,11 @@ attribution record.
   and from nothing else: the tag, click id and bonus code presented at registration from
   `player_registered` on `casino.players`; a code presented later from `bonus_granted` on
   `casino.rewards`; deposits, chargebacks and refunds from `payments.payments`; stakes and wins
-  from `casino.rounds`; bonus costs from `casino.rewards`; withdrawals from `casino.withdrawals`;
-  closure from `casino.players`. No brand service MUST call `attribution`, and `attribution` MUST
+  from `casino.rounds`; bonus costs from `casino.rewards`; withdrawals from `casino.withdrawals`
+  (`withdrawal_requested` → `withdrawal-requested`, `withdrawal_completed` →
+  `withdrawal-completed`, `withdrawal_failed` → `withdrawal-failed`, `withdrawal_reversed` →
+  `withdrawal-reversed`; `withdrawal_approved` and `withdrawal_cancelled` produce no fact — spec
+  007 FR-025, FR-026); closure from `casino.players`. No brand service MUST call `attribution`, and `attribution` MUST
   call no brand service.
 
 ### Key Entities

@@ -1,0 +1,730 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/casino.players.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on casino.players, produced by players, kyc, responsible-gambling (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "bonus_code": {
+          "type": "string"
+        },
+        "btag": {
+          "type": "string"
+        },
+        "click_id": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "registered_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "const": "player_registered"
+        },
+        "vip_tier": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "player_id", "registered_at", "occurred_at"],
+      "title": "player_registered",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_logged_in"
+        }
+      },
+      "required": ["type", "player_id", "session_id", "occurred_at"],
+      "title": "player_logged_in",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "close_reason": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_logged_out"
+        }
+      },
+      "required": ["type", "player_id", "session_id", "close_reason", "occurred_at"],
+      "title": "player_logged_out",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_suspended"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "actor", "occurred_at"],
+      "title": "player_suspended",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_reinstated"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "actor", "occurred_at"],
+      "title": "player_reinstated",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "excluded_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_self_excluded"
+        },
+        "until": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "actor", "excluded_at", "occurred_at"],
+      "title": "player_self_excluded",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_closed"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "actor", "occurred_at"],
+      "title": "player_closed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "new_tier": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_tier": {
+          "type": "string"
+        },
+        "type": {
+          "const": "vip_tier_changed"
+        }
+      },
+      "required": ["type", "player_id", "new_tier", "actor_id", "occurred_at"],
+      "title": "vip_tier_changed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "address_line": {
+          "type": "string",
+          "x-personal": true
+        },
+        "changed_fields": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "city": {
+          "type": "string",
+          "x-personal": true
+        },
+        "country": {
+          "type": "string"
+        },
+        "date_of_birth": {
+          "type": "string",
+          "x-personal": true
+        },
+        "family_name": {
+          "type": "string",
+          "x-personal": true
+        },
+        "given_name": {
+          "type": "string",
+          "x-personal": true
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "post_code": {
+          "type": "string",
+          "x-personal": true
+        },
+        "telephone": {
+          "type": "string",
+          "x-personal": true
+        },
+        "type": {
+          "const": "player_profile_updated"
+        }
+      },
+      "required": ["type", "player_id", "changed_fields", "occurred_at"],
+      "title": "player_profile_updated",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "channel": {
+          "type": "string"
+        },
+        "consented": {
+          "type": "boolean"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_consent_changed"
+        }
+      },
+      "required": ["type", "player_id", "channel", "consented", "source", "occurred_at"],
+      "title": "player_consent_changed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "fraud_case_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "signal": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_fraud_flagged"
+        }
+      },
+      "required": ["type", "player_id", "fraud_case_id", "signal", "occurred_at"],
+      "title": "player_fraud_flagged",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "fraud_case_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_fraud_cleared"
+        }
+      },
+      "required": ["type", "player_id", "fraud_case_id", "occurred_at"],
+      "title": "player_fraud_cleared",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "message_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "send_class": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_message_created"
+        }
+      },
+      "required": ["type", "player_id", "message_id", "send_class", "occurred_at"],
+      "title": "player_message_created",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "message_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_message_read"
+        }
+      },
+      "required": ["type", "player_id", "message_id", "occurred_at"],
+      "title": "player_message_read",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "message_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_message_deleted"
+        }
+      },
+      "required": ["type", "player_id", "message_id", "occurred_at"],
+      "title": "player_message_deleted",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "document_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_kyc_submitted"
+        }
+      },
+      "required": ["type", "player_id", "document_id", "category", "occurred_at"],
+      "title": "player_kyc_submitted",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "document_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "reason_code": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_kyc_document_reviewed"
+        }
+      },
+      "required": ["type", "player_id", "document_id", "category", "decision", "actor_id", "occurred_at"],
+      "title": "player_kyc_document_reviewed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_kyc_verified"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "actor", "occurred_at"],
+      "title": "player_kyc_verified",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_kyc_rejected"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "actor", "occurred_at"],
+      "title": "player_kyc_rejected",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_kyc_pending"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "occurred_at"],
+      "title": "player_kyc_pending",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_kyc_review_required"
+        }
+      },
+      "required": ["type", "player_id", "reason", "occurred_at"],
+      "title": "player_kyc_review_required",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_sof_cleared"
+        }
+      },
+      "required": ["type", "player_id", "actor_id", "occurred_at"],
+      "title": "player_sof_cleared",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "case_type": {
+          "type": "string"
+        },
+        "closes_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "rg_case_id": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string"
+        },
+        "type": {
+          "const": "rg_case_opened"
+        }
+      },
+      "required": ["type", "player_id", "rg_case_id", "case_type", "trigger", "occurred_at"],
+      "title": "rg_case_opened",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "case_type": {
+          "type": "string"
+        },
+        "closure": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "rg_case_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "rg_case_closed"
+        }
+      },
+      "required": ["type", "player_id", "rg_case_id", "case_type", "closure", "occurred_at"],
+      "title": "rg_case_closed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "caused_by": {
+          "type": "string"
+        },
+        "limit_type": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "rg_limit_applied"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": ["type", "player_id", "limit_type", "caused_by", "occurred_at"],
+      "title": "rg_limit_applied",
+      "type": "object"
+    }
+  ],
+  "title": "casino.players.v1"
+}

@@ -1,0 +1,83 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/platform.audit.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on platform.audit, produced by every service (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "actor_kind": {
+          "type": "string"
+        },
+        "approver_id": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "causation_id": {
+          "type": "string"
+        },
+        "changes": {
+          "items": {
+            "properties": {
+              "after": {
+                "type": "string"
+              },
+              "before": {
+                "type": "string"
+              },
+              "field": {
+                "type": "string"
+              }
+            },
+            "required": ["field"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "correlation_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "reason_code": {
+          "type": "string"
+        },
+        "record_class": {
+          "type": "string"
+        },
+        "record_id": {
+          "type": "string"
+        },
+        "service": {
+          "type": "string"
+        },
+        "subject_id": {
+          "type": "string"
+        },
+        "subject_kind": {
+          "type": "string"
+        },
+        "type": {
+          "const": "audit_record"
+        }
+      },
+      "required": ["type", "record_id", "brand", "service", "action", "actor_kind", "actor_id", "subject_kind", "subject_id", "outcome", "changes", "correlation_id", "causation_id", "record_class", "occurred_at"],
+      "title": "audit_record",
+      "type": "object"
+    }
+  ],
+  "title": "platform.audit.v1"
+}

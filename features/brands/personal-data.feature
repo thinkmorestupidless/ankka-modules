@@ -19,10 +19,12 @@ Feature: A player's personal data is marked and can be erased
     Then every personal field reads as erased
     And every amount, id and time reads as before
 
-  Scenario: the shared payments and the shared audit hold a player's id and nothing else that identifies them
-    Given the shared payments or the shared audit
-    When it holds anything about a player
-    Then it holds the player's id and nothing else that identifies the player
+  Scenario: the shared payments holds a player's id and the fields a payment provider requires, the shared audit the id alone, and the programme no id
+    Given a player with a deposit through the shared payments, an audit record in the shared audit and a binding the programme reads
+    When each shared part is read for what it holds about the player
+    Then the shared payments holds the player's id and the customer fields the payment provider required, each as personal data under the player
+    And the shared audit holds the player's id and nothing else that identifies the player
+    And the programme holds no player id, only the player's pseudonym
 
   Scenario: an erasure requested under a retention hold waits for the hold to lapse and is then applied unasked
     Given a player under a retention hold

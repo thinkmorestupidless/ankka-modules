@@ -1,0 +1,281 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/casino.rewards.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on casino.rewards, produced by rewards (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "bonus_code": {
+          "type": "string"
+        },
+        "bonus_id": {
+          "type": "string"
+        },
+        "bonus_name": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offer_id": {
+          "type": "string"
+        },
+        "offer_type": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "bonus_granted"
+        }
+      },
+      "required": ["type", "player_id", "bonus_id", "bonus_name", "offer_id", "offer_type", "amount_cents", "currency", "occurred_at"],
+      "title": "bonus_granted",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "bonus_id": {
+          "type": "string"
+        },
+        "bonus_name": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offer_id": {
+          "type": "string"
+        },
+        "offer_type": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "bonus_cancelled"
+        }
+      },
+      "required": ["type", "player_id", "bonus_id", "bonus_name", "offer_id", "offer_type", "amount_cents", "currency", "occurred_at"],
+      "title": "bonus_cancelled",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "bonus_id": {
+          "type": "string"
+        },
+        "bonus_name": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offer_id": {
+          "type": "string"
+        },
+        "offer_type": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "bonus_forfeited"
+        }
+      },
+      "required": ["type", "player_id", "bonus_id", "bonus_name", "offer_id", "offer_type", "reason", "occurred_at"],
+      "title": "bonus_forfeited",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "bonus_id": {
+          "type": "string"
+        },
+        "bonus_name": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offer_id": {
+          "type": "string"
+        },
+        "offer_type": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "bonus_completed"
+        }
+      },
+      "required": ["type", "player_id", "bonus_id", "bonus_name", "offer_id", "offer_type", "occurred_at"],
+      "title": "bonus_completed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "bonus_id": {
+          "type": "string"
+        },
+        "bonus_name": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offer_id": {
+          "type": "string"
+        },
+        "offer_type": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "grant_expired"
+        }
+      },
+      "required": ["type", "player_id", "bonus_id", "bonus_name", "offer_id", "offer_type", "occurred_at"],
+      "title": "grant_expired",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "bonus_id": {
+          "type": "string"
+        },
+        "bonus_name": {
+          "type": "string"
+        },
+        "game_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offer_id": {
+          "type": "string"
+        },
+        "offer_type": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "rounds": {
+          "type": "integer"
+        },
+        "type": {
+          "const": "free_spins_granted"
+        }
+      },
+      "required": ["type", "player_id", "bonus_id", "bonus_name", "offer_id", "offer_type", "rounds", "game_ids", "occurred_at"],
+      "title": "free_spins_granted",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "bonus_id": {
+          "type": "string"
+        },
+        "bonus_name": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "offer_id": {
+          "type": "string"
+        },
+        "offer_type": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "free_spins_settled"
+        },
+        "win_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        }
+      },
+      "required": ["type", "player_id", "bonus_id", "bonus_name", "offer_id", "offer_type", "win_cents", "currency", "occurred_at"],
+      "title": "free_spins_settled",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "bonus_code_entered"
+        }
+      },
+      "required": ["type", "player_id", "code", "occurred_at"],
+      "title": "bonus_code_entered",
+      "type": "object"
+    }
+  ],
+  "title": "casino.rewards.v1"
+}

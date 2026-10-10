@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -45,3 +45,6 @@
   brand, deposits and payment outcomes over two routes granted to `payments`/`merchant`, the wallet
   producing the brand's `payments.payments`, in-project callers with no grant, and the adjustment
   reason as the wallet's one `Personal` field.
+- Reconciled with the first wave of service specs on 2026-10-08; 0 marker(s) remain, each a product question.
+
+- Reconciliation 3 (2026-10-08, after specs 014–019): changes recorded under the spec's Clarifications; the checklist above still holds.

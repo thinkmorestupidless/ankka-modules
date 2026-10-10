@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eitheror.io/schemas/casino/shared-manifest.v1.json",
+  "title": "Shared project manifest",
+  "description": "A shared project (payments, programme, reasoner) as the brands tool creates it. See specs/001-brands-and-projects/data-model.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "project",
+    "ankka",
+    "services",
+    "topics",
+    "grants",
+    "keycloak"
+  ],
+  "properties": {
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "payments",
+            "programme",
+            "reasoner"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ankka": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime"
+      ],
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    "keycloak": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issuerBase"
+      ],
+      "properties": {
+        "issuerBase": {
+          "type": "string",
+          "format": "uri"
+        },
+        "playerAudience": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the audience of a casino-<slug> token the brand's services accept; default casino-<slug>"
+        },
+        "staffAudience": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the audience of an eitheror token; default eitheror-casino"
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "image"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "merchant",
+              "psp-gateway",
+              "ingest",
+              "affiliate-programme",
+              "audit"
+            ]
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^[^:@\\s]+:(?!latest$)[^\\s]+$"
+          },
+          "expose": {
+            "type": "boolean",
+            "default": false
+          },
+          "objectStorage": {
+            "type": "boolean",
+            "default": false
+          },
+          "env": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^(?!ANKKA_(AUTH|DB|OTLP)_)[A-Z][A-Z0-9_]*$"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "instanceType": {
+                "enum": [
+                  "small",
+                  "medium",
+                  "large"
+                ]
+              },
+              "cpu": {
+                "type": "string"
+              },
+              "memory": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "topics": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "partitions",
+          "retention"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "payments.merchants"
+            ]
+          },
+          "partitions": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "retention": {
+            "oneOf": [
+              {
+                "const": "fact"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "days"
+                ],
+                "properties": {
+                  "days": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "grants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "made"
+      ],
+      "properties": {
+        "made": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/grant"
+          }
+        }
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "keys"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "keys": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "principal",
+        "target"
+      ],
+      "properties": {
+        "principal": {
+          "type": "string",
+          "pattern": "^service:\\{brand\\}/[a-z][a-z0-9-]*$"
+        },
+        "target": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route"
+              ],
+              "properties": {
+                "route": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "service",
+                    "method",
+                    "path"
+                  ],
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "enum": [
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "PATCH"
+                      ]
+                    },
+                    "path": {
+                      "type": "string",
+                      "pattern": "^/"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "topic"
+              ],
+              "properties": {
+                "topic": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "right"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "right": {
+                      "enum": [
+                        "consume",
+                        "produce"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "erasure"
+              ],
+              "properties": {
+                "erasure": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -14,7 +14,7 @@ Feature: A player registers with an affiliate's bonus code
 
   Scenario: a bonus code entered after an organic registration within the window binds the player
     Given a player who registered organically
-    When they enter an affiliate's bonus code within the attribution window counted from registration
+    When they enter an affiliate's bonus code within the bonus code window counted from registration
     Then the player is bound to that affiliate
     And a "registration" fact is emitted dated to the binding
     And the player's later facts are attributed

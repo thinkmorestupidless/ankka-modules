@@ -1,0 +1,11 @@
+# eitheror's GKE installation: the casino's Keycloak in production mode, its administrator created
+# out of band (installation/README.md), and the Cloud Armor policy attached to the gateway's service.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - cloud-armor.yaml
+configMapGenerator:
+  - name: casino-installation
+    namespace: casino-identity
+    envs: [settings.env]

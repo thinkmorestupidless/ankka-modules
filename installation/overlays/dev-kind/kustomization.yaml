@@ -1,0 +1,21 @@
+# The local kind installation: ankka from its own local overlay (`deploy-local.sh` in the ankka
+# repository), and the casino's Keycloak beside it in development mode.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+configMapGenerator:
+  - name: casino-installation
+    namespace: casino-identity
+    envs: [settings.env]
+patches:
+  - target: { kind: Deployment, name: casino-keycloak }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value: ["start-dev"]
+secretGenerator:
+  # Development only: the local cluster's administrator, as ankka's own local overlay does.
+  - name: casino-keycloak-admin
+    namespace: casino-identity
+    literals: [username=admin, password=admin]

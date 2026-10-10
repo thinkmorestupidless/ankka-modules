@@ -1,0 +1,209 @@
+{
+  "brand": {
+    "slug": "goldvibe",
+    "name": "Goldvibe",
+    "realMoney": false
+  },
+  "ankka": {
+    "runtime": "0.11.0"
+  },
+  "keycloak": {
+    "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"
+  },
+  "services": [
+    {
+      "name": "payouts",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/payouts:0.1.0",
+      "expose": true
+    },
+    {
+      "name": "players",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/players:0.1.0",
+      "expose": true
+    },
+    {
+      "name": "kyc",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/kyc:0.1.0",
+      "expose": true,
+      "objectStorage": true
+    },
+    {
+      "name": "responsible-gambling",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/responsible-gambling:0.1.0",
+      "expose": true
+    },
+    {
+      "name": "rewards",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/rewards:0.1.0",
+      "expose": true
+    },
+    {
+      "name": "game-provider",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/game-provider:0.1.0",
+      "expose": true,
+      "env": {
+        "ST8_OPERATOR_CODE": "secret:game-provider-st8/OPERATOR_CODE",
+        "ST8_SIGNING_KEY": "secret:game-provider-st8/SIGNING_KEY"
+      }
+    },
+    {
+      "name": "attribution",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/attribution:0.1.0",
+      "expose": true
+    },
+    {
+      "name": "engagement",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/engagement:0.1.0",
+      "expose": true
+    },
+    {
+      "name": "reporting",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/reporting:0.1.0",
+      "expose": true,
+      "objectStorage": true
+    },
+    {
+      "name": "support-agent",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/support-agent:0.1.0",
+      "expose": true,
+      "env": {
+        "SUPPORT_AGENT_ENABLED": "false"
+      }
+    }
+  ],
+  "topics": [
+    {
+      "name": "money.transactions",
+      "partitions": 12,
+      "retention": "fact"
+    },
+    {
+      "name": "payments.payments",
+      "partitions": 6,
+      "retention": "fact"
+    },
+    {
+      "name": "casino.players",
+      "partitions": 6,
+      "retention": "fact"
+    },
+    {
+      "name": "casino.sessions",
+      "partitions": 12,
+      "retention": {
+        "days": 90
+      }
+    },
+    {
+      "name": "casino.rounds",
+      "partitions": 12,
+      "retention": "fact"
+    },
+    {
+      "name": "casino.withdrawals",
+      "partitions": 6,
+      "retention": "fact"
+    },
+    {
+      "name": "casino.rewards",
+      "partitions": 6,
+      "retention": "fact"
+    },
+    {
+      "name": "affiliates.attribution",
+      "partitions": 6,
+      "retention": "fact"
+    },
+    {
+      "name": "casino.push",
+      "partitions": 6,
+      "retention": {
+        "days": 1
+      }
+    },
+    {
+      "name": "platform.audit",
+      "partitions": 12,
+      "retention": "fact"
+    }
+  ],
+  "grants": {
+    "made": [
+      {
+        "principal": "service:payments/merchant",
+        "target": {
+          "route": {
+            "service": "wallet",
+            "method": "POST",
+            "path": "/v1/casino/brands/{brand}/wallets/{player}/{currency}/deposits"
+          }
+        }
+      },
+      {
+        "principal": "service:payments/merchant",
+        "target": {
+          "route": {
+            "service": "wallet",
+            "method": "POST",
+            "path": "/v1/casino/brands/{brand}/payments/{paymentId}/outcome"
+          }
+        }
+      },
+      {
+        "principal": "service:payments/psp-gateway",
+        "target": {
+          "route": {
+            "service": "payouts",
+            "method": "POST",
+            "path": "/v1/casino/brands/{brand}/withdrawals/{requestId}/outcome"
+          }
+        }
+      },
+      {
+        "principal": "service:programme/affiliate-programme",
+        "target": {
+          "topic": {
+            "name": "affiliates.attribution",
+            "right": "consume"
+          }
+        }
+      },
+      {
+        "principal": "service:reasoner/audit",
+        "target": {
+          "topic": {
+            "name": "platform.audit",
+            "right": "consume"
+          }
+        }
+      }
+    ],
+    "received": [
+      {
+        "principal": "service:goldvibe/payouts",
+        "target": {
+          "route": {
+            "service": "psp-gateway",
+            "method": "POST",
+            "path": "/v1/payments/withdrawals"
+          }
+        }
+      },
+      {
+        "principal": "service:goldvibe/players",
+        "target": {
+          "erasure": true
+        }
+      }
+    ]
+  },
+  "secrets": [
+    {
+      "name": "game-provider-st8",
+      "keys": [
+        "OPERATOR_CODE",
+        "SIGNING_KEY"
+      ]
+    }
+  ]
+}

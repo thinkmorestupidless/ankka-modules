@@ -1,0 +1,115 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/casino.sessions.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on casino.sessions, produced by players (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "game_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "player_session_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "game_session_started"
+        }
+      },
+      "required": ["type", "player_id", "session_id", "game_id", "player_session_id", "occurred_at"],
+      "title": "game_session_started",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "duration_minutes": {
+          "type": "integer"
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "game_session_ended"
+        }
+      },
+      "required": ["type", "player_id", "session_id", "game_id", "duration_minutes", "occurred_at"],
+      "title": "game_session_ended",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "network_address": {
+          "type": "string",
+          "x-personal": true
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_session_started"
+        },
+        "user_agent": {
+          "type": "string",
+          "x-personal": true
+        }
+      },
+      "required": ["type", "player_id", "session_id", "network_address", "user_agent", "occurred_at"],
+      "title": "player_session_started",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "close_reason": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_session_ended"
+        }
+      },
+      "required": ["type", "player_id", "session_id", "close_reason", "occurred_at"],
+      "title": "player_session_ended",
+      "type": "object"
+    }
+  ],
+  "title": "casino.sessions.v1"
+}

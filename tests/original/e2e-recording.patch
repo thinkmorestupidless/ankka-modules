@@ -1,0 +1,30 @@
+--- a/tests/e2e/go.mod	2026-10-09 07:36:17
++++ b/tests/e2e/go.mod	2026-10-09 07:36:17
+@@ -17,3 +17,8 @@
+ 	golang.org/x/text v0.34.0 // indirect
+ 	gopkg.in/yaml.v3 v3.0.1 // indirect
+ )
++
++require github.com/eitheror-io/ankka-casino/tests v0.0.0
++
++// ankka-casino is checked out beside eitheror-platform.
++replace github.com/eitheror-io/ankka-casino/tests => ../../../ankka-casino/tests
+--- a/tests/e2e/record_test.go	1970-01-01 01:00:00
++++ b/tests/e2e/record_test.go	2026-10-09 07:36:17
+@@ -0,0 +1,16 @@
++//go:build e2e
++
++package e2e_test
++
++// Recording the original for the rebuild (ankka-casino spec 001 FR-030). With EITHEROR_RECORD_TO
++// set, every request a test makes through the default HTTP client is recorded, one file per test
++// function, and any request to a host outside this machine is refused. Without it, nothing changes.
++// Added by ankka-casino/tests/original/e2e-recording.patch; see that repository's tests/original/README.md.
++
++import (
++	"os"
++
++	"github.com/eitheror-io/ankka-casino/tests/original/recorder"
++)
++
++var _ = recorder.Install("e2e_test", os.Getenv)

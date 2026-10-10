@@ -1,0 +1,87 @@
+{
+  "realm": "casino-${brandId}",
+  "enabled": true,
+  "displayName": "Casino ${brandId}",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "passwordPolicy": "length(8)",
+  "bruteForceProtected": true,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "maxDeltaTimeSeconds": 43200,
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 2592000,
+  "eventsEnabled": true,
+  "adminEventsEnabled": true,
+  "emailTheme": "eitheror-casino",
+  "eventsListeners": ["jboss-logging", "eitheror-audit-listener"],
+  "attributes": {
+    "frontendBaseUrl": "${frontendBaseUrl}"
+  },
+  "roles": {
+    "realm": [
+      {"name": "player",           "composite": false},
+      {"name": "vip_player",       "composite": false},
+      {"name": "brand_admin",      "composite": false},
+      {"name": "brand_compliance", "description": "KYC, RG limits, self-exclusion, cooling-off operations",  "composite": false, "clientRole": false},
+      {"name": "brand_finance",    "description": "Withdrawal approve/reject, wallet adjustment",            "composite": false, "clientRole": false},
+      {"name": "brand_support",    "description": "Read-only: player profile, transactions, sessions",       "composite": false, "clientRole": false}
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "casino-frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["http://localhost:3000/*", "https://*.eitheror.io/*"],
+      "webOrigins": ["+"],
+      "protocolMappers": [
+        {
+          "name": "eitheror-actor-type",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.value": "player",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "eitheror_actor_type",
+            "jsonType.label": "String",
+            "access.tokenResponse.claim": "false"
+          }
+        },
+        {
+          "name": "session-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-session-id-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "eitheror_twin_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "eitheror_twin_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "eitheror_twin_id",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ]
+}

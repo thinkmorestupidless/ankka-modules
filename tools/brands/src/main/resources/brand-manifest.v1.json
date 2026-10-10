@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eitheror.io/schemas/casino/brand-manifest.v1.json",
+  "title": "Brand manifest",
+  "description": "The one description a brand is created from. See specs/001-brands-and-projects/data-model.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brand",
+    "ankka",
+    "services",
+    "topics",
+    "grants",
+    "keycloak"
+  ],
+  "properties": {
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "name",
+        "realMoney"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,41}$",
+          "not": {
+            "enum": [
+              "payments",
+              "programme",
+              "reasoner",
+              "platform",
+              "local",
+              "machine"
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "realMoney": {
+          "type": "boolean"
+        },
+        "frontendBaseUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "the brand's player site; default https://<slug>.<PLAYER_SITE_BASE> from the installation"
+        }
+      }
+    },
+    "ankka": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime"
+      ],
+      "properties": {
+        "runtime": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    "keycloak": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issuerBase"
+      ],
+      "properties": {
+        "issuerBase": {
+          "type": "string",
+          "format": "uri"
+        },
+        "playerAudience": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the audience of a casino-<slug> token the brand's services accept; default casino-<slug>"
+        },
+        "staffAudience": {
+          "type": "string",
+          "minLength": 1,
+          "description": "the audience of an eitheror token; default eitheror-casino"
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "image"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "wallet",
+              "payouts",
+              "players",
+              "kyc",
+              "responsible-gambling",
+              "rewards",
+              "game-provider",
+              "attribution",
+              "partner-api",
+              "engagement",
+              "reporting",
+              "support-agent"
+            ]
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^[^:@\\s]+:(?!latest$)[^\\s]+$"
+          },
+          "expose": {
+            "type": "boolean",
+            "default": false
+          },
+          "objectStorage": {
+            "type": "boolean",
+            "default": false
+          },
+          "env": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^(?!ANKKA_(AUTH|DB|OTLP)_)[A-Z][A-Z0-9_]*$"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "instanceType": {
+                "enum": [
+                  "small",
+                  "medium",
+                  "large"
+                ]
+              },
+              "cpu": {
+                "type": "string"
+              },
+              "memory": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "topics": {
+      "type": "array",
+      "minItems": 10,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "partitions",
+          "retention"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "money.transactions",
+              "payments.payments",
+              "casino.players",
+              "casino.sessions",
+              "casino.rounds",
+              "casino.withdrawals",
+              "casino.rewards",
+              "affiliates.attribution",
+              "casino.push",
+              "platform.audit"
+            ]
+          },
+          "partitions": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "retention": {
+            "oneOf": [
+              {
+                "const": "fact"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "days"
+                ],
+                "properties": {
+                  "days": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    "grants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "made",
+        "received"
+      ],
+      "properties": {
+        "made": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/grant"
+          }
+        },
+        "received": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/grant"
+          }
+        }
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "keys"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "keys": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_]*$"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "principal",
+        "target"
+      ],
+      "properties": {
+        "principal": {
+          "type": "string",
+          "pattern": "^service:(payments|programme|reasoner|[a-z][a-z0-9-]{0,41})/[a-z][a-z0-9-]*$"
+        },
+        "target": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "route"
+              ],
+              "properties": {
+                "route": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "service",
+                    "method",
+                    "path"
+                  ],
+                  "properties": {
+                    "service": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "enum": [
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "PATCH"
+                      ]
+                    },
+                    "path": {
+                      "type": "string",
+                      "pattern": "^/"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "topic"
+              ],
+              "properties": {
+                "topic": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "name",
+                    "right"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "right": {
+                      "enum": [
+                        "consume",
+                        "produce"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "erasure"
+              ],
+              "properties": {
+                "erasure": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

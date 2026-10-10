@@ -57,6 +57,15 @@ Named here because constitution I keeps the original's behaviour unless a change
 9. **The affiliate's payment details are `Personal`** under the affiliate's subject (ankka 042), which closes the ADR 0040 decision-6 exception (free-text IBANs in event-sourced state) rather than carrying it forward.
 10. **Dropped:** the "impersonate affiliate" feature (already removed by ADR 0040, kept removed); the per-player deposit-funnel milestone counters that the original acknowledges as racy "analytics-grade" counts are derived from facts in a view rather than written in the hot path.
 
+### Session 2026-10-08 (reconciliation 2)
+
+Settled with specs 008–011 once they existed.
+
+- Q: How does a brand's `rewards` match an affiliate's bonus code? → A: From the code document the
+  programme publishes per brand (FR-023a), fetched as a public client like the key document; the
+  programme answers no per-code lookups and a brand calls nothing at claim time (spec 011 FR-019,
+  FR-021).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - An affiliate works several brands from one account (Priority: P1)
@@ -306,6 +315,11 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 **Tags, links, codes and clicks**
 
 - **FR-023**: The programme MUST issue the signed tag spec 012 FR-002 defines for every tracking link and bonus code, naming the programme, the affiliate, the link or code and the sub-ids, MUST publish the key document and the revocation list 012 FR-023 defines, and MUST revoke a link, code or affiliate by listing it there; it MUST define nothing about the tag that 012 does not.
+- **FR-023a**: The programme MUST publish, beside its key document and as a public document a
+  brand fetches and caches the same way (spec 001 FR-016), a *code document* per brand: every live
+  affiliate bonus code at that brand with its text, the brand offer it names and its signed tag; a
+  revoked or deleted code MUST leave the document on the next publication, and the document MUST
+  carry a version and a time so a brand's `rewards` (spec 011 FR-021) can report staleness.
 - **FR-024**: The programme MUST serve no click route; it MUST record each `click` fact a brand emits against the link it names, and click counts MUST be a view over those facts.
 - **FR-025**: A bonus code MUST be unique per brand regardless of case; concurrent creation of the same text MUST yield one; revocation MUST free the text.
 - **FR-026**: During the transition spec 012 defines, the programme MUST publish the legacy tag document 012 FR-023 defines, mapping every imported `btag` UUID to the affiliate and link it was imported against, and MUST withdraw it when the transition ends; it MUST answer no per-tag lookups.

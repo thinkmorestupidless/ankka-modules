@@ -1,0 +1,493 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/money.transactions.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on money.transactions, produced by wallet (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "deposit_ordinal": {
+          "type": "integer"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "payment_reference": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "deposit_confirmed"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "amount_cents", "payment_reference", "deposit_ordinal", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "deposit_confirmed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "round_id": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "bet_placed"
+        },
+        "wallet_type": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "round_id", "game_id", "amount_cents", "wallet_type", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "bet_placed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "game_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "round_id": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "win_credited"
+        },
+        "wallet_type": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "round_id", "game_id", "amount_cents", "wallet_type", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "win_credited",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "round_id": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "bet_rolled_back"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "round_id", "amount_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "bet_rolled_back",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "round_id": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "round_settled_as_loss"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "round_id", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "round_settled_as_loss",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "award_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "restricted_funds_awarded"
+        },
+        "wagering_requirement": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "award_id", "amount_cents", "wagering_requirement", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "restricted_funds_awarded",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "award_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "restricted_funds_converted"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "award_id", "amount_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "restricted_funds_converted",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "award_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "restricted_funds_forfeited"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "award_id", "amount_cents", "reason", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "restricted_funds_forfeited",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "target": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "admin_adjusted"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "amount", "target", "reason", "actor_id", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "admin_adjusted",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "hold_placed"
+        },
+        "withdrawal_request_id": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "withdrawal_request_id", "amount_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "hold_placed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "hold_released"
+        },
+        "withdrawal_request_id": {
+          "type": "string"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "withdrawal_request_id", "amount_cents", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "hold_released",
+      "type": "object"
+    }
+  ],
+  "title": "money.transactions.v1"
+}
