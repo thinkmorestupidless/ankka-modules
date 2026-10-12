@@ -52,6 +52,27 @@ class ManifestSuite extends munit.FunSuite:
     assert(refused("shared-missing-service").exists(_.message.contains("ingest")))
   }
 
+  test("the tools project holds the game provider simulator and nothing else (spec 020)") {
+    val path = Fixtures.root.resolve("shared/tools/manifest.json")
+    assert(Manifest.load(path).isRight, Manifest.load(path).left.toOption.mkString)
+    val text = java.nio.file.Files.readString(path).replace("\"game-provider-simulator\"", "\"audit\"")
+    assert(Manifest.parse(text).isLeft, "a service of another project is refused in tools")
+  }
+
+  test("tools is a reserved slug: no brand may take it") {
+    val text = java.nio.file.Files.readString(Fixtures.manifest("goldvibe")).replace("\"goldvibe\"", "\"tools\"")
+    Manifest.parse(text) match
+      case Left(problems) => assert(problems.exists(_.message.contains("tools")), problems.mkString("\n"))
+      case Right(_)       => fail("a brand named tools was accepted")
+  }
+
+  test("the simulator's project is refused on an installation that takes real money") {
+    val out = Output.Collected()
+    val code = Main.run(Main.parse(Seq("validate", "shared/tools/manifest.json", "--installation", "dev-kind", "--real-money")), Fixtures.root, out, () => fail("no control plane is needed"))
+    assertEquals(code, 1)
+    assert(out.lines.exists(_.contains("never runs on an installation that takes real money")), out.lines.mkString("\n"))
+  }
+
   test("a slug longer than 42 characters is refused, so every service's address is one DNS label") {
     val long = "g" * 43
     val text = java.nio.file.Files.readString(Fixtures.manifest("goldvibe")).replace("\"goldvibe\"", s"\"$long\"")

@@ -1,0 +1,126 @@
+{
+  "name": "harness-rounds",
+  "version": 1,
+  "description": "The harness's multi-call rounds: two debits, two credits, cancels of each debit, a credit after a failed debit, a credit under another game code.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:665-756, tests/e2e/scenario15_st8_wallet_e2e_test.go:919 (BigRoundMultipleDebits, BigRoundMultipleCredits, BigRoundMultipleCancels1, BigRoundFailedDebit, TableSwitch)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "5.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 2,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "8.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 4,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "5.00",
+      "round": "same"
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "same-as 6",
+      "round": "same"
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "same-as 7",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 9,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "same-as 11",
+      "round": "same"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "15.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 13,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "12.00",
+      "round": "same",
+      "gameCode": "fake-slot-002"
+    },
+    {
+      "kind": "expect",
+      "of": 16,
+      "status": [
+        "ok"
+      ]
+    }
+  ]
+}

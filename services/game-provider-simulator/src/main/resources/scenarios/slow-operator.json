@@ -1,0 +1,43 @@
+{
+  "name": "slow-operator",
+  "version": 1,
+  "description": "A debit answered slower than the provider waits is abandoned and sent again under the same transaction id; passes only if the balance moved once.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:778 (TestScenario15_St8Wallet_IdempotentDebit); spec 003 FR-011",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [
+      {
+        "every": "30s",
+        "for": "10m"
+      },
+      {
+        "every": "10m"
+      }
+    ],
+    "cap": "8h"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "1.50",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "ok"
+      ],
+      "balance": "moved_once",
+      "attempts": {
+        "min": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "scenario": "OperatorApi_BonusCreateUnknownGame",
+  "requirement": "020/FR-007",
+  "recorded_at": "2026-10-10T13:42:02Z",
+  "original": {
+    "commit": "21da61f0",
+    "stub": "tests/fake-st8",
+    "how": "run locally from source; two runs on fresh ids"
+  },
+  "runs": 2,
+  "steps": [
+    {
+      "name": "create on a game the catalogue lacks",
+      "request": {
+        "method": "POST",
+        "path": "/api/operator/v1/bonus/create",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_id": "bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e",
+          "players": [
+            "player-1-26a01d07"
+          ],
+          "count": 3,
+          "value": "0.10",
+          "type": "free_bets",
+          "currency": "EUR",
+          "game_codes": [
+            "no-such-game"
+          ],
+          "site": "goldvibe"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "error": "unknown_game",
+          "status": "error"
+        }
+      }
+    }
+  ],
+  "vary": {}
+}

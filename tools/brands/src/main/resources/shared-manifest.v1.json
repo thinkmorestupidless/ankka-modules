@@ -26,7 +26,8 @@
           "enum": [
             "payments",
             "programme",
-            "reasoner"
+            "reasoner",
+            "tools"
           ]
         },
         "name": {
@@ -88,7 +89,8 @@
               "psp-gateway",
               "ingest",
               "affiliate-programme",
-              "audit"
+              "audit",
+              "game-provider-simulator"
             ]
           },
           "image": {

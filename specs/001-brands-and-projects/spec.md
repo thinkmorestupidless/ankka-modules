@@ -225,6 +225,12 @@ Settled with specs 014–019 once they existed.
   invitation, cursor, claim window, wagering window, attribution window) are split, one term per
   sense. Terms are settled here because this spec owns the contract's words.
 
+### Session 2026-10-09 (from spec 020)
+
+- Q: Where does the game provider simulator live? → A: In a fourth shared project, `tools`, with a
+  manifest applied by the brands tool like the others (spec 020 research R1). `tools` is reserved as a
+  slug, publishes no topic, makes no grant, and the tool refuses it with `--real-money`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A brand is created from one manifest and runs on its own (Priority: P1)
@@ -426,9 +432,10 @@ one of the conditions and check the refusal names it.
   `kyc`, `responsible-gambling`, `rewards`, `game-provider`, `attribution`, `partner-api`,
   `engagement`, `reporting`, `support-agent`. Each is specified by one spec in this repository
   (`attribution` by spec 012).
-- **FR-003**: The installation MUST hold three shared projects: `payments` (`merchant`, `psp-gateway`,
+- **FR-003**: The installation MUST hold four shared projects: `payments` (`merchant`, `psp-gateway`,
   `ingest`), `programme` (`affiliate-programme`), `reasoner` (`audit` only: the plan's `proposals` is
-  not carried over, spec 018).
+  not carried over, spec 018), and `tools` (`game-provider-simulator`, spec 020), which is never
+  applied to an installation that takes real money.
 - **FR-004**: A key a brand service keeps state under MUST carry no brand: a wallet is
   `player/currency`, a player is the player id, a session the session id. Two brands MAY hold the same
   key for different things. A player id MUST be minted at random by `players` and never derived from

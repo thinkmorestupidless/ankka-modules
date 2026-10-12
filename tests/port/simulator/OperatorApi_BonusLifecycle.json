@@ -1,0 +1,164 @@
+{
+  "scenario": "OperatorApi_BonusLifecycle",
+  "requirement": "020/FR-007",
+  "recorded_at": "2026-10-10T13:42:02Z",
+  "original": {
+    "commit": "21da61f0",
+    "stub": "tests/fake-st8",
+    "how": "run locally from source; two runs on fresh ids"
+  },
+  "runs": 2,
+  "steps": [
+    {
+      "name": "create",
+      "request": {
+        "method": "POST",
+        "path": "/api/operator/v1/bonus/create",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_id": "bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e",
+          "players": [
+            "player-1-26a01d07",
+            "player-1-26a01d07-2"
+          ],
+          "count": "3",
+          "value": "0.10",
+          "type": "free_bets",
+          "currency": "EUR",
+          "game_codes": [
+            "book-of-ra"
+          ],
+          "site": "goldvibe"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonus": {
+            "bonus_id": "bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e",
+            "instances": [
+              {
+                "player": "player-1-26a01d07",
+                "remaining": 3,
+                "status": "active"
+              },
+              {
+                "player": "player-1-26a01d07-2",
+                "remaining": 3,
+                "status": "active"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "get",
+      "request": {
+        "method": "GET",
+        "path": "/api/operator/v1/bonus/get?bonus_id=bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e&site=goldvibe",
+        "headers": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonus": {
+            "bonus_id": "bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e",
+            "instances": [
+              {
+                "player": "player-1-26a01d07",
+                "remaining": 3,
+                "status": "active"
+              },
+              {
+                "player": "player-1-26a01d07-2",
+                "remaining": 3,
+                "status": "active"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "cancel one player's instance",
+      "request": {
+        "method": "POST",
+        "path": "/api/operator/v1/bonus/cancel",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_id": "bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e",
+          "player": "player-1-26a01d07",
+          "site": "goldvibe"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonus": {
+            "bonus_id": "bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e",
+            "instances": [
+              {
+                "player": "player-1-26a01d07",
+                "remaining": 3,
+                "status": "canceled"
+              },
+              {
+                "player": "player-1-26a01d07-2",
+                "remaining": 3,
+                "status": "active"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "get an unknown bonus",
+      "request": {
+        "method": "GET",
+        "path": "/api/operator/v1/bonus/get?bonus_id=no-such-bonus&site=goldvibe",
+        "headers": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "error"
+        }
+      }
+    },
+    {
+      "name": "cancel an unknown player",
+      "request": {
+        "method": "POST",
+        "path": "/api/operator/v1/bonus/cancel",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_id": "bonus-b856e526-cdbb-4777-8bcd-1b944b35b44e",
+          "player": "nobody",
+          "site": "goldvibe"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "error"
+        }
+      }
+    }
+  ],
+  "vary": {
+    "$.bonus.bonus_id": "an id fresh to each run (the launch ticket, the bonus id, the player)",
+    "$.bonus.instances[0].player": "an id fresh to each run (the launch ticket, the bonus id, the player)",
+    "$.bonus.instances[1].player": "an id fresh to each run (the launch ticket, the bonus id, the player)"
+  }
+}

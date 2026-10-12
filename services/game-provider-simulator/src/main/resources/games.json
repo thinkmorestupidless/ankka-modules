@@ -1,0 +1,8 @@
+[
+  {"code": "book-of-ra", "name": "Book of Ra", "category": "slots", "developer": "Fake Studio Alpha",
+   "bonusTypes": ["free_bets", "bonus_buy"], "features": ["expanding_symbol", "gamble"], "themes": ["egypt", "adventure"]},
+  {"code": "fake-slot-002", "name": "Fake Slots II", "category": "slots", "developer": "Fake Studio Beta",
+   "bonusTypes": ["bonus_buy"], "features": ["cascading_reels"], "themes": ["fruit"]},
+  {"code": "fake-table-001", "name": "Fake Blackjack", "category": "table", "developer": "Fake Table Works",
+   "bonusTypes": [], "features": [], "themes": []}
+]

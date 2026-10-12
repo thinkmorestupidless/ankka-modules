@@ -1,0 +1,44 @@
+{
+  "name": "out-of-order",
+  "version": 1,
+  "description": "A round's credit arrives before its debit; passes only if the brand answers the credit as for an unknown round and later accepts the debit.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:644 (TestScenario15_St8Wallet_StandaloneCredit)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "15.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 3,
+      "status": [
+        "ok"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Fake Casino Game</title>
+<style>body{font-family:monospace;background:#1a1a2e;color:#eee;display:flex;flex-direction:column;align-items:center;padding:40px;gap:16px}</style>
+</head>
+<body data-wallet-token="%s" data-launch-token="%s">
+<h2>&#127920; Fake Casino Game</h2>
+<p id="info">Loading session&#8230;</p>
+<p style="font-size:11px;opacity:0.5">wallet token: <span id="wt"></span></p>
+<script>
+const wt = document.body.dataset.walletToken;
+const lt = document.body.dataset.launchToken;
+document.getElementById('wt').textContent = wt || '(none)';
+document.getElementById('info').textContent = wt ? 'Session active. Control via /test/* API.' : 'Session initialising…';
+</script>
+</body>
+</html>

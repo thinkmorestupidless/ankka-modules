@@ -19,11 +19,15 @@ object Layout:
   /** Brand services that get an object-storage bucket (research R12). */
   val ObjectStorageServices: Set[String] = Set("kyc", "reporting")
 
-  /** The shared projects and their services (FR-003). */
+  /**
+   * The shared projects and their services (FR-003). `tools` holds the game provider simulator
+   * (spec 020), which reaches a brand only through its public provider routes (constitution III).
+   */
   val SharedProjects: Map[String, Vector[String]] = Map(
     "payments"  -> Vector("merchant", "psp-gateway", "ingest"),
     "programme" -> Vector("affiliate-programme"),
-    "reasoner"  -> Vector("audit")
+    "reasoner"  -> Vector("audit"),
+    "tools"     -> Vector("game-provider-simulator")
   )
 
   /** Services whose every route is of class `service`: never exposed (contracts/routes.md). */
@@ -61,7 +65,8 @@ object Layout:
   val SharedTopics: Map[String, Vector[String]] = Map(
     "payments"  -> Vector("payments.merchants"),
     "programme" -> Vector.empty,
-    "reasoner"  -> Vector.empty
+    "reasoner"  -> Vector.empty,
+    "tools"     -> Vector.empty
   )
 
   /** Retention a topic is declared with (FR-015): facts are kept; two topics are ephemeral. */

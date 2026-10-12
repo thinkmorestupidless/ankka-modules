@@ -1,0 +1,57 @@
+{
+  "name": "cancel-after-credit",
+  "version": 1,
+  "description": "A round is debited and credited, then its bet is cancelled; passes only if the brand answers as the original does for a cancel of a settled round and leaves the balance the original would.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:969 (TestScenario15_St8Wallet_Resettlement), tests/e2e/scenario15_st8_wallet_e2e_test.go:1015 (CancelEverythingWithinRound)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "20.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 3,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "same-as 1",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 5,
+      "status": [
+        "ok"
+      ]
+    }
+  ]
+}

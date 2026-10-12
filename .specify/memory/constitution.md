@@ -21,11 +21,13 @@ a PSP's reference, a workflow's step id), and a repeat returns the first outcome
 ### III. A brand is a project
 Each brand is its own ankka project with its own services, databases, topics and versions. Keys
 inside a brand carry no brand; a wallet is `player/currency`. Routes keep their `{brand}` segment and
-a brand project refuses any brand but its own. Shared projects (`payments`, `programme`, `reasoner`)
-hold no brand's player data beyond the player id, and in `payments` the fields a payment provider
-requires for a deposit, held as `Personal` values under the project's own subject; `programme` holds
-no player id at all, only a per-network pseudonym. A shared project reaches a brand only through a
-grant the brand made (ankka 040). Nothing is shared by convention.
+a brand project refuses any brand but its own. Shared projects (`payments`, `programme`, `reasoner`,
+`tools`) hold no brand's player data beyond the player id, and in `payments` the fields a payment
+provider requires for a deposit, held as `Personal` values under the project's own subject;
+`programme` holds no player id at all, only a per-network pseudonym. A shared project reaches a
+brand only through a grant the brand made (ankka 040); a brand's public routes are the exception,
+reached by any caller as the internet reaches them, admitted by the route's own signature or key
+and never by a platform identity. Nothing is shared by convention.
 
 ### IV. Commands over HTTP, facts over topics
 A command that needs an answer in the request path is an HTTP call to the owning service. A fact is
@@ -72,9 +74,15 @@ This constitution outranks any other practice in the repository. An amendment is
 that states what changes and why, and every open spec is checked against it before merge. Where a
 spec and the constitution disagree, the spec is wrong until the constitution is amended.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-10-09
+**Version**: 1.2.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-10-09
 
 Amendment 1.1.0 (2026-10-09): principle III said shared projects hold "no brand's player data beyond
 a pseudonymous subject id". Spec 001 FR-018, settled after the cashier was read, has `payments` hold
 the player id and the customer fields a payment provider requires, and `reasoner` the player id; only
 `programme` is pseudonymous. The principle now says what the specs do.
+
+Amendment 1.2.0 (2026-10-09): principle III named three shared projects and said a shared project
+reaches a brand only through a grant. Spec 020 adds `tools` (the game provider simulator), which
+reaches a brand's public provider routes as the real provider does: from outside, signed, with no
+platform identity and nothing to grant. The principle now names `tools` and says that a public route
+is reached as the internet reaches it; the grant rule governs every other route.

@@ -63,6 +63,9 @@ object Main:
             val realMoney = manifest.realMoney || args.switches.contains("--real-money")
             val refusals =
               if !realMoney then Vector.empty
+              else if manifest.projectId == "tools" then
+                // spec 020: the simulator stands in for a game provider; it never runs where money is real.
+                Vector(Problem("real-money", "project 'tools' holds the game provider simulator, which never runs on an installation that takes real money"))
               else inst match
                 case None => Vector(Problem("real-money", "a brand taking real money needs --installation to check it against"))
                 case Some(i) => Readiness.refusals(Readiness.conditions(i))

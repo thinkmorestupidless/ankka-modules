@@ -1,0 +1,35 @@
+{
+  "project": {
+    "id": "tools",
+    "name": "Tools"
+  },
+  "ankka": {
+    "runtime": "0.11.0"
+  },
+  "keycloak": {
+    "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"
+  },
+  "services": [
+    {
+      "name": "game-provider-simulator",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/game-provider-simulator:0.1.0",
+      "expose": true,
+      "env": {
+        "SIMULATOR_BRANDS": "[{\"slug\":\"goldvibe\",\"baseAddress\":\"https://game-provider-goldvibe.127.0.0.1.sslip.io\",\"testBrand\":true,\"caPem\":\"env:SIMULATOR_LOCAL_CA\"}]",
+        "SIMULATOR_EXTERNAL_URL": "https://game-provider-simulator-tools.127.0.0.1.sslip.io:8443",
+        "SIMULATOR_RETENTION_DAYS": "30",
+        "SIMULATOR_LOCAL_CA": "secret:tools-simulator/LOCAL_CA"
+      }
+    }
+  ],
+  "secrets": [
+    {
+      "name": "tools-simulator",
+      "keys": ["LOCAL_CA"]
+    }
+  ],
+  "topics": [],
+  "grants": {
+    "made": []
+  }
+}

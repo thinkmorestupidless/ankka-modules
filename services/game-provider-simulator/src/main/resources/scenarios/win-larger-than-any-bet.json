@@ -1,0 +1,46 @@
+{
+  "name": "win-larger-than-any-bet",
+  "version": 1,
+  "description": "A win of 1,000,000.00 on a stake of 0.10; passes only if the brand credits the exact amount, as the original does since #662.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:500 (TestScenario15_St8Wallet_LargeWinOnLargeStake); spec 002 SC-004",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "0.10",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "ok"
+      ],
+      "balance": "moved_once"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "1000000.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 3,
+      "status": [
+        "ok"
+      ],
+      "balance": "moved_once"
+    }
+  ]
+}

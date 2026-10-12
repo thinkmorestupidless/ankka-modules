@@ -1,0 +1,35 @@
+{
+  "name": "retry-storm",
+  "version": 1,
+  "description": "A debit the brand answers with error is sent again on the provider's schedule until it answers otherwise or the cap is reached; the run reports how many attempts and how long.",
+  "source": "docs/incidents/2026-08-19-st8-open-rounds-property-truncation.md (86 retries over 8 hours for one win)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [
+      {
+        "every": "30s",
+        "for": "10m"
+      },
+      {
+        "every": "10m"
+      }
+    ],
+    "cap": "8h"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "1.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 0,
+      "status": [
+        "ok"
+      ]
+    }
+  ]
+}

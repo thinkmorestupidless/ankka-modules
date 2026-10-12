@@ -1,18 +1,12 @@
 Feature: A simulator scenario makes the game provider misbehave on purpose
   A tester selects a simulator scenario for a session or a brand, and the simulator does what a
-  real provider does when things go wrong: sends a debit again after a slow answer, cancels after
+  real provider does when things go wrong: retries a debit the brand answered too slowly, cancels after
   a credit, sends a round's calls out of order, storms the brand with retries, signs with a rotated
   key, names a session ticket the brand never issued. The scenario states what the brand must
   answer and the simulator run records whether it did.
 
   Background:
     Given a brand configured with the simulator as its game provider
-
-  Scenario: a debit answered slowly is sent again under the same transaction id, and the simulator run passes only if the second answer equals the first and the balance moved once
-    Given the simulator scenario "duplicate debit after a slow answer"
-    When the brand's answer to a debit takes longer than the scenario's limit
-    Then the simulator sends the same debit again with the same transaction id
-    And the simulator run passes only if the brand's second answer equals its first and the player's balance moved once
 
   Scenario: a cancel sent after a credit passes only if the brand answers as the original does for a cancel of a settled round
     Given the simulator scenario "cancel after credit"
@@ -54,11 +48,12 @@ Feature: A simulator scenario makes the game provider misbehave on purpose
     Then the simulator sends a credit of "0.00"
     And the simulator run passes only if the brand settles the round as a loss
 
-  Scenario: a brand answering slower than the provider waits has the request abandoned and retried as the provider would, with every attempt and answer recorded
+  Scenario: a brand answering a debit slower than the provider waits has the request abandoned and retried under the same transaction id, every attempt recorded, and the simulator run passes only if the retry's answer equals the first and the balance moved once
     Given the simulator scenario "slow operator"
-    When the brand takes longer to answer than the provider waits
-    Then the simulator abandons the request and retries as the provider would
+    When the brand's answer to a debit takes longer than the provider waits
+    Then the simulator abandons the request and sends the same debit again with the same transaction id on the scenario's retry schedule
     And the simulator run records every attempt and every answer
+    And the simulator run passes only if the brand's answer to the retry equals its first and the player's balance moved once
 
   Scenario: a simulator scenario selected for one session leaves another session on the same brand on the default scenario
     Given a simulator scenario selected for one session

@@ -1,0 +1,119 @@
+{
+  "name": "harness-edges",
+  "version": 1,
+  "description": "The harness's edges: not enough money, a balance with no ticket, a cancel with only a player, unknown fields, an unknown cancel, a correction below zero, a bad signature.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:582-1015 (NotEnoughMoney, BalanceWithoutToken, LimitedCancel, NewParams, StandaloneCancel, CorrectionDebitNegativeBalance, WrongSignature)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "1000000000.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "not_enough_money"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "balance",
+      "token": "none"
+    },
+    {
+      "kind": "expect",
+      "of": 3,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "1.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "same-as 5",
+      "round": "none",
+      "token": "none"
+    },
+    {
+      "kind": "expect",
+      "of": 6,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "balance",
+      "extra": {
+        "new_future_field": "some_value",
+        "another_field": 42
+      }
+    },
+    {
+      "kind": "expect",
+      "of": 8,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "unknown",
+      "round": "none"
+    },
+    {
+      "kind": "expect",
+      "of": 10,
+      "status": [
+        "transaction_not_found",
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "buyin",
+      "amount": "0.10",
+      "round": "none",
+      "token": "none",
+      "providerKind": "correction_debit"
+    },
+    {
+      "kind": "expect",
+      "of": 12,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "balance",
+      "key": "wrong"
+    },
+    {
+      "kind": "expect",
+      "of": 14,
+      "status": [
+        "auth_failed"
+      ]
+    }
+  ]
+}

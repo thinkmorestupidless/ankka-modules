@@ -1,0 +1,44 @@
+{
+  "name": "unknown-token",
+  "version": 1,
+  "description": "A debit names a session ticket the brand never issued; passes only if the brand answers session_expired and no balance moves.",
+  "source": "spec 003 FR-012 (a debit requires a registered session ticket); St8Routes.scala debit",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "1.00",
+      "round": "new",
+      "token": "unknown"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "session_expired"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "expect",
+      "of": 3,
+      "status": [
+        "ok"
+      ],
+      "balance": "unchanged"
+    }
+  ]
+}

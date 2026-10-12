@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eitheror.io/casino/simulator/scenario.schema.json",
+  "title": "Simulator scenario",
+  "description": "A named script the simulator follows for a session or a brand: what to send, when, and what the brand must answer (spec 020 FR-016 to FR-019). Durations are strings such as \"30s\", \"10m\", \"8h\", \"250ms\".",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "version", "schedule", "shape", "steps", "source"],
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "version": { "type": "integer", "minimum": 1 },
+    "description": { "type": "string" },
+    "source": {
+      "type": "string",
+      "description": "Where the expectations come from (FR-018): a recording under tests/port/, or the original's source file and line when no recording holds the case."
+    },
+    "shape": { "enum": ["stub", "harness"], "description": "Which body the callbacks carry (contracts/st8-wire.md)." },
+    "schedule": { "$ref": "#/$defs/schedule" },
+    "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } }
+  },
+  "$defs": {
+    "duration": { "type": "string", "pattern": "^[0-9]+(ms|s|m|h)$" },
+    "durationRange": {
+      "type": "object", "additionalProperties": false, "required": ["min", "max"],
+      "properties": { "min": { "$ref": "#/$defs/duration" }, "max": { "$ref": "#/$defs/duration" } },
+      "description": "Drawn from the run's seed (FR-004)."
+    },
+    "amount": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[0-9]+\\.[0-9]{2}$" },
+        {
+          "type": "object", "additionalProperties": false, "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "string", "pattern": "^[0-9]+\\.[0-9]{2}$" },
+            "max": { "type": "string", "pattern": "^[0-9]+\\.[0-9]{2}$" }
+          },
+          "description": "Drawn from the run's seed, two decimal places."
+        }
+      ]
+    },
+    "schedule": {
+      "type": "object", "additionalProperties": false, "required": ["wait", "intervals", "cap"],
+      "properties": {
+        "wait": { "$ref": "#/$defs/duration", "description": "How long one attempt waits for an answer." },
+        "intervals": {
+          "type": "array",
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["every"],
+            "properties": { "every": { "$ref": "#/$defs/duration" }, "for": { "$ref": "#/$defs/duration" } }
+          },
+          "description": "Empty means no retry. The last entry may omit `for` and runs to the cap."
+        },
+        "cap": { "$ref": "#/$defs/duration", "description": "Elapsed since the first attempt after which the callback gives up." },
+        "retryOn": { "type": "array", "items": { "type": "string" }, "default": ["error"] }
+      }
+    },
+    "step": {
+      "oneOf": [
+        { "$ref": "#/$defs/passThrough" },
+        { "$ref": "#/$defs/send" },
+        { "$ref": "#/$defs/expect" },
+        { "$ref": "#/$defs/wait" },
+        { "$ref": "#/$defs/settleOpenRounds" },
+        { "$ref": "#/$defs/rotateKey" }
+      ]
+    },
+    "passThrough": {
+      "type": "object", "additionalProperties": false, "required": ["kind"],
+      "properties": { "kind": { "const": "pass-through" } },
+      "description": "The default scenario's only step: each instruction is sent once and the answer returned verbatim."
+    },
+    "send": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "callback"],
+      "properties": {
+        "kind": { "const": "send" },
+        "callback": { "enum": ["check", "balance", "player_profile", "debit", "credit", "cancel", "buyin", "payout"] },
+        "on": { "enum": ["instruction", "now"], "default": "now", "description": "`instruction`: wait for the tester's instruction of this callback's kind; `now`: send when reached." },
+        "amount": { "$ref": "#/$defs/amount" },
+        "providerKind": { "type": "string", "description": "`debit`, `free_debit`, `credit`, `free_credit`, `correction_debit`; defaults by callback." },
+        "round": { "enum": ["new", "same", "none"], "default": "same" },
+        "transaction": {
+          "type": "string",
+          "pattern": "^(new|unknown|same-as [0-9]+)$",
+          "default": "new",
+          "description": "`same-as <step>` repeats that step's transaction id (a duplicate); `unknown` is an id the brand never saw."
+        },
+        "token": { "enum": ["session", "unknown", "none"], "default": "session" },
+        "gameCode": { "type": "string", "description": "Overrides the session's (TableSwitch)." },
+        "key": { "enum": ["current", "next", "wrong", "withdrawn"], "default": "current" },
+        "malformed": { "type": "boolean", "default": false, "description": "Send a body that is not a JSON object." },
+        "extra": { "type": "object", "description": "Fields added to the body (NewParams)." },
+        "schedule": { "$ref": "#/$defs/schedule", "description": "Overrides the scenario's for this callback (a retry storm)." }
+      }
+    },
+    "expect": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "of"],
+      "properties": {
+        "kind": { "const": "expect" },
+        "of": { "type": "integer", "minimum": 0, "description": "The send step judged." },
+        "status": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Accepted status words (StandaloneCancel accepts two)." },
+        "httpStatus": { "type": "integer" },
+        "balance": { "enum": ["moved_once", "unchanged", "exact", "any"], "default": "any" },
+        "exact": { "type": "string", "pattern": "^-?[0-9]+\\.[0-9]{2}$", "description": "With `balance: exact`." },
+        "sameAnswerAs": { "type": "integer", "description": "The answer must equal that step's (the slow-operator retry)." },
+        "attempts": { "type": "object", "additionalProperties": false, "properties": { "min": { "type": "integer" }, "max": { "type": "integer" } } },
+        "roundSettledAs": { "enum": ["won", "lost", "cancelled"] }
+      }
+    },
+    "wait": {
+      "type": "object", "additionalProperties": false, "required": ["kind"],
+      "properties": {
+        "kind": { "const": "wait" },
+        "for": { "$ref": "#/$defs/duration" },
+        "range": { "$ref": "#/$defs/durationRange" },
+        "until": { "enum": ["brand-bound", "window"], "description": "`brand-bound`: the brand's key refresh bound; `window`: the orphaned-bet window." }
+      }
+    },
+    "settleOpenRounds": {
+      "type": "object", "additionalProperties": false, "required": ["kind"],
+      "properties": { "kind": { "const": "settle-open-rounds" } },
+      "description": "A credit of 0.00 for every open round of the session."
+    },
+    "rotateKey": {
+      "type": "object", "additionalProperties": false, "required": ["kind"],
+      "properties": { "kind": { "const": "rotate-key" }, "withdrawOld": { "type": "boolean", "default": true } },
+      "description": "Publish the next key in the key document, wait the brand's bound, sign with it, withdraw the old."
+    }
+  }
+}

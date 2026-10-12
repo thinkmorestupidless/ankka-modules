@@ -27,3 +27,17 @@ dev-kind keeps the development Keycloak's database on a volume, so the realms su
 
 The Keycloak administrator's credential is never in this repository: create
 `casino-keycloak-admin` (`username`, `password`) in the `casino-identity` namespace out of band.
+
+## The `tools` project (spec 020)
+
+`shared/tools/manifest.json` deploys the game provider simulator to `dev-kind` or a pre-production
+installation; the brands tool refuses it with `--real-money`. Its operator routes admit the `eitheror`
+realm's `platform_admin`, the brand's `brand_<slug>` for that brand's runs, and `brand_tools` for the
+scenario library and the status (spec 020 research R2). Create the realm role `brand_tools` in the
+`eitheror` realm when someone other than a platform administrator runs the simulator; until then
+`platform_admin` reaches every route.
+
+Inside the local cluster a gateway hostname resolves to the pod itself. `overlays/dev-kind/gateway-dns.sh`
+(run once after ankka's `just up`; idempotent) adds a CoreDNS rewrite so `*.127.0.0.1.sslip.io`
+reaches the gateway, on 443, from any pod: what lets the simulator call a brand as an outside caller
+(spec 020 research R3).

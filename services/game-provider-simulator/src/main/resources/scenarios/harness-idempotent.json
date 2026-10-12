@@ -1,0 +1,79 @@
+{
+  "name": "harness-idempotent",
+  "version": 1,
+  "description": "The harness's repeats: a debit, a credit and a cancel each sent twice under the same id; the second answer equals the first.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:778-844 (IdempotentDebit, IdempotentCredit, IdempotentCancel)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "same",
+      "transaction": "same-as 1"
+    },
+    {
+      "kind": "expect",
+      "of": 2,
+      "status": [
+        "ok"
+      ],
+      "sameAnswerAs": 1
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "20.00",
+      "round": "same"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "20.00",
+      "round": "same",
+      "transaction": "same-as 4"
+    },
+    {
+      "kind": "expect",
+      "of": 5,
+      "status": [
+        "ok"
+      ],
+      "sameAnswerAs": 4
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "same-as 7",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 8,
+      "status": [
+        "ok"
+      ]
+    }
+  ]
+}

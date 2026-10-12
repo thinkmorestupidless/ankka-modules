@@ -1,0 +1,37 @@
+{
+  "name": "wrong-key",
+  "version": 1,
+  "description": "A call signed with a key the brand never saw; passes only if the brand answers auth_failed, which is never retried.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:884 (TestScenario15_St8Wallet_WrongSignature)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [
+      {
+        "every": "30s",
+        "for": "10m"
+      },
+      {
+        "every": "10m"
+      }
+    ],
+    "cap": "8h"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance",
+      "key": "wrong"
+    },
+    {
+      "kind": "expect",
+      "of": 0,
+      "status": [
+        "auth_failed"
+      ],
+      "attempts": {
+        "max": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "default",
+  "version": 1,
+  "description": "The stand-in exactly: one callback per instruction, never retried, the brand's answer returned verbatim (FR-016).",
+  "source": "tests/fake-st8/main.go (the original's stand-in)",
+  "shape": "stub",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "pass-through"
+    }
+  ]
+}

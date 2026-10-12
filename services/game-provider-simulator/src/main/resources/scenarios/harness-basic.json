@@ -1,0 +1,134 @@
+{
+  "name": "harness-basic",
+  "version": 1,
+  "description": "The harness's basic calls: balance, debit, credit, cancel, buyin, payout, a zero debit and a zero credit.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:450-644 (BasicBalance, BasicDebit, BasicCredit, BasicCancel, BasicBuyin, BasicPayout, ZeroDebit, ZeroCredit)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "expect",
+      "of": 0,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 2,
+      "status": [
+        "ok"
+      ],
+      "balance": "moved_once"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "20.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 4,
+      "status": [
+        "ok"
+      ],
+      "balance": "moved_once"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "cancel",
+      "transaction": "same-as 6",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 7,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "buyin",
+      "amount": "25.00",
+      "round": "none",
+      "token": "none"
+    },
+    {
+      "kind": "expect",
+      "of": 9,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "payout",
+      "amount": "50.00",
+      "round": "none",
+      "token": "none"
+    },
+    {
+      "kind": "expect",
+      "of": 11,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "0.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 13,
+      "status": [
+        "ok"
+      ],
+      "balance": "unchanged"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "10.00",
+      "round": "new"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "0.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 16,
+      "status": [
+        "ok"
+      ],
+      "balance": "unchanged"
+    }
+  ]
+}

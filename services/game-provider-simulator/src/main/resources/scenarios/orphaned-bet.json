@@ -1,0 +1,50 @@
+{
+  "name": "orphaned-bet",
+  "version": 1,
+  "description": "A bet with no credit, cancel or loss within the scenario's window is settled by a credit of 0.00; passes only if the brand settles the round as a loss.",
+  "source": "tests/e2e/scenario15_st8_wallet_e2e_test.go:628 (TestScenario15_St8Wallet_ZeroCredit); spec 003 FR-014",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "send",
+      "callback": "balance"
+    },
+    {
+      "kind": "send",
+      "callback": "debit",
+      "amount": "1.00",
+      "round": "new"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "wait",
+      "for": "30s"
+    },
+    {
+      "kind": "send",
+      "callback": "credit",
+      "amount": "0.00",
+      "round": "same"
+    },
+    {
+      "kind": "expect",
+      "of": 4,
+      "status": [
+        "ok"
+      ],
+      "balance": "unchanged",
+      "roundSettledAs": "lost"
+    }
+  ]
+}

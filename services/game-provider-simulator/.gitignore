@@ -1,0 +1,8 @@
+target/
+.bsp/
+.metals/
+.idea/
+
+# The ankka skills and MCP entry `ankka init` writes: the ankka@ankka plugin provides them (CLAUDE.md).
+.claude/
+.mcp.json

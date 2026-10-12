@@ -1,0 +1,16 @@
+# The shipped scenarios, seeded into the library at start (research R10). Each cites its source (FR-018).
+default.json
+slow-operator.json
+cancel-after-credit.json
+out-of-order.json
+retry-storm.json
+rotated-key.json
+wrong-key.json
+unknown-token.json
+win-larger-than-any-bet.json
+orphaned-bet.json
+malformed-body.json
+harness-basic.json
+harness-rounds.json
+harness-idempotent.json
+harness-edges.json

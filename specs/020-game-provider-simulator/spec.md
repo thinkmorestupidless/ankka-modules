@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-08
 
-**Status**: Draft
+**Status**: Implemented (2026-10-10); deployed to `dev-kind` (2026-10-11); the run against the original (quickstart §9) is pending
 
 **Input**: User description: "A mock ST8 service that recreates ST8's APIs and callbacks so we can test properly before switching to them in pre-production and production, written as an ankka project: a provider core with protocol adapters over it, scenario scripts for every failure mode, and a recording of every run."
 
@@ -72,6 +72,29 @@ platform identity, under the brand's signature verification. Its default behavio
   of 003 FR-004, 003's status words including `spending_limit`, HTTP 400 for a malformed body, and
   the key document of 003 FR-026 as the way a test brand registers the simulator's key.
 
+### Session 2026-10-09
+
+- Q: Does ST8 document its callback retry timing and cap, and can it be copied into the default
+  schedule? → A: Not to hand. The stated approximation stays the shipped default, and the schedule
+  (intervals and cap) is a per-scenario setting in the scenario data, replaced without a release
+  when the provider's figures arrive.
+- Q: What does ST8's sandbox answer on the wire once its testing pot cap is reached? → A: Not
+  known; the incident of 2026-08-13 saw bets fail silently and nobody captured the answer. No
+  "testing pot cap" scenario in this spec; it is out of scope until the sandbox's answer is captured.
+- Q: Who may call the simulator's own routes? → A: The instruction routes and the game page are
+  public, unchanged from `fake-st8`, so the original's suite runs against them as it is; scenario
+  selection, load-profile start, the run view and the export are operator routes (spec 001's route
+  classes) under the installation's gateway, callable only with an operator identity.
+- Q: Are "duplicate debit after a timeout" and "slow operator" one scenario or two? → A: One,
+  "slow operator": the brand answers a debit slower than the provider waits; the simulator abandons
+  the request, retries under the same transaction id on the schedule, records every attempt, and
+  passes only if the retry's answer equals the first and the balance moved once. "Duplicate debit"
+  is dropped as a separate scenario.
+- Q: Is the signing material per brand or the simulator's? → A: The simulator's: one P-256 key pair
+  (FR-010), one key document (FR-011), shared by every brand it serves. FR-025's "or shared
+  secret" and "the protocol" were leftovers of the dropped generic adapter; a brand's configuration
+  is its base address and its test-brand flag.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A brand plays a round against the simulator exactly as against `fake-st8` (Priority: P1)
@@ -101,7 +124,7 @@ simulator in its default scenario and record; the two recordings are the same.
 ### User Story 2 - A scenario makes the provider misbehave on purpose (Priority: P1)
 
 A tester selects a scenario for a session or a brand, and the simulator does what a real provider
-does when things go wrong: resends a debit after a timeout, cancels after a credit, sends a round's
+does when things go wrong: retries a debit the brand answered too slowly, cancels after a credit, sends a round's
 callbacks out of order, storms the brand with retries, signs with a rotated key, names a token the
 brand never issued. The scenario states what the brand must answer and the simulator records whether
 it did.
@@ -114,7 +137,6 @@ each step, the brand's answer against the scenario's expectation.
 
 **Acceptance Scenarios**:
 
-- added `features/simulator/scenarios.feature`: a debit answered slowly is sent again under the same transaction id, and the simulator run passes only if the second answer equals the first and the balance moved once
 - added `features/simulator/scenarios.feature`: a cancel sent after a credit passes only if the brand answers as the original does for a cancel of a settled round
 - added `features/simulator/scenarios.feature`: a credit sent before its debit passes only if the brand answers as for an unknown round and later accepts the debit
 - added `features/simulator/scenarios.feature`: a retry storm resends on the provider's schedule until the brand stops answering error or the cap is reached, and reports the count and time
@@ -122,7 +144,7 @@ each step, the brand's answer against the scenario's expectation.
 - added `features/simulator/scenarios.feature`: a debit naming a session ticket the brand never issued passes only if the brand answers session expired and no balance moves
 - added `features/simulator/scenarios.feature`: a win far larger than any bet passes only if the brand answers exactly as the original does, with the balances before and after recorded
 - added `features/simulator/scenarios.feature`: an orphaned bet is settled by a credit of zero after the scenario's window, and the simulator run passes only if the brand settles the round as a loss
-- added `features/simulator/scenarios.feature`: a brand answering slower than the provider waits has the request abandoned and retried as the provider would, with every attempt and answer recorded
+- added `features/simulator/scenarios.feature`: a brand answering a debit slower than the provider waits has the request abandoned and retried under the same transaction id, every attempt recorded, and the simulator run passes only if the retry's answer equals the first and the balance moved once
 - added `features/simulator/scenarios.feature`: a simulator scenario selected for one session leaves another session on the same brand on the default scenario
 
 ---
@@ -197,13 +219,15 @@ local brand and read the report.
 - An answer with status "auth_failed": recorded, never retried; the scenario "wrong key" expects it.
 - The brand is unreachable: the simulator retries as the provider would, records each attempt, and
   the run fails with "brand unreachable" after the cap.
-- A session's launch token is used twice: the second `check` is answered "session_expired" by the
+- A session's launch ticket is used twice: the second `check` is answered "session_expired" by the
   brand and the simulator serves the session-expired page, as `fake-st8` does.
 - Two scenarios selected for one session: refused; the last selection before launch stands.
 - The brand's public key document for the simulator is missing: the brand refuses every callback
   with "auth_failed"; the run says so in its first step.
 - A load profile against a brand that takes real money: refused unless the brand is marked as a
   test brand in the simulator's configuration.
+- A scenario selection, a load-profile start or a run export without an operator identity: refused
+  by the gateway before it reaches the simulator; nothing is recorded in any run.
 
 ## Requirements *(mandatory)*
 
@@ -214,8 +238,9 @@ local brand and read the report.
 - **FR-001**: The simulator MUST hold a catalogue of fake games, each with a code, a name, a category,
   a developer, bonus types, features and themes, seeded with the three games `fake-st8` advertises
   (`book-of-ra`, `fake-slot-002`, `fake-table-001`) and extendable by configuration.
-- **FR-002**: The simulator MUST keep one session per launch token: the brand, player, currency, game
-  code, the wallet token the brand returned at `check`, the selected scenario and the run.
+- **FR-002**: The simulator MUST keep one session per launch ticket (the wire's `token`): the brand,
+  player, currency, game code, the session ticket the brand returned at `check`, the selected
+  scenario and the run.
 - **FR-003**: The simulator MUST keep one round per round id within a session with the state open,
   won, lost or cancelled, and the transaction ids it sent for the round's debit, credits and cancels.
 - **FR-004**: Every outcome a scenario needs at random (a win amount, a delay within a range, which
@@ -223,7 +248,8 @@ local brand and read the report.
   the same callbacks in the same order.
 - **FR-005**: The simulator MUST schedule every callback through one scheduler that applies the
   protocol's retry rules: a status of "error" or no answer within the timeout is retried on the
-  provider's schedule up to the scenario's cap; any other status word ends the attempt.
+  scenario's retry schedule (its intervals and cap, part of the scenario data of FR-019, shipped
+  with the default of *Assumptions*); any other status word ends the attempt.
 - **FR-006**: The core MUST expose to adapters only sessions, rounds, scheduled callbacks and their
   answers; no adapter keeps state of its own, and no part of the core names a protocol's route,
   field or status word.
@@ -231,11 +257,11 @@ local brand and read the report.
 **The ST8 adapter**
 
 - **FR-007**: The ST8 adapter MUST answer the provider's operator API as `fake-st8` does: launch
-  (store the session, return a game page address carrying the launch token), games (the catalogue in
+  (store the session, return a game page address carrying the launch ticket), games (the catalogue in
   the provider's games, developers and categories shape), and free-round provisioning (create, get,
   cancel) answering HTTP 200 with a status word, "unknown_game" for a game the catalogue lacks.
-- **FR-008**: The ST8 adapter MUST serve the game page, which performs `check` with the launch token
-  and, on "ok", keeps the wallet token; on any other answer it serves the session-expired page.
+- **FR-008**: The ST8 adapter MUST serve the game page, which performs `check` with the launch ticket
+  and, on "ok", keeps the session ticket; on any other answer it serves the session-expired page.
 - **FR-009**: The ST8 adapter MUST send the callbacks `check`, `balance`, `player_profile`, `debit`,
   `credit`, `cancel`, `buyin` and `payout` with the fields the original's adapter reads (`token`,
   `transaction_id`, `round`, `currency`, `amount` as a decimal string of two places, `provider_kind`,
@@ -264,17 +290,19 @@ local brand and read the report.
 **A second adapter**
 
 - **FR-015**: No second adapter is specified: the generic provider API was dropped by spec 003 as a
-  stub of the original. The seam of FR-006 MUST hold so that a second real provider's protocol can be
-  added as an adapter with no change to the core, the scenarios or the run record.
+  stub of the original. FR-006 is the seam a second real provider's adapter would be added behind.
 
 **Scenarios**
 
 - **FR-016**: A scenario MUST be selectable per session before launch or per brand as a default, and
   the default scenario MUST reproduce `fake-st8`: one callback per instruction, no retries, the
   brand's answer returned verbatim.
-- **FR-017**: The simulator MUST ship the scenarios: duplicate debit after a timeout; cancel after
-  credit; out of order; retry storm; rotated key; wrong key; unknown token; win larger than any bet;
-  orphaned bet settled as a loss; slow operator; malformed body; and a load profile. Each MUST state,
+- **FR-017**: The simulator MUST ship the scenarios: slow operator (a debit answered slower than
+  the provider waits is abandoned and retried under the same transaction id; passes only if the
+  retry's answer equals the first and the balance moved once); cancel after credit; out of order;
+  retry storm; rotated key; wrong key; unknown token; win larger than any bet; orphaned bet settled
+  as a loss; malformed body; and a load profile, which plays any instruction-driven scenario
+  across many sessions. Each scenario MUST state,
   per step, the callback sent and the answer expected, and the run MUST record the verdict per step.
 - **FR-018**: A scenario's expectations MUST be stated as the original's answers, taken from the
   recordings spec 003 names, and a scenario whose expectation has no recording MUST say so and cite
@@ -286,7 +314,8 @@ local brand and read the report.
 
 - **FR-020**: Every callback sent MUST be recorded with the route, the body, the key id, the time
   sent, the attempt number, the scenario step, the answer's status and balance and the time taken, and
-  MUST be readable through the simulator's operator view and a route for tests.
+  MUST be readable through the simulator's operator routes (FR-027), which a test kit reaches with a
+  staff token.
 - **FR-021**: A run MUST be exportable as a recording in the shape ankka-port keeps, so that it can be
   replayed as a parity test by the brand's test kit.
 - **FR-022**: Runs MUST be kept for the installation's retention for the simulator (shipping default
@@ -300,17 +329,26 @@ local brand and read the report.
 - **FR-024**: The simulator MUST be an ankka service in a project named `tools`, reaching a brand's
   provider routes through the installation's gateway as an outside caller with no platform identity;
   it MUST NOT be granted anything under ankka 040, and the brand MUST admit it only by signature.
-- **FR-025**: One simulator MUST serve many brands, each configured with the brand's base address,
-  the protocol, the key pair or shared secret to sign with, and whether the brand is a test brand;
-  a load profile MUST be refused against a brand not marked as a test brand.
+- **FR-025**: One simulator MUST serve many brands, each configured with the brand's base address
+  and whether the brand is a test brand; every brand is signed for with the simulator's one key
+  pair (FR-010) and names the same key document (FR-011). A load profile MUST be refused against a
+  brand not marked as a test brand.
 - **FR-026**: The simulator MUST run beside a brand on a laptop in ankka's local mode, and the
-  original's end-to-end suite MUST run against it in place of `fake-st8` by changing one address.
+  original's end-to-end suite MUST run against it in place of `fake-st8` by changing one address
+  and running the original's own catalogue sync first, since the simulator seeds nothing into the
+  original (research R8).
+- **FR-027**: The simulator's routes MUST fall in two of spec 001's route classes and no other: the
+  instruction routes (FR-014), the game page (FR-008), the key document (FR-011) and the operator
+  API (FR-007) are public, as `fake-st8`'s are; scenario selection (FR-016), starting and stopping
+  a load profile, the run view and the run export (FR-020, FR-021) are operator routes, admitted
+  only with an operator identity through the installation's gateway. The simulator MUST NOT
+  introduce a credential scheme of its own.
 
 ### Key Entities
 
 - **Game**: a fake game in the catalogue: code, name, category, developer, bonus types, features,
   themes.
-- **Session**: one launch: brand, player id, currency, game code, launch token, wallet token,
+- **Session**: one launch: brand, player id, currency, game code, launch ticket, session ticket,
   scenario, run.
 - **Round**: one round in a session: round id, state, the transaction ids sent.
 - **Callback**: one request sent to the brand: route, body, key id, attempt, time sent, answer, time
@@ -320,7 +358,7 @@ local brand and read the report.
 - **Run**: the ordered callbacks of a session or a load profile with its verdict, exportable as a
   recording.
 - **Free-round instance**: a provisioned bonus's allocation to one player: status and count remaining.
-- **Brand configuration**: a brand's base address, protocol, signing material, test-brand flag.
+- **Brand configuration**: a brand's base address and test-brand flag.
 
 ## Success Criteria *(mandatory)*
 
@@ -330,7 +368,7 @@ local brand and read the report.
   rebuilt brand with the simulator in its default scenario with zero differences in callbacks or
   answers.
 - **SC-002**: Every shipped scenario runs against a rebuilt brand and reports a verdict per step;
-  the scenarios duplicate debit, cancel after credit, unknown token and orphaned bet pass against
+  the scenarios slow operator, cancel after credit, unknown token and orphaned bet pass against
   specs 002 and 003 as written.
 - **SC-003**: A run with a given seed sends the same callbacks in the same order on two machines.
 - **SC-004**: A load profile of 100 sessions at 10 rounds a minute for 5 minutes against a local
@@ -348,6 +386,10 @@ local brand and read the report.
   the original's substrate by the stand-in.
 - Dropped: `/test/seed-bonus-offer` and `/test/reset-wallet-bonus`, which reach past the provider
   into the original's rewards and wallet; they become fixtures of the rewards and wallet test kits.
+- Tightened (planning, research R7): the games listing's developers and categories, and the bonus
+  a free spin draws from, are in a fixed order (by id) where the stand-in's is Go map order; each
+  is one of the orders the stand-in produces. The key is pushed to a test control route only for the
+  original's own adapter (FR-026, `registerKeyAt`), never to a rebuilt brand.
 - Unchanged: the operator API, the game page and `check`, the instruction routes and their bodies,
   the three games, the free-round provisioning, the signing scheme.
 
@@ -361,7 +403,7 @@ coverage item 38 "game roundtrip: bet, win, loss, cancel", and the Playwright la
 original's spec 094).
 
 Recordings in which the test harness is the provider, which the simulator must be able to send as
-scripted scenarios: `TestScenario15_St8Wallet_*` (30: BasicBalance, BasicDebit, BasicCredit,
+scripted scenarios: `TestScenario15_St8Wallet_*` (29, corrected from 30 at planning: BasicBalance, BasicDebit, BasicCredit,
 LargeWinOnLargeStake, BasicCancel, BasicBuyin, BasicPayout, ZeroDebit, NotEnoughMoney,
 ZeroBalanceFreshSpinDeclined, ZeroCredit, StandaloneCredit, BigRoundMultipleDebits,
 BigRoundMultipleCredits, BigRoundMultipleCancels1, BigRoundMultipleCancels2, BigRoundFailedDebit,
@@ -370,21 +412,31 @@ WrongSignature, NewParams, TableSwitch, CorrectionDebitNegativeBalance, Resettle
 StandaloneCancel, CancelEverythingWithinRound); these are the source of the scenarios' expected
 answers (FR-018).
 
+Recordings the simulator's own parity suite replays, made against `fake-st8` run from source:
+`tests/port/simulator/OperatorApi_Launch.json`, `tests/port/simulator/OperatorApi_Games.json`,
+`tests/port/simulator/OperatorApi_BonusCreateUnknownGame.json`,
+`tests/port/simulator/OperatorApi_BonusLifecycle.json`.
+
 ## Assumptions
 
 - The provider's retry schedule is not documented in the original; the incident of 2026-08-19 shows
-  retries continuing for at least eight hours at a rate of tens an hour. The simulator's default
-  schedule is a stated approximation (every 30 seconds for the first ten minutes, then every ten
-  minutes, capped at eight hours) until the provider's documentation says otherwise.
-  [NEEDS CLARIFICATION: does ST8 document its retry timing and cap, and is the documentation
-  available to copy into the default schedule?]
+  retries continuing for at least eight hours at a rate of tens an hour. The provider's figures
+  are not to hand. The shipped default schedule is a stated approximation (every 30 seconds for the
+  first ten minutes, then every ten minutes, capped at eight hours); each scenario carries its own
+  schedule as data (FR-005, FR-019), so the default is replaced without a release when the
+  provider's documentation arrives.
 - The provider's sandbox enforced a testing pot cap (€100 of gross gaming revenue; incident of
-  2026-08-13) that silently failed bets once reached. A "testing pot cap" scenario would reproduce
-  it; whether the cap's behaviour on the wire (a status word, or silent failure) is known is not.
-  [NEEDS CLARIFICATION: what does ST8 answer on the wire once a sandbox cap is reached, so the
-  scenario can reproduce it?]
-- `buyin` and `payout` (table games: `TableSwitch`, `NewParams`) are driven as the harness drives them
-  in `TestScenario15`; the simulator's table-game session model is no richer than those tests need.
+  2026-08-13) that silently failed bets once reached. What the cap looks like on the wire was not
+  captured, so no scenario reproduces it (see *Out of scope*).
+- `buyin` and `payout` are driven as the harness drives them in `TestScenario15` (`BasicBuyin`,
+  `BasicPayout`, `CorrectionDebitNegativeBalance`: no token, a player id, `correction_debit` and
+  `free_credit` kinds); the simulator's model of them is no richer than those tests need.
+  `TableSwitch` is a credit under a different game code within a round and `NewParams` a balance
+  read carrying two unknown fields; neither is a table-game flow (corrected at planning, research R7).
+- `fake-st8` itself sends only `check`, `debit`, `credit` and `cancel`, without the nested `provider`
+  object; `balance`, `player_profile`, `buyin` and `payout` and the fuller body are the harness's
+  (research R7). The default scenario sends the stand-in's bodies; a scripted scenario sends the
+  harness's.
 - The simulator is Scala: it is a protocol speaker with a scheduler, and the ST8 signing is already
   written in Scala in the original's adapter tests.
 - Amounts on the wire are the provider's decimal strings; the wallet's minor units are spec 003's
@@ -407,3 +459,5 @@ answers (FR-018).
 - Standing in for ST8 in production: the simulator is for local, test and pre-production
   installations; a real-money brand points at the real provider.
 - The original's `/test/seed-bonus-offer` and `/test/reset-wallet-bonus` (specs 011, 002).
+- A "testing pot cap" scenario: the sandbox's answer once its cap is reached was never captured
+  (incident of 2026-08-13). It is added as scenario data (FR-019) once a captured answer exists.

@@ -1,0 +1,44 @@
+{
+  "name": "rotated-key",
+  "version": 1,
+  "description": "The next key is published, the brand's bound waited, then calls are signed with it; passes only if the brand admits the new key and refuses the withdrawn one.",
+  "source": "spec 003 FR-026 (the key document); tests/e2e/scenario15_st8_wallet_e2e_test.go:884 (TestScenario15_St8Wallet_WrongSignature)",
+  "shape": "harness",
+  "schedule": {
+    "wait": "5s",
+    "intervals": [],
+    "cap": "0s"
+  },
+  "steps": [
+    {
+      "kind": "rotate-key"
+    },
+    {
+      "kind": "send",
+      "callback": "balance",
+      "key": "current"
+    },
+    {
+      "kind": "expect",
+      "of": 1,
+      "status": [
+        "ok"
+      ]
+    },
+    {
+      "kind": "send",
+      "callback": "balance",
+      "key": "withdrawn"
+    },
+    {
+      "kind": "expect",
+      "of": 3,
+      "status": [
+        "auth_failed"
+      ],
+      "attempts": {
+        "max": 1
+      }
+    }
+  ]
+}

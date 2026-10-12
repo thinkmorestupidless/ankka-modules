@@ -1,0 +1,40 @@
+{
+  "scenario": "OperatorApi_Launch",
+  "requirement": "020/FR-007",
+  "recorded_at": "2026-10-10T13:42:02Z",
+  "original": {
+    "commit": "21da61f0",
+    "stub": "tests/fake-st8",
+    "how": "run locally from source; two runs on fresh ids"
+  },
+  "runs": 2,
+  "steps": [
+    {
+      "name": "launch",
+      "request": {
+        "method": "POST",
+        "path": "/api/operator/v1/launch",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "game_code": "book-of-ra",
+          "currency": "EUR",
+          "token": "launch-1798cbdb-5209-4e4d-af9b-0cc83ed68aca",
+          "player": "player-1-26a01d07",
+          "fun_mode": false,
+          "site": "goldvibe"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "game_url": "http://simulator.test/game?token=launch-1798cbdb-5209-4e4d-af9b-0cc83ed68aca"
+        }
+      }
+    }
+  ],
+  "vary": {
+    "$.game_url": "an id fresh to each run (the launch ticket, the bonus id, the player)"
+  }
+}
