@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -89,8 +90,11 @@ func load(dir string) (map[string]recorder.Recording, error) {
 }
 
 // Merge keeps run a's steps, marks every response field that differs in b as varying, and turns a
-// varying id that a later request reuses into a capture.
+// varying id that a later request reuses into a capture. Both runs are collapsed first: a test that
+// polls until something settles reads the same thing a number of times that differs between runs.
+// Credentials are redacted from both (Redact).
 func Merge(a, b recorder.Recording) recorder.Recording {
+	a, b = Redact(Collapse(a)), Redact(Collapse(b))
 	out := a
 	out.Runs = 2
 	out.Vary = map[string]string{}
@@ -133,6 +137,83 @@ func Merge(a, b recorder.Recording) recorder.Recording {
 		out.Vary = nil
 	}
 	return out
+}
+
+// Collapse keeps the last of consecutive GETs of the same path: a poll's earlier answers are only the
+// state not having settled yet.
+func Collapse(r recorder.Recording) recorder.Recording {
+	var steps []recorder.Step
+	for _, s := range r.Steps {
+		if n := len(steps); n > 0 && s.Request.Method == "GET" && steps[n-1].Request.Method == "GET" && steps[n-1].Request.Path == s.Request.Path {
+			steps[n-1] = s
+			continue
+		}
+		steps = append(steps, s)
+	}
+	r.Steps = steps
+	return r
+}
+
+// Secrets are the body fields a recording never keeps: the recorder drops credential headers, but a
+// login or a token exchange carries its password in the body and its tokens in the answer.
+var secrets = map[string]bool{"password": true, "access_token": true, "refresh_token": true, "id_token": true,
+	"client_secret": true, "accessToken": true, "refreshToken": true, "idToken": true}
+
+const redacted = "<redacted>"
+
+var jwt = regexp.MustCompile(`^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$`)
+
+var formSecret =regexp.MustCompile(`(^|&)(password|client_secret|refresh_token)=[^&]*`)
+
+// Redact replaces every secret in the steps' request and response bodies.
+func Redact(r recorder.Recording) recorder.Recording {
+	steps := make([]recorder.Step, len(r.Steps))
+	for i, s := range r.Steps {
+		s.Request.Body = redactBody(s.Request.Body)
+		s.Response.Body = redactBody(s.Response.Body)
+		steps[i] = s
+	}
+	r.Steps = steps
+	return r
+}
+
+func redactBody(b json.RawMessage) json.RawMessage {
+	if len(b) == 0 {
+		return b
+	}
+	var v any
+	if json.Unmarshal(b, &v) != nil {
+		return b
+	}
+	if text, ok := v.(string); ok { // a form-encoded body is recorded as a JSON string
+		v = formSecret.ReplaceAllString(text, "${1}${2}="+redacted)
+	} else {
+		v = redactValue(v)
+	}
+	out, _ := json.Marshal(v)
+	return out
+}
+
+func redactValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		for k, e := range x {
+			if secrets[k] {
+				x[k] = redacted
+			} else {
+				x[k] = redactValue(e)
+			}
+		}
+	case []any:
+		for i := range x {
+			x[i] = redactValue(x[i])
+		}
+	case string:
+		if jwt.MatchString(x) { // a bearer token, whatever field carries it ("token" is also ST8's wallet token)
+			return redacted
+		}
+	}
+	return v
 }
 
 type difference struct {

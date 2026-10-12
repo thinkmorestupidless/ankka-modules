@@ -45,13 +45,30 @@ object CasinoSessions extends Topic[CasinoSessionsFact]("casino.sessions", Vecto
 
 sealed trait CasinoRoundsFact extends Fact
 
-/** Keyed by the wallet the round was played from; the original's `game_round_settled` fields kept (FR-014). */
+/**
+ * Keyed by the wallet the round was played from; the original's `game_round_settled` fields kept (FR-014).
+ * Spec 003 FR-019 adds, additively: the provider's transaction ids and the wallet's, in the same order
+ * (one per movement, empty for a free round), so reporting matches the two without a call; and the
+ * free-rounds grant a tagged round belongs to, which `rewards` settles the win from (spec 011).
+ * `transaction_ids` stays the wallet's ids for readers written against it.
+ */
 @named("round_settled")
 final case class RoundSettled(playerId: String, currency: Currency, roundId: String, provider: String,
     providerRoundId: String, gameId: String, sessionId: String, stakeCents: MinorUnits, winCents: MinorUnits,
-    netResultCents: SignedMinorUnits, outcome: String, transactionIds: Vector[String], occurredAt: Instant)
+    netResultCents: SignedMinorUnits, outcome: String, transactionIds: Vector[String],
+    providerTransactionIds: Vector[String], walletTransactionIds: Vector[String], freeRoundsGrant: Option[String],
+    occurredAt: Instant)
     extends CasinoRoundsFact:
   def key: String = s"$playerId/${currency.code}"
+
+object RoundSettled:
+  /** The outcomes a round settles with: `credit` is a standalone credit or a payout (spec 003 FR-019). */
+  object Outcome:
+    val Win       = "win"
+    val Loss      = "loss"
+    val Cancelled = "cancelled"
+    val Credit    = "credit"
+    val all: Set[String] = Set(Win, Loss, Cancelled, Credit)
 
 object CasinoRoundsFact:
   given JsonValueCodec[CasinoRoundsFact] = FactCodecs.make

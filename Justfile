@@ -48,3 +48,8 @@ wallet-perf:
 # The wallet, locally, as brand goldvibe (`sbt schema && docker compose up -d` first, in services/wallet).
 wallet-run brand="goldvibe":
     cd services/wallet && CASINO_BRAND={{brand}} sbt run
+
+# Run sbt in one service's own build: `just service game-provider test`. The contract is published first.
+service name +args:
+    sbt contract/publishLocal
+    cd services/{{name}} && sbt {{args}}

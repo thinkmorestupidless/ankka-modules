@@ -1,0 +1,40 @@
+{
+  "scenario": "TestFixture_WalletTokenDebitBalance",
+  "requirement": "003/FR-012",
+  "recorded_at": "2026-10-09T00:00:00Z",
+  "original": {"commit": "fixture", "brand": "spinvibe"},
+  "runs": 2,
+  "steps": [
+    {
+      "name": "register a wallet token",
+      "request": {"method": "POST", "path": "/st8/test/setup-wallet-token/fixture-token-0001", "body": {"playerId": "fixture-player", "gameCode": "book-of-ra", "sessionId": "fixture-session", "currency": "EUR"}},
+      "response": {"status": 200, "body": {"status": "ok"}}
+    },
+    {
+      "name": "set the balance",
+      "request": {"method": "POST", "path": "/st8/test/setup-balance/fixture-player", "body": {"balance": "100.00", "currency": "EUR"}},
+      "response": {"status": 200, "body": {"status": "ok"}}
+    },
+    {
+      "name": "debit",
+      "request": {"method": "POST", "path": "/st8/debit", "headers": {"x-st8-sign": "recorded"}, "body": {"token": "fixture-token-0001", "transaction_id": "fixture-t1", "round": "fixture-r1", "amount": "2.50", "currency": "EUR", "game_code": "book-of-ra"}},
+      "response": {"status": 200, "body": {"status": "ok", "balance": "97.50", "currency": "EUR"}}
+    },
+    {
+      "name": "balance at the host's root",
+      "request": {"method": "POST", "path": "/balance", "headers": {"x-st8-sign": "recorded"}, "body": {"token": "fixture-token-0001", "player": "fixture-player", "currency": "EUR"}},
+      "response": {"status": 200, "body": {"status": "ok", "balance": "97.50", "currency": "EUR"}}
+    },
+    {
+      "name": "the same debit again",
+      "request": {"method": "POST", "path": "/st8/debit", "headers": {"x-st8-sign": "recorded"}, "body": {"token": "fixture-token-0001", "transaction_id": "fixture-t1", "round": "fixture-r1", "amount": "2.50", "currency": "EUR", "game_code": "book-of-ra"}},
+      "response": {"status": 200, "body": {"status": "ok", "balance": "97.50", "currency": "EUR"}}
+    },
+    {
+      "name": "unsigned",
+      "request": {"method": "POST", "path": "/st8/balance", "body": {"token": "fixture-token-0001", "player": "fixture-player"}},
+      "response": {"status": 200, "body": {"status": "auth_failed"}}
+    }
+  ],
+  "vary": {}
+}

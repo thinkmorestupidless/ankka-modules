@@ -52,11 +52,38 @@ Feature: A player launches a game and the game provider opens the session
       | cooling off                           |
       | at their session limit for the day    |
 
-  Scenario: a brand holding no credentials for the game provider refuses every launch as not configured
-    Given a player at a brand that holds no credentials for the game provider
-    When the player launches a game
+  Scenario: a launch of a game whose game provider the brand holds no credentials for is refused as not configured
+    Given a player at a brand that holds credentials for one game provider and none for another
+    When the player launches a game of the second game provider
     Then the launch is refused as not configured
     And no launch ticket is issued
+
+  Scenario: a launch names the game by its game provider and code and asks that game provider to launch it
+    Given a player at a brand that holds credentials for two game providers
+    When the player launches a game of the second game provider
+    Then the second game provider is asked to launch it under the brand's credentials for it
+    And the launch ticket names that game provider and the game's code
+
+  Scenario: a launch ticket not yet checked stays valid however long ago it was issued
+    Given a launch ticket issued for game "slot-x" long ago and not yet used
+    When the game provider checks the ticket naming game "slot-x"
+    Then it is answered "ok"
+    And the launch ticket is marked used
+
+  Scenario: a provider call under a session ticket whose game session has ended is served as any other
+    Given a session ticket whose game session the frontend has ended
+    When the game provider debits "1.00" under the session ticket
+    Then it is served as any debit is
+
+  Scenario Outline: a player may launch twenty games in a minute and the twenty-first is refused as too many requests naming the seconds to wait
+    Given a player who launched <launched> games within the last minute
+    When the player launches another game
+    Then <outcome>
+
+    Examples:
+      | launched | outcome                                                                                    |
+      | "19"     | the launch is served                                                                       |
+      | "20"     | the launch is refused as too many requests, naming the seconds until they may launch again |
 
   Scenario: a launch in fun mode is marked so to the game provider and carries no free rounds
     Given a player launching a game in fun mode

@@ -27,11 +27,23 @@ object Realm:
   def template(root: Path): String =
     Files.readString(root.resolve("brands").resolve("_realm").resolve("casino-template.json"))
 
-  /** Creates what is missing; changes nothing that exists. Returns one line per change. */
-  def ensure(admin: RealmAdmin, slug: String, realmJson: => String): Vector[String] =
+  /** The operators' realm an installation must hold before a brand's role is added to it. */
+  def operators(root: Path): String =
+    Files.readString(root.resolve("brands").resolve("_realm").resolve("eitheror-operators.json"))
+
+  /**
+   * Creates what is missing; changes nothing that exists. Returns one line per change. The operators' realm is
+   * imported first when the installation lacks it and one is given, so the brand's role has a realm to go in.
+   */
+  def ensure(admin: RealmAdmin, slug: String, realmJson: => String, operators: Option[String] = None): Vector[String] =
     val realm = s"casino-$slug"
     val role  = s"brand_$slug"
     val made = mutable.ArrayBuffer.empty[String]
+    operators.foreach { json =>
+      if !admin.realmExists(OperatorsRealm) then
+        admin.importRealm(json)
+        made += s"realm $OperatorsRealm created"
+    }
     if !admin.realmExists(realm) then
       admin.importRealm(realmJson)
       made += s"realm $realm created"
@@ -41,9 +53,12 @@ object Realm:
     made.toVector
 
 /** Keycloak's admin REST API, as the master realm's administrator. */
-final class KeycloakAdmin(base: String, username: String, password: String) extends RealmAdmin:
+final class KeycloakAdmin(base: String, username: String, password: String, ca: Option[String] = None) extends RealmAdmin:
 
-  private val client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
+  private val client =
+    val builder = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
+    ca.foreach(path => builder.sslContext(HttpControlPlane.trusting(path)))
+    builder.build()
   private val mapper = ObjectMapper()
   private val log    = mutable.ArrayBuffer.empty[String]
   def calls: Vector[String] = log.toVector
@@ -78,12 +93,16 @@ final class KeycloakAdmin(base: String, username: String, password: String) exte
     created(send("POST", s"/realms/$realm/roles", Some(mapper.writeValueAsString(java.util.Map.of("name", role, "description", description)))), s"role $role")
 
 object KeycloakAdmin:
-  /** The credential is never in a manifest: `CASINO_KEYCLOAK_ADMIN_USERNAME` and `_PASSWORD`. */
+  /**
+   * The credential is never in a manifest: `CASINO_KEYCLOAK_ADMIN_USERNAME` and `_PASSWORD`. The casino's
+   * Keycloak is served through the installation's gateway, so it is trusted as the control plane is:
+   * `CASINO_KEYCLOAK_CA`, else `ANKKA_CA` (the local installation's own authority).
+   */
   def fromEnvironment(issuerBase: String): Either[String, KeycloakAdmin] =
     for
       user <- sys.env.get("CASINO_KEYCLOAK_ADMIN_USERNAME").toRight("CASINO_KEYCLOAK_ADMIN_USERNAME is not set")
       pass <- sys.env.get("CASINO_KEYCLOAK_ADMIN_PASSWORD").toRight("CASINO_KEYCLOAK_ADMIN_PASSWORD is not set")
-    yield KeycloakAdmin(issuerBase, user, pass)
+    yield KeycloakAdmin(issuerBase, user, pass, sys.env.get("CASINO_KEYCLOAK_CA").orElse(sys.env.get("ANKKA_CA")))
 
 /** A Keycloak held in memory for the tests. */
 final class InMemoryRealms extends RealmAdmin:

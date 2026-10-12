@@ -4,16 +4,38 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../base
+  - keycloak-route.yaml
+  - keycloak-data.yaml
 configMapGenerator:
   - name: casino-installation
     namespace: casino-identity
     envs: [settings.env]
 patches:
+  # ankka's gateway admits HTTPS routes only from namespaces it labels as its own.
+  - target: { kind: Namespace, name: casino-identity }
+    patch: |-
+      - op: add
+        path: /metadata/labels
+        value: { app.kubernetes.io/managed-by: ankka }
+  # Development mode, its embedded database on a volume so the realms survive a restart. One pod at a time
+  # holds the volume, so a change replaces the pod rather than rolling beside it.
   - target: { kind: Deployment, name: casino-keycloak }
     patch: |-
       - op: replace
         path: /spec/template/spec/containers/0/args
         value: ["start-dev"]
+      - op: add
+        path: /spec/strategy
+        value: { type: Recreate }
+      - op: add
+        path: /spec/template/spec/securityContext
+        value: { fsGroup: 1000 }
+      - op: add
+        path: /spec/template/spec/volumes
+        value: [{ name: data, persistentVolumeClaim: { claimName: casino-keycloak-data } }]
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts
+        value: [{ name: data, mountPath: /opt/keycloak/data/h2 }]
 secretGenerator:
   # Development only: the local cluster's administrator, as ankka's own local overlay does.
   - name: casino-keycloak-admin

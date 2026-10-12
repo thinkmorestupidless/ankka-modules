@@ -29,6 +29,8 @@ object MoneyTransactionsPublisher
   def create(ctx: ConsumerContext) = new MoneyTransactionsPublisher
   override val outputSerializer: Option[Serializer[MoneyTransactionsFact]] = Some(MoneyTransactions.serializer)
   override val produceTo: Option[String]                                   = Some(MoneyTransactions.name)
+  // The topic's contract, which the project declares: ankka refuses a publisher that names none.
+  override val produces: Option[Publication] = Some(Publication(MoneyTransactions.name, Some(MoneyTransactions.contract), None))
 
 /** `payment.captured` on `payments.payments`, from the wallet's deposit: keyed by the payment id. */
 final class PaymentCapturedPublisher extends Consumer[WalletEvent, PaymentsPaymentsFact]:
@@ -45,6 +47,8 @@ object PaymentCapturedPublisher
   def create(ctx: ConsumerContext) = new PaymentCapturedPublisher
   override val outputSerializer: Option[Serializer[PaymentsPaymentsFact]] = Some(PaymentsPayments.serializer)
   override val produceTo: Option[String]                                  = Some(PaymentsPayments.name)
+  // The topic's contract, which the project declares: ankka refuses a publisher that names none.
+  override val produces: Option[Publication] = Some(Publication(PaymentsPayments.name, Some(PaymentsPayments.contract), None))
 
 /** The other `payments.payments` families, from `merchant`'s outcomes: keyed by the payment id. */
 final class PaymentsPublisher extends Consumer[PaymentEvent, PaymentsPaymentsFact]:
@@ -61,6 +65,8 @@ object PaymentsPublisher
   def create(ctx: ConsumerContext) = new PaymentsPublisher
   override val outputSerializer: Option[Serializer[PaymentsPaymentsFact]] = Some(PaymentsPayments.serializer)
   override val produceTo: Option[String]                                  = Some(PaymentsPayments.name)
+  // The topic's contract, which the project declares: ankka refuses a publisher that names none.
+  override val produces: Option[Publication] = Some(Publication(PaymentsPayments.name, Some(PaymentsPayments.contract), None))
 
 /** `platform.audit`: a record of every money command and refusal, keyed by the player (FR-031). */
 final class AuditPublisher(brand: String) extends Consumer[WalletEvent, PlatformAuditFact]:
@@ -77,3 +83,5 @@ object AuditPublisher
   def create(ctx: ConsumerContext) = new AuditPublisher(sys.env.getOrElse("CASINO_BRAND", ""))
   override val outputSerializer: Option[Serializer[PlatformAuditFact]] = Some(PlatformAudit.serializer)
   override val produceTo: Option[String]                               = Some(PlatformAudit.name)
+  // The topic's contract, which the project declares: ankka refuses a publisher that names none.
+  override val produces: Option[Publication] = Some(Publication(PlatformAudit.name, Some(PlatformAudit.contract), None))

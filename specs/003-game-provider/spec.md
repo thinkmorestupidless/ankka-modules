@@ -71,7 +71,7 @@ What the original does that nobody wrote down, established from its source and i
   adapter in this service, under the same money rules (FR-010 to FR-019), specified when it exists.
   Confirmed by Trevor at reconciliation on 2026-10-08; spec 020's simulator speaks ST8's protocol only.
 - Q: Where does game launch live, and who opens the game session? → A: Launch is this service's: it
-  issues the launch token, calls the provider, and answers the frontend. Eligibility to play is asked
+  issues the launch ticket, calls the provider, and answers the frontend. Eligibility to play is asked
   over HTTP within the project of `players` (account status), `kyc` (the play gate) and
   `responsible-gambling` (break, exclusion and session minutes) — *as reconciled at reconciliation 2;
   this answer first put the KYC gate and cooling-off on `players`*. The game session itself is `players`' (spec 001 FR-011,
@@ -140,6 +140,32 @@ Settled with specs 008–011 once they existed.
   movements (FR-019), so `reporting`'s day-end and dispute report match a provider round to the
   wallet's facts without calling either service (spec 015 FR-017, FR-018).
 
+### Session 2026-10-09
+
+- Q: May a brand run two game providers at once? → A: Yes, from the start. A game is identified by
+  provider and code; the brand holds one provider configuration per provider; launch, the catalogue
+  and the free-rounds routes name the provider; each provider's callbacks are served under its own
+  prefix. The adapter for a second provider is still written only when one is contracted (Out of
+  scope); the stored data and the routes do not change when it is. Recorded under *Changes from the
+  original*.
+- Q: What ranks the brand's popular games? → A: Rounds played at the brand, counted from this
+  service's own rounds over all time. The original ranks by game sessions opened; rounds are this
+  service's data and measure play, where one session may be one spin or a thousand. Recorded under
+  *Changes from the original*.
+- Q: How long do a launch ticket and a session ticket live? → A: As the original: neither expires.
+  A launch ticket is valid until it is checked; a session ticket serves every later provider call
+  for its player and wallet, whatever `players` records about the game session, so the provider's
+  late cancels and resettlements still resolve. Every such call is signed by the provider, which is
+  the credential; the ticket only names the player and wallet.
+- Q: What can an operator do with an unacknowledged callback the provider has given up retrying?
+  → A: List it, replay it or resolve it. A replay re-drives the stored callback against the wallet
+  under the same provider transaction id, so a late provider retry is still answered from the one
+  outcome; a resolve marks it settled by other means with a reason. Both are recorded on the round.
+  The original only records the failure and clears it on a provider retry. Recorded under *Changes
+  from the original*.
+- Q: What is the player's launch rate limit? → A: 20 launches per player per minute, as the
+  original; the refusal carries the seconds until the window opens again.
+
 ### Session 2026-10-10
 
 - Q: Where does a provider transaction's idempotency live, now that the wallet keeps only its recent
@@ -150,7 +176,7 @@ Settled with specs 008–011 once they existed.
   started"); its steps are `may-bet` to `responsible-gambling` (fail closed: `PLAYER_LOCKED`,
   `RG_UNAVAILABLE` become the outcome and the wallet is never called), the wallet call keyed by the
   transaction id, and `record-round`, which records the transaction and its outcome on the round
-  entity before ending, off the reply path. The wallet keeps its recent keys as the atomic backstop:
+  entity before ending, off the reply path (*revised in planning, below: on it*). The wallet keeps its recent keys as the atomic backstop:
   a step runs at least once, and a re-run after a crash is answered with the first outcome. The
   transaction index is dropped: the workflow's id is the transaction id. The round entity stays as
   the round's history for disputes and as the source of the views and `casino.rounds` (an ankka view
@@ -161,17 +187,26 @@ Settled with specs 008–011 once they existed.
   provider retries and the retry is answered from the workflow's state. Measured in spec 002's
   prototype (`it.proto.BetWorkflowItSuite`, research R17): median 9.7 ms and p99 121.8 ms on a
   10,000-transaction wallet through the component client.
+- Q (planning): Does the round learn of a debit before or after the provider is answered? → A:
+  Before. The workflow writes its outcome to its state only after `record-round`, so the endpoint
+  never answers before the round holds the bet. Off the reply path races: a credit settles the open
+  bets the round holds, ST8 sends it as soon as it has the debit's answer, and a debit not yet
+  recorded would be left open, the leak FR-014 closes (research R18). One entity command per callback.
+- Q (planning): What does the workflow hold when the wallet cannot be reached? → A: No outcome. After
+  its retries the workflow records the callback unacknowledged on the round and pauses; a provider
+  retry or an operator replay resumes the wallet call, a resolve ends it (FR-020). A wallet failure is
+  never an outcome, so a retry is never answered from one (research R18).
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player launches a game and the provider opens the session (Priority: P1)
 
 A logged-in player picks a game. The brand checks they may play (not suspended or self-excluded, KYC
-gate met, not cooling off, session minutes left), issues a one-time launch token, tells the provider
+gate met, not cooling off, session minutes left), issues a one-time launch ticket, tells the provider
 to launch the game for this player with the brand's site, and hands the frontend the game URL and a
 session id. The provider's game client then calls back with the token; the brand answers the
-player's currency, country, the wallet token and the site's lobby and deposit links, and the token
-becomes a wallet token for the rest of the session.
+player's currency, country, the session ticket and the site's lobby and deposit links, and the token
+becomes a session ticket for the rest of the session.
 
 **Why this priority**: nothing is played without it; it is the first callback of every recording.
 
@@ -188,7 +223,11 @@ token.
 - added `features/game-provider/launch.feature`: a suspended or self-excluded player's launch ticket is answered player locked
 - added `features/game-provider/launch.feature`: a player whose brand requires KYC before play and whose KYC is not verified is refused at launch naming their KYC status
 - added `features/game-provider/launch.feature`: a player cooling off or at their session limit is refused at launch naming the reason and no ticket is issued
-- added `features/game-provider/launch.feature`: a brand holding no credentials for the game provider refuses every launch as not configured
+- changed `features/game-provider/launch.feature`: a launch of a game whose game provider the brand holds no credentials for is refused as not configured
+- added `features/game-provider/launch.feature`: a launch names the game by its game provider and code and asks that game provider to launch it
+- added `features/game-provider/launch.feature`: a launch ticket not yet checked stays valid however long ago it was issued
+- added `features/game-provider/launch.feature`: a provider call under a session ticket whose game session has ended is served as any other
+- added `features/game-provider/launch.feature`: a player may launch twenty games in a minute and the twenty-first is refused as too many requests naming the seconds to wait
 - added `features/game-provider/launch.feature`: a launch in fun mode is marked so to the game provider and carries no free rounds
 - added `features/game-provider/launch.feature`: a launch naming no free rounds attaches the oldest eligible free rounds to the launch ticket
 
@@ -226,6 +265,8 @@ keyed by the transaction id, settles the round on the credit, and answers the ba
 - added `features/game-provider/rounds.feature`: fields the brand does not read are ignored
 - added `features/game-provider/rounds.feature`: a debit for a player cooling off or self-excluded is answered player locked and places nothing
 - added `features/game-provider/rounds.feature`: a debit the wallet refuses for a responsible gambling limit is answered spending limit with the current balance
+- added `features/game-provider/rounds.feature`: a debit is answered error and places nothing when responsible gambling does not answer
+- added `features/game-provider/rounds.feature`: a credit sent once its debit is answered settles that debit
 
 ---
 
@@ -269,8 +310,13 @@ debit; the wallet (spec 002) is idempotent too, so a repeat that gets through is
 
 - added `features/game-provider/repeats.feature`: a repeated debit is answered with the first outcome and balance and the wallet is not called
 - added `features/game-provider/repeats.feature`: a repeated credit with a different amount is answered with the first outcome and the difference is recorded as a conflicting repeat
+- added `features/game-provider/repeats.feature`: a repeated debit refused as player locked is answered the same and responsible gambling is not asked again
 - added `features/game-provider/repeats.feature`: a repeated cancel is answered ok with the same balance
 - added `features/game-provider/repeats.feature`: a retry of a debit that failed to reach the wallet is served afresh and clears the unacknowledged call on success
+- added `features/game-provider/unacknowledged.feature`: an operator lists every unacknowledged call with its kind, amount, round and error
+- added `features/game-provider/unacknowledged.feature`: replaying an unacknowledged credit pays it to the wallet under its transaction id and clears it
+- added `features/game-provider/unacknowledged.feature`: a provider retry after an operator's replay is answered from the replay's outcome and the wallet is not called again
+- added `features/game-provider/unacknowledged.feature`: resolving an unacknowledged call with a reason clears it, moves no money and records the reason on the round
 
 ---
 
@@ -334,11 +380,14 @@ and read the routes the frontend's Playwright suite reads (spec 001 FR-033).
 - added `features/game-provider/catalogue.feature`: the nightly refresh puts every game the game provider lists in the catalogue with its details
 - added `features/game-provider/catalogue.feature`: a game the game provider stops listing is marked removed with its enabled flag unchanged
 - added `features/game-provider/catalogue.feature`: a refresh that fetches nothing marks nothing removed
+- added `features/game-provider/catalogue.feature`: the nightly refresh fetches each game provider the brand runs and marks removed only the games that game provider stopped listing
+- added `features/game-provider/catalogue.feature`: every game listed carries its game provider and code
+- added `features/game-provider/catalogue.feature`: a game named by code alone is served when one game provider carries the code and refused naming both when two do
 - added `features/game-provider/catalogue.feature`: no game of a developer the brand disabled is listed to a player
 - added `features/game-provider/catalogue.feature`: a game the game provider disabled is listed when the brand enables it
 - added `features/game-provider/catalogue.feature`: a game marked removed cannot be enabled by the brand
 - added `features/game-provider/catalogue.feature`: a game that prohibits or restricts the player's country is not listed to them
-- added `features/game-provider/catalogue.feature`: popular games are ranked by rounds played at the brand and leave out a game disabled since the ranking was built
+- changed `features/game-provider/catalogue.feature`: popular games are ranked by rounds played at the brand and leave out a game disabled since the ranking was built
 - added `features/game-provider/catalogue.feature`: an operator reads every game of the catalogue, removed and disabled included, with each layer of the enablement decision
 
 ---
@@ -359,6 +408,7 @@ outbound money-adjacent calls.
 
 - added `features/game-provider/free-rounds.feature`: free rounds asked for a player known to the game provider are created under the reward's id and their status reported back
 - added `features/game-provider/free-rounds.feature`: free rounds asked for a player who never launched make the player known to the game provider first
+- added `features/game-provider/free-rounds.feature`: free rounds on games of a second game provider are created at that game provider under the brand's credentials for it
 - added `features/game-provider/free-rounds.feature`: cancelling active free rounds cancels them at the game provider
 - added `features/game-provider/free-rounds.feature`: spin values asked for game codes and a currency are answered from the game provider and cached for the day
 
@@ -379,7 +429,10 @@ outbound money-adjacent calls.
 - A cancel of a credit on a round already cancelled: the credit is debited back regardless; the round
   stays cancelled.
 - A launch while a launch is in flight for the same player: served; two sessions open.
-- A launch within the player's rate limit window beyond the limit: refused as too many requests.
+- A debit, credit or cancel under a session ticket whose game session `players` has ended: served as
+  any other; the token is the provider's handle on the player and wallet, not on the session.
+- A 21st launch by one player within 60 seconds: refused as too many requests with the seconds to
+  wait; the 20 before it are served.
 - A provider that answers the launch with no game URL: the launch fails as `launch_failed`, the token
   is discarded, no session is opened.
 - A refresh when the provider is down: the last catalogue stands; the failure is on status.
@@ -392,23 +445,26 @@ outbound money-adjacent calls.
 **The service and its shape**
 
 - **FR-001**: `game-provider` MUST be one service of the brand project (spec 001 FR-002), holding a
-  **launch token** key value entity per token, a **bet workflow** per provider transaction id (the
+  **launch ticket** key value entity per token, a **bet workflow** per provider transaction id (the
   cancel id for a cancel) whose `start` is the claim and whose state is the transaction's outcome for
   the life of the ledger, a **round** event sourced entity per provider round (the round's history,
-  the source of the views and of `casino.rounds`), a **catalogue** key value entity per game, a
-  **brand catalogue configuration** key value entity, and a **provider configuration** per brand in
-  the secret store; with views over rounds (by player, by session, unacknowledged callbacks) and a
-  consumer producing `casino.rounds`. (The transaction index was dropped on 2026-10-10: the
-  workflow's id is the transaction id.)
-- **FR-002**: Every callback route MUST be served both under the provider's prefix (`/st8`) and at
-  the root, with the `{brand}` segment kept (spec 001 FR-005), as a public route served only when its
-  signature verifies (spec 001 FR-020).
+  the source of the views and of `casino.rounds`), a **catalogue** key value entity per provider and
+  game code, a **brand catalogue configuration** key value entity, and a **provider configuration**
+  per provider of the brand in the secret store; with views over rounds (by player, by session,
+  unacknowledged callbacks) and a consumer producing `casino.rounds`. (The transaction index was
+  dropped on 2026-10-10: the workflow's id is the transaction id.)
+- **FR-002**: Every ST8 callback route MUST be served both under its prefix (`/st8`) and at the
+  root, because ST8 strips the path from the wallet URL; a second provider's callbacks MUST be
+  served under that provider's own prefix and never at the root. The callback route the launch
+  names as the wallet URL keeps the `{brand}` segment (spec 001 FR-005); the prefix and root forms
+  carry no brand and resolve the project's own brand, since one host serves one brand. Every
+  callback route is a public route served only when its signature verifies (spec 001 FR-020).
 
 **Signatures and the protocol**
 
 - **FR-003**: Every callback MUST be verified as an ECDSA P-256 SHA-256 signature, base64 in the
-  `x-st8-sign` header, over the raw request bytes, against the brand's provider public key
-  read from the secret store on every change (ankka 038). A missing, non-base64 or failing signature
+  `x-st8-sign` header, over the raw request bytes, against the provider public key of the
+  brand's configuration for that provider (FR-026), a change applying within 60 seconds. A missing, non-base64 or failing signature
   MUST be answered HTTP 200 `auth_failed` with nothing read or written.
 - **FR-004**: A body that is not a JSON object MUST be answered HTTP 400 `session_expired`
   (`player_not_found` for the profile). Fields the protocol does not name MUST be ignored. A field
@@ -419,7 +475,7 @@ outbound money-adjacent calls.
 - **FR-005**: Every amount MUST be read as a decimal string or number and converted to minor units of
   the named currency, refused as a bad request naming the amount when not whole (spec 001 FR-026);
   every balance MUST be answered as real plus restricted balance rendered to the currency's exponent.
-- **FR-006**: The currency of a callback MUST be the wallet token's currency when it has one, else
+- **FR-006**: The currency of a callback MUST be the session ticket's currency when it has one, else
   the player's currency, else the callback's, else EUR, in that order, as the original resolves it.
 
 **Launch and session**
@@ -431,21 +487,27 @@ outbound money-adjacent calls.
   (`session_limit_reached` with the limit and the used minutes), asking over HTTP within the project
   `players` for the account status (spec 008 FR-018), `kyc`'s play check for the gate (spec 009
   FR-020) and `responsible-gambling`'s `may-play` for break, exclusion and minutes (spec 010 FR-008),
-  each failing closed as a refusal naming the service; MUST apply the player's launch rate limit; and
-  MUST refuse with `st8_not_configured` when the brand has no provider credentials.
-- **FR-008**: Launch MUST issue a one-time launch token, resolve the free-rounds grant to attach (the
-  caller's, or the player's oldest eligible grant for the game; none in demo mode), call the provider's
-  launch with the brand's site, lobby and deposit links, wallet URL, the player's profile and fun
-  mode, signed with the brand's operator key, and answer the game URL, the launch token, the session
-  id and the attached grant. When no provider is configured locally it MUST answer a stub game URL.
+  each failing closed as a refusal naming the service; MUST refuse the 21st launch by one player
+  within a 60-second window as too many requests, naming the seconds until the window opens again;
+  and MUST refuse with `st8_not_configured` (the word names the game's provider) when the brand holds no
+  configuration for the provider the game belongs to.
+- **FR-008**: Launch MUST name the game by provider and code, MUST issue a one-time launch ticket,
+  resolve the free-rounds grant to attach (the caller's, or the player's oldest eligible grant for the
+  game; none in demo mode), call that provider's launch with the brand's site at it, lobby and deposit
+  links, the provider's wallet URL, the player's profile and fun mode, signed with the brand's
+  operator key for that provider, and answer the game URL, the launch ticket, the session id and the
+  attached grant. When no provider is configured locally it MUST answer a stub game URL.
 - **FR-009**: Launch MUST ask `players` to open a game session for the player, game and currency,
-  linked to the player's login session and marked demo when it is, and MUST record the game as
+  linked to the player's login session (the session the player's token names) and marked demo
+  when it is, and MUST record the game as
   recently played; a session that cannot be opened MUST NOT fail the launch.
-- **FR-010**: `check` MUST consume the launch token once: an unknown, already used or mismatched-game
+- **FR-010**: `check` MUST consume the launch ticket once: an unknown, already used or mismatched-game
   token is `session_expired`; a locked player is `player_locked`; otherwise the token becomes the
-  wallet token carrying player, brand, game, session, currency and grant, the player is recorded as
+  session ticket carrying player, brand, game, session, currency and grant, the player is recorded as
   known to the provider, and the answer carries the token, currency, game code, country (MT when
-  unknown), player id and the site's id, lobby and deposit links.
+  unknown), player id and the site's id, lobby and deposit links. Neither token expires: an unchecked
+  launch ticket stays valid until checked, and a session ticket serves every later callback for its
+  player and wallet regardless of the game session's state in `players`.
 
 **Money callbacks**
 
@@ -456,7 +518,7 @@ outbound money-adjacent calls.
   still be answered with the first outcome and MUST be recorded as a conflicting repeat on the round.
   The endpoint polls the workflow's status (1 ms, bounded) and answers as soon as the outcome is
   present; past the bound it answers `error`, and the provider's retry is answered from the workflow.
-- **FR-012**: A debit MUST require a registered wallet token (`session_expired` otherwise), MUST
+- **FR-012**: A debit MUST require a registered session ticket (`session_expired` otherwise), MUST
   answer `player_locked` for a suspended, closed or blocked player (from this service's view of
   `casino.players`) and for a cooling-off or excluded one (from its own `may-bet` step to
   `responsible-gambling`, spec 010 FR-010, failing closed: no answer within 500 ms is `error`; this
@@ -467,7 +529,7 @@ outbound money-adjacent calls.
   `spending_limit` (every other responsible-gambling refusal and a scope block), each with the
   current balance; a wallet unreachable MUST answer `error` and record the debit as unacknowledged.
 - **FR-013**: A debit of amount zero or of kind `free_debit` MUST place no bet, MUST tag the round
-  with the wallet token's free-rounds grant before answering (an `error` when the tag cannot be
+  with the session ticket's free-rounds grant before answering (an `error` when the tag cannot be
   written), MUST record a zero-stake bet on the round, and MUST answer the current balance.
 - **FR-014**: A credit MUST find its round by the round id (the transaction id when none) and settle
   it: a positive amount is a win against the round's first open bet and every other open bet of the
@@ -484,31 +546,41 @@ outbound money-adjacent calls.
   remains.
 - **FR-016**: A buyin MUST require a player id (`player_not_found`), resolve the token when present,
   and place a bet keyed by the transaction id outside any round, allowed below zero for
-  `correction_debit`; a payout MUST make a provider credit keyed by the transaction id.
+  `correction_debit`, the wallet's refusals mapped as a debit's are (FR-012); a payout MUST make a
+  provider credit keyed by the transaction id.
 - **FR-017**: A balance MUST resolve the player by a token of ten or more characters, else by player
   id, MUST answer `player_locked` for a locked player, `session_expired` when neither resolves, and
   otherwise the balance and currency.
-- **FR-018**: A player profile MUST answer `player_not_found` for a player not known to the provider,
+- **FR-018**: A player profile MUST answer `player_not_found` for a player neither known to the provider
+  nor registered at the brand (the players topic, `casino.players`),
   else the player's id, the brand's jurisdiction from its provider configuration, default currency,
   registration country upper-cased, birth date, registration date as a calendar day, and a
   bet-limits band from the daily deposit limit (at most 50 low, at most 200 medium, else high,
   medium when none).
 - **FR-019**: Every settlement, cancellation and standalone credit MUST produce one `round_settled`
-  message on `casino.rounds` (spec 001 FR-011) keyed by the player id, carrying the provider, the
+  message on `casino.rounds` (spec 001 FR-011) keyed by the wallet (the player and the currency,
+  spec 001's topic contract), carrying the player, the provider, the
   provider round id, the game, the session, the currency, the total stake, the win, the outcome (win,
   loss, cancelled, credit), the free-rounds grant when tagged, the provider's transaction ids and the
   wallet transaction ids of every movement in the round; `rewards` settles a grant's winnings from
   it (spec 011), readers derive session totals from it, and `reporting` (spec 015 FR-017, FR-018)
   matches the provider's figures to the wallet's facts by the wallet transaction ids without a call.
 - **FR-020**: A callback the wallet did not acknowledge MUST be recorded as unacknowledged with its
-  kind, amount, round and error, listable by an operator, and cleared when a retry succeeds.
+  kind, amount, round and error, listable by an operator, and cleared when a retry succeeds. An
+  operator MUST be able to replay one: the service re-drives the stored callback against the wallet
+  under the same provider transaction id, and on success clears the entry and answers any later
+  provider retry from that outcome (FR-011). An operator MUST be able to resolve one without replay,
+  giving a reason, when the money was settled another way. Each replay and resolve MUST be recorded
+  on the round with the operator and the time.
 
 **The catalogue**
 
-- **FR-021**: A nightly refresh MUST fetch the provider's game list for the brand's site, signed, and
-  upsert every game with the fields US7 scenario 1 lists; games absent from a non-empty list MUST be
-  marked removed from the feed with their enabled flag untouched; an empty list MUST change nothing;
-  the refresh MUST be retried three times with growing delays and its outcome shown on status.
+- **FR-021**: A nightly refresh MUST fetch, for each provider the brand has configured, that
+  provider's game list for the brand's site at it, signed, and upsert every game under its provider
+  and code with the fields US7 scenario 1 lists; games of a provider absent from that provider's
+  non-empty list MUST be marked removed from the feed with their enabled flag untouched; an empty
+  list MUST change nothing for that provider and nothing for any other; each provider's refresh MUST
+  be retried three times with growing delays and its outcome shown on status per provider.
 - **FR-022**: A game MUST be listed for a brand only when it is not removed from the feed, its
   category and developer are not disabled for the brand, and its brand override (else the provider's
   flag) is on; an operator MUST be able to set the brand's disabled developers, disabled categories
@@ -518,35 +590,45 @@ outbound money-adjacent calls.
   territories), MUST exclude games past their deprecation date, MUST page by limit (1 to 3,000) and
   offset with the total and the next offset, MUST serve a batch of up to 50 games by code ignoring
   every other filter, MUST serve one game by code, MUST list developers, and MUST serve the brand's
-  popular games ranked by rounds played with disabled games excluded at read time.
+  popular games ranked by the number of rounds played at the brand over all time, counted from this
+  service's own rounds, with disabled games excluded at read time. A game is
+  identified by provider and code; every listed game carries its provider; a route that names a game
+  by code alone MUST resolve it among the brand's providers and MUST refuse a code that two of them
+  share as a bad request naming both.
 - **FR-024**: The operator catalogue MUST list every game with each layer of the enablement decision.
 
 **Free rounds for `rewards`**
 
 - **FR-025**: The service MUST serve `rewards` (service class, spec 001 FR-020) routes to create a
-  provider bonus for a player, games, count and grant id, to poll it, to cancel it, and to price spin
-  values for games and a currency, each signed with the brand's operator key, answering the provider's
-  status as active, processing, rejected, failed, cancelled or not configured, and MUST make the
-  player known to the provider before creating.
+  provider bonus for a player, provider, games, count and grant id, to poll it, to cancel it, and to
+  price spin values for a provider's games and a currency, each signed with the brand's operator key
+  for that provider, answering the provider's status as active, processing, rejected, failed,
+  cancelled or not configured, and MUST make the player known to that provider before creating.
 
 **Configuration, identity and data**
 
-- **FR-026**: A brand's provider configuration MUST hold the provider API address, the site, the
-  operator private key, the provider public key, the jurisdiction, the lobby and deposit links, in
-  the secret store (ankka 038), read on change without a redeploy. On an installation that takes no
+- **FR-026**: A brand MUST hold one provider configuration per provider it runs, each naming the
+  provider and holding its API address, the brand's site at it, the operator private key, the
+  provider public key, the jurisdiction, the lobby and deposit links, in the secret store (ankka
+  038), read on change without a redeploy; a provider with no configuration is not configured for the
+  brand. An operator MUST write and read a provider's configuration over an operator route, the
+  private key never answered on a read. On an installation that takes no
   real money, the provider public key MAY instead be the address of a key document the service
   fetches and refreshes within 60 seconds, so that spec 020's simulator registers its current and
   next keys by publishing them (020 FR-011); a real-money brand MUST hold the key itself. These
   settings move here from `merchant-service`'s `CredentialRoutes` (spec 004).
 - **FR-027**: Every route MUST be of one class (spec 001 FR-020): launch, catalogue and session
-  routes are player routes; the catalogue configuration and unacknowledged list are operator routes;
-  the callbacks are public and signature-verified; the free-rounds and known-player routes are
-  service routes for `rewards`.
+  routes are player routes; the catalogue configuration, the operator catalogue (FR-024), the
+  provider configuration (FR-026), the refresh now and its status (FR-021), the rounds by player or
+  session and one round's transactions (FR-001), and the unacknowledged list, replay and resolve
+  (FR-020) are operator routes; the callbacks are public and signature-verified; the free-rounds and
+  known-player routes are service routes for `rewards`.
 - **FR-028**: The service MUST hold no personal field: the player id, game ids, amounts and the
   provider's identifiers are not personal data (spec 001 FR-024); the profile it answers is read from
   `players` at the time of the call and not kept.
 - **FR-029**: A metric MUST count bets placed per brand (the original's `eitheror_casino_bets_total`),
-  and the unacknowledged count MUST be a metric.
+  and the open unacknowledged callbacks MUST be a metric per brand
+  (`eitheror_casino_unacknowledged_callbacks`).
 
 **The port**
 
@@ -556,17 +638,20 @@ outbound money-adjacent calls.
 
 ### Key Entities
 
-- **Launch token**: token, player, brand, game, session, currency, free-rounds grant, issued, used;
-  becomes the wallet token when checked.
-- **Round**: provider round id (the transaction id when none), player, game, session, currency,
+- **Launch ticket** (the original's *launch ticket*; the session ticket is its *session ticket*): token, player, brand, game, session, currency, free-rounds grant, issued, used;
+  becomes the session ticket when checked; no expiry in either state.
+- **Round**: provider, provider round id (the transaction id when none), player, game, session, currency,
   transactions (id, kind, amount, wallet key, status, balance answered, conflicting repeats),
   total stake, win, outcome, free-rounds grant, opened and settled times.
-- **Transaction index**: transaction id → round.
-- **Unacknowledged callback**: transaction id, kind, amount, round, error, recorded and cleared times.
-- **Game**: code, name, developer and developer name, category, tags, themes, features, bonus types,
+- **Bet workflow**: one per provider transaction id (the cancel id for a cancel): the callback, the
+  player, round and kind, its status, and the outcome answered (status, balance, currency, or the
+  refusal); kept for the ledger's life. Replaces the transaction index (session 2026-10-10).
+- **Unacknowledged callback**: transaction id, kind, amount, round, error, recorded and cleared times,
+  how it cleared (provider retry, operator replay, or operator resolve with its reason and operator).
+- **Game**: provider and code (its identity), name, developer and developer name, category, tags, themes, features, bonus types,
   restricted and prohibited territories, deprecation date, enabled, removed from feed.
 - **Brand catalogue configuration**: disabled developers, disabled categories, game overrides.
-- **Provider configuration**: per brand, in the secret store (FR-026).
+- **Provider configuration**: per provider of the brand, in the secret store (FR-026).
 
 ## Success Criteria *(mandatory)*
 
@@ -594,6 +679,8 @@ outbound money-adjacent calls.
   state in the test kit.
 - The jurisdiction in the player profile answer comes from the brand's configuration (FR-018), not
   the constant `CW`.
+- The bet limits in the launch request are computed from the player's profile as the player profile
+  answer computes them (FR-018), not the constant `medium` the original sent at launch.
 - The transaction store, round index, player-brand map and callback-failure store become the bet
   workflow per transaction, the round entity and the unacknowledged view; the player-brand map is
   unneeded in a brand project (the known-player record remains, for the profile callback).
@@ -607,7 +694,20 @@ outbound money-adjacent calls.
 - The catalogue, the launch route and the provider's bonus calls move from `casino-service` to this
   service; `rewards` reaches the provider only through it.
 - Idempotency records a conflicting repeat (FR-011); the original answers it silently.
+- A buyin the wallet refuses is answered `not_enough_money`, `player_locked` or `spending_limit` as
+  a debit is (FR-016); the original answered `ok` to a refused buyin.
 - A fresh spin at zero balance is declined (the original fixed this; kept).
+- A debit the wallet cannot fund is answered `not_enough_money` with the player's balance (FR-012).
+  The original means to (`St8Routes.scala` answers the balance the wallet's refusal carries), but its
+  wallet's refusal carries none, so it answered `0.00` (found by the recording `NotEnoughMoney`).
+- A brand may run several providers at once: a game is identified by provider and code, provider
+  configuration is per provider, and launch, the catalogue and the free-rounds routes name the
+  provider (FR-001, FR-008, FR-021, FR-023, FR-025, FR-026). The original knows one provider, ST8,
+  and keys games by code alone.
+- Popular games are ranked by rounds played, from this service's rounds (FR-023); the original ranks
+  by game sessions opened at the brand.
+- An operator may replay or resolve an unacknowledged callback (FR-020); the original only records
+  the failure and clears it when the provider retries.
 
 ## Recordings
 
@@ -622,6 +722,10 @@ CancelEverythingWithinRound); `TestScenario7_CasinoGate3_*` (FullPlayerJourney, 
 RGEnforcement, SessionLifecycle); `TestScenarioFreeSpinsPlay_*` (BonusBalanceDestination,
 RealBalanceDestination, StacksOnActiveBonus, CustomerIOGrant); the launch and catalogue reads of the
 Playwright suite (spec 001 FR-033).
+
+Recorded 2026-10-10 (T015, `tests/port/README.md`): the 29 `TestScenario15_St8Wallet_*` and the 4
+`TestScenarioFreeSpinsPlay_*`. Not recorded: `TestScenario7_CasinoGate3_*`, which fail on the original
+itself, and the Playwright reads, which the Go suite's recorder cannot record.
 
 The adapter's own suites, replayed against the service's handlers: `St8RoutesMultiDebitSpec`,
 `St8CancelRollbackKeySpec`, `St8StandaloneCreditSpec`, `St8ZeroCreditSettlesLossSpec`,
@@ -643,13 +747,16 @@ and describe the dropped generic API.
   opening (008 FR-017) and the recently-played list; `kyc` (spec 009 FR-020) serves the play gate;
   `responsible-gambling` (spec 010 FR-008) serves `may-play`, whose allowed answer carries the session
   limit and the minutes used. Reconciled on 2026-10-08 once 008–010 existed.
+- A `blocked` player is refused at a debit from this service's view of `casino.players` (FR-012),
+  which needs spec 008 to publish the transition to and from `blocked` (a `player_blocked` family
+  beside `player_suspended`, cleared by `player_reinstated`; 008 FR-031 has the status, 008 FR-035
+  no family yet). Until it does, a blocked player is refused at launch only (FR-007, over HTTP).
 - `rewards` (spec 011) settles a free-rounds round's winnings from `round_settled` and owns the
   grant; the provider's `winnings_destination` logic (real or restricted) is 011's.
 - A provider's retry of a `error` answer arrives within its own retry window; the unacknowledged
   list exists for the ones it gives up on.
-- One provider per brand today; the entities carry the provider's name so a second adapter can
-  share them. [NEEDS CLARIFICATION: whether a brand may run two providers at once, which decides if
-  the catalogue is keyed by code or by provider and code.]
+- One provider, ST8, is configured per brand today; the model admits several (Clarifications
+  2026-10-09), so a second provider is a configuration and an adapter, not a change to stored data.
 
 ## Dependencies
 
@@ -668,7 +775,8 @@ and describe the dropped generic API.
 
 ## Out of scope
 
-- The generic provider API and a second provider's adapter.
+- The generic provider API and a second provider's adapter (the model admits one; its adapter is
+  written when a provider is contracted).
 - The game sessions themselves and their ending (`players`, spec 008).
 - Free-rounds grant lifecycle, eligibility and winnings settlement (`rewards`, spec 011).
 - The frontends and the lobby's presentation of the catalogue.

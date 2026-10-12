@@ -41,7 +41,9 @@ Exit codes: 0 done or valid; 1 refused or failed; 2 the command itself is wrong.
    over: the apply notes `manifest behind cluster` until the manifest is changed to match.
 6. **Exposure**: the services the manifest marks `expose`.
 7. **Grants**: those FR-016 names, made by the brand; those it should receive, checked.
-8. **Realm**: `casino-<slug>` from the original's template, and `brand_<slug>` in `eitheror`.
+8. **Realm**: `eitheror` from `brands/_realm/eitheror-operators.json` when the installation lacks it,
+   `casino-<slug>` from the original's template, and `brand_<slug>` in `eitheror`. Keycloak is reached
+   with `CASINO_KEYCLOAK_CA`, else `ANKKA_CA`, as its authority.
 
 `changes: 0` on a second apply means the installation already holds the manifest.
 

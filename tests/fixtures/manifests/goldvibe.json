@@ -14,7 +14,10 @@
     {
       "name": "wallet",
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/wallet:0.1.0",
-      "expose": true
+      "expose": true,
+      "resources": {
+        "instanceType": "medium"
+      }
     },
     {
       "name": "payouts",
@@ -46,9 +49,8 @@
       "name": "game-provider",
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/game-provider:0.1.0",
       "expose": true,
-      "env": {
-        "ST8_OPERATOR_CODE": "secret:game-provider-st8/OPERATOR_CODE",
-        "ST8_SIGNING_KEY": "secret:game-provider-st8/SIGNING_KEY"
+      "resources": {
+        "instanceType": "medium"
       }
     },
     {
@@ -201,14 +203,5 @@
         }
       }
     ]
-  },
-  "secrets": [
-    {
-      "name": "game-provider-st8",
-      "keys": [
-        "OPERATOR_CODE",
-        "SIGNING_KEY"
-      ]
-    }
-  ]
+  }
 }

@@ -1,0 +1,134 @@
+{
+  "TestScenario15_St8Wallet_BalanceWithoutToken": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BasicBalance": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BasicBuyin": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BasicCancel": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BasicCredit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BasicDebit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BasicPayout": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BigRoundFailedDebit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BigRoundMultipleCancels1": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BigRoundMultipleCancels2": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BigRoundMultipleCredits": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_BigRoundMultipleDebits": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_CancelEverythingWithinRound": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_CorrectionDebitNegativeBalance": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_IdempotentCancel": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_IdempotentCredit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_IdempotentDebit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_LargeWinOnLargeStake": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_LimitedCancel": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_NewParams": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_NotEnoughMoney": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_Resettlement": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_StandaloneCancel": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_StandaloneCredit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_TableSwitch": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_WrongSignature": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_ZeroBalanceFreshSpinDeclined": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_ZeroCredit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_ZeroDebit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenarioFreeSpinsPlay_BonusBalanceDestination": [
+    "pass",
+    "pass"
+  ],
+  "TestScenarioFreeSpinsPlay_CustomerIOGrant": [
+    "pass",
+    "pass"
+  ],
+  "TestScenarioFreeSpinsPlay_RealBalanceDestination": [
+    "pass",
+    "pass"
+  ],
+  "TestScenarioFreeSpinsPlay_StacksOnActiveBonus": [
+    "pass",
+    "pass"
+  ]
+}

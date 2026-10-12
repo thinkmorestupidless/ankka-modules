@@ -31,6 +31,10 @@ jobs:
       - name: Payment-provider stubs and the wallet driver's offline checks
         working-directory: tests
         run: go test ./...
+      - name: game-provider (spec 003)
+        run: |
+          sbt contract/publishLocal
+          cd services/game-provider && sbt test
 
   # The wallet (spec 002): its own sbt build against the contract published from this commit. The
   # integration suites start Postgres in Docker, which the hosted runner provides.

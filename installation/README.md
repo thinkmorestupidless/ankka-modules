@@ -17,5 +17,13 @@ for a cloud); this directory holds what sits beside it.
   A setting is what the installation is configured to do; until ankka reports each on its own status
   (specs 041 to 043), this file is the source and the tool says so.
 
+`overlays/dev-kind` routes the casino's Keycloak through ankka's gateway at `auth-casino.<base>` (the
+gke overlay needs the same for its own hostname, and `KEYCLOAK_JWKS_BASE`; not yet written). Keycloak's issuer is the
+installation's `KEYCLOAK_ISSUER_BASE`, port included; services read its keys at `KEYCLOAK_JWKS_BASE`, inside the
+cluster, since a pod may not resolve the public name to Keycloak. The `eitheror` realm is expected to exist before a
+brand is applied: the brands tool imports it from `brands/_realm/eitheror-operators.json` when it is
+missing, with the staff audience `eitheror-casino` on every client, and adds `brand_<slug>` to it.
+dev-kind keeps the development Keycloak's database on a volume, so the realms survive a restart.
+
 The Keycloak administrator's credential is never in this repository: create
 `casino-keycloak-admin` (`username`, `password`) in the `casino-identity` namespace out of band.

@@ -1,0 +1,12 @@
+# The development Keycloak's embedded database (`start-dev`), on a volume, so the realms the brands tool
+# creates outlive a restart of the pod (a change to the overlay restarts it).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: casino-keycloak-data
+  namespace: casino-identity
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi

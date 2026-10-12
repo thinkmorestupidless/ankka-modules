@@ -110,6 +110,19 @@ Feature: The game provider debits a stake, credits a win or closes a round as a 
       | cooling off   |
       | self-excluded |
 
+  Scenario: a debit is answered error and places nothing when responsible gambling does not answer
+    Given responsible gambling does not answer
+    When the game provider debits "1.00" under transaction id "t9" in round "r9"
+    Then it is answered "error"
+    And nothing is placed
+
+  Scenario: a credit sent once its debit is answered settles that debit
+    Given the wallet has a real balance of "100.00"
+    When the game provider debits "5.00" under transaction id "t1" in round "r1"
+    And the game provider credits "12.00" under transaction id "t2" in round "r1" once it is answered
+    Then bet "t1" is settled with the win
+    And round "r1" is closed
+
   Scenario: a debit the wallet refuses for a responsible gambling limit is answered spending limit with the current balance
     Given the player's wallet refuses a bet for a responsible gambling limit
     When the game provider debits "1.00" under transaction id "t8" in round "r8"

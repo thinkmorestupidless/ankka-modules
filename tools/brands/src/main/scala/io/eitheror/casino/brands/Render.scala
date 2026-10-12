@@ -33,7 +33,7 @@ object Render:
       projectId = manifest.projectId,
       name = manifest.name,
       topics = manifest.topics.map(topic(_, installation)),
-      descriptors = manifest.services.map(descriptor(manifest, _)),
+      descriptors = manifest.services.map(descriptor(manifest, _, installation)),
       exposed = manifest.services.filter(_.expose).map(_.name),
       secrets = manifest.secrets,
       grantsMade = (manifest match
@@ -83,17 +83,22 @@ object Render:
       retentionNotes ++ schemaNotes
     )
 
-  def descriptor(manifest: Manifest, pin: ServicePin): ServiceDescriptor =
+  def descriptor(manifest: Manifest, pin: ServicePin, installation: Option[Installation] = None): ServiceDescriptor =
+    // Tokens carry the public issuer; a service reads the keys from inside the cluster when the installation
+    // says where (KEYCLOAK_JWKS_BASE), since the public name may not resolve to Keycloak from a pod.
+    val keys = installation.flatMap(_.get("KEYCLOAK_JWKS_BASE")).filter(_.nonEmpty)
+    def issuer(name: String, realm: String, base: String, audience: String) = Render.issuer(name, realm, base, keys, audience)
     val auth = manifest match
       case brand: BrandManifest =>
         Vector("ANKKA_AUTH_ISSUERS" -> "player,staff", "ANKKA_AUTH_REALM" -> s"casino-${brand.slug}") ++
-          issuer("PLAYER", s"${brand.issuerBase.stripSuffix("/")}/realms/casino-${brand.slug}", brand.playerAudience) ++
-          issuer("STAFF", s"${brand.issuerBase.stripSuffix("/")}/realms/eitheror", brand.staffAudience)
+          issuer("PLAYER", s"casino-${brand.slug}", brand.issuerBase, brand.playerAudience) ++
+          issuer("STAFF", "eitheror", brand.issuerBase, brand.staffAudience)
       case shared: SharedManifest =>
         Vector("ANKKA_AUTH_ISSUERS" -> "staff", "ANKKA_AUTH_REALM" -> "eitheror") ++
-          issuer("STAFF", s"${shared.issuerBase.stripSuffix("/")}/realms/eitheror", shared.staffAudience)
+          issuer("STAFF", "eitheror", shared.issuerBase, shared.staffAudience)
     val identity = Vector("CASINO_PROJECT" -> manifest.projectId) ++ (manifest match
-      case brand: BrandManifest => Vector("CASINO_BRAND" -> brand.slug)
+      // Whether the brand takes real money: game-provider refuses a provider key document then (spec 003 FR-026).
+      case brand: BrandManifest => Vector("CASINO_BRAND" -> brand.slug, "CASINO_REAL_MONEY" -> brand.realMoney.toString)
       case _                    => Vector.empty)
     val env =
       (identity ++ auth).map((k, v) => EnvVar(k, value = Some(v))) ++
@@ -119,9 +124,11 @@ object Render:
       )
     )
 
-  private def issuer(name: String, issuer: String, audience: String): Vector[(String, String)] =
+  /** One issuer's settings: the public issuer, and its keys read from `keys` (in the cluster) when given. */
+  def issuer(name: String, realm: String, issuerBase: String, keys: Option[String], audience: String): Vector[(String, String)] =
+    val issuer = s"${issuerBase.stripSuffix("/")}/realms/$realm"
     Vector(
       s"ANKKA_AUTH_${name}_ISSUER"   -> issuer,
-      s"ANKKA_AUTH_${name}_JWKS_URL" -> s"$issuer/protocol/openid-connect/certs",
+      s"ANKKA_AUTH_${name}_JWKS_URL" -> s"${keys.getOrElse(issuerBase).stripSuffix("/")}/realms/$realm/protocol/openid-connect/certs",
       s"ANKKA_AUTH_${name}_AUDIENCE" -> audience
     )

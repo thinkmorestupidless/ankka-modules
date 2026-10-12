@@ -26,6 +26,14 @@ class RecordingSuite extends munit.FunSuite:
     assertEquals(recording.vary.keySet, Set("$.transaction_id", "$.created_at"))
   }
 
+  test("a step keeps the service the recorder sorted it under, and has none when the recorder named none") {
+    val sorted = Recording.parse(fixture, mapper.readTree(
+      """{"scenario":"TestS","runs":2,"original":{"brand":"spinvibe","commit":"21da61f0"},"steps":[{"name":"n","request":{"method":"GET","path":"/a","service":"wallet"},"response":{"status":200}}]}"""))
+    assertEquals(sorted.map(_.steps.head.request.service), Right(Some("wallet")))
+    assertEquals(sorted.map(_.original.get("brand")), Right(Some("spinvibe")))
+    assertEquals(recording.steps.head.request.service, None)
+  }
+
   test("a rebuild answering the same way passes: varying fields need only be present, captures fill later paths") {
     assertEquals(Replay.run(recording, faithful()), Vector.empty)
   }

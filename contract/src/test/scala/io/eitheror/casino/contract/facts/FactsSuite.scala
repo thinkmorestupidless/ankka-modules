@@ -29,6 +29,15 @@ class FactsSuite extends munit.FunSuite:
     assertEquals(Topics.brand.map(_.name), Layout.BrandTopics)
   }
 
+  test("every topic's contract is the one the brands tool declares from contract/schemas") {
+    val root = java.nio.file.Paths.get(sys.props.getOrElse("casino.root", "."))
+    Topics.all.foreach { topic =>
+      val file     = java.nio.file.Files.readString(root.resolve(s"contract/schemas/${topic.contractName}.json")).trim
+      val declared = com.thinkmorestupidless.ankka.core.Contract.fromSchema(topic.contractName, file.getBytes("UTF-8"))
+      assertEquals(Right(topic.contract), declared, topic.name)
+    }
+  }
+
   test("every family name is unique within its topic") {
     Topics.all.foreach(t => assertEquals(t.families.map(_.name).distinct.size, t.families.size, t.name))
   }
@@ -57,6 +66,28 @@ class FactsSuite extends munit.FunSuite:
     assert(Set("bonus_id", "bonus_name", "amount_cents", "currency").subsetOf(fields(CasinoRewards, "bonus_granted")))
     assert(Set("previous_tier", "new_tier").subsetOf(fields(CasinoPlayers, "vip_tier_changed")))
     assert(Set("session_id", "game_id", "duration_minutes").subsetOf(fields(CasinoSessions, "game_session_ended")))
+  }
+
+  test("round_settled carries the provider's and the wallet's ids and the grant, keyed by the wallet (spec 003 FR-019)") {
+    val family = CasinoRounds.families.find(_.name == "round_settled").get
+    val fields = family.fields.toMap
+    assert(Set("provider_transaction_ids", "wallet_transaction_ids", "free_rounds_grant").subsetOf(fields.keySet))
+    assert(fields("free_rounds_grant").optional, "the grant is present only on a tagged round")
+    assert(!fields("wallet_transaction_ids").optional)
+    val fact = RoundSettled(
+      playerId = "p-1", currency = io.eitheror.casino.contract.money.Currency.unsafe("EUR"), roundId = "st8/r-1",
+      provider = "st8", providerRoundId = "r-1", gameId = "g", sessionId = "s",
+      stakeCents = io.eitheror.casino.contract.money.MinorUnits.unsafe(200),
+      winCents = io.eitheror.casino.contract.money.MinorUnits.unsafe(500),
+      netResultCents = io.eitheror.casino.contract.money.SignedMinorUnits(300), outcome = RoundSettled.Outcome.Win,
+      transactionIds = Vector("w-1", "w-2"), providerTransactionIds = Vector("t-1", "t-2"),
+      walletTransactionIds = Vector("w-1", "w-2"), freeRoundsGrant = None, occurredAt = java.time.Instant.EPOCH
+    )
+    assertEquals(fact.key, "p-1/EUR")
+    val json = CasinoRounds.encode(fact)
+    assert(json.contains("\"provider_transaction_ids\":[\"t-1\",\"t-2\"]"), json)
+    assert(!json.contains("free_rounds_grant"), json)
+    assertEquals(RoundSettled.Outcome.all, Set("win", "loss", "cancelled", "credit"))
   }
 
   test("every money family carries the balances after the movement") {

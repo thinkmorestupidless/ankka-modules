@@ -1,0 +1,221 @@
+{
+  "scenario": "TestScenario15_St8Wallet_IdempotentCredit",
+  "requirement": "003/FR-011",
+  "recorded_at": "2026-10-10T06:38:33.421055Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "21da61f0"
+  },
+  "runs": 2,
+  "service": "game-provider",
+  "steps": [
+    {
+      "name": "GET /health",
+      "request": {
+        "method": "GET",
+        "path": "/health",
+        "service": "game-provider"
+      },
+      "response": {
+        "status": 200,
+        "body": "ok"
+      }
+    },
+    {
+      "name": "POST /test/setup-wallet-token/a5f620d5-1ddb-4a33-8073-eb11e4cf714d",
+      "request": {
+        "method": "POST",
+        "path": "/test/setup-wallet-token/a5f620d5-1ddb-4a33-8073-eb11e4cf714d",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "spinvibe",
+          "gameCode": "ntn_starburst",
+          "playerId": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /payout",
+      "request": {
+        "method": "POST",
+        "path": "/payout",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "100.00",
+          "currency": "EUR",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "token": "a5f620d5-1ddb-4a33-8073-eb11e4cf714d",
+          "transaction_id": "ef015224-66dc-40a1-bfa6-fb07a21e8391"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "897.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /debit",
+      "request": {
+        "method": "POST",
+        "path": "/debit",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "bonus": null,
+          "currency": "EUR",
+          "developer_code": "some",
+          "game_code": "ntn_starburst",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "provider": {
+            "amount": "12.345",
+            "currency": "USD",
+            "metadata": null,
+            "player": "external",
+            "round": "763e2754-7649-4b47-aa06-1726dda8629b",
+            "transaction_id": "620143de-d913-4aac-bc84-c61bec7734a2"
+          },
+          "provider_kind": "debit",
+          "round": "d9909460-5d2f-44e1-bb29-a3850c5046e4",
+          "round_closed": false,
+          "site": "spinvibe",
+          "token": "a5f620d5-1ddb-4a33-8073-eb11e4cf714d",
+          "transaction_id": "c8216822-5893-4c01-af34-201391fe9039"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "887.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /credit",
+      "request": {
+        "method": "POST",
+        "path": "/credit",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "20.00",
+          "bonus": null,
+          "currency": "EUR",
+          "developer_code": "some",
+          "game_code": "ntn_starburst",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "provider": {
+            "amount": "12.345",
+            "currency": "USD",
+            "metadata": null,
+            "player": "external",
+            "round": "b026732f-90c2-4ad3-9d90-1b05ceae1ed8",
+            "transaction_id": "751c287f-9f79-43e0-b610-d1efc0d98ed2"
+          },
+          "provider_kind": "credit",
+          "round": "d9909460-5d2f-44e1-bb29-a3850c5046e4",
+          "round_closed": true,
+          "site": "spinvibe",
+          "token": "a5f620d5-1ddb-4a33-8073-eb11e4cf714d",
+          "transaction_id": "5f659c28-b34e-426d-8e40-f2c0825f4699"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "907.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /credit",
+      "request": {
+        "method": "POST",
+        "path": "/credit",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "20.00",
+          "bonus": null,
+          "currency": "EUR",
+          "developer_code": "some",
+          "game_code": "ntn_starburst",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "provider": {
+            "amount": "12.345",
+            "currency": "USD",
+            "metadata": null,
+            "player": "external",
+            "round": "eb0b2604-de34-4f3c-8944-73374e36c845",
+            "transaction_id": "64d044cc-803f-4a4e-9318-764a3451bc50"
+          },
+          "provider_kind": "credit",
+          "round": "d9909460-5d2f-44e1-bb29-a3850c5046e4",
+          "round_closed": true,
+          "site": "spinvibe",
+          "token": "a5f620d5-1ddb-4a33-8073-eb11e4cf714d",
+          "transaction_id": "5f659c28-b34e-426d-8e40-f2c0825f4699"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "907.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /balance",
+      "request": {
+        "method": "POST",
+        "path": "/balance",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "site": "spinvibe",
+          "token": "a5f620d5-1ddb-4a33-8073-eb11e4cf714d"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "907.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    }
+  ]
+}

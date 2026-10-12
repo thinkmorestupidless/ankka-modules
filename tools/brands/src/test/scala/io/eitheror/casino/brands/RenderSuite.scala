@@ -36,6 +36,19 @@ class RenderSuite extends munit.FunSuite:
     assert(wallet("ANKKA_AUTH_STAFF_ISSUER").endsWith("/realms/eitheror"))
     assertEquals(wallet("ANKKA_AUTH_PLAYER_AUDIENCE"), "casino-goldvibe")
     assertEquals(wallet("CASINO_BRAND"), "goldvibe")
+    assertEquals(wallet("CASINO_REAL_MONEY"), "false")
+  }
+
+  test("a service reads its issuers' keys from inside the cluster when the installation names where; the issuer stays public") {
+    val pin = brand.services.head
+    def envWith(i: Option[Installation]) = Render.descriptor(brand, pin, i).service.env.flatMap(e => e.value.map(e.name -> _)).toMap
+    val inside = Fixtures.devKind.copy(settings = Fixtures.devKind.settings + ("KEYCLOAK_JWKS_BASE" -> "http://casino-keycloak.casino-identity.svc"))
+    val keys   = envWith(Some(inside))
+    assertEquals(keys("ANKKA_AUTH_STAFF_JWKS_URL"), "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs")
+    assertEquals(keys("ANKKA_AUTH_PLAYER_JWKS_URL"), "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs")
+    assertEquals(keys("ANKKA_AUTH_STAFF_ISSUER"), s"${brand.issuerBase.stripSuffix("/")}/realms/eitheror")
+    val public = envWith(Some(Fixtures.devKind.copy(settings = Fixtures.devKind.settings - "KEYCLOAK_JWKS_BASE")))
+    assertEquals(public("ANKKA_AUTH_STAFF_JWKS_URL"), s"${brand.issuerBase.stripSuffix("/")}/realms/eitheror/protocol/openid-connect/certs")
   }
 
   test("a shared service trusts the operators' realm only") {
@@ -46,9 +59,15 @@ class RenderSuite extends munit.FunSuite:
   }
 
   test("a secret reference renders as a secretKeyRef, never a value") {
-    val st8 = plan.descriptors.find(_.name == "game-provider").get.service.env.find(_.name == "ST8_SIGNING_KEY").get
-    assertEquals(st8.value, None)
-    assertEquals(st8.secretKeyRef.map(r => r.name -> r.key), Some("game-provider-st8" -> "SIGNING_KEY"))
+    // goldvibe's manifest names no project secret since game-provider keeps its provider
+    // configuration in its own secret store (spec 003 research R4), so the test names one.
+    val withSecret = brand.copy(
+      services = brand.services.map(s => if s.name == "engagement" then s.copy(env = s.env + ("SENDER_KEY" -> "secret:engagement-mail/KEY")) else s),
+      secrets = brand.secrets :+ SecretRef("engagement-mail", Vector("KEY"))
+    )
+    val ref = Render.plan(withSecret, Some(Fixtures.devKind)).descriptors.find(_.name == "engagement").get.service.env.find(_.name == "SENDER_KEY").get
+    assertEquals(ref.value, None)
+    assertEquals(ref.secretKeyRef.map(r => r.name -> r.key), Some("engagement-mail" -> "KEY"))
   }
 
   test("ten topic declarations with their partitions; the status is told what ankka 0.11 cannot declare") {

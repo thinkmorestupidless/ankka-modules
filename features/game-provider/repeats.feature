@@ -1,6 +1,7 @@
 Feature: A repeated provider call is answered as the first was
   The game provider retries any call it got no answer to. A repeat under the same transaction id or
-  cancel id is answered with the first outcome and balance without touching the wallet.
+  cancel id is answered with the first outcome and balance without touching the wallet or asking
+  responsible gambling again.
 
   Background:
     Given a player with a session ticket for a wallet in "EUR"
@@ -16,6 +17,12 @@ Feature: A repeated provider call is answered as the first was
     When "t2" arrives again with a different amount
     Then the first outcome is answered
     And the difference is recorded as a conflicting repeat
+
+  Scenario: a repeated debit refused as player locked is answered the same and responsible gambling is not asked again
+    Given a debit "t4" answered "player_locked"
+    When "t4" arrives again
+    Then it is answered "player_locked"
+    And responsible gambling is not asked
 
   Scenario: a repeated cancel is answered ok with the same balance
     Given a cancel "c1" answered "ok"

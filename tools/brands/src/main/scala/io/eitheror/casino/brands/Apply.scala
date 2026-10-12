@@ -19,7 +19,9 @@ object Apply:
   final case class Options(
       organization: String,
       secretValues: Map[String, Map[String, String]] = Map.empty,
-      realm: Option[(RealmAdmin, () => String)] = None
+      realm: Option[(RealmAdmin, () => String)] = None,
+      /** The operators' realm, imported when the installation lacks it (brands/_realm/eitheror-operators.json). */
+      operatorsRealm: () => Option[String] = () => None
   )
 
   def run(plan: Plan, cp: ControlPlane, options: Options): ApplyResult =
@@ -111,7 +113,7 @@ object Apply:
       _ <- step("realm") {
         (plan.realm, options.realm) match
           case (Some(_), Some((admin, json))) =>
-            changes ++= Realm.ensure(admin, plan.projectId, json())
+            changes ++= Realm.ensure(admin, plan.projectId, json(), options.operatorsRealm())
           case (Some(realm), None) =>
             notes += s"realm $realm not checked: no Keycloak administrator (CASINO_KEYCLOAK_ADMIN_USERNAME, _PASSWORD)"
           case _ => ()

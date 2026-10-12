@@ -16,3 +16,14 @@ policy, and its `eitheror-audit-listener`, which reports sign-ins to the brand's
 what an operator's access to the brand is checked on (decision 0045).
 
 When the original changes its template, copy it again; do not edit it here.
+
+# The operators' realm
+
+`eitheror-operators.json` is the `eitheror` realm an installation needs before any brand: the operators'
+roles, the public operator clients (`casino-backoffice`, `payments-backoffice`, `affiliate-portal`,
+`eitheror-cli`) and the password policy, written here rather than copied, so it carries no credential
+(the original's file holds client secrets and SMTP settings). Every client's tokens carry the audience
+`eitheror-casino`, which every casino service checks on a staff token (the manifests' `staffAudience`;
+decided 2026-10-10: keep the check, add the mapper). The brands tool imports it when an installation
+lacks the realm, and never overwrites one that exists. Confidential clients (partners, machine accounts)
+are added by the specs that need them.

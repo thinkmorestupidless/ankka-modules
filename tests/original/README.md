@@ -12,7 +12,7 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `e2e-recording.patch` | adds `record_test.go` to the original's `tests/e2e`: with `EITHEROR_RECORD_TO` set, every request a test makes is recorded, and any to a host off this machine is refused |
 | `e2e-rg-kyc.patch` | the responsible-gambling and KYC scenarios the original's suite lacks (FR-030); see `e2e-rg-kyc.md` |
 | `recorder/` | the transport `record_test.go` installs |
-| `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json` |
+| `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies |
 | `preflight/` | refuses to start while any outside system the original calls has no stub answering |
 
 ## Steps
@@ -41,6 +41,10 @@ go run ./original/merge -run1 /tmp/recording-1 -run2 /tmp/recording-2 \
   -results1 /tmp/recording-1.json -results2 /tmp/recording-2.json -out port
 cd .. && just brands recordings check
 ```
+
+For the casino scenarios the original's KinD stack is the one that runs (`just dev-kind`,
+`just kind-install-wallet`, `just kind-install-casino`): its compose file has no substrate.
+`tests/port/README.md` records how spec 003's recordings were made on it.
 
 Each run uses fresh ids because the suite mints them per run. A recording that did not repeat step for
 step keeps `runs: 1`, and `recordings check` refuses it until the scenario is made repeatable.

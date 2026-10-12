@@ -114,7 +114,8 @@ object Main:
                 admin.map(a => a -> (() => Realm.render(Realm.template(root), brand.slug, frontend(brand, inst))))
               case _ => None
             val organization = args.flags.get("--organization").orElse(sys.env.get("ANKKA_ORGANIZATION")).getOrElse("eitheror")
-            val result = Apply.run(plan, cp, Apply.Options(organization, values, realm))
+            val operators = () => Option.when(manifest.isInstanceOf[BrandManifest])(Realm.operators(root))
+            val result = Apply.run(plan, cp, Apply.Options(organization, values, realm, operators))
             result.changes.foreach(c => out.line(s"changed $c"))
             result.notes.foreach(n => out.line(s"note $n"))
             out.line(s"changes: ${result.changes.size}")

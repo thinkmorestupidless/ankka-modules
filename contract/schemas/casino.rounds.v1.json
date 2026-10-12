@@ -10,6 +10,9 @@
           "pattern": "^[A-Z]{3}$",
           "type": "string"
         },
+        "free_rounds_grant": {
+          "type": "string"
+        },
         "game_id": {
           "type": "string"
         },
@@ -33,6 +36,12 @@
         "provider_round_id": {
           "type": "string"
         },
+        "provider_transaction_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "round_id": {
           "type": "string"
         },
@@ -53,13 +62,19 @@
         "type": {
           "const": "round_settled"
         },
+        "wallet_transaction_ids": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "win_cents": {
           "minimum": 0,
           "type": "integer",
           "x-unit": "minor"
         }
       },
-      "required": ["type", "player_id", "currency", "round_id", "provider", "provider_round_id", "game_id", "session_id", "stake_cents", "win_cents", "net_result_cents", "outcome", "transaction_ids", "occurred_at"],
+      "required": ["type", "player_id", "currency", "round_id", "provider", "provider_round_id", "game_id", "session_id", "stake_cents", "win_cents", "net_result_cents", "outcome", "transaction_ids", "provider_transaction_ids", "wallet_transaction_ids", "occurred_at"],
       "title": "round_settled",
       "type": "object"
     }

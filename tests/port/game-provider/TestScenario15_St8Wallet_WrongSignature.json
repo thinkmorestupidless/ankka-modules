@@ -1,0 +1,96 @@
+{
+  "scenario": "TestScenario15_St8Wallet_WrongSignature",
+  "requirement": "003/FR-003",
+  "recorded_at": "2026-10-10T06:38:34.488476Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "21da61f0"
+  },
+  "runs": 2,
+  "service": "game-provider",
+  "steps": [
+    {
+      "name": "GET /health",
+      "request": {
+        "method": "GET",
+        "path": "/health",
+        "service": "game-provider"
+      },
+      "response": {
+        "status": 200,
+        "body": "ok"
+      }
+    },
+    {
+      "name": "POST /test/setup-wallet-token/e0d15610-effa-4313-a87d-28711e8fe1fe",
+      "request": {
+        "method": "POST",
+        "path": "/test/setup-wallet-token/e0d15610-effa-4313-a87d-28711e8fe1fe",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "spinvibe",
+          "gameCode": "ntn_starburst",
+          "playerId": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /payout",
+      "request": {
+        "method": "POST",
+        "path": "/payout",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "currency": "EUR",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "token": "e0d15610-effa-4313-a87d-28711e8fe1fe",
+          "transaction_id": "2ebe3d5a-4573-4fe5-84f2-d1a164c472ac"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "1217.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /balance",
+      "request": {
+        "method": "POST",
+        "path": "/balance",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "site": "spinvibe",
+          "token": "e0d15610-effa-4313-a87d-28711e8fe1fe"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "auth_failed"
+        }
+      }
+    }
+  ]
+}

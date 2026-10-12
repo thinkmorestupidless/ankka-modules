@@ -1,0 +1,114 @@
+{
+  "scenario": "TestScenario15_St8Wallet_StandaloneCredit",
+  "requirement": "003/FR-014",
+  "recorded_at": "2026-10-10T06:38:30.110347Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "21da61f0"
+  },
+  "runs": 2,
+  "service": "game-provider",
+  "steps": [
+    {
+      "name": "GET /health",
+      "request": {
+        "method": "GET",
+        "path": "/health",
+        "service": "game-provider"
+      },
+      "response": {
+        "status": 200,
+        "body": "ok"
+      }
+    },
+    {
+      "name": "POST /test/setup-wallet-token/21abc937-a55c-4309-8f23-9c49f41ee27c",
+      "request": {
+        "method": "POST",
+        "path": "/test/setup-wallet-token/21abc937-a55c-4309-8f23-9c49f41ee27c",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "spinvibe",
+          "gameCode": "ntn_starburst",
+          "playerId": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /payout",
+      "request": {
+        "method": "POST",
+        "path": "/payout",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "100.00",
+          "currency": "EUR",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "token": "21abc937-a55c-4309-8f23-9c49f41ee27c",
+          "transaction_id": "8c4e7892-6b64-49da-a300-0883a0f765a6"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "190.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "POST /credit",
+      "request": {
+        "method": "POST",
+        "path": "/credit",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "15.00",
+          "bonus": null,
+          "currency": "EUR",
+          "developer_code": "some",
+          "game_code": "ntn_starburst",
+          "player": "5d33e3c6-f209-39d7-8e73-b04bd0853fcc",
+          "provider": {
+            "amount": "12.345",
+            "currency": "USD",
+            "metadata": null,
+            "player": "external",
+            "round": "e96e7b6d-8923-4e56-b6f1-f2c49f358eef",
+            "transaction_id": "696967a7-f631-445b-96e0-0d59aa85c532"
+          },
+          "provider_kind": "credit",
+          "round": "952f19f5-5d16-4ad7-a784-4e766f5c5232",
+          "round_closed": true,
+          "site": "spinvibe",
+          "token": "21abc937-a55c-4309-8f23-9c49f41ee27c",
+          "transaction_id": "1df3d902-2760-4776-894f-c003cb4fd8d4"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "205.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    }
+  ]
+}

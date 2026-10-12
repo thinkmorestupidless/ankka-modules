@@ -20,6 +20,27 @@ Feature: The catalogue is fed by the game provider and curated by the brand
     When the nightly refresh fetches nothing
     Then nothing is marked removed
 
+  Scenario: the nightly refresh fetches each game provider the brand runs and marks removed only the games that game provider stopped listing
+    Given a brand that holds credentials for two game providers
+    When the nightly refresh fetches nothing from the first game provider and the second game provider's list
+    Then no game of the first game provider is marked removed
+    And a game of the second game provider absent from its list is marked removed
+
+  Scenario: every game listed carries its game provider and code
+    Given a brand that holds credentials for two game providers
+    When a player browses the brand's catalogue
+    Then every game listed carries its game provider and its code
+
+  Scenario Outline: a game named by code alone is served when one game provider carries the code and refused naming both when two do
+    Given a brand that holds credentials for two game providers, whose lists carry code <carried>
+    When a player reads game "book-x" naming no game provider
+    Then <outcome>
+
+    Examples:
+      | carried                                  | outcome                                                   |
+      | "book-x" at the first game provider only | the game is answered with its game provider               |
+      | "book-x" at both game providers          | it is refused as a bad request naming both game providers |
+
   Scenario: no game of a developer the brand disabled is listed to a player
     Given a brand that disabled a developer
     When a player browses the brand's catalogue
@@ -43,7 +64,7 @@ Feature: The catalogue is fed by the game provider and curated by the brand
   Scenario: popular games are ranked by rounds played at the brand and leave out a game disabled since the ranking was built
     Given a brand
     When its popular games are asked
-    Then games are ranked by rounds played at that brand
+    Then games are ranked by the number of rounds played at that brand over all time, counted from the brand's own rounds
     And a game disabled since the ranking was built is not among them
 
   Scenario: an operator reads every game of the catalogue, removed and disabled included, with each layer of the enablement decision

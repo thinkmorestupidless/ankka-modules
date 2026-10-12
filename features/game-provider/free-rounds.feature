@@ -14,6 +14,11 @@ Feature: Free rounds are created at the game provider on behalf of the brand's r
     When the brand's rewards ask for free rounds
     Then the player is made known to the game provider first, so that the player profile read is answered "ok"
 
+  Scenario: free rounds on games of a second game provider are created at that game provider under the brand's credentials for it
+    Given a brand that holds credentials for two game providers
+    When the brand's rewards ask for free rounds on games of the second game provider
+    Then the free rounds are created at the second game provider under the brand's credentials for it
+
   Scenario: cancelling active free rounds cancels them at the game provider
     Given active free rounds
     When the brand's rewards cancel them

@@ -59,6 +59,11 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 - A service is one sbt build of its own under `services/<name>/` (`ankka init`), depending on the
   published contract (`sbt contract/publishLocal`). It declares ACLs only through
   `contract.access.Routes`, money only through `contract.money`, facts only through `contract.facts`.
+  `just service <name> <sbt task>` publishes the contract and runs the task in that build;
+  `services/game-provider/` is the first (its `README.md` has the components and the suites). Its
+  integration suites need Docker. In ankka 0.11 a route takes at most two path parameters and no two
+  endpoints may share a prefix, so a service groups its endpoints by prefix and sets each route's
+  audience with `withAcl`.
 - `brands/<slug>/manifest.json` and `shared/<project>/manifest.json` are how anything is deployed;
   `installation/overlays/<name>/settings.env` is what decides whether a brand may take real money.
 - `tests/original/` records the original (`README.md` there); `tests/port/<service>/` holds the

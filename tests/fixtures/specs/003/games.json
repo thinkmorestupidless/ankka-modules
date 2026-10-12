@@ -1,0 +1,22 @@
+{
+  "games": [
+    {"code": "book-of-ra", "name": "Book of Ra", "category": "slots", "developer": "fake-studio-alpha", "enabled": true, "fun_mode": true,
+     "bonus_types": ["free_bets", "bonus_buy"], "features": ["expanding_symbol", "gamble"], "themes": ["egypt", "adventure"],
+     "restricted_territories": [], "prohibited_territories": []},
+    {"code": "fake-slot-002", "name": "Fake Slots II", "category": "slots", "developer": "fake-studio-beta", "enabled": true, "fun_mode": true,
+     "bonus_types": ["bonus_buy"], "features": ["cascading_reels"], "themes": ["fruit"],
+     "restricted_territories": [], "prohibited_territories": []},
+    {"code": "fake-table-001", "name": "Fake Blackjack", "category": "table", "developer": "fake-table-works", "enabled": true, "fun_mode": true,
+     "bonus_types": [], "features": [], "themes": [],
+     "restricted_territories": [], "prohibited_territories": []}
+  ],
+  "developers": [
+    {"developer_id": "fake-studio-alpha", "name": "Fake Studio Alpha"},
+    {"developer_id": "fake-studio-beta", "name": "Fake Studio Beta"},
+    {"developer_id": "fake-table-works", "name": "Fake Table Works"}
+  ],
+  "categories": [
+    {"id": "slots", "name": "Slots"},
+    {"id": "table", "name": "Table Games"}
+  ]
+}

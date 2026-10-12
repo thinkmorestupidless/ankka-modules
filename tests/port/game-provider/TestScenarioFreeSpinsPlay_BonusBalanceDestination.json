@@ -1,0 +1,884 @@
+{
+  "scenario": "TestScenarioFreeSpinsPlay_BonusBalanceDestination",
+  "requirement": "003/FR-013",
+  "recorded_at": "2026-10-10T06:38:09.323819Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "21da61f0"
+  },
+  "runs": 2,
+  "service": "game-provider",
+  "steps": [
+    {
+      "name": "GET /health",
+      "request": {
+        "method": "GET",
+        "path": "/health",
+        "service": "game-provider"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "ready"
+        }
+      }
+    },
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice&grant_type=password&password=<redacted>&username=dev-operator%40eitheror.io"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "<redacted>",
+          "scope": "email profile",
+          "session_state": "0280ba0f-67e7-463a-abfb-0160443c0f92",
+          "token_type": "Bearer"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "e2e-5d8b830b@example.com",
+          "firstName": "E2E",
+          "language": "en",
+          "lastName": "Player5d8b830b",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c0": "$.playerId"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli&grant_type=password&password=<redacted>&username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "<redacted>",
+          "scope": "email profile",
+          "session_state": "092b7012-b0b5-4266-b718-5468b03465a0",
+          "token_type": "Bearer"
+        }
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=e2e-5d8b830b%40example.com&exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "createdTimestamp": 1791614289488,
+            "disableableCredentialTypes": [],
+            "email": "e2e-5d8b830b@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "cf3eae4a-27ec-4d92-b798-d93732d977d8",
+            "lastName": "Player5d8b830b",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-5d8b830b@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c1": "$[0].email",
+        "c2": "$[0].id"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/cf3eae4a-27ec-4d92-b798-d93732d977d8",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/cf3eae4a-27ec-4d92-b798-d93732d977d8",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/69fe0577-7d66-36ef-bfc1-d300c7aecb5d"
+            ]
+          },
+          "createdTimestamp": 1791614289488,
+          "disableableCredentialTypes": [],
+          "email": "e2e-5d8b830b@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "E2E",
+          "id": "cf3eae4a-27ec-4d92-b798-d93732d977d8",
+          "lastName": "Player5d8b830b",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "e2e-5d8b830b@example.com"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c1}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/69fe0577-7d66-36ef-bfc1-d300c7aecb5d/EUR/balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/balance",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "realBalance": "0.00"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/offers/spinvibe",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/offers/spinvibe",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "depositNumberTarget": "ANY",
+          "freeSpinsExpiryDays": 7,
+          "gameId": "book-of-ra",
+          "gameName": "Book of Ra",
+          "maxClaimsPerPlayer": 1,
+          "maxConvertibleAmount": "100.00",
+          "name": "E2E Free Spins bonus_balance 5d8b830b",
+          "noDepositRequired": true,
+          "priorityOrder": 1,
+          "provider": "ST8",
+          "spinCount": 3,
+          "spinValue": "0.10",
+          "type": "FREE_SPINS",
+          "validFrom": "2026-10-10T05:38:10Z",
+          "validUntil": "2026-10-11T06:38:10Z",
+          "wageringMultiplier": 20,
+          "wageringWindowDays": 14,
+          "winningsDestination": "bonus_balance"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "bonusPercentage": null,
+          "brandId": "spinvibe",
+          "claimWindowDays": 0,
+          "conflictsWith": [],
+          "createdAt": "2026-10-10T06:38:10.096035234Z",
+          "currency": "EUR",
+          "depositNumberTarget": "ANY",
+          "description": "",
+          "excludedOfferIds": [],
+          "freeSpinsExpiryDays": 7,
+          "gameId": "book-of-ra",
+          "gameName": "Book of Ra",
+          "isActive": true,
+          "maxBonusValue": null,
+          "maxClaimsPerPlayer": 1,
+          "maxConcurrentGrants": null,
+          "maxConvertibleAmount": "100.00",
+          "minDepositAmount": null,
+          "name": "E2E Free Spins bonus_balance 5d8b830b",
+          "noDepositRequired": true,
+          "notification_field_map": "",
+          "notification_template_id": "",
+          "offerId": "fe1b590b-5ddf-41ec-848f-9aa768e11109",
+          "payload_type": "",
+          "priorityOrder": 1,
+          "provider": "ST8",
+          "redemptionCodes": [],
+          "role": "",
+          "spinCount": 3,
+          "spinValue": 0.1,
+          "type": "FREE_SPINS",
+          "updatedAt": "2026-10-10T06:38:10.096035234Z",
+          "validFrom": "2026-10-10T05:38:10Z",
+          "validUntil": "2026-10-11T06:38:10Z",
+          "wageringMultiplier": 20,
+          "wageringWindowDays": 14,
+          "winningsDestination": "bonus_balance"
+        }
+      },
+      "capture": {
+        "c3": "$.offerId"
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/grant/spinvibe/69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{c0}",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "offerId": "{c3}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "grantId": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+          "providerStatus": "active",
+          "status": "granted",
+          "type": "FREE_SPINS"
+        }
+      },
+      "capture": {
+        "c4": "$.grantId"
+      }
+    },
+    {
+      "name": "GET /twins/free-spins-grants/67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+      "request": {
+        "method": "GET",
+        "path": "/twins/free-spins-grants/{c4}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "free-spins-grant"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "claim_ref": "bonus-claims/62daa8aa-0125-4217-a709-426046ad621c",
+            "currency": "EUR",
+            "free_spins_expires_at": "2026-10-17T06:38:10.162090745Z",
+            "game_id": "book-of-ra",
+            "game_name": "Book of Ra",
+            "grant_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "granted_at": "2026-10-10T06:38:10.162034579Z",
+            "max_convertible_amount": "100.00",
+            "offer_id": "fe1b590b-5ddf-41ec-848f-9aa768e11109",
+            "player_id": "69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+            "provider": "ST8",
+            "provider_bonus_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "provider_poll_attempts": "0",
+            "provider_status": "active",
+            "source": "operator_manual_offer",
+            "spin_count": "3",
+            "spin_value": "0.10",
+            "status": "granted",
+            "wagering_multiplier": "20",
+            "wagering_window_days": "14",
+            "winnings_destination": "bonus_balance"
+          }
+        }
+      },
+      "capture": {
+        "c5": "$.properties.claim_ref"
+      }
+    },
+    {
+      "name": "GET /test/bonus/67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+      "request": {
+        "method": "GET",
+        "path": "/test/bonus/{c4}",
+        "service": "game-provider"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusId": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+          "count": 3,
+          "currency": "EUR",
+          "gameCodes": [
+            "book-of-ra"
+          ],
+          "instances": {
+            "69fe0577-7d66-36ef-bfc1-d300c7aecb5d": {
+              "remaining": 3,
+              "status": "active"
+            }
+          },
+          "players": [
+            "69fe0577-7d66-36ef-bfc1-d300c7aecb5d"
+          ],
+          "site": "fake-st8",
+          "type": "free_bets",
+          "value": "0.10"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/sessions/spinvibe/launch",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/sessions/spinvibe/launch",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "gameId": "book-of-ra",
+          "playerId": "{c0}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "freeSpinsGrantRef": "free-spins-grants/67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+          "gameUrl": "http://localhost:30096/game?token=f6c05181-e50d-443a-b341-f9c10446aa1f",
+          "launchToken": "f6c05181-e50d-443a-b341-f9c10446aa1f",
+          "sessionId": "b5fe403b-f710-4ff5-a447-ba2839a732bc"
+        }
+      },
+      "capture": {
+        "c6": "$.launchToken"
+      }
+    },
+    {
+      "name": "GET /game",
+      "request": {
+        "method": "GET",
+        "path": "/game?token={c6}",
+        "service": "game-provider"
+      },
+      "response": {
+        "status": 200,
+        "body": "<!DOCTYPE html>\n<html>\n<head><title>Fake Casino Game</title>\n<style>body{font-family:monospace;background:#1a1a2e;color:#eee;display:flex;flex-direction:column;align-items:center;padding:40px;gap:16px}</style>\n</head>\n<body data-wallet-token=\"f6c05181-e50d-443a-b341-f9c10446aa1f\" data-launch-token=\"f6c05181-e50d-443a-b341-f9c10446aa1f\">\n<h2>&#127920; Fake Casino Game</h2>\n<p id=\"info\">Loading session&#8230;</p>\n<p style=\"font-size:11px;opacity:0.5\">wallet token: <span id=\"wt\"></span></p>\n<script>\nconst wt = document.body.dataset.walletToken;\nconst lt = document.body.dataset.launchToken;\ndocument.getElementById('wt').textContent = wt || '(none)';\ndocument.getElementById('info').textContent = wt ? 'Session active. Control via /test/* API.' : 'Session initialising…';\n</script>\n</body>\n</html>"
+      }
+    },
+    {
+      "name": "POST /test/free-spin",
+      "request": {
+        "method": "POST",
+        "path": "/test/free-spin",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "launchToken": "{c6}",
+          "winAmount": "10.00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "credit": {
+            "balance": "0.00",
+            "currency": "EUR",
+            "status": "ok"
+          },
+          "debit": {
+            "balance": "0.00",
+            "currency": "EUR",
+            "status": "ok"
+          },
+          "remaining": 2,
+          "roundId": "199a9839-89e2-4c55-a4b7-203c28e1c0d8"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/free-spins-grants/67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+      "request": {
+        "method": "GET",
+        "path": "/twins/free-spins-grants/{c4}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "free-spins-grant"
+          ],
+          "properties": {
+            "accumulated_raw_winnings": "10.00",
+            "brand_id": "spinvibe",
+            "claim_ref": "bonus-claims/62daa8aa-0125-4217-a709-426046ad621c",
+            "currency": "EUR",
+            "free_spins_expires_at": "2026-10-17T06:38:10.162090745Z",
+            "game_id": "book-of-ra",
+            "game_name": "Book of Ra",
+            "grant_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "granted_at": "2026-10-10T06:38:10.162034579Z",
+            "max_convertible_amount": "100.00",
+            "offer_id": "fe1b590b-5ddf-41ec-848f-9aa768e11109",
+            "player_id": "69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+            "provider": "ST8",
+            "provider_bonus_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "provider_poll_attempts": "0",
+            "provider_status": "active",
+            "settled_round_refs": "|199a9839-89e2-4c55-a4b7-203c28e1c0d8|",
+            "source": "operator_manual_offer",
+            "spin_count": "3",
+            "spin_value": "0.10",
+            "spins_used": 1,
+            "status": "granted",
+            "wagering_multiplier": "20",
+            "wagering_window_days": "14",
+            "winnings_destination": "bonus_balance"
+          }
+        }
+      }
+    },
+    {
+      "name": "POST /test/free-spin",
+      "request": {
+        "method": "POST",
+        "path": "/test/free-spin",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "launchToken": "{c6}",
+          "winAmount": "0.00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "credit": {
+            "balance": "0.00",
+            "currency": "EUR",
+            "status": "ok"
+          },
+          "debit": {
+            "balance": "0.00",
+            "currency": "EUR",
+            "status": "ok"
+          },
+          "remaining": 1,
+          "roundId": "cc8f0586-1fdc-48c6-b25c-54033bc6a83e"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/free-spins-grants/67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+      "request": {
+        "method": "GET",
+        "path": "/twins/free-spins-grants/{c4}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "free-spins-grant"
+          ],
+          "properties": {
+            "accumulated_raw_winnings": "10.00",
+            "brand_id": "spinvibe",
+            "claim_ref": "bonus-claims/62daa8aa-0125-4217-a709-426046ad621c",
+            "currency": "EUR",
+            "free_spins_expires_at": "2026-10-17T06:38:10.162090745Z",
+            "game_id": "book-of-ra",
+            "game_name": "Book of Ra",
+            "grant_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "granted_at": "2026-10-10T06:38:10.162034579Z",
+            "max_convertible_amount": "100.00",
+            "offer_id": "fe1b590b-5ddf-41ec-848f-9aa768e11109",
+            "player_id": "69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+            "provider": "ST8",
+            "provider_bonus_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "provider_poll_attempts": "0",
+            "provider_status": "active",
+            "settled_round_refs": "|199a9839-89e2-4c55-a4b7-203c28e1c0d8|cc8f0586-1fdc-48c6-b25c-54033bc6a83e|",
+            "source": "operator_manual_offer",
+            "spin_count": "3",
+            "spin_value": "0.10",
+            "spins_used": 2,
+            "status": "granted",
+            "wagering_multiplier": "20",
+            "wagering_window_days": "14",
+            "winnings_destination": "bonus_balance"
+          }
+        }
+      }
+    },
+    {
+      "name": "POST /test/free-spin",
+      "request": {
+        "method": "POST",
+        "path": "/test/free-spin",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "launchToken": "{c6}",
+          "winAmount": "25.00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "credit": {
+            "balance": "0.00",
+            "currency": "EUR",
+            "status": "ok"
+          },
+          "debit": {
+            "balance": "0.00",
+            "currency": "EUR",
+            "status": "ok"
+          },
+          "remaining": 0,
+          "roundId": "0b4c295c-53b0-42cb-a036-86141334beb9"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/free-spins-grants/67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+      "request": {
+        "method": "GET",
+        "path": "/twins/free-spins-grants/{c4}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "free-spins-grant"
+          ],
+          "properties": {
+            "accumulated_raw_winnings": "35.00",
+            "brand_id": "spinvibe",
+            "claim_ref": "bonus-claims/62daa8aa-0125-4217-a709-426046ad621c",
+            "currency": "EUR",
+            "free_spins_expires_at": "2026-10-17T06:38:10.162090745Z",
+            "game_id": "book-of-ra",
+            "game_name": "Book of Ra",
+            "grant_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "granted_at": "2026-10-10T06:38:10.162034579Z",
+            "max_convertible_amount": "100.00",
+            "offer_id": "fe1b590b-5ddf-41ec-848f-9aa768e11109",
+            "player_id": "69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+            "provider": "ST8",
+            "provider_bonus_id": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "provider_poll_attempts": "0",
+            "provider_status": "active",
+            "settled_round_refs": "|199a9839-89e2-4c55-a4b7-203c28e1c0d8|cc8f0586-1fdc-48c6-b25c-54033bc6a83e|0b4c295c-53b0-42cb-a036-86141334beb9|",
+            "source": "operator_manual_offer",
+            "spin_count": "3",
+            "spin_value": "0.10",
+            "spins_used": 3,
+            "status": "used",
+            "wagering_multiplier": "20",
+            "wagering_window_days": "14",
+            "winnings_destination": "bonus_balance"
+          }
+        }
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/69fe0577-7d66-36ef-bfc1-d300c7aecb5d/EUR/bonus/status",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/bonus/status",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "35.00",
+          "bonusStatus": "ACTIVE",
+          "currency": "EUR",
+          "maxWin": "100.00",
+          "restrictedFunds": [
+            {
+              "balance": "35.00",
+              "grantRef": "bonus-claims/e5d3e013-2630-4016-9b72-c9030a578839",
+              "id": "restricted-funds/e5d3e013-2630-4016-9b72-c9030a578839",
+              "maxConvertibleAmount": "100.00",
+              "priority": 0,
+              "releaseRequirement": "700.00",
+              "releasedProgress": "0.00",
+              "status": "ACTIVE"
+            }
+          ],
+          "wageredAmount": "0.00",
+          "wageringRequirement": "700.00"
+        }
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/69fe0577-7d66-36ef-bfc1-d300c7aecb5d/EUR/balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/balance",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "35.00",
+          "bonusStatus": "ACTIVE",
+          "currency": "EUR",
+          "realBalance": "0.00",
+          "wageredAmount": "0.00",
+          "wageringProgress": 0,
+          "wageringRequirement": "700.00"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/bonus-claims/62daa8aa-0125-4217-a709-426046ad621c",
+      "request": {
+        "method": "GET",
+        "path": "/twins/{c5}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "reward-grant"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "brand_ref": "spinvibe",
+            "cap_expires_at": null,
+            "clawback_applied": false,
+            "currency": "EUR",
+            "expires_at": "2026-10-17T06:38:10.162090745Z",
+            "face_value": 0,
+            "free_spins_grant_ref": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+            "grant_id": "bonus-claims/62daa8aa-0125-4217-a709-426046ad621c",
+            "granted_at": "2026-10-10T06:38:10.162034579Z",
+            "last_event_ref": "reward-events-spinvibe/0f03ba3c-eeca-4aef-bd42-360fb7076bc5",
+            "offer_id": "fe1b590b-5ddf-41ec-848f-9aa768e11109",
+            "offer_name": "E2E Free Spins bonus_balance 5d8b830b",
+            "offer_ref": "fe1b590b-5ddf-41ec-848f-9aa768e11109",
+            "payload_type": "free_spins",
+            "payment_ref": "",
+            "player_ref": "69fe0577-7d66-36ef-bfc1-d300c7aecb5d",
+            "priority": 0,
+            "release_requirement": 0,
+            "released_progress": 0,
+            "revoke_mode": null,
+            "revoked_by": null,
+            "source": "operator_manual",
+            "status": "CLOSED",
+            "terminated_at": "2026-10-10T06:38:13Z",
+            "type": "FREE_SPINS",
+            "wagering_expires_at": null
+          }
+        }
+      }
+    },
+    {
+      "name": "GET /test/bonus/67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+      "request": {
+        "method": "GET",
+        "path": "/test/bonus/{c4}",
+        "service": "game-provider"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusId": "67e98f78-c18d-4f0f-94bf-a9a1a134657a",
+          "count": 3,
+          "currency": "EUR",
+          "gameCodes": [
+            "book-of-ra"
+          ],
+          "instances": {
+            "69fe0577-7d66-36ef-bfc1-d300c7aecb5d": {
+              "remaining": 0,
+              "status": "used"
+            }
+          },
+          "players": [
+            "69fe0577-7d66-36ef-bfc1-d300c7aecb5d"
+          ],
+          "site": "fake-st8",
+          "type": "free_bets",
+          "value": "0.10"
+        }
+      }
+    },
+    {
+      "name": "POST /test/free-spin",
+      "request": {
+        "method": "POST",
+        "path": "/test/free-spin",
+        "service": "game-provider",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "launchToken": "{c6}",
+          "winAmount": "1.00"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "no_free_rounds"
+        }
+      }
+    }
+  ],
+  "vary": {
+    "$": "differs between two runs of the original",
+    "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+    "$.bonusId": "differs between two runs of the original",
+    "$.createdAt": "differs between two runs of the original",
+    "$.createdTimestamp": "differs between two runs of the original",
+    "$.email": "differs between two runs of the original",
+    "$.freeSpinsGrantRef": "differs between two runs of the original",
+    "$.gameUrl": "differs between two runs of the original",
+    "$.grantId": "differs between two runs of the original",
+    "$.id": "differs between two runs of the original",
+    "$.instances.69fe0577-7d66-36ef-bfc1-d300c7aecb5d": "differs between two runs of the original",
+    "$.lastName": "differs between two runs of the original",
+    "$.launchToken": "differs between two runs of the original",
+    "$.name": "differs between two runs of the original",
+    "$.offerId": "differs between two runs of the original",
+    "$.playerId": "differs between two runs of the original",
+    "$.players[0]": "differs between two runs of the original",
+    "$.properties.claim_ref": "differs between two runs of the original",
+    "$.properties.expires_at": "differs between two runs of the original",
+    "$.properties.free_spins_expires_at": "differs between two runs of the original",
+    "$.properties.free_spins_grant_ref": "differs between two runs of the original",
+    "$.properties.grant_id": "differs between two runs of the original",
+    "$.properties.granted_at": "differs between two runs of the original",
+    "$.properties.last_event_ref": "differs between two runs of the original",
+    "$.properties.offer_id": "differs between two runs of the original",
+    "$.properties.offer_name": "differs between two runs of the original",
+    "$.properties.offer_ref": "differs between two runs of the original",
+    "$.properties.player_id": "differs between two runs of the original",
+    "$.properties.player_ref": "differs between two runs of the original",
+    "$.properties.provider_bonus_id": "differs between two runs of the original",
+    "$.properties.settled_round_refs": "differs between two runs of the original",
+    "$.properties.terminated_at": "differs between two runs of the original",
+    "$.restrictedFunds[0].grantRef": "differs between two runs of the original",
+    "$.restrictedFunds[0].id": "differs between two runs of the original",
+    "$.roundId": "differs between two runs of the original",
+    "$.sessionId": "differs between two runs of the original",
+    "$.session_state": "differs between two runs of the original",
+    "$.updatedAt": "differs between two runs of the original",
+    "$.username": "differs between two runs of the original",
+    "$.validFrom": "differs between two runs of the original",
+    "$.validUntil": "differs between two runs of the original",
+    "$[0].createdTimestamp": "differs between two runs of the original",
+    "$[0].email": "differs between two runs of the original",
+    "$[0].id": "differs between two runs of the original",
+    "$[0].lastName": "differs between two runs of the original",
+    "$[0].username": "differs between two runs of the original"
+  }
+}

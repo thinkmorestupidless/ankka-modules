@@ -1,0 +1,248 @@
+{
+  "realm": "eitheror",
+  "displayName": "eitheror operators",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": false,
+  "passwordPolicy": "length(12) and digits(1) and specialChars(1)",
+  "roles": {
+    "realm": [
+      {
+        "name": "platform_admin"
+      },
+      {
+        "name": "support_agent"
+      },
+      {
+        "name": "fraud_analyst"
+      },
+      {
+        "name": "compliance_officer"
+      },
+      {
+        "name": "operator"
+      },
+      {
+        "name": "merchant"
+      },
+      {
+        "name": "payments-operator"
+      },
+      {
+        "name": "brand_admin"
+      },
+      {
+        "name": "brand_compliance"
+      },
+      {
+        "name": "affiliate"
+      },
+      {
+        "name": "resource_owner"
+      },
+      {
+        "name": "resource_admin"
+      },
+      {
+        "name": "resource_operator"
+      },
+      {
+        "name": "resource_viewer"
+      },
+      {
+        "name": "resource_finance"
+      },
+      {
+        "name": "resource_developer"
+      }
+    ]
+  },
+  "clientScopes": [
+    {
+      "name": "roles",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "multivalued": "true",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "email",
+            "claim.name": "email",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "eitheror-casino-audience",
+      "description": "Puts eitheror-casino, the staff audience every casino service checks, in this realm's access tokens",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "eitheror-casino audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "eitheror-casino",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "defaultDefaultClientScopes": [
+    "roles",
+    "profile",
+    "eitheror-casino-audience"
+  ],
+  "clients": [
+    {
+      "clientId": "casino-backoffice",
+      "name": "Casino backoffice",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5174/*",
+        "https://*/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "roles",
+        "profile",
+        "eitheror-casino-audience"
+      ]
+    },
+    {
+      "clientId": "payments-backoffice",
+      "name": "Payments backoffice",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "https://*/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "roles",
+        "profile",
+        "eitheror-casino-audience"
+      ]
+    },
+    {
+      "clientId": "affiliate-portal",
+      "name": "Affiliate portal",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5175/*",
+        "https://*/*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "roles",
+        "profile",
+        "eitheror-casino-audience"
+      ]
+    },
+    {
+      "clientId": "eitheror-cli",
+      "name": "eitheror CLI",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [],
+      "webOrigins": [],
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "true"
+      },
+      "defaultClientScopes": [
+        "roles",
+        "profile",
+        "eitheror-casino-audience"
+      ]
+    }
+  ]
+}

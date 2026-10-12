@@ -17,11 +17,13 @@ final case class Recording(
     requirement: Option[String],
     runs: Int,
     steps: Vector[Recording.Step],
-    vary: Map[String, String]
+    vary: Map[String, String],
+    original: Map[String, String] = Map.empty // the original's commit and the brand it was recorded as
 )
 
 object Recording:
-  final case class Request(method: String, path: String, headers: Map[String, String], body: Option[JsonNode])
+  /** `service` is the rebuilt service the recorder sorted the request under, by the base URL it went to. */
+  final case class Request(method: String, path: String, headers: Map[String, String], body: Option[JsonNode], service: Option[String] = None)
   final case class Response(status: Int, body: Option[JsonNode])
   final case class Step(name: String, request: Request, response: Response, capture: Map[String, String])
 
@@ -49,7 +51,7 @@ object Recording:
             p    <- text(req, "path")
           yield done :+ Step(
             Option(s.get("name")).map(_.asText()).getOrElse(s"step $i"),
-            Request(m, p, map(req.get("headers")), body(req)),
+            Request(m, p, map(req.get("headers")), body(req), Option(req.get("service")).map(_.asText()).filter(_.nonEmpty)),
             Response(Option(res.get("status")).map(_.asInt()).getOrElse(0), body(res)),
             map(s.get("capture"))
           )
@@ -60,7 +62,8 @@ object Recording:
       Option(root.get("requirement")).map(_.asText()).filter(_.nonEmpty),
       Option(root.get("runs")).map(_.asInt()).getOrElse(1),
       steps,
-      map(root.get("vary"))
+      map(root.get("vary")),
+      map(root.get("original"))
     )
 
 /** The subset of JSONPath recordings use: `$`, `.name` and `[index]`. */

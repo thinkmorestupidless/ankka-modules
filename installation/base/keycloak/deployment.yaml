@@ -31,8 +31,11 @@ spec:
               value: xforwarded
             - name: KC_HTTP_ENABLED
               value: "true"
-            - name: KC_HOSTNAME
-              valueFrom: { configMapKeyRef: { name: casino-installation, key: KEYCLOAK_HOSTNAME } }
+            # The issuer the manifests name, port included. Not KC_HOSTNAME: the hostname alone loses a
+            # non-default port (dev-kind's :8443), so every token would carry an issuer no service trusts,
+            # and Keycloak refuses the two options together.
+            - name: KC_HOSTNAME_URL
+              valueFrom: { configMapKeyRef: { name: casino-installation, key: KEYCLOAK_ISSUER_BASE } }
           ports:
             - { name: http, containerPort: 8080 }
           readinessProbe:

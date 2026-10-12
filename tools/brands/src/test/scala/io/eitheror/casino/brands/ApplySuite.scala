@@ -92,6 +92,23 @@ class ApplySuite extends munit.FunSuite:
     assert(realms.realms("casino-goldvibe").contains("\"casino-goldvibe\""))
   }
 
+  test("an installation without the operators' realm is given it before the brand's role, once, carrying the staff audience") {
+    val cp     = InMemoryControlPlane()
+    val realms = InMemoryRealms()
+    val json   = () => Realm.render(Realm.template(Fixtures.root), "goldvibe", "https://goldvibe.example")
+    val withOperators = options.copy(realm = Some(realms -> json), operatorsRealm = () => Some(Realm.operators(Fixtures.root)))
+    val first = Apply.run(plan(), cp, withOperators)
+    assertEquals(first.changes.filter(_.startsWith("realm")), Vector("realm eitheror created", "realm casino-goldvibe created"))
+    assert(first.changes.contains("role brand_goldvibe added to realm eitheror"))
+    assert(realms.realms("eitheror").contains("\"included.custom.audience\": \"eitheror-casino\""))
+    assertEquals(Apply.run(plan(), cp, withOperators).changes, Vector.empty)
+  }
+
+  test("the operators' realm carries no credential") {
+    val text = Realm.operators(Fixtures.root)
+    assert(!text.contains("\"secret\"") && !text.contains("\"password\""))
+  }
+
   test("two brands from one manifest do not touch") {
     val cp = InMemoryControlPlane()
     Apply.run(plan(), cp, options)

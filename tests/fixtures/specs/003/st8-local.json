@@ -1,0 +1,9 @@
+{
+  "apiUrl": "http://localhost:8099",
+  "site": "goldvibe",
+  "operatorPrivateKey": "REPLACE_WITH_BASE64_PKCS8_OF_test-key.pem",
+  "providerKeyDocumentUrl": "http://localhost:8099/keys",
+  "jurisdiction": "CW",
+  "lobbyUrl": "http://localhost:3000/casino",
+  "depositUrl": "http://localhost:3000/cashier"
+}

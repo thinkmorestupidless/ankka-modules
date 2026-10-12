@@ -56,6 +56,16 @@ abstract class Topic[F <: Fact](val name: String, val producers: Vector[String])
 
   lazy val serializer: Serializer[F] = Serializer.json[F](contractName)
 
+  /**
+   * The topic's ankka contract: its name and the fingerprint of the schema `contract/schemas` holds, which
+   * is what the brands tool declares on the project. A service names it on the view or consumer that reads
+   * or publishes the topic, or ankka refuses to start it (T082).
+   */
+  lazy val contract: com.thinkmorestupidless.ankka.core.Contract =
+    com.thinkmorestupidless.ankka.core.Contract
+      .fromSchema(contractName, schema.render().getBytes(java.nio.charset.StandardCharsets.UTF_8))
+      .fold(e => throw IllegalStateException(s"$contractName: $e"), identity)
+
   def encode(fact: F): String = writeToString(fact)
 
   def schema: Json =
