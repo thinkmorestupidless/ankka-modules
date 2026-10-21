@@ -31,3 +31,28 @@ class ControlPlaneSuite extends munit.FunSuite:
     assertEquals(HttpControlPlane.settings(Map.empty, home(config, None))._2, None)
     assertEquals(HttpControlPlane.settings(Map("ANKKA_URL" -> "https://elsewhere"), home(config, Some(credentials)))._2, None)
   }
+
+  test("a grant is sent as the control plane's target object and read back in the tool's form (spec 005 T072)") {
+    val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+    val route  = mapper.readTree(GrantJson.request(GrantRequest("service:goldvibe/payouts", "route:psp-gateway POST /v1/payments/withdrawals")))
+    assertEquals(route.get("grantee").asText(), "service:goldvibe/payouts")
+    assertEquals(route.get("target").get("kind").asText(), "route")
+    assertEquals(route.get("target").get("service").asText(), "psp-gateway")
+    assertEquals(route.get("target").get("method").asText(), "POST")
+    assertEquals(route.get("target").get("path").asText(), "/v1/payments/withdrawals")
+    val topic = mapper.readTree(GrantJson.request(GrantRequest("service:reasoner/audit", "topic:platform.audit:consume"))).get("target")
+    assertEquals(topic.get("kind").asText(), "topic")
+    assertEquals(topic.get("topic").asText(), "platform.audit")
+    assertEquals(topic.get("right").asText(), "consume")
+    assertEquals(mapper.readTree(GrantJson.request(GrantRequest("service:goldvibe/players", "erasure"))).get("target").get("kind").asText(), "erasure")
+
+    val listed = GrantJson.statuses(
+      """[{"id":"1","grantee":"service:goldvibe/payouts","target":{"kind":"route","service":"psp-gateway","method":"POST","path":"/v1/payments/withdrawals"},"state":"accepted","effect":"route not seen"},
+        | {"id":"2","grantee":"service:reasoner/audit","target":{"kind":"topic","topic":"platform.audit","right":"consume","decrypt":false},"state":"pending"},
+        | {"id":"3","grantee":"service:goldvibe/players","target":{"kind":"erasure"},"state":"accepted","effect":"in effect"}]""".stripMargin)
+    assertEquals(listed.map(g => g.principal -> g.target), Vector(
+      "service:goldvibe/payouts" -> "route:psp-gateway POST /v1/payments/withdrawals",
+      "service:reasoner/audit"   -> "topic:platform.audit:consume",
+      "service:goldvibe/players" -> "erasure"))
+    assertEquals(listed.map(_.effect), Vector("route not seen", "pending", "in effect"))
+  }

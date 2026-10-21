@@ -1,4 +1,4 @@
-package main
+package dreamzpay
 
 import (
 	"crypto/md5" //nolint:gosec
@@ -127,5 +127,42 @@ func TestABadOutboundChecksumIsRefused(t *testing.T) {
 	defer srv.Close()
 	if status, _ := checkout(t, srv.URL, "http://gw.test", "txn-3"); status != http.StatusBadRequest {
 		t.Fatalf("status %d", status)
+	}
+}
+
+func TestPendingIsSettledByTheNextControl(t *testing.T) {
+	srv := start(t)
+	gw, got := gateway(t)
+	_, _ = http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"pending"}`))
+	if _, page := checkout(t, srv.URL, gw.URL, "txn-4"); !strings.Contains(page, "pending") {
+		t.Fatalf("page %s", page)
+	}
+	resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"success"}`))
+	body, _ := io.ReadAll(resp.Body)
+	if !strings.Contains(string(body), `"reference":"txn-4"`) {
+		t.Fatalf("control answered %s", body)
+	}
+	f := await(t, got).form
+	if f.Get("transactionStatus") != "Y" || !verifyInbound(f.Get("paymentId"), "txn-4", "10.00", "Y", defaultSecureKey, f.Get("checksum")) {
+		t.Fatalf("notification %v", f)
+	}
+}
+
+func TestWebhookNowAndOutcomesDreamzPayLacks(t *testing.T) {
+	srv := start(t)
+	gw, got := gateway(t)
+	checkout(t, srv.URL, gw.URL, "txn-5")
+	await(t, got)
+	resp, _ := http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"txn-5","outcome":"failure"}`))
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("webhook answered %d", resp.StatusCode)
+	}
+	if f := await(t, got).form; f.Get("transactionStatus") != "N" {
+		t.Fatalf("notification %v", f)
+	}
+	for _, o := range []string{"duplicate", "unsigned", "underpayment", "unauthorised"} {
+		if resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"`+o+`"}`)); resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("%s answered %d", o, resp.StatusCode)
+		}
 	}
 }

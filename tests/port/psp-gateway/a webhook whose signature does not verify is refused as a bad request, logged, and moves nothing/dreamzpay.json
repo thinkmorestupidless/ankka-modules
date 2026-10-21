@@ -1,0 +1,250 @@
+{
+  "scenario": "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/dreamzpay",
+  "requirement": "005/FR-010",
+  "recorded_at": "2026-10-20T08:37:12.075404Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "memberId": "stub-member",
+            "secureKey": "\u003credacted\u003e",
+            "terminalId": "stub-terminal",
+            "totype": "stub-totype"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 4,
+          "terminalId": "terminal-79cba9c0"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "VISA",
+          "psp": "DREAMZPAY",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "memberId": "stub-member",
+            "secureKey": "\u003credacted\u003e",
+            "terminalId": "stub-terminal",
+            "totype": "stub-totype"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "287b3cca-9356-4d13-925c-ae9e5789d2e5",
+          "redirectUrl": "http://localhost:8087/v1/psp/checkout/dreamzpay/287b3cca-9356-4d13-925c-ae9e5789d2e5"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the player's browser opens the relay page",
+      "request": {
+        "method": "GET",
+        "path": "/v1/psp/checkout/dreamzpay/{reference}",
+        "service": "psp-gateway"
+      },
+      "response": {
+        "status": 200,
+        "body": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003cmeta charset=\"UTF-8\"\u003e\n  \u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"\u003e\n  \u003ctitle\u003eRedirecting to payment page…\u003c/title\u003e\n  \u003cstyle\u003e\n    body {\n      margin: 0;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      min-height: 100vh;\n      font-family: system-ui, sans-serif;\n      background: #f5f5f5;\n      color: #333;\n    }\n    .message {\n      text-align: center;\n    }\n    .message p {\n      margin-top: 0.5rem;\n      font-size: 0.9rem;\n      color: #666;\n    }\n  \u003c/style\u003e\n\u003c/head\u003e\n\u003cbody onload=\"document.getElementById('relay-form').submit()\"\u003e\n  \u003cdiv class=\"message\"\u003e\n    \u003cstrong\u003eRedirecting to your payment provider…\u003c/strong\u003e\n    \u003cp\u003ePlease do not close this window.\u003c/p\u003e\n  \u003c/div\u003e\n  \u003cform id=\"relay-form\" action=\"http://localhost:18103/transaction/Checkout\" method=\"POST\" style=\"display:none\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"amount\" value=\"50.00\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"checksum\" value=\"9de26729766af14db30e54f7b3c65933\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"currency\" value=\"EUR\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"memberId\" value=\"stub-member\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"merchantRedirectUrl\" value=\"http://localhost:8087/v1/psp/checkout/dreamzpay/287b3cca-9356-4d13-925c-ae9e5789d2e5/return?mid=subBrand-cd19de95\u0026amp;cb=http%3A%2F%2Fhost.docker.internal%3A18110%2Fv1%2Fpayments%2Fpayment-a9557a48%2Fcapture\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"merchantTransactionId\" value=\"287b3cca-9356-4d13-925c-ae9e5789d2e5\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"notificationUrl\" value=\"http://localhost:8087/v1/webhooks/dreamzpay\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"terminalId\" value=\"stub-terminal\"\u003e\n    \n    \u003cinput type=\"hidden\" name=\"totype\" value=\"stub-totype\"\u003e\n    \n  \u003c/form\u003e\n\u003c/body\u003e\n\u003c/html\u003e"
+      },
+      "vary": {
+        "$": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player's browser posts the relay form to DreamzPay",
+      "request": {
+        "method": "POST",
+        "path": "/transaction/Checkout",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "amount=50.00\u0026checksum=9de26729766af14db30e54f7b3c65933\u0026currency=EUR\u0026memberId=stub-member\u0026merchantRedirectUrl=http%3A%2F%2Flocalhost%3A8087%2Fv1%2Fpsp%2Fcheckout%2Fdreamzpay%2F{reference}%2Freturn%3Fmid%3D{subBrand}%26cb%3Dhttp%253A%252F%252Fhost.docker.internal%253A18110%252Fv1%252Fpayments%252F{payment}%252Fcapture\u0026merchantTransactionId={reference}\u0026notificationUrl=http%3A%2F%2Flocalhost%3A8087%2Fv1%2Fwebhooks%2Fdreamzpay\u0026terminalId=stub-terminal\u0026totype=stub-totype"
+      },
+      "response": {
+        "status": 200,
+        "body": "\u003c!DOCTYPE html\u003e\u003chtml\u003e\u003cbody\u003e\u003cp\u003eDreamzPay stub: payment pending.\u003c/p\u003e\u003c/body\u003e\u003c/html\u003e"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:12.092483Z",
+            "body": {
+              "amount": "50.00",
+              "checksum": "9de26729766af14db30e54f7b3c65933",
+              "currency": "EUR",
+              "memberId": "stub-member",
+              "merchantRedirectUrl": "http://localhost:8087/v1/psp/checkout/dreamzpay/{reference}/return?mid={subBrand}\u0026cb=http%3A%2F%2Fhost.docker.internal%3A18110%2Fv1%2Fpayments%2F{payment}%2Fcapture",
+              "merchantTransactionId": "{reference}",
+              "notificationUrl": "http://localhost:8087/v1/webhooks/dreamzpay",
+              "terminalId": "stub-terminal",
+              "totype": "stub-totype"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "533",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/transaction/Checkout"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.checksum": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): signed under another key",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/dreamzpay",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "amount=50.00\u0026checksum=e5609dc3a4dc02c9128f42cf93a1f929\u0026currency=EUR\u0026merchantTransactionId={reference}\u0026paymentId=10000001\u0026status=Y\u0026transactionStatus=Y"
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "invalid_checksum"
+        }
+      }
+    },
+    {
+      "name": "webhook (forged): the amount tampered",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/dreamzpay",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "amount=500.00\u0026checksum=609e20a68a1da90a6c4a7aab233c5bdc\u0026currency=EUR\u0026merchantTransactionId={reference}\u0026paymentId=10000001\u0026status=Y\u0026transactionStatus=Y"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "10000001",
+          "result": "accepted"
+        }
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:12.100134Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

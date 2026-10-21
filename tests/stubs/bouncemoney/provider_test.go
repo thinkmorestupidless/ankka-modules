@@ -1,4 +1,4 @@
-package main
+package bouncemoney
 
 import (
 	"bytes"
@@ -192,5 +192,75 @@ func TestABadRequestSignatureIsRefused(t *testing.T) {
 	resp, body := initiate(t, srv.URL, other, "http://gw.test/r")
 	if resp.StatusCode != http.StatusUnauthorized || body["error"] == "" {
 		t.Fatalf("status %d body %v", resp.StatusCode, body)
+	}
+}
+
+func control(t *testing.T, base, body string) map[string]any {
+	t.Helper()
+	resp, err := http.Post(base+"/__control", "application/json", strings.NewReader(body))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("control %s: %v %v", body, err, resp)
+	}
+	defer resp.Body.Close()
+	var m map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&m)
+	return m
+}
+
+func TestUnsignedSendsTheCompletedEventWithNoSignature(t *testing.T) {
+	_, srv, priv := start(t)
+	gw, got := gateway(t)
+	control(t, srv.URL, `{"outcome":"unsigned"}`)
+	initiate(t, srv.URL, priv, gw.URL+"/v1/psp/checkout/bouncemoney/txn-abc-123/return")
+	d := await(t, got)
+	// webhook.go:1462 answers 400 to a missing X-BounceMoney-Signature.
+	if d.signature != "" || !strings.Contains(string(d.body), `"type":"checkout.session.completed"`) {
+		t.Fatalf("signature %q body %s", d.signature, d.body)
+	}
+}
+
+func TestUnauthorisedAnswers401(t *testing.T) {
+	_, srv, priv := start(t)
+	control(t, srv.URL, `{"outcome":"unauthorised"}`)
+	if resp, _ := initiate(t, srv.URL, priv, "http://gw.test/r"); resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
+func TestADuplicateIsNotABounceMoneyOutcome(t *testing.T) {
+	_, srv, _ := start(t)
+	resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"duplicate"}`))
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
+func TestWebhookNowWithAnExpiredCodeAndPendingSettled(t *testing.T) {
+	_, srv, priv := start(t)
+	gw, got := gateway(t)
+	control(t, srv.URL, `{"outcome":"pending"}`)
+	initiate(t, srv.URL, priv, gw.URL+"/v1/psp/checkout/bouncemoney/txn-abc-123/return")
+
+	resp, err := http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"txn-abc-123","outcome":"failure","code":"expired"}`))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("webhook: %v %v", err, resp)
+	}
+	var answer map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&answer)
+	if answer["status"] != float64(200) {
+		t.Fatalf("answer %v", answer)
+	}
+	if d := await(t, got); !strings.Contains(string(d.body), `"type":"checkout.session.expired"`) || !verifyWebhook(defaultSigningSecret, d.body, d.signature, time.Now()) {
+		t.Fatalf("event %s", d.body)
+	}
+
+	// A second pending session is settled by the next control.
+	initiate(t, srv.URL, priv, gw.URL+"/v1/psp/checkout/bouncemoney/txn-abc-123/return")
+	settled := control(t, srv.URL, `{"outcome":"success"}`)
+	if s, _ := settled["settled"].([]any); len(s) != 1 {
+		t.Fatalf("settled %v", settled)
+	}
+	if d := await(t, got); !strings.Contains(string(d.body), `"type":"checkout.session.completed"`) {
+		t.Fatalf("event %s", d.body)
 	}
 }

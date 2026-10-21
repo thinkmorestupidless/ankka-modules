@@ -27,6 +27,10 @@ Exit codes: 0 done or valid; 1 refused or failed; 2 the command itself is wrong.
   touched and the apply says so.
 - **Secrets**: `--secrets <file>` holds `<secret>/<KEY>=<value>` lines, kept outside the repository. A
   manifest names a secret and its keys, never a value; a service's env refers to one as `secret:<name>/<KEY>`.
+- **Settings**: a service's env refers to the installation's `settings.env` as `setting:<KEY>`, so one manifest
+  serves every installation (spec 005 T069: the gateway's public URL and each provider's base URL are psp-stub's
+  on dev-kind and unset on gke). A setting the installation lacks is left out of the environment, and `validate
+  --installation` says so per variable; the service then refuses that provider by name until an operator sets it.
 
 ## What an apply does, in order
 

@@ -37,6 +37,17 @@ scenario library and the status (spec 020 research R2). Create the realm role `b
 `eitheror` realm when someone other than a platform administrator runs the simulator; until then
 `platform_admin` reaches every route.
 
+## psp-stub on dev-kind (spec 005)
+
+`overlays/dev-kind/psp-stub.yaml` runs the nine payment-provider stubs in the `casino-stubs` namespace, and
+`settings.env` names each one as the gateway's base URL for that provider (`setting:<KEY>` in
+`shared/payments/manifest.json`; the gke overlay leaves them unset, so a production gateway refuses every
+provider by name until an operator sets each). The image is built from `tests/` and `kind load`ed; the stub's
+webhooks go back through ankka's gateway by the public name and trust the local certificate authority from
+a ConfigMap created out of band. Both commands are at the top of `psp-stub.yaml`. DreamzPay's relay page sends
+the player's browser to the stub, which a host browser cannot reach at the cluster address: exercise the kind
+installation with a server-reached provider.
+
 Inside the local cluster a gateway hostname resolves to the pod itself. `overlays/dev-kind/gateway-dns.sh`
 (run once after ankka's `just up`; idempotent) adds a CoreDNS rewrite so `*.127.0.0.1.sslip.io`
 reaches the gateway, on 443, from any pod: what lets the simulator call a brand as an outside caller

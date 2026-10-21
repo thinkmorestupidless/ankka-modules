@@ -101,9 +101,14 @@ object Layout:
     Grant("service:reasoner/audit", GrantTarget.Topic("platform.audit", "consume"))
   )
 
-  /** The grants a brand holds from `payments`, the principal naming the brand's own service. */
+  /**
+   * The grants a brand holds from `payments`, the principal naming the brand's own service: the
+   * payout initiate, its status read and the withdrawal terminal listing (spec 005 research R12).
+   */
   def brandGrantsReceived(slug: String): Vector[Grant] = Vector(
     Grant(s"service:$slug/payouts", GrantTarget.Route("psp-gateway", "POST", "/v1/payments/withdrawals")),
+    Grant(s"service:$slug/payouts", GrantTarget.Route("psp-gateway", "GET", "/v1/payments/withdrawals/{requestId}")),
+    Grant(s"service:$slug/payouts", GrantTarget.Route("psp-gateway", "GET", "/v1/payments/withdrawal-terminals")),
     Grant(s"service:$slug/players", GrantTarget.Erasure)
   )
 

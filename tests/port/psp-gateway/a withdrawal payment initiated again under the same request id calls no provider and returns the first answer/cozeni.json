@@ -1,0 +1,210 @@
+{
+  "scenario": "a withdrawal payment initiated again under the same request id calls no provider and returns the first answer/cozeni",
+  "requirement": "005/FR-008",
+  "recorded_at": "2026-10-20T08:38:39.70851Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "apiKey": "\u003credacted\u003e",
+            "merchantId": "stub-merchant"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-b49a9fb9"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate the withdrawal payment under request",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/payout/cozeni",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "brandId": "{brand}",
+          "cryptoSymbol": "BTC",
+          "currency": "EUR",
+          "merchantId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "walletAddress": "bc1qdriverpayoutaddress",
+          "withdrawalRequestId": "{request}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "cozeniTxnId": "553745651",
+          "paymentRef": "request-1bf80aac",
+          "status": "INITIATED"
+        }
+      },
+      "vary": {
+        "$.cozeniTxnId": "differs between two runs of the original",
+        "$.paymentRef": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:38:39.711991Z",
+            "body": {
+              "accountId": "stub-account",
+              "amount": 50,
+              "callbackUrl": "http://localhost:8087/v1/webhooks/cozeni/withdrawal",
+              "currency": "EUR",
+              "dupCheck": true,
+              "paymentAddress": "bc1qdriverpayoutaddress",
+              "paymentDesc": "withdrawal {request}",
+              "paymentRef": "{request}",
+              "payoutCurrency": "BTC",
+              "requestSalt": "1792485519717"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "313",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1",
+              "X-Cozeni-Txnauthz": "9641bc7d04c38afcc008dd79fc06d9a35ec78de3c7841e503e7cce53bf712613"
+            },
+            "method": "POST",
+            "path": "/mxapi/stub-merchant/payouttxn"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.requestSalt": "differs between two runs of the original",
+        "$[0].headers.X-Cozeni-Txnauthz": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate it again under the same request id",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/payout/cozeni",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "brandId": "{brand}",
+          "cryptoSymbol": "BTC",
+          "currency": "EUR",
+          "merchantId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "walletAddress": "bc1qdriverpayoutaddress",
+          "withdrawalRequestId": "{request}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "cozeniTxnId": "888145377",
+          "paymentRef": "request-1bf80aac",
+          "status": "INITIATED"
+        }
+      },
+      "vary": {
+        "$.cozeniTxnId": "differs between two runs of the original",
+        "$.paymentRef": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:38:39.718111Z",
+            "body": {
+              "accountId": "stub-account",
+              "amount": 50,
+              "callbackUrl": "http://localhost:8087/v1/webhooks/cozeni/withdrawal",
+              "currency": "EUR",
+              "dupCheck": true,
+              "paymentAddress": "bc1qdriverpayoutaddress",
+              "paymentDesc": "withdrawal {request}",
+              "paymentRef": "{request}",
+              "payoutCurrency": "BTC",
+              "requestSalt": "1792485519723"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "313",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1",
+              "X-Cozeni-Txnauthz": "a91676df9f1b69e8adebc87508e5902a70aeca895d6cc06ab94442583ac78ae4"
+            },
+            "method": "POST",
+            "path": "/mxapi/stub-merchant/payouttxn"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.requestSalt": "differs between two runs of the original",
+        "$[0].headers.X-Cozeni-Txnauthz": "differs between two runs of the original"
+      }
+    }
+  ]
+}

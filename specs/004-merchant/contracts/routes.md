@@ -123,6 +123,7 @@ Prefix `/v1/cashier`; the commands are [commands.md](commands.md): `POST /sessio
 | `POST /v1/payments/{paymentId}/fail` | [gateway.md](gateway.md) |
 | `GET /internal/v1/sub-brands/{subBrandId}/psp-credentials/{provider}` | the usable credential's secrets: `provider`, `credentials{}`; `404 NOT_FOUND` when none active with secrets (FR-008; `PspCredentialLifecycleSpec`) |
 | `GET /internal/v1/terminals/{terminalId}/properties` | `properties{}`, secrets included (FR-008) |
+| `GET /internal/v1/brands/{brand}/terminals` | the terminals of every sub-brand naming the brand, deleted ones left out: `terminals[]` of `id`, `subBrandId`, `gateway`, `scheme`, `name`, `status`, `supportsDeposit`, `supportsWithdrawal`, `requiresPayoutDestination` and `properties{}` without the catalogue's secret keys; the secret store is not read. An unknown brand is an empty list. For the gateway's payout listing (spec 005, research R12) |
 
 ## Granted route for a brand's `players` (`Layout`: `service:{brand}/players`, erasure)
 

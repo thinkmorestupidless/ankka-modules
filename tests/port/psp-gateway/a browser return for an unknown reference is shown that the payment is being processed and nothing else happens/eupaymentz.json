@@ -1,0 +1,84 @@
+{
+  "scenario": "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/eupaymentz",
+  "requirement": "005/US6",
+  "recorded_at": "2026-10-20T08:37:55.184081Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "passphrase": "\u003credacted\u003e",
+            "password": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-7af3ae89"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the player's browser returns naming unknown-ref",
+      "request": {
+        "method": "GET",
+        "path": "/v1/psp/checkout/eupaymentz/unknown-ref/return",
+        "service": "psp-gateway"
+      },
+      "response": {
+        "status": 200,
+        "body": "\u003c!DOCTYPE html\u003e\u003chtml\u003e\u003chead\u003e\u003cmeta charset=\"UTF-8\"\u003e\u003ctitle\u003ePayment processing\u003c/title\u003e\u003c/head\u003e\u003cbody\u003e\u003cp\u003eYour payment is being processed. Return to the casino to check your deposit status. You can close this window.\u003c/p\u003e\u003c/body\u003e\u003c/html\u003e"
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

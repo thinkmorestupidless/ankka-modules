@@ -1,0 +1,90 @@
+{
+  "scenario": "a webhook for a reference the gateway does not know is acknowledged and moves nothing/unityfinance",
+  "requirement": "005/FR-011",
+  "recorded_at": "2026-10-20T08:37:26.258573Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "checkoutId.VISA": "stub-checkout",
+            "purseId": "stub-purse",
+            "signKey": "\u003credacted\u003e",
+            "userId": "stub-user",
+            "withdrawalApiKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 6,
+          "terminalId": "terminal-d4417257"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): for unknown-ref",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/unityfinance",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "ik_am=50.00\u0026ik_co_id=stub-checkout\u0026ik_cur=EUR\u0026ik_inv_crt=2026-10-20+08%3A37%3A26\u0026ik_inv_id=300001\u0026ik_inv_st=success\u0026ik_pm_no=unknown-ref\u0026ik_sign=Dgd1fI4zvkH3nXfQCoWsW%2FG%2FxqyDOoNujUtNzbPT2Po%3D"
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

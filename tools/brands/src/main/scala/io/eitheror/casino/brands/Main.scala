@@ -81,6 +81,15 @@ object Main:
       case Right((manifest, inst)) =>
         out.line(s"valid ${kind(manifest)} ${manifest.projectId}: ${manifest.services.size} services, ${manifest.topics.size} topics")
         inst.foreach(i => Readiness.conditions(i).foreach(c => out.line(s"  ${c.line}")))
+        // Each `setting:` the manifest's services read, and what this installation gives it; an unset one is
+        // left out of the service's environment, so the service refuses that provider by name.
+        Render.settingUses(manifest, inst).foreach { u =>
+          val state = u.value match
+            case Some(_)             => "set"
+            case None if inst.isEmpty => "unresolved: no --installation"
+            case None                => s"unset in ${inst.get.name}: ${u.variable} left out"
+          out.line(s"  setting ${u.setting} -> ${u.service}.${u.variable}: $state")
+        }
         out.line("calls: 0")
         0
 

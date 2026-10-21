@@ -64,6 +64,16 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(acl, Request()).asInstanceOf[Outcome.Refused].status, 401)
   }
 
+  test("the project's services, and through the ingress a payments operator, read a page both read") {
+    val acl = Routes.projectOrPaymentsOperator("payments", verified)
+    assertEquals(outcome(acl, Request(caller = Caller.Service("payments", "ingest"))), Outcome.Served)
+    assert(outcome(acl, Request(caller = Caller.Service("goldvibe", "payouts"))).isInstanceOf[Outcome.Refused], "another project")
+    val platform = paymentsOperator(Seq("platform_admin"), "eitheror_scope_level" -> "platform")
+    assertEquals(outcome(acl, Request(token = Some(platform))), Outcome.Served)
+    assertEquals(outcome(acl, Request()).asInstanceOf[Outcome.Refused].status, 401)
+    assertEquals(outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
+  }
+
   test("customer_id is never read as an operator's level (decision 0050)") {
     val acl = Routes.paymentsOperator(verified)
     val token = paymentsOperator(Seq("resource_admin"), "customer_id" -> "eitheror")
@@ -98,6 +108,15 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(Routes.granted("wallet").size, 2)
     assertEquals(Routes.granted("payouts").map(_._1.path), Vector("/v1/casino/brands/{brand}/withdrawals/{requestId}/outcome"))
     assertEquals(Routes.granted("players"), Vector.empty)
+  }
+
+  test("a brand holds three grants on psp-gateway, every one for its own payouts (spec 005 research R12)") {
+    val gateway = io.eitheror.casino.contract.Layout.brandGrantsReceived("goldvibe").collect {
+      case io.eitheror.casino.contract.Layout.Grant(principal, GrantTarget.Route("psp-gateway", method, path)) => (principal, s"$method $path")
+    }
+    assertEquals(gateway.map(_._2), Vector("POST /v1/payments/withdrawals", "GET /v1/payments/withdrawals/{requestId}",
+      "GET /v1/payments/withdrawal-terminals"))
+    assertEquals(gateway.map(_._1).toSet, Set("service:goldvibe/payouts"))
   }
 
   test("a public route is served to anyone") {

@@ -1,7 +1,7 @@
 package io.eitheror.casino.contract.access
 
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
-import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Callers, CallerMatcher, HttpProblem, Principal, RequestContext}
+import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, Callers, CallerMatcher, HttpProblem, Principal, RequestContext}
 import io.eitheror.casino.contract.Layout
 import io.eitheror.casino.contract.Layout.GrantTarget
 
@@ -93,6 +93,25 @@ object Routes:
           case Some(l) if !PaymentsScopeLevels(l) => Some(s"${Refusal.ScopeViolation}: '$l' is not an operator's level")
           case Some(l) if l != "platform" && id.isEmpty => Some(s"${Refusal.ScopeViolation}: the token names no $ScopeIdClaim")
           case _ => None
+    }
+
+  /**
+   * A service of `project` by its identity, or through the installation's ingress a payments operator
+   * (a status page both read, spec 005 FR-023). The project is named because an authenticating ACL is
+   * not told the service's own; outside a cluster every caller is local and admitted, as
+   * `Acl.allowCallers` admits it.
+   */
+  def projectOrPaymentsOperator(project: String, authenticate: => Acl = Oidc.authenticate()): Acl =
+    lazy val operator = paymentsOperator(authenticate)
+    Acl.Authenticate { (context: RequestContext) =>
+      context.caller match
+        case Caller.Service(`project`, name) => AuthDecision.Allow(Principal(s"service:$project/$name"))
+        case Caller.Local                    => AuthDecision.Allow(Principal("local"))
+        case Caller.Gateway =>
+          operator match
+            case Acl.Authenticate(decide) => decide(context)
+            case _                        => AuthDecision.Forbidden("not permitted by this endpoint's acl")
+        case _ => AuthDecision.Forbidden("not permitted by this endpoint's acl")
     }
 
   /** An affiliate, on the programme's routes. */

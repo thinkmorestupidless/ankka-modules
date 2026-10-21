@@ -1,0 +1,96 @@
+{
+  "scenario": "a webhook for a reference the gateway does not know is acknowledged and moves nothing/digitarium",
+  "requirement": "005/FR-011",
+  "recorded_at": "2026-10-20T08:37:27.266037Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "apiKey": "\u003credacted\u003e",
+            "environment": "sandbox",
+            "signingKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-be841a85"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): for unknown-ref",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/digitarium",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json",
+          "Signature": "00e18fa0dca72d4e633d87f268403c30e957ddab79d34bdda50c92b537f87bd7"
+        },
+        "body": {
+          "amount": 50,
+          "currency": "EUR",
+          "id": "forged-g2pay",
+          "paymentType": "DEPOSIT",
+          "referenceId": "unknown-ref",
+          "state": "COMPLETED"
+        }
+      },
+      "response": {
+        "status": 502,
+        "body": "session lookup failed"
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

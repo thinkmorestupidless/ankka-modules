@@ -57,9 +57,12 @@ trait Harness extends munit.FunSuite with LogCapturing:
   /** The service's components, the deposit workflow asking the fake; a suite adds a prototype's beside them. */
   def components: Seq[ComponentDescriptor] = WalletService.components(_ => rg)
 
+  /** Other services by name, as `ankka.local-services.<name>`: a suite that runs the real client points one at a scripted server. */
+  def localServices: Map[String, String] = Map.empty
+
   override def beforeAll(): Unit =
     server = HttpServer.at("127.0.0.1", 0)(WalletService.endpoints(brand, () => TestTokens.authenticate)*)
-    kit = AnkkaTestKit.start(components, Seq(ProjectionRuntime.withPublisher(publisher), server))
+    kit = AnkkaTestKit.start(components, Seq(ProjectionRuntime.withPublisher(publisher), server), localServices = localServices)
 
   override def afterAll(): Unit = if kit != null then kit.stop()
 

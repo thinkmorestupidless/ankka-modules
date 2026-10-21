@@ -115,3 +115,54 @@ The driver needed two fixes against the running original, neither changing what 
 the credential twin it gives a webhook secret is named as the original's `twinUrl` names a non-UUID
 id (`nameUUIDFromBytes("merchant." + id)`; substrate takes only UUIDs), and substrate's twin `POST`
 always answers `201`, which the setup steps now expect.
+
+## psp-gateway (spec 005, T026)
+
+Recorded 2026-10-20 from the original at `01371a54` (the gateway's image built 2026-10-14, after its last
+change, `71a5298b`), on its own KinD stack, twice, on fresh ids: 140 recordings by
+`tests/original/gateway-driver/`, one per scenario of `features/payments/{providers,crypto,withdrawal-payments,outcomes}.feature`
+per provider, 120 `pass` and 20 `fail` on both runs alike. `services/psp-gateway`'s `ParitySuite` replays
+all 140; how it stands in for what is not the service, and the divergences it names (each checked still to
+differ), are in `port/Parity.scala`. The replayer leaves `observe:` steps alone, so the suite compares two of
+them itself: the provider calls by number, method and path, and the outcomes the receiver was told by
+session, verb and the answer it had. `CoverageSuite` checks a deposit per provider and a payout per payout
+provider, each on two runs.
+
+The first replay found one gap in the port, since fixed: BounceMoney's webhook checked the reference
+against the session but not the amount or currency, so a signed event for 500.00 captured a 50.00
+deposit (FR-013).
+
+How they were made, where it differs from the README's steps:
+
+- `psp-stub` (`stubs/bin/psp-stub`, `PSP_STUB_GATEWAY_URL=http://localhost:8087`) and the receiver (`:18110`)
+  ran on the host. The gateway's deployment was pointed at them with `kubectl --context kind-eitheror-dev`:
+  every provider's base URL at `http://host.docker.internal:1810x` (DreamzPay at `http://localhost:18103`,
+  the browser's), `T365_BASE_URL` added (the deployment had none, so T365 went to `https://api.t365.io`),
+  ConnecX at `http://127.0.0.1:9`, `PSP_GATEWAY_BASE_URL` `http://localhost:8087` (it was an ngrok
+  address), and merchant-service and casino-service at the receiver. The preflight found every outside
+  system stubbed. Afterwards the two service addresses were put back; the providers were left at the
+  stub and the base URL local, since the real sandboxes and the ngrok address are not this run's to
+  reopen.
+- The driver needed four fixes against the running original, none changing what it asks: the re-drive
+  of an outcome whose attempts timed out now waits for the last attempt to time out (the original writes
+  its undelivered marker only then, so the re-drive found nothing); a webhook psp-stub sends is checked
+  by the gateway's status in the stub's answer; a run's ids are templated in a body's strings only (a
+  captured coin amount stands as a number in Cozeni's request, and a placeholder there was not JSON, so
+  the encoder failed and every Cozeni deposit recording was written empty); and an encoding error now
+  fails the scenario rather than writing an empty file. `merge` had the same two faults (a varying value
+  replaced in a number, a forged webhook's `created`; its encoding error ignored) and wrote
+  `_suite/suite-result.json` in place of the suites' results already there; all three are fixed, each
+  with a test.
+
+What the recording found about the original, each a `fail` in `psp-gateway/suite-result.json`, none a
+requirement until its spec says so:
+
+| Scenario | The original | The feature |
+|---|---|---|
+| a deposit for a sub-brand with no credential (all nine) | `502 no <PSP> credentials configured for this merchant`; nothing called | refused naming both (`404`) |
+| a webhook whose signature does not verify: Cozeni, EuPaymentz, T365, Unity Finance | `200` | `400`, the decision of 2026-10-19 (DreamzPay, BounceMoney and Digitarium answer `400` already) |
+| a webhook for an unknown reference: BounceMoney, Digitarium | `502 session lookup failed` | acknowledged |
+| a crypto deposit: Morphosis | no `validUntil` | a deadline |
+| a confirmation with an unreadable received amount: Morphosis | nothing settles (the missing amount is failed `underpaid`) | treated as short |
+| a payout repeated under its request id, and a duplicate reference: Unity Finance | `409 {"status":"ALREADY_INITIATED"}` | the first answer; `already_initiated` |
+| a payout with an empty credential: Unity Finance | `400 {"error":"missing_credentials","status":"REJECTED"}` | a credential failure |

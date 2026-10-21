@@ -8,6 +8,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -120,11 +121,12 @@ func Merge(a, b recorder.Recording) recorder.Recording {
 			}
 			reused := false
 			for j := i + 1; j < len(out.Steps); j++ {
-				if strings.Contains(out.Steps[j].Request.Path, text) || strings.Contains(string(out.Steps[j].Request.Body), text) {
+				name := fmt.Sprintf("c%d", captures)
+				body, inBody := replaceInStrings(out.Steps[j].Request.Body, text, "{"+name+"}")
+				if strings.Contains(out.Steps[j].Request.Path, text) || inBody {
 					reused = true
-					name := fmt.Sprintf("c%d", captures)
 					out.Steps[j].Request.Path = strings.ReplaceAll(out.Steps[j].Request.Path, text, "{"+name+"}")
-					out.Steps[j].Request.Body = json.RawMessage(strings.ReplaceAll(string(out.Steps[j].Request.Body), text, "{"+name+"}"))
+					out.Steps[j].Request.Body = body
 					if out.Steps[i].Capture == nil {
 						out.Steps[i].Capture = map[string]string{}
 					}
@@ -137,6 +139,56 @@ func Merge(a, b recorder.Recording) recorder.Recording {
 		}
 	}
 	return out
+}
+
+// replaceInStrings replaces text with a placeholder in a JSON body's strings and keys only, and says
+// whether it replaced any: the same digits can stand as a number in a body (a forged webhook's
+// `created`), and a placeholder there is not JSON. A body that is not JSON is replaced as text.
+func replaceInStrings(body json.RawMessage, text, placeholder string) (json.RawMessage, bool) {
+	if len(body) == 0 || !strings.Contains(string(body), text) {
+		return body, false
+	}
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.UseNumber()
+	var v any
+	if dec.Decode(&v) != nil {
+		return json.RawMessage(strings.ReplaceAll(string(body), text, placeholder)), true
+	}
+	replaced := false
+	var walk func(any) any
+	walk = func(v any) any {
+		switch x := v.(type) {
+		case string:
+			if strings.Contains(x, text) {
+				replaced = true
+				return strings.ReplaceAll(x, text, placeholder)
+			}
+		case map[string]any:
+			out := make(map[string]any, len(x))
+			for k, e := range x {
+				if strings.Contains(k, text) {
+					replaced = true
+					k = strings.ReplaceAll(k, text, placeholder)
+				}
+				out[k] = walk(e)
+			}
+			return out
+		case []any:
+			for i, e := range x {
+				x[i] = walk(e)
+			}
+		}
+		return v
+	}
+	v = walk(v)
+	if !replaced {
+		return body, false
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(v)
+	return json.RawMessage(bytes.TrimSpace(buf.Bytes())), true
 }
 
 // Collapse keeps the last of consecutive GETs of the same path: a poll's earlier answers are only the
@@ -261,7 +313,10 @@ func write(path string, v any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	b, _ := json.MarshalIndent(v, "", "  ")
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return fmt.Errorf("%s: %w", path, err)
+	}
 	return os.WriteFile(path, append(b, '\n'), 0o644)
 }
 
@@ -318,8 +373,14 @@ func writeResults(dir string, recs map[string]recorder.Recording, r1, r2 map[str
 		}
 		byService[r.Service][r.Scenario] = [2]string{r1[r.Scenario], r2[r.Scenario]}
 	}
-	// every test of the suite, recorded or not, under unsorted/, so a skipped scenario is visible
+	// every test of the suite, recorded or not, so a skipped scenario is visible; added to what earlier
+	// suites' merges kept there, never in place of it
 	all := map[string][2]string{}
+	if b, err := os.ReadFile(filepath.Join(dir, "_suite", "suite-result.json")); err == nil {
+		if err := json.Unmarshal(b, &all); err != nil {
+			return fmt.Errorf("_suite/suite-result.json: %w", err)
+		}
+	}
 	for t, a := range r1 {
 		all[t] = [2]string{a, r2[t]}
 	}

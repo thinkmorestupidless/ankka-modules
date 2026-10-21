@@ -2,7 +2,7 @@
 
 Answers the original's T365 adapter
 (`eitheror-platform/services/psp-gateway/internal/t365/adapter.go`) as T365 would. Default port
-18107 (`$PORT` overrides).
+18107 (`T365_STUB_PORT` overrides).
 
 ## Point the original at it
 
@@ -31,8 +31,11 @@ with it. Postbacks go to the `callbackUrl` the adapter sends, built from `PSP_GA
 
 After `T365_STUB_CALLBACK_DELAY_MS` (default 1000) from initiation it POSTs JSON
 `{"id","orderId","status","amount","currency","hash"}` to `callbackUrl` with the `apikey` header it
-received, retrying up to 5 times until 200. `status` is `SUCCESS`, `FAIL` or `PENDING` by the forced
-outcome. `hash` is the adapter's algorithm (`internal/t365/signature.go`): SHA-256 of
+received, retrying up to 5 times until 200. `status` is `SUCCESS`, `FAIL` (or the `code`, `REJECTED`) or
+`PENDING` (settled by the next control) by the forced outcome; `unauthorised` answers `401`.
+`POST /__webhook {"reference": <orderId>}` sends a postback now, once ([psp-stub's README](../psp-stub/README.md)
+has the whole contract). `T365_STUB_WEBHOOK_URL` (under psp-stub, `PSP_STUB_GATEWAY_URL` +
+`/v1/webhooks/t365`) replaces `callbackUrl`. `hash` is the adapter's algorithm (`internal/t365/signature.go`): SHA-256 of
 `secretKey={secret padded with '0' to 16}&amount=…&currency=…&id={orderId}&orderId={orderId}&status=…`,
 uppercase hex.
 

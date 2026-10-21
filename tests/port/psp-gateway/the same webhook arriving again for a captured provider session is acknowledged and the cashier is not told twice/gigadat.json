@@ -1,0 +1,245 @@
+{
+  "scenario": "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/gigadat",
+  "requirement": "005/FR-014",
+  "recorded_at": "2026-10-20T08:37:32.379291Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 5,
+          "terminalId": "terminal-bea66334"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "CAD",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "CA",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "INTERAC",
+          "psp": "GIGADAT",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "645ea701-7700-456f-8ea2-422596a559a8",
+          "redirectUrl": "http://host.docker.internal:18105/webflow?transaction=645ea701-7700-456f-8ea2-422596a559a8\u0026token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTI0ODU0NTIsInRyYW5zYWN0aW9uSWQiOiI2NDVlYTcwMS03NzAwLTQ1NmYtOGVhMi00MjI1OTZhNTU5YTgiLCJ0eXBlIjoiQ1BJIn0.YzgyMjUxOGExNmQwZDU3NjgzY2Q3N2I3NDk4YWMzNDg"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:32.381009Z",
+            "body": {
+              "amount": 50,
+              "campaign": "stub-campaign",
+              "currency": "CAD",
+              "email": "player@example.com",
+              "mobile": "4165550100",
+              "name": "Pat Player",
+              "province": "ON",
+              "sandbox": true,
+              "site": "https://merchant.example",
+              "transactionId": "{reference}",
+              "type": "CPI",
+              "userId": "{player}",
+              "userIp": "127.0.0.1"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "Content-Length": "309",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/api/payment-token/stub-campaign"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook: success",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "webhook: the same success again",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "observe: the capture, once",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:32.39213Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          },
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:32.395612Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[1].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

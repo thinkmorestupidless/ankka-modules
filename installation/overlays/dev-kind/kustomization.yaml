@@ -6,6 +6,7 @@ resources:
   - ../../base
   - keycloak-route.yaml
   - keycloak-data.yaml
+  - psp-stub.yaml
 configMapGenerator:
   - name: casino-installation
     namespace: casino-identity

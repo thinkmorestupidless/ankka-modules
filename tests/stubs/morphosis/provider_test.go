@@ -1,4 +1,4 @@
-package main
+package morphosis
 
 import (
 	"encoding/json"
@@ -59,7 +59,7 @@ func fakeGateway(t *testing.T) (*httptest.Server, chan received) {
 func newStub(t *testing.T) (*stubhttp.Stub, *httptest.Server) {
 	t.Helper()
 	stub := stubhttp.New("morphosis")
-	srv := httptest.NewServer(stub.Handler(NewProvider(stub, 0)))
+	srv := httptest.NewServer(stub.Handler(NewProvider(stub, Config{})))
 	t.Cleanup(srv.Close)
 	return stub, srv
 }
@@ -179,18 +179,78 @@ func TestDepositQuoteAndConfirmation(t *testing.T) {
 	}
 }
 
-func TestFailureIsAnUnderpayment(t *testing.T) {
+func TestUnderpaymentIsAnAcShortOfTheQuote(t *testing.T) {
 	_, srv := newStub(t)
 	gw, got := fakeGateway(t)
-	control(t, srv.URL, "failure")
+	control(t, srv.URL, "underpayment")
 
 	dep := insertDeposit(t, srv.URL, gw.URL)
 	if dep.Result != "ok" {
-		t.Fatalf("the quote still succeeds on failure: %+v", dep)
+		t.Fatalf("the quote still succeeds on underpayment: %+v", dep)
 	}
 	cb := await(t, got)
 	if out := verified(t, cb, "/v1/webhooks/morphosis/deposit/", dep.Id.String(), dep.CoinAmount.String()); out != "UNDERPAID" {
 		t.Fatalf("outcome = %q; want UNDERPAID (body %s)", out, cb.body)
+	}
+}
+
+func TestReceivedAmountAndOverpayment(t *testing.T) {
+	_, srv := newStub(t)
+	gw, got := fakeGateway(t)
+	resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"underpayment","receivedAmount":"0.00083332"}`))
+	resp.Body.Close()
+	dep := insertDeposit(t, srv.URL, gw.URL)
+	cb := await(t, got)
+	if !strings.Contains(string(cb.body), `"coin_amount":0.00083332`) ||
+		verified(t, cb, "/v1/webhooks/morphosis/deposit/", dep.Id.String(), dep.CoinAmount.String()) != "UNDERPAID" {
+		t.Fatalf("callback %s", cb.body)
+	}
+	control(t, srv.URL, "overpayment")
+	dep = insertDeposit(t, srv.URL, gw.URL)
+	if out := verified(t, await(t, got), "/v1/webhooks/morphosis/deposit/", dep.Id.String(), dep.CoinAmount.String()); out != "COMPLETED" {
+		t.Fatalf("overpayment outcome = %q", out)
+	}
+}
+
+func TestFailureIsADenial(t *testing.T) {
+	_, srv := newStub(t)
+	gw, got := fakeGateway(t)
+	resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"failure","code":"expired"}`))
+	resp.Body.Close()
+	dep := insertDeposit(t, srv.URL, gw.URL)
+	cb := await(t, got)
+	if out := verified(t, cb, "/v1/webhooks/morphosis/deposit/", dep.Id.String(), dep.CoinAmount.String()); out != "FAILED" || !strings.Contains(string(cb.body), `"message":"expired"`) {
+		t.Fatalf("outcome = %q (body %s)", out, cb.body)
+	}
+}
+
+func TestWebhookNowByTraceIdAndByIdToTheConfiguredGateway(t *testing.T) {
+	gw, got := fakeGateway(t)
+	stub := stubhttp.New("morphosis")
+	srv := httptest.NewServer(stub.Handler(NewProvider(stub, Config{WebhookURL: gw.URL + "/v1/webhooks/morphosis"})))
+	t.Cleanup(srv.Close)
+	control(t, srv.URL, "pending")
+	dep := insertDeposit(t, srv.URL, "http://unreachable.invalid")
+	await(t, got) // the pe
+
+	for _, ref := range []string{"8d7c2f8a-1d55-4a8e-9f0b-0f6c1c2b3a4d", dep.Id.String(), token} {
+		resp, err := http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"`+ref+`","outcome":"success"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var answer map[string]any
+		_ = json.NewDecoder(resp.Body).Decode(&answer)
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK || answer["body"] != "OK" {
+			t.Fatalf("%s: webhook %d %v", ref, resp.StatusCode, answer)
+		}
+		if out := verified(t, await(t, got), "/v1/webhooks/morphosis/deposit/", dep.Id.String(), dep.CoinAmount.String()); out != "COMPLETED" {
+			t.Fatalf("%s: outcome %q", ref, out)
+		}
+	}
+	resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"unsigned"}`))
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unsigned answered %d", resp.StatusCode)
 	}
 }
 

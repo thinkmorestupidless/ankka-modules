@@ -1,4 +1,4 @@
-package main
+package t365
 
 import (
 	"crypto/sha256"
@@ -184,6 +184,44 @@ func TestMissingApiKeyHasNoPaymentUrl(t *testing.T) {
 	_ = json.NewDecoder(resp.Body).Decode(&api)
 	if resp.StatusCode == http.StatusOK || api.PaymentUrl != "" || api.Message == "" {
 		t.Fatalf("want an error without paymentUrl, got %d %+v", resp.StatusCode, api)
+	}
+}
+
+func TestUnauthorisedAndARejectedCode(t *testing.T) {
+	srv := newStub(t)
+	gw, got := fakeGateway(t)
+	_, _ = http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"unauthorised"}`))
+	if code, api := initiate(t, srv.URL, gw.URL); code != http.StatusUnauthorized || api["paymentUrl"] != "" {
+		t.Fatalf("unauthorised answered %d %v", code, api)
+	}
+	_, _ = http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"failure","code":"REJECTED"}`))
+	initiate(t, srv.URL, gw.URL)
+	if status := verify(t, await(t, got), "terminal-api-key", secret); status != "REJECTED" {
+		t.Fatalf("status = %q", status)
+	}
+}
+
+func TestPendingSettledAndWebhookNow(t *testing.T) {
+	srv := newStub(t)
+	gw, got := fakeGateway(t)
+	_, _ = http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"pending"}`))
+	initiate(t, srv.URL, gw.URL)
+	if status := verify(t, await(t, got), "terminal-api-key", secret); status != "PENDING" {
+		t.Fatalf("status = %q", status)
+	}
+	_, _ = http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"success"}`))
+	if status := verify(t, await(t, got), "terminal-api-key", secret); status != "SUCCESS" {
+		t.Fatalf("settled status = %q", status)
+	}
+	resp, _ := http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"`+orderId+`","outcome":"failure"}`))
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("webhook %d", resp.StatusCode)
+	}
+	if status := verify(t, await(t, got), "terminal-api-key", secret); status != "FAIL" {
+		t.Fatalf("webhook status = %q", status)
+	}
+	if resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"unsigned"}`)); resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unsigned answered %d", resp.StatusCode)
 	}
 }
 

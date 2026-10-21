@@ -1,0 +1,110 @@
+{
+  "scenario": "a webhook for a reference the gateway does not know is acknowledged and moves nothing/gigadat",
+  "requirement": "005/FR-011",
+  "recorded_at": "2026-10-20T08:37:23.242641Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 5,
+          "terminalId": "terminal-1d4610b1"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): for unknown-ref",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/gigadat?status=STATUS_SUCCESS\u0026transactionId=unknown-ref",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": [
+          {
+            "key": "transactionId",
+            "value": "unknown-ref"
+          },
+          {
+            "key": "type",
+            "value": "CPI"
+          },
+          {
+            "key": "amount",
+            "value": "50"
+          },
+          {
+            "key": "cookie",
+            "value": "stub-cookie"
+          },
+          {
+            "key": "rcode",
+            "value": "100"
+          }
+        ]
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,288 @@
+{
+  "scenario": "a rotated credential is used by the next deposit with no restart/gigadat",
+  "requirement": "005/FR-018",
+  "recorded_at": "2026-10-20T08:37:45.925716Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 5,
+          "terminalId": "terminal-f7daca28"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "CAD",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "CA",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "INTERAC",
+          "psp": "GIGADAT",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "73ec3a7a-4662-4c9f-860d-1e33c5514b4f",
+          "redirectUrl": "http://host.docker.internal:18105/webflow?transaction=73ec3a7a-4662-4c9f-860d-1e33c5514b4f\u0026token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTI0ODU0NjUsInRyYW5zYWN0aW9uSWQiOiI3M2VjM2E3YS00NjYyLTRjOWYtODYwZC0xZTMzYzU1MTRiNGYiLCJ0eXBlIjoiQ1BJIn0.NDg2ODI1ZjM2ZWE3MDJmODU1N2ExOTQ0NmVmN2YwMDU"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:45.927774Z",
+            "body": {
+              "amount": 50,
+              "campaign": "stub-campaign",
+              "currency": "CAD",
+              "email": "player@example.com",
+              "mobile": "4165550100",
+              "name": "Pat Player",
+              "province": "ON",
+              "sandbox": true,
+              "site": "https://merchant.example",
+              "transactionId": "{reference}",
+              "type": "CPI",
+              "userId": "{player}",
+              "userIp": "127.0.0.1"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "Content-Length": "309",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/api/payment-token/stub-campaign"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign-rotated",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 5,
+          "terminalId": "terminal-f7daca28"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the next deposit, after the credential is rotated",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment2}/capture",
+          "currency": "CAD",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "CA",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "INTERAC",
+          "psp": "GIGADAT",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign-rotated",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "a4851c21-e045-4ba4-9e20-913929cc075d",
+          "redirectUrl": "http://host.docker.internal:18105/webflow?transaction=a4851c21-e045-4ba4-9e20-913929cc075d\u0026token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTI0ODU0NjUsInRyYW5zYWN0aW9uSWQiOiJhNDg1MWMyMS1lMDQ1LTRiYTQtOWUyMC05MTM5MjljYzA3NWQiLCJ0eXBlIjoiQ1BJIn0.NjI1YmMzNjEyOGJlODM4ZWFlODdlYWU0ZWY0OTgzM2Y"
+        }
+      },
+      "capture": {
+        "reference2": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:45.936057Z",
+            "body": {
+              "amount": 50,
+              "campaign": "stub-campaign-rotated",
+              "currency": "CAD",
+              "email": "player@example.com",
+              "mobile": "4165550100",
+              "name": "Pat Player",
+              "province": "ON",
+              "sandbox": true,
+              "site": "https://merchant.example",
+              "transactionId": "{reference2}",
+              "type": "CPI",
+              "userId": "{player}",
+              "userIp": "127.0.0.1"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "Content-Length": "317",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/api/payment-token/stub-campaign-rotated"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

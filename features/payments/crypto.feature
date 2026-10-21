@@ -2,7 +2,8 @@ Feature: A crypto deposit is quoted, paid and checked for short payment
   A player chooses a crypto method. The gateway asks the payment provider for a quote, answers with
   a payment address, a coin amount, a coin currency and a deadline, and the player sends coin. When
   the provider confirms what arrived, the gateway captures only when the amount received is not
-  short of the quote; a short payment is reported to the cashier as a failure carrying the variance.
+  short of the quote, or when the provider has valued a short payment, at that valuation; a short
+  payment is never credited in full.
 
   Scenario: a crypto deposit is answered with a payment address, a coin amount, a coin currency and a deadline, and no redirect
     Given a sub-brand with a credential for a crypto payment provider
@@ -16,11 +17,17 @@ Feature: A crypto deposit is quoted, paid and checked for short payment
     Then the cashier is told the payment is captured
     And an overpayment is recorded as a variance on the outcome
 
-  Scenario: a confirmation below the quote fails the payment with an underpayment variance and credits nothing
+  Scenario: a confirmation below the quote that the provider has not valued fails the payment with an underpayment variance and credits nothing
     Given a quoted crypto deposit
-    When the payment provider confirms a coin amount below the quote
+    When the payment provider confirms a coin amount below the quote and gives no value for it in the deposit's currency
     Then the cashier is told the payment failed with an underpayment variance and the amounts quoted and received
     And nothing is credited
+
+  Scenario: a confirmation below the quote that the provider has valued captures the payment at that value, with an underpayment variance
+    Given a quoted crypto deposit
+    When the payment provider confirms a coin amount below the quote and values it in the deposit's currency
+    Then the cashier is told the payment is captured with an underpayment variance carrying the amounts received and their value
+    And the deposit is not credited in full
 
   Scenario: a confirmation whose received amount is missing or unreadable is treated as short
     Given a quoted crypto deposit

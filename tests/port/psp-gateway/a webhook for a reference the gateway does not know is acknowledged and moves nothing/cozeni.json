@@ -1,0 +1,87 @@
+{
+  "scenario": "a webhook for a reference the gateway does not know is acknowledged and moves nothing/cozeni",
+  "requirement": "005/FR-011",
+  "recorded_at": "2026-10-20T08:37:20.225486Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "apiKey": "\u003credacted\u003e",
+            "merchantId": "stub-merchant"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-9512f683"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): for unknown-ref",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/cozeni",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "convertAmount=50.00\u0026convertCurrency=EUR\u0026paymentRef=unknown-ref\u0026receivedAmount=\u0026requestAmount=\u0026requestCurrency=BTC\u0026resultCode=00\u0026resultMsg=Success\u0026status=COMPLETED\u0026txnHash=0xforged\u0026txnId=100000001\u0026txnauthz="
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

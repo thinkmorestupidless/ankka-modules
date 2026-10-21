@@ -13,7 +13,7 @@ import scala.collection.mutable
  */
 object FakeGateway:
   enum Session:
-    case Pending, Resolved, Undelivered, Unknown, Down
+    case Pending, Resolved, Undelivered, Refused, Unknown, Down
 
 final class FakeGateway(bind: Int = 0) extends FakeServer(bind):
   import FakeGateway.Session
@@ -46,6 +46,7 @@ final class FakeGateway(bind: Int = 0) extends FakeServer(bind):
         case Session.Pending     => Answer.ok(Json.obj("state" -> "pending", "delivered" -> false, "undelivered" -> false))
         case Session.Resolved    => Answer.ok(Json.obj("state" -> "resolved", "outcome" -> "failed", "delivered" -> true, "undelivered" -> false))
         case Session.Undelivered => Answer.ok(Json.obj("state" -> "resolved", "outcome" -> "captured", "delivered" -> false, "undelivered" -> true))
+        case Session.Refused     => Answer.ok(Json.obj("state" -> "resolved", "outcome" -> "captured", "delivered" -> false, "undelivered" -> false, "refused" -> true))
         case Session.Unknown     => Answer(404, """{"error":"NOT_FOUND"}""")
         case Session.Down        => Answer(503, """{"error":"UNAVAILABLE"}""")
     else Answer(404, """{"error":"NO_ROUTE"}""")

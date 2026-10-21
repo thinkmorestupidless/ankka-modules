@@ -10,3 +10,4 @@ __pycache__/
 .claude/worktrees/
 .akka-license-key
 .lightbend-commercial-credentials-token
+tests/stubs/bin/

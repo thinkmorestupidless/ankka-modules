@@ -1,4 +1,6 @@
-package main
+// Package morphosis answers as QVEI's WPB API (Morphosis) does to the original's psp-gateway
+// adapter, and posts its callbacks. psp-stub serves it on 18106.
+package morphosis
 
 // The QVEI WPB API as the original's adapter uses it
 // (eitheror-platform/services/psp-gateway/internal/morphosis/adapter.go):
@@ -16,16 +18,15 @@ package main
 // matching the one insert_deposit returned (morphosis/sessions.go).
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
+	"path"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -64,28 +65,57 @@ type Callback struct {
 	Message    string      `json:"message,omitempty"`
 }
 
+// Config is the stub's settings.
+type Config struct {
+	// Delay is how long after the insert the callback is sent.
+	Delay time.Duration
+	// WebhookURL, when set, replaces the notification_url's address up to /v1/webhooks/morphosis
+	// (its /deposit/{token} or /withdrawal/{token} is kept).
+	WebhookURL string
+}
+
+// ConfigFromEnv reads MORPHOSIS_STUB_CALLBACK_DELAY_MS (default 1000) and MORPHOSIS_STUB_WEBHOOK_URL.
+func ConfigFromEnv(getenv func(string) string) Config {
+	c := Config{Delay: time.Second, WebhookURL: getenv("MORPHOSIS_STUB_WEBHOOK_URL")}
+	if v := getenv("MORPHOSIS_STUB_CALLBACK_DELAY_MS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			c.Delay = time.Duration(n) * time.Millisecond
+		}
+	}
+	return c
+}
+
+// Start is the stub as psp-stub runs it.
+func Start(getenv func(string) string) (*stubhttp.Stub, http.Handler) {
+	stub := stubhttp.New("morphosis")
+	return stub, NewProvider(stub, ConfigFromEnv(getenv))
+}
+
+// order is one deposit or payout, for its callbacks.
+type order struct {
+	id     string
+	payout bool
+	coin   string // the quoted coin amount
+	target string
+}
+
 // Provider answers QVEI's routes and sends its callbacks.
 type Provider struct {
 	stub   *stubhttp.Stub
-	delay  time.Duration
+	cfg    Config
 	client *http.Client
 	nextID atomic.Int64
-}
 
-// CallbackDelayFromEnv reads MORPHOSIS_STUB_CALLBACK_DELAY_MS (default 1000).
-func CallbackDelayFromEnv() time.Duration {
-	if v := os.Getenv("MORPHOSIS_STUB_CALLBACK_DELAY_MS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
-			return time.Duration(n) * time.Millisecond
-		}
-	}
-	return time.Second
+	mu     sync.Mutex
+	orders map[string]*order // by QVEI id, by trace_id and by notify token
 }
 
 // NewProvider builds the QVEI handler. QVEI ids are sequential integers; the stub starts at 5473000.
-func NewProvider(stub *stubhttp.Stub, delay time.Duration) *Provider {
-	p := &Provider{stub: stub, delay: delay, client: &http.Client{Timeout: 10 * time.Second}}
+func NewProvider(stub *stubhttp.Stub, cfg Config) *Provider {
+	p := &Provider{stub: stub, cfg: cfg, client: &http.Client{Timeout: 10 * time.Second}, orders: map[string]*order{}}
 	p.nextID.Store(5473000)
+	stub.Supports(stubhttp.Underpayment, stubhttp.Overpayment)
+	stub.OnWebhook(p.send)
 	return p
 }
 
@@ -102,9 +132,9 @@ func (p *Provider) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.URL.Query().Get("action") {
 	case "insert_deposit":
-		p.insertDeposit(w, r.PostForm)
+		p.insert(w, r.PostForm, false)
 	case "insert_payout":
-		p.insertPayout(w, r.PostForm)
+		p.insert(w, r.PostForm, true)
 	default:
 		stubhttp.WriteJSON(w, http.StatusOK, errorBody("unknown action"))
 	}
@@ -136,14 +166,19 @@ func CoinAmount(amount, method string) (string, error) {
 	return strconv.FormatFloat(fiat/rate, 'f', 8, 64), nil
 }
 
-// underpay is 90% of a quoted coin amount: the received amount of an underpaid deposit.
-func underpay(quoted string) string {
-	f, _ := strconv.ParseFloat(quoted, 64)
-	return strconv.FormatFloat(f*0.9, 'f', 8, 64)
+// scale is a quoted coin amount times f, to 8 places: the received amount of an under- or
+// overpaid deposit.
+func scale(quoted string, f float64) string {
+	q, _ := strconv.ParseFloat(quoted, 64)
+	return strconv.FormatFloat(q*f, 'f', 8, 64)
 }
 
-func (p *Provider) insertDeposit(w http.ResponseWriter, form url.Values) {
-	if f := missing(form, "user", "pass", "amount", "currency", "method", "notification_url"); f != "" {
+func (p *Provider) insert(w http.ResponseWriter, form url.Values, payout bool) {
+	required := []string{"user", "pass", "amount", "currency", "method", "notification_url"}
+	if payout {
+		required = []string{"user", "pass", "amount", "method", "address", "notification_url"}
+	}
+	if f := missing(form, required...); f != "" {
 		stubhttp.WriteJSON(w, http.StatusOK, errorBody("missing "+f))
 		return
 	}
@@ -153,57 +188,100 @@ func (p *Provider) insertDeposit(w http.ResponseWriter, form url.Values) {
 		return
 	}
 	id := strconv.FormatInt(p.nextID.Add(1), 10)
-	stubhttp.WriteJSON(w, http.StatusOK, map[string]any{
-		"result":      "ok",
-		"status":      "pe",
-		"id":          json.Number(id),
-		"address":     depositAddress(form.Get("method"), id),
-		"coin_amount": json.Number(coin),
-	})
-
-	cb := Callback{Id: json.Number(id), TxHash: "stub-tx-" + id}
-	switch p.stub.Next() {
-	case stubhttp.Success:
-		cb.Status, cb.CoinAmount = "ac", json.Number(coin)
-	case stubhttp.Failure:
-		// Confirmed on chain, but short of the quote: the gateway fails it as underpaid
-		// (handler/morphosis.go, morphosis.Underpaid).
-		cb.Status, cb.CoinAmount = "ac", json.Number(underpay(coin))
-	case stubhttp.Pending:
-		cb.Status, cb.CoinAmount = "pe", json.Number("0")
+	notify := form.Get("notification_url")
+	o := &order{id: id, payout: payout, coin: coin, target: stubhttp.Retarget(notify, p.cfg.WebhookURL, "/v1/webhooks/morphosis")}
+	p.mu.Lock()
+	p.orders[id] = o
+	if u, err := url.Parse(notify); err == nil {
+		p.orders[path.Base(u.Path)] = o // the notify token
 	}
-	p.deliverLater(form.Get("notification_url"), cb)
+	if trace := form.Get("trace_id"); trace != "" {
+		p.orders[trace] = o
+	}
+	p.mu.Unlock()
+
+	if payout {
+		stubhttp.WriteJSON(w, http.StatusOK, map[string]any{
+			"result": "ok", "status": "pe", "id": json.Number(id), "coin_amount": json.Number(coin), "processed": "0",
+		})
+	} else {
+		stubhttp.WriteJSON(w, http.StatusOK, map[string]any{
+			"result": "ok", "status": "pe", "id": json.Number(id), "address": depositAddress(form.Get("method"), id), "coin_amount": json.Number(coin),
+		})
+	}
+
+	control := p.stub.Control()
+	if control.Outcome == stubhttp.Pending {
+		p.stub.Hold(id)
+	}
+	cb, err := o.callback(control)
+	if err != nil {
+		log.Printf("morphosis stub: %v", err)
+		return
+	}
+	p.deliverLater(o.target, cb, control.Delay(p.cfg.Delay))
 }
 
-func (p *Provider) insertPayout(w http.ResponseWriter, form url.Values) {
-	if f := missing(form, "user", "pass", "amount", "method", "address", "notification_url"); f != "" {
-		stubhttp.WriteJSON(w, http.StatusOK, errorBody("missing "+f))
-		return
+// callback is the notification for one order under a control. Deposits: success ac with the quote;
+// failure de with the code as the message; pending pe; underpayment ac with receivedAmount or 90%
+// of the quote (the gateway fails it as underpaid, handler/morphosis.go, morphosis.Underpaid);
+// overpayment ac with receivedAmount or 110%. Payouts: success ac with a tx_hash, failure de,
+// pending pe.
+func (o *order) callback(c stubhttp.Control) (Callback, error) {
+	cb := Callback{Id: json.Number(o.id), CoinAmount: json.Number(o.coin)}
+	if !o.payout {
+		cb.TxHash = "stub-tx-" + o.id
 	}
-	coin, err := CoinAmount(form.Get("amount"), form.Get("method"))
-	if err != nil {
-		stubhttp.WriteJSON(w, http.StatusOK, errorBody(err.Error()))
-		return
+	received := func(f float64) json.Number {
+		if c.ReceivedAmount != "" {
+			return c.ReceivedAmount
+		}
+		return json.Number(scale(o.coin, f))
 	}
-	id := strconv.FormatInt(p.nextID.Add(1), 10)
-	stubhttp.WriteJSON(w, http.StatusOK, map[string]any{
-		"result":      "ok",
-		"status":      "pe",
-		"id":          json.Number(id),
-		"coin_amount": json.Number(coin),
-		"processed":   "0",
-	})
-
-	cb := Callback{Id: json.Number(id), CoinAmount: json.Number(coin)}
-	switch p.stub.Next() {
+	switch c.Outcome {
 	case stubhttp.Success:
-		cb.Status, cb.TxHash = "ac", "stub-tx-"+id
+		cb.Status, cb.TxHash = "ac", "stub-tx-"+o.id
 	case stubhttp.Failure:
-		cb.Status, cb.Message = "de", "payout denied by stub"
+		cb.Status, cb.Message, cb.TxHash = "de", c.Code, ""
+		if cb.Message == "" {
+			cb.Message = "denied by stub"
+		}
 	case stubhttp.Pending:
 		cb.Status = "pe"
+		if !o.payout {
+			cb.CoinAmount = "0"
+		}
+	case stubhttp.Underpayment, stubhttp.Overpayment:
+		if o.payout {
+			return Callback{}, fmt.Errorf("a morphosis payout has no %s", c.Outcome)
+		}
+		f := 0.9
+		if c.Outcome == stubhttp.Overpayment {
+			f = 1.1
+		}
+		cb.Status, cb.CoinAmount = "ac", received(f)
+	default:
+		return Callback{}, fmt.Errorf("morphosis has no callback for %q", c.Outcome)
 	}
-	p.deliverLater(form.Get("notification_url"), cb)
+	return cb, nil
+}
+
+// send posts one order's callback now, once, and answers what the gateway said.
+func (p *Provider) send(ref string, c stubhttp.Control) (stubhttp.Delivery, error) {
+	p.mu.Lock()
+	o, ok := p.orders[ref]
+	p.mu.Unlock()
+	if !ok {
+		return stubhttp.Delivery{}, stubhttp.ErrUnknownReference
+	}
+	cb, err := o.callback(c)
+	if err != nil {
+		return stubhttp.Delivery{}, err
+	}
+	body, _ := json.Marshal(cb)
+	d := stubhttp.Post(p.client, o.target, "application/json", nil, body)
+	log.Printf("morphosis stub: callback id=%s status=%s to %s answered %d (err=%v)", cb.Id, cb.Status, o.target, d.Status, d.Err)
+	return d, nil
 }
 
 // depositAddress is a deterministic, well-formed-looking address for the method.
@@ -226,26 +304,19 @@ func depositAddress(method, id string) string {
 
 // deliverLater posts the callback after the delay, retrying (as QVEI does, though far faster)
 // until the gateway answers 200 "OK", at most 5 times.
-func (p *Provider) deliverLater(target string, cb Callback) {
+func (p *Provider) deliverLater(target string, cb Callback, delay time.Duration) {
 	body, _ := json.Marshal(cb)
 	go func() {
-		time.Sleep(p.delay)
+		time.Sleep(delay)
 		for attempt := 1; attempt <= 5; attempt++ {
-			req, err := http.NewRequest(http.MethodPost, target, bytes.NewReader(body))
-			if err != nil {
-				log.Printf("morphosis stub: bad notification_url %q: %v", target, err)
-				return
-			}
-			req.Header.Set("Content-Type", "application/json")
-			resp, err := p.client.Do(req)
+			d := stubhttp.Post(p.client, target, "application/json", nil, body)
+			err := d.Err
 			if err == nil {
-				answer, _ := io.ReadAll(resp.Body)
-				resp.Body.Close()
-				if resp.StatusCode == http.StatusOK && strings.TrimSpace(string(answer)) == "OK" {
+				if d.Status == http.StatusOK && strings.TrimSpace(string(d.Body)) == "OK" {
 					log.Printf("morphosis stub: callback id=%s status=%s delivered to %s", cb.Id, cb.Status, target)
 					return
 				}
-				err = fmt.Errorf("HTTP %d %q", resp.StatusCode, string(answer))
+				err = fmt.Errorf("HTTP %d %q", d.Status, string(d.Body))
 			}
 			log.Printf("morphosis stub: callback id=%s attempt %d to %s failed: %v", cb.Id, attempt, target, err)
 			time.Sleep(time.Second)

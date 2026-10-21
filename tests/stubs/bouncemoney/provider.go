@@ -1,4 +1,7 @@
-package main
+// Package bouncemoney is the BounceMoney stub: it answers the original psp-gateway's BounceMoney
+// adapter as BounceMoney would, and sends the signed webhook back to the gateway. psp-stub serves
+// it on 18101.
+package bouncemoney
 
 // The routes BounceMoney answers for the original's adapter,
 // eitheror-platform/services/psp-gateway/internal/bouncemoney/adapter.go:
@@ -12,7 +15,6 @@ package main
 // "t=<unix>,v1=base64url(HMAC-SHA256(signingSecret, "<t>." + body))" (signature.go:35-63).
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"crypto/hmac"
 	"crypto/rand"
@@ -27,9 +29,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eitheror-io/ankka-casino/tests/stubs/internal/stubhttp"
@@ -58,19 +60,19 @@ type Config struct {
 const defaultSigningSecret = "test-signing-secret-unit-only"
 
 // ConfigFromEnv reads BOUNCEMONEY_STUB_* variables.
-func ConfigFromEnv() Config {
+func ConfigFromEnv(getenv func(string) string) Config {
 	c := Config{
-		SigningSecret: envOr("BOUNCEMONEY_STUB_SIGNING_SECRET", defaultSigningSecret),
-		WebhookURL:    os.Getenv("BOUNCEMONEY_STUB_WEBHOOK_URL"),
-		PublicURL:     envOr("BOUNCEMONEY_STUB_PUBLIC_URL", "http://localhost:18101"),
+		SigningSecret: envOr(getenv, "BOUNCEMONEY_STUB_SIGNING_SECRET", defaultSigningSecret),
+		WebhookURL:    getenv("BOUNCEMONEY_STUB_WEBHOOK_URL"),
+		PublicURL:     envOr(getenv, "BOUNCEMONEY_STUB_PUBLIC_URL", "http://localhost:18101"),
 		Delay:         500 * time.Millisecond,
 	}
-	if v := os.Getenv("BOUNCEMONEY_STUB_WEBHOOK_DELAY_MS"); v != "" {
+	if v := getenv("BOUNCEMONEY_STUB_WEBHOOK_DELAY_MS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			c.Delay = time.Duration(n) * time.Millisecond
 		}
 	}
-	if v := os.Getenv("BOUNCEMONEY_STUB_PUBLIC_KEY"); v != "" {
+	if v := getenv("BOUNCEMONEY_STUB_PUBLIC_KEY"); v != "" {
 		key, err := parsePublicKey(v)
 		if err != nil {
 			log.Fatalf("bouncemoney stub: BOUNCEMONEY_STUB_PUBLIC_KEY: %v", err)
@@ -80,24 +82,33 @@ func ConfigFromEnv() Config {
 	return c
 }
 
+// Start is the stub as psp-stub runs it.
+func Start(getenv func(string) string) (*stubhttp.Stub, http.Handler) {
+	stub := stubhttp.New("bouncemoney")
+	return stub, NewProvider(stub, ConfigFromEnv(getenv)).Routes()
+}
+
 // Provider answers BounceMoney's API.
 type Provider struct {
 	stub   *stubhttp.Stub
 	cfg    Config
 	client *http.Client
+
+	mu       sync.Mutex
+	sessions map[string]session // by referenceId, the gateway's txnRef
 }
 
-// Webhook is one delivery the stub made.
-type Webhook struct {
-	URL       string
-	Body      []byte
-	Signature string
-	Status    int
-	Err       error
+type session struct {
+	id     string
+	req    sessionRequest
+	target string
 }
 
 func NewProvider(stub *stubhttp.Stub, cfg Config) *Provider {
-	return &Provider{stub: stub, cfg: cfg, client: &http.Client{Timeout: 10 * time.Second}}
+	p := &Provider{stub: stub, cfg: cfg, client: &http.Client{Timeout: 10 * time.Second}, sessions: map[string]session{}}
+	stub.Supports(stubhttp.Unsigned, stubhttp.Unauthorised)
+	stub.OnWebhook(p.send)
+	return p
 }
 
 type sessionRequest struct {
@@ -124,9 +135,14 @@ func (p *Provider) Routes() http.Handler {
 
 func (p *Provider) createSession(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
+	control := p.stub.Control()
 
 	if status, msg := p.checkAuth(r, body); status != 0 {
 		stubhttp.WriteJSON(w, status, apiError(status, msg))
+		return
+	}
+	if control.Outcome == stubhttp.Unauthorised {
+		stubhttp.WriteJSON(w, http.StatusUnauthorized, apiError(http.StatusUnauthorized, "invalid API key"))
 		return
 	}
 	var req sessionRequest
@@ -146,7 +162,14 @@ func (p *Provider) createSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := "cs_" + randomHex(12)
-	outcome := p.stub.Next()
+	target, err := p.webhookURL(req.RedirectUrl)
+	if err != nil {
+		log.Printf("bouncemoney stub: no webhook for %s: %v", req.ReferenceId, err)
+	}
+	p.mu.Lock()
+	p.sessions[req.ReferenceId] = session{id: id, req: req, target: target}
+	p.mu.Unlock()
+
 	stubhttp.WriteJSON(w, http.StatusCreated, map[string]any{
 		"statusCode": http.StatusCreated,
 		"data": map[string]any{
@@ -159,25 +182,64 @@ func (p *Provider) createSession(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	var eventType string
-	switch outcome {
-	case stubhttp.Success:
-		eventType = "checkout.session.completed"
-	case stubhttp.Failure:
-		eventType = "checkout.session.failed"
-	default:
-		return // pending: the session stays open and no webhook is sent
-	}
-	target, err := p.webhookURL(req.RedirectUrl)
-	if err != nil {
-		log.Printf("bouncemoney stub: no webhook for %s: %v", req.ReferenceId, err)
+	if control.Outcome == stubhttp.Pending {
+		p.stub.Hold(req.ReferenceId) // the session stays open and no webhook is sent
 		return
 	}
-	event := webhookBody(eventType, id, req)
+	if target == "" {
+		return
+	}
 	go func() {
-		time.Sleep(p.cfg.Delay)
-		p.deliver(target, event)
+		time.Sleep(control.Delay(p.cfg.Delay))
+		_, _ = p.send(req.ReferenceId, control)
 	}()
+}
+
+// eventType is the webhook's type for a control: completed, or failed (code "expired" for
+// checkout.session.expired); unsigned sends the completed event without its signature.
+func eventType(c stubhttp.Control) (string, error) {
+	switch c.Outcome {
+	case stubhttp.Success, stubhttp.Unsigned:
+		return "checkout.session.completed", nil
+	case stubhttp.Failure:
+		switch strings.TrimPrefix(c.Code, "checkout.session.") {
+		case "", "failed":
+			return "checkout.session.failed", nil
+		case "expired":
+			return "checkout.session.expired", nil
+		default:
+			return "", fmt.Errorf("bouncemoney failure code is failed or expired, not %q", c.Code)
+		}
+	case stubhttp.Pending:
+		return "checkout.session.pending", nil
+	default:
+		return "", fmt.Errorf("bouncemoney has no webhook for %q", c.Outcome)
+	}
+}
+
+// send delivers the webhook for one session now.
+func (p *Provider) send(ref string, c stubhttp.Control) (stubhttp.Delivery, error) {
+	p.mu.Lock()
+	s, ok := p.sessions[ref]
+	p.mu.Unlock()
+	if !ok {
+		return stubhttp.Delivery{}, stubhttp.ErrUnknownReference
+	}
+	typ, err := eventType(c)
+	if err != nil {
+		return stubhttp.Delivery{}, err
+	}
+	if s.target == "" {
+		return stubhttp.Delivery{}, fmt.Errorf("no webhook address: redirectUrl %q has no host and BOUNCEMONEY_STUB_WEBHOOK_URL is unset", s.req.RedirectUrl)
+	}
+	body := webhookBody(typ, s.id, s.req)
+	header := map[string]string{}
+	if c.Outcome != stubhttp.Unsigned {
+		header["X-BounceMoney-Signature"] = Sign(p.cfg.SigningSecret, time.Now().Unix(), body)
+	}
+	d := stubhttp.Post(p.client, s.target, "application/json", header, body)
+	log.Printf("bouncemoney stub: webhook %s for %s to %s answered %d (err=%v)", typ, ref, s.target, d.Status, d.Err)
+	return d, nil
 }
 
 // checkAuth answers as BounceMoney does to an unsigned or wrongly signed request.
@@ -214,10 +276,7 @@ func (p *Provider) webhookURL(redirectUrl string) (string, error) {
 }
 
 func webhookBody(eventType, sessionId string, req sessionRequest) []byte {
-	status := map[string]string{
-		"checkout.session.completed": "completed",
-		"checkout.session.failed":    "failed",
-	}[eventType]
+	status := strings.TrimPrefix(eventType, "checkout.session.")
 	b, _ := json.Marshal(map[string]any{
 		"id":      "evt_" + randomHex(12),
 		"type":    eventType,
@@ -240,23 +299,6 @@ func Sign(secret string, ts int64, body []byte) string {
 	mac.Write([]byte(t + "."))
 	mac.Write(body)
 	return "t=" + t + ",v1=" + base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
-}
-
-func (p *Provider) deliver(target string, body []byte) {
-	sig := Sign(p.cfg.SigningSecret, time.Now().Unix(), body)
-	result := Webhook{URL: target, Body: body, Signature: sig}
-	req, err := http.NewRequest(http.MethodPost, target, bytes.NewReader(body))
-	if err == nil {
-		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("X-BounceMoney-Signature", sig)
-		var resp *http.Response
-		if resp, err = p.client.Do(req); err == nil {
-			result.Status = resp.StatusCode
-			_ = resp.Body.Close()
-		}
-	}
-	result.Err = err
-	log.Printf("bouncemoney stub: webhook to %s answered %d (err=%v)", target, result.Status, err)
 }
 
 // hostedPage stands in for the hosted checkout: it sends the player's browser back to the
@@ -296,8 +338,8 @@ func randomHex(n int) string {
 	return hex.EncodeToString(b)
 }
 
-func envOr(name, fallback string) string {
-	if v := os.Getenv(name); v != "" {
+func envOr(getenv func(string) string, name, fallback string) string {
+	if v := getenv(name); v != "" {
 		return v
 	}
 	return fallback

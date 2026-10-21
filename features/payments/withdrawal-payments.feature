@@ -34,10 +34,10 @@ Feature: A brand's withdrawal is paid out through a payment provider and its out
     Then the gateway asks the payment provider
     And it answers transient, completed, failed, reversed, or that the provider has no record of it
 
-  Scenario: a withdrawal payment the provider refuses as a duplicate reference is reported to the brand as refused, with why
+  Scenario: a withdrawal payment the provider refuses as a duplicate reference is reported to the brand as already initiated
     Given a payment provider that refuses a withdrawal payment as a duplicate reference
     When the brand initiates it
-    Then the brand is told it was refused and why
+    Then the brand is told it was already initiated, the provider holding it
 
   Scenario: a withdrawal payment refused for an empty credential is reported as a credential failure and never as no record
     Given a withdrawal payment initiated with an empty credential

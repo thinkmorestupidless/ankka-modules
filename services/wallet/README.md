@@ -45,7 +45,9 @@ curl -s localhost:9000/v1/casino/brands/goldvibe/wallets/p1/EUR/balance
 
 `responsible-gambling` must answer on the route [routes.md](../../specs/002-wallet/contracts/routes.md)
 names, or every deposit is `RG_UNAVAILABLE`: set `ankka.local-services.responsible-gambling` to a
-running one.
+running one. The deposit flow's step asks it through ankka's service client, on the step's own
+thread, and waits `ankka.service-client.timeout` (500 ms, `application.conf`); a deposit refused as
+`RG_UNAVAILABLE` is checked again when it arrives again, since that refusal is not an answer.
 
 ## Test it
 
@@ -55,6 +57,7 @@ running one.
 | `sbt "testOnly io.eitheror.casino.wallet.entity.*"` | the 174 TL fixtures, the rules, SC-006 for every command, invariants over random sequences |
 | `sbt "testOnly io.eitheror.casino.wallet.features.*"` | every `features/wallet` scenario |
 | `sbt "testOnly io.eitheror.casino.wallet.it.*"` | the service over HTTP against Postgres in Docker: facts, views, audiences, 200 concurrent bets, restarts |
+| `sbt "testOnly io.eitheror.casino.wallet.it.ResponsibleGamblingItSuite"` | the deposit flow asking a scripted `responsible-gambling` through ankka's service client: the sums sent, the 500 ms bound, the re-check after `RG_UNAVAILABLE`, a limit refusal staying final |
 | `sbt "testOnly io.eitheror.casino.wallet.port.*"` | the parity tests: each recording of the original under `tests/port/wallet/`, translated by `WireTranslation` |
 | `WALLET_PERF=1 sbt "testOnly io.eitheror.casino.wallet.it.ScaleItSuite"` | a 10,000-transaction wallet: snapshot size, recovery, SC-003's latency (552 KiB, 241 ms, 2.0/16.4 ms; before the state was bounded, 4.3 MB, 143 ms, 4.4/147 ms) |
 | `sbt "testOnly io.eitheror.casino.wallet.it.proto.*"` | the bet-workflow prototype spec 003 takes its shape from: latency against the direct command, duplicate starts, an RG refusal |

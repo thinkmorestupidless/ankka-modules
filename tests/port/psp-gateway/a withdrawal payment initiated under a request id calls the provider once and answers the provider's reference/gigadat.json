@@ -1,0 +1,164 @@
+{
+  "scenario": "a withdrawal payment initiated under a request id calls the provider once and answers the provider's reference/gigadat",
+  "requirement": "005/FR-004",
+  "recorded_at": "2026-10-20T08:38:39.664825Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accessToken": "\u003credacted\u003e",
+            "campaignId": "stub-campaign",
+            "environment": "sandbox",
+            "securityToken": "\u003credacted\u003e",
+            "siteUrl": "https://merchant.example"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 5,
+          "terminalId": "terminal-1765874a"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate the withdrawal payment under request",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/payout/gigadat",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "brandId": "{brand}",
+          "currency": "CAD",
+          "customerId": "{player}",
+          "email": "player@example.com",
+          "firstName": "Pat",
+          "ip": "127.0.0.1",
+          "lastName": "Player",
+          "merchantId": "{subBrand}",
+          "mobile": "4165550100",
+          "payoutMethod": "ETO",
+          "terminalId": "{terminal}",
+          "withdrawalRequestId": "{request}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentRef": "request-bbcdcb71",
+          "status": "INITIATED"
+        }
+      },
+      "vary": {
+        "$.paymentRef": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:38:39.667831Z",
+            "body": {
+              "amount": 50,
+              "campaign": "stub-campaign",
+              "currency": "CAD",
+              "email": "player@example.com",
+              "mobile": "4165550100",
+              "name": "Pat Player",
+              "sandbox": true,
+              "site": "https://merchant.example",
+              "transactionId": "{request}",
+              "type": "ETO",
+              "userId": "{player}",
+              "userIp": "127.0.0.1"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "Content-Length": "273",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/api/payment-token/stub-campaign"
+          },
+          {
+            "at": "2026-10-20T08:38:39.668142Z",
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "GET",
+            "path": "/webflow?transaction={request}\u0026token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTI0ODU1MTksInRyYW5zYWN0aW9uSWQiOiJyZXF1ZXN0LWJiY2RjYjcxIiwidHlwZSI6IkVUTyJ9.YjY3MjRiOTdkZGIyYjg4Njk1YTBiZDllNGRjMjI1ZWI"
+          },
+          {
+            "at": "2026-10-20T08:38:39.669792Z",
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "GET",
+            "path": "/webflow/deposit?transaction={request}\u0026token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3OTI0ODU1MTksInRyYW5zYWN0aW9uSWQiOiJyZXF1ZXN0LWJiY2RjYjcxIiwidHlwZSI6IkVUTyJ9.YjY3MjRiOTdkZGIyYjg4Njk1YTBiZDllNGRjMjI1ZWI"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[1].at": "differs between two runs of the original",
+        "$[1].path": "differs between two runs of the original",
+        "$[2].at": "differs between two runs of the original",
+        "$[2].path": "differs between two runs of the original"
+      }
+    }
+  ]
+}

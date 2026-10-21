@@ -92,7 +92,7 @@ object MerchantService:
     .withExtension(broker)
     .withExtension(timers)
     .withExtension(HttpServer.of(MerchantService.endpoints(settings, () => Oidc.authenticate())*))
-    .start()
+    .start(name = "merchant") // the name the local console and `ankka mcp` list it under (spec 005 T071)
   MerchantService.started(timers, settings)
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

@@ -109,6 +109,23 @@ class DepositWorkflowSuite extends SharedKitSuite:
     assertEquals(kit.wallet.depositsOf(id).size, 1)
   }
 
+  test("a refused outcome waits another deadline") {
+    shortDeadline()
+    val r  = kit.subBrand()
+    val id = kit.payment(r)
+    kit.gateway.session(id, io.eitheror.casino.merchant.it.FakeGateway.Session.Refused)
+    kit.eventually("waiting")(Option(kit.paymentState(id)).filter(_.waitingReason.isDefined))
+    assertNotEquals(kit.paymentState(id).status, Status.Expired)
+    assert(kit.paymentState(id).waitingReason.exists(_.contains("refused")), kit.paymentState(id).waitingReason)
+  }
+
+  test("the initiate carries no terminal property") {
+    val r  = kit.subBrand()
+    val id = kit.payment(r)
+    val sent = kit.gateway.initiates.map(_.json.get).find(_.textOr("paymentId", "") == id).get
+    assertEquals(Option(sent.get("terminalProperties")).map(_.size), Some(0), sent.toString)
+  }
+
   test("a gateway that cannot say whether it holds an outcome is not read as none: the payment waits (the original fails closed)") {
     shortDeadline()
     val r  = kit.subBrand()

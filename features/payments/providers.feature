@@ -29,10 +29,10 @@ Feature: The gateway sends a player to a payment provider and the deposit comes 
     When the payment provider's webhook reports a failure
     Then the cashier is told the payment failed with the provider's code and a reason a player can read
 
-  Scenario: a webhook whose signature does not verify is acknowledged, logged, and moves nothing
+  Scenario: a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing
     Given an initiated provider session
     When a webhook arrives whose signature does not verify
-    Then it is acknowledged to the payment provider
+    Then it is refused to the payment provider as a bad request
     And it is logged
     And nothing moves
 
@@ -76,14 +76,14 @@ Feature: The gateway sends a player to a payment provider and the deposit comes 
     Then no credential value appears
     And no personal data of a player appears
 
-  Scenario: a player's browser returning from the payment provider is sent on to the cashier's return page and settles nothing
+  Scenario: a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing
     Given a provider session
     When the player's browser returns from the payment provider
-    Then the player is sent on to the cashier's return page
+    Then the player is shown that the payment is being processed
     And no outcome is delivered
 
-  Scenario: a browser return for an unknown reference is sent to the cashier's return page and nothing else happens
+  Scenario: a browser return for an unknown reference is shown that the payment is being processed and nothing else happens
     Given no provider session under reference "unknown-ref"
     When a player's browser returns from the payment provider naming reference "unknown-ref"
-    Then the player is sent to the cashier's return page
+    Then the player is shown that the payment is being processed
     And nothing else happens

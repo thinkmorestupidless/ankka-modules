@@ -1,0 +1,71 @@
+# psp-stub on the local kind cluster (spec 005 T069): the nine payment providers the gateway calls, so the
+# installation has a provider to reach. Built and loaded by hand, never pulled:
+#   cd tests && docker build -f stubs/psp-stub/Dockerfile -t psp-stub:latest . && kind load docker-image psp-stub:latest --name ankka
+# Its webhooks go back through ankka's gateway by the public name, which the CoreDNS rewrite (gateway-dns.sh)
+# answers from inside the cluster on 443; Go's TLS trusts the local certificate authority through SSL_CERT_FILE,
+# from a ConfigMap created out of band:
+#   kubectl --context kind-ankka -n casino-stubs create configmap ankka-local-ca --from-file=ca.crt=$HOME/.ankka/local-ca.crt
+# Without it the pod runs and the webhooks fail their TLS handshake. settings.env names each provider's
+# port here as the gateway's base URL. ankka's zero-trust policy admits a service's HTTP port to ankka
+# workloads and the gateway only, so the stub cannot call the gateway's pod directly.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: casino-stubs
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psp-stub
+  namespace: casino-stubs
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: psp-stub }
+  template:
+    metadata:
+      labels: { app: psp-stub }
+    spec:
+      containers:
+        - name: psp-stub
+          image: psp-stub:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: PSP_STUB_GATEWAY_URL, value: "https://psp-gateway-payments.127.0.0.1.sslip.io" }
+            - { name: SSL_CERT_FILE, value: /etc/ankka-ca/ca.crt }
+          ports:
+            - { name: bouncemoney, containerPort: 18101 }
+            - { name: cozeni, containerPort: 18102 }
+            - { name: dreamzpay, containerPort: 18103 }
+            - { name: eupaymentz, containerPort: 18104 }
+            - { name: gigadat, containerPort: 18105 }
+            - { name: morphosis, containerPort: 18106 }
+            - { name: t365, containerPort: 18107 }
+            - { name: unityfinance, containerPort: 18108 }
+            - { name: digitarium, containerPort: 18109 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 18103 }
+            periodSeconds: 5
+          volumeMounts:
+            - { name: ankka-ca, mountPath: /etc/ankka-ca, readOnly: true }
+      volumes:
+        - name: ankka-ca
+          configMap: { name: ankka-local-ca, optional: true }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: psp-stub
+  namespace: casino-stubs
+spec:
+  selector: { app: psp-stub }
+  ports:
+    - { name: bouncemoney, port: 18101, targetPort: 18101 }
+    - { name: cozeni, port: 18102, targetPort: 18102 }
+    - { name: dreamzpay, port: 18103, targetPort: 18103 }
+    - { name: eupaymentz, port: 18104, targetPort: 18104 }
+    - { name: gigadat, port: 18105, targetPort: 18105 }
+    - { name: morphosis, port: 18106, targetPort: 18106 }
+    - { name: t365, port: 18107, targetPort: 18107 }
+    - { name: unityfinance, port: 18108, targetPort: 18108 }
+    - { name: digitarium, port: 18109, targetPort: 18109 }

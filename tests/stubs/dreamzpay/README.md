@@ -23,8 +23,10 @@ merchantRedirectUrl, notificationUrl, checksum[, terminalId]`). It checks
 to `merchantRedirectUrl` with `paymentId, merchantTransactionId, amount, currency, status (Y|N),
 checksum` (read by `handler/hpp.go:902-998`), and after a delay POSTs the notification.
 
-Outcome (`POST /__control`): `success` → Y; `failure` → N; `pending` → a "pending" page, no return
-POST and no notification.
+Outcome (`POST /__control`, [psp-stub's README](../psp-stub/README.md) has the whole contract):
+`success` → Y; `failure` → N; `pending` → a "pending" page, no return POST and no notification until
+the next control settles it. DreamzPay has none of the other outcomes. `POST /__webhook
+{"reference": <merchantTransactionId>}` sends a notification now.
 
 ## The notification
 
@@ -42,7 +44,7 @@ the gateway (`tests/e2e/scenario13_dreamzpay_e2e_test.go:145-184`) and skip unle
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PORT` | `18103` | listen port |
+| `DREAMZPAY_STUB_PORT` | `18103` | listen port |
 | `DREAMZPAY_STUB_SECURE_KEY` | `dreamzpay-test-key` (the original's `tests/k6/lib/payments.js:153`) | the terminal's `secureKey`; set the e2e suite's `DREAMZPAY_SECURE_KEY` to the same value |
-| `DREAMZPAY_STUB_NOTIFICATION_URL` | the form's `notificationUrl` | where the notification goes |
+| `DREAMZPAY_STUB_NOTIFICATION_URL` or `DREAMZPAY_STUB_WEBHOOK_URL` | under psp-stub, `PSP_STUB_GATEWAY_URL` + `/v1/webhooks/dreamzpay`; else the form's `notificationUrl` | where the notification goes |
 | `DREAMZPAY_STUB_WEBHOOK_DELAY_MS` | `500` | delay before the notification |

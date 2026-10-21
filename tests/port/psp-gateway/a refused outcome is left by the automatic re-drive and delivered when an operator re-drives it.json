@@ -1,0 +1,395 @@
+{
+  "scenario": "a refused outcome is left by the automatic re-drive and delivered when an operator re-drives it",
+  "requirement": "005/FR-016",
+  "recorded_at": "2026-10-20T08:40:11.11458Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "apiKey": "\u003credacted\u003e",
+            "environment": "sandbox",
+            "signingKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-f9573ee8"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "CARD",
+          "psp": "DIGITARIUM",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "apiKey": "\u003credacted\u003e",
+            "environment": "sandbox",
+            "signingKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "42db47ec-6457-4cbd-8f5a-a009fafff4c1",
+          "redirectUrl": "http://localhost:18109/checkout/a638313bcf02bb31f1a235cb06018e09"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:40:11.118589Z",
+            "body": {
+              "amount": 50,
+              "currency": "EUR",
+              "paymentMethod": "BASIC_CARD",
+              "paymentType": "DEPOSIT",
+              "referenceId": "{reference}",
+              "returnUrl": "http://localhost:8087/v1/psp/checkout/digitarium/{reference}/return",
+              "webhookUrl": "http://localhost:8087/v1/webhooks/digitarium"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "Content-Length": "303",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/api/v1/payments"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the receiver answers Bad Request",
+      "request": {
+        "method": "POST",
+        "path": "/__script",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "answers": [
+            {
+              "status": 400
+            }
+          ],
+          "match": "{payment}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "answers": 1,
+          "match": "payment-fcca0871"
+        }
+      },
+      "vary": {
+        "$.match": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook: success",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "observe: refused",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 400,
+            "at": "2026-10-20T08:40:11.142422Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "time: the next re-drive runs (redrive-undelivered)",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/psp/redrive-undelivered",
+        "service": "psp-gateway"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "failed": 13,
+          "outstanding": 19,
+          "redriven": 0,
+          "skipped": 6
+        }
+      },
+      "vary": {
+        "$.failed": "differs between two runs of the original",
+        "$.outstanding": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: left by the re-drive",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 400,
+            "at": "2026-10-20T08:40:11.142422Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          },
+          {
+            "answered": 400,
+            "at": "2026-10-20T08:40:19.192061Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[1].at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the receiver answers OK",
+      "request": {
+        "method": "POST",
+        "path": "/__script",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "answers": [
+            {
+              "status": 200
+            }
+          ],
+          "match": "{payment}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "answers": 1,
+          "match": "payment-fcca0871"
+        }
+      },
+      "vary": {
+        "$.match": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "time: an operator re-drives it (redrive-undelivered)",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/psp/redrive-undelivered",
+        "service": "psp-gateway"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "failed": 12,
+          "outstanding": 19,
+          "redriven": 1,
+          "skipped": 6
+        }
+      },
+      "vary": {
+        "$.failed": "differs between two runs of the original",
+        "$.outstanding": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: delivered once",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 400,
+            "at": "2026-10-20T08:40:11.142422Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          },
+          {
+            "answered": 400,
+            "at": "2026-10-20T08:40:19.192061Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          },
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:40:31.115246Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[1].at": "differs between two runs of the original",
+        "$[2].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

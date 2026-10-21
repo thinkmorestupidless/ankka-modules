@@ -45,6 +45,8 @@ enum SessionStatus:
   case Resolved(outcome: Option[String])
   /** An outcome the gateway could not deliver and holds for re-drive: the payment must wait. */
   case Undelivered
+  /** An outcome this service refused (a `4xx`): only an operator's re-drive delivers it, and the payment waits (spec 005 finding 7). */
+  case Refused
   /** The gateway holds no session for the payment. */
   case Unknown
   /** The read failed: the original fails closed and does not expire (`outcomeStillOutstanding`). */
@@ -83,7 +85,8 @@ private final class HttpGateway(http: Http) extends GatewayClient:
       case Reply.Unreachable(reason)                    => SessionStatus.Unreadable(reason)
       case Reply.Answered(404, _, _)                   => SessionStatus.Unknown
       case Reply.Answered(s, Some(b), _) if s / 100 == 2 =>
-        if b.bool("undelivered").contains(true) then SessionStatus.Undelivered
+        if b.bool("refused").contains(true) then SessionStatus.Refused
+        else if b.bool("undelivered").contains(true) then SessionStatus.Undelivered
         else if b.text("state").contains("resolved") then SessionStatus.Resolved(b.text("outcome"))
         else SessionStatus.Pending
       case Reply.Answered(s, _, text) => SessionStatus.Unreadable(s"the gateway answered $s: ${text.take(200)}")

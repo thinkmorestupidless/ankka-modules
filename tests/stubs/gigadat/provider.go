@@ -1,7 +1,10 @@
-package main
+// Package gigadat answers as Gigadat Express Connect (Interac) does to the original's psp-gateway
+// adapter (services/psp-gateway/internal/gigadat), so a CPI deposit and an ETO or ACH payout can
+// run with no request leaving the machine. See README.md for the setting that points the gateway
+// here. psp-stub serves it on 18105.
+package gigadat
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
@@ -11,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -55,6 +59,12 @@ func ConfigFromEnv(getenv func(string) string) Config {
 	return c
 }
 
+// Start is the stub as psp-stub runs it.
+func Start(getenv func(string) string) (*stubhttp.Stub, http.Handler) {
+	stub := stubhttp.New("gigadat")
+	return stub, NewProvider(stub, ConfigFromEnv(getenv)).Handler()
+}
+
 // tokenRequest is the body the adapter posts (gigadat/adapter.go:37-55).
 type tokenRequest struct {
 	Amount        float64 `json:"amount"`
@@ -78,7 +88,8 @@ type tokenRequest struct {
 type transaction struct {
 	req       tokenRequest
 	token     string
-	outcome   stubhttp.Outcome
+	cookie    string
+	control   stubhttp.Control
 	finalised bool
 }
 
@@ -101,7 +112,7 @@ type Provider struct {
 	stub *stubhttp.Stub
 	cfg  Config
 	// Send delivers a webhook; replaced in tests.
-	Send func(cfg Config, hook Webhook) error
+	Send func(cfg Config, hook Webhook) stubhttp.Delivery
 
 	mu  sync.Mutex
 	txs map[string]*transaction
@@ -109,7 +120,10 @@ type Provider struct {
 
 // NewProvider makes the provider; webhooks go out over HTTP.
 func NewProvider(stub *stubhttp.Stub, cfg Config) *Provider {
-	return &Provider{stub: stub, cfg: cfg, Send: deliver, txs: map[string]*transaction{}}
+	p := &Provider{stub: stub, cfg: cfg, Send: deliver, txs: map[string]*transaction{}}
+	stub.Supports(stubhttp.Unauthorised)
+	stub.OnWebhook(p.send)
+	return p
 }
 
 // Handler is the provider's routes.
@@ -126,8 +140,9 @@ func fail(w http.ResponseWriter, status int, msg string) {
 }
 
 func (p *Provider) paymentToken(w http.ResponseWriter, r *http.Request) {
+	control := p.stub.Control()
 	// adapter.go:90 sends the access and security tokens as HTTP Basic credentials.
-	if user, pass, ok := r.BasicAuth(); !ok || user == "" || pass == "" {
+	if user, pass, ok := r.BasicAuth(); !ok || user == "" || pass == "" || control.Outcome == stubhttp.Unauthorised {
 		fail(w, http.StatusUnauthorized, "missing access token or security token")
 		return
 	}
@@ -151,7 +166,7 @@ func (p *Provider) paymentToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx := &transaction{req: req, token: newToken(req), outcome: p.stub.Next()}
+	tx := &transaction{req: req, token: newToken(req), cookie: randomHex(16), control: control}
 	p.mu.Lock()
 	p.txs[req.TransactionId] = tx
 	p.mu.Unlock()
@@ -221,28 +236,58 @@ func (p *Provider) webflowDeposit(w http.ResponseWriter, r *http.Request) {
 }
 
 // schedule sends the transaction's webhooks after the delay: STATUS_INITED first for a payout,
-// then the terminal status (none when the outcome is pending).
+// then the terminal status (none when the outcome is pending, which the next control settles).
 func (p *Provider) schedule(tx *transaction, inited bool) {
-	hooks := p.Webhooks(tx.req, tx.outcome, inited)
-	time.AfterFunc(p.cfg.WebhookDelay, func() {
+	hooks, _ := p.Webhooks(tx, tx.control, inited)
+	if tx.control.Outcome == stubhttp.Pending {
+		p.stub.Hold(tx.req.TransactionId)
+	}
+	time.AfterFunc(tx.control.Delay(p.cfg.WebhookDelay), func() {
 		for _, h := range hooks {
-			if err := p.Send(p.cfg, h); err != nil {
-				log.Printf("gigadat stub: webhook %s for %s failed: %v", h.Status, h.TransactionId, err)
+			if d := p.Send(p.cfg, h); d.Err != nil {
+				log.Printf("gigadat stub: webhook %s for %s failed: %v", h.Status, h.TransactionId, d.Err)
 			}
 		}
 	})
 }
 
-// Webhooks are the deliveries one transaction gets for an outcome.
-func (p *Provider) Webhooks(req tokenRequest, outcome stubhttp.Outcome, inited bool) []Webhook {
+// final is the terminal status and rcode for a control: success STATUS_SUCCESS rcode 100;
+// failure STATUS_REJECTED rcode 231, or the code as the status when it names one
+// ("STATUS_EXPIRED") and as the rcode otherwise.
+func final(c stubhttp.Control) (status, rcode string, err error) {
+	switch c.Outcome {
+	case stubhttp.Success:
+		return "STATUS_SUCCESS", "100", nil
+	case stubhttp.Failure:
+		switch {
+		case c.Code == "":
+			return "STATUS_REJECTED", "231", nil
+		case strings.HasPrefix(c.Code, "STATUS_"):
+			return c.Code, "", nil
+		default:
+			return "STATUS_REJECTED", c.Code, nil
+		}
+	case stubhttp.Pending:
+		return "", "", nil
+	default:
+		return "", "", fmt.Errorf("gigadat has no webhook for %q", c.Outcome)
+	}
+}
+
+// Webhooks are the deliveries one transaction gets for a control.
+func (p *Provider) Webhooks(tx *transaction, c stubhttp.Control, inited bool) ([]Webhook, error) {
+	status, rcode, err := final(c)
+	if err != nil {
+		return nil, err
+	}
+	req := tx.req
 	amount := strconv.FormatFloat(req.Amount, 'f', -1, 64)
-	cookie := randomHex(16)
 	build := func(status, rcode string) Webhook {
 		pairs := []KeyValue{
 			{"transactionId", req.TransactionId},
 			{"type", req.Type},
 			{"amount", amount},
-			{"cookie", cookie},
+			{"cookie", tx.cookie},
 		}
 		if rcode != "" { // rcode only at a final status (spec 199)
 			pairs = append(pairs, KeyValue{"rcode", rcode})
@@ -253,16 +298,32 @@ func (p *Provider) Webhooks(req tokenRequest, outcome stubhttp.Outcome, inited b
 		return Webhook{TransactionId: req.TransactionId, Status: status, Pairs: pairs}
 	}
 	var out []Webhook
-	if inited || outcome == stubhttp.Pending {
+	if inited || status == "" {
 		out = append(out, build("STATUS_INITED", ""))
 	}
-	switch outcome {
-	case stubhttp.Success:
-		out = append(out, build("STATUS_SUCCESS", "100"))
-	case stubhttp.Failure:
-		out = append(out, build("STATUS_REJECTED", "231"))
+	if status != "" {
+		out = append(out, build(status, rcode))
 	}
-	return out
+	return out, nil
+}
+
+// send delivers one transaction's status for a control now: the terminal status, or
+// STATUS_INITED when pending.
+func (p *Provider) send(ref string, c stubhttp.Control) (stubhttp.Delivery, error) {
+	p.mu.Lock()
+	tx, ok := p.txs[ref]
+	p.mu.Unlock()
+	if !ok {
+		return stubhttp.Delivery{}, stubhttp.ErrUnknownReference
+	}
+	hooks, err := p.Webhooks(tx, c, false)
+	if err != nil {
+		return stubhttp.Delivery{}, err
+	}
+	h := hooks[len(hooks)-1]
+	d := p.Send(p.cfg, h)
+	log.Printf("gigadat stub: webhook %s for %s answered %d (err=%v)", h.Status, ref, d.Status, d.Err)
+	return d, nil
 }
 
 // Encode is the request a webhook is delivered as: URL, content type and body.
@@ -282,21 +343,14 @@ func Encode(cfg Config, h Webhook) (target, contentType string, body []byte, err
 	return u.String(), "application/json", arr, nil
 }
 
-func deliver(cfg Config, h Webhook) error {
+var client = &http.Client{Timeout: 10 * time.Second}
+
+func deliver(cfg Config, h Webhook) stubhttp.Delivery {
 	target, ct, body, err := Encode(cfg, h)
 	if err != nil {
-		return err
+		return stubhttp.Delivery{URL: cfg.WebhookUrl, Err: err}
 	}
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Post(target, ct, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	resp.Body.Close()
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	return nil
+	return stubhttp.Post(client, target, ct, nil, body)
 }
 
 // newToken is a JWT-shaped token (unsigned; the adapter forwards it and never reads it).

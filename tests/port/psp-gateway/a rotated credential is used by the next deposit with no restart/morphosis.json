@@ -1,0 +1,278 @@
+{
+  "scenario": "a rotated credential is used by the next deposit with no restart/morphosis",
+  "requirement": "005/FR-018",
+  "recorded_at": "2026-10-20T08:37:45.945183Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "account": "stub-account",
+            "pass": "\u003credacted\u003e",
+            "user": "stub-user"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-73a25f69"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "USD",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "BTC",
+          "psp": "MORPHOSIS",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "account": "stub-account",
+            "pass": "\u003credacted\u003e",
+            "user": "stub-user"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "cryptoAmount": "0.00083333",
+          "cryptoCurrency": "BTC",
+          "paymentAddress": "bc1qstub5473119",
+          "pspTransactionId": "a3b5f033-4b3e-49fa-8ab8-1e6e8b682d53",
+          "redirectUrl": ""
+        }
+      },
+      "capture": {
+        "cryptoAmount": "$.cryptoAmount",
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.paymentAddress": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:45.947059Z",
+            "body": {
+              "account": "stub-account",
+              "amount": "50.00",
+              "currency": "USD",
+              "method": "bitcoin",
+              "notification_url": "http://localhost:8087/v1/webhooks/morphosis/deposit/6a2d9219-3177-480d-b30a-9c202b59750b",
+              "pass": "\u003credacted\u003e",
+              "trace_id": "{reference}",
+              "user": "stub-user"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "261",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/?action=insert_deposit"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.notification_url": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "account": "stub-account-rotated",
+            "pass": "\u003credacted\u003e",
+            "user": "stub-user"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-73a25f69"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the next deposit, after the credential is rotated",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment2}/capture",
+          "currency": "USD",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "BTC",
+          "psp": "MORPHOSIS",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "account": "stub-account-rotated",
+            "pass": "\u003credacted\u003e",
+            "user": "stub-user"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "cryptoAmount": "0.00083333",
+          "cryptoCurrency": "BTC",
+          "paymentAddress": "bc1qstub5473120",
+          "pspTransactionId": "0c8291b9-48a3-423b-ab92-110636edd1b5",
+          "redirectUrl": ""
+        }
+      },
+      "capture": {
+        "cryptoAmount": "$.cryptoAmount",
+        "reference2": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.paymentAddress": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:45.955712Z",
+            "body": {
+              "account": "stub-account-rotated",
+              "amount": "50.00",
+              "currency": "USD",
+              "method": "bitcoin",
+              "notification_url": "http://localhost:8087/v1/webhooks/morphosis/deposit/2cadfd97-c63a-4163-98e9-e363968845db",
+              "pass": "\u003credacted\u003e",
+              "trace_id": "{reference2}",
+              "user": "stub-user"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "269",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/?action=insert_deposit"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.notification_url": "differs between two runs of the original"
+      }
+    }
+  ]
+}

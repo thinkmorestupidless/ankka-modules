@@ -32,7 +32,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 002 | brand | wallet | Scala |
 | 003 | brand | game-provider (ST8; the generic provider API was a stub and is dropped) | Scala |
 | 004 | shared `payments` | merchant (hierarchy, deposit workflow; serves `ingest` and `psp-gateway` only) | Scala |
-| 005 | shared `payments` | psp-gateway (eight adapters; ConnecX dropped) | TypeScript |
+| 005 | shared `payments` | psp-gateway (nine adapters; ConnecX dropped) | Scala |
 | 006 | shared `payments` | ingest (the merchant-facing edge: cashier routes under a merchant key) | Scala |
 | 007 | brand | payouts | Scala |
 | 008 | brand | players | Scala |

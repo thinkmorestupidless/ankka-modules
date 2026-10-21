@@ -165,19 +165,48 @@ object HttpControlPlane:
     context.init(null, extra.getTrustManagers ++ defaults.getTrustManagers, null)
     context
 
-/** The 040 grant shapes, written by hand: they are not in ankka-controlplane-api until 040 ships. */
+/** The 040 grant shapes, written by hand: they are not in ankka-controlplane-api. The tool keeps a target
+  * as one string (`route:<service> <METHOD> <path>`, `topic:<name>:<right>`, `erasure`, see
+  * [[Render.target]]); the control plane (ankka 0.12, `POST /projects/{id}/grants`) takes and answers it
+  * as an object with a `kind`, so the two forms are translated here, both ways.
+  */
 object GrantJson:
   private val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+  private val Route  = "route:([^ ]+) ([A-Z]+) (.+)".r
+  private val Topic  = "topic:([^:]+):([a-z]+)".r
 
   def request(grant: GrantRequest): String =
-    mapper.writeValueAsString(java.util.Map.of("grantee", grant.principal, "target", grant.target))
+    val target = mapper.createObjectNode()
+    grant.target match
+      case Route(service, method, path) =>
+        target.put("kind", "route").put("service", service).put("method", method).put("path", path)
+      case Topic(name, right) =>
+        target.put("kind", "topic").put("topic", name).put("right", right)
+      case "erasure" => target.put("kind", "erasure")
+      case other     => throw IllegalArgumentException(s"not a grant target: $other")
+    val body = mapper.createObjectNode()
+    body.put("grantee", grant.principal)
+    body.set("target", target)
+    mapper.writeValueAsString(body)
+
+  /** The control plane's target object, back in the tool's string form (unknown kinds verbatim). */
+  def target(node: com.fasterxml.jackson.databind.JsonNode): String =
+    def text(field: String) = Option(node.get(field)).map(_.asText()).getOrElse("")
+    if node == null then ""
+    else if node.isTextual then node.asText()
+    else
+      text("kind") match
+        case "route"   => s"route:${text("service")} ${text("method")} ${text("path")}"
+        case "topic"   => s"topic:${text("topic")}:${text("right")}"
+        case "erasure" => "erasure"
+        case _         => node.toString
 
   def statuses(text: String): Vector[GrantStatus] =
     import scala.jdk.CollectionConverters.*
     mapper.readTree(text).elements().asScala.toVector.map { g =>
       GrantStatus(
         Option(g.get("grantee")).map(_.asText()).getOrElse(""),
-        Option(g.get("target")).map(_.toString).getOrElse(""),
-        Option(g.get("effect")).map(_.asText()).getOrElse("unknown")
+        target(g.get("target")),
+        Option(g.get("effect")).orElse(Option(g.get("state"))).map(_.asText()).getOrElse("unknown")
       )
     }

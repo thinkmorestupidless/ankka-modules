@@ -30,7 +30,24 @@
     {
       "name": "psp-gateway",
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/psp-gateway:0.1.0",
-      "expose": true
+      "expose": true,
+      "env": {
+        "PUBLIC_URL": "setting:PSP_GATEWAY_PUBLIC_URL",
+        "PROVIDER_TIMEOUT": "20s",
+        "REDRIVE_INTERVAL": "2m",
+        "MERCHANT_SERVICE": "merchant",
+        "DREAMZPAY_BASE_URL": "setting:DREAMZPAY_BASE_URL",
+        "UNITYFINANCE_PAY_URL": "setting:UNITYFINANCE_PAY_URL",
+        "UNITYFINANCE_API_URL": "setting:UNITYFINANCE_API_URL",
+        "T365_BASE_URL": "setting:T365_BASE_URL",
+        "COZENI_BASE_URL": "setting:COZENI_BASE_URL",
+        "EUPAYMENTZ_BASE_URL": "setting:EUPAYMENTZ_BASE_URL",
+        "GIGADAT_BASE_URL": "setting:GIGADAT_BASE_URL",
+        "BOUNCEMONEY_BASE_URL": "setting:BOUNCEMONEY_BASE_URL",
+        "MORPHOSIS_BASE_URL": "setting:MORPHOSIS_BASE_URL",
+        "DIGITARIUM_SANDBOX_URL": "setting:DIGITARIUM_SANDBOX_URL",
+        "DIGITARIUM_PRODUCTION_URL": "setting:DIGITARIUM_PRODUCTION_URL"
+      }
     },
     {
       "name": "ingest",
@@ -59,6 +76,26 @@
             "service": "psp-gateway",
             "method": "POST",
             "path": "/v1/payments/withdrawals"
+          }
+        }
+      },
+      {
+        "principal": "service:{brand}/payouts",
+        "target": {
+          "route": {
+            "service": "psp-gateway",
+            "method": "GET",
+            "path": "/v1/payments/withdrawals/{requestId}"
+          }
+        }
+      },
+      {
+        "principal": "service:{brand}/payouts",
+        "target": {
+          "route": {
+            "service": "psp-gateway",
+            "method": "GET",
+            "path": "/v1/payments/withdrawal-terminals"
           }
         }
       },

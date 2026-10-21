@@ -1,4 +1,4 @@
-package main
+package eupaymentz
 
 import (
 	"bytes"
@@ -26,7 +26,10 @@ func start(t *testing.T) (*httptest.Server, chan sent) {
 	stub := stubhttp.New("eupaymentz")
 	p := NewProvider(stub, Config{Passphrase: testPassphrase, WebhookDelay: 0})
 	hooks := make(chan sent, 4)
-	p.Send = func(url string, body []byte) error { hooks <- sent{url, body}; return nil }
+	p.Send = func(url string, body []byte) stubhttp.Delivery {
+		hooks <- sent{url, body}
+		return stubhttp.Delivery{URL: url, Status: http.StatusOK}
+	}
 	srv := httptest.NewServer(stub.Handler(p.Handler()))
 	t.Cleanup(srv.Close)
 	return srv, hooks
@@ -195,5 +198,37 @@ func TestBadAccountShaIsRefused(t *testing.T) {
 	_ = json.NewDecoder(resp.Body).Decode(&out)
 	if out["success"] != false {
 		t.Errorf("success = %v, want false", out["success"])
+	}
+}
+
+func TestPendingSettledWithAFailureCode(t *testing.T) {
+	srv, hooks := start(t)
+	resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"pending"}`))
+	resp.Body.Close()
+	processTx(t, srv, "pend-2")
+	resp, _ = http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"failure","code":"T00050005"}`))
+	resp.Body.Close()
+	_, p := awaitHook(t, hooks)
+	if p.RespTransMerchantId != "pend-2" || p.RespTransStatus != "T00050005" ||
+		!verify(testPassphrase, p.RespTransId, p.RespTransAmount, p.RespTransStatus, p.RespSha) {
+		t.Fatalf("webhook %+v", p)
+	}
+}
+
+func TestWebhookNowAnswersTheGateway(t *testing.T) {
+	srv, hooks := start(t)
+	processTx(t, srv, "now-1")
+	awaitHook(t, hooks)
+	resp, _ := http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"now-1","outcome":"pending"}`))
+	var answer map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&answer)
+	if resp.StatusCode != http.StatusOK || answer["status"] != float64(200) {
+		t.Fatalf("webhook %d %v", resp.StatusCode, answer)
+	}
+	if _, p := awaitHook(t, hooks); p.RespTransStatus != "PEND" {
+		t.Fatalf("webhook %+v", p)
+	}
+	if resp, _ := http.Post(srv.URL+"/__control", "application/json", strings.NewReader(`{"outcome":"unsigned"}`)); resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unsigned answered %d", resp.StatusCode)
 	}
 }

@@ -1,4 +1,4 @@
-package main
+package cozeni
 
 import (
 	"crypto/sha256"
@@ -184,5 +184,76 @@ func TestAWrongTokenIsRefused(t *testing.T) {
 	// adapter.go:190-196 reads msgCode/msgText from a 422.
 	if status != http.StatusUnprocessableEntity || body["msgCode"] == "" {
 		t.Fatalf("status %d body %v", status, body)
+	}
+}
+
+func control(t *testing.T, base, body string) int {
+	t.Helper()
+	resp, err := http.Post(base+"/__control", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	return resp.StatusCode
+}
+
+// handler/webhook.go:1066-1125: a COMPLETED callback with resultCode 02 or 03 carries what arrived.
+func TestOverAndUnderpaymentCarryTheReceivedValues(t *testing.T) {
+	srv := start(t)
+	gw, got := gateway(t)
+
+	control(t, srv.URL, `{"outcome":"overpayment","convertAmount":"110.00"}`)
+	payIn(t, srv.URL, gw.URL+"/v1/webhooks/cozeni", "ref-over")
+	d := await(t, got)
+	if d.form.Get("status") != "COMPLETED" || d.form.Get("resultCode") != "02" || d.form.Get("convertAmount") != "110.00" ||
+		d.form.Get("receivedAmount") == "" || d.form.Get("convertCurrency") != "USD" {
+		t.Fatalf("overpayment %v", d.form)
+	}
+
+	control(t, srv.URL, `{"outcome":"underpayment","receivedAmount":"0.001","convertAmount":"65.00"}`)
+	payIn(t, srv.URL, gw.URL+"/v1/webhooks/cozeni", "ref-under")
+	d = await(t, got)
+	if d.form.Get("resultCode") != "03" || d.form.Get("receivedAmount") != "0.001" || d.form.Get("convertAmount") != "65.00" {
+		t.Fatalf("underpayment %v", d.form)
+	}
+
+	// An unpriced underpayment (convertAmount 0) is the gateway's failure case.
+	control(t, srv.URL, `{"outcome":"underpayment","convertAmount":0}`)
+	payIn(t, srv.URL, gw.URL+"/v1/webhooks/cozeni", "ref-unpriced")
+	if d = await(t, got); d.form.Get("resultCode") != "03" || d.form.Get("convertAmount") != "0" {
+		t.Fatalf("unpriced underpayment %v", d.form)
+	}
+}
+
+func TestADuplicateIsRefused(t *testing.T) {
+	srv := start(t)
+	control(t, srv.URL, `{"outcome":"duplicate"}`)
+	if status, body := payIn(t, srv.URL, "http://gw/v1/webhooks/cozeni", "ref-dup"); status != http.StatusUnprocessableEntity || body["msgCode"] != duplicateCode {
+		t.Fatalf("status %d body %v", status, body)
+	}
+}
+
+func TestUnsignedIsNotACozeniOutcome(t *testing.T) {
+	srv := start(t)
+	if status := control(t, srv.URL, `{"outcome":"unsigned"}`); status != http.StatusBadRequest {
+		t.Fatalf("status %d", status)
+	}
+}
+
+func TestFailureWithACodeAndAWebhookToTheConfiguredGateway(t *testing.T) {
+	gw, got := gateway(t)
+	stub := stubhttp.New("cozeni")
+	srv := httptest.NewServer(stub.Handler(NewProvider(stub, Config{APIKey: apiKey, WebhookURL: gw.URL + "/v1/webhooks/cozeni"}).Routes()))
+	t.Cleanup(srv.Close)
+
+	control(t, srv.URL, `{"outcome":"pending"}`)
+	payIn(t, srv.URL, "http://unreachable.invalid/v1/webhooks/cozeni", "ref-3")
+	resp, err := http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"ref-3","outcome":"failure","code":"98"}`))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("webhook %v %v", err, resp)
+	}
+	d := await(t, got)
+	if d.path != "/v1/webhooks/cozeni" || d.form.Get("status") != "CANCELLED" || d.form.Get("resultCode") != "98" {
+		t.Fatalf("callback %s %v", d.path, d.form)
 	}
 }

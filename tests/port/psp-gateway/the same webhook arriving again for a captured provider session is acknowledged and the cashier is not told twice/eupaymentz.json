@@ -1,0 +1,249 @@
+{
+  "scenario": "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/eupaymentz",
+  "requirement": "005/FR-014",
+  "recorded_at": "2026-10-20T08:37:31.348087Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "passphrase": "\u003credacted\u003e",
+            "password": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-da6810cc"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "CARD",
+          "psp": "EUPAYMENTZ",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "accountId": "stub-account",
+            "passphrase": "\u003credacted\u003e",
+            "password": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "2f807a53-222a-4809-a81b-1bbc6896bb07",
+          "redirectUrl": "http://host.docker.internal:18104/api/v2/ProcessTxGetHosted?transkey=502572ad7d7d49b94768cf74ac7bbbb2"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:31.351373Z",
+            "body": {
+              "account_gateway": "1",
+              "account_id": "stub-account",
+              "account_password": "\u003credacted\u003e",
+              "account_sha": "43ee3ad12cbcb166358b43c4909624e2e8e47b64b75460739cd59f9e2bcec7d8",
+              "action_type": "payment",
+              "cust_billing_address": "1 Test Street",
+              "cust_billing_city": "London",
+              "cust_billing_country": "GB",
+              "cust_billing_first_name": "Pat",
+              "cust_billing_last_name": "Player",
+              "cust_billing_phone": "+447700900123",
+              "cust_billing_state": "London",
+              "cust_billing_zipcode": "N1 1AA",
+              "cust_email": "player@example.com",
+              "customer_ip": "127.0.0.1",
+              "merchant_payment_id": "{reference}",
+              "merchant_url_callback": "http://localhost:8087/v1/webhooks/eupaymentz",
+              "merchant_url_return": "http://localhost:8087/v1/psp/checkout/eupaymentz/{reference}/return",
+              "transac_amount": "50.00",
+              "transac_currency_code": "EUR",
+              "transac_products_name": "Casino Deposit"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "857",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/api/v2/processTx"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.account_sha": "differs on every run (contracts/recording.md)"
+      }
+    },
+    {
+      "name": "webhook: success",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "webhook: the same success again",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "observe: the capture, once",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:31.368687Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          },
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:31.376829Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[1].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

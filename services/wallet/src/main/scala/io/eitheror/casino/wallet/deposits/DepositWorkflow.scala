@@ -25,6 +25,10 @@ final case class DepositFlow(status: String = "new", request: Option[DepositStar
  * called. The `credit` step is the wallet's `deposit`, whose outcome becomes the flow's. A step runs
  * at least once, which is why the wallet answers a repeated recent key with the first outcome, and why
  * `credit` may retry.
+ *
+ * One refusal is not final: `RG_UNAVAILABLE` says nothing about the player, only that the check did
+ * not happen, and `merchant` retries it as transient (spec 004 FR-022). A `start` of a flow refused
+ * that way runs the check again, from the beginning (FR-022; clarification 2026-10-21).
  */
 final class DepositWorkflow(context: WorkflowContext) extends Workflow[DepositFlow]:
 
@@ -39,12 +43,12 @@ final class DepositWorkflow(context: WorkflowContext) extends Workflow[DepositFl
       .build
 
   def start(s: DepositStart): Effect[Done] =
-    if currentState.status != "new" then effects.error("deposit already seen", ErrorCode.Conflict)
-    else
+    if currentState.status == "new" || DepositWorkflow.unchecked(currentState) then
       effects
         .updateState(DepositFlow("checking", Some(s)))
         .transitionTo(DepositWorkflow.checkRg.withInput(s))
         .thenReply(Done)
+    else effects.error("deposit already seen", ErrorCode.Conflict)
 
   def checkRgStep(s: DepositStart): StepEffect =
     val sums   = wallet(s).call(WalletEntity.depositSums).invoke(DepositSumsAt(s.deposit.at))
@@ -79,6 +83,13 @@ object DepositWorkflow
    */
   private[wallet] val rg: AtomicReference[ServiceClients => ResponsibleGambling] =
     AtomicReference(services => ResponsibleGambling.http(services, ""))
+
+  /** The refusal that is not an answer: the check did not happen, so the next `start` runs it again. */
+  val Unavailable = "RG_UNAVAILABLE"
+
+  /** A flow that ended refused without `responsible-gambling` ever answering. */
+  def unchecked(flow: DepositFlow): Boolean =
+    flow.status == "refused" && flow.outcome.exists(_.code.contains(Unavailable))
 
   given Serializer[DepositStart] = Serializer.json[DepositStart]("wallet.deposit-start")(using WalletCodecs.stored[DepositStart])
 

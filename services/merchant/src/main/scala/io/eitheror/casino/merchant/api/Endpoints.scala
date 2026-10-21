@@ -7,6 +7,7 @@ import io.eitheror.casino.merchant.api.Answers.*
 import io.eitheror.casino.merchant.cashier.Commands
 import io.eitheror.casino.merchant.keys.ActiveKeys
 import io.eitheror.casino.merchant.security.Hmac
+import io.eitheror.casino.merchant.terminals.catalogue.Catalogue
 
 /** The project's services this one serves by identity (FR-033): `ingest` and `psp-gateway`, both of `payments`. */
 object Identities:
@@ -95,10 +96,11 @@ final class CashierEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/cashier"):
 /**
  * `/internal/v1`: what `psp-gateway` reads of this service at the moment of use (FR-008), at the
  * original's paths: a sub-brand's usable credential's secrets and a terminal's properties, secrets
- * included. The gateway holds no credential of its own.
+ * included, and a brand's terminals without their secrets. The gateway holds no credential of its own.
  */
 final class InternalEndpoint(ctx: Ctx) extends HttpEndpoint("/internal/v1"):
   val acl: Acl = Identities.gateway
+  private val ops = MerchantOps(ctx)
 
   get("/sub-brands/{subBrandId}/psp-credentials/{provider}") { (subBrandId: String, provider: String) =>
     guarded {
@@ -116,6 +118,26 @@ final class InternalEndpoint(ctx: Ctx) extends HttpEndpoint("/internal/v1"):
         .call(io.eitheror.casino.merchant.terminals.Terminal.get).invoke()
       if !t.exists then refuse(404, "NOT_FOUND")
       else ctx.secrets.terminal(terminalId).fold(e => refuse(503, "UNAVAILABLE", e.reason), m => ok(Json.obj("properties" -> Json.objOf(t.properties ++ m))))
+    }
+  }
+
+  /**
+   * A brand's terminals, for the gateway's payout listing (spec 005, research R12): every terminal of
+   * every sub-brand the brand names, with the properties kept on the entity. The secret store is not
+   * read, and a key the catalogue calls a secret is dropped even if one was kept on the entity.
+   */
+  get("/brands/{brand}/terminals") { (brand: String) =>
+    guarded {
+      import com.thinkmorestupidless.ankka.runtime.SqlSyntax.*
+      val subBrands = ctx.views.forView(io.eitheror.casino.merchant.hierarchy.SubBrandsView)
+        .where(jsonText("brand") ++ sql" = $brand", 10_000).map(_.id).sorted
+      val terminals = subBrands.flatMap(ops.terminalsOf).map { t =>
+        val open = t.properties.filter((k, _) => !t.secretKeys.contains(k) && !Catalogue.isSecret(t.gateway, t.scheme, k))
+        Json.obj("id" -> t.id, "subBrandId" -> t.subBrandId, "gateway" -> t.gateway, "scheme" -> t.scheme, "name" -> t.name,
+          "status" -> t.status, "supportsDeposit" -> t.supportsDeposit, "supportsWithdrawal" -> t.supportsWithdrawal,
+          "requiresPayoutDestination" -> t.requiresPayoutDestination, "properties" -> Json.objOf(open))
+      }
+      ok(Json.obj("terminals" -> Json.arr(terminals*)))
     }
   }
 

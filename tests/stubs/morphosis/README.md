@@ -2,7 +2,7 @@
 
 Answers the original's Morphosis adapter
 (`eitheror-platform/services/psp-gateway/internal/morphosis/adapter.go`) as QVEI would. Default port
-18106 (`$PORT` overrides).
+18106 (`MORPHOSIS_STUB_PORT` overrides).
 
 ## Point the original at it
 
@@ -30,8 +30,15 @@ until the gateway answers 200 `OK`. By the forced outcome (`POST /__control`):
 | Outcome | Deposit callback | Payout callback |
 |---|---|---|
 | success | `ac`, the quoted coin amount | `ac`, with a `tx_hash` |
-| failure | `ac`, 90% of the quoted coin amount: the gateway fails it as underpaid | `de` |
-| pending | `pe` (non-terminal; nothing further is sent) | `pe` |
+| failure | `de`, the `code` as `message` | `de` |
+| underpayment | `ac`, `receivedAmount` or 90% of the quote: the gateway fails it as underpaid | `400` |
+| overpayment | `ac`, `receivedAmount` or 110% of the quote | `400` |
+| pending | `pe`, then the next control's outcome | `pe`, then the next control's outcome |
+
+`POST /__webhook {"reference": …}` sends a callback now, once; the reference is the deposit's
+`trace_id`, QVEI's `id` or the notify token ([psp-stub's README](../psp-stub/README.md) has the whole
+contract). `MORPHOSIS_STUB_WEBHOOK_URL` (under psp-stub, `PSP_STUB_GATEWAY_URL` + `/v1/webhooks/morphosis`)
+replaces the `notification_url` up to `/v1/webhooks/morphosis`, keeping `/deposit/{token}`.
 
 QVEI does not sign callbacks, so neither does the stub: the gateway authenticates them by the
 notify token in the `notification_url` path and the `id` matching the one insert_deposit returned

@@ -6,8 +6,6 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.merchant.{MerchantCodecs, Settings}
 import io.eitheror.casino.merchant.gateway.*
 import io.eitheror.casino.merchant.payments.*
-import io.eitheror.casino.merchant.security.Secrets
-import io.eitheror.casino.merchant.terminals.Terminal
 import io.eitheror.casino.merchant.wallet.*
 
 import java.time.{Duration as JDuration, Instant}
@@ -16,7 +14,8 @@ import scala.concurrent.duration.*
 /**
  * What the submit resolved for one payment (FR-015): who, how much, which provider and terminal, and
  * the deadline. Nothing personal: the customer fields are read from `PaymentCustomer` by the initiate
- * step, and a terminal's secret properties from the store, so neither enters this journal.
+ * step. No terminal property is sent to the gateway: it reads the credential from this service when
+ * it initiates (spec 005 finding 1).
  */
 final case class DepositJob(
     paymentId: String,
@@ -164,13 +163,8 @@ final class DepositWorkflow(context: WorkflowContext) extends Workflow[DepositFl
   def initiateStep: StepEffect =
     val j        = job
     val customer = components.forKeyValueEntity(EntityId(j.paymentId)).call(PaymentCustomer.get).invoke().customer
-    val props = j.terminalEntity.fold(Map.empty[String, String]) { t =>
-      val terminal = components.forEventSourcedEntity(EntityId(t)).call(Terminal.get).invoke()
-      val secrets  = Secrets(context.secrets).terminal(t).fold(e => throw IllegalStateException(e.reason), identity)
-      terminal.properties ++ secrets
-    }
     val page = HostedPage(j.paymentId, j.amount, j.currency, j.scheme, s"/v1/payments/${j.paymentId}/capture", j.psp, j.subBrandId,
-      j.customerId, j.redirectUrl, j.terminalId, props, customer)
+      j.customerId, j.redirectUrl, j.terminalId, Map.empty, customer)
     DepositRuntime.gateway(context.services).initiate(page) match
       case Right(initiated) =>
         val crypto = initiated.crypto.map(c => CryptoDetails(c.paymentAddress, c.cryptoAmount, c.cryptoCurrency, c.validUntil))
@@ -200,6 +194,7 @@ final class DepositWorkflow(context: WorkflowContext) extends Workflow[DepositFl
   def expireStep: StepEffect =
     DepositRuntime.gateway(context.services).session(job.paymentId) match
       case SessionStatus.Undelivered    => waitAgain("the gateway holds the provider's outcome undelivered")
+      case SessionStatus.Refused        => waitAgain("the gateway holds the provider's outcome, refused by this service")
       case SessionStatus.Unreadable(why) => waitAgain(s"the gateway could not say whether it holds an outcome: $why")
       case _ =>
         payment.call(Payment.expire).invoke(At(now())): Unit

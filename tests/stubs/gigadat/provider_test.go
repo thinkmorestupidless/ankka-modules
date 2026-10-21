@@ -1,4 +1,4 @@
-package main
+package gigadat
 
 import (
 	"bytes"
@@ -19,7 +19,10 @@ func start(t *testing.T, cfg Config) (*httptest.Server, chan Webhook) {
 	stub := stubhttp.New("gigadat")
 	p := NewProvider(stub, cfg)
 	hooks := make(chan Webhook, 8)
-	p.Send = func(_ Config, h Webhook) error { hooks <- h; return nil }
+	p.Send = func(_ Config, h Webhook) stubhttp.Delivery {
+		hooks <- h
+		return stubhttp.Delivery{Status: http.StatusOK}
+	}
 	srv := httptest.NewServer(stub.Handler(p.Handler()))
 	t.Cleanup(srv.Close)
 	return srv, hooks
@@ -234,5 +237,63 @@ func TestTokenWithoutCredentialsIsRefused(t *testing.T) {
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Errorf("status %d", resp.StatusCode)
+	}
+}
+
+func control(t *testing.T, base, body string) int {
+	t.Helper()
+	resp, err := http.Post(base+"/__control", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	return resp.StatusCode
+}
+
+func TestUnauthorisedAnswers401(t *testing.T) {
+	srv, _ := start(t, testConfig())
+	control(t, srv.URL, `{"outcome":"unauthorised"}`)
+	if code, _ := postToken(t, srv, "CPI", "txn-401"); code != http.StatusUnauthorized {
+		t.Fatalf("status %d", code)
+	}
+}
+
+// gigadat/webhook.go:97-128: the failure code is the rcode, or the status when it names one.
+func TestFailureCodesAndPendingSettled(t *testing.T) {
+	cfg := testConfig()
+	srv, hooks := start(t, cfg)
+	control(t, srv.URL, `{"outcome":"failure","code":"STATUS_EXPIRED"}`)
+	postToken(t, srv, "CPI", "txn-exp")
+	h := await(t, hooks)
+	if _, status, wb := gatewayReads(t, cfg, h); h.Status != "STATUS_EXPIRED" || status != "FAILED" || wb.Rcode != "" {
+		t.Fatalf("webhook %+v", h)
+	}
+
+	control(t, srv.URL, `{"outcome":"pending"}`)
+	postToken(t, srv, "CPI", "txn-pend")
+	if h := await(t, hooks); h.Status != "STATUS_INITED" {
+		t.Fatalf("pending sent %+v", h)
+	}
+	control(t, srv.URL, `{"outcome":"failure","code":"242"}`)
+	h = await(t, hooks)
+	if _, status, wb := gatewayReads(t, cfg, h); h.TransactionId != "txn-pend" || status != "FAILED" || wb.Rcode != "242" {
+		t.Fatalf("settled %+v", h)
+	}
+}
+
+func TestWebhookNowAndDuplicateIsNotGigadats(t *testing.T) {
+	cfg := testConfig()
+	srv, hooks := start(t, cfg)
+	postToken(t, srv, "CPI", "txn-now")
+	await(t, hooks)
+	resp, _ := http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"txn-now"}`))
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("webhook %d", resp.StatusCode)
+	}
+	if h := await(t, hooks); h.Status != "STATUS_SUCCESS" {
+		t.Fatalf("webhook %+v", h)
+	}
+	if code := control(t, srv.URL, `{"outcome":"duplicate"}`); code != http.StatusBadRequest {
+		t.Fatalf("duplicate answered %d", code)
 	}
 }

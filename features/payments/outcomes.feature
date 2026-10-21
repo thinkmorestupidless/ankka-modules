@@ -17,9 +17,10 @@ Feature: An outcome the receiver could not take is not lost
 
   Scenario: an outcome whose retries are exhausted stays on the provider session as undelivered and is listable
     Given a capture outcome whose retries are exhausted
-    When the gateway gives up
+    When its retry budget is spent
     Then the provider session shows the outcome undelivered, with its kind, its receiver and its content
     And the undelivered outcomes are listable
+    And the outcome is re-driven every two minutes until it is delivered or refused
 
   Scenario Outline: an undelivered outcome is delivered once when an operator re-drives it or the receiver recovers
     Given an undelivered outcome
@@ -28,6 +29,14 @@ Feature: An outcome the receiver could not take is not lost
     And the provider session shows it delivered
 
     Examples:
-      | trigger                    |
-      | an operator re-drives it   |
-      | the receiver recovers      |
+      | trigger                                          |
+      | an operator re-drives it                         |
+      | the receiver recovers and the next re-drive runs |
+
+  Scenario: a refused outcome is left by the automatic re-drive and delivered when an operator re-drives it
+    Given a refused outcome
+    When the next re-drive runs
+    Then it is not delivered
+    When an operator re-drives it
+    Then it is delivered once
+    And the provider session shows it delivered

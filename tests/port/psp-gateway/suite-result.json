@@ -1,0 +1,562 @@
+{
+  "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/bouncemoney": [
+    "",
+    ""
+  ],
+  "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/digitarium": [
+    "",
+    ""
+  ],
+  "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/dreamzpay": [
+    "",
+    ""
+  ],
+  "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/eupaymentz": [
+    "",
+    ""
+  ],
+  "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/gigadat": [
+    "",
+    ""
+  ],
+  "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/t365": [
+    "",
+    ""
+  ],
+  "a browser return for an unknown reference is shown that the payment is being processed and nothing else happens/unityfinance": [
+    "",
+    ""
+  ],
+  "a confirmation at or above the quote captures the payment, with an overpayment recorded as a variance/cozeni": [
+    "",
+    ""
+  ],
+  "a confirmation at or above the quote captures the payment, with an overpayment recorded as a variance/morphosis": [
+    "",
+    ""
+  ],
+  "a confirmation below the quote that the provider has not valued fails the payment with an underpayment variance and credits nothing/cozeni": [
+    "",
+    ""
+  ],
+  "a confirmation below the quote that the provider has not valued fails the payment with an underpayment variance and credits nothing/morphosis": [
+    "",
+    ""
+  ],
+  "a confirmation below the quote that the provider has valued captures the payment at that value, with an underpayment variance/cozeni": [
+    "",
+    ""
+  ],
+  "a confirmation whose received amount is missing or unreadable is treated as short/cozeni": [
+    "",
+    ""
+  ],
+  "a confirmation whose received amount is missing or unreadable is treated as short/morphosis": [
+    "",
+    ""
+  ],
+  "a crypto deposit is answered with a payment address, a coin amount, a coin currency and a deadline, and no redirect/cozeni": [
+    "",
+    ""
+  ],
+  "a crypto deposit is answered with a payment address, a coin amount, a coin currency and a deadline, and no redirect/morphosis": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/bouncemoney": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/cozeni": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/digitarium": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/dreamzpay": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/eupaymentz": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/gigadat": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/morphosis": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/t365": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/unityfinance": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/bouncemoney": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/cozeni": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/digitarium": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/dreamzpay": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/eupaymentz": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/gigadat": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/morphosis": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/t365": [
+    "",
+    ""
+  ],
+  "a deposit initiated for a sub-brand with no credential for the provider is refused naming both, and no provider is called/unityfinance": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/bouncemoney": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/cozeni": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/digitarium": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/dreamzpay": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/eupaymentz": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/gigadat": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/morphosis": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/t365": [
+    "",
+    ""
+  ],
+  "a deposit is initiated with the credential read from the secret store at that moment/unityfinance": [
+    "",
+    ""
+  ],
+  "a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing/bouncemoney": [
+    "",
+    ""
+  ],
+  "a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing/digitarium": [
+    "",
+    ""
+  ],
+  "a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing/dreamzpay": [
+    "",
+    ""
+  ],
+  "a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing/eupaymentz": [
+    "",
+    ""
+  ],
+  "a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing/gigadat": [
+    "",
+    ""
+  ],
+  "a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing/t365": [
+    "",
+    ""
+  ],
+  "a player's browser returning from the payment provider is shown that the payment is being processed and settles nothing/unityfinance": [
+    "",
+    ""
+  ],
+  "a provider's private signing key is read and parsed at request time and never cached across rotations/bouncemoney": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (completed)/cozeni": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (completed)/gigadat": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (completed)/morphosis": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (completed)/unityfinance": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (failed)/cozeni": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (failed)/gigadat": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (failed)/morphosis": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (failed)/unityfinance": [
+    "",
+    ""
+  ],
+  "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (reversed)/unityfinance": [
+    "",
+    ""
+  ],
+  "a refused outcome is left by the automatic re-drive and delivered when an operator re-drives it": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/bouncemoney": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/cozeni": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/digitarium": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/dreamzpay": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/eupaymentz": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/gigadat": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/morphosis": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/t365": [
+    "",
+    ""
+  ],
+  "a rotated credential is used by the next deposit with no restart/unityfinance": [
+    "",
+    ""
+  ],
+  "a status read for a withdrawal payment with no webhook asks the provider and answers its state or that the provider has no record/unityfinance": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/bouncemoney": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/cozeni": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/digitarium": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/dreamzpay": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/eupaymentz": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/gigadat": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/morphosis": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/t365": [
+    "",
+    ""
+  ],
+  "a verified webhook reporting success tells the cashier the payment is captured, once, and the provider session records it delivered/unityfinance": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/bouncemoney": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/cozeni": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/digitarium": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/dreamzpay": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/eupaymentz": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/gigadat": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/morphosis": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/t365": [
+    "",
+    ""
+  ],
+  "a webhook for a reference the gateway does not know is acknowledged and moves nothing/unityfinance": [
+    "",
+    ""
+  ],
+  "a webhook from a crypto provider that does not sign is admitted only on the secret in its address/morphosis": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/bouncemoney": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/cozeni": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/digitarium": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/dreamzpay": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/eupaymentz": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/gigadat": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/morphosis": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/t365": [
+    "",
+    ""
+  ],
+  "a webhook reporting a failure tells the cashier the payment failed with the provider's code and a reason a player can read/unityfinance": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/bouncemoney": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/cozeni": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/digitarium": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/eupaymentz": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/gigadat": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/morphosis": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/t365": [
+    "",
+    ""
+  ],
+  "a webhook reporting a status that is not final leaves the provider session open and the cashier untold/unityfinance": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/bouncemoney": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/cozeni": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/digitarium": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/dreamzpay": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/eupaymentz": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/gigadat": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/morphosis": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/t365": [
+    "",
+    ""
+  ],
+  "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/unityfinance": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated again under the same request id calls no provider and returns the first answer/cozeni": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated again under the same request id calls no provider and returns the first answer/gigadat": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated again under the same request id calls no provider and returns the first answer/morphosis": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated again under the same request id calls no provider and returns the first answer/unityfinance": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated under a request id calls the provider once and answers the provider's reference/cozeni": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated under a request id calls the provider once and answers the provider's reference/gigadat": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated under a request id calls the provider once and answers the provider's reference/morphosis": [
+    "",
+    ""
+  ],
+  "a withdrawal payment initiated under a request id calls the provider once and answers the provider's reference/unityfinance": [
+    "",
+    ""
+  ],
+  "a withdrawal payment refused for an empty credential is reported as a credential failure and never as no record/unityfinance": [
+    "",
+    ""
+  ],
+  "a withdrawal payment the provider refuses as a duplicate reference is reported to the brand as already initiated/unityfinance": [
+    "",
+    ""
+  ],
+  "an outcome a receiver refuses as a wrong request is not retried and the provider session shows the refusal": [
+    "",
+    ""
+  ],
+  "an outcome delivered to a receiver answering a server error or not at all is retried with backoff until it answers": [
+    "",
+    ""
+  ],
+  "an outcome whose retries are exhausted stays on the provider session as undelivered and is listable": [
+    "",
+    ""
+  ],
+  "an undelivered outcome is delivered once when an operator re-drives it or the receiver recovers (an operator re-drives it)": [
+    "",
+    ""
+  ],
+  "an undelivered outcome is delivered once when an operator re-drives it or the receiver recovers (the receiver recovers and the next re-drive runs)": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/bouncemoney": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/cozeni": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/digitarium": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/dreamzpay": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/eupaymentz": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/gigadat": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/morphosis": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/t365": [
+    "",
+    ""
+  ],
+  "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/unityfinance": [
+    "",
+    ""
+  ]
+}

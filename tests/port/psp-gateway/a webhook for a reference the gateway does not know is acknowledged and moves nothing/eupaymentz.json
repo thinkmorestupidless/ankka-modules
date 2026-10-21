@@ -1,0 +1,96 @@
+{
+  "scenario": "a webhook for a reference the gateway does not know is acknowledged and moves nothing/eupaymentz",
+  "requirement": "005/FR-011",
+  "recorded_at": "2026-10-20T08:37:22.23716Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "passphrase": "\u003credacted\u003e",
+            "password": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-69d240fb"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): for unknown-ref",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/eupaymentz",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "resp_action_type": "payment",
+          "resp_descriptor": "-",
+          "resp_sha": "84b1a4109a84a114f290d7963db5a9e701be777437ff03958c6411562ee4c984",
+          "resp_trans_amount": "50.00",
+          "resp_trans_description_status": "Transaction approved",
+          "resp_trans_id": "forged-trans",
+          "resp_trans_merchant_id": "unknown-ref",
+          "resp_trans_status": "00000"
+        }
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

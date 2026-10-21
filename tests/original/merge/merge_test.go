@@ -39,6 +39,25 @@ func TestMergeFindsVaryingFieldsAndCaptures(t *testing.T) {
 	}
 }
 
+// A varying value whose digits a later body holds as a number is captured only where it is a string:
+// a placeholder for the number is not JSON (a forged webhook's `created`, 2026-10-20).
+func TestACaptureReplacesStringsOnlyAndLeavesTheBodyJSON(t *testing.T) {
+	rec := func(at, ref string) recorder.Recording {
+		return recorder.Recording{Scenario: "TestZ", Service: "psp-gateway", Steps: []recorder.Step{
+			step("/a", `{}`, `{"at":"`+at+`","ref":"`+ref+`"}`),
+			step("/b", `{"created":`+at+`,"referenceId":"`+ref+`"}`, `{}`),
+		}}
+	}
+	m := Merge(rec("1792485430", "ref-aaaa"), rec("1792485999", "ref-bbbb"))
+	body := string(m.Steps[1].Request.Body)
+	if !json.Valid(m.Steps[1].Request.Body) {
+		t.Fatalf("not JSON: %s", body)
+	}
+	if !strings.Contains(body, `"created":1792485430`) || !strings.Contains(body, `"referenceId":"{c0}"`) {
+		t.Fatalf("captured where it should not, or not where it should: %s / %v", body, m.Steps[0].Capture)
+	}
+}
+
 func TestDifferentStepCountsKeepOneRun(t *testing.T) {
 	a := recorder.Recording{Scenario: "TestY", Steps: []recorder.Step{step("/a", `{}`, `{}`)}}
 	b := recorder.Recording{Scenario: "TestY"}

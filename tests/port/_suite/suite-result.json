@@ -1,4 +1,52 @@
 {
+  "TestARecordingHasTheContractShapeAndNoRunValuesOrSecrets": [
+    "pass",
+    "pass"
+  ],
+  "TestATamperedAmountIsTenTimesTheSessionsInTheProvidersForm": [
+    "pass",
+    "pass"
+  ],
+  "TestATemplatedBodyStaysJSONWhereACapturedValueIsANumber": [
+    "pass",
+    "pass"
+  ],
+  "TestCrypto": [
+    "fail",
+    "fail"
+  ],
+  "TestEachForgedWebhookIsSignedAsItsProviderSignsAndAnUnsignedOneIsNot": [
+    "pass",
+    "pass"
+  ],
+  "TestEveryProviderCarriesTheCredentialsItsReadmeNames": [
+    "pass",
+    "pass"
+  ],
+  "TestEveryScenarioIsNamedAsItsFeatureNamesItAndEveryFeatureScenarioIsDrivenOrSaidWhyNot": [
+    "pass",
+    "pass"
+  ],
+  "TestOutcomes": [
+    "pass",
+    "pass"
+  ],
+  "TestPayouts": [
+    "fail",
+    "fail"
+  ],
+  "TestProviders": [
+    "fail",
+    "fail"
+  ],
+  "TestRedactDropsSecretsWhereverTheySit": [
+    "pass",
+    "pass"
+  ],
+  "TestRefusesARequestThatWouldLeaveTheMachine": [
+    "pass",
+    "pass"
+  ],
   "TestScenario12_OnboardingGate2_ServicesHealthy": [
     "pass",
     "pass"
@@ -144,6 +192,22 @@
     "pass"
   ],
   "TestScenarioFreeSpinsPlay_StacksOnActiveBonus": [
+    "pass",
+    "pass"
+  ],
+  "TestTheBounceMoneyKeysArePKCS8Ed25519AndDiffer": [
+    "pass",
+    "pass"
+  ],
+  "TestTheDepositScenariosRunForEveryProviderTheFeatureHolds": [
+    "pass",
+    "pass"
+  ],
+  "TestTheReceiverAnswersAsScripted": [
+    "pass",
+    "pass"
+  ],
+  "TestTheReceiverKeepsNoSecretHeader": [
     "pass",
     "pass"
   ],

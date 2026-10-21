@@ -1,0 +1,247 @@
+{
+  "scenario": "a webhook whose signature does not verify is refused as a bad request, logged, and moves nothing/digitarium",
+  "requirement": "005/FR-010",
+  "recorded_at": "2026-10-20T08:37:18.197638Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "apiKey": "\u003credacted\u003e",
+            "environment": "sandbox",
+            "signingKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-b7b273df"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "CARD",
+          "psp": "DIGITARIUM",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "apiKey": "\u003credacted\u003e",
+            "environment": "sandbox",
+            "signingKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "7c560e1a-14f8-44b1-9c84-bcb5431f5d2c",
+          "redirectUrl": "http://localhost:18109/checkout/a891f448014e710021a936d212c3eb09"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:18.199757Z",
+            "body": {
+              "amount": 50,
+              "currency": "EUR",
+              "paymentMethod": "BASIC_CARD",
+              "paymentType": "DEPOSIT",
+              "referenceId": "{reference}",
+              "returnUrl": "http://localhost:8087/v1/psp/checkout/digitarium/{reference}/return",
+              "webhookUrl": "http://localhost:8087/v1/webhooks/digitarium"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "Content-Length": "303",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/api/v1/payments"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): signed under another key",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/digitarium",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json",
+          "Signature": "9c55c4f83908e7b0762b1e4dfd4b1cca5c6169e4d7233704d74222771d1ff95b"
+        },
+        "body": {
+          "amount": 50,
+          "currency": "EUR",
+          "id": "forged-g2pay",
+          "paymentType": "DEPOSIT",
+          "referenceId": "{reference}",
+          "state": "COMPLETED"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": "invalid signature"
+      }
+    },
+    {
+      "name": "webhook (forged): the amount tampered",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/digitarium",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json",
+          "Signature": "55a4d8d091014447c7b046cd209413d534d0c24bda86802b2829cf142130fafc"
+        },
+        "body": {
+          "amount": 500,
+          "currency": "EUR",
+          "id": "forged-g2pay",
+          "paymentType": "DEPOSIT",
+          "referenceId": "{reference}",
+          "state": "COMPLETED"
+        }
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "webhook: unsigned",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "unsigned",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "invalid signature\n",
+          "status": 400
+        }
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:18.210401Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

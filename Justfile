@@ -66,3 +66,26 @@ merchant-run brands='[{"slug":"goldvibe","name":"Goldvibe"}]':
 service name +args:
     sbt contract/publishLocal
     cd services/{{name}} && sbt {{args}}
+
+# psp-gateway's suites (spec 005; Docker for the integration kit and psp-stub's image). The contract is published first.
+psp-gateway-test:
+    sbt contract/publishLocal
+    cd services/psp-gateway && sbt test
+
+# psp-gateway's integration and parity suites only (Docker).
+psp-gateway-it:
+    cd services/psp-gateway && sbt "testOnly io.eitheror.casino.pspgateway.it.* io.eitheror.casino.pspgateway.port.*"
+
+# psp-gateway, locally on 9001, every provider at psp-stub (`just psp-stub` first; `sbt schema && docker compose up -d` in services/psp-gateway).
+psp-gateway-run:
+    cd services/psp-gateway && PUBLIC_URL=http://localhost:9001 ANKKA_HTTP_PORT=9001 ANKKA_DB_PORT=5433 \
+      DREAMZPAY_BASE_URL=http://localhost:18103 UNITYFINANCE_PAY_URL=http://localhost:18108 UNITYFINANCE_API_URL=http://localhost:18108/v1 \
+      T365_BASE_URL=http://localhost:18107 COZENI_BASE_URL=http://localhost:18102 EUPAYMENTZ_BASE_URL=http://localhost:18104 \
+      GIGADAT_BASE_URL=http://localhost:18105 BOUNCEMONEY_BASE_URL=http://localhost:18101 MORPHOSIS_BASE_URL=http://localhost:18106 \
+      DIGITARIUM_SANDBOX_URL=http://localhost:18109 DIGITARIUM_PRODUCTION_URL=http://localhost:18109 \
+      sbt -Dankka.local-services.merchant=http://localhost:9000 run
+
+# The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
+psp-stub gateway="http://localhost:9001":
+    cd tests && go build -o stubs/bin/ ./stubs/psp-stub
+    PSP_STUB_GATEWAY_URL={{gateway}} tests/stubs/bin/psp-stub

@@ -1,0 +1,183 @@
+{
+  "scenario": "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (failed)/morphosis",
+  "requirement": "005/FR-014",
+  "recorded_at": "2026-10-20T08:38:49.879653Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "account": "stub-account",
+            "pass": "\u003credacted\u003e",
+            "user": "stub-user"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-f43c3e5b"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate the withdrawal payment under request",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/payout/morphosis",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "brandId": "{brand}",
+          "cryptoSymbol": "BTC",
+          "currency": "USD",
+          "details": "",
+          "merchantId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "walletAddress": "bc1qdriverpayoutaddress",
+          "withdrawalRequestId": "{request}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentRef": "request-cb99ffe0",
+          "status": "INITIATED",
+          "wpbId": "5473132"
+        }
+      },
+      "vary": {
+        "$.paymentRef": "differs between two runs of the original",
+        "$.wpbId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:38:49.897566Z",
+            "body": {
+              "account": "stub-user",
+              "address": "bc1qdriverpayoutaddress",
+              "amount": "50.00",
+              "method": "bitcoin",
+              "notification_url": "http://localhost:8087/v1/webhooks/morphosis/withdrawal/87dbd593-c92b-4ac7-a062-aa5a14259699",
+              "pass": "\u003credacted\u003e",
+              "user": "stub-user"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "234",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/?action=insert_payout"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.notification_url": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook: failed",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "failure",
+          "reference": "87dbd593-c92b-4ac7-a062-aa5a14259699"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "OK",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "observe: the brand told, once",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}\u0026path={request}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:38:49.905623Z",
+            "body": {
+              "brandId": "{brand}",
+              "outcome": "FAILED",
+              "pspReference": ""
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/internal/v1/casino/withdrawal-requests/{request}/outcome"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

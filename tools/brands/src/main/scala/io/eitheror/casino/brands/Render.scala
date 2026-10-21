@@ -22,11 +22,30 @@ final case class Plan(
 
 object Render:
 
-  /** Services written in TypeScript, hosted as a process beside ankka's sidecar (specs 005, 016). */
-  val ProcessHosted: Set[String] = Set("psp-gateway", "partner-api")
+  /** Services written in TypeScript, hosted as a process beside ankka's sidecar (spec 016). psp-gateway
+    * was here while spec 005 planned it in TypeScript; it is Scala (005 R1), embedded like the rest.
+    */
+  val ProcessHosted: Set[String] = Set("partner-api")
 
   /** `secret:<name>/<key>` in a manifest's env is a reference to a project secret, never a value. */
   private val SecretReference = "secret:([a-z][a-z0-9-]*)/([A-Z][A-Z0-9_]*)".r
+
+  /**
+   * `setting:<KEY>` in a manifest's env is the installation's setting of that name (`settings.env`), so one
+   * manifest serves every installation: a provider's base URL is psp-stub's on dev-kind and nothing on gke.
+   * A setting the installation lacks, or leaves empty, is left out of the descriptor, and the service
+   * refuses by name until an operator sets it (spec 005 FR-020).
+   */
+  private val SettingReference = "setting:([A-Z][A-Z0-9_]*)".r
+
+  /** One env entry's setting reference: (service, variable, setting, the installation's value if any). */
+  final case class SettingUse(service: String, variable: String, setting: String, value: Option[String])
+
+  /** Every `setting:` reference a manifest's services make, resolved against the installation when given. */
+  def settingUses(manifest: Manifest, installation: Option[Installation]): Vector[SettingUse] =
+    manifest.services.flatMap(s => s.env.toVector.sortBy(_._1).collect {
+      case (k, SettingReference(key)) => SettingUse(s.name, k, key, installation.flatMap(_.get(key)))
+    })
 
   def plan(manifest: Manifest, installation: Option[Installation], brands: Vector[String] = Vector.empty): Plan =
     Plan(
@@ -111,9 +130,10 @@ object Render:
       case _                    => Vector.empty)
     val env =
       (identity ++ auth).map((k, v) => EnvVar(k, value = Some(v))) ++
-        pin.env.toVector.sortBy(_._1).map {
-          case (k, SecretReference(name, key)) => EnvVar(k, secretKeyRef = Some(SecretKeyRef(name, key)))
-          case (k, v)                          => EnvVar(k, value = Some(v))
+        pin.env.toVector.sortBy(_._1).flatMap {
+          case (k, SecretReference(name, key)) => Some(EnvVar(k, secretKeyRef = Some(SecretKeyRef(name, key))))
+          case (k, SettingReference(key))      => installation.flatMap(_.get(key)).map(v => EnvVar(k, value = Some(v)))
+          case (k, v)                          => Some(EnvVar(k, value = Some(v)))
         }
     val hosting = if ProcessHosted.contains(pin.name) then ServiceSpec.Process else ServiceSpec.Embedded
     val process = for

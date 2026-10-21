@@ -183,6 +183,26 @@ Settled with specs 008–011 once they existed.
   autoplay pace (one bet and one win per spin, about 10,000 keys a day). A rollback of a bet the
   wallet no longer holds is `ROUND_NOT_FOUND`, which spec 003 handles.
 
+### Session 2026-10-21 (found by spec 005 T072, in a cluster; fixed the same day)
+
+- Q: In a cluster every deposit ends `RG_UNAVAILABLE` within milliseconds and `responsible-gambling`
+  is never asked; locally the suites pass. Why? → A: `ResponsibleGambling.http` makes the call inside
+  `CompletableFuture.supplyAsync(…).get(500 ms)`, on another thread. ankka's workflow client answers only
+  on the step's own thread (`StepScope`: "a workflow calls another service in a step, not in a command
+  handler"), so the call is refused before anything is sent. The call must run on the step's thread,
+  with the 500 ms bound as the service client's timeout (`ankka.service-client.timeout`; RG is the
+  wallet's only outbound call). The suites gave the workflow a fake RG, which is why they did not fail.
+  Fixed: the call is made on the step's thread, `ankka.service-client.timeout = 500ms` in the wallet's
+  `application.conf`, and `ResponsibleGamblingItSuite` runs the real `ResponsibleGambling.http`
+  against the test kit's scripted service, through ankka's own client and its step rule.
+- Q: The deposit flow ends `refused` on `RG_UNAVAILABLE` and answers that to every later `start` of the
+  payment, while `merchant` retries `RG_UNAVAILABLE` as transient without bound (spec 004 FR-022). Which
+  is right? → A: The check is transient by its own definition, so the flow must not end on it: a `start`
+  of a flow whose refusal is `RG_UNAVAILABLE` runs the check again (FR-007a's fail-closed rule holds for
+  the one attempt; it does not make the payment unrecoverable). Spec 005 research, findings 8 and 9.
+  Fixed in `DepositWorkflow.start` (FR-022 reworded); the scenario *a deposit refused while responsible
+  gambling could not be reached is checked again when it arrives again* holds it.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player's bet is funded and settled in one step (Priority: P1)
@@ -295,6 +315,7 @@ call across a 040 grant keyed by the payment id, and double credit is the failur
 - added `features/wallet/deposits.feature`: a rollback does not restore deposit turnover pending
 - added `features/wallet/deposits.feature`: a deposit while a converted record awaits its cap advances that record's deposits since conversion
 - added `features/wallet/deposits.feature`: a first deposit in a currency creates the wallet for that currency
+- added `features/responsible-gambling/deposits.feature`: a deposit refused while responsible gambling could not be reached is checked again when it arrives again
 
 ---
 
@@ -523,8 +544,11 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   the wallet's deposit sums of the last 1, 7 and 30 days (FR-030; spec 010 FR-007), and
   MUST refuse the deposit — crediting nothing, the wallet never called — as
   `EXCLUDED`, `COOLING_OFF` (naming the end) or `OVER_LIMIT` (naming the limit, the amount used and
-  the remaining allowance) as answered, or `RG_UNAVAILABLE` when there is no answer; the refusal is
-  final to `merchant` (spec 004 FR-021). The check and the credit are the two steps of a
+  the remaining allowance) as answered, or `RG_UNAVAILABLE` when there is no answer within 500 ms,
+  the service client's timeout. A refusal that is an answer is final to `merchant` (spec 004 FR-021);
+  `RG_UNAVAILABLE` is not: it says the check did not happen, `merchant` retries it as transient
+  (spec 004 FR-022), and the next arrival of the payment id MUST run the check again, from the
+  beginning (clarification 2026-10-21). The check and the credit are the two steps of a
   `DepositWorkflow` per payment id, started by the route as the atomic claim; the refusal or the
   wallet's outcome is the workflow's state, which answers every repeat of the payment id for the life
   of the ledger (clarification 2026-10-10). When allowed, it MUST credit real balance, write a `deposit` transaction with payment

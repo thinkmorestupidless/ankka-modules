@@ -1,0 +1,131 @@
+{
+  "scenario": "a withdrawal payment initiated under a request id calls the provider once and answers the provider's reference/morphosis",
+  "requirement": "005/FR-004",
+  "recorded_at": "2026-10-20T08:38:39.673189Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "account": "stub-account",
+            "pass": "\u003credacted\u003e",
+            "user": "stub-user"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-1d6c00cc"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate the withdrawal payment under request",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/payout/morphosis",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "brandId": "{brand}",
+          "cryptoSymbol": "BTC",
+          "currency": "USD",
+          "details": "",
+          "merchantId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "walletAddress": "bc1qdriverpayoutaddress",
+          "withdrawalRequestId": "{request}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentRef": "request-8c2628c4",
+          "status": "INITIATED",
+          "wpbId": "5473128"
+        }
+      },
+      "vary": {
+        "$.paymentRef": "differs between two runs of the original",
+        "$.wpbId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:38:39.688382Z",
+            "body": {
+              "account": "stub-user",
+              "address": "bc1qdriverpayoutaddress",
+              "amount": "50.00",
+              "method": "bitcoin",
+              "notification_url": "http://localhost:8087/v1/webhooks/morphosis/withdrawal/1e5ef2fb-fe8a-4cf8-b53f-1c9f9b8f9c86",
+              "pass": "\u003credacted\u003e",
+              "user": "stub-user"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "234",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/?action=insert_payout"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.notification_url": "differs between two runs of the original"
+      }
+    }
+  ]
+}

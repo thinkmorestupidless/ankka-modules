@@ -1,0 +1,282 @@
+{
+  "scenario": "a deposit initiated for a sub-brand with a credential answers the provider's reference and where to send the player, and records a provider session/unityfinance",
+  "requirement": "005/FR-003",
+  "recorded_at": "2026-10-20T08:36:42.527221Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "checkoutId.VISA": "stub-checkout",
+            "purseId": "stub-purse",
+            "signKey": "\u003credacted\u003e",
+            "userId": "stub-user",
+            "withdrawalApiKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 6,
+          "terminalId": "terminal-22ed107e"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "VISA",
+          "psp": "UNITYFINANCE",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "accountId": "stub-account",
+            "checkoutId.VISA": "stub-checkout",
+            "purseId": "stub-purse",
+            "signKey": "\u003credacted\u003e",
+            "userId": "stub-user",
+            "withdrawalApiKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "9237a919-9a69-47a5-a083-9040272156ef",
+          "redirectUrl": "http://localhost:18108/checkout/3707260?ik_pm_no=9237a919-9a69-47a5-a083-9040272156ef"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:36:42.533367Z",
+            "body": {
+              "ik_act": "process",
+              "ik_am": "50.00",
+              "ik_co_id": "stub-checkout",
+              "ik_cur": "EUR",
+              "ik_customer_address": "1 Test Street",
+              "ik_customer_city": "London",
+              "ik_customer_country": "GB",
+              "ik_customer_email": "player@example.com",
+              "ik_customer_first_name": "Pat",
+              "ik_customer_ip": "127.0.0.1",
+              "ik_customer_last_name": "Player",
+              "ik_customer_phone": "+447700900123",
+              "ik_customer_post_code": "N1 1AA",
+              "ik_customer_state": "London",
+              "ik_desc": "payment {reference}",
+              "ik_fal_u": "http://localhost:8087/v1/psp/checkout/{reference}/return",
+              "ik_ia_u": "http://localhost:8087/v1/webhooks/unityfinance",
+              "ik_int": "json",
+              "ik_payment_currency": "EUR",
+              "ik_payment_method": "visa",
+              "ik_pm_no": "{reference}",
+              "ik_sign": "bryFBSKgFMlJj9p5O4SrAy7uGxOpIB15qovVX4mGWBI=",
+              "ik_suc_u": "http://localhost:8087/v1/psp/checkout/{reference}/return"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "849",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.ik_sign": "differs between two runs of the original",
+        "$[0].headers.Content-Length": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate again under the same payment id",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "VISA",
+          "psp": "UNITYFINANCE",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "accountId": "stub-account",
+            "checkoutId.VISA": "stub-checkout",
+            "purseId": "stub-purse",
+            "signKey": "\u003credacted\u003e",
+            "userId": "stub-user",
+            "withdrawalApiKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "7ef2deb2-8640-43a9-8b3f-71ad4a86143b",
+          "redirectUrl": "http://localhost:18108/checkout/3505465?ik_pm_no=7ef2deb2-8640-43a9-8b3f-71ad4a86143b"
+        }
+      },
+      "capture": {
+        "secondReference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:36:42.542916Z",
+            "body": {
+              "ik_act": "process",
+              "ik_am": "50.00",
+              "ik_co_id": "stub-checkout",
+              "ik_cur": "EUR",
+              "ik_customer_address": "1 Test Street",
+              "ik_customer_city": "London",
+              "ik_customer_country": "GB",
+              "ik_customer_email": "player@example.com",
+              "ik_customer_first_name": "Pat",
+              "ik_customer_ip": "127.0.0.1",
+              "ik_customer_last_name": "Player",
+              "ik_customer_phone": "+447700900123",
+              "ik_customer_post_code": "N1 1AA",
+              "ik_customer_state": "London",
+              "ik_desc": "payment {secondReference}",
+              "ik_fal_u": "http://localhost:8087/v1/psp/checkout/{secondReference}/return",
+              "ik_ia_u": "http://localhost:8087/v1/webhooks/unityfinance",
+              "ik_int": "json",
+              "ik_payment_currency": "EUR",
+              "ik_payment_method": "visa",
+              "ik_pm_no": "{secondReference}",
+              "ik_sign": "9BrE1mIMVKxxbRpnpAZx6G3ilPSsGFwwJKjdWwhQ7qU=",
+              "ik_suc_u": "http://localhost:8087/v1/psp/checkout/{secondReference}/return"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "849",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.ik_sign": "differs between two runs of the original"
+      }
+    }
+  ]
+}

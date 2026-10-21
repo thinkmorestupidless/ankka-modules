@@ -1,0 +1,12 @@
+{
+  "name": "psp-gateway",
+  "service": {
+    "image": "psp-gateway:latest",
+    "runtime": "0.11.0",
+    "env": {
+      "PUBLIC_URL": "http://localhost:9001",
+      "PROVIDER_TIMEOUT": "20s",
+      "REDRIVE_INTERVAL": "2m"
+    }
+  }
+}

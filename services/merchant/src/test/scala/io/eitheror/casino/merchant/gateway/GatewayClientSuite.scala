@@ -37,10 +37,11 @@ class GatewayClientSuite extends munit.FunSuite:
     assert(nowhere.initiate(page("pay-5")).left.exists(_.isInstanceOf[GatewayRefusal.Unreachable]))
   }
 
-  test("a session reads pending, resolved, undelivered, unknown or unreadable") {
+  test("a session reads pending, resolved, undelivered, refused, unknown or unreadable") {
     assertEquals(client.session("p-a"), SessionStatus.Pending)
     gw.session("p-b", io.eitheror.casino.merchant.it.FakeGateway.Session.Resolved); assertEquals(client.session("p-b"), SessionStatus.Resolved(Some("failed")))
     gw.session("p-c", io.eitheror.casino.merchant.it.FakeGateway.Session.Undelivered); assertEquals(client.session("p-c"), SessionStatus.Undelivered)
+    gw.session("p-r", io.eitheror.casino.merchant.it.FakeGateway.Session.Refused); assertEquals(client.session("p-r"), SessionStatus.Refused)
     gw.session("p-d", io.eitheror.casino.merchant.it.FakeGateway.Session.Unknown); assertEquals(client.session("p-d"), SessionStatus.Unknown)
     gw.session("p-e", io.eitheror.casino.merchant.it.FakeGateway.Session.Down); assert(client.session("p-e").isInstanceOf[SessionStatus.Unreadable])
   }

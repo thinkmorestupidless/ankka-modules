@@ -11,7 +11,7 @@ status read is new and is what spec 005 FR-009 promises.
 In: `amount` (minor units), `currency`, `method` (the scheme), `callbackUrl`
 (`/v1/payments/{paymentId}/capture` on this service, as the original built it), `psp`,
 `subBrandId`, `customerId`, `redirectUrl`, `paymentId` (the gateway's idempotency key, 005 FR-008),
-`terminalId`, `terminalProperties{}` (empty for a credential-only submit), and the customer fields
+`terminalId`, `terminalProperties{}` (always empty: the gateway reads the credential from `merchant`; spec 005 finding 1), and the customer fields
 `customerEmail`, `customerFirstName`, `customerLastName`, `customerPhone`, `customerMobile`,
 `customerProvince`, `customerIp`, `customerCountry`, `customerCity`, `customerAddress`,
 `customerPostCode`, `customerState` (optional).
@@ -28,8 +28,10 @@ returns the first answer and calls no provider.
 
 `reference` is the payment id. Out `200`: `state` (`pending` \| `resolved`), `outcome?`
 (`captured` \| `failed`), `delivered: Boolean`, `undelivered: Boolean` (an outcome whose delivery
-was abandoned and is listed for re-drive), `updatedAt`. `404` when the gateway holds no session.
-`merchant` reads `undelivered: true` as "wait another deadline" and anything else as "expire".
+was abandoned and is listed for re-drive), `refused: Boolean` (an outcome `merchant` answered with a
+client error, which only an operator's re-drive delivers; spec 005 finding 7), `updatedAt`. `404`
+when the gateway holds no session. `merchant` reads `undelivered: true` or `refused: true` as "wait
+another deadline" and anything else as "expire".
 
 ## How the gateway calls `merchant`
 
@@ -37,8 +39,8 @@ was abandoned and is listed for re-drive), `updatedAt`. `404` when the gateway h
 
 Headers: `X-PSP-Signature` (hex HMAC-SHA256 of the raw body under the credential's
 `webhookSecret`) and `X-PSP-Timestamp` (Unix seconds, within 300 s) when the provider's credential
-has a `webhookSecret`; neither otherwise. The gateway passes the provider's signature through
-unchanged (spec 004 Assumptions).
+has a `webhookSecret`; neither otherwise. The gateway signs the body it sends with that secret (spec 005
+research R13; the original's gateway never signed, so a credential with a secret refused every capture).
 
 Body: `outcome` (`success`), `psp_transaction_id`, and the variance when the provider reported one:
 `variance` (`UNDERPAYMENT` \| `OVERPAYMENT`), `receivedCryptoAmount`, `receivedConvertAmount`,

@@ -1,4 +1,6 @@
-package main
+// Package t365 answers as T365 does to the original's psp-gateway T365 adapter, and posts its
+// signed postbacks. psp-stub serves it on 18107.
+package t365
 
 // The T365 API as the original's adapter uses it
 // (eitheror-platform/services/psp-gateway/internal/t365/adapter.go):
@@ -14,13 +16,11 @@ package main
 // (handler/webhook.go T365Webhook). The adapter does not poll and has no payout.
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,23 +36,31 @@ type Config struct {
 	Secret string
 	// PublicURL is the stub's browser-reachable base for paymentUrl; empty means the request's Host.
 	PublicURL string
+	// WebhookURL, when set, replaces callbackUrl.
+	WebhookURL string
 	// Delay is how long after initiation the postback is sent.
 	Delay time.Duration
 }
 
-// ConfigFromEnv reads T365_STUB_SECRET (default "t365-stub-secret"), T365_STUB_PUBLIC_URL and
-// T365_STUB_CALLBACK_DELAY_MS (default 1000).
-func ConfigFromEnv() Config {
-	c := Config{Secret: "t365-stub-secret", PublicURL: os.Getenv("T365_STUB_PUBLIC_URL"), Delay: time.Second}
-	if v := os.Getenv("T365_STUB_SECRET"); v != "" {
+// ConfigFromEnv reads T365_STUB_SECRET (default "t365-stub-secret"), T365_STUB_PUBLIC_URL,
+// T365_STUB_WEBHOOK_URL and T365_STUB_CALLBACK_DELAY_MS (default 1000).
+func ConfigFromEnv(getenv func(string) string) Config {
+	c := Config{Secret: "t365-stub-secret", PublicURL: getenv("T365_STUB_PUBLIC_URL"), WebhookURL: getenv("T365_STUB_WEBHOOK_URL"), Delay: time.Second}
+	if v := getenv("T365_STUB_SECRET"); v != "" {
 		c.Secret = v
 	}
-	if v := os.Getenv("T365_STUB_CALLBACK_DELAY_MS"); v != "" {
+	if v := getenv("T365_STUB_CALLBACK_DELAY_MS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
 			c.Delay = time.Duration(n) * time.Millisecond
 		}
 	}
 	return c
+}
+
+// Start is the stub as psp-stub runs it.
+func Start(getenv func(string) string) (*stubhttp.Stub, http.Handler) {
+	stub := stubhttp.New("t365")
+	return stub, NewProvider(stub, ConfigFromEnv(getenv))
 }
 
 // Postback is the JSON T365 posts to callbackUrl.
@@ -79,7 +87,7 @@ func Sign(secret, amount, currency, orderId, status string) string {
 }
 
 type payment struct {
-	returnUrl string
+	id, orderId, amount, currency, callback, apiKey, returnUrl string
 }
 
 // Provider answers T365's routes and sends its postbacks.
@@ -89,17 +97,19 @@ type Provider struct {
 	client   *http.Client
 	nextID   atomic.Int64
 	mu       sync.Mutex
-	payments map[string]payment
+	payments map[string]*payment // by T365 id and by orderId, the gateway's dashless txnRef
 	mux      *http.ServeMux
 }
 
 // NewProvider builds the T365 handler.
 func NewProvider(stub *stubhttp.Stub, cfg Config) *Provider {
-	p := &Provider{stub: stub, cfg: cfg, client: &http.Client{Timeout: 10 * time.Second}, payments: map[string]payment{}}
+	p := &Provider{stub: stub, cfg: cfg, client: &http.Client{Timeout: 10 * time.Second}, payments: map[string]*payment{}}
 	p.nextID.Store(900000)
 	p.mux = http.NewServeMux()
 	p.mux.HandleFunc("POST /api/v1/external/payment/hosted", p.hosted)
 	p.mux.HandleFunc("GET /hosted/{id}", p.page)
+	stub.Supports(stubhttp.Unauthorised)
+	stub.OnWebhook(p.send)
 	return p
 }
 
@@ -110,9 +120,14 @@ func reject(w http.ResponseWriter, status int, message string) {
 }
 
 func (p *Provider) hosted(w http.ResponseWriter, r *http.Request) {
+	control := p.stub.Control()
 	apiKey := r.Header.Get("apikey")
 	if apiKey == "" {
 		reject(w, http.StatusUnauthorized, "apikey header is required")
+		return
+	}
+	if control.Outcome == stubhttp.Unauthorised {
+		reject(w, http.StatusUnauthorized, "invalid apikey")
 		return
 	}
 	var req map[string]any
@@ -138,8 +153,14 @@ func (p *Provider) hosted(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := strconv.FormatInt(p.nextID.Add(1), 10)
+	callback := str("callbackUrl")
+	if p.cfg.WebhookURL != "" {
+		callback = p.cfg.WebhookURL
+	}
+	pay := &payment{id: id, orderId: orderId, amount: str("amount"), currency: str("currency"), callback: callback, apiKey: apiKey, returnUrl: str("returnUrl")}
 	p.mu.Lock()
-	p.payments[id] = payment{returnUrl: str("returnUrl")}
+	p.payments[id] = pay
+	p.payments[orderId] = pay
 	p.mu.Unlock()
 
 	base := p.cfg.PublicURL
@@ -154,18 +175,34 @@ func (p *Provider) hosted(w http.ResponseWriter, r *http.Request) {
 		"paymentUrl": strings.TrimSuffix(base, "/") + "/hosted/" + id,
 	})
 
-	status := "SUCCESS"
-	switch p.stub.Next() {
+	if control.Outcome == stubhttp.Pending {
+		p.stub.Hold(orderId) // the PENDING postback goes now; the next control settles it
+	}
+	pb, _ := p.postback(pay, control)
+	p.deliverLater(pay, pb, control.Delay(p.cfg.Delay))
+}
+
+// postback is the signed postback for a control: success SUCCESS; failure FAIL, or the code when
+// it is REJECTED; pending PENDING.
+func (p *Provider) postback(pay *payment, c stubhttp.Control) (Postback, error) {
+	var status string
+	switch c.Outcome {
+	case stubhttp.Success:
+		status = "SUCCESS"
 	case stubhttp.Failure:
 		status = "FAIL"
+		if c.Code != "" {
+			status = c.Code
+		}
 	case stubhttp.Pending:
 		status = "PENDING"
+	default:
+		return Postback{}, fmt.Errorf("t365 has no postback for %q", c.Outcome)
 	}
-	amount, currency := str("amount"), str("currency")
-	p.deliverLater(str("callbackUrl"), apiKey, Postback{
-		Id: id, OrderId: orderId, Status: status, Amount: amount, Currency: currency,
-		Hash: Sign(p.cfg.Secret, amount, currency, orderId, status),
-	})
+	return Postback{
+		Id: pay.id, OrderId: pay.orderId, Status: status, Amount: pay.amount, Currency: pay.currency,
+		Hash: Sign(p.cfg.Secret, pay.amount, pay.currency, pay.orderId, status),
+	}, nil
 }
 
 // page is the hosted payment page: it sends the player straight back to the returnUrl.
@@ -180,30 +217,40 @@ func (p *Provider) page(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, pay.returnUrl, http.StatusFound)
 }
 
+func (p *Provider) post(pay *payment, pb Postback) stubhttp.Delivery {
+	body, _ := json.Marshal(pb)
+	return stubhttp.Post(p.client, pay.callback, "application/json", map[string]string{"apikey": pay.apiKey}, body)
+}
+
+// send posts one payment's postback now, once.
+func (p *Provider) send(ref string, c stubhttp.Control) (stubhttp.Delivery, error) {
+	p.mu.Lock()
+	pay, ok := p.payments[ref]
+	p.mu.Unlock()
+	if !ok {
+		return stubhttp.Delivery{}, stubhttp.ErrUnknownReference
+	}
+	pb, err := p.postback(pay, c)
+	if err != nil {
+		return stubhttp.Delivery{}, err
+	}
+	d := p.post(pay, pb)
+	log.Printf("t365 stub: postback orderId=%s status=%s to %s answered %d (err=%v)", pb.OrderId, pb.Status, pay.callback, d.Status, d.Err)
+	return d, nil
+}
+
 // deliverLater posts the postback after the delay, retrying until a 200, at most 5 times
 // (T365 retries up to 5 times on a non-200; handler/webhook.go T365Webhook).
-func (p *Provider) deliverLater(target, apiKey string, pb Postback) {
-	body, _ := json.Marshal(pb)
+func (p *Provider) deliverLater(pay *payment, pb Postback, delay time.Duration) {
 	go func() {
-		time.Sleep(p.cfg.Delay)
+		time.Sleep(delay)
 		for attempt := 1; attempt <= 5; attempt++ {
-			req, err := http.NewRequest(http.MethodPost, target, bytes.NewReader(body))
-			if err != nil {
-				log.Printf("t365 stub: bad callbackUrl %q: %v", target, err)
+			d := p.post(pay, pb)
+			if d.Err == nil && d.Status == http.StatusOK {
+				log.Printf("t365 stub: postback orderId=%s status=%s delivered to %s", pb.OrderId, pb.Status, pay.callback)
 				return
 			}
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("apikey", apiKey)
-			resp, err := p.client.Do(req)
-			if err == nil {
-				resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					log.Printf("t365 stub: postback orderId=%s status=%s delivered to %s", pb.OrderId, pb.Status, target)
-					return
-				}
-				err = fmt.Errorf("HTTP %d", resp.StatusCode)
-			}
-			log.Printf("t365 stub: postback orderId=%s attempt %d to %s failed: %v", pb.OrderId, attempt, target, err)
+			log.Printf("t365 stub: postback orderId=%s attempt %d to %s failed: %d %v", pb.OrderId, attempt, pay.callback, d.Status, d.Err)
 			time.Sleep(time.Second)
 		}
 	}()

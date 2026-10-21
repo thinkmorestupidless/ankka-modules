@@ -204,6 +204,26 @@
         }
       },
       {
+        "principal": "service:goldvibe/payouts",
+        "target": {
+          "route": {
+            "service": "psp-gateway",
+            "method": "GET",
+            "path": "/v1/payments/withdrawals/{requestId}"
+          }
+        }
+      },
+      {
+        "principal": "service:goldvibe/payouts",
+        "target": {
+          "route": {
+            "service": "psp-gateway",
+            "method": "GET",
+            "path": "/v1/payments/withdrawal-terminals"
+          }
+        }
+      },
+      {
         "principal": "service:goldvibe/players",
         "target": {
           "erasure": true

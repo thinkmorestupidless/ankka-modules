@@ -1,0 +1,278 @@
+{
+  "scenario": "a provider's private signing key is read and parsed at request time and never cached across rotations/bouncemoney",
+  "requirement": "005/FR-018",
+  "recorded_at": "2026-10-20T08:37:46.020299Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "keyId": "stub-key-1",
+            "privateKey": "\u003credacted\u003e",
+            "signingSecret": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-a8bade28"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "CARD",
+          "psp": "BOUNCEMONEY",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "keyId": "stub-key-1",
+            "privateKey": "\u003credacted\u003e",
+            "signingSecret": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "09bfbbac-a2c6-4a98-ba5b-c12451e8b35b",
+          "redirectUrl": "http://localhost:18101/checkout/cs_cafc00c1337003c04e3bf5ae?redirect=http%3A%2F%2Flocalhost%3A8087%2Fv1%2Fpsp%2Fcheckout%2Fbouncemoney%2F09bfbbac-a2c6-4a98-ba5b-c12451e8b35b%2Freturn"
+        }
+      },
+      "capture": {
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:46.021908Z",
+            "body": {
+              "customerReference": "{player}",
+              "description": "Deposit {reference}",
+              "email": "player@example.com",
+              "fiat": "EUR",
+              "fiatAmount": 50,
+              "redirectUrl": "http://localhost:8087/v1/psp/checkout/bouncemoney/{reference}/return",
+              "referenceId": "{reference}"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "321",
+              "Content-Type": "application/json",
+              "Idempotency-Key": "{reference}",
+              "User-Agent": "Go-http-client/1.1",
+              "X-Bouncemoney-Key-Id": "stub-key-1",
+              "X-Bouncemoney-Signature": "v1=9Qus43QeYbKZpnvAQ63NVYzHfUBkY91Rf6v8ii061o6EfnHPLjcCsIN6lbC_dOpXBvt8BTrD4r3ExZJ_wFYAAg",
+              "X-Bouncemoney-Timestamp": "1792485466"
+            },
+            "method": "POST",
+            "path": "/checkout/sessions"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].headers.X-Bouncemoney-Signature": "differs between two runs of the original",
+        "$[0].headers.X-Bouncemoney-Timestamp": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "keyId": "stub-key-1",
+            "privateKey": "\u003credacted\u003e",
+            "signingSecret": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-a8bade28"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the next deposit, after the signing key is rotated",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment2}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "CARD",
+          "psp": "BOUNCEMONEY",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "keyId": "stub-key-1",
+            "privateKey": "\u003credacted\u003e",
+            "signingSecret": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "pspTransactionId": "9a51359b-312e-4d2e-83ba-c1927753dd20",
+          "redirectUrl": "http://localhost:18101/checkout/cs_bfc467192aff258980d3c277?redirect=http%3A%2F%2Flocalhost%3A8087%2Fv1%2Fpsp%2Fcheckout%2Fbouncemoney%2F9a51359b-312e-4d2e-83ba-c1927753dd20%2Freturn"
+        }
+      },
+      "capture": {
+        "reference2": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:46.029611Z",
+            "body": {
+              "customerReference": "{player}",
+              "description": "Deposit {reference2}",
+              "email": "player@example.com",
+              "fiat": "EUR",
+              "fiatAmount": 50,
+              "redirectUrl": "http://localhost:8087/v1/psp/checkout/bouncemoney/{reference2}/return",
+              "referenceId": "{reference2}"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "321",
+              "Content-Type": "application/json",
+              "Idempotency-Key": "{reference2}",
+              "User-Agent": "Go-http-client/1.1",
+              "X-Bouncemoney-Key-Id": "stub-key-1",
+              "X-Bouncemoney-Signature": "v1=9eag729Em4AgYTwY5hyd0dFu9Asi_3NKOwhvOCu16QgYYZXSx2-YnKjCV505xM_0vMiNC7ApX6jUuJJRuA46Dw",
+              "X-Bouncemoney-Timestamp": "1792485466"
+            },
+            "method": "POST",
+            "path": "/checkout/sessions"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].headers.X-Bouncemoney-Signature": "differs between two runs of the original",
+        "$[0].headers.X-Bouncemoney-Timestamp": "differs between two runs of the original"
+      }
+    }
+  ]
+}

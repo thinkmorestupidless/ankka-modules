@@ -102,8 +102,11 @@ object Apply:
           case Some(existing) =>
             val made = existing.map(g => g.principal -> g.target).toSet
             plan.grantsMade.filterNot(g => made.contains(g.principal -> g.target)).foreach { g =>
-              cp.makeGrant(plan.projectId, g)
-              changes += s"grant ${g.target} made to ${g.principal}"
+              cp.makeGrant(plan.projectId, g) match
+                case Some(_) => changes += s"grant ${g.target} made to ${g.principal}"
+                case None    =>
+                  // 404: the grantee's project (or the topic) is not yet created; the grant is made on the next apply.
+                  notes += s"grant ${g.target} to ${g.principal} waits: the grantee's project is not yet created; apply its manifest, then this one again"
             }
             val received = cp.receivedGrants(plan.projectId).getOrElse(Vector.empty).map(g => g.principal -> g.target).toSet
             plan.grantsReceived.filterNot(g => received.contains(g.principal -> g.target)).foreach { g =>

@@ -1,0 +1,255 @@
+{
+  "scenario": "the same webhook arriving again for a captured provider session is acknowledged and the cashier is not told twice/cozeni",
+  "requirement": "005/FR-014",
+  "recorded_at": "2026-10-20T08:37:29.299645Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "apiKey": "\u003credacted\u003e",
+            "merchantId": "stub-merchant"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 3,
+          "terminalId": "terminal-023fbbe1"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/hpp/initiate",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 5000,
+          "callbackUrl": "http://host.docker.internal:18110/v1/payments/{payment}/capture",
+          "currency": "EUR",
+          "customerAddress": "1 Test Street",
+          "customerCity": "London",
+          "customerCountry": "GB",
+          "customerEmail": "player@example.com",
+          "customerFirstName": "Pat",
+          "customerId": "{player}",
+          "customerIp": "127.0.0.1",
+          "customerLastName": "Player",
+          "customerMobile": "4165550100",
+          "customerPhone": "+447700900123",
+          "customerPostCode": "N1 1AA",
+          "customerProvince": "ON",
+          "customerState": "London",
+          "method": "BTC",
+          "psp": "COZENI",
+          "redirectUrl": "https://merchant.example/return",
+          "subBrandId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "terminalProperties": {
+            "accountId": "stub-account",
+            "apiKey": "\u003credacted\u003e",
+            "merchantId": "stub-merchant"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "cryptoAmount": "0.00076923",
+          "cryptoCurrency": "BTC",
+          "paymentAddress": "bc1q6ca466db8f0b9fd9f2a4be00c344188d2869ef",
+          "pspTransactionId": "d4dab70f-1e34-4e68-9eda-297a78374400",
+          "redirectUrl": "",
+          "validUntil": "2026-10-20T09:37:29Z"
+        }
+      },
+      "capture": {
+        "cryptoAmount": "$.cryptoAmount",
+        "reference": "$.pspTransactionId"
+      },
+      "vary": {
+        "$.paymentAddress": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.validUntil": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:37:29.303148Z",
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "GET",
+            "path": "/pub/rate/BTC/EUR"
+          },
+          {
+            "at": "2026-10-20T08:37:29.303706Z",
+            "body": {
+              "accountId": "stub-account",
+              "callbackUrl": "http://localhost:8087/v1/webhooks/cozeni",
+              "convertCurrency": "EUR",
+              "dupCheck": true,
+              "paymentDesc": "deposit {reference}",
+              "paymentRef": "{reference}",
+              "requestAmount": 0.0007692307692307692,
+              "requestCurrency": "BTC",
+              "requestSalt": "1792485449309"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Content-Length": "330",
+              "Content-Type": "application/json",
+              "User-Agent": "Go-http-client/1.1",
+              "X-Cozeni-Txnauthz": "e265c5eb9d7636b9cd74b1fea6b4e3881b635539c9720e28e57d790dede30769"
+            },
+            "method": "POST",
+            "path": "/mxapi/stub-merchant/payintxn"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[1].at": "differs between two runs of the original",
+        "$[1].body.requestSalt": "differs between two runs of the original",
+        "$[1].headers.X-Cozeni-Txnauthz": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook: success",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "webhook: the same success again",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "reference": "{reference}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "observe: the capture, once",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:29.321865Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          },
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:37:29.32723Z",
+            "body": {
+              "pspTransactionId": "{reference}"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/v1/payments/{payment}/capture"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[1].at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

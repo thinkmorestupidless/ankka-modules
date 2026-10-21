@@ -48,6 +48,13 @@ Feature: A deposit is refused before it is credited
     Then the wallet refuses the deposit as unavailable
     And nothing is credited
 
+  Scenario: a deposit refused while responsible gambling could not be reached is checked again when it arrives again
+    Given a deposit the wallet refused as unavailable
+    And responsible gambling can be reached again
+    When the same deposit arrives again
+    Then the wallet asks responsible gambling about it again
+    And the deposit is credited once
+
   Scenario: a deposit refused for a limit is recorded captured and not credited, and the player is told the remaining allowance
     Given a deposit refused for a deposit limit
     When the cashier learns of it

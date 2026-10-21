@@ -6,7 +6,7 @@ Answers the original psp-gateway's Cozeni adapter
 ## Pointing the original at it
 
 ```
-COZENI_BASE_URL=http://cozeni-stub:18102
+COZENI_BASE_URL=http://psp-stub:18102
 ```
 
 Read in `internal/config/config.go:49-52,162-166` (default the sandbox, `https://test.cozeni.io`). The
@@ -21,9 +21,16 @@ adapter uses it for the rate (`adapter.go:68`), pay-in (`adapter.go:176`) and pa
 | `POST /mxapi/{merchantId}/payouttxn` | `200 {"txnId","resultCode":"01","resultMsg":"Pending"}`; with `failure`, `resultCode "93"` (the gateway reports REJECTED, `handler/payout.go:174`) |
 | `GET /mxapi/{merchantId}/payintxn/{txnId}` | the transaction's current state (the gateway never polls; here for completeness) |
 
-Outcome (`POST /__control`): pay-in `success` → callback `status=COMPLETED, resultCode=00`;
-`failure` → callback `status=CANCELLED`; `pending` → no callback. Payout `success` → callback
-`COMPLETED` with a `txnHash`; `failure` → rejected in the answer, no callback; `pending` → no callback.
+Outcome (`POST /__control`, [psp-stub's README](../psp-stub/README.md) has the whole contract):
+pay-in `success` → callback `status=COMPLETED, resultCode=00`; `failure` → callback `status=CANCELLED`
+with `resultCode` the `code` (default `99`); `pending` → no callback until the next control settles it;
+`overpayment` → `COMPLETED, resultCode=02`, `underpayment` → `COMPLETED, resultCode=03`, each with
+`receivedAmount` and `convertAmount` from the control (default 110% or 90% of the invoice; a
+`convertAmount` of `0` is the gateway's unpriced-underpayment failure, `handler/webhook.go:1066-1125`);
+`duplicate` → `422 {"msgCode":"13","msgText":"Duplicate paymentRef"}` (the stub's code: Cozeni's own is not
+in the original). Payout `success` → callback `COMPLETED` with a `txnHash`; `failure` → rejected in the
+answer with `resultCode` the `code` (default `93`), no callback; `pending` → no callback.
+`POST /__webhook {"reference": <paymentRef>}` sends a callback now.
 
 ## The callback
 
@@ -38,6 +45,7 @@ as the request's `X-cozeni-txnauthz` header, so the stub echoes it and needs no 
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PORT` | `18102` | listen port |
+| `COZENI_STUB_PORT` | `18102` | listen port |
 | `COZENI_STUB_API_KEY` | unset | when set, the request token is checked against it; must equal the terminal's `apiKey` |
+| `COZENI_STUB_WEBHOOK_URL` | under psp-stub, `PSP_STUB_GATEWAY_URL` + `/v1/webhooks/cozeni`; else the `callbackUrl` | replaces the `callbackUrl` up to `/v1/webhooks/cozeni` (a payout's `/withdrawal` is kept) |
 | `COZENI_STUB_WEBHOOK_DELAY_MS` | `500` | delay before the callback |

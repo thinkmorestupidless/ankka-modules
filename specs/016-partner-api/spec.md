@@ -113,6 +113,14 @@ could erase).
   partner is contracted decides whether it is built at all. Spec 001 FR-020's partner class is
   corrected to say the token is the `eitheror` realm's and this service issues nothing (FR-015).
 
+### Note from spec 005 (2026-10-18), for the plan
+
+- ankka 0.11's TypeScript SDK cannot shape a response: a success is `200` (or `204`) with the reply
+  codec's content type and no headers, and any other status is `HttpProblem`, always `text/plain`
+  (spec 005 research R1). Spec 005 moved to Scala for it. This service's refusals (a missing or
+  expired token, a disabled grant) are therefore plain text unless the plan settles on Scala or an
+  ankka change; the plan should decide which before the contract is written.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A partner authenticates and reads only its own brand (Priority: P1)

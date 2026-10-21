@@ -1,0 +1,92 @@
+{
+  "scenario": "a webhook for a reference the gateway does not know is acknowledged and moves nothing/dreamzpay",
+  "requirement": "005/FR-011",
+  "recorded_at": "2026-10-20T08:37:21.230894Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "memberId": "stub-member",
+            "secureKey": "\u003credacted\u003e",
+            "terminalId": "stub-terminal",
+            "totype": "stub-totype"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 4,
+          "terminalId": "terminal-f1d6d4bb"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook (forged): for unknown-ref",
+      "request": {
+        "method": "POST",
+        "path": "/v1/webhooks/dreamzpay",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "amount=50.00\u0026checksum=aa370c469939c6eb832009d1c715ba4c\u0026currency=EUR\u0026merchantTransactionId=unknown-ref\u0026paymentId=10000001\u0026status=Y\u0026transactionStatus=Y"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "10000001",
+          "result": "unknown_txn"
+        }
+      }
+    },
+    {
+      "name": "observe: no outcome",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

@@ -53,6 +53,26 @@ class ManifestSuite extends munit.FunSuite:
     assert(refused("shared-missing-service").exists(_.message.contains("ingest")))
   }
 
+  test("the repository's payments manifest reads the gateway's addresses from the installation (spec 005 T069)") {
+    val path     = Fixtures.root.resolve("shared/payments/manifest.json")
+    val manifest = Manifest.load(path).fold(ps => throw AssertionError(ps.mkString("; ")), identity)
+    val gateway  = manifest.services.find(_.name == "psp-gateway").get
+    val urls = Vector("DREAMZPAY_BASE_URL", "UNITYFINANCE_PAY_URL", "UNITYFINANCE_API_URL", "T365_BASE_URL", "COZENI_BASE_URL",
+      "EUPAYMENTZ_BASE_URL", "GIGADAT_BASE_URL", "BOUNCEMONEY_BASE_URL", "MORPHOSIS_BASE_URL", "DIGITARIUM_SANDBOX_URL",
+      "DIGITARIUM_PRODUCTION_URL")
+    urls.foreach(u => assertEquals(gateway.env.get(u), Some(s"setting:$u"), u))
+    assertEquals(gateway.env.get("PUBLIC_URL"), Some("setting:PSP_GATEWAY_PUBLIC_URL"))
+    assert(gateway.env.contains("PROVIDER_TIMEOUT") && gateway.env.contains("REDRIVE_INTERVAL"))
+    // dev-kind names every one at psp-stub; gke names none, so a production installation refuses by name
+    val devKind = Render.settingUses(manifest, Some(Fixtures.devKind)).filter(_.service == "psp-gateway")
+    assert(devKind.forall(_.value.isDefined), devKind.filter(_.value.isEmpty).map(_.setting).mkString(", "))
+    val gke = Installation.load(Fixtures.root, "gke").fold(e => throw AssertionError(e), identity)
+    val onGke = Render.settingUses(manifest, Some(gke)).filter(u => urls.contains(u.setting))
+    assertEquals(onGke.size, 11)
+    assert(onGke.forall(_.value.isEmpty), onGke.filter(_.value.isDefined).map(_.setting).mkString(", "))
+    assert(Render.settingUses(manifest, Some(gke)).exists(u => u.setting == "PSP_GATEWAY_PUBLIC_URL" && u.value.isDefined))
+  }
+
   test("the tools project holds the game provider simulator and nothing else (spec 020)") {
     val path = Fixtures.root.resolve("shared/tools/manifest.json")
     assert(Manifest.load(path).isRight, Manifest.load(path).left.toOption.mkString)

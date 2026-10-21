@@ -8,14 +8,15 @@ original's repository except in your own local checkout, and nothing is pushed t
 
 | Path | What it is |
 |---|---|
-| `compose.override.yml` | the seven payment-provider stubs beside the original's stack, and the gateway pointed at them |
+| `compose.override.yml` | `psp-stub` (the nine payment-provider stubs) beside the original's stack, and the gateway pointed at it |
 | `e2e-recording.patch` | adds `record_test.go` to the original's `tests/e2e`: with `EITHEROR_RECORD_TO` set, every request a test makes is recorded, and any to a host off this machine is refused |
 | `e2e-rg-kyc.patch` | the responsible-gambling and KYC scenarios the original's suite lacks (FR-030); see `e2e-rg-kyc.md` |
 | `e2e-merchant.patch` | unskips `TestScenario12_OnboardingGate3_FullChain`; corrects scenario 12's and 13's routing-rules calls to the route as served (spec 004 research R6); registers scenarios 12 to 14's DreamzPay terminal as a gateway integration carrying its credentials, as the original has needed since `2add2353`; clears a new casino player's `VERIFY_EMAIL` in scenario 14; and corrects two stale assertions (`memberId`, the wallet's minor units). See `tests/port/README.md` |
 | `merchant-driver/` | drives the original's `merchant-service` cashier for the behaviours the suite never reaches (spec 004); see *Recording the cashier directly* |
+| `gateway-driver/` | drives the original's `psp-gateway` against `psp-stub`, with a receiver standing in for merchant-service and casino-service (spec 005); see *Recording the gateway directly* |
 | `recorder/` | the transport `record_test.go` installs |
 | `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies |
-| `preflight/` | refuses to start while any outside system the original calls has no stub answering |
+| `preflight/` | refuses to start while any outside system the original calls has no stub answering: psp-stub's nine ports, the game provider and, given `-receiver`, the gateway driver's receiver |
 
 ## Steps
 
@@ -28,7 +29,7 @@ git apply ../ankka-casino/tests/original/e2e-recording.patch ../ankka-casino/tes
   ../ankka-casino/tests/original/e2e-merchant.patch
 docker compose -f dev/compose/full-stack.yml -f ../ankka-casino/tests/original/compose.override.yml up -d
 just dev-substrate & just dev-wallet-service & …         # the original's native services, as its README says
-(cd tests/fake-st8 && go run .) & (cd tests/uf-stub && go run .) &
+(cd tests/fake-st8 && go run .) &                         # the payment providers are psp-stub, in the compose override
 
 cd ../ankka-casino/tests && go run ./original/preflight -original ../../eitheror-platform   # must say every system is stubbed
 
@@ -124,6 +125,57 @@ for run in 1 2; do
 done
 go run ./original/merge -run1 /tmp/merchant-1 -run2 /tmp/merchant-2 -results1 /tmp/merchant-1.json -results2 /tmp/merchant-2.json -out port
 ```
+
+## Recording the gateway directly
+
+The suite reaches psp-gateway only through DreamzPay (scenarios 13 and 14, already recorded under
+`tests/port/merchant/`), so the other providers, the payouts and the outcome rules would rest on its
+unit suites, which mock the providers. `gateway-driver/` drives the gateway itself (spec 005 research
+R16; `specs/005-psp-gateway/contracts/recording.md`): one scenario per scenario of
+`features/payments/{providers,crypto,withdrawal-payments,outcomes}.feature`, per provider where the
+feature is per provider, each named exactly as the feature names it with the provider as a suffix
+(`…/cozeni`) and an outline's example in brackets. `scenarios.go` lists them; `go test` checks every
+name against the features and says which feature scenario is not driven and why.
+
+- **psp-stub is every provider.** Each scenario sets its provider's control to `pending` first, so no
+  webhook reaches the gateway before the scenario asks psp-stub for one (`POST /__webhook`); the step's
+  answer is the gateway's. A webhook the stub cannot make (a bad signature, a tampered amount, an
+  unknown reference, a crypto amount missing or unreadable) the driver writes itself, signed with the
+  stub's key or another, named `webhook (forged): …`. DreamzPay is reached by the player's browser, so the
+  driver plays it: the gateway's relay page, then its form posted to the stub.
+- **The receiver** (`gateway-driver/receiver`) stands in for merchant-service and casino-service:
+  point the gateway's `PSP_GATEWAY_MERCHANT_SERVICE_URL` and `CASINO_SERVICE_URL` at it. It serves the
+  terminal properties the gateway reads when a webhook arrives (each scenario's terminal carries the
+  stub's credentials, as `terminalProperties` on the initiation does), logs every outcome call (path,
+  body, headers without `X-Internal-Secret`), and answers as the scenario scripts: `200`, `503`, `400`,
+  or nothing.
+- **Steps.** psp-stub's `/__control` and the receiver's arrangement are `setup:`; psp-stub's
+  `/__received` (the provider call) and the receiver's log (the outcome call) are `observe:`, cut to
+  what the scenario caused, with form bodies as their fields, ids templated (`{payment}`,
+  `{reference}`, `{request}`) and timestamps, salts, tokens and signatures marked `vary`; the re-drive
+  (`POST /internal/v1/psp/redrive-undelivered`, the secret never recorded) is `time: …`. Credentials
+  in a body or a header are recorded as `<redacted>`.
+- **Settings the gateway needs** beyond the compose override's base URLs: `PSP_GATEWAY_BASE_URL` its
+  own address as psp-stub reaches it (`PSP_STUB_GATEWAY_URL` on psp-stub likewise), and
+  `MERCHANT_SERVICE_INTERNAL_SECRET` known to the driver (`-secret`). On the kind stack the receiver's
+  address is the host's on the kind network (`172.18.0.1` on Linux, `host.docker.internal` on macOS).
+
+```bash
+cd tests
+go run ./original/gateway-driver/receiver -addr :18110 &          # both runs share it
+go run ./original/preflight -original ../../eitheror-platform -receiver http://localhost:18110/healthz
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/gateway-$run EITHEROR_ORIGINAL_COMMIT=$(git -C ../../eitheror-platform rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -timeout 60m -json ./original/gateway-driver/... \
+      -args -gateway-url http://localhost:8087 -receiver-url http://host.docker.internal:18110 > /tmp/gateway-$run.json
+done
+go run ./original/merge -run1 /tmp/gateway-1 -run2 /tmp/gateway-2 -results1 /tmp/gateway-1.json -results2 /tmp/gateway-2.json -out port
+```
+
+The outcome scenarios wait out the original's budgets (10 seconds an attempt, 15 a delivery), so a
+run takes some minutes. A scenario the original answers otherwise than its feature expects fails in
+the run's result and is still recorded. `go test ./original/gateway-driver/...` without the tag
+checks the driver, the receiver and every forged signature against fakes.
 
 ## What a stub cannot do
 

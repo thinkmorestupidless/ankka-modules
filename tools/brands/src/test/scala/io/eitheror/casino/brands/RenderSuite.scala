@@ -21,8 +21,10 @@ class RenderSuite extends munit.FunSuite:
 
   test("Scala services are embedded; the TypeScript ones are processes") {
     assertEquals(plan.descriptors.find(_.name == "wallet").get.service.hosting, ServiceSpec.Embedded)
+    assertEquals(Render.ProcessHosted, Set("partner-api"))
     val shared = Render.plan(Fixtures.load("shared-payments"), None)
-    assertEquals(shared.descriptors.find(_.name == "psp-gateway").get.service.hosting, ServiceSpec.Process)
+    // Scala since spec 005 R1: as a process it ran in the sidecar's 128Mi process allowance and was OOM-killed (T072).
+    assertEquals(shared.descriptors.find(_.name == "psp-gateway").get.service.hosting, ServiceSpec.Embedded)
   }
 
   test("only kyc and reporting get a bucket") {
@@ -70,6 +72,24 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(ref.secretKeyRef.map(r => r.name -> r.key), Some("engagement-mail" -> "KEY"))
   }
 
+  test("a setting reference renders the installation's value, and is left out where the installation has none (spec 005 T069)") {
+    val shared  = Fixtures.load("shared-payments")
+    def env(i: Option[Installation]) =
+      Render.plan(shared, i).descriptors.find(_.name == "psp-gateway").get.service.env.flatMap(e => e.value.map(e.name -> _)).toMap
+    val devKind = env(Some(Fixtures.devKind))
+    assertEquals(devKind.get("DREAMZPAY_BASE_URL"), Some("http://psp-stub.casino-stubs.svc:18103"))
+    assertEquals(devKind.get("PUBLIC_URL"), Some("https://psp-gateway-payments.127.0.0.1.sslip.io:8443"))
+    assertEquals(devKind.get("PROVIDER_TIMEOUT"), Some("20s"), "a literal is still a literal")
+    val bare = env(Some(Fixtures.devKind.copy(settings = Fixtures.devKind.settings - "DREAMZPAY_BASE_URL" + ("T365_BASE_URL" -> ""))))
+    assert(!bare.contains("DREAMZPAY_BASE_URL"), "a missing setting leaves the variable out")
+    assert(!bare.contains("T365_BASE_URL"), "an empty setting leaves the variable out")
+    assert(!bare.values.exists(_.startsWith("setting:")), "no reference reaches a descriptor")
+    assert(!env(None).contains("PUBLIC_URL"), "without an installation nothing is resolved")
+    val uses = Render.settingUses(shared, Some(Fixtures.devKind))
+    assertEquals(uses.count(_.service == "psp-gateway"), 12)
+    assert(uses.forall(_.value.isDefined), uses.filter(_.value.isEmpty).map(_.setting).mkString(", "))
+  }
+
   test("ten topic declarations with their partitions; the status is told what ankka 0.11 cannot declare") {
     assertEquals(plan.topics.map(_.declaration.name).toSet.size, 10)
     plan.topics.foreach(t => assert(t.notes.exists(_.contains("lacks 043")), t.declaration.name))
@@ -86,6 +106,15 @@ class RenderSuite extends munit.FunSuite:
     val shared = Render.plan(Fixtures.load("shared-payments"), None, Vector("goldvibe", "spinvibe"))
     assertEquals(shared.grantsMade.map(_.principal).toSet,
       Set("service:goldvibe/payouts", "service:goldvibe/players", "service:spinvibe/payouts", "service:spinvibe/players"))
+    assertEquals(shared.grantsMade.filter(_.principal == "service:goldvibe/payouts").map(_.target),
+      Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
+        "route:psp-gateway GET /v1/payments/withdrawal-terminals"))
+  }
+
+  test("a brand's rendered plan receives the gateway's three payout grants (spec 005 research R12)") {
+    assertEquals(plan.grantsReceived.filter(_.target.startsWith("route:psp-gateway")).map(_.target),
+      Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
+        "route:psp-gateway GET /v1/payments/withdrawal-terminals"))
   }
 
   test("shared payments' merchant is told every brand to seed, from the repository's brand manifests (spec 004 FR-003)") {

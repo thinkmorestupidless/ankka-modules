@@ -1,7 +1,10 @@
-package main
+// Package eupaymentz answers as EuPaymentz (Secure1Gateway) does to the original's psp-gateway
+// adapter (services/psp-gateway/internal/eupaymentz), so a deposit can run with no request leaving
+// the machine. See README.md for the setting that points the gateway here. psp-stub serves it on
+// 18104.
+package eupaymentz
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -26,13 +29,16 @@ type Config struct {
 	// the EUPAYMENTZ terminal the original routes to. Default "sk-test", the value the original's
 	// own webhook test uses (services/psp-gateway/internal/handler/webhook_eupaymentz_test.go:84).
 	Passphrase string
+	// WebhookURL, when set, replaces merchant_url_callback.
+	WebhookURL string
 	// WebhookDelay is how long after processTx the outcome is posted to merchant_url_callback.
 	WebhookDelay time.Duration
 }
 
-// ConfigFromEnv reads EUPAYMENTZ_STUB_PASSPHRASE and EUPAYMENTZ_STUB_WEBHOOK_DELAY_MS.
+// ConfigFromEnv reads EUPAYMENTZ_STUB_PASSPHRASE, EUPAYMENTZ_STUB_WEBHOOK_URL and
+// EUPAYMENTZ_STUB_WEBHOOK_DELAY_MS.
 func ConfigFromEnv(getenv func(string) string) Config {
-	c := Config{Passphrase: "sk-test", WebhookDelay: 1500 * time.Millisecond}
+	c := Config{Passphrase: "sk-test", WebhookURL: getenv("EUPAYMENTZ_STUB_WEBHOOK_URL"), WebhookDelay: 1500 * time.Millisecond}
 	if v := getenv("EUPAYMENTZ_STUB_PASSPHRASE"); v != "" {
 		c.Passphrase = v
 	}
@@ -42,6 +48,12 @@ func ConfigFromEnv(getenv func(string) string) Config {
 		}
 	}
 	return c
+}
+
+// Start is the stub as psp-stub runs it.
+func Start(getenv func(string) string) (*stubhttp.Stub, http.Handler) {
+	stub := stubhttp.New("eupaymentz")
+	return stub, NewProvider(stub, ConfigFromEnv(getenv)).Handler()
 }
 
 // processTxRequest is the body the adapter posts (eupaymentz/adapter.go, processTxRequest).
@@ -84,20 +96,27 @@ const (
 
 type hosted struct{ returnUrl string }
 
+type payment struct {
+	transId, amount, callback string
+}
+
 // Provider holds the routes and the hosted sessions.
 type Provider struct {
 	stub *stubhttp.Stub
 	cfg  Config
 	// Send posts a webhook; replaced in tests.
-	Send func(url string, body []byte) error
+	Send func(url string, body []byte) stubhttp.Delivery
 
-	mu     sync.Mutex
-	hosted map[string]hosted
+	mu       sync.Mutex
+	hosted   map[string]hosted
+	payments map[string]payment // by merchant_payment_id, the gateway's txnRef
 }
 
-// NewProvider makes the provider; webhooks go out over http.DefaultClient.
+// NewProvider makes the provider; webhooks go out over HTTP.
 func NewProvider(stub *stubhttp.Stub, cfg Config) *Provider {
-	return &Provider{stub: stub, cfg: cfg, Send: postJSON, hosted: map[string]hosted{}}
+	p := &Provider{stub: stub, cfg: cfg, Send: postJSON, hosted: map[string]hosted{}, payments: map[string]payment{}}
+	stub.OnWebhook(p.send)
+	return p
 }
 
 // Handler is the provider's routes.
@@ -149,11 +168,16 @@ func (p *Provider) processTx(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	outcome := p.stub.Next()
+	control := p.stub.Control()
 	transId := newTransId()
 	transkey := randomHex(16)
+	callback := req.MerchantUrlCallback
+	if p.cfg.WebhookURL != "" {
+		callback = p.cfg.WebhookURL
+	}
 	p.mu.Lock()
 	p.hosted[transkey] = hosted{returnUrl: req.MerchantUrlReturn}
+	p.payments[req.MerchantPaymentId] = payment{transId: transId, amount: req.TransacAmount, callback: callback}
 	p.mu.Unlock()
 
 	scheme := "http"
@@ -188,24 +212,33 @@ func (p *Provider) processTx(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	if outcome == stubhttp.Pending || req.MerchantUrlCallback == "" {
-		return // the payment stays at the hosted page: no callback
+	if control.Outcome == stubhttp.Pending {
+		p.stub.Hold(req.MerchantPaymentId) // the payment stays at the hosted page: no callback
+		return
 	}
-	hook := p.Webhook(req.MerchantPaymentId, transId, req.TransacAmount, outcome)
-	body, _ := json.Marshal(hook)
-	callback := req.MerchantUrlCallback
-	time.AfterFunc(p.cfg.WebhookDelay, func() {
-		if err := p.Send(callback, body); err != nil {
-			log.Printf("eupaymentz stub: webhook to %s failed: %v", callback, err)
-		}
-	})
+	if callback == "" {
+		return
+	}
+	ref := req.MerchantPaymentId
+	time.AfterFunc(control.Delay(p.cfg.WebhookDelay), func() { _, _ = p.send(ref, control) })
 }
 
-// Webhook builds the signed callback for one payment and outcome.
-func (p *Provider) Webhook(merchantPaymentId, transId, amount string, outcome stubhttp.Outcome) Webhook {
-	status, description := statusCaptured, "Transaction approved"
-	if outcome == stubhttp.Failure {
+// Webhook builds the signed callback for one payment and control: success 00000, failure the
+// control's code (default S00050001), pending PEND.
+func (p *Provider) Webhook(merchantPaymentId, transId, amount string, c stubhttp.Control) (Webhook, error) {
+	var status, description string
+	switch c.Outcome {
+	case stubhttp.Success:
+		status, description = statusCaptured, "Transaction approved"
+	case stubhttp.Failure:
 		status, description = statusRefused, "Transaction refused by issuer"
+		if c.Code != "" {
+			status = c.Code
+		}
+	case stubhttp.Pending:
+		status, description = statusPending, "Transaction pending"
+	default:
+		return Webhook{}, fmt.Errorf("eupaymentz has no callback for %q", c.Outcome)
 	}
 	return Webhook{
 		RespTransId:                transId,
@@ -216,7 +249,27 @@ func (p *Provider) Webhook(merchantPaymentId, transId, amount string, outcome st
 		RespTransDescriptionStatus: description,
 		RespSha:                    Sign(p.cfg.Passphrase, transId, amount, status),
 		RespDescriptor:             "-",
+	}, nil
+}
+
+func (p *Provider) send(ref string, c stubhttp.Control) (stubhttp.Delivery, error) {
+	p.mu.Lock()
+	pay, ok := p.payments[ref]
+	p.mu.Unlock()
+	if !ok {
+		return stubhttp.Delivery{}, stubhttp.ErrUnknownReference
 	}
+	hook, err := p.Webhook(ref, pay.transId, pay.amount, c)
+	if err != nil {
+		return stubhttp.Delivery{}, err
+	}
+	if pay.callback == "" {
+		return stubhttp.Delivery{}, fmt.Errorf("no merchant_url_callback for %s", ref)
+	}
+	body, _ := json.Marshal(hook)
+	d := p.Send(pay.callback, body)
+	log.Printf("eupaymentz stub: webhook %s for %s to %s answered %d (err=%v)", hook.RespTransStatus, ref, pay.callback, d.Status, d.Err)
+	return d, nil
 }
 
 // hostedPage stands in for the card page the player is redirected to: it sends them back.
@@ -233,17 +286,10 @@ func (p *Provider) hostedPage(w http.ResponseWriter, r *http.Request) {
 		html.EscapeString(h.returnUrl))
 }
 
-func postJSON(url string, body []byte) error {
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Post(url, "application/json", bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	resp.Body.Close()
-	if resp.StatusCode/100 != 2 {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-	return nil
+var client = &http.Client{Timeout: 10 * time.Second}
+
+func postJSON(url string, body []byte) stubhttp.Delivery {
+	return stubhttp.Post(client, url, "application/json", nil, body)
 }
 
 // newTransId is EuPaymentz's id shape: "T" and 19 digits.

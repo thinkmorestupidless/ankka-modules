@@ -96,6 +96,15 @@ Settled with specs 008–011 once they existed.
   rejected, submitted and pending (FR-003); "under review" is answered for a document pending or an
   account set pending.
 
+### Note from spec 005 (2026-10-18), not yet clarified here
+
+- The gateway's payout answers are spec 005's `contracts/payouts.md`: `initiated`, `completed`,
+  `rejected`, `in_doubt` and `already_initiated`, the original's words. FR-018 reads all but
+  `already_initiated`, which should be read as *initiated*: the provider already holds the request
+  (spec 005 research, *Findings for other specs* 5; kept by the decision of 2026-10-19, spec 005 *Clarifications*). A provider's `401`/`403` is `rejected` / `unauthorised` for every provider.
+- A payout terminal's coins are its `supportedCurrencies` property, as the original's casino-service
+  reads it; the gateway's `GET /v1/payments/withdrawal-terminals` answers them as `coins[]`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A verified player requests a withdrawal and the money is held (Priority: P1)

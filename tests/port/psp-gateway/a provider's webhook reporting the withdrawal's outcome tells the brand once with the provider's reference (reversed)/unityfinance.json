@@ -1,0 +1,196 @@
+{
+  "scenario": "a provider's webhook reporting the withdrawal's outcome tells the brand once with the provider's reference (reversed)/unityfinance",
+  "requirement": "005/FR-014",
+  "recorded_at": "2026-10-20T08:38:51.921612Z",
+  "original": {
+    "commit": "01371a54"
+  },
+  "runs": 2,
+  "service": "psp-gateway",
+  "steps": [
+    {
+      "name": "setup: psp-stub control: pending",
+      "request": {
+        "method": "POST",
+        "path": "/__control",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "outcome": "pending"
+        }
+      }
+    },
+    {
+      "name": "setup: merchant-service holds the terminal",
+      "request": {
+        "method": "PUT",
+        "path": "/__terminals/{terminal}",
+        "service": "receiver",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "properties": {
+            "accountId": "stub-account",
+            "checkoutId.VISA": "stub-checkout",
+            "purseId": "stub-purse",
+            "signKey": "\u003credacted\u003e",
+            "userId": "stub-user",
+            "withdrawalApiKey": "\u003credacted\u003e"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "properties": 6,
+          "terminalId": "terminal-5bca6424"
+        }
+      },
+      "vary": {
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "initiate the withdrawal payment under request",
+      "request": {
+        "method": "POST",
+        "path": "/v1/psp/payout/unityfinance",
+        "service": "psp-gateway",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "brandId": "{brand}",
+          "currency": "EUR",
+          "email": "player@example.com",
+          "firstName": "Pat",
+          "iban": "GB33BUKB20201555555555",
+          "lastName": "Player",
+          "merchantId": "{subBrand}",
+          "terminalId": "{terminal}",
+          "withdrawalRequestId": "{request}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentNo": "request-ee0b724e",
+          "reason": "",
+          "status": "INITIATED",
+          "ufWithdrawalId": "49132788"
+        }
+      },
+      "vary": {
+        "$.paymentNo": "differs between two runs of the original",
+        "$.ufWithdrawalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the provider call",
+      "request": {
+        "method": "GET",
+        "path": "/__received",
+        "service": "psp-stub"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "at": "2026-10-20T08:38:51.926119Z",
+            "body": {
+              "action": "process",
+              "amount": "50.00",
+              "calcKey": "psPayeeAmount",
+              "currency": "EUR",
+              "details[email]": "player@example.com",
+              "details[first_name]": "Pat",
+              "details[iban]": "GB33BUKB20201555555555",
+              "details[last_name]": "Player",
+              "interactionUrl": "http://localhost:8087/v1/webhooks/unityfinance/withdrawal?merchantId={subBrand}\u0026brandId={brand}\u0026terminalId={terminal}",
+              "method": "eubanking",
+              "paymentNo": "{request}",
+              "purseId": "stub-purse",
+              "useShortAlias": "true"
+            },
+            "headers": {
+              "Accept-Encoding": "gzip",
+              "Authorization": "\u003credacted\u003e",
+              "Content-Length": "465",
+              "Content-Type": "application/x-www-form-urlencoded",
+              "Ik-Api-Account-Id": "stub-account",
+              "User-Agent": "Go-http-client/1.1"
+            },
+            "method": "POST",
+            "path": "/v1/withdraw"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "webhook: reversed",
+      "request": {
+        "method": "POST",
+        "path": "/__webhook",
+        "service": "psp-stub",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "reversed",
+          "reference": "{request}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "body": "",
+          "status": 200
+        }
+      }
+    },
+    {
+      "name": "observe: the brand told, once",
+      "request": {
+        "method": "GET",
+        "path": "/__received?path={payment}\u0026path={request}",
+        "service": "receiver"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "answered": 200,
+            "at": "2026-10-20T08:38:51.929019Z",
+            "body": {
+              "brandId": "{brand}",
+              "outcome": "REVERSED",
+              "pspReference": "49132788"
+            },
+            "headers": {
+              "Content-Type": "application/json"
+            },
+            "method": "POST",
+            "path": "/internal/v1/casino/withdrawal-requests/{request}/outcome"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].at": "differs between two runs of the original",
+        "$[0].body.pspReference": "differs between two runs of the original"
+      }
+    }
+  ]
+}
