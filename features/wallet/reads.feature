@@ -10,6 +10,11 @@ Feature: Reads of a wallet: balance, restricted funds status, transactions and s
     Then real balance, restricted balance and currency are returned as major-unit strings
     And the primary record's status, wagering requirement, wagered amount and release progress are returned
 
+  Scenario: a balance read reports the reserved and the available amount beside real balance
+    Given a real balance of "1000" and a reservation of "600" placed for order "o1"
+    When the balance is read
+    Then real balance "1000", reserved amount "600" and available amount "400" are returned as major-unit strings
+
   Scenario: a restricted funds status read lists every open record in order with the primary record's view as the headline
     Given open restricted funds records
     When the restricted funds status is read
