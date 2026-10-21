@@ -130,3 +130,44 @@ Feature: A captured deposit reaches the brand's wallet once, and a failed, expir
     Given a captured underpayment
     When its capture is delivered again
     Then the invoiced amount on record is not overwritten
+
+  Scenario: a capture signed under the payment provider's webhook secret and stamped within 300 seconds is accepted
+    Given a payment awaiting redirect at a payment provider whose credential holds a webhook secret
+    When the gateway reports the capture signed under that secret and stamped with a time within 300 seconds
+    Then the payment is captured
+
+  Scenario: a capture from a payment provider with no webhook secret is accepted unsigned
+    Given a payment awaiting redirect at a payment provider whose credential holds no webhook secret
+    When the gateway reports the capture with no signature and no time stamped on it
+    Then the payment is captured
+
+  Scenario Outline: a capture carrying one of the signature and the stamped time without the other is refused as missing its signature
+    Given a payment awaiting redirect at a payment provider whose credential holds a webhook secret
+    When the gateway reports the capture with <carried> and without <missing>
+    Then the capture is refused as missing its signature
+    And the payment stays awaiting redirect
+
+    Examples:
+      | carried          | missing          |
+      | the signature    | the stamped time |
+      | the stamped time | the signature    |
+
+  Scenario Outline: a capture stamped with a time older than 300 seconds or whose signature does not match is refused and moves nothing
+    Given a payment awaiting redirect at a payment provider whose credential holds a webhook secret
+    When the gateway reports the capture <how>
+    Then the capture is refused as not verified
+    And the payment stays awaiting redirect
+    And no wallet is called
+
+    Examples:
+      | how                                               |
+      | stamped with a time older than 300 seconds        |
+      | signed under another secret                       |
+      | signed over a body other than the one it carries  |
+
+  Scenario: a signed capture arriving while the secret cannot be read is answered as unavailable for now, never as unauthenticated
+    Given a payment awaiting redirect at a payment provider whose credential holds a webhook secret
+    And the secret store cannot be read
+    When the gateway reports the capture signed under that secret
+    Then the capture is answered as unavailable for now
+    And the payment stays awaiting redirect

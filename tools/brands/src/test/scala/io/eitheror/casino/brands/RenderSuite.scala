@@ -87,3 +87,11 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(shared.grantsMade.map(_.principal).toSet,
       Set("service:goldvibe/payouts", "service:goldvibe/players", "service:spinvibe/payouts", "service:spinvibe/players"))
   }
+
+  test("shared payments' merchant is told every brand to seed, from the repository's brand manifests (spec 004 FR-003)") {
+    val shared   = Render.plan(Fixtures.load("shared-payments"), None, Vector("spinvibe", "goldvibe"))
+    val merchant = shared.descriptors.find(_.name == "merchant").get
+    assertEquals(merchant.service.env.find(_.name == "MERCHANT_BRANDS").flatMap(_.value), Some("""[{"slug":"goldvibe"},{"slug":"spinvibe"}]"""))
+    assert(!shared.descriptors.find(_.name == "ingest").get.service.env.exists(_.name == "MERCHANT_BRANDS"))
+  }
+

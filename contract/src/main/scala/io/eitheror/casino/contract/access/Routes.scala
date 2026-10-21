@@ -20,6 +20,10 @@ object Routes:
     val NotAffiliate    = "not_affiliate"
     val NotPartner      = "not_partner"
     val WrongIssuer     = "wrong_issuer"
+    /** An operator of the payments backoffice reading or changing outside their level (spec 004 FR-002). */
+    val ScopeViolation  = "scope_violation"
+    /** A staff token with no role of the payments backoffice's privilege table (spec 004 FR-033). */
+    val NotPaymentsOperator = "not_payments_operator"
 
   /** The issuer names the brands tool renders into `ANKKA_AUTH_ISSUERS`. */
   val PlayerIssuer = "player"
@@ -45,6 +49,50 @@ object Routes:
       if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
       else if p.roles.contains(s"brand_$slug") || p.roles.contains("platform_admin") then None
       else Some(s"${Refusal.BrandNotInRoles}: no role names brand $slug")
+    }
+
+  /**
+   * The payments backoffice's privilege table (spec 004 research R10; the original's
+   * `PrivilegeCheck.roleLevels`): a role and its level. An operator holds the highest of theirs.
+   */
+  val PaymentsRoles: Map[String, Int] = Map(
+    "platform_admin"     -> 100,
+    "compliance_officer" -> 60,
+    "fraud_analyst"      -> 60,
+    "resource_owner"     -> 50,
+    "resource_admin"     -> 40,
+    "support_agent"      -> 30,
+    "resource_operator"  -> 30,
+    "resource_finance"   -> 25,
+    "resource_developer" -> 20,
+    "resource_viewer"    -> 10
+  )
+
+  /** The claims an operator's level comes from (decision 0050); never `customer_id`, which names the deployment. */
+  val ScopeLevelClaim = "eitheror_scope_level"
+  val ScopeIdClaim    = "eitheror_scope_id"
+
+  /** The levels an operator of the payments backoffice may hold, as the claim spells them. */
+  val PaymentsScopeLevels: Set[String] = Set("platform", "holding", "company", "sub_brand")
+
+  /**
+   * An operator of the shared payments (spec 004 FR-033): signed in at the `eitheror` realm, holding
+   * a role of the payments privilege table, with a level and, below the platform, the id of the
+   * holding, company or sub-brand they stand at. What the level permits is the service's to check
+   * against its hierarchy; a token with no level grants nothing rather than everything.
+   */
+  def paymentsOperator(authenticate: => Acl = Oidc.authenticate()): Acl =
+    refine(authenticate) { p =>
+      val level = p.claims.get(ScopeLevelClaim).map(_.trim).filter(_.nonEmpty)
+      val id    = p.claims.get(ScopeIdClaim).map(_.trim).filter(_.nonEmpty)
+      if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
+      else if !p.roles.exists(PaymentsRoles.contains) then Some(s"${Refusal.NotPaymentsOperator}: no role of the payments backoffice")
+      else
+        level match
+          case None => Some(s"${Refusal.ScopeViolation}: the token names no $ScopeLevelClaim")
+          case Some(l) if !PaymentsScopeLevels(l) => Some(s"${Refusal.ScopeViolation}: '$l' is not an operator's level")
+          case Some(l) if l != "platform" && id.isEmpty => Some(s"${Refusal.ScopeViolation}: the token names no $ScopeIdClaim")
+          case _ => None
     }
 
   /** An affiliate, on the programme's routes. */

@@ -24,6 +24,11 @@ roles, the public operator clients (`casino-backoffice`, `payments-backoffice`, 
 `eitheror-cli`) and the password policy, written here rather than copied, so it carries no credential
 (the original's file holds client secrets and SMTP settings). Every client's tokens carry the audience
 `eitheror-casino`, which every casino service checks on a staff token (the manifests' `staffAudience`;
-decided 2026-10-10: keep the check, add the mapper). The brands tool imports it when an installation
+decided 2026-10-10: keep the check, add the mapper). The operator clients (`casino-backoffice`,
+`payments-backoffice`, `affiliate-portal`) also carry the operator's scope (`eitheror_scope_level`,
+`eitheror_scope_id`, `eitheror_scope_ancestors`) with the original's attribute mappers, and the realm's
+user profile is the one the original's realm-sync sets (`unmanagedAttributePolicy=ADMIN_EDIT`, the two
+scope attributes declared): without it Keycloak 24 drops the attributes merchant writes on an operator,
+and without the mappers every operator route refuses the token. The brands tool imports it when an installation
 lacks the realm, and never overwrites one that exists. Confidential clients (partners, machine accounts)
 are added by the specs that need them.

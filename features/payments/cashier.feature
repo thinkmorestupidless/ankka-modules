@@ -11,12 +11,12 @@ Feature: A sub-brand opens a cashier session under its key, submits it and reads
     When the sub-brand creates a cashier session for "5000" minor units of "EUR" for player "goldvibe:p1" in "GB" under its key
     Then it is answered with a cashier ticket and "sim-eur" as the one available terminal
 
-  Scenario: submitting a session naming an offered terminal initiates the payment and answers the payment id, the status and the player's next address
+  Scenario: submitting a session naming an offered terminal initiates the payment and answers the payment id and the status
     Given a cashier session for "5000" minor units of "EUR" offering terminal "sim-eur"
     When the sub-brand submits it naming terminal "sim-eur"
     Then the gateway is asked to initiate a hosted page payment with the payment provider
     And the payment is recorded as awaiting redirect with a deadline "30" minutes away
-    And it is answered with the payment id, the status and the payment provider's redirect address
+    And it is answered with the payment id and the status, and not the redirect address
 
   Scenario: reading a payment tells its status in the frontend's words with its amounts, currency, provider, scheme, terminal and redirect address
     Given a payment awaiting redirect

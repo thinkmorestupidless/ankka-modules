@@ -8,7 +8,7 @@ import com.thinkmorestupidless.ankka.controlplane.api.ServiceDescriptor.given
 import java.io.FileInputStream
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
 import java.time.Duration
@@ -117,15 +117,31 @@ object HttpControlPlane:
 
   /** Configured as the `ankka` CLI is configured, so one `ankka login` serves both. */
   def fromEnvironment(): HttpControlPlane =
-    val saved = Paths.get(sys.props("user.home"), ".ankka", "config.json")
+    val (url, token, ca) = settings()
+    HttpControlPlane(url, token, ca)
+
+  /**
+   * The control plane's address, token and authority: `ANKKA_*`, then the CLI's `config.json`, and for the
+   * token last the access token `ankka login` saved in `credentials.json` under that address.
+   */
+  def settings(env: Map[String, String] = sys.env, home: Path = Paths.get(sys.props("user.home"))): (String, Option[String], Option[String]) =
+    val dir = home.resolve(".ankka")
+    val saved = dir.resolve("config.json")
     val config =
       if Files.exists(saved) then scala.util.Try(ujsonLite(Files.readString(saved))).getOrElse(Map.empty)
       else Map.empty[String, String]
-    HttpControlPlane(
-      url = sys.env.get("ANKKA_URL").orElse(config.get("url")).getOrElse("http://localhost:9000"),
-      token = sys.env.get("ANKKA_TOKEN").orElse(config.get("token")),
-      ca = sys.env.get("ANKKA_CA").orElse(config.get("ca"))
-    )
+    val url = env.get("ANKKA_URL").orElse(config.get("url")).getOrElse("http://localhost:9000")
+    val token = env.get("ANKKA_TOKEN").orElse(config.get("token")).orElse(login(dir.resolve("credentials.json"), url))
+    (url, token, env.get("ANKKA_CA").orElse(config.get("ca")))
+
+  /** The access token the CLI's login saved for this control plane, if it saved one. */
+  private def login(credentials: Path, url: String): Option[String] =
+    if !Files.exists(credentials) then None
+    else
+      scala.util.Try {
+        val node = com.fasterxml.jackson.databind.ObjectMapper().readTree(Files.readString(credentials))
+        Option(node.get(url.stripSuffix("/"))).flatMap(n => Option(n.get("accessToken"))).filter(_.isTextual).map(_.asText())
+      }.toOption.flatten
 
   /** The four string fields of the CLI's config file; nothing else is read from it. */
   private def ujsonLite(text: String): Map[String, String] =

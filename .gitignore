@@ -8,3 +8,5 @@ __pycache__/
 .DS_Store
 .claude/settings.local.json
 .claude/worktrees/
+.akka-license-key
+.lightbend-commercial-credentials-token

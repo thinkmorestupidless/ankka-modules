@@ -1,0 +1,316 @@
+{
+  "scenario": "a failure reported by the gateway fails the payment with the provider's code and reason and reaches the brand",
+  "requirement": "004/FR-025",
+  "recorded_at": "2026-10-18T06:25:02.075388Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "merchant",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "b4ef6746-9e4f-3c59-8bcd-c42290527f5a",
+          "holdingId": "8673dca1-bfd3-39e7-95b0-8a70394b4156",
+          "subBrandId": "0574f4eb-21a9-371e-8413-f3ef229ce696"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "0574f4eb-21a9-371e-8413-f3ef229ce696",
+          "merchantKey": "eo_live_acd6fe141737444eaf9d1fff"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "available_terminals": [
+            {
+              "name": "SIM",
+              "scheme": "CARD_VISA",
+              "terminalEntityId": "SIM"
+            }
+          ],
+          "redirectUrl": "https://merchant.example/return",
+          "session_token": "07b70c13-f925-4db1-9b4b-e1023aa865b3",
+          "transactionId": "txn-5343ef9c"
+        }
+      },
+      "capture": {
+        "session": "$.session_token"
+      },
+      "vary": {
+        "$.session_token": "differs between two runs of the original",
+        "$.transactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/{session}/submit",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "selectedTerminalEntityId": "SIM"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "0e92f6f9-6185-49e9-8188-0b087165a090",
+          "status": "AWAITING_REDIRECT"
+        }
+      },
+      "capture": {
+        "payment": "$.paymentId"
+      },
+      "vary": {
+        "$.paymentId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "fail",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/fail",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "failureCode": "05",
+          "failureReason": "Do not honour"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read payment",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/{payment}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "amount": "50.00",
+          "amountCents": 5000,
+          "createdAt": "2026-10-18T06:25:02.417448423Z",
+          "currency": "EUR",
+          "customerRef": "brand-6e89450c:player-23f6eecb",
+          "expiresAt": "2026-10-18T06:30:02.417448423Z",
+          "failedAt": "2026-10-18T06:25:02.428268946Z",
+          "failureCode": "05",
+          "failureReason": "Do not honour",
+          "merchantId": "0574f4eb-21a9-371e-8413-f3ef229ce696",
+          "psp": "SIMULATOR",
+          "pspTransactionId": "2b9fa572-a46c-417e-bde8-b53db034cb63",
+          "redirectUrl": "http://psp.eitheror.local/psp-simulator/redirect/2b9fa572-a46c-417e-bde8-b53db034cb63",
+          "scheme": "CARD_VISA",
+          "status": "FAILED",
+          "terminalId": "SIM"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.customerRef": "differs between two runs of the original",
+        "$.expiresAt": "differs between two runs of the original",
+        "$.failedAt": "differs between two runs of the original",
+        "$.merchantId": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "available_terminals": [
+            {
+              "name": "SIM",
+              "scheme": "CARD_VISA",
+              "terminalEntityId": "SIM"
+            }
+          ],
+          "redirectUrl": "https://merchant.example/return",
+          "session_token": "cfc4e54e-93cb-4330-8fb2-959a9d5e83a5",
+          "transactionId": "txn-5343ef9c"
+        }
+      },
+      "capture": {
+        "session": "$.session_token"
+      },
+      "vary": {
+        "$.session_token": "differs between two runs of the original",
+        "$.transactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/{session}/submit",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "selectedTerminalEntityId": "SIM"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "9a476403-a7d1-49e9-a842-6b0dd6b3d06a",
+          "status": "AWAITING_REDIRECT"
+        }
+      },
+      "capture": {
+        "payment": "$.paymentId"
+      },
+      "vary": {
+        "$.paymentId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "fail",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/fail",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read payment",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/{payment}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "amount": "50.00",
+          "amountCents": 5000,
+          "createdAt": "2026-10-18T06:25:02.484239913Z",
+          "currency": "EUR",
+          "customerRef": "brand-6e89450c:player-23f6eecb",
+          "expiresAt": "2026-10-18T06:30:02.484239913Z",
+          "failedAt": "2026-10-18T06:25:02.493133626Z",
+          "failureReason": "Payment could not be processed",
+          "merchantId": "0574f4eb-21a9-371e-8413-f3ef229ce696",
+          "psp": "SIMULATOR",
+          "pspTransactionId": "ef09ee1d-4639-468f-9179-7fd986f92263",
+          "redirectUrl": "http://psp.eitheror.local/psp-simulator/redirect/ef09ee1d-4639-468f-9179-7fd986f92263",
+          "scheme": "CARD_VISA",
+          "status": "FAILED",
+          "terminalId": "SIM"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.customerRef": "differs between two runs of the original",
+        "$.expiresAt": "differs between two runs of the original",
+        "$.failedAt": "differs between two runs of the original",
+        "$.merchantId": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    }
+  ]
+}

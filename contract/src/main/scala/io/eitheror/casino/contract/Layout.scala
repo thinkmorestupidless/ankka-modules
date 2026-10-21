@@ -30,8 +30,12 @@ object Layout:
     "tools"     -> Vector("game-provider-simulator")
   )
 
-  /** Services whose every route is of class `service`: never exposed (contracts/routes.md). */
-  val ServiceOnly: Set[String] = Set("merchant")
+  /**
+   * Services whose every route is of class `service`: never exposed (contracts/routes.md). Empty since
+   * spec 004 (research R1, 2026-10-12): `merchant` serves the payments backoffice and the invitation
+   * page from a browser, so it is exposed and its service-class routes refuse a token by their ACL.
+   */
+  val ServiceOnly: Set[String] = Set.empty
 
   /** Ids no brand may take: the shared projects and ankka's own reservations (FR-001, research R2). */
   val ReservedSlugs: Set[String] = SharedProjects.keySet ++ Set("platform", "local", "machine")
@@ -63,7 +67,8 @@ object Layout:
 
   /** Topics of the shared projects that are part of the contract (FR-011). */
   val SharedTopics: Map[String, Vector[String]] = Map(
-    "payments"  -> Vector("payments.merchants"),
+    // platform.audit: merchant's audit records (spec 004 FR-034, research R13); how reasoner/audit reads them is spec 018's.
+    "payments"  -> Vector("payments.merchants", "platform.audit"),
     "programme" -> Vector.empty,
     "reasoner"  -> Vector.empty,
     "tools"     -> Vector.empty

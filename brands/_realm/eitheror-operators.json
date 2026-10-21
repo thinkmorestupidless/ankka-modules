@@ -141,6 +141,62 @@
           }
         }
       ]
+    },
+    {
+      "name": "eitheror-operator-scope",
+      "description": "Puts the operator's scope (eitheror_scope_level, eitheror_scope_id, eitheror_scope_ancestors) in the operator clients' tokens, with the original's mappers",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "eitheror-scope-id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "eitheror_scope_id",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "eitheror_scope_id",
+            "jsonType.label": "String",
+            "multivalued": "false"
+          }
+        },
+        {
+          "name": "eitheror-scope-level",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "eitheror_scope_level",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "eitheror_scope_level",
+            "jsonType.label": "String",
+            "multivalued": "false"
+          }
+        },
+        {
+          "name": "eitheror-scope-ancestors",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "eitheror_scope_ancestors",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "eitheror_scope_ancestors",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        }
+      ]
     }
   ],
   "defaultDefaultClientScopes": [
@@ -171,7 +227,8 @@
       "defaultClientScopes": [
         "roles",
         "profile",
-        "eitheror-casino-audience"
+        "eitheror-casino-audience",
+        "eitheror-operator-scope"
       ]
     },
     {
@@ -196,7 +253,8 @@
       "defaultClientScopes": [
         "roles",
         "profile",
-        "eitheror-casino-audience"
+        "eitheror-casino-audience",
+        "eitheror-operator-scope"
       ]
     },
     {
@@ -221,7 +279,8 @@
       "defaultClientScopes": [
         "roles",
         "profile",
-        "eitheror-casino-audience"
+        "eitheror-casino-audience",
+        "eitheror-operator-scope"
       ]
     },
     {
@@ -244,5 +303,18 @@
         "eitheror-casino-audience"
       ]
     }
-  ]
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "providerId": "declarative-user-profile",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"eitheror_scope_id\",\"displayName\":\"Scope ID\",\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]},\"multivalued\":false},{\"name\":\"eitheror_scope_level\",\"displayName\":\"Scope Level\",\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]},\"multivalued\":false}],\"groups\":[{\"name\":\"user-metadata\",\"displayHeader\":\"User metadata\",\"displayDescription\":\"Attributes, which refer to user metadata\"}],\"unmanagedAttributePolicy\":\"ADMIN_EDIT\"}"
+          ]
+        }
+      }
+    ]
+  }
 }

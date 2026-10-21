@@ -1,4 +1,20 @@
 {
+  "TestScenario12_OnboardingGate2_ServicesHealthy": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario12_OnboardingGate3_FullChain": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario13_DreamzPay_FullChain": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario14_CasinoDeposit_PlayerToWallet": [
+    "pass",
+    "pass"
+  ],
   "TestScenario15_St8Wallet_BalanceWithoutToken": [
     "pass",
     "pass"
@@ -128,6 +144,78 @@
     "pass"
   ],
   "TestScenarioFreeSpinsPlay_StacksOnActiveBonus": [
+    "pass",
+    "pass"
+  ],
+  "a capture carrying one of the signature and the stamped time without the other is refused as missing its signature": [
+    "pass",
+    "pass"
+  ],
+  "a capture for a sub-brand of type payments that names no brand is captured with no wallet called": [
+    "pass",
+    "pass"
+  ],
+  "a capture from a payment provider with no webhook secret is accepted unsigned": [
+    "pass",
+    "pass"
+  ],
+  "a capture reported by the gateway captures the payment, confirms the deposit to the wallet once and is acknowledged only after the wallet answers": [
+    "pass",
+    "pass"
+  ],
+  "a capture signed under the payment provider's webhook secret and stamped within 300 seconds is accepted": [
+    "pass",
+    "pass"
+  ],
+  "a capture stamped with a time older than 300 seconds or whose signature does not match is refused and moves nothing": [
+    "pass",
+    "pass"
+  ],
+  "a captured underpayment delivered again keeps the invoiced amount on record": [
+    "pass",
+    "pass"
+  ],
+  "a crypto capture whose valuation cannot be trusted is refused and left undelivered at the gateway": [
+    "pass",
+    "pass"
+  ],
+  "a crypto overpayment credits the invoiced amount and records the surplus": [
+    "pass",
+    "pass"
+  ],
+  "a crypto underpayment credits the valuation and keeps the invoiced amount on record": [
+    "pass",
+    "pass"
+  ],
+  "a failure reported by the gateway fails the payment with the provider's code and reason and reaches the brand": [
+    "pass",
+    "pass"
+  ],
+  "a failure, an expiry or an abandon arriving for a captured payment changes nothing and is acknowledged": [
+    "pass",
+    "pass"
+  ],
+  "a payment past its deadline that nothing has yet touched reads as expired with its reason": [
+    "pass",
+    "pass"
+  ],
+  "a payment past its deadline whose outcome the gateway still holds undelivered is not expired and waits again": [
+    "pass",
+    "pass"
+  ],
+  "a payment past its deadline whose provider session is resolved or unknown expires with its reason and reaches the brand": [
+    "pass",
+    "pass"
+  ],
+  "a player abandoning the session with its cashier ticket fails the payment as abandoned and reaches the brand": [
+    "pass",
+    "pass"
+  ],
+  "submitting a session already submitted returns the first submit's answer and makes no second payment": [
+    "pass",
+    "pass"
+  ],
+  "the same capture reported again leaves the payment captured, calls the wallet nothing and is acknowledged": [
     "pass",
     "pass"
   ]

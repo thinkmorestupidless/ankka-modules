@@ -28,7 +28,7 @@ jobs:
         run: |
           sbt contract/schemas
           git diff --exit-code -- contract/schemas
-      - name: Payment-provider stubs and the wallet driver's offline checks
+      - name: Payment-provider stubs and the wallet and merchant drivers' offline checks
         working-directory: tests
         run: go test ./...
       - name: game-provider (spec 003)
@@ -52,6 +52,25 @@ jobs:
         run: sbt contract/publishLocal
       - name: The wallet's suites
         working-directory: services/wallet
+        run: sbt test
+
+  # merchant (spec 004), the shared payments project's first service: its own sbt build against the
+  # contract published from this commit; its integration suites start Postgres in Docker. The merchant
+  # driver's offline checks run in the check job's `go test ./...`.
+  merchant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: merchant's suites
+        working-directory: services/merchant
         run: sbt test
 
   # The game provider simulator (spec 020): its own sbt build against the contract published from this

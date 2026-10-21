@@ -25,11 +25,14 @@ func TestMergeFindsVaryingFieldsAndCaptures(t *testing.T) {
 	if m.Runs != 2 {
 		t.Fatalf("runs %d", m.Runs)
 	}
-	if _, ok := m.Vary["$.player_id"]; !ok {
-		t.Fatalf("vary %v", m.Vary)
+	if _, ok := m.Steps[0].Vary["$.player_id"]; !ok {
+		t.Fatalf("vary %v", m.Steps[0].Vary)
 	}
-	if _, ok := m.Vary["$.balance"]; ok {
+	if _, ok := m.Steps[0].Vary["$.balance"]; ok {
 		t.Fatal("an equal field was marked varying")
+	}
+	if m.Steps[1].Vary != nil || m.Vary != nil {
+		t.Fatalf("a field that varied in one step is marked only there: %v / %v", m.Steps[1].Vary, m.Vary)
 	}
 	if m.Steps[1].Request.Path != "/players/{c0}/wallet" || m.Steps[0].Capture["c0"] != "$.player_id" {
 		t.Fatalf("capture not inferred: %+v / %+v", m.Steps[1].Request, m.Steps[0].Capture)

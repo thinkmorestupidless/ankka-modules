@@ -89,7 +89,7 @@ func load(dir string) (map[string]recorder.Recording, error) {
 	return recs, err
 }
 
-// Merge keeps run a's steps, marks every response field that differs in b as varying, and turns a
+// Merge keeps run a's steps, marks every response field that differs in b as varying in that step, and turns a
 // varying id that a later request reuses into a capture. Both runs are collapsed first: a test that
 // polls until something settles reads the same thing a number of times that differs between runs.
 // Credentials are redacted from both (Redact).
@@ -97,7 +97,7 @@ func Merge(a, b recorder.Recording) recorder.Recording {
 	a, b = Redact(Collapse(a)), Redact(Collapse(b))
 	out := a
 	out.Runs = 2
-	out.Vary = map[string]string{}
+	out.Vary = nil
 	if len(a.Steps) != len(b.Steps) {
 		out.Runs = 1
 		fmt.Fprintf(os.Stderr, "%s: %d steps then %d; kept with runs 1\n", a.Scenario, len(a.Steps), len(b.Steps))
@@ -110,7 +110,10 @@ func Merge(a, b recorder.Recording) recorder.Recording {
 		_ = json.Unmarshal(a.Steps[i].Response.Body, &x)
 		_ = json.Unmarshal(b.Steps[i].Response.Body, &y)
 		for _, d := range differences("$", x, y) {
-			out.Vary[d.path] = "differs between two runs of the original"
+			if out.Steps[i].Vary == nil {
+				out.Steps[i].Vary = map[string]string{}
+			}
+			out.Steps[i].Vary[d.path] = "differs between two runs of the original"
 			text, ok := d.value.(string)
 			if !ok || len(text) < 4 {
 				continue
@@ -132,9 +135,6 @@ func Merge(a, b recorder.Recording) recorder.Recording {
 				captures++
 			}
 		}
-	}
-	if len(out.Vary) == 0 {
-		out.Vary = nil
 	}
 	return out
 }
@@ -163,7 +163,7 @@ const redacted = "<redacted>"
 
 var jwt = regexp.MustCompile(`^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$`)
 
-var formSecret =regexp.MustCompile(`(^|&)(password|client_secret|refresh_token)=[^&]*`)
+var formSecret = regexp.MustCompile(`(^|&)(password|client_secret|refresh_token)=[^&]*`)
 
 // Redact replaces every secret in the steps' request and response bodies.
 func Redact(r recorder.Recording) recorder.Recording {

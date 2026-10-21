@@ -150,7 +150,8 @@
         "properties": {
           "name": {
             "enum": [
-              "payments.merchants"
+              "payments.merchants",
+              "platform.audit"
             ]
           },
           "partitions": {

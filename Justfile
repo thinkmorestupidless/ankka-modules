@@ -49,6 +49,19 @@ wallet-perf:
 wallet-run brand="goldvibe":
     cd services/wallet && CASINO_BRAND={{brand}} sbt run
 
+# merchant's suites (spec 004; Docker for the integration kit). The contract is published first.
+merchant-test:
+    sbt contract/publishLocal
+    cd services/merchant && sbt test
+
+# merchant's integration and parity suites only (Docker).
+merchant-it:
+    cd services/merchant && sbt "testOnly io.eitheror.casino.merchant.it.* io.eitheror.casino.merchant.port.*"
+
+# merchant, locally, seeding brand goldvibe (`sbt schema && docker compose up -d` first, in services/merchant).
+merchant-run brands='[{"slug":"goldvibe","name":"Goldvibe"}]':
+    cd services/merchant && MERCHANT_BRANDS='{{brands}}' sbt run
+
 # Run sbt in one service's own build: `just service game-provider test`. The contract is published first.
 service name +args:
     sbt contract/publishLocal

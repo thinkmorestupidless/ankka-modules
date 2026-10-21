@@ -45,6 +45,9 @@ object Requests:
         token.split('|') match
           case Array(issuer, iss, roles) =>
             AuthDecision.Allow(Principal("subject", roles = roles.split(',').filter(_.nonEmpty).toSet, claims = Map("iss" -> iss), issuer = Some(issuer)))
+          case Array(issuer, iss, roles, claims) =>
+            val extra = claims.split(',').toVector.flatMap(_.split('=') match { case Array(k, v) => Some(k -> v); case _ => None }).toMap
+            AuthDecision.Allow(Principal("subject", roles = roles.split(',').filter(_.nonEmpty).toSet, claims = extra + ("iss" -> iss), issuer = Some(issuer)))
           case _ => AuthDecision.Unauthenticated("realm=\"casino\", error=\"invalid_token\"")
     }
 
@@ -52,5 +55,8 @@ object Requests:
 
   def playerOf(brand: String): String         = s"player|$keycloak/casino-$brand|player"
   def operatorWith(roles: String*): String    = s"staff|$keycloak/eitheror|${roles.mkString(",")}"
+  /** A payments operator: roles and the scope claims of decision 0050 (`claim=value,…`). */
+  def paymentsOperator(roles: Seq[String], claims: (String, String)*): String =
+    s"staff|$keycloak/eitheror|${roles.mkString(",")}|${claims.map((k, v) => s"$k=$v").mkString(",")}"
   /** A token from a brand's player realm presented to a service that configured it under the wrong name. */
   def playerRealmAsStaff(brand: String): String = s"staff|$keycloak/casino-$brand|brand_$brand"

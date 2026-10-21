@@ -33,6 +33,43 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(Routes.operator("goldvibe", verified), Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
   }
 
+  test("a payments operator is served with a role of the table and a level from the scope claims") {
+    val acl = Routes.paymentsOperator(verified)
+    val company = paymentsOperator(Seq("resource_admin"), "eitheror_scope_level" -> "company", "eitheror_scope_id" -> "c-1")
+    assertEquals(outcome(acl, Request(token = Some(company))), Outcome.Served)
+    val platform = paymentsOperator(Seq("platform_admin"), "eitheror_scope_level" -> "platform")
+    assertEquals(outcome(acl, Request(token = Some(platform))), Outcome.Served)
+  }
+
+  test("a payments operator token naming no level, an unknown level, or no id below the platform is refused") {
+    val acl = Routes.paymentsOperator(verified)
+    for token <- Vector(
+        paymentsOperator(Seq("resource_admin")),
+        paymentsOperator(Seq("resource_admin"), "eitheror_scope_level" -> "affiliate", "eitheror_scope_id" -> "a-1"),
+        paymentsOperator(Seq("resource_admin"), "eitheror_scope_level" -> "company")
+      )
+    do
+      outcome(acl, Request(token = Some(token))) match
+        case Outcome.Refused(403, reason) => assert(reason.startsWith("scope_violation"), reason)
+        case other                        => fail(s"$token: $other")
+  }
+
+  test("a payments operator route refuses a staff token with no payments role, a player token and no token") {
+    val acl = Routes.paymentsOperator(verified)
+    val noRole = paymentsOperator(Seq("brand_goldvibe"), "eitheror_scope_level" -> "platform")
+    outcome(acl, Request(token = Some(noRole))) match
+      case Outcome.Refused(403, reason) => assert(reason.startsWith("not_payments_operator"), reason)
+      case other                        => fail(other.toString)
+    assertEquals(outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
+    assertEquals(outcome(acl, Request()).asInstanceOf[Outcome.Refused].status, 401)
+  }
+
+  test("customer_id is never read as an operator's level (decision 0050)") {
+    val acl = Routes.paymentsOperator(verified)
+    val token = paymentsOperator(Seq("resource_admin"), "customer_id" -> "eitheror")
+    assert(outcome(acl, Request(token = Some(token))).isInstanceOf[Outcome.Refused])
+  }
+
   test("an affiliate reaches the programme with the affiliate role only") {
     assertEquals(outcome(Routes.affiliate(verified), Request(token = Some(operatorWith("affiliate")))), Outcome.Served)
     assert(outcome(Routes.affiliate(verified), Request(token = Some(operatorWith("brand_goldvibe")))).isInstanceOf[Outcome.Refused])

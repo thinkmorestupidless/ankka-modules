@@ -15,7 +15,9 @@ object Topics:
 
   // The layout and the facts name the same topics, or the build says so.
   require(brand.map(_.name) == Layout.BrandTopics, s"facts ${brand.map(_.name)} differ from Layout ${Layout.BrandTopics}")
-  require(shared.map(_.name) == Layout.SharedTopics.values.flatten.toVector)
+  // A shared project's topic is the contract's own or a brand topic's shape reused (payments' platform.audit, spec 004 R13).
+  require(Layout.SharedTopics.values.flatten.toSet.subsetOf(all.map(_.name).toSet), s"a shared topic of ${Layout.SharedTopics} is no topic of the contract")
+  require(shared.map(_.name).toSet.subsetOf(Layout.SharedTopics.values.flatten.toSet))
 
 /** `sbt contract/schemas`: writes `<dir>/<topic>.v1.json` for every topic. */
 object WriteSchemas:

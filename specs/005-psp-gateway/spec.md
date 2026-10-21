@@ -93,6 +93,16 @@ spec keeps TypeScript; the reason is recorded in the clarifications.
   original. The three cashier tests become recordings once unskipped (spec 006 says the same); the
   rest probe the payments API spec 004 drops (FR-037) and are evidence only.
 
+### Session 2026-10-12 (from spec 004)
+
+- Q: Where does the gateway read a provider's credentials (FR-018)? → A: From `merchant`, at the moment of
+  use, through `GET /internal/v1/sub-brands/{subBrandId}/psp-credentials/{provider}` and
+  `GET /internal/v1/terminals/{terminalId}/properties`, by its identity. A secret store is per service
+  (ankka 023), so "the secret store under the `payments` project" is `merchant`'s, which only `merchant`
+  reads (spec 004 FR-008, research R9). The plan adopts `specs/004-merchant/contracts/gateway.md`: the
+  initiate keyed by the payment id, the session status read `GET /v1/psp/sessions/{reference}`, and the
+  capture's answers (`503 OUTCOME_PENDING` keeps an outcome undelivered and redelivered).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player is sent to a provider's page and the deposit comes back captured (Priority: P1)

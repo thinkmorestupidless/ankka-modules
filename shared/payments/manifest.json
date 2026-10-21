@@ -13,7 +13,19 @@
     {
       "name": "merchant",
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/merchant:0.1.0",
-      "expose": false
+      "expose": true,
+      "env": {
+        "PAYMENT_DEADLINE": "30m",
+        "UNCREDITED_BOUND": "15m",
+        "CUSTOMER_RETENTION": "90d",
+        "OPERATOR_SYNC_INTERVAL": "60s",
+        "KEYCLOAK_URL": "https://auth-casino.127.0.0.1.sslip.io:8443",
+        "OPERATORS_REALM": "eitheror",
+        "ENGAGEMENT_REGION": "eu",
+        "OPERATOR_CONSOLE_URL": "https://payments.127.0.0.1.sslip.io:8443",
+        "KEYCLOAK_ADMIN_USERNAME": "secret:keycloak-operators-admin/USERNAME",
+        "KEYCLOAK_ADMIN_PASSWORD": "secret:keycloak-operators-admin/PASSWORD"
+      }
     },
     {
       "name": "psp-gateway",
@@ -29,6 +41,11 @@
   "topics": [
     {
       "name": "payments.merchants",
+      "partitions": 6,
+      "retention": "fact"
+    },
+    {
+      "name": "platform.audit",
       "partitions": 6,
       "retention": "fact"
     }
@@ -52,5 +69,14 @@
         }
       }
     ]
-  }
+  },
+  "secrets": [
+    {
+      "name": "keycloak-operators-admin",
+      "keys": [
+        "USERNAME",
+        "PASSWORD"
+      ]
+    }
+  ]
 }

@@ -11,6 +11,8 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `compose.override.yml` | the seven payment-provider stubs beside the original's stack, and the gateway pointed at them |
 | `e2e-recording.patch` | adds `record_test.go` to the original's `tests/e2e`: with `EITHEROR_RECORD_TO` set, every request a test makes is recorded, and any to a host off this machine is refused |
 | `e2e-rg-kyc.patch` | the responsible-gambling and KYC scenarios the original's suite lacks (FR-030); see `e2e-rg-kyc.md` |
+| `e2e-merchant.patch` | unskips `TestScenario12_OnboardingGate3_FullChain`; corrects scenario 12's and 13's routing-rules calls to the route as served (spec 004 research R6); registers scenarios 12 to 14's DreamzPay terminal as a gateway integration carrying its credentials, as the original has needed since `2add2353`; clears a new casino player's `VERIFY_EMAIL` in scenario 14; and corrects two stale assertions (`memberId`, the wallet's minor units). See `tests/port/README.md` |
+| `merchant-driver/` | drives the original's `merchant-service` cashier for the behaviours the suite never reaches (spec 004); see *Recording the cashier directly* |
 | `recorder/` | the transport `record_test.go` installs |
 | `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies |
 | `preflight/` | refuses to start while any outside system the original calls has no stub answering |
@@ -22,7 +24,8 @@ The two repositories are checked out side by side (`~/Documents/projects/eithero
 ```bash
 cd ../eitheror-platform                                   # your local checkout of the original
 git switch -c local/recording                             # never pushed
-git apply ../ankka-casino/tests/original/e2e-recording.patch ../ankka-casino/tests/original/e2e-rg-kyc.patch
+git apply ../ankka-casino/tests/original/e2e-recording.patch ../ankka-casino/tests/original/e2e-rg-kyc.patch \
+  ../ankka-casino/tests/original/e2e-merchant.patch
 docker compose -f dev/compose/full-stack.yml -f ../ankka-casino/tests/original/compose.override.yml up -d
 just dev-substrate & just dev-wallet-service & …         # the original's native services, as its README says
 (cd tests/fake-st8 && go run .) & (cd tests/uf-stub && go run .) &
@@ -85,6 +88,42 @@ go run ./original/merge -run1 /tmp/wallet-1 -run2 /tmp/wallet-2 -results1 /tmp/w
 A scenario whose answer differs from what its feature expects fails in the run's result and is
 still recorded: the recording is the original's behaviour, and the failure is a finding for the
 spec. `go test ./original/wallet-driver/...` without the tag checks the driver against a stub.
+
+## Recording the cashier directly
+
+The suite reaches merchant-service's cashier only on its happy path (scenarios 12 to 14), so the
+failure, expiry, abandon, signature and variance behaviours would rest on its unit suites, which mock
+the substrate. `merchant-driver/` drives the cashier itself (spec 004 research R6): one scenario per
+scenario of `features/payments/deposits.feature` and the cashier scenario spec 004 owns, each named
+exactly as the feature names it.
+
+- Each scenario seeds a fresh brand through the original's `DevSeedRoutes`
+  (`/internal/v1/seed/hierarchy/{brand}`, then `/internal/v1/seed/merchants/{brand}`: a merchant key,
+  a catch-all tree to `SIM` and the `SIMULATOR` credential the gateway's stub serves). No Keycloak
+  token is needed. These are `setup:` steps a replay skips.
+- The capture, fail, abandon and sweep routes take `X-Internal-Secret`
+  (`MERCHANT_SERVICE_INTERNAL_SECRET`, `changeme` in dev; on the kind cluster it is in the
+  `merchant-service-config` config map, read with the kind-only kubeconfig); it is never recorded. The replay sends
+  those steps as `psp-gateway`'s identity.
+- A webhook secret on the credential and the gateway's undelivered marker are written to substrate
+  as merchant-service and psp-gateway write them (`eitheror-psp-credential`, `psp-checkout-session`).
+- The deadline is the original's sweep with `olderThanMinutes=0`, named `time: …`. The sweep lists
+  payments through substrate's namespace listing, which lags its writes: a sweep sent straight after
+  the submit missed the payment and recorded it unexpired (found 2026-10-18). `Listed` waits for the
+  listing, filtered to the sub-brand, as an `observe:` step (only the answer that held is recorded),
+  and the read after the sweep is checked for its status (`WantField`), not only its code. The replay
+  makes a sweeping recording's payments under a 3-second deadline and waits for it. "A signed capture arriving while the secret cannot be read" is not driven: it
+  needs the substrate down mid-request, and `CashierCaptureAuthSpec`'s case is ported instead.
+
+```bash
+cd tests
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/merchant-$run EITHEROR_ORIGINAL_COMMIT=$(git -C ../../eitheror-platform rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -json ./original/merchant-driver/... \
+      -args -merchant-url http://localhost:8085 -substrate-url http://localhost:8080 > /tmp/merchant-$run.json
+done
+go run ./original/merge -run1 /tmp/merchant-1 -run2 /tmp/merchant-2 -results1 /tmp/merchant-1.json -results2 /tmp/merchant-2.json -out port
+```
 
 ## What a stub cannot do
 

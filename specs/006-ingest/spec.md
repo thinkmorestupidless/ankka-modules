@@ -118,6 +118,14 @@ and nothing outside the project.
   abandon route with one the player's browser reaches by the session token; it is served here like
   submit (FR-001, FR-006).
 
+### Session 2026-10-12 (from spec 004)
+
+- Q: What does `ingest` send `merchant`? → A: The commands of `specs/004-merchant/contracts/commands.md`,
+  by its identity, the sub-brand resolved from the merchant key: `POST /v1/cashier/sessions` (amounts in
+  minor units), `/sessions/{token}/submit`, `/sessions/{token}/abandon`, `GET /v1/cashier/payments/{id}`,
+  and `GET /v1/cashier/keys` for the key cache's refresh. `merchant` answers a second submit with the
+  first submit's payment (spec 004 correction 2).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A merchant creates a cashier session under its key (Priority: P1)
@@ -182,7 +190,7 @@ inert.
 
 **Acceptance Scenarios**:
 
-- added `features/payments/cashier.feature`: submitting a session naming an offered terminal initiates the payment and answers the payment id, the status and the player's next address
+- added `features/payments/cashier.feature`: submitting a session naming an offered terminal initiates the payment and answers the payment id and the status
 - added `features/payments/cashier.feature`: submitting a session naming a terminal it did not offer is refused naming the terminal
 - added `features/payments/cashier.feature`: a submit the payment provider refused for a reason the player can act on is answered rejected with the provider's words
 - added `features/payments/cashier.feature`: a submit under a cashier ticket no session has is refused as not found

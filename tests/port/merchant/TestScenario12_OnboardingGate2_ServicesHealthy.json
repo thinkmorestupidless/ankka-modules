@@ -1,0 +1,25 @@
+{
+  "scenario": "TestScenario12_OnboardingGate2_ServicesHealthy",
+  "requirement": "004/SC-001",
+  "recorded_at": "2026-10-18T06:31:58.295713Z",
+  "original": {
+    "brand": "",
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "merchant",
+  "steps": [
+    {
+      "name": "GET /health",
+      "request": {
+        "method": "GET",
+        "path": "/health",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": "ok"
+      }
+    }
+  ]
+}

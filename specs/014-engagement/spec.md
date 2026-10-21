@@ -127,6 +127,13 @@ player's state, and never decides what a campaign should do.
   outcome, and 010's `rg_limit_applied` already carries a `cause`; FR-006's table now derives from
   those rather than asking for new families, and Dependencies says which is which.
 
+### Session 2026-10-12 (from spec 004)
+
+- Q: Whose `engagement` sends the payments backoffice's operator invitations? → A: None. A shared project
+  holds no grant into a brand's `engagement`, and a payments operator belongs to no brand: `merchant`
+  sends them through the installation's provider configured on it (spec 004 FR-027, research R10). The
+  open question below is answered by this.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A fact becomes one Customer.io event, exactly once (Priority: P1)
@@ -685,7 +692,8 @@ FR-029 to FR-032):
   derives tightened and loosened from `cause`. No new field.
 - Spec 011 (taken): `bonus_code_entered` on `casino.rewards` (011 FR-027), and the award and target
   routes of 011 FR-022 admitting this service with the original's answers.
-- Spec 004: `merchant` sends operator invitations through an engagement send route (open question).
+- Spec 004: `merchant` sends operator invitations through the installation's provider configured on it,
+  not through `engagement` (spec 004 FR-027; answered 2026-10-12).
 - ankka 028 (SSE and socket routes), 032 (the deposit-day timer), 038 (the three secrets), 040 (a
   grant if the open question on operator mail is answered with one), 042 (`Personal`, the erasure
   handler).
@@ -701,12 +709,8 @@ FR-029 to FR-032):
 
 ## Open questions
 
-- [NEEDS CLARIFICATION: Whose `engagement` sends the payments backoffice's operator invitations and
-  status mail (spec 004)? The original used a holding-level Customer.io configuration held by
-  `merchant-service`. Options: (a) the installation names one brand whose `engagement` grants its
-  send route to `payments`/`merchant` under 040 and carries the two operator templates; (b)
-  `payments` runs its own `engagement` instance with the holding's credentials and no player
-  topics; (c) the `eitheror` realm's own SMTP sends them and the Customer.io templates are dropped.]
+- Answered 2026-10-12 (from spec 004): no brand's `engagement` sends the payments backoffice's operator
+  mail; `merchant` sends it through the installation's provider configured on it (Clarifications).
 - [NEEDS CLARIFICATION: For a suppressed player, should the service withhold the marketing-class
   *events* of FR-011 from Customer.io too (safer: no campaign can fire), or track every event and
   rely on the suppression attributes (as the original does; keeps RG welfare campaigns, which key

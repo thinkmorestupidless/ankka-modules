@@ -25,7 +25,8 @@ object Recording:
   /** `service` is the rebuilt service the recorder sorted the request under, by the base URL it went to. */
   final case class Request(method: String, path: String, headers: Map[String, String], body: Option[JsonNode], service: Option[String] = None)
   final case class Response(status: Int, body: Option[JsonNode])
-  final case class Step(name: String, request: Request, response: Response, capture: Map[String, String])
+  /** `vary`: this step's answer's fields that differed between the two runs of the original, checked for presence only. */
+  final case class Step(name: String, request: Request, response: Response, capture: Map[String, String], vary: Map[String, String] = Map.empty)
 
   private val mapper = ObjectMapper()
 
@@ -53,7 +54,8 @@ object Recording:
             Option(s.get("name")).map(_.asText()).getOrElse(s"step $i"),
             Request(m, p, map(req.get("headers")), body(req), Option(req.get("service")).map(_.asText()).filter(_.nonEmpty)),
             Response(Option(res.get("status")).map(_.asInt()).getOrElse(0), body(res)),
-            map(s.get("capture"))
+            map(s.get("capture")),
+            map(s.get("vary"))
           )
       }
     yield Recording(
@@ -82,9 +84,17 @@ object JsonPath:
 
 /**
  * Replays a recording against a rebuilt service and says where it answered differently (FR-032).
- * Captures fill `{name}` in later paths and bodies; a `vary` path is checked for presence only.
+ * Captures fill `{name}` in later paths and bodies; a `vary` path is checked for presence only, in the step
+ * it varied in (or, in a recording made before steps kept their own, in every step).
+ * A step named `setup: …`, `observe: …` or `time: …` stands for something the scenario arranges, reads
+ * off the record or waits for (tests/original/README.md): it is sent and its captures taken, and its
+ * answer, which is the stand-in's, is not compared.
  */
 object Replay:
+
+  /** Whether a step is the scenario's arrangement rather than a behaviour of the service under test. */
+  def arranged(step: Recording.Step): Boolean =
+    Seq("setup:", "observe:", "time:").exists(step.name.startsWith)
 
   final case class Difference(recording: Path, at: String, expected: String, observed: String):
     def message: String = s"$recording $at: expected $expected, observed $observed"
@@ -101,16 +111,19 @@ object Replay:
       )
       val observed = send(request)
       val at = s"$$.steps[$i].response"
-      val status =
-        if observed.status != step.response.status then Vector(Difference(recording.path, s"$at.status", step.response.status.toString, observed.status.toString))
-        else Vector.empty
       step.capture.foreach((name, path) => observed.body.flatMap(JsonPath.get(_, path)).foreach(v => captured(name) = v.asText()))
-      status ++ compare(recording, s"$at.body", "$", step.response.body, observed.body)
+      if arranged(step) then Vector.empty
+      else
+        val status =
+          if observed.status != step.response.status then Vector(Difference(recording.path, s"$at.status", step.response.status.toString, observed.status.toString))
+          else Vector.empty
+        status ++ compare(recording, step.vary ++ recording.vary, s"$at.body", "$", step.response.body, observed.body)
     }
 
-  private def compare(recording: Recording, at: String, path: String, expected: Option[JsonNode], observed: Option[JsonNode]): Vector[Difference] =
+  /** `vary` is the step's own, with the recording-wide form of older recordings, which holds in every step. */
+  private def compare(recording: Recording, vary: Map[String, String], at: String, path: String, expected: Option[JsonNode], observed: Option[JsonNode]): Vector[Difference] =
     def show(n: Option[JsonNode]) = n.fold("absent")(_.toString)
-    if recording.vary.contains(path) then
+    if vary.contains(path) then
       if observed.isDefined || expected.isEmpty then Vector.empty
       else Vector(Difference(recording.path, s"$at${path.stripPrefix("$")}", "present", "absent"))
     else
@@ -118,8 +131,8 @@ object Replay:
         case (None, None) => Vector.empty
         case (Some(e: ObjectNode), Some(o: ObjectNode)) =>
           val names = (e.fieldNames().asScala ++ o.fieldNames().asScala).toVector.distinct
-          names.flatMap(n => compare(recording, at, s"$path.$n", Option(e.get(n)), Option(o.get(n))))
+          names.flatMap(n => compare(recording, vary, at, s"$path.$n", Option(e.get(n)), Option(o.get(n))))
         case (Some(e: ArrayNode), Some(o: ArrayNode)) if e.size == o.size =>
-          (0 until e.size).toVector.flatMap(i => compare(recording, at, s"$path[$i]", Option(e.get(i)), Option(o.get(i))))
+          (0 until e.size).toVector.flatMap(i => compare(recording, vary, at, s"$path[$i]", Option(e.get(i)), Option(o.get(i))))
         case (e, o) if e == o => Vector.empty
         case (e, o)           => Vector(Difference(recording.path, s"$at${path.stripPrefix("$")}", show(e), show(o)))

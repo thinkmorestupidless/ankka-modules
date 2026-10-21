@@ -722,7 +722,8 @@ proxy forwards the realm token instead of minting a hand-off token (017, a front
 carries).
 
 - Spec 014 (`engagement`): the holding-level Customer.io configuration moves here from
-  `merchant-service` (spec 004); operator invitations from `merchant` are sent through it; the
+  `merchant-service` (spec 004); operator invitations from `merchant` are not sent through it but
+  through the installation's provider configured on `merchant` (spec 004 FR-027, 2026-10-12); the
   Customer.io webhook and the `grant_bonus` and `target_offer` actions call `rewards`' service routes
   (spec 011 FR-022); every CRM event the original sent for players, limits, breaks, KYC and rewards
   is derived here from the families FR-011 lists (specs 008, 009, 010 FR-030, 011 FR-029), once each;

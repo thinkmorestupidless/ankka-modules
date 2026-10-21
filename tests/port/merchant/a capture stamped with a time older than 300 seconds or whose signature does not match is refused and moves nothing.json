@@ -1,0 +1,279 @@
+{
+  "scenario": "a capture stamped with a time older than 300 seconds or whose signature does not match is refused and moves nothing",
+  "requirement": "004/FR-018",
+  "recorded_at": "2026-10-18T06:25:05.847176Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "merchant",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "88c4e0d6-9ef1-3dc5-b50f-6c80d163137e",
+          "holdingId": "7523c01d-b860-3f6b-a674-db620d3da1ce",
+          "subBrandId": "fdab930c-cf98-395d-bc5a-ba0aa7aa2b39"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "fdab930c-cf98-395d-bc5a-ba0aa7aa2b39",
+          "merchantKey": "eo_live_1abb3788fea8430e8959c4d0"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the sub-brand's credential index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-psp-cred-index/f7d06c54-cab7-3eeb-9297-9ab3fb42c9c4",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_df48be48|"
+        }
+      },
+      "vary": {
+        "$.ids": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: give the credential a webhook secret",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-psp-credential/{credentialTwin}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "credentials": "{\"webhookSecret\":\"{webhookSecret}\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-psp-credential/70ab2010-b6d3-3193-81ab-38409018e9fb"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "available_terminals": [
+            {
+              "name": "SIM",
+              "scheme": "CARD_VISA",
+              "terminalEntityId": "SIM"
+            }
+          ],
+          "redirectUrl": "https://merchant.example/return",
+          "session_token": "d504024d-4f4b-4e87-bd03-19bc6d92fb66",
+          "transactionId": "txn-e42951b2"
+        }
+      },
+      "capture": {
+        "session": "$.session_token"
+      },
+      "vary": {
+        "$.session_token": "differs between two runs of the original",
+        "$.transactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/{session}/submit",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "selectedTerminalEntityId": "SIM"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "fe029584-4338-46b0-ba41-777a46965c8b",
+          "status": "AWAITING_REDIRECT"
+        }
+      },
+      "capture": {
+        "payment": "$.paymentId"
+      },
+      "vary": {
+        "$.paymentId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "capture stamped too long ago",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-PSP-Signature": "03a492cec5d9cf6b85371cc432388eb50f9b33aa0e2769e01a837397f2ccdc62",
+          "X-PSP-Timestamp": "1792304405"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "{pspTxn}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": "invalid_token",
+          "message": "Request timestamp outside replay window"
+        }
+      }
+    },
+    {
+      "name": "capture signed under another secret",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-PSP-Signature": "4413c414dbbec8ad61725ae4c9ccffed5527da7c74abc6693d785b45dbd28031",
+          "X-PSP-Timestamp": "1792304706"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "{pspTxn}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": "invalid_token",
+          "message": "PSP signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "capture signed over another body",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-PSP-Signature": "1e69938d3827710101ee4ec90ef5ac04a9acf6105c0678f04bf784e29bfe9182",
+          "X-PSP-Timestamp": "1792304706"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "{pspTxn}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": "invalid_token",
+          "message": "PSP signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "read payment",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/{payment}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "amount": "50.00",
+          "amountCents": 5000,
+          "createdAt": "2026-10-18T06:25:06.082300067Z",
+          "currency": "EUR",
+          "customerRef": "brand-5a0b5c02:player-f064c057",
+          "expiresAt": "2026-10-18T06:30:06.082300067Z",
+          "merchantId": "fdab930c-cf98-395d-bc5a-ba0aa7aa2b39",
+          "psp": "SIMULATOR",
+          "pspTransactionId": "22c21990-9ab4-48f7-803d-0710302c2bf6",
+          "redirectUrl": "http://psp.eitheror.local/psp-simulator/redirect/22c21990-9ab4-48f7-803d-0710302c2bf6",
+          "scheme": "CARD_VISA",
+          "status": "AWAITING_REDIRECT",
+          "terminalId": "SIM"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.customerRef": "differs between two runs of the original",
+        "$.expiresAt": "differs between two runs of the original",
+        "$.merchantId": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    }
+  ]
+}

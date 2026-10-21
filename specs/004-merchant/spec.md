@@ -146,6 +146,16 @@ Settled with specs 008–011 once they existed.
   and on each outcome, so the brand's `payments.payments` carries the provider on every family and
   `reporting` groups deposit attempts and outcomes by provider without reading `payments`.
 
+### Session 2026-10-12 (analysis)
+
+- Q: The backoffice frontend reads this service's operator routes and an invited operator posts
+  `accept-invitation` from a browser, yet spec 001 and the shared manifest had `merchant` never
+  exposed. Which stands? → A: `merchant` is exposed. Its operator routes are admitted by a staff
+  token and `accept-invitation` by the invitation token in its body (a public route admitted by its
+  own key, constitution III); the `ingest`, `psp-gateway`, erasure and status routes stay service-class
+  by ACL and are not reachable with a token. Spec 001's `Layout.ServiceOnly` and
+  `shared/payments/manifest.json` change (tasks T002, T072).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player deposits through the cashier and the brand's wallet is credited (Priority: P1)
@@ -167,13 +177,17 @@ submit, drive the simulator's capture callback, and read the brand wallet's bala
 **Acceptance Scenarios**:
 
 - added `features/payments/cashier.feature`: a cashier session created under an active key answers a cashier ticket and the terminals the routing tree allows
-- added `features/payments/cashier.feature`: submitting a session naming an offered terminal initiates the payment and answers the payment id, the status and the player's next address
+- added `features/payments/cashier.feature`: submitting a session naming an offered terminal initiates the payment and answers the payment id and the status
 - added `features/payments/deposits.feature`: a capture reported by the gateway captures the payment, confirms the deposit to the wallet once and is acknowledged only after the wallet answers
 - added `features/payments/deposits.feature`: the same capture reported again leaves the payment captured, calls the wallet nothing and is acknowledged
 - added `features/payments/cashier.feature`: reading a payment tells its status in the frontend's words with its amounts, currency, provider, scheme, terminal and redirect address
 - added `features/payments/cashier.feature`: a cashier session that cannot be routed is refused naming why
-- added `features/payments/cashier.feature`: a request under a key no sub-brand holds active is refused without saying why
 - added `features/payments/deposits.feature`: a capture for a sub-brand of type payments that names no brand is captured with no wallet called
+- added `features/payments/deposits.feature`: a capture signed under the payment provider's webhook secret and stamped within 300 seconds is accepted
+- added `features/payments/deposits.feature`: a capture from a payment provider with no webhook secret is accepted unsigned
+- added `features/payments/deposits.feature`: a capture carrying one of the signature and the stamped time without the other is refused as missing its signature
+- added `features/payments/deposits.feature`: a capture stamped with a time older than 300 seconds or whose signature does not match is refused and moves nothing
+- added `features/payments/deposits.feature`: a signed capture arriving while the secret cannot be read is answered as unavailable for now, never as unauthenticated
 
 ---
 
@@ -279,7 +293,8 @@ contains the new one, or be removed.
 
 **Why this priority**: it is kept as the original does it; nothing in the pilot changes it.
 
-**Independent Test**: scenario 12 steps 1 to 3 of the original's suite.
+**Independent Test**: `features/payments/operators.feature` against a fake realm, then the replay of
+scenario 12's full chain, whose steps 1 to 3 touch the realm directly and are stood in for.
 
 **Acceptance Scenarios**:
 
@@ -355,8 +370,9 @@ original refuses a capture it cannot trust rather than credit it.
 
 - **FR-004**: A sub-brand MUST hold merchant keys, each with an id, a name, a digest of the raw key,
   an active flag and a creation time. Generating a key MUST return the raw value exactly once; the
-  raw value MUST be kept nowhere, and the digest MUST resolve to the sub-brand on validation by a
-  direct lookup rather than a scan of every sub-brand's keys.
+  raw value MUST be kept nowhere, and the digest MUST resolve to the sub-brand in one lookup through an
+  index this service keeps and serves (FR-005), never a scan of every sub-brand's keys; the validation
+  itself is `ingest`'s (FR-013, FR-033).
 - **FR-005**: The service MUST publish on `payments.merchants` (spec 001 FR-011) a
   `merchant_key_issued` fact for every key generated and a `merchant_key_deactivated` fact for every
   key disabled, each carrying the key id, the sub-brand and the digest and never a raw key, so that
@@ -378,7 +394,7 @@ original refuses a capture it cannot trust rather than credit it.
   terminal's properties, so the gateway holds no credential of its own.
 - **FR-009**: The service MUST serve the gateway catalogue the original serves
   (`/v1/catalog/gateway/{gateway}`: schemes and their required properties, including which are
-  multiline), and `/v1/payments/terminals?merchantId=` listing a sub-brand's credential-named terminals
+  multiline and, new, which are secrets, so FR-007 knows which properties go to the secret store), and `/v1/payments/terminals?merchantId=` listing a sub-brand's credential-named terminals
   and its terminals together, each saying which directions it takes.
 
 **Routing rules**
@@ -408,7 +424,8 @@ original refuses a capture it cannot trust rather than credit it.
   never reaches this service.
 - **FR-014**: A session MUST answer with a token, the transaction id, the redirect address and the
   available terminals, each with its id, name and scheme, and for a terminal its gateway and its
-  supported currencies when it names them. A session MUST be kept as a key value entity under its
+  supported currencies when its `supportedCurrencies` property names them (comma-separated, as the
+  original's `CashierRoutes.scala:1551-1565`). A session MUST be kept as a key value entity under its
   token with everything the submit needs, and MUST expire with the payment's deadline.
 - **FR-015**: The submit command, served to `ingest` by its identity with the session's token, MUST
   take the chosen terminal, an optional crypto currency, and the customer fields a player may enter at payment time (which MUST override
@@ -417,7 +434,9 @@ original refuses a capture it cannot trust rather than credit it.
   (`missing_crypto_currency` when absent), mint a payment id, and ask the gateway to initiate a
   hosted-page payment with the amount, currency, scheme, the capture callback for that payment id,
   the provider, the sub-brand, the customer id, the redirect address, the customer fields, the
-  terminal's properties and the terminal's id. A session submitted twice MUST be refused.
+  terminal's properties and the terminal's id. A session submitted twice MUST be answered with the
+  first submit's answer and MUST make no second payment (the scenario US2 names; spec 006 FR-010;
+  corrected in planning from "refused", 2026-10-12).
 - **FR-016**: A payment MUST be an event sourced entity keyed by the payment id, holding the sub-brand,
   the customer id, the brand (from the sub-brand), the player id, the amount in minor units, the
   currency, the provider, the provider's transaction id, the provider's redirect address, the
@@ -444,8 +463,10 @@ original refuses a capture it cannot trust rather than credit it.
   (paused until a capture, a failure or an abandon arrives, with a timer at the deadline); `expire`
   (on the timer: ask the gateway for the provider session's status; when it reports the outcome
   undelivered, wait another deadline and say so in the status; otherwise record `expired` with reason
-  "Payment not completed"); `credit` (on capture: call the brand wallet's deposit route); `report`
-  (call the brand wallet's outcome route for every outcome but the capture); end.
+  "Payment not completed"); `credit` (on capture: call the brand wallet's deposit route, retrying
+  until it answers); end. Every outcome but the capture reaches the brand through FR-022's consumer,
+  not a step (planning 2026-10-12: a workflow runs one step at a time, and a report's retries must
+  not hold the deadline's pause).
 - **FR-021**: The `credit` step MUST call the brand wallet's deposit route under the grant of spec 001
   FR-016 with the payment id as the idempotency key, carrying the amount to credit in minor units,
   the currency, the provider's transaction id as the payment reference, the terminal, the provider
@@ -456,13 +477,14 @@ original refuses a capture it cannot trust rather than credit it.
   retries, record the reason and, for a limit, the remaining allowance, leave the payment captured and
   not credited, and show the player the reason in their currency (spec 010 FR-013); whether such a
   payment is refunded or held for an operator is spec 010's open question.
-- **FR-022**: The `report` step MUST call the brand wallet's outcome route (spec 002 FR-022a) for
-  `initiated`, `failed`, `expired` and `abandoned`, keyed by the payment id and the outcome, carrying
-  the payment provider and the failure code and reason where there is one, retried until
-  acknowledged; the capture hand-off (`credit`) and the `refunded` and dispute outcomes MUST carry
+- **FR-022**: A consumer of the payment's events MUST call the brand wallet's outcome route (spec 002
+  FR-022a) for `initiated`, `failed`, `expired` and `abandoned`, keyed by the payment id and the
+  outcome, carrying the payment provider and the failure code and reason where there is one, retried
+  until acknowledged; the capture hand-off (`credit`) MUST carry
   the provider likewise, so every `payments.payments` family the wallet produces names it (spec 002
-  FR-022a, spec 015 FR-011). A sub-brand that names
-  no brand MUST skip `credit` and `report`.
+  FR-022a, spec 015 FR-011); the `refunded` and dispute outcomes are spec 005's to report, with the
+  provider, when a provider reports them. A sub-brand that names no brand MUST skip `credit` and the
+  outcome consumer.
 - **FR-023**: A view MUST list captured payments not yet credited, each with the time captured, the
   attempts made and the wallet's last answer; an operator MUST be able to retry one from it; and the
   project's status MUST count those older than the installation's bound (default 15 minutes).
@@ -483,8 +505,9 @@ original refuses a capture it cannot trust rather than credit it.
 
 - **FR-027**: The service MUST provision operators of the payments backoffice into Keycloak's `eitheror`
   realm with an email, a role, a scope level (`platform`, `holding`, `company`, `sub_brand`) and a scope
-  id, recording the scope's ancestors; MUST send an invitation through the engagement provider the
-  installation configures; MUST serve accept-invitation, resend-invitation, reset-password, scope change
+  id, recording the scope's ancestors; MUST send an invitation through the engagement provider
+  configured on this service for the installation (a shared project holds no grant into a brand's
+  `engagement`; planning 2026-10-12); MUST serve accept-invitation, resend-invitation, reset-password, scope change
   and removal; and MUST refuse creating or changing an operator to a role of privilege not below the
   caller's or to a scope the caller's does not contain, by the original's privilege levels.
 - **FR-028**: The service MUST mirror an operator's enabled flag from the realm on a recurring timer
@@ -500,8 +523,8 @@ original refuses a capture it cannot trust rather than credit it.
   per currency in minor units, a daily series and a per-provider series, counting captured rows with
   no amount separately. Both MUST serve only sub-brands the operator's scope covers and MUST serve a
   sub-brand with no parent to platform scope only.
-- **FR-030**: The risk blocklist and config routes (`/v1/payments/risk/*`) MUST be kept as the original
-  serves them, writable at platform scope only.
+- **FR-030**: *Struck in planning (2026-10-12): it contradicted FR-036, written in a later
+  reconciliation, which drops the risk routes as a stub. FR-036 stands.*
 
 **Money, identity and data**
 
@@ -515,7 +538,7 @@ original refuses a capture it cannot trust rather than credit it.
   and payments.
 - **FR-033**: Operator tokens MUST be verified through ankka 022 against the `eitheror` realm and scope
   checked through the hierarchy (decision 0050: `eitheror_scope_level` and `eitheror_scope_id`, never
-  `customer_id`); the capture, fail, credential and key-validation routes MUST be served by caller
+  `customer_id`); the capture, fail, credential and key-index routes MUST be served by caller
   identity; the cashier commands MUST be served to `ingest` by its identity, and the merchant key is
   `ingest`'s to verify (spec 006), never this service's.
 - **FR-034**: The service MUST write an audit record (spec 001, `platform.audit`) for every hierarchy
@@ -593,7 +616,16 @@ original refuses a capture it cannot trust rather than credit it.
   assessment (FR-037).
 - Credentials' and terminals' secrets move from twin properties to the secret store (ankka 038).
 - Amounts are `Long` minor units; the 32-bit `amountCents` and the stored decimal string are gone.
-- A session cannot be submitted twice (the original has no guard on this cashier).
+- A session submitted twice is answered with the first submit's answer (the original has no guard on
+  this cashier and would initiate a second payment).
+- The gateway catalogue marks which required properties are secrets (FR-009), and a terminal's
+  secret properties live in the secret store.
+- The credential routes that carried three path parameters
+  (`/v1/merchants/{id}/psp-credentials/{provider}/{name}[/activate|/disable]`) take the name as the
+  query parameter `name`, since an ankka route takes at most two; the payments backoffice frontend
+  changes these paths (spec 019 carries it).
+- The outcomes other than the capture reach the brand from a consumer of the payment's events rather
+  than a workflow step (FR-020, FR-022); what the brand observes is unchanged.
 - The in-process operator status syncer becomes a recurring timer; the invitation email goes through
   the installation's engagement provider rather than a Customer.io key held by this service.
 - Moved, not dropped: ST8 credentials (spec 003 FR-026), holding-level CRM config (spec 014), the
@@ -607,9 +639,30 @@ original refuses a capture it cannot trust rather than credit it.
 Go end-to-end scenarios (`tests/e2e/`), each a recording under spec 001 FR-030:
 `TestScenario12_OnboardingGate2_ServicesHealthy`, `TestScenario12_OnboardingGate3_FullChain` (US4, US6,
 US1), `TestScenario13_DreamzPay_FullChain` (US1 with a real provider adapter), and
-`TestScenario14_CasinoDeposit_PlayerToWallet` (US1 scenario 3, the credit). Scenarios 8 and 9 and
+`TestScenario14_CasinoDeposit_PlayerToWallet` (US1 scenario 3, the credit). Planning (2026-10-12)
+found scenario 12's full chain skipped in the original and its routing-rules calls, shared with
+scenario 13, stale against the route (`{"subBrandId"}` and `?merchantId=` where the route takes
+`level` and `entityId`); `tests/original/e2e-merchant.patch` unskips it and corrects the calls, and
+scenarios 13 and 14 run with the dreamzpay stub's `DREAMZPAY_*` values. The cashier behaviours the
+suite never reaches (US2, US3, US7, FR-018) are recorded by `tests/original/merchant-driver/`, one
+scenario per feature scenario, against the original's cashier with its simulator provider
+(`contracts/recording.md`). Scenarios 8 and 9 and
 the probes of scenario 10 cover the dropped payments API (FR-037) and are not replayed; scenario 10's
 cashier tests, skipped today, are spec 006's recordings once unskipped.
+
+Recorded 2026-10-18 from the original at `659c2d6b` on its KinD stack (T019; `tests/port/README.md`):
+the four Go scenarios and the driver's 18, each twice on fresh ids, every one passing on both runs.
+Findings, none of them requirements:
+
+- A DreamzPay terminal registered through `psp-credentials` cannot take a deposit: the submit
+  answers `500 psp_error_502`, because the cashier sends a credential's terminal with no properties
+  and the gateway has refused that since `2add2353` (2026-08-03). Terminals made as gateway
+  integrations carry their credentials and work; scenarios 12 to 14 were changed to make them so.
+  This bears on FR-006 and FR-007 (whether a `psp-credential` is carried over as a deposit path at
+  all) and on spec 005, and is a question for the plan, not settled here.
+- Scenarios 13 and 14 asserted `MemberID` on the relay page (renamed `memberId` in `8361fa09`) and a
+  major-unit wallet balance (the wallet twin holds minor units); scenario 14 logged in a player
+  Keycloak still held unverified. Each was corrected in `e2e-merchant.patch`.
 
 Unit suites of the original whose cases become parity tests: `CashierRoutesSpec`,
 `CashierCaptureDurabilitySpec` (US3), `CashierFailureOutcomeSpec` (US2),

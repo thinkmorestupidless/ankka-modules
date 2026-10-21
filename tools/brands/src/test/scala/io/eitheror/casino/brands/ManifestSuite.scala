@@ -34,9 +34,10 @@ class ManifestSuite extends munit.FunSuite:
     assert(refused("latest-tag").exists(_.message.contains("latest")))
   }
 
-  test("a service that serves only other services is never exposed") {
-    val problems = refused("expose-service-only")
-    assert(problems.exists(p => p.rule == "expose" && p.message.contains("merchant")), problems.mkString("\n"))
+  test("merchant may be exposed: it serves the payments backoffice from a browser (spec 004 research R1)") {
+    Manifest.load(Fixtures.manifest("expose-service-only")) match
+      case Left(problems) => fail(problems.mkString("\n"))
+      case Right(m)       => assert(m.services.exists(p => p.name == "merchant" && p.expose))
   }
 
   test("a brand missing a service of FR-002 is refused") {

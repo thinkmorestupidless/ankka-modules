@@ -1,0 +1,158 @@
+{
+  "scenario": "TestFixture_CaptureCredited",
+  "requirement": "004/FR-021",
+  "recorded_at": "2026-10-12T00:00:00Z",
+  "original": {
+    "commit": "fixture"
+  },
+  "runs": 2,
+  "service": "merchant",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "holdingId": "h",
+          "companyId": "c",
+          "subBrandId": "sb"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.holdingId": "minted per run",
+        "$.companyId": "minted per run",
+        "$.subBrandId": "minted per run"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "sb",
+          "merchantKey": "mk"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "minted per run",
+        "$.merchantKey": "minted per run"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "currency": "EUR",
+          "transactionId": "{txn}",
+          "redirectUrl": "https://merchant.example/return",
+          "country": "GB",
+          "customerId": "{brand}:{player}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "session_token": "t",
+          "transactionId": "tx",
+          "redirectUrl": "https://merchant.example/return",
+          "available_terminals": [
+            {
+              "terminalEntityId": "SIM",
+              "name": "SIM",
+              "scheme": "CARD_VISA"
+            }
+          ]
+        }
+      },
+      "capture": {
+        "session": "$.session_token"
+      },
+      "vary": {
+        "$.session_token": "minted per run",
+        "$.transactionId": "minted per run"
+      }
+    },
+    {
+      "name": "submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/{session}/submit",
+        "service": "merchant",
+        "body": {
+          "selectedTerminalEntityId": "SIM"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "p",
+          "status": "AWAITING_REDIRECT"
+        }
+      },
+      "capture": {
+        "payment": "$.paymentId"
+      },
+      "vary": {
+        "$.paymentId": "minted per run"
+      }
+    },
+    {
+      "name": "capture",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "body": {
+          "outcome": "success"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "capture again",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "body": {
+          "outcome": "success"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    }
+  ]
+}

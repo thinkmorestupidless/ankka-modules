@@ -79,18 +79,3 @@ object SignedMinorUnits:
 
 /** An amount in a named currency. */
 final case class Money(minor: MinorUnits, currency: Currency)
-
-private[money] object Amounts:
-  private val Whole = "-?[0-9]{1,19}".r
-
-  def parseWhole(text: String): Option[Long] =
-    if Whole.matches(text.trim) then text.trim.toLongOption else None
-
-  /**
-   * The token exactly as sent, accepted only as digits with an optional minus: a decimal point
-   * (`1050.0`), an exponent (`1.05e3`) or a string (`"1050"`) is refused, because a boundary that
-   * accepts any of them has accepted something other than a whole number of minor units.
-   */
-  def readWhole(in: JsonReader): Option[Long] =
-    val raw = String(in.readRawValAsBytes(), java.nio.charset.StandardCharsets.UTF_8).trim
-    parseWhole(raw)

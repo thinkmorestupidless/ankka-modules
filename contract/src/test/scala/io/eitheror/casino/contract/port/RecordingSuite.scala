@@ -59,6 +59,37 @@ class RecordingSuite extends munit.FunSuite:
     assert(Replay.run(recording, refusing).exists(_.at == "$.steps[0].response.status"))
   }
 
+  test("an arranged step (setup:, observe:, time:) is sent and its captures taken, and its answer not compared") {
+    val arranged = Recording.parse(fixture, mapper.readTree(
+      """{"scenario":"TestA","runs":2,"steps":[
+        |{"name":"setup: seed","request":{"method":"POST","path":"/seed"},"response":{"status":201,"body":{"id":"orig-1","extra":true}},"capture":{"id":"$.id"}},
+        |{"name":"time: the deadline passes","request":{"method":"POST","path":"/sweep"},"response":{"status":200,"body":{"expired":1}}},
+        |{"name":"read","request":{"method":"GET","path":"/things/{id}"},"response":{"status":200,"body":{"ok":true}}}]}""".stripMargin))
+      .fold(e => throw AssertionError(e), identity)
+    val sent = scala.collection.mutable.Buffer.empty[String]
+    val standIn: Recording.Request => Recording.Response = r =>
+      sent += r.path
+      if r.path == "/seed" then Recording.Response(200, json("""{"id":"new-1"}"""))
+      else if r.path == "/sweep" then Recording.Response(204, None)
+      else Recording.Response(200, json("""{"ok":true}"""))
+    assertEquals(Replay.run(arranged, standIn), Vector.empty)
+    assertEquals(sent.toVector, Vector("/seed", "/sweep", "/things/new-1"))
+    assert(Replay.run(arranged, r => if r.path.startsWith("/things") then Recording.Response(200, json("""{"ok":false}""")) else standIn(r))
+      .exists(_.at == "$.steps[2].response.body.ok"))
+  }
+
+  test("a step's vary holds in that step only; the recording-wide vary of older recordings in every step") {
+    def two(vary: String) = Recording.parse(fixture, mapper.readTree(
+      s"""{"scenario":"TestV","runs":2,$vary"steps":[
+        |{"name":"page","request":{"method":"GET","path":"/page"},"response":{"status":200,"body":"<html>run 1</html>"}STEPVARY},
+        |{"name":"read","request":{"method":"GET","path":"/read"},"response":{"status":200,"body":{"status":"captured"}}}]}""".stripMargin
+        .replace("STEPVARY", if vary.isEmpty then ""","vary":{"$":"differs"}""" else ""))).fold(e => throw AssertionError(e), identity)
+    val other: Recording.Request => Recording.Response = r =>
+      if r.path == "/page" then Recording.Response(200, json("\"<html>run 2</html>\"")) else Recording.Response(200, json("""{"status":"failed"}"""))
+    assertEquals(Replay.run(two(""), other).map(_.at), Vector("$.steps[1].response.body.status"))
+    assertEquals(Replay.run(two(""""vary":{"$":"differs"},"""), other), Vector.empty)
+  }
+
   test("JSONPath reads names and indices") {
     val node = mapper.readTree("""{"a":{"b":[{"c":1},{"c":2}]}}""")
     assertEquals(JsonPath.get(node, "$.a.b[1].c").map(_.asInt()), Some(2))

@@ -109,6 +109,23 @@ class ApplySuite extends munit.FunSuite:
     assert(!text.contains("\"secret\"") && !text.contains("\"password\""))
   }
 
+  test("the operators' realm keeps an operator's scope attributes and puts them in the operator clients' tokens, as the original's does") {
+    import scala.jdk.CollectionConverters.*
+    val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+    val realm  = mapper.readTree(Realm.operators(Fixtures.root))
+    val claims = realm.get("clientScopes").elements.asScala.find(_.get("name").asText == "eitheror-operator-scope").toVector
+      .flatMap(_.get("protocolMappers").elements.asScala.map(_.get("config").get("claim.name").asText))
+    assertEquals(claims.toSet, Set("eitheror_scope_id", "eitheror_scope_level", "eitheror_scope_ancestors"))
+    val carrying = realm.get("clients").elements.asScala
+      .filter(_.get("defaultClientScopes").elements.asScala.exists(_.asText == "eitheror-operator-scope")).map(_.get("clientId").asText).toSet
+    assertEquals(carrying, Set("casino-backoffice", "payments-backoffice", "affiliate-portal"))
+    // Keycloak 24 drops a user attribute its profile does not admit; the original's realm-sync sets this.
+    val profile = mapper.readTree(realm.get("components").get("org.keycloak.userprofile.UserProfileProvider").get(0)
+      .get("config").get("kc.user.profile.config").get(0).asText)
+    assertEquals(profile.get("unmanagedAttributePolicy").asText, "ADMIN_EDIT")
+    assert(Set("eitheror_scope_id", "eitheror_scope_level").subsetOf(profile.get("attributes").elements.asScala.map(_.get("name").asText).toSet))
+  }
+
   test("two brands from one manifest do not touch") {
     val cp = InMemoryControlPlane()
     Apply.run(plan(), cp, options)

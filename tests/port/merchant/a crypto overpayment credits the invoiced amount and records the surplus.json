@@ -1,0 +1,197 @@
+{
+  "scenario": "a crypto overpayment credits the invoiced amount and records the surplus",
+  "requirement": "004/FR-026",
+  "recorded_at": "2026-10-18T06:25:04.66235Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "merchant",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "a2752652-40da-3fe6-bdeb-4525988b23b0",
+          "holdingId": "03ad84f5-1396-3b6b-aabf-1265f3d411e0",
+          "subBrandId": "9916a96d-d06d-370f-805b-288bbe2070ce"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "9916a96d-d06d-370f-805b-288bbe2070ce",
+          "merchantKey": "eo_live_c52230a383fa4a6a9b7a8c35"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 10000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "available_terminals": [
+            {
+              "name": "SIM",
+              "scheme": "CARD_VISA",
+              "terminalEntityId": "SIM"
+            }
+          ],
+          "redirectUrl": "https://merchant.example/return",
+          "session_token": "0eb62fc0-bdd3-4037-b132-f39038d3e8df",
+          "transactionId": "txn-37b57e31"
+        }
+      },
+      "capture": {
+        "session": "$.session_token"
+      },
+      "vary": {
+        "$.session_token": "differs between two runs of the original",
+        "$.transactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/{session}/submit",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "selectedTerminalEntityId": "SIM"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "0a319d49-5f85-44e7-b5b5-2a2f43ab4578",
+          "status": "AWAITING_REDIRECT"
+        }
+      },
+      "capture": {
+        "payment": "$.paymentId"
+      },
+      "vary": {
+        "$.paymentId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "capture",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "{pspTxn}",
+          "receivedConvertAmount": "130.00",
+          "receivedConvertCurrency": "EUR",
+          "receivedCryptoAmount": "0.0020",
+          "variance": "OVERPAYMENT"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read payment",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/{payment}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "amount": "100.00",
+          "amountCents": 10000,
+          "capturedAt": "2026-10-18T06:25:04.821500411Z",
+          "createdAt": "2026-10-18T06:25:04.807079853Z",
+          "currency": "EUR",
+          "customerRef": "brand-e3fd58f1:player-3361a0c7",
+          "expiresAt": "2026-10-18T06:30:04.807079853Z",
+          "merchantId": "9916a96d-d06d-370f-805b-288bbe2070ce",
+          "psp": "SIMULATOR",
+          "pspTransactionId": "b87db3b2-63e0-4b50-88cc-d1d3f6e22ca3",
+          "receivedConvertAmount": "130.00",
+          "receivedConvertCurrency": "EUR",
+          "receivedCryptoAmount": "0.0020",
+          "redirectUrl": "http://psp.eitheror.local/psp-simulator/redirect/b87db3b2-63e0-4b50-88cc-d1d3f6e22ca3",
+          "scheme": "CARD_VISA",
+          "status": "COMPLETED",
+          "terminalId": "SIM",
+          "variance": "OVERPAYMENT"
+        }
+      },
+      "vary": {
+        "$.capturedAt": "differs between two runs of the original",
+        "$.createdAt": "differs between two runs of the original",
+        "$.customerRef": "differs between two runs of the original",
+        "$.expiresAt": "differs between two runs of the original",
+        "$.merchantId": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    }
+  ]
+}

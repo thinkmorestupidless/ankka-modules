@@ -1,0 +1,253 @@
+{
+  "scenario": "a capture carrying one of the signature and the stamped time without the other is refused as missing its signature",
+  "requirement": "004/FR-018",
+  "recorded_at": "2026-10-18T06:25:05.680687Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "merchant",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "53c3c9f7-03a2-30ba-93ea-0eeabc58a3d4",
+          "holdingId": "c5be79fb-66fb-3d5d-bd4d-afe7d766dfc3",
+          "subBrandId": "ead149b6-1a76-34e3-828d-501662db1a81"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "ead149b6-1a76-34e3-828d-501662db1a81",
+          "merchantKey": "eo_live_4d7b6fe525844477b62a997c"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the sub-brand's credential index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-psp-cred-index/bf093cab-6829-33b3-bf29-315dcd196d64",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_668fafc9|"
+        }
+      },
+      "vary": {
+        "$.ids": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: give the credential a webhook secret",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-psp-credential/{credentialTwin}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "credentials": "{\"webhookSecret\":\"{webhookSecret}\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-psp-credential/8804e9ce-4de1-3690-a442-d31305db840f"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "available_terminals": [
+            {
+              "name": "SIM",
+              "scheme": "CARD_VISA",
+              "terminalEntityId": "SIM"
+            }
+          ],
+          "redirectUrl": "https://merchant.example/return",
+          "session_token": "e056197c-b38d-4169-b042-d06398a1a867",
+          "transactionId": "txn-a607c90e"
+        }
+      },
+      "capture": {
+        "session": "$.session_token"
+      },
+      "vary": {
+        "$.session_token": "differs between two runs of the original",
+        "$.transactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/{session}/submit",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "selectedTerminalEntityId": "SIM"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "e574f6da-8a0d-4449-b74f-1eff8862a737",
+          "status": "AWAITING_REDIRECT"
+        }
+      },
+      "capture": {
+        "payment": "$.paymentId"
+      },
+      "vary": {
+        "$.paymentId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "capture with the signature only",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-PSP-Signature": "c8a222cb38c89ad49b8e004557804e966f58072b78098298e2c832a1463abd18"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "{pspTxn}"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": "missing_token",
+          "message": "PSP signature header required"
+        }
+      }
+    },
+    {
+      "name": "capture with the stamped time only",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{payment}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-PSP-Timestamp": "1792304705"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "{pspTxn}"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": "missing_token",
+          "message": "PSP signature header required"
+        }
+      }
+    },
+    {
+      "name": "read payment",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/{payment}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "amount": "50.00",
+          "amountCents": 5000,
+          "createdAt": "2026-10-18T06:25:05.833424952Z",
+          "currency": "EUR",
+          "customerRef": "brand-41bfee6d:player-5bde2e21",
+          "expiresAt": "2026-10-18T06:30:05.833424952Z",
+          "merchantId": "ead149b6-1a76-34e3-828d-501662db1a81",
+          "psp": "SIMULATOR",
+          "pspTransactionId": "abb5cadd-7a64-4925-9cb6-474fa36857b4",
+          "redirectUrl": "http://psp.eitheror.local/psp-simulator/redirect/abb5cadd-7a64-4925-9cb6-474fa36857b4",
+          "scheme": "CARD_VISA",
+          "status": "AWAITING_REDIRECT",
+          "terminalId": "SIM"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.customerRef": "differs between two runs of the original",
+        "$.expiresAt": "differs between two runs of the original",
+        "$.merchantId": "differs between two runs of the original",
+        "$.pspTransactionId": "differs between two runs of the original",
+        "$.redirectUrl": "differs between two runs of the original"
+      }
+    }
+  ]
+}

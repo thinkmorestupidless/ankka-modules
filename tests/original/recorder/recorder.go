@@ -36,11 +36,13 @@ type Response struct {
 	Body   json.RawMessage `json:"body,omitempty"`
 }
 
+// Vary is this step's answer's fields that differed between the two runs: checked for presence only.
 type Step struct {
 	Name     string            `json:"name"`
 	Request  Request           `json:"request"`
 	Response Response          `json:"response"`
 	Capture  map[string]string `json:"capture,omitempty"`
+	Vary     map[string]string `json:"vary,omitempty"`
 }
 
 // Recording is one scenario; the merge program turns two runs of it into the committed file.
@@ -52,7 +54,9 @@ type Recording struct {
 	Runs        int               `json:"runs"`
 	Service     string            `json:"service"`
 	Steps       []Step            `json:"steps"`
-	Vary        map[string]string `json:"vary,omitempty"`
+	// Vary is the recording-wide form recordings made before 2026-10-18 carry: a path there is
+	// presence-only in every step, which is why a step now keeps its own (Step.Vary).
+	Vary map[string]string `json:"vary,omitempty"`
 }
 
 // Services maps a base URL the suite is configured with to the rebuilt service a request to it

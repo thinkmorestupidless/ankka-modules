@@ -26,6 +26,11 @@
       "name": "payments.merchants",
       "partitions": 6,
       "retention": "fact"
+    },
+    {
+      "name": "platform.audit",
+      "partitions": 6,
+      "retention": "fact"
     }
   ],
   "grants": {

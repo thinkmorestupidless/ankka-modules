@@ -33,7 +33,7 @@ object Render:
       projectId = manifest.projectId,
       name = manifest.name,
       topics = manifest.topics.map(topic(_, installation)),
-      descriptors = manifest.services.map(descriptor(manifest, _, installation)),
+      descriptors = manifest.services.map(descriptor(manifest, _, installation, brands)),
       exposed = manifest.services.filter(_.expose).map(_.name),
       secrets = manifest.secrets,
       grantsMade = (manifest match
@@ -83,7 +83,15 @@ object Render:
       retentionNotes ++ schemaNotes
     )
 
-  def descriptor(manifest: Manifest, pin: ServicePin, installation: Option[Installation] = None): ServiceDescriptor =
+  /**
+   * The brands whose hierarchy shared payments' `merchant` seeds on start (spec 004 FR-003, research R15):
+   * a JSON list of `{slug}` from every brand manifest in the repository, sorted, since the tool cannot call
+   * a service and the service cannot read the repository.
+   */
+  def merchantBrands(brands: Vector[String]): String =
+    brands.sorted.map(b => s"""{"slug":"$b"}""").mkString("[", ",", "]")
+
+  def descriptor(manifest: Manifest, pin: ServicePin, installation: Option[Installation] = None, brands: Vector[String] = Vector.empty): ServiceDescriptor =
     // Tokens carry the public issuer; a service reads the keys from inside the cluster when the installation
     // says where (KEYCLOAK_JWKS_BASE), since the public name may not resolve to Keycloak from a pod.
     val keys = installation.flatMap(_.get("KEYCLOAK_JWKS_BASE")).filter(_.nonEmpty)
@@ -99,6 +107,7 @@ object Render:
     val identity = Vector("CASINO_PROJECT" -> manifest.projectId) ++ (manifest match
       // Whether the brand takes real money: game-provider refuses a provider key document then (spec 003 FR-026).
       case brand: BrandManifest => Vector("CASINO_BRAND" -> brand.slug, "CASINO_REAL_MONEY" -> brand.realMoney.toString)
+      case shared: SharedManifest if shared.projectId == "payments" && pin.name == "merchant" => Vector("MERCHANT_BRANDS" -> merchantBrands(brands))
       case _                    => Vector.empty)
     val env =
       (identity ++ auth).map((k, v) => EnvVar(k, value = Some(v))) ++

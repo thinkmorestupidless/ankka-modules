@@ -133,6 +133,14 @@ carried over.
 - Q: How does the glossary's `shared audit` admit the registry? → A: With one sentence added at the
   bdd pass, phrased in Dependencies; the term is otherwise true as written.
 
+### Session 2026-10-12 (from spec 004)
+
+- Q: Where do a shared project's audit records go? (raised by spec 004, open) → A: Not yet settled.
+  `merchant` (spec 004 FR-034) writes `audit_record` on a `platform.audit` topic of the `payments`
+  project, added to the contract's layout and the shared manifest. FR-016 of spec 001 names only the
+  brands' grants of their `platform.audit` to `reasoner`/`audit`; how `audit` reads `payments`' records
+  (a grant between two shared projects, or another path) is this spec's to settle when it is planned.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Every action in a brand leaves one record (Priority: P1)
