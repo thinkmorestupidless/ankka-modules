@@ -32,9 +32,13 @@ object Main:
 
   /** Everything but the process: the tests call this with an in-memory control plane. */
   def run(args: Args, root: Path, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin] = None,
-      vendor: () => Vendor = () => PluginVendor.fromEnvironment()): Int =
+      vendor: () => Vendor = () => PluginVendor.fromEnvironment(), env: Map[String, String] = sys.env): Int =
     args.command match
       case Vector("render", slug)     => render(args, root, slug, out, vendor)
+      case Vector("values", "push", slug) => BrandCommands.push(args, root, slug, out, controlPlane, vendor, env)
+      case Vector("secrets", slug)    => BrandCommands.secrets(args, root, slug, out, controlPlane, env)
+      case Vector("hostnames", slug)  => BrandCommands.hostnames(args, root, slug, out, controlPlane, env)
+      case Vector("realm", slug)      => BrandCommands.realm(args, root, slug, out, realms)
       case Vector("validate") if args.switches.contains("--all") => validateAll(root, out)
       case Vector("validate", path) if path.endsWith("module.json") => validateModule(root, root.resolve(path), out)
       case Vector("validate", path) if path.endsWith("values.json") => validateValues(args, root, root.resolve(path), out)
@@ -70,8 +74,17 @@ object Main:
       case Left(refusals) =>
         refusals.foreach(r => out.line(s"refused ${root.relativize(path)}: $r")); out.line("calls: 0"); 1
       case Right(v) =>
-        out.line(s"valid values ${v.slug}: ${v.values.size} values, ${v.secrets.size} secrets")
-        out.line("calls: 0"); 0
+        BrandCommands.loadInstallation(args, root, out) match
+          case Left(code) => code
+          case Right(inst) =>
+            // The core's requirements, from the overlay's settings: validate makes no call (contracts/modules-tool.md).
+            val refusals = BrandCommands.realMoney(v, v.slug, inst, inst.map(Readiness.fromOverlay), force = args.switches.contains("--real-money"))
+            if refusals.nonEmpty then
+              refusals.foreach(r => out.line(s"refused ${root.relativize(path)}: $r")); out.line("calls: 0"); 1
+            else
+              out.line(s"valid values ${v.slug}: ${v.values.size} values, ${v.secrets.size} secrets")
+              inst.foreach(i => Readiness.conditions(i).foreach(c => out.line(s"  ${c.line}")))
+              out.line("calls: 0"); 0
 
   // ── the brand's values and the modules (spec 021) ──────────────────────────
 

@@ -3,7 +3,6 @@ package io.eitheror.casino.modules
 import com.github.plokhotnyuk.jsoniter_scala.core.{readFromString, writeToString}
 import com.thinkmorestupidless.ankka.controlplane.api.*
 import com.thinkmorestupidless.ankka.controlplane.api.Wire.given
-import com.thinkmorestupidless.ankka.controlplane.api.ServiceDescriptor.given
 
 import java.io.FileInputStream
 import java.net.URI
@@ -44,6 +43,12 @@ trait ControlPlane:
   def grants(project: String): Option[Vector[GrantStatus]]
   def makeGrant(project: String, grant: GrantRequest): Option[Unit]
   def receivedGrants(project: String): Option[Vector[GrantStatus]]
+  /** `GET /installation`: what the installation reports of itself (spec 021 R6), `None` where it does not answer. */
+  def installation(): Option[String]
+  /** `PUT /services/{p}/{name}/hostnames/{hostname}`: a custom hostname; `None` where the platform lacks them. */
+  def addHostname(project: String, service: String, hostname: String): Option[Unit]
+  /** `DELETE /services/{p}/{name}`: `false` when there was none. */
+  def delete(project: String, name: String): Boolean
   /** Every call made, in order, for the `calls: N` line and the tests. */
   def calls: Vector[String]
 
@@ -112,6 +117,10 @@ final class HttpControlPlane(url: String, token: Option[String], ca: Option[Stri
   def makeGrant(project: String, grant: GrantRequest) =
     maybe("POST", s"/projects/${segment(project)}/grants", Some(GrantJson.request(grant))).map(_ => ())
   def receivedGrants(project: String) = maybe("GET", s"/projects/${segment(project)}/grants/received").map(GrantJson.statuses)
+  def installation() = maybe("GET", "/installation")
+  def addHostname(project: String, service: String, hostname: String) =
+    maybe("PUT", s"/services/${segment(project)}/${segment(service)}/hostnames/${segment(hostname)}").map(_ => ())
+  def delete(project: String, name: String) = maybe("DELETE", s"/services/${segment(project)}/${segment(name)}").isDefined
 
 object HttpControlPlane:
 

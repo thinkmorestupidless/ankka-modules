@@ -10,7 +10,7 @@ import scala.collection.mutable
  * partitions. It records every call, so a test can say what was called and in what order.
  * `hasGrants` false answers as ankka 0.11 does, without 040.
  */
-final class InMemoryControlPlane(val hasGrants: Boolean = false) extends ControlPlane:
+final class InMemoryControlPlane(val hasGrants: Boolean = false, var installationJson: Option[String] = None, val hasHostnames: Boolean = true) extends ControlPlane:
 
   private val log       = mutable.ArrayBuffer.empty[String]
   val projects          = mutable.LinkedHashMap.empty[String, ProjectSummary]
@@ -130,3 +130,24 @@ final class InMemoryControlPlane(val hasGrants: Boolean = false) extends Control
       grantsBy.toVector.flatMap((_, gs) => gs.filter(_.principal.startsWith(s"service:$project/")))
         .map(g => GrantStatus(g.principal, g.target, "in effect"))
     )
+
+  val hostnames = mutable.Map.empty[(String, String), Vector[String]]
+
+  def installation() =
+    log += "GET /installation"
+    installationJson
+
+  def addHostname(project: String, service: String, hostname: String) =
+    log += s"PUT /services/$project/$service/hostnames/$hostname"
+    Option.when(hasHostnames) {
+      mustExist(project)
+      hostnames((project, service)) = (hostnames.getOrElse((project, service), Vector.empty) :+ hostname).distinct
+    }
+
+  def delete(project: String, name: String) =
+    log += s"DELETE /services/$project/$name"
+    val existed = servicesBy.get(project).exists(_.contains(name))
+    servicesBy.get(project).foreach(_.remove(name))
+    exposed -= project -> name
+    existed
+
