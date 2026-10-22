@@ -13,10 +13,6 @@ import scala.jdk.CollectionConverters.*
 class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
 
   override protected def ranElsewhere: Map[String, String] = Map(
-    "a brand runs the core alone until a module is enabled" -> "not yet bound: spec 021 T023",
-    "enabling a module adds its services and grants to the brand and nothing to any other brand" -> "not yet bound: spec 021 T023",
-    "a brand entitled to the prediction market and not the casino serves markets and no games" -> "not yet bound: spec 021 T023",
-    "disabling a module removes its services and keeps its data for the module's retention" -> "not yet bound: spec 021 T023",
     "a brand operator sees their brand's modules and cannot enable one" -> "not yet bound: spec 021 T026",
     "eitheror staff enable a module from the vendor's console and see no player of any brand" -> "not yet bound: spec 021 T026",
     "a module's every change is a fact on the brand's platform topic" -> "not yet bound: spec 021 T026"
@@ -38,9 +34,10 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
 
   Given("a brand {string} provisioned by the vendor with an entitlement to the module {string}") { (slug: String, module: String) =>
     entitled = entitled.updated(slug, Set(module))
-    brandValues = brandValues.updated(slug, goldvibe.copy(slug = slug, name = slug))
+    brandValues = brandValues.updated(slug, brandOf(slug))
     installationName = "dev-kind"
     agents = Map.empty
+    installation = InMemoryControlPlane(hasGrants = true)
   }
 
   // ── the brand side: values, the agent (US1, US3) ───────────────────────────
@@ -49,18 +46,24 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
   private lazy val keys      = Keys.load(root)
   private lazy val goldvibe  = Values.load(root.resolve("brands/goldvibe/values.json"), Main.valuesView(root)).fold(rs => fail(rs.mkString), identity)
 
+  /** goldvibe's values for another slug, its secrets named after that slug as keys.md reads them. */
+  private def brandOf(slug: String): Values =
+    goldvibe.copy(slug = slug, name = slug, secrets = goldvibe.secrets.map(s => s.copy(name = s.name.replace("goldvibe", slug))))
+
   private var brandValues: Map[String, Values]    = Map.empty
   private var installationName: String             = "dev-kind"
   private var agents: Map[String, AgentModel]      = Map.empty
   private var lastRecord: Option[AgentModel.ModuleRecord] = None
   private var writesBefore: Int = 0
+  /** One installation's control plane: every brand is a project on it, so "nothing to any other brand" can be false. */
+  private var installation: InMemoryControlPlane = InMemoryControlPlane(hasGrants = true)
 
   /** The brand's project as values push and secrets leave it, and its agent; made once per brand per scenario. */
   private def agent(slug: String): AgentModel =
     agents.getOrElse(slug, {
       val v    = brandValues(slug)
       val inst = Installation.load(root, installationName).toOption
-      val cp   = InMemoryControlPlane(hasGrants = true)
+      val cp   = installation
       cp.createProject(slug, slug, "eitheror")
       val secrets = keys.rows.filter(_.secret).filter(r => v.secretFor(r).isDefined).map(_.key -> "test").toMap
       cp.setSecret(slug, BrandRender.TenantValues, Values.all(v, slug, inst) ++ secrets)
@@ -185,3 +188,108 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
   Then("no channel is moved") { () =>
     assert(!vendorCalls.exists(_.startsWith("channels")), vendorCalls.mkString("\n"))
   }
+
+  // ── a brand runs the core and the modules it is entitled to (US1) ───────────
+
+  private def servicesOf(module: String): Vector[String] =
+    (manifests ++ testManifests).find(_.name == module).getOrElse(fail(s"no module $module")).services.map(_.name)
+
+  private def running(slug: String): Set[String] = installation.servicesBy.get(slug).map(_.keySet.toSet).getOrElse(Set.empty)
+
+  /** The routes a service serves, by the contract's list and the service specs' route contracts. */
+  private lazy val routes: Vector[(String, String, String)] =
+    ModuleManifest.ContractView.contractRoutes(root).toVector ++ {
+      // spec 003's route contract, the game routes the contract's list does not carry
+      val gameRoute = """\|\s*(GET|POST|PUT|DELETE)\s*\|\s*`([^`]+)`.*""".r
+      Files.readAllLines(root.resolve("specs/003-game-provider/contracts/routes.md")).asScala.toVector.collect {
+        case gameRoute(method, path) if path.startsWith("/v1/casino/") => ("game-provider", method, path)
+      }
+    }
+
+  private def served(slug: String): Vector[(String, String, String)] = routes.filter(r => running(slug).contains(r._1))
+
+  Then("brand {string} runs the services of the module {string} and no other") { (slug: String, module: String) =>
+    assertEquals(running(slug), servicesOf(module).toSet)
+    assertEquals(agent(slug).entity.values.filter(_.status == AgentModel.Enabled).map(_.name).toVector, Vector(module))
+  }
+
+  Then("a player can register, deposit and withdraw at brand {string}") { (slug: String) =>
+    // register: the players service (spec 008 owns the route, which the contract's list does not carry yet)
+    assert(running(slug).contains("players"), running(slug).toString)
+    val s = served(slug)
+    assert(s.exists((svc, m, p) => svc == "wallet" && m == "POST" && p.endsWith("/deposits")), s.mkString("\n"))
+    assert(s.exists((svc, m, p) => svc == "payouts" && m == "POST" && p.contains("/withdrawals/")), s.mkString("\n"))
+  }
+
+  Then("no game route and no market route is served at brand {string}") { (slug: String) =>
+    assert(routes.exists(_._1 == "game-provider"), "the game routes were read")
+    assertEquals(served(slug).filter(_._1 == "game-provider"), Vector.empty)
+    assertEquals(running(slug).intersect((servicesOf("casino") ++ servicesOf("predictions")).toSet), Set.empty)
+  }
+
+  Then("no game route is served at brand {string}") { (slug: String) =>
+    assertEquals(served(slug).filter(_._1 == "game-provider"), Vector.empty)
+    assertEquals(running(slug).intersect(servicesOf("casino").toSet), Set.empty)
+  }
+
+  Then("brand {string} serves market routes") { (slug: String) =>
+    assertEquals(lastRecord.map(_.status), Some(AgentModel.Enabled), lastRecord.toString)
+    assert(servicesOf("predictions").toSet.subsetOf(running(slug)), running(slug).toString)
+  }
+
+  private var otherBefore: Option[(String, Map[String, Vector[String]], Vector[String], Vector[String])] = None
+
+  private def snapshot(slug: String) =
+    (slug,
+      installation.servicesBy.get(slug).map(_.view.mapValues(_.map(_.service.image)).toMap).getOrElse(Map.empty),
+      installation.grants(slug).getOrElse(Vector.empty).map(g => s"${g.principal} ${g.target}"),
+      installation.topics(slug).map(_.name))
+
+  Given("a brand {string} running the module {string}") { (slug: String, module: String) =>
+    brandValues = brandValues.updated(slug, brandOf(slug))
+    val a = agent(slug)
+    assertEquals(a.deliver(module, "0.3.0", "the vendor").status, AgentModel.Enabled)
+    otherBefore = Some(snapshot(slug))
+  }
+
+  Then("brand {string} runs the services of the module {string} beside the core") { (slug: String, module: String) =>
+    assertEquals(running(slug), (servicesOf("core") ++ servicesOf(module)).toSet)
+  }
+
+  Then("what the module {string} allows the core and the shared payments, programme and audit is in force in brand {string}") {
+    (module: String, slug: String) =>
+      val declared = Vector("core", module).flatMap(m => manifests.find(_.name == m).get.grantsMade).collect {
+        case ModuleManifest.MadeGrant(ModuleManifest.Principal.Literal(p), t) => s"$p ${BrandRender.target(t)}"
+      }
+      // casino declares no grant of its own today: what is in force is exactly the core's and casino's together
+      assertEquals(installation.grants(slug).get.map(g => s"${g.principal} ${g.target}").toSet, declared.toSet)
+      assert(agent(slug).entity(module).status == AgentModel.Enabled)
+  }
+
+  Then("brand {string} is unchanged") { (slug: String) =>
+    assertEquals(Some(snapshot(slug)), otherBefore)
+    assert(!installation.writes.drop(writesBefore).exists(_.contains(s"/$slug")), installation.writes.drop(writesBefore).mkString("\n"))
+  }
+
+  Given("brand {string} running the module {string}") { (slug: String, module: String) =>
+    val a = agent(slug)
+    assertEquals(a.deliver("core", "0.3.0", "the vendor").status, AgentModel.Enabled)
+    assertEquals(a.deliver(module, "0.3.0", "staff:eitheror").status, AgentModel.Enabled)
+  }
+
+  When("eitheror staff disable the module {string} for brand {string}") { (module: String, slug: String) =>
+    lastRecord = Some(agent(slug).disable(module, "staff:eitheror").fold(e => fail(e), identity))
+  }
+
+  Then("the services of the module {string} are removed from brand {string}") { (module: String, slug: String) =>
+    assertEquals(running(slug).intersect(servicesOf(module).toSet), Set.empty)
+    assertEquals(running(slug), servicesOf("core").toSet)
+  }
+
+  Then("the data of the module {string} is kept for the retention its manifest names") { (module: String) =>
+    val m = manifests.find(_.name == module).get
+    assertEquals(lastRecord.flatMap(_.dataKeptUntil), Some(java.time.Instant.parse("2026-10-22T12:00:00Z").plus(java.time.Duration.ofDays(AgentModel.days(m.retention)))))
+    // the topics stay declared: removing a module deletes services, never data
+    assert(m.topics.map(_.name).forall(installation.topics("goldvibe").map(_.name).contains))
+  }
+
