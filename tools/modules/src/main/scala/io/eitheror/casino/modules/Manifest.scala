@@ -138,20 +138,33 @@ object Manifest:
       case brand: BrandManifest   => brandRules(brand)
       case shared: SharedManifest => sharedRules(shared))
 
+  /**
+   * Spec 001's brand manifest, which spec 021 replaces with values and module manifests: its fixed
+   * lists stay here only to read spec 001's fixtures in local mode (features/brands/manifest.feature).
+   */
+  object Spec001:
+    val BrandServices: Vector[String] = Vector(
+      "wallet", "payouts", "players", "kyc", "responsible-gambling", "rewards", "game-provider",
+      "attribution", "partner-api", "engagement", "reporting", "support-agent"
+    )
+    val OptionalBrandServices: Set[String] = Set("partner-api", "support-agent")
+    val BrandTopics: Vector[String] = Layout.BrandTopics.filterNot(_ == "platform.modules")
+    val BrandGrantsMade: Vector[Grant] = Layout.BrandGrantsMade.filterNot(_.target == GrantTarget.Topic("platform.modules", "consume"))
+
   private def brandRules(brand: BrandManifest): Vector[Problem] =
     val names    = brand.services.map(_.name).toSet
-    val required = Layout.BrandServices.filterNot(Layout.OptionalBrandServices.contains)
+    val required = Spec001.BrandServices.filterNot(Spec001.OptionalBrandServices.contains)
     val topics   = brand.topics.map(_.name).toSet
     val slug = Layout.slugProblems(brand.slug)
     // ankka's own rule second, so a slug Layout already refused is not refused twice.
     (if slug.nonEmpty then slug else ProjectId.problems(brand.slug)).map(Problem("slug", _)) ++
       required.filterNot(names).map(s => Problem("services", s"service '$s' is missing; a brand holds every service of FR-002")) ++
-      Layout.BrandTopics.filterNot(topics).map(t => Problem("topics", s"topic '$t' is missing; a brand declares every topic of the contract")) ++
+      Spec001.BrandTopics.filterNot(topics).map(t => Problem("topics", s"topic '$t' is missing; a brand declares every topic of the contract")) ++
       brand.topics.collect {
         case t if t.retention != Layout.retentionOf(t.name) =>
           Problem("retention", s"topic '${t.name}' is declared ${show(t.retention)}; the contract says ${show(Layout.retentionOf(t.name))}")
       } ++
-      differences("grants-made", brand.grantsMade, Layout.BrandGrantsMade) ++
+      differences("grants-made", brand.grantsMade, Spec001.BrandGrantsMade) ++
       differences("grants-received", brand.grantsReceived, Layout.brandGrantsReceived(brand.slug))
 
   private def sharedRules(shared: SharedManifest): Vector[Problem] =

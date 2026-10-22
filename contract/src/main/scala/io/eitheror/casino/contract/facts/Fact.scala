@@ -54,6 +54,9 @@ abstract class Topic[F <: Fact](val name: String, val producers: Vector[String])
 
   def contractName: String = s"$name.v1"
 
+  /** A topic whose body is one flat record with no `type` (only `platform.modules`, spec 021 E3). */
+  def flat: Boolean = false
+
   lazy val serializer: Serializer[F] = Serializer.json[F](contractName)
 
   /**

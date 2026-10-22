@@ -1,0 +1,31 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/platform.modules.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "The changes to a brand's modules on platform.modules, produced by the vendor's agent (spec 021 FR-011). A flat record, the vendor's shape: no body `type`; `ce-type` is the contract name.",
+  "properties": {
+    "actor": {
+      "type": "string"
+    },
+    "at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "change": {
+      "enum": ["enabled", "disabled", "upgraded", "failed", "requested", "values-changed"],
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "module": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": ["module", "change", "actor", "at"],
+  "title": "platform.modules.v1",
+  "type": "object"
+}

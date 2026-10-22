@@ -142,7 +142,11 @@
               },
               "broker": {
                 "type": "object", "additionalProperties": false,
-                "properties": { "nodes": { "type": "integer", "minimum": 1 } }
+                "properties": {
+                  "nodes": { "type": "integer", "minimum": 1 },
+                  "defaultCopies": { "type": "integer", "minimum": 1 },
+                  "minInSync": { "type": "integer", "minimum": 1 }
+                }
               },
               "topics": {
                 "type": "object", "additionalProperties": false,

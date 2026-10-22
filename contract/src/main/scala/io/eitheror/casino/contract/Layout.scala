@@ -1,20 +1,27 @@
 package io.eitheror.casino.contract
 
 /**
- * The shape every brand and shared project is built into (spec 001 FR-001 to FR-003, FR-011,
- * FR-016). The brands tool validates manifests against it; services read it for names they share.
- * Changes here change spec 001 first.
+ * The shape every brand and shared project is built into (spec 001 FR-001 to FR-003, FR-011, FR-016,
+ * as spec 021 amends them): a brand's services, topics and grants are its modules', read from the
+ * manifests; the shared projects are spec 001's. Services read it for names they share.
  */
 object Layout:
 
-  /** The services of a brand project (FR-002), each specified by its own spec. */
-  val BrandServices: Vector[String] = Vector(
-    "wallet", "payouts", "players", "kyc", "responsible-gambling", "rewards", "game-provider",
-    "attribution", "partner-api", "engagement", "reporting", "support-agent"
-  )
+  /**
+   * One module as the contract reads it from `modules/<module>/module.json` (spec 021 T009): its
+   * services in order, its topics and the grants it makes. The manifests are packaged with the
+   * contract artifact, so every service reads the same list the modules tool validates.
+   */
+  final case class Module(name: String, kind: String, services: Vector[String], topics: Vector[String], grantsMade: Vector[Grant])
 
-  /** Brand services a manifest may leave out (FR-007: the pilot excludes partner-api; support-agent ships off). */
-  val OptionalBrandServices: Set[String] = Set("partner-api", "support-agent")
+  /** The modules of the tree, `core` first. */
+  lazy val Modules: Vector[Module] = ModuleResources.read()
+
+  /** The services of a brand project's modules (spec 021 FR-001), each in one module only. */
+  lazy val Services: Vector[String] = Modules.flatMap(_.services)
+
+  /** The module a brand service belongs to. */
+  def moduleOf(service: String): Option[String] = Modules.find(_.services.contains(service)).map(_.name)
 
   /** Brand services that get an object-storage bucket (research R12). */
   val ObjectStorageServices: Set[String] = Set("kyc", "reporting")
@@ -44,7 +51,7 @@ object Layout:
    * A slug is at most 42 characters: `<service>-<slug>` is one DNS label of at most 63, and the
    * longest brand service, `responsible-gambling`, takes 21 with its hyphen (research R2).
    */
-  val MaxSlugLength: Int = 63 - BrandServices.map(_.length + 1).max
+  lazy val MaxSlugLength: Int = 63 - Services.map(_.length + 1).max
 
   private val SlugPattern = "[a-z][a-z0-9-]*".r
 
@@ -59,11 +66,8 @@ object Layout:
       Option.when(ReservedSlugs.contains(slug))(s"slug '$slug' is reserved")
     ).flatten
 
-  /** The ten topics of every brand project (FR-011). */
-  val BrandTopics: Vector[String] = Vector(
-    "money.transactions", "payments.payments", "casino.players", "casino.sessions", "casino.rounds",
-    "casino.withdrawals", "casino.rewards", "affiliates.attribution", "casino.push", "platform.audit"
-  )
+  /** The topics a brand project's modules declare (spec 001 FR-011, spec 021 FR-001), in module order. */
+  lazy val BrandTopics: Vector[String] = Modules.flatMap(_.topics)
 
   /** Topics of the shared projects that are part of the contract (FR-011). */
   val SharedTopics: Map[String, Vector[String]] = Map(
@@ -92,18 +96,15 @@ object Layout:
 
   final case class Grant(principal: String, target: GrantTarget)
 
-  /** The grants every brand makes, and no others (FR-016, contracts/grants.md). */
-  val BrandGrantsMade: Vector[Grant] = Vector(
-    Grant("service:payments/merchant", GrantTarget.Route("wallet", "POST", "/v1/casino/brands/{brand}/wallets/{player}/{currency}/deposits")),
-    Grant("service:payments/merchant", GrantTarget.Route("wallet", "POST", "/v1/casino/brands/{brand}/payments/{paymentId}/outcome")),
-    Grant("service:payments/psp-gateway", GrantTarget.Route("payouts", "POST", "/v1/casino/brands/{brand}/withdrawals/{requestId}/outcome")),
-    Grant("service:programme/affiliate-programme", GrantTarget.Topic("affiliates.attribution", "consume")),
-    Grant("service:reasoner/audit", GrantTarget.Topic("platform.audit", "consume"))
-  )
+  /** The grants a brand's modules make, and no others (spec 021 FR-006; was spec 001 FR-016's fixed list). */
+  lazy val BrandGrantsMade: Vector[Grant] = Modules.flatMap(_.grantsMade)
 
   /**
    * The grants a brand holds from `payments`, the principal naming the brand's own service: the
    * payout initiate, its status read and the withdrawal terminal listing (spec 005 research R12).
+   * Not read from a module manifest: the vendor's `received[].from` names a module and `payments` is
+   * a shared project, so `shared/payments/manifest.json` makes these per brand (spec 021 E2) until
+   * `payments` is a vendor shared module.
    */
   def brandGrantsReceived(slug: String): Vector[Grant] = Vector(
     Grant(s"service:$slug/payouts", GrantTarget.Route("psp-gateway", "POST", "/v1/payments/withdrawals")),
@@ -121,3 +122,37 @@ object Layout:
     principal.stripPrefix("service:").split('/') match
       case Array(project, service) if principal.startsWith("service:") => Some(project -> service)
       case _                                                           => None
+
+/** Reads the manifests the contract artifact carries (`modules/index`, `modules/<m>/module.json`). */
+private object ModuleResources:
+  import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+  import scala.jdk.CollectionConverters.*
+
+  private def resource(path: String): String =
+    val in = Option(getClass.getResourceAsStream(path))
+      .getOrElse(throw IllegalStateException(s"$path is not in the contract artifact: the build packages modules/ as resources"))
+    try String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8) finally in.close()
+
+  private def array(n: JsonNode, f: String): Vector[JsonNode] =
+    Option(n.get(f)).map(_.elements().asScala.toVector).getOrElse(Vector.empty)
+
+  private def grant(g: JsonNode): Option[Layout.Grant] =
+    val t = g.path("target")
+    val target = t.path("kind").asText() match
+      case "route" => Layout.GrantTarget.Route(t.path("service").asText(), t.path("method").asText(), t.path("path").asText())
+      case _       => Layout.GrantTarget.Topic(t.path("topic").asText(), t.path("right").asText())
+    // A `{module, service}` principal is within the project and is no grant (FR-007); `{shared}` resolves at apply.
+    Option(g.get("principal")).filter(_.isTextual).map(p => Layout.Grant(p.asText(), target))
+
+  def read(): Vector[Layout.Module] =
+    val mapper = ObjectMapper()
+    resource("/modules/index").linesIterator.map(_.trim).filter(_.nonEmpty).toVector.map { name =>
+      val node = mapper.readTree(resource(s"/modules/$name/module.json"))
+      Layout.Module(
+        name = node.path("name").asText(),
+        kind = node.path("kind").asText(),
+        services = array(node, "services").map(_.path("name").asText()),
+        topics = array(node, "topics").map(_.path("name").asText()),
+        grantsMade = array(node.path("grants"), "made").flatMap(grant)
+      )
+    }

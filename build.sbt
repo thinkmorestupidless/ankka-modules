@@ -29,6 +29,23 @@ lazy val contract = project
     name := "casino-contract",
     // The topics' schemas ship in the artifact, so the modules tool and every service read one copy.
     Compile / unmanagedResourceDirectories += baseDirectory.value / "schemas",
+    // The module manifests ship in the artifact too, as `modules/<module>/module.json` with an index,
+    // so Layout reads the services, topics and grants from them (spec 021 T009) and a service's ACLs
+    // admit exactly the grantees the core's manifest names.
+    Compile / resourceGenerators += Def.task {
+      val source = (ThisBuild / repoRoot).value / "modules"
+      val target = (Compile / resourceManaged).value / "modules"
+      val names  = IO.listFiles(source).filter(d => (d / "module.json").isFile).map(_.getName).sorted.toVector
+      val order  = Vector("core") ++ names.filterNot(_ == "core")
+      val copied = order.map { n =>
+        val to = target / n / "module.json"
+        IO.copyFile(source / n / "module.json", to)
+        to
+      }
+      val index = target / "index"
+      IO.write(index, order.mkString("", "\n", "\n"))
+      copied :+ index
+    }.taskValue,
     libraryDependencies ++= Seq(
       "com.thinkmorestupidless" %% "ankka-sdk"       % ankkaVersion,
       "com.thinkmorestupidless" %% "ankka-http"      % ankkaVersion,

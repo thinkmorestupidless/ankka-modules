@@ -1,0 +1,604 @@
+{
+  "name": "core",
+  "kind": "core",
+  "description": "What every brand runs, whatever it sells: the wallet, players, kyc, responsible gambling, payouts and attribution",
+  "services": [
+    {
+      "name": "wallet",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/wallet:0.0.0",
+        "expose": true,
+        "runtime": "0.11.0",
+        "resources": {
+          "instanceType": "medium"
+        },
+        "env": [
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_REAL_MONEY",
+            "key": "casino-real-money"
+          },
+          {
+            "name": "ANKKA_AUTH_ISSUERS",
+            "value": "player,staff"
+          },
+          {
+            "name": "ANKKA_AUTH_REALM",
+            "key": "auth-realm"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_ISSUER",
+            "key": "auth-player-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_JWKS_URL",
+            "key": "auth-player-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_AUDIENCE",
+            "key": "auth-player-audience"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_JWKS_URL",
+            "key": "auth-staff-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_AUDIENCE",
+            "value": "eitheror-casino"
+          },
+          {
+            "name": "PLAYER_SITE_BASE",
+            "key": "player-site-base"
+          },
+          {
+            "name": "KEYCLOAK_ISSUER_BASE",
+            "key": "keycloak-issuer-base"
+          },
+          {
+            "name": "KEYCLOAK_JWKS_BASE",
+            "key": "keycloak-jwks-base"
+          }
+        ]
+      }
+    },
+    {
+      "name": "players",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/players:0.0.0",
+        "expose": true,
+        "runtime": "0.11.0",
+        "env": [
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_REAL_MONEY",
+            "key": "casino-real-money"
+          },
+          {
+            "name": "ANKKA_AUTH_ISSUERS",
+            "value": "player,staff"
+          },
+          {
+            "name": "ANKKA_AUTH_REALM",
+            "key": "auth-realm"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_ISSUER",
+            "key": "auth-player-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_JWKS_URL",
+            "key": "auth-player-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_AUDIENCE",
+            "key": "auth-player-audience"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_JWKS_URL",
+            "key": "auth-staff-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_AUDIENCE",
+            "value": "eitheror-casino"
+          },
+          {
+            "name": "PLAYER_SITE_BASE",
+            "key": "player-site-base"
+          },
+          {
+            "name": "KEYCLOAK_ISSUER_BASE",
+            "key": "keycloak-issuer-base"
+          },
+          {
+            "name": "KEYCLOAK_JWKS_BASE",
+            "key": "keycloak-jwks-base"
+          }
+        ]
+      }
+    },
+    {
+      "name": "kyc",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/kyc:0.0.0",
+        "expose": true,
+        "runtime": "0.11.0",
+        "provisionObjectStorage": true,
+        "env": [
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_REAL_MONEY",
+            "key": "casino-real-money"
+          },
+          {
+            "name": "ANKKA_AUTH_ISSUERS",
+            "value": "player,staff"
+          },
+          {
+            "name": "ANKKA_AUTH_REALM",
+            "key": "auth-realm"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_ISSUER",
+            "key": "auth-player-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_JWKS_URL",
+            "key": "auth-player-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_AUDIENCE",
+            "key": "auth-player-audience"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_JWKS_URL",
+            "key": "auth-staff-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_AUDIENCE",
+            "value": "eitheror-casino"
+          },
+          {
+            "name": "PLAYER_SITE_BASE",
+            "key": "player-site-base"
+          },
+          {
+            "name": "KEYCLOAK_ISSUER_BASE",
+            "key": "keycloak-issuer-base"
+          },
+          {
+            "name": "KEYCLOAK_JWKS_BASE",
+            "key": "keycloak-jwks-base"
+          },
+          {
+            "name": "KYC_PROVIDER_KEY",
+            "key": "kyc-provider-key"
+          }
+        ]
+      }
+    },
+    {
+      "name": "responsible-gambling",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/responsible-gambling:0.0.0",
+        "expose": true,
+        "runtime": "0.11.0",
+        "env": [
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_REAL_MONEY",
+            "key": "casino-real-money"
+          },
+          {
+            "name": "ANKKA_AUTH_ISSUERS",
+            "value": "player,staff"
+          },
+          {
+            "name": "ANKKA_AUTH_REALM",
+            "key": "auth-realm"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_ISSUER",
+            "key": "auth-player-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_JWKS_URL",
+            "key": "auth-player-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_AUDIENCE",
+            "key": "auth-player-audience"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_JWKS_URL",
+            "key": "auth-staff-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_AUDIENCE",
+            "value": "eitheror-casino"
+          },
+          {
+            "name": "PLAYER_SITE_BASE",
+            "key": "player-site-base"
+          },
+          {
+            "name": "KEYCLOAK_ISSUER_BASE",
+            "key": "keycloak-issuer-base"
+          },
+          {
+            "name": "KEYCLOAK_JWKS_BASE",
+            "key": "keycloak-jwks-base"
+          }
+        ]
+      }
+    },
+    {
+      "name": "payouts",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/payouts:0.0.0",
+        "expose": true,
+        "runtime": "0.11.0",
+        "env": [
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_REAL_MONEY",
+            "key": "casino-real-money"
+          },
+          {
+            "name": "ANKKA_AUTH_ISSUERS",
+            "value": "player,staff"
+          },
+          {
+            "name": "ANKKA_AUTH_REALM",
+            "key": "auth-realm"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_ISSUER",
+            "key": "auth-player-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_JWKS_URL",
+            "key": "auth-player-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_AUDIENCE",
+            "key": "auth-player-audience"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_JWKS_URL",
+            "key": "auth-staff-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_AUDIENCE",
+            "value": "eitheror-casino"
+          },
+          {
+            "name": "PLAYER_SITE_BASE",
+            "key": "player-site-base"
+          },
+          {
+            "name": "KEYCLOAK_ISSUER_BASE",
+            "key": "keycloak-issuer-base"
+          },
+          {
+            "name": "KEYCLOAK_JWKS_BASE",
+            "key": "keycloak-jwks-base"
+          }
+        ]
+      }
+    },
+    {
+      "name": "attribution",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/attribution:0.0.0",
+        "expose": true,
+        "runtime": "0.11.0",
+        "env": [
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "CASINO_REAL_MONEY",
+            "key": "casino-real-money"
+          },
+          {
+            "name": "ANKKA_AUTH_ISSUERS",
+            "value": "player,staff"
+          },
+          {
+            "name": "ANKKA_AUTH_REALM",
+            "key": "auth-realm"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_ISSUER",
+            "key": "auth-player-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_JWKS_URL",
+            "key": "auth-player-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_PLAYER_AUDIENCE",
+            "key": "auth-player-audience"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_JWKS_URL",
+            "key": "auth-staff-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_AUDIENCE",
+            "value": "eitheror-casino"
+          },
+          {
+            "name": "PLAYER_SITE_BASE",
+            "key": "player-site-base"
+          },
+          {
+            "name": "KEYCLOAK_ISSUER_BASE",
+            "key": "keycloak-issuer-base"
+          },
+          {
+            "name": "KEYCLOAK_JWKS_BASE",
+            "key": "keycloak-jwks-base"
+          }
+        ]
+      }
+    }
+  ],
+  "topics": [
+    {
+      "name": "money.transactions",
+      "partitions": 12,
+      "retention": "everything"
+    },
+    {
+      "name": "payments.payments",
+      "partitions": 6,
+      "retention": "everything"
+    },
+    {
+      "name": "casino.players",
+      "partitions": 6,
+      "retention": "everything"
+    },
+    {
+      "name": "casino.sessions",
+      "partitions": 12,
+      "retention": "90d"
+    },
+    {
+      "name": "casino.withdrawals",
+      "partitions": 6,
+      "retention": "everything"
+    },
+    {
+      "name": "affiliates.attribution",
+      "partitions": 6,
+      "retention": "everything"
+    },
+    {
+      "name": "platform.audit",
+      "partitions": 12,
+      "retention": "everything"
+    },
+    {
+      "name": "platform.modules",
+      "partitions": 6,
+      "retention": "everything"
+    }
+  ],
+  "grants": {
+    "made": [
+      {
+        "principal": "service:payments/merchant",
+        "target": {
+          "kind": "route",
+          "service": "wallet",
+          "method": "POST",
+          "path": "/v1/casino/brands/{brand}/wallets/{player}/{currency}/deposits"
+        }
+      },
+      {
+        "principal": "service:payments/merchant",
+        "target": {
+          "kind": "route",
+          "service": "wallet",
+          "method": "POST",
+          "path": "/v1/casino/brands/{brand}/payments/{paymentId}/outcome"
+        }
+      },
+      {
+        "principal": "service:payments/psp-gateway",
+        "target": {
+          "kind": "route",
+          "service": "payouts",
+          "method": "POST",
+          "path": "/v1/casino/brands/{brand}/withdrawals/{requestId}/outcome"
+        }
+      },
+      {
+        "principal": "service:programme/affiliate-programme",
+        "target": {
+          "kind": "topic",
+          "topic": "affiliates.attribution",
+          "right": "consume"
+        }
+      },
+      {
+        "principal": "service:reasoner/audit",
+        "target": {
+          "kind": "topic",
+          "topic": "platform.audit",
+          "right": "consume"
+        }
+      },
+      {
+        "principal": "service:reasoner/audit",
+        "target": {
+          "kind": "topic",
+          "topic": "platform.modules",
+          "right": "consume"
+        }
+      }
+    ],
+    "received": []
+  },
+  "configuration": [
+    {
+      "key": "casino-project",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-brand",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-real-money",
+      "type": "boolean",
+      "secret": false
+    },
+    {
+      "key": "auth-realm",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "auth-player-issuer",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "auth-player-jwks-url",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "auth-player-audience",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "auth-staff-issuer",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "auth-staff-jwks-url",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "player-site-base",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "keycloak-issuer-base",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "keycloak-jwks-base",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "kyc-provider-key",
+      "type": "string",
+      "secret": true
+    }
+  ],
+  "requires": [
+    {
+      "when": {
+        "key": "casino-real-money",
+        "equals": "true"
+      },
+      "installation": {
+        "backups": {
+          "target": "object-store",
+          "copyRequired": true,
+          "sharesFailureDomain": false
+        },
+        "erasure": {
+          "enabled": true,
+          "keyringInstances": 2
+        },
+        "broker": {
+          "nodes": 3,
+          "defaultCopies": 3,
+          "minInSync": 2
+        },
+        "topics": {
+          "longestRetention": "unbounded"
+        }
+      }
+    }
+  ],
+  "retention": "0d"
+}

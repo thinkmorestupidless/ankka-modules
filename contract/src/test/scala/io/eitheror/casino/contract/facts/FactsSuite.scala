@@ -14,7 +14,7 @@ class FactsSuite extends munit.FunSuite:
   private def encoded[F <: Fact](topic: Topic[F], family: FamilyDef[?]): com.fasterxml.jackson.databind.JsonNode =
     mapper.readTree(writeToString(family.sample.asInstanceOf[F])(using topic.codec))
 
-  for topic <- Topics.all; family <- topic.families do
+  for topic <- Topics.all.filterNot(_.flat); family <- topic.families do
     test(s"${topic.name} ${family.name}: the codec writes the family as `type` and exactly the schema's fields, and reads it back") {
       val t = topic.asInstanceOf[Topic[Fact]]
       val json = encoded(t, family)
@@ -25,8 +25,25 @@ class FactsSuite extends munit.FunSuite:
       assertEquals(back, family.sample)
     }
 
-  test("every brand topic of the layout has its facts, in FR-011's order") {
-    assertEquals(Topics.brand.map(_.name), Layout.BrandTopics)
+  test("every topic the modules declare has its facts, and every brand topic is some module's") {
+    assertEquals(Topics.brand.map(_.name).toSet, Layout.BrandTopics.toSet)
+    assertEquals(Layout.BrandTopics.distinct, Layout.BrandTopics, "a topic is in one module only")
+  }
+
+  test("platform.modules is the one flat topic: no body `type`, exactly the vendor's fields, keyed by the module (spec 021 E3)") {
+    assertEquals(Topics.all.filter(_.flat).map(_.name), Vector("platform.modules"))
+    val fact = ModuleChange("casino", "enabled", Some("1.4.0"), Some("stable"), "token:abc", java.time.Instant.parse("2026-10-22T10:00:00Z"))
+    val json = mapper.readTree(PlatformModules.encode(fact))
+    assertEquals(json.fieldNames().asScala.toSet, Set("module", "change", "version", "channel", "actor", "at"))
+    assertEquals(json.get("at").asText(), "2026-10-22T10:00:00Z")
+    assertEquals(readFromString[ModuleChange](mapper.writeValueAsString(json))(using PlatformModules.codec), fact)
+    assertEquals(fact.key, "casino")
+    val requested = mapper.readTree(PlatformModules.encode(fact.copy(change = "requested", version = None, channel = None)))
+    assert(!requested.has("version") && !requested.has("channel"), "absent for a request")
+    val schema = mapper.readTree(PlatformModules.schema.render())
+    assert(!schema.path("properties").has("type"), "the schema has no body type")
+    assertEquals(schema.path("required").elements().asScala.map(_.asText()).toSet, Set("module", "change", "actor", "at"))
+    assertEquals(schema.path("properties").path("change").path("enum").elements().asScala.map(_.asText()).toVector, ModuleChange.Changes)
   }
 
   test("every topic's contract is the one the brands tool declares from contract/schemas") {
@@ -52,7 +69,7 @@ class FactsSuite extends munit.FunSuite:
     for topic <- Topics.brand; family <- topic.families do
       val has = family.fields.exists(_._1 == "player_id")
       if topic.name == "affiliates.attribution" then assert(!has, family.name)
-      else if topic.name != "platform.audit" then assert(has, s"${topic.name} ${family.name}")
+      else if topic.name != "platform.audit" && topic.name != "platform.modules" then assert(has, s"${topic.name} ${family.name}")
   }
 
   test("the original's export fields are kept (FR-014)") {
