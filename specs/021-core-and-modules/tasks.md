@@ -91,7 +91,7 @@ written `main/…`, `tools/modules/src/test/scala/io/eitheror/casino/modules/` i
 
 - [X] T027 [P] `Main` command `schema-sync` running `ankka vendor modules schema` into the resource and the README line (skips with a message when the plugin is absent); `test/SchemaSyncSuite.scala` with the fake plugin
 - [X] T028 [P] `tools/modules/README.md` rewritten to contracts/modules-tool.md; `modules/README.md` with "moving a channel" (contracts/release.md); `brands/README.md`; `installation/README.md` notes `VENDOR_URL` in a vendor's overlay
-- [ ] T029 [P] `specs/019-spinvibe-migration/spec.md` and `specs/020-game-provider-simulator/spec.md`: one paragraph each under Assumptions saying values replace the manifest (019) and the simulator is applied by the modules tool in local mode (020), per research R9; `just features` green
+- [X] T029 [P] `specs/019-spinvibe-migration/spec.md` and `specs/020-game-provider-simulator/spec.md`: one paragraph each under Assumptions saying values replace the manifest (019) and the simulator is applied by the modules tool in local mode (020), per research R9; `just features` green
 - [ ] T030 Run quickstart steps 1 and 2; run step 3 against ankka-vendor's compose stack once the vendor's 004 is merged (record the commit and vendor version in `research.md`, or the reason it could not run); `just features`, `just test`, `just it` green; `sbt scalafmtAll`
 
 ---

@@ -419,6 +419,10 @@ Recordings the simulator's own parity suite replays, made against `fake-st8` run
 
 ## Assumptions
 
+- The simulator is in no module (spec 021, research R9): it stays in the `tools` project, deployed
+  from `shared/tools/manifest.json` by the modules tool in local mode (`ankka casino apply
+  shared/tools/manifest.json --installation <name>`), as spec 001's tool applied it; no vendor
+  entitlement names it, and the tool still refuses it with `--real-money`.
 - The provider's retry schedule is not documented in the original; the incident of 2026-08-19 shows
   retries continuing for at least eight hours at a rate of tens an hour. The provider's figures
   are not to hand. The shipped default schedule is a stated approximation (every 30 seconds for the
