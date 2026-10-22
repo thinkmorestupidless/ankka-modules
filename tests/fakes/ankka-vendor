@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# A fake `ankka-vendor` plugin for the release dry run (spec 021 T014, SC-004). It records every
+# invocation's arguments, one line each, to $ANKKA_VENDOR_FAKE_LOG; answers `modules publish <file>
+# --version <v>` as the real plugin does (`published <name> <v> <digest>`); and fails any `channels`
+# call, since a release never moves a channel.
+set -euo pipefail
+log="${ANKKA_VENDOR_FAKE_LOG:?ANKKA_VENDOR_FAKE_LOG names the file the fake records to}"
+printf '%s\n' "$*" >> "$log"
+case "${1:-} ${2:-}" in
+  "modules publish")
+    file="${3:?a manifest file}"
+    [[ "${4:-}" == "--version" && -n "${5:-}" ]] || { echo "usage: modules publish <file> --version <v>" >&2; exit 2; }
+    name=$(sed -n 's/^ *"name" *: *"\([a-z][a-z0-9-]*\)".*/\1/p' "$file" | head -n 1)
+    digest=$(shasum -a 256 "$file" | cut -c1-12)
+    echo "published $name $5 sha256:$digest"
+    ;;
+  "channels "*)
+    echo "the fake refuses: a release moves no channel" >&2
+    exit 1
+    ;;
+  *)
+    echo "the fake does not answer '$*'" >&2
+    exit 2
+    ;;
+esac

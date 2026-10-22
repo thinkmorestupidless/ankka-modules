@@ -15,7 +15,7 @@ object Main:
     val flags    = Map.newBuilder[String, String]
     val switches = Set.newBuilder[String]
     val command  = Vector.newBuilder[String]
-    val Valued   = Set("--installation", "--organization", "--secrets")
+    val Valued   = Set("--installation", "--organization", "--secrets", "--out", "--modules", "--version", "--channel", "--format")
     var i = 0
     while i < argv.length do
       argv(i) match
@@ -39,6 +39,7 @@ object Main:
       case Vector("validate", path)   => validate(args, root, root.resolve(path), out)
       case Vector("apply", path)      => apply(args, root, root.resolve(path), out, controlPlane, realms)
       case Vector("status", which)    => status(args, root, which, out, controlPlane, realms)
+      case Vector("release", "render", tag) => releaseRender(args, root, tag, out)
       case Vector("recordings", "check") => Recordings.check(root, out)
       case Vector("specs", "established") => Established.check(root, out)
       case _ =>
@@ -69,6 +70,18 @@ object Main:
       case Right(v) =>
         out.line(s"valid values ${v.slug}: ${v.values.size} values, ${v.secrets.size} secrets")
         out.line("calls: 0"); 0
+
+  /** `release render <version> --out <dir>`: what release.yml publishes (spec 021 T013). */
+  private def releaseRender(args: Args, root: Path, tag: String, out: Output): Int =
+    (ReleaseRender.version(tag), args.flags.get("--out")) match
+      case (Left(problem), _) => out.err(problem); 2
+      case (_, None)          => out.err("release render needs --out <dir>"); 2
+      case (Right(version), Some(dir)) =>
+        ReleaseRender.all(root, version, root.resolve(dir)) match
+          case Left(refusals) =>
+            refusals.foreach((file, r) => out.line(s"refused $file: $r")); 1
+          case Right(files) =>
+            files.foreach(f => out.line(s"rendered ${f.getFileName.toString.stripSuffix(".json")} $version ${root.relativize(f)}")); 0
 
   /** Every manifest under modules/ and every values file under brands/: the CI's check. */
   private def validateAll(root: Path, out: Output): Int =
