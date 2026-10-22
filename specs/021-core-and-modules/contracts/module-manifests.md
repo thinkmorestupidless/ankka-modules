@@ -44,7 +44,8 @@ checks, research R6). In local mode `Readiness` maps the overlay's settings to t
 → `backups.copyRequired` and, negated, `backups.sharesFailureDomain`; `ERASURE_*` → `erasure`;
 `BROKER_REPLICAS`, `TOPIC_COPIES`, `BROKER_MIN_IN_SYNC` → `broker`; `TOPIC_LONGEST_RETENTION` →
 `topics.longestRetention`. No new overlay setting; what real money requires is unchanged.
-Retention: none. Ending: none. Dependencies: none.
+Retention: 30d (the core is never ended alone; the longest promise the product makes). Ending:
+none. Dependencies: none.
 
 ## `casino` (kind `product`, depends on `core >=0.3.0 <1.0.0`)
 

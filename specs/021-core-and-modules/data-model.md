@@ -15,7 +15,7 @@ tool derives from them, and the two records the vendor keeps that this repositor
 | `grants.made[]` | literal principals `service:payments/merchant`, `service:payments/psp-gateway`, `service:programme/affiliate-programme`, `service:reasoner/audit` (the shared projects) with targets that are the module's routes or topics; `{module, service}` principals only for a module's grant to the core or the core's to a module, which within one project the agent skips (FR-007), so none is written today |
 | `grants.received[]` | the core receives `psp-gateway`'s withdrawals route for `payouts` (`from` literal `service:payments/psp-gateway`) |
 | `configuration[]` | keys from `contract/keys.md`; `secret: true` for every credential; the core names `casino-brand`, `casino-real-money`, `keycloak-issuer-base`, `keycloak-jwks-base`, `player-site-base` |
-| `retention` | `casino` 30d, `engagement` 30d, `reporting` 90d, `support` 7d; `core` none (it is never disabled while a module runs, and a brand's end is spec 001's closure) |
+| `retention` | `casino` 30d, `engagement` 30d, `reporting` 90d, `support` 7d; `core` 30d (the core is never ended alone; the longest promise the product makes) |
 | `ending` | none today; `support` may later declare `delays` on open conversations |
 | `requires[]` | the core's one entry, conditional on `casino-real-money` (contracts/module-manifests.md); no other module declares any |
 

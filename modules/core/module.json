@@ -600,5 +600,5 @@
       }
     }
   ],
-  "retention": "0d"
+  "retention": "30d"
 }
