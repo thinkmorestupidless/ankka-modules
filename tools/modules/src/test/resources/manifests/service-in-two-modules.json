@@ -1,0 +1,33 @@
+{
+  "name": "reporting",
+  "kind": "product",
+  "description": "test base: a product module the contract fully defines",
+  "dependencies": [
+    {
+      "module": "core",
+      "range": ">=0.3.0 <1.0.0"
+    }
+  ],
+  "services": [
+    {
+      "name": "rewards",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/rewards:0.0.0",
+        "expose": true,
+        "env": [
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          }
+        ]
+      }
+    }
+  ],
+  "topics": [],
+  "grants": {
+    "made": [],
+    "received": []
+  },
+  "configuration": [],
+  "retention": "90d"
+}

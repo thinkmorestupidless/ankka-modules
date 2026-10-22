@@ -1,0 +1,88 @@
+{
+  "name": "casino",
+  "kind": "product",
+  "description": "test base: a product module the contract fully defines",
+  "dependencies": [
+    {
+      "module": "core",
+      "range": ">=0.3.0 <1.0.0"
+    }
+  ],
+  "services": [
+    {
+      "name": "game-provider",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/game-provider:0.0.0",
+        "expose": true,
+        "resources": {
+          "instanceType": "medium"
+        },
+        "env": [
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "GAME_PROVIDER_MODE",
+            "key": "game-provider-mode"
+          },
+          {
+            "name": "ST8_API_KEY",
+            "key": "st8-api-key"
+          }
+        ]
+      }
+    },
+    {
+      "name": "jackpots",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/rewards:0.0.0",
+        "expose": true,
+        "env": [
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          }
+        ]
+      }
+    }
+  ],
+  "topics": [
+    {
+      "name": "casino.rounds",
+      "partitions": 12,
+      "retention": "everything"
+    },
+    {
+      "name": "casino.rewards",
+      "partitions": 6,
+      "retention": "everything"
+    }
+  ],
+  "grants": {
+    "made": [
+      {
+        "principal": "service:reasoner/audit",
+        "target": {
+          "kind": "topic",
+          "topic": "casino.rounds",
+          "right": "consume"
+        }
+      }
+    ],
+    "received": []
+  },
+  "configuration": [
+    {
+      "key": "game-provider-mode",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "st8-api-key",
+      "type": "string",
+      "secret": true
+    }
+  ],
+  "retention": "30d"
+}
