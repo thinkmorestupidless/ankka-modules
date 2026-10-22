@@ -63,6 +63,10 @@ jobs:
     needs: [services, images]
     runs-on: ubuntu-latest
     env:
+      # The job runs ankka-vendor without the CLI's dispatch, so it sets what the CLI would hand the
+      # plugin itself (contracts/release.md); the plugin takes its token from the client credentials.
+      ANKKA_URL: ${{ secrets.ANKKA_VENDOR_URL }}
+      ANKKA_TOKEN: ""
       ANKKA_VENDOR_URL: ${{ secrets.ANKKA_VENDOR_URL }}
       ANKKA_VENDOR_CLIENT_ID: ${{ secrets.ANKKA_VENDOR_CLIENT_ID }}
       ANKKA_VENDOR_CLIENT_SECRET: ${{ secrets.ANKKA_VENDOR_CLIENT_SECRET }}

@@ -16,6 +16,12 @@ The manifests list every service of the contract, whether its build exists yet o
 names a service with no build, naming the service and its module: until every listed service has a
 build (today `wallet` and `game-provider` of the brand services), only dry runs pass.
 
+The job calls the `ankka-vendor` binary directly, without the CLI's dispatch (ankka 056), so
+nothing hands it the `ANKKA_URL` and `ANKKA_TOKEN` the CLI would: the job sets them itself, `ANKKA_URL`
+to the hub (`ANKKA_VENDOR_URL`) and `ANKKA_TOKEN` empty, the plugin taking its token from the release
+client's credentials (ankka-vendor 004 `contracts/cli.md`). Topics carry their contract as
+`contract: {name, schema}`, the vendor's topic entry; the casino depends on `core >=0.3.0 <1.0.0`.
+
 The dry run: `just release-dry v9.9.9` renders to a temporary directory and runs the publish loop
 with `tests/fakes/ankka-vendor` first on the path, which records each call to a file;
 `ReleaseRenderSuite` asserts one `modules publish` per manifest, the version, and no `channels`
