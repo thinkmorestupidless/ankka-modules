@@ -228,8 +228,11 @@ operator's page changes and no player data was readable from the console.
 - **FR-009**: A brand whose values lack a key an enabled module names MUST run nothing of that
   module until the key is set, and the module entity MUST name the key.
 - **FR-010**: A brand marked for real money MUST be refused by the agent, before `core` is
-  applied, on an installation that fails spec 001 FR-040; the agent reads the same conditions
-  the brands tool read.
+  applied, on an installation that fails spec 001 FR-040: the core's manifest declares the four
+  conditions as requirements of the installation that hold when the brand's real-money value is
+  true (ankka-vendor 004 FR-019), and the agent reads them from what the installation reports.
+  The modules tool's `validate --real-money` reads the same facts from the installation when it can
+  reach it, else from the overlay's settings as spec 001's tool did.
 - **FR-011**: Every change to a brand's module entity MUST be a fact on the brand's
   `platform.modules` topic, a new topic of the contract: module, change, version, channel, actor
   as the vendor's principal or the agent, time; `reporting`, where enabled, and the shared `audit`
@@ -287,7 +290,9 @@ operator's page changes and no player data was readable from the console.
 
 ## Dependencies
 
-- ankka-vendor spec 004; ankka 040, 051 with ankka-replication, 056.
+- ankka-vendor spec 004, including FR-019's requirements; ankka 040, 051 with ankka-replication,
+  056, and the installation reporting its erasure, broker and retention bound (ankka-vendor's
+  request 4 of ankka) before FR-010 holds end to end.
 - Spec 001 for everything this does not restate; spec 022 for the wallet primitives
   `predictions` and `pool` need; spec 023 for `predictions`.
 

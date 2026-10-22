@@ -22,7 +22,7 @@
 | Field | Rule | Refusal |
 |---|---|---|
 | `brand.slug` | `Layout.slugProblems` empty; equals the directory name; not reserved | names the problem |
-| `brand.realMoney` | `true` only pushes to an installation meeting spec 001 FR-035 to FR-038 (research R6) | names the condition and its source |
+| `brand.realMoney` | rendered into `casino-real-money`; `true` makes the core's requirements of the installation hold (research R6), evaluated by the agent, and by `validate --installation <name> --real-money` | names the unmet fact and its source |
 | `keycloak.issuerBase` | a URL; rendered into `keycloak-issuer-base`; `keycloak-jwks-base` comes from the installation overlay's `KEYCLOAK_JWKS_BASE` | |
 | `hostnames` | each key a service some module lists | `service '<x>' is not in the contract` |
 | `secrets[]` | names and keys only; every secret configuration key an enabled module names must be covered by a secret entry's `<name>/<KEY>` mapping in `contract/keys.md` | `secret key '<k>' has no secret` |

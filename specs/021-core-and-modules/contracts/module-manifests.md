@@ -21,8 +21,11 @@ Topics: `money.transactions` 12, `payments.payments` 6, `casino.players` 6, `cas
 payment outcome; `psp-gateway` → payouts outcome; `affiliate-programme` consumes
 `affiliates.attribution`; `audit` consumes `platform.audit`) plus `audit` consumes
 `platform.modules`. Received: `psp-gateway`'s `POST /v1/payments/withdrawals` for `payouts`.
-Configuration: the six keys above, `kyc-provider-key` secret. Retention: none. Ending: none.
-Dependencies: none.
+Configuration: the six keys above, `kyc-provider-key` secret. Requires: one entry, `when`
+`casino-real-money` equals `"true"`, with `backups.target: object-store`, `backups.copyRequired:
+true`, `backups.sharesFailureDomain: false`, `erasure.enabled: true`, `erasure.keyringInstances: 2`,
+`broker.nodes: 3`, `topics.longestRetention: unbounded` (spec 001 FR-035 to FR-038, research R6).
+Retention: none. Ending: none. Dependencies: none.
 
 ## `casino` (kind `product`, depends on `core >=0.3.0 <1.0.0`)
 

@@ -17,6 +17,7 @@ tool derives from them, and the two records the vendor keeps that this repositor
 | `configuration[]` | keys from `contract/keys.md`; `secret: true` for every credential; the core names `casino-brand`, `casino-real-money`, `keycloak-issuer-base`, `keycloak-jwks-base`, `player-site-base` |
 | `retention` | `casino` 30d, `engagement` 30d, `reporting` 90d, `support` 7d; `core` none (it is never disabled while a module runs, and a brand's end is spec 001's closure) |
 | `ending` | none today; `support` may later declare `delays` on open conversations |
+| `requires[]` | the core's one entry, conditional on `casino-real-money` (contracts/module-manifests.md); no other module declares any |
 
 `ModuleManifest` (Scala) reads it with the vendor's field names and refuses an unknown field.
 

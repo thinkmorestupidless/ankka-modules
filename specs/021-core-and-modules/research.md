@@ -105,23 +105,30 @@ in-memory model; the live proof arrives with spec 008's implementation.
 a seventh core service for the page (a service for two routes); the modules tool's `status` (for
 engineers, not operators).
 
-## R6. The real-money gate moves to the values push (spec amendment for Gate 1)
+## R6. The real-money gate is a requirement of the core's manifest (decided 2026-10-22)
 
-**Decision, under an assumption Trevor must confirm**: FR-010 as written has the vendor's agent read
-"the same conditions the brands tool read", which are this installation's `settings.env` (spec
-001 FR-035 to FR-038): the vendor's agent knows nothing of them and must not learn casino's rules
-(family principle: nothing civic or casino-specific goes into the platform or the vendor). The plan
-therefore gates where the conditions are known: `just modules values push <slug>` refuses a brand
-whose values mark real money unless the installation named meets every condition (`Readiness`, as
-before), and the core's manifest marks `casino-real-money` a required key, so the agent applies
-nothing of the core until the values arrive (FR-009's rule). The scenario "a real-money brand is
-refused by the agent on an installation that is not fit for it" is bound as: the push is refused
-naming the condition, and the agent, lacking the key, applies nothing and names it.
+**Decision**: FR-010 is kept as written and met through ankka-vendor 004 FR-019: the core's
+manifest carries `requires[]` with `when: casino-real-money = "true"` and the four conditions of
+spec 001 FR-035 to FR-038 as installation facts (`backups.target: object-store`,
+`backups.copyRequired: true`, `backups.sharesFailureDomain: false`, `erasure.enabled: true`,
+`erasure.keyringInstances: 2`, `broker.nodes: 3`, `topics.longestRetention: unbounded`). The
+vendor's agent reads them from `GET /installation` on the tenant's control plane after the values
+and before applying anything, records the first unmet one on the module entity as `Unfit`, and
+evaluates again on each retry; a fact the control plane does not report is unmet. The modules
+tool's `validate <values> --installation <name> --real-money` evaluates the same requirements, from
+`GET /installation` when the installation is reachable and from the overlay's `settings.env`
+otherwise (local mode, CI), with `Readiness` rewritten over the vendor's fact names so the two
+checks cannot drift.
 
-**Alternative for Trevor**: a generic `requires` block in the vendor's manifest (`backups`,
-`copies`, `erasure`) that the agent reads from the project's status on the tenant control plane
-once ankka 041 to 043 report them; honest and platform-level, but it gates per module, not per
-brand, and waits on three ankka specs. Recorded in `plan.md`'s open questions.
+**Rationale**: Trevor chose this over a consumer-side gate at the values push (2026-10-22): the
+platform enforces it every time, whatever path the values took, and the vendor's console names the
+unmet fact. The cost is a dependency: ankka reports backups today and must gain erasure, broker and
+retention facts (ankka-vendor's request 4 of ankka, in T5's spec), so FR-010 holds end to end only
+once that release and the vendor's `requires` exist; until then the agent, finding the facts
+unreported, applies nothing of the core on a real-money brand, which is the safe side of the rule.
+
+**Alternatives**: the gate at `values push` (bypassable by a direct values write; a file, not the
+installation); a fitness route in the `tools` project (a service to read a file).
 
 ## R7. Release: one tag, every image, every manifest, no channel moved
 

@@ -146,9 +146,7 @@ are the three kinds of thing that get deployed.
 
 ## Open questions for Gate 1
 
-1. FR-010's actor (research R6): the plan gates real money at `values push`, where the conditions
-   are known, and has the agent apply nothing for want of the key. Confirm, or ask the vendor for a
-   `requires` block that waits on ankka 041 to 043.
+1. FR-010's actor: decided 2026-10-22, the core manifest's requirements (research R6).
 2. SC-001 names four manifests; after the clarification there are five here (`core`, `casino`,
    `engagement`, `reporting`, `support`), `predictions` being spec 023's. The analysis remediation
    restates SC-001 to the five.
