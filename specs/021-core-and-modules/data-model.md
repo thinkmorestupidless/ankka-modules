@@ -14,7 +14,7 @@ tool derives from them, and the two records the vendor keeps that this repositor
 | `topics[]` | names from `Topics.all`, partitions and retention as `Layout` gives them; a topic in one module only; `schema` absent in the tree, inlined at release |
 | `grants.made[]` | literal principals `service:payments/merchant`, `service:payments/psp-gateway`, `service:programme/affiliate-programme`, `service:reasoner/audit` (the shared projects) with targets that are the module's routes or topics; `{module, service}` principals only for a module's grant to the core or the core's to a module, which within one project the agent skips (FR-007), so none is written today |
 | `grants.received[]` | the core receives `psp-gateway`'s withdrawals route for `payouts` (`from` literal `service:payments/psp-gateway`) |
-| `configuration[]` | keys from `contract/keys.md`; `secret: true` for every credential; the core names `casino-brand`, `casino-real-money`, `keycloak-issuer-base`, `keycloak-jwks-base`, `player-site-base` |
+| `configuration[]` | keys from `contract/keys.md`; `secret: true` for every credential; every module names the twelve identity keys (contracts/module-manifests.md) |
 | `retention` | `casino` 30d, `engagement` 30d, `reporting` 90d, `support` 7d; `core` 30d (the core is never ended alone; the longest promise the product makes) |
 | `ending` | none today; `support` may later declare `delays` on open conversations |
 | `requires[]` | the core's one entry, conditional on `casino-real-money` (contracts/module-manifests.md); no other module declares any |

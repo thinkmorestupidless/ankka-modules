@@ -11,8 +11,6 @@
     { "name": "goldvibe-st8", "keys": ["OPERATOR_ID", "API_KEY"] }
   ],
   "values": {
-    "casino-brand": "goldvibe",
-    "casino-real-money": "false",
     "game-provider-mode": "demo",
     "st8-operator-id": "op-1234"
   }

@@ -15,7 +15,7 @@ release renders the tag's version.
 | `payouts` | expose | the same |
 | `attribution` | expose | the same |
 
-The identity keys, named by every brand service: `casino-brand`, `casino-project`,
+The twelve identity keys, named by every module and every brand service: `casino-brand`, `casino-project`,
 `casino-real-money`, `player-site-base`, `keycloak-issuer-base`, `keycloak-jwks-base`, and the six
 auth keys spec 001's tool computed and `Values` now derives from `keycloak.issuerBase` and the
 slug (E1, 2026-10-22): `auth-realm` (`casino-<slug>`), `auth-player-issuer`
@@ -34,7 +34,7 @@ names a module, and `payments` is a shared project, not a module, so the three `
 and the erasure grant a brand receives are made by `shared/payments/manifest.json` through the
 local tool, per brand, as spec 001 had it; they become `received` entries when `payments` is a
 vendor shared module.
-Configuration: the six keys above, `kyc-provider-key` secret. Requires: one entry, `when`
+Configuration: the twelve identity keys above, `kyc-provider-key` secret. Requires: one entry, `when`
 `casino-real-money` equals `"true"`, with `backups.target: object-store`, `backups.copyRequired:
 true`, `backups.sharesFailureDomain: false`, `erasure.enabled: true`, `erasure.keyringInstances: 2`,
 `broker.nodes: 3`, `broker.defaultCopies: 3`, `broker.minInSync: 2`, `topics.longestRetention:
@@ -51,7 +51,7 @@ none. Dependencies: none.
 
 | Service | Notes | Keys |
 |---|---|---|
-| `game-provider` | expose, `medium` | the core's five identity keys, `st8-operator-id`, `st8-api-key` (secret), `game-provider-mode` |
+| `game-provider` | expose, `medium` | the twelve identity keys, `st8-operator-id`, `st8-api-key` (secret), `game-provider-mode` |
 | `rewards` | expose | the identity keys |
 
 Topics: `casino.rounds` 12, `casino.rewards` 6. Grants: none made (game-provider to wallet is
@@ -63,17 +63,17 @@ partner is contracted.
 
 ## `engagement` (kind `product`, depends on `core`)
 
-`engagement`: expose; keys the identity five plus `push-provider-key` (secret). Topics
+`engagement`: expose; keys the twelve identity keys plus `push-provider-key` (secret). Topics
 `casino.push` 6 (1d). Retention 30d.
 
 ## `reporting` (kind `product`, depends on `core`)
 
-`reporting`: expose, object storage; keys the identity five. Topics: none of its own (it reads the
+`reporting`: expose, object storage; keys the twelve identity keys. Topics: none of its own (it reads the
 core's). Retention 90d.
 
 ## `support` (kind `product`, depends on `core`)
 
-`support-agent`: expose; keys the identity five plus `model-provider-key` (secret). Retention 7d.
+`support-agent`: expose; keys the twelve identity keys plus `model-provider-key` (secret). Retention 7d.
 No `SUPPORT_AGENT_ENABLED` switch: being entitled is the switch (spec 017 FR-001).
 
 ## `predictions`, `pool`
