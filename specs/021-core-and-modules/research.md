@@ -142,10 +142,10 @@ the version, topic schemas inlined from `contract/schemas/`), validates it, and 
 `ankka vendor modules publish <rendered> --version <v>` under the release client's credentials
 (`ANKKA_VENDOR_CLIENT_ID`, `ANKKA_VENDOR_CLIENT_SECRET`, `ANKKA_VENDOR_URL` from repository
 secrets). The job never calls `channels set`. A module whose services are not all built yet
-(`players`, `kyc` … until their specs land) is published with the images that exist and the job
-fails on a missing image, so a tag cannot publish a core that cannot run: until the core's six
-services exist, releases are of what exists, and `modules/core/module.json` lists the services the
-specs have built, growing as they land (plan.md says which today).
+(`players`, `kyc` … until their specs land) fails the job on a missing image, so a tag cannot
+publish a core that cannot run. The manifests list every service of the contract
+(contracts/release.md, amended 2026-10-22): `CASINO_RELEASE_REQUIRE_BUILDS=1` refuses a release until
+every listed service has a build, and until then only dry runs pass.
 
 **Rationale**: FR-004; the vendor's image check refuses an unresolvable image anyway, so the job
 failing early is the same rule applied first.

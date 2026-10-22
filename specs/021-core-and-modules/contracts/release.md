@@ -9,11 +9,12 @@ the tag's version and moves no channel (FR-004, SC-004).
 | `manifests` (needs `images`) | `ankka casino release render <v> --out target/release/`: images at `<v>`, topic schemas inlined from `contract/schemas/`, every manifest validated; then for each, `ankka vendor modules publish target/release/<module>.json --version <v>` under `ANKKA_VENDOR_CLIENT_ID`, `ANKKA_VENDOR_CLIENT_SECRET`, `ANKKA_VENDOR_URL` (secrets) |
 | `summary` | the modules published and their digests on the run's summary; never `channels set` |
 
-A manifest naming a service whose image the `images` job did not build fails `manifests` before
-any publish, naming the service: `modules/core/module.json` lists only services whose builds
-exist under `services/` (today `wallet`; `players`, `kyc`, `responsible-gambling`, `payouts`,
-`attribution` join as their specs land, and `ModuleManifestSuite` asserts that every service a
-manifest names has a `services/<name>/build.sbt`).
+The manifests list every service of the contract, whether its build exists yet or not
+(`ModuleManifestSuite` accepts a service only when `services/<name>/build.sbt` exists or
+`contract/keys.md`'s "not yet built" table lists it). The `manifests` job runs with
+`CASINO_RELEASE_REQUIRE_BUILDS=1`, which refuses a release before any publish while a manifest
+names a service with no build, naming the service and its module: until every listed service has a
+build (today `wallet` and `game-provider` of the brand services), only dry runs pass.
 
 The dry run: `just release-dry v9.9.9` renders to a temporary directory and runs the publish loop
 with `tests/fakes/ankka-vendor` first on the path, which records each call to a file;
