@@ -4,6 +4,7 @@ The words this project's features use, each in exactly one sense.
 
 ## Everyday words
 
+validates, declares, fit, backoffice, force,
 a, an, the, and, or, of, to, in, on, for, with, is, are, was, has, have, had, does, not, no, one, two, any, every, each, same, other, its, their, this, that, when, then, after, before, within, again, still, only, also, than, more, less, new, first, last, next, named, called, shown, listed, given, asked, told, sent, kept, left, made, put, set, seen, found, open, closed, known, unknown, yes, number, amount, time, day, days, hour, hours, minute, minutes, second, seconds, year, years, month, months,
 above, accepted, across, act, action, active, actor, add, added, address, addresses, admitted, against, ago, allowed, allowing, allows, already, ancestor, answer, anything, applicant, applied, applies, apply, applying, approval, approve, approved, approves, arrive, arrives, awaiting, awaits, back, backoff, backup, backups, bad, base, becomes, belonged, below, beside, between, bind, binds, birth, blocks, bound, browser, cache, caches, cancellation, cancelled, capture, captured, carried, carries, carry, category, chain, change, changed, changes, charged, checked, claimed, closure, comes, completed, computation, computed, concurrent, condition, conditions, configuration, confirm, confirmation, confirmed, confirms, consumed, content, continue, convert, converted, converts, copies, copy, correction, corrupted, counter, country, covers, create, created, creates, cross, cumulative, currencies, currency, cycle, daily, dashboard, date, dated, dates, debit, debited, debits, decision, default, deficit, delivered, delta, descendant, details, device, differ, difference, different, digest, discard, dismissed, dismisses, display, draw, drawn, duplicate, duplicated, during, earlier, earnings, earns, else, email, emit, emits, emitted, end, ended, ends, enforced, enter, entirely, entry, equals, erase, erased, erases, established, everything, exactly, exclude, excludes, exhausted, exists, export, exports, failed, fails, failure, falls, fetches, field, fields, figure, figures, file, files, filter, finance, floors, forgets, forms, forward, fresh, frontend, full, gains, gave, half, headline, held, however, identifies, identity, ignored, import, imported, inherits, inspects, interruption, invite, invited, issued, itself, keep, keeps, kind, knows, landed, landing, lands, lapses, late, learn, lets, life, lifetime, like, limit, local, locally, longer, major, maps, mark, marked, meaning, meeting, meets, minimum, minor, minus, mirrors, moved, need, never, nothing, occur, occurred, occurs, old, older, once, onward, optionally, organically, otherwise, outcome, outside, own, paid, part, partly, passed, passes, password, pay, pays, per, percent, percentages, permanently, persists, person, pins, placed, places, play, played, pointed, position, positive, postal, posts, previous, produced, provisioned, published, publishes, raised, ran, range, rate, reactivate, reactivates, read, readable, reader, readers, reading, reads, reason, rebuilds, rebuilt, received, receives, recomputed, reduced, refreshed, refreshes, refused, refuses, register, registered, registers, rejected, removed, replays, repository, request, requested, required, requires, resend, reset, restored, retried, retries, returned, returns, reverse, reverts, review, reviewed, revoke, revoked, right, rises, role, roles, rolled, row, rules, run, running, runs, say, says, scenario, see, sees, self, send, sender, sends, separately, served, serves, session, settled, settles, shows, sign, signature, signed, sorts, source, stale, stamped, stands, started, starts, states, stats, status, stay, stays, stores, strings, substituted, succeeds, suite, sum, summed, superseded, suspend, suspended, swept, telephone, tell, text, threshold, thresholds, total, totals, traffic, transactional, treated, turned, twice, unaffected, unchanged, unclaimed, unit, units, unless, untouched, usage, valid, verifies, verify, version, visible, visited, visitor, voided, what, where, which, who, whole, whose, withdrawn, without, won, writes, written, zero
 afresh, among, attached, attaches, band, browse, browses, built, cleared, clears, configured, current, decimals, deprecation, disable, disabled, disables, echoed, eligible, enable, enabled, enables, included, jurisdiction, labels, layer, layers, long, nightly, oldest, plus, popular, processing, prohibited, prohibits, ranked, ranking, reach, refunded, resolved, site, stop, stops, success, take, territories, territory, whatever, winnings, yet
@@ -251,7 +252,7 @@ Avoid: cashout
 The taking of a withdrawal's amount out of real balance while the request is pending; at most one hold is pending on a wallet. The original debits the request at once; a hold is that debit, named.
 
 ### release
-The return of a held amount to real balance when its request is cancelled, rejected or failed, clearing the pending request.
+The return of money set aside to where it came from: a held amount to real balance when its request is cancelled, rejected or failed, clearing the pending request; or part or all of a reservation to the available amount.
 
 ### reversal
 The return of a confirmed withdrawal's amount to real balance.
@@ -1057,3 +1058,197 @@ A number of sessions the simulator plays at a rate of rounds a minute for a dura
 
 ### tester
 The person who drives the simulator: selects a scenario, instructs a bet, a win, a loss or a cancel, spends a free round, reads a simulator run and starts a load profile.
+
+## Modules
+
+### module
+*Proposed.* A named set of services, with the grants, topics, dependencies, configuration keys and retention its manifest declares, that a brand runs when entitled to it: core, casino, support, predictions, pool.
+
+### core
+*Proposed.* The module every brand runs: wallet, players, kyc, responsible-gambling, payouts, engagement, reporting, attribution and the vendor's agent.
+
+### vendor
+*Proposed.* eitheror as the operator of ankka-vendor: the product that releases modules, holds entitlements and enables modules for brands.
+
+### eitheror staff
+*Proposed.* People who sign in to the vendor's console and enable, disable, pin or move a brand's modules; they see no player of any brand.
+
+### vendor's console
+*Proposed.* ankka-vendor's backoffice for eitheror staff: every brand's modules from the mirrored module entities.
+
+### entitlement
+*Proposed.* The vendor's record that a brand may run a module on a channel or at a pinned version, with its terms, start and end.
+
+### agent
+*Proposed.* The vendor's service in a brand's project: holds the module entity, applies and removes modules through the brand's own control plane.
+
+### module entity
+*Proposed.* The agent's record of what is enabled, running and failed in a brand: module, version, channel, each service's state, the time of the last change, and any missing configuration key.
+
+### channel
+*Proposed.* A name at the vendor pointing at one release of one module; a brand's entitlement follows a channel unless pinned.
+
+### module manifest
+*Proposed.* The one description of a module, `modules/<module>/module.json`: services, grants, topics, dependencies, configuration keys, retention and any condition on ending.
+Avoid: manifest file
+
+### configuration key
+*Proposed.* A name a module manifest declares for a value the brand supplies; the manifest never carries the value.
+
+### values file
+*Proposed.* What one brand supplies, `brands/<slug>/values.json`: realm settings, real money, secret names, hostnames and a value for every configuration key its modules name; never a version, service or grant.
+Avoid: brand manifest
+
+### modules tool
+*Proposed.* `tools/modules`, reached as `ankka casino`: validates a module manifest or a values file, renders what the agent would apply, applies in local mode, reads status.
+
+### retention
+*Proposed.* How long a disabled module's data is kept, as its manifest declares; re-enabling within it attaches to the kept data.
+
+### release job
+*Proposed.* The job a tag runs: builds every module's images and publishes every manifest to the vendor at the tag's version, moving no channel.
+
+### modules page
+*Proposed.* The backoffice page where a brand operator sees their brand's modules; it offers no enable.
+
+### platform modules topic
+*Proposed.* `platform.modules`: one fact per change to a brand's module entity.
+
+### market route
+*Proposed.* A route the predictions module serves.
+
+### game route
+*Proposed.* A route the casino module serves.
+
+## Predictions
+
+### market
+*Proposed.* A question with two or more outcomes, one of which will be resolved true; drafted, approved, opened, closed, resolved or voided, then final. The rules are the markets library's (ankka-predictions).
+
+### outcome
+*Proposed.* One answer to a market's question, with a book of its own.
+
+### draft market
+*Proposed.* A market an operator has written and not yet approved; not shown to players.
+
+### approved market
+*Proposed.* A market approved and not yet open; not shown to players.
+
+### open market
+*Proposed.* A market players may trade in.
+
+### final
+*Proposed.* Of a market: resolved or void and past its review window; its positions are paid.
+
+### void
+*Proposed.* Of a market: cancelled after opening; each share is paid its equal part.
+
+### markets permission
+*Proposed.* The permission on the brand_<slug> role that lets an operator draft, approve, close, resolve and void markets.
+
+### share
+*Proposed.* One unit of a position in an outcome; pays one unit if the market resolves to that outcome.
+
+### order
+*Proposed.* A player's instruction to buy or sell shares of an outcome at a price; checked, funded and then resting in the book.
+
+### buy order
+*Proposed.* An order to buy shares; its cost is reserved before it rests.
+
+### sell order
+*Proposed.* An order to sell shares the player holds; reserves nothing.
+
+### book
+*Proposed.* The resting orders of one outcome, matched by price then time; the exchange library's.
+
+### trade
+*Proposed.* A match between a buy order and a sell order at a price for a quantity; settled through the wallet under its id.
+
+### position
+*Proposed.* The shares a player holds in an outcome of a market.
+
+### price
+*Proposed.* What a share costs, from 1 to 99 minor units.
+
+### last price
+*Proposed.* The price of an outcome's most recent trade.
+
+### best bid
+*Proposed.* The highest resting buy price in an outcome's book.
+
+### best ask
+*Proposed.* The lowest resting sell price in an outcome's book.
+
+### depth
+*Proposed.* The quantity resting at each price in a book.
+
+### market catalogue
+*Proposed.* The open markets a player may read, with each outcome's prices and depth.
+
+### bet gate
+*Proposed.* responsible-gambling's may-bet, asked with the order's cost before an order is funded.
+
+### exchange
+*Proposed.* The predictions module's service that holds the books and implements the gate and ledger ports.
+
+### markets service
+*Proposed.* The predictions module's service that holds markets and implements the resolution port.
+
+### reasoning service
+*Proposed.* A reasoning graph a brand's values may name; when named, approved markets are mirrored to it and prices observed.
+
+### question
+*Proposed.* What a market is mirrored to the reasoning service as.
+
+### hypothesis
+*Proposed.* What an outcome is mirrored to the reasoning service as, one per outcome.
+
+### price observation
+*Proposed.* An outcome's last price written to the reasoning service, at most once a minute per outcome.
+
+### exchange orders topic
+*Proposed.* `exchange.orders`: one fact per order change, keyed by the player.
+
+### exchange trades topic
+*Proposed.* `exchange.trades`: one fact per trade, keyed by the market.
+
+### exchange prices topic
+*Proposed.* `exchange.prices`: one fact per change of an outcome's last price, keyed by the market.
+
+### markets topic
+*Proposed.* `markets.events`: one fact per change to a market, keyed by the market.
+
+### platform audit topic
+*Proposed.* `platform.audit`, as spec 001 names it.
+
+## Reservations and accounts
+
+### reservation
+*Proposed.* Money set aside from real balance under an order's key; released in part or whole, or drawn down by a settlement.
+
+### reserved amount
+*Proposed.* The sum of a wallet's reservations.
+
+### available amount
+*Proposed.* Real balance less the reserved amount; what a bet or a hold may take.
+
+### settlement
+*Proposed.* One keyed move of a trade's cost from the buyer's reservation to the seller's real balance, across two wallets.
+
+### non-player account
+*Proposed.* A ledger in the wallet service owned by a service principal and keyed by what it is for: a pool account or a clearing account.
+
+### pool account
+*Proposed.* The non-player account of one market that backs its complete sets; never below zero.
+
+### clearing account
+*Proposed.* The non-player account a pool owns in a brand's wallet service; may go below zero to its credit line.
+
+### credit line
+*Proposed.* How far below zero a clearing account may go, set by the pool's entitlement.
+
+### resolution payment
+*Proposed.* A credit to a player's real balance from a market's pool account when the market is final, keyed by the market and the position. Not a payout, which is an affiliate's.
+
+### service principal
+*Proposed.* A service, named as its project and name, that owns a non-player account or calls a granted route.
