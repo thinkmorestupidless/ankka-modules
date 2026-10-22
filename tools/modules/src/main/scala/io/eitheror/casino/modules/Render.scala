@@ -177,7 +177,9 @@ final case class ModulePlan(
     retention: String,
     requires: Vector[ModuleManifest.Requirement],
     /** The configuration keys the brand's values do not supply: the module is held until each is set (FR-009). */
-    missing: Vector[String]
+    missing: Vector[String],
+    /** Every configuration key the manifest names, which the agent finds in `tenant-values` before applying. */
+    configuration: Vector[String] = Vector.empty
 )
 
 /**
@@ -185,7 +187,17 @@ final case class ModulePlan(
  * entitlements (or `--modules`) name and the versions a channel (or `--version`) gives (spec 021
  * data-model.md). A module missing a key is held, not planned: it is in `held`, naming the keys.
  */
-final case class BrandPlan(project: String, slug: String, realMoney: Boolean, modules: Vector[ModulePlan], held: Vector[ModulePlan]):
+final case class BrandPlan(
+    project: String,
+    slug: String,
+    realMoney: Boolean,
+    modules: Vector[ModulePlan],
+    held: Vector[ModulePlan],
+    /** The module names, core first and each after its dependencies. */
+    order: Vector[String] = Vector.empty
+):
+  /** Every module, planned or held, in `order`. */
+  def inOrder: Vector[ModulePlan] = (modules ++ held).sortBy(m => order.indexOf(m.name))
   def missing: Vector[(String, String)] = held.flatMap(m => m.missing.map(m.name -> _))
   def services: Vector[ServiceDescriptor] = modules.flatMap(_.services)
   def module(name: String): Option[ModulePlan] = (modules ++ held).find(_.name == name)
@@ -229,7 +241,7 @@ object BrandRender:
       val held = planned.foldLeft(Vector.empty[ModulePlan]) { (held, m) =>
         if m.missing.nonEmpty || m.dependencies.exists(d => held.exists(_.name == d)) then held :+ m else held
       }
-      BrandPlan(project, values.slug, values.realMoney, planned.filterNot(held.contains), held)
+      BrandPlan(project, values.slug, values.realMoney, planned.filterNot(held.contains), held, order.map(_.name))
     }
 
   private def module(m: ModuleManifest, values: Values, keys: Keys, known: Map[String, String], version: String => Option[String], installation: Option[Installation]): ModulePlan =
@@ -253,7 +265,8 @@ object BrandRender:
       grantsReceived = m.grantsReceived.map(g => GrantRequest(s"service:{project}/${g.service}", target(g.target))),
       retention = m.retention,
       requires = m.requires,
-      missing = missing
+      missing = missing,
+      configuration = m.configuration.map(_.key)
     )
 
   def target(t: ModuleManifest.Target): String = t match

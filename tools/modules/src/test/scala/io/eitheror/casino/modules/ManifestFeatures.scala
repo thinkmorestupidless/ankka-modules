@@ -4,7 +4,8 @@ import com.thinkmorestupidless.ankka.controlplane.api.ServiceLifecycle
 import com.thinkmorestupidless.ankka.testkit.GherkinSuite
 
 /**
- * features/brands/manifest.feature against the tool and an in-memory control plane and Keycloak.
+ * features/brands/manifest.feature against the tool in local mode (spec 021: a brand is its values and the
+ * modules applied to it; `apply <slug>` plays the vendor's agent) and an in-memory control plane and Keycloak.
  * What only a running installation can show — a player registering and signing in, a wallet serving
  * through a move — is checked here as far as the tool decides it (the realm allows registration; the
  * other brand's services are not touched) and end to end by ApplyOnKindSuite.
@@ -38,15 +39,32 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
     fresh(); applyShared()
   }
 
+  /** The modules every part of spec 001's brand is in that need no secret the values do not declare. */
+  private val Modules = "casino,reporting"
+  private def pinned(version: String) = s"core=$version,casino=$version,reporting=$version"
+
+  private def valuesOf(slug: String): Seq[String] =
+    if slug == "goldvibe" then Seq.empty else Seq("--values", s"tools/modules/src/test/resources/values/$slug.json")
+
+  /** The brand's project with its secret keys set, as `secrets` leaves it before the first apply. */
+  private def withSecrets(slug: String): Unit =
+    if cp.project(slug).isEmpty then cp.createProject(slug, slug, "eitheror")
+    cp.setSecret(slug, "tenant-values", Map("kyc-provider-key" -> "test", "st8-api-key" -> "test"))
+
+  private def applyBrand(slug: String, version: String, extra: String*): Int =
+    withSecrets(slug)
+    run(Seq("apply", slug, "--modules", Modules, "--version", pinned(version)) ++ valuesOf(slug) ++ extra*)
+
   When("the operator applies the manifest for a brand named {string}") { (slug: String) =>
-    assertEquals(run("apply", s"tests/fixtures/manifests/$slug.json", "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
+    assertEquals(applyBrand(slug, "0.1.0", "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
     // the shared projects grant per brand under brands/: applied again now the brand exists
     applyShared()
   }
 
   Then("brand {string} is running with every part of it at the version its manifest pins") { (slug: String) =>
-    val manifest = Fixtures.manifest(slug)
-    val pins = Manifest.load(manifest).toOption.get.services.map(s => s.name -> s.image).toMap
+    val modules = ModuleManifest.treeManifests(Fixtures.root).flatMap(p => ModuleManifest.load(p).toOption)
+      .filter(m => ("core" +: Modules.split(',').toVector).contains(m.name))
+    val pins = modules.flatMap(_.services).map(s => s.name -> s.image.replace(":0.0.0", ":0.1.0")).toMap
     val running = cp.services(slug).map(s => s.name -> (s.lifecycle, s.image)).toMap
     assertEquals(running.keySet, pins.keySet)
     pins.foreach((name, image) => assertEquals(running(name), (ServiceLifecycle.Ready, image), name))
@@ -69,16 +87,14 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   Given("brands {string} and {string} created from the same manifest") { (a: String, b: String) =>
     fresh(); applyShared()
     for slug <- Vector(a, b) do
-      val path = s"tests/fixtures/manifests/$slug.json"
-      assertEquals(run("apply", path, "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
+      assertEquals(applyBrand(slug, "0.1.0", "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
     before = cp.services(b).map(s => s.name -> s.generation).toMap
   }
 
   When("the wallet of brand {string} is moved to a new version") { (slug: String) =>
-    val brand = Fixtures.brand(slug)
-    val moved = brand.copy(services = brand.services.map(s => if s.name == "wallet" then s.copy(image = s.image.replace(":0.1.0", ":0.2.0")) else s))
-    val result = Apply.run(Render.plan(moved, Some(Fixtures.devKind)), cp, Apply.Options("eitheror"))
-    assertEquals(result.changes.map(_.takeWhile(_ != ' ')), Vector("service"))
+    // The wallet is the core's: moving it moves the core's release, which is the unit a brand runs at.
+    assertEquals(applyBrand(slug, "0.2.0", "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
+    assertEquals(cp.services(slug).find(_.name == "wallet").map(_.image), Some("europe-west1-docker.pkg.dev/eitheror/casino/wallet:0.2.0"))
   }
 
   Then("the wallet of brand {string} keeps its version and serves without interruption") { (slug: String) =>
@@ -88,14 +104,14 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   }
 
   When("the operator applies a manifest that names a part the contract does not list") { () =>
-    run("apply", "tests/fixtures/manifests/unknown-service.json", "--installation", "dev-kind")
+    // A brand names no part now; what it can name that the contract does not list is a configuration key.
+    run("apply", "goldvibe", "--installation", "dev-kind", "--values", "tools/modules/src/test/resources/values/unknown-key.json")
   }
 
   Then("the manifest is refused before anything is created, naming the unknown entry") { () =>
     assertEquals(code, 1)
-    assert(out.lines.exists(l => l.startsWith("refused") && l.contains("'jackpots'")), out.lines.mkString("\n"))
-    assert(!cp.calls.exists(_.contains("/jackpots")))
-    assertEquals(cp.calls.count(_.contains("/projects/goldvibe")), 0)
+    assert(out.lines.exists(l => l.startsWith("refused") && l.contains("'jackpot-size'")), out.lines.mkString("\n"))
+    assertEquals(cp.calls.count(_.contains("/goldvibe")), 0)
   }
 
   private val installations = Map(
@@ -112,11 +128,13 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   Given("a local installation") { () => fresh(); installationArgs = Seq("--installation", "dev-kind") }
 
   When("a manifest marked for real money is applied") { () =>
-    run(Seq("apply", "tests/fixtures/manifests/real-money.json") ++ installationArgs*)
+    withSecrets("goldvibe")
+    run(Seq("apply", "goldvibe", "--values", "tools/modules/src/test/resources/values/goldvibe-real-money.json") ++ installationArgs*)
   }
 
   When("a manifest not marked for real money is applied") { () =>
-    run(Seq("apply", "tests/fixtures/manifests/goldvibe.json") ++ installationArgs*)
+    withSecrets("goldvibe")
+    run(Seq("apply", "goldvibe") ++ installationArgs*)
   }
 
   Then("it is refused, naming the backups") { () => refusedNaming("the backups") }
@@ -125,15 +143,15 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   private def refusedNaming(condition: String): Unit =
     assertEquals(code, 1)
     val refusals = out.lines.filter(_.startsWith("refused"))
-    assertEquals(refusals.size, 1, refusals.mkString("\n"))
-    assert(refusals.head.contains(condition), refusals.head)
-    assertEquals(cp.calls, Vector.empty)
+    assert(refusals.nonEmpty && refusals.forall(_.contains(condition)), refusals.mkString("\n"))
+    // the project was made by the scenario's secrets; the apply wrote nothing
+    assertEquals(cp.writes.filterNot(w => w == "POST /projects/goldvibe" || w.contains("/secrets/tenant-values")), Vector.empty)
 
   Then("the brand is created and its status lists the conditions that were checked") { () =>
     assertEquals(code, 0, out.lines.mkString("\n"))
     assert(cp.project("goldvibe").isDefined)
     out = Output.Collected()
-    Main.run(Main.parse(Seq("status", "tests/fixtures/manifests/real-money.json") ++ installationArgs), Fixtures.root, out, () => cp, Some(realms))
+    Main.run(Main.parse(Seq("status", "goldvibe", "--values", "tools/modules/src/test/resources/values/goldvibe-real-money.json") ++ installationArgs), Fixtures.root, out, () => cp, Some(realms))
     assert(out.lines.contains("real money: fit"), out.lines.mkString("\n"))
     for c <- Vector("the backups", "the erasure of personal data", "the retention of facts", "the copies of its facts") do
       assert(out.lines.exists(l => l.contains(c) && l.trim.startsWith("met")), c)

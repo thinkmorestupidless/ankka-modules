@@ -44,7 +44,7 @@ object BrandCommands:
       val all = Values.all(values, project, installation) + ("casino-real-money" -> "true")
       facts match
         case None    => Vector("a brand taking real money needs --installation to check the core's requirements against")
-        case Some(f) => Readiness.check(Readiness.core.requires, all, f).map(u => s"real money: ${u}")
+        case Some(f) => Readiness.check(Readiness.core.requires, all, f).map(u => s"real money: ${Readiness.conditionOf(u.fact)}: $u")
 
   /** `values push <slug>`: the non-secret values and the derived keys; refuses a real-money brand on an unfit installation. */
   def push(args: Args, root: Path, slug: String, out: Output, controlPlane: () => ControlPlane, vendor: () => Vendor, env: Map[String, String]): Int =

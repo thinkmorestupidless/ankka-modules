@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.*
 
 /**
- * `brands validate|apply|status|recordings` (tools/brands/README.md). Exit 0 when done or valid,
+ * `ankka casino …` (tools/modules/README.md, spec 021 contracts/modules-tool.md). Exit 0 when done or valid,
  * 1 when refused or failed, 2 when the command itself is wrong.
  */
 object Main:
@@ -15,7 +15,7 @@ object Main:
     val flags    = Map.newBuilder[String, String]
     val switches = Set.newBuilder[String]
     val command  = Vector.newBuilder[String]
-    val Valued   = Set("--installation", "--organization", "--secrets", "--out", "--modules", "--version", "--channel", "--format")
+    val Valued   = Set("--installation", "--organization", "--secrets", "--out", "--modules", "--version", "--channel", "--format", "--values")
     var i = 0
     while i < argv.length do
       argv(i) match
@@ -43,18 +43,29 @@ object Main:
       case Vector("validate", path) if path.endsWith("module.json") => validateModule(root, root.resolve(path), out)
       case Vector("validate", path) if path.endsWith("values.json") => validateValues(args, root, root.resolve(path), out)
       case Vector("validate", path)   => validate(args, root, root.resolve(path), out)
-      case Vector("apply", path)      => apply(args, root, root.resolve(path), out, controlPlane, realms)
+      case Vector("apply", slug) if !slug.endsWith(".json") => applyBrand(args, root, slug, out, controlPlane, realms, vendor, env)
+      case Vector("apply", path)      => apply(args, root, root.resolve(path), out, controlPlane)
+      case Vector("status", slug) if !slug.endsWith(".json") && Files.exists(root.resolve(s"brands/$slug/values.json")) =>
+        statusBrand(args, root, slug, out, controlPlane, realms, env)
       case Vector("status", which)    => status(args, root, which, out, controlPlane, realms)
       case Vector("release", "render", tag) => releaseRender(args, root, tag, out)
       case Vector("recordings", "check") => Recordings.check(root, out)
       case Vector("specs", "established") => Established.check(root, out)
       case _ =>
         out.err(
-          """usage: brands validate <manifest> [--installation <name>] [--real-money]
-            |       brands apply <manifest> --installation <name> [--organization <id>] [--secrets <file>]
-            |       brands status <slug or project> [--installation <name>]
-            |       brands recordings check
-            |       brands specs established""".stripMargin)
+          """usage: ankka casino validate <module.json | values.json> [--installation <name>] [--real-money]
+            |       ankka casino validate --all
+            |       ankka casino render <slug> [--modules a,b] [--channel <c> | --version core=1.2.0,casino=1.1.0] [--installation <name>] [--format json]
+            |       ankka casino values push <slug> [--installation <name> | --organization <tenant>]
+            |       ankka casino secrets <slug> --secrets <file> [--installation <name> | --organization <tenant>]
+            |       ankka casino hostnames <slug> [--installation <name> | --organization <tenant>]
+            |       ankka casino realm <slug> [--installation <name>]
+            |       ankka casino apply <slug> --installation <name> [--modules a,b] [--version m=v,...]   (local mode only)
+            |       ankka casino apply shared/<project>/manifest.json --installation <name> [--secrets <file>]
+            |       ankka casino status <slug | shared project> [--installation <name>]
+            |       ankka casino release render <tag> --out <dir>
+            |       ankka casino recordings check
+            |       ankka casino specs established""".stripMargin)
         2
 
   /** One module manifest: the vendor's schema, then the contract's rules (spec 021 FR-002). No call. */
@@ -97,13 +108,94 @@ object Main:
       Left(1)
 
   /** `brands/<slug>/values.json`, valid, or the refusals printed. */
-  def values(root: Path, slug: String, out: Output): Either[Int, Values] =
-    val path = root.resolve(s"brands/$slug/values.json")
+  def values(root: Path, slug: String, out: Output, file: Option[String] = None): Either[Int, Values] =
+    val path = file.map(root.resolve).getOrElse(root.resolve(s"brands/$slug/values.json"))
     if !Files.exists(path) then { out.err(s"no values for '$slug': $path does not exist"); Left(2) }
     else
       Values.load(path, valuesView(root)).left.map { rs =>
-        rs.foreach(r => out.line(s"refused brands/$slug/values.json: $r")); 1
-      }
+        rs.foreach(r => out.line(s"refused ${root.relativize(path)}: $r")); 1
+      }.flatMap(v => if v.slug == slug then Right(v) else { out.line(s"refused ${root.relativize(path)}: brand.slug: '${v.slug}' is not '$slug'"); Left(1) })
+
+  /**
+   * `apply <slug> --installation <name> [--modules a,b] [--version m=v,…]`: local mode only (contracts/modules-tool.md).
+   * Every refusal is found before the first write: the installation's vendor, the manifests, the values, and for
+   * a real-money brand the core's requirements against `GET /installation`, else the overlay.
+   */
+  private def applyBrand(args: Args, root: Path, slug: String, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin],
+      vendor: () => Vendor, env: Map[String, String]): Int =
+    val installation = args.flags.get("--installation") match
+      case None => out.err("apply needs --installation <name>: the local installation the brand is applied to"); Left(2)
+      case Some(name) => Installation.load(root, name).left.map { e => out.err(e); 2 }
+    val prepared = for
+      inst <- installation
+      _    <- LocalApply.local(inst, env).left.map { e => out.line(s"refused $e"); out.line("calls: 0"); 1 }
+      ms   <- manifests(root, out)
+      v    <- values(root, slug, out, args.flags.get("--values"))
+      named = list(args, "--modules")
+      order <- BrandRender.ordered(named, ms).left.map { e => out.err(e); 2 }
+      vs   <- versions(args, order.map(_.name), vendor).left.map { e => out.err(e); 2 }
+      organization = args.flags.get("--organization").orElse(env.get("ANKKA_ORGANIZATION")).getOrElse("eitheror")
+      plan <- BrandRender.plan(v, Keys.load(root), ms, named, vs, Some(inst)).left.map { e => out.err(e); 2 }
+    yield (inst, v, plan, organization)
+    prepared match
+      case Left(code) => code
+      case Right((inst, v, plan, organization)) =>
+        val cp = controlPlane()
+        val refusals = BrandCommands.realMoney(v, plan.project, Some(inst), BrandCommands.facts(Some(inst), Some(cp)))
+        if refusals.nonEmpty then
+          refusals.foreach(r => out.line(s"refused $r")); 1
+        else
+          val admin = realms.orElse(KeycloakAdmin.fromEnvironment(v.issuerBase).toOption)
+          val realm = admin.map(a => a -> (() => Realm.render(Realm.template(root), v.slug, BrandCommands.frontend(v, Some(inst)))))
+          val result = LocalApply.run(plan, v, Some(inst), cp, LocalApply.Options(organization, realm, () => Some(Realm.operators(root))))
+          result.changes.foreach(c => out.line(s"changed $c"))
+          result.notes.foreach(n => out.line(s"note $n"))
+          out.line(s"changes: ${result.changes.size}")
+          result.failure match
+            case Some(f) => out.line(s"failed $f"); 1
+            case None    => 0
+
+  /**
+   * `status <slug>`: the installation's fitness for real money, then each module (`--modules`, else every
+   * module with a service in the project) with its services, topics and grants, then the realm. Locally from
+   * the control plane; through a vendor the module entity is the agent's, read in ankka-vendor's console.
+   */
+  private def statusBrand(args: Args, root: Path, slug: String, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin],
+      env: Map[String, String]): Int =
+    val inst = args.flags.get("--installation").flatMap(Installation.load(root, _).toOption)
+    (for
+      ms <- manifests(root, out)
+      v  <- values(root, slug, out, args.flags.get("--values"))
+    yield (ms, v)) match
+      case Left(code) => code
+      case Right((ms, v)) =>
+        val cp      = controlPlane()
+        val project = Values.tenantProject(v.slug, args.flags.get("--organization"))
+        val running = cp.services(project).map(_.name).toSet
+        val named = list(args, "--modules") match
+          case Vector() => ms.filter(m => m.name != "core" && m.services.exists(s => running.contains(s.name))).map(_.name)
+          case listed   => listed
+        BrandRender.plan(v, Keys.load(root), ms, named, Map.empty, inst, args.flags.get("--organization")) match
+          case Left(e) => out.err(e); 2
+          case Right(plan) =>
+            val facts = BrandCommands.facts(inst, Some(cp))
+            out.line(s"$project (${v.name})")
+            facts match
+              case Some(f) =>
+                val conditions = Readiness.conditions(f)
+                out.line(s"real money: ${if Readiness.fit(conditions) then "fit" else "not fit"}${if v.realMoney then "" else " (the brand does not take real money)"}")
+                conditions.foreach(c => out.line(s"  ${c.line}"))
+              case None => out.line("real money: n/a (no installation named)")
+            if inst.exists(i => LocalApply.local(i, env).isLeft) then
+              out.line("modules: the module entity is the vendor's agent's (GET /vendor/modules); the control plane's view follows")
+            if cp.project(project).isEmpty then { out.line("project: absent"); return 0 }
+            plan.inOrder.foreach { m =>
+              out.line(s"module ${m.name}${if m.missing.nonEmpty then s" held: missing ${m.missing.mkString(", ")}" else ""}")
+              val legacy = Plan(project, v.name, m.topics, m.services, m.exposed, Vector.empty, m.grantsMade, m.grantsReceived, None)
+              Status.body(legacy, cp).foreach(l => out.line(s"  $l"))
+            }
+            Status.realmLines(Some(s"casino-${v.slug}"), project, realms).foreach(out.line)
+            0
 
   def list(args: Args, flag: String): Vector[String] =
     args.flags.get(flag).toVector.flatMap(_.split(',').map(_.trim).filter(_.nonEmpty))
@@ -231,12 +323,16 @@ object Main:
         .map(_.getFileName.toString)
         .sorted
 
-  private def apply(args: Args, root: Path, path: Path, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin]): Int =
+  /** `apply shared/<project>/manifest.json`: spec 001's apply, unchanged, for the shared projects. A brand is applied from its values. */
+  private def apply(args: Args, root: Path, path: Path, out: Output, controlPlane: () => ControlPlane): Int =
     if !args.flags.contains("--installation") then
-      out.err("apply needs --installation <name>: the settings the brand is checked and rendered against")
+      out.err("apply needs --installation <name>: the settings the manifest is checked and rendered against")
       return 2
     checked(args, root, path, out) match
       case Left(code) => code
+      case Right((_: BrandManifest, _)) =>
+        out.line(s"refused ${root.relativize(path)}: a brand is applied from its values: apply <slug> --installation <name> [--modules a,b]")
+        out.line("calls: 0"); 1
       case Right((manifest, inst)) =>
         val cp = controlPlane()
         val plan = Render.plan(manifest, inst, brandSlugs(root))
@@ -244,14 +340,8 @@ object Main:
         secrets match
           case Left(problem) => out.err(problem); 2
           case Right(values) =>
-            val admin = realms.orElse(KeycloakAdmin.fromEnvironment(manifest.issuerBase).toOption)
-            val realm = manifest match
-              case brand: BrandManifest =>
-                admin.map(a => a -> (() => Realm.render(Realm.template(root), brand.slug, frontend(brand, inst))))
-              case _ => None
             val organization = args.flags.get("--organization").orElse(sys.env.get("ANKKA_ORGANIZATION")).getOrElse("eitheror")
-            val operators = () => Option.when(manifest.isInstanceOf[BrandManifest])(Realm.operators(root))
-            val result = Apply.run(plan, cp, Apply.Options(organization, values, realm, operators))
+            val result = Apply.run(plan, cp, Apply.Options(organization, values))
             result.changes.foreach(c => out.line(s"changed $c"))
             result.notes.foreach(n => out.line(s"note $n"))
             out.line(s"changes: ${result.changes.size}")
@@ -259,17 +349,13 @@ object Main:
               case Some(f) => out.line(s"failed $f"); 1
               case None    => 0
 
-  def frontend(brand: BrandManifest, inst: Option[Installation]): String =
-    brand.frontendBaseUrl
-      .orElse(inst.flatMap(_.get("PLAYER_SITE_BASE")).map(b => s"https://${brand.slug}.$b"))
-      .getOrElse(s"https://${brand.slug}.invalid")
-
+  /** `status shared/<project>` or `status <manifest>.json`: spec 001's status, for the shared projects and its fixtures. */
   private def status(args: Args, root: Path, which: String, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin]): Int =
     val candidates =
       if which.endsWith(".json") then Vector(root.resolve(which))
       else Vector(root.resolve("shared").resolve(which).resolve("manifest.json"))
     candidates.find(Files.exists(_)) match
-      case None => out.err(s"no manifest for '$which' under brands/ or shared/"); 2
+      case None => out.err(s"no values for '$which' under brands/ and no manifest under shared/"); 2
       case Some(path) =>
         Manifest.load(path) match
           case Left(problems) => problems.foreach(p => out.line(s"refused $p")); 1

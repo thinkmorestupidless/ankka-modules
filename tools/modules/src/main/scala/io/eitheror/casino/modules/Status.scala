@@ -11,6 +11,10 @@ object Status:
       case None => Vector("real money: n/a (no installation named)")
     val project = cp.project(plan.projectId)
     if project.isEmpty then return header ++ ready ++ Vector("project: absent")
+    header ++ ready ++ body(plan, cp) ++ realmLines(plan.realm, plan.projectId, realm)
+
+  /** Services, topics and grants, one line each. */
+  def body(plan: Plan, cp: ControlPlane): Vector[String] =
     val services = cp.services(plan.projectId).map(s => s.name -> s).toMap
     val serviceLines = plan.descriptors.map { d =>
       services.get(d.name) match
@@ -40,11 +44,13 @@ object Status:
             s"  received ${g.target} to ${g.principal}: $effect"
           }
         }
-    val realmLines = (plan.realm, realm) match
+    Vector("services:") ++ serviceLines ++ Vector("topics:") ++ topicLines ++ Vector("grants:") ++ grantLines
+
+  def realmLines(realmName: Option[String], projectId: String, realm: Option[RealmAdmin]): Vector[String] =
+    val lines = (realmName, realm) match
       case (Some(r), Some(admin)) =>
         Vector(s"  $r: ${if admin.realmExists(r) then "present" else "absent"}",
-          s"  brand_${plan.projectId} in eitheror: ${if admin.roleExists(Realm.OperatorsRealm, s"brand_${plan.projectId}") then "present" else "absent"}")
+          s"  brand_$projectId in eitheror: ${if admin.roleExists(Realm.OperatorsRealm, s"brand_$projectId") then "present" else "absent"}")
       case (Some(r), None) => Vector(s"  $r: not checked (no Keycloak administrator)")
       case _               => Vector.empty
-    header ++ ready ++ Vector("services:") ++ serviceLines ++ Vector("topics:") ++ topicLines ++
-      Vector("grants:") ++ grantLines ++ (if realmLines.nonEmpty then "realm:" +: realmLines else Vector.empty)
+    if lines.nonEmpty then "realm:" +: lines else Vector.empty

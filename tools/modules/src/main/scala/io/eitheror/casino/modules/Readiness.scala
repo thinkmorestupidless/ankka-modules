@@ -134,6 +134,10 @@ object Readiness:
       Condition(fr, name, verdict, detail, facts.source)
     }
 
+  /** Spec 001's condition a fact belongs to: `FR-035 the backups` for `backups.target`. */
+  def conditionOf(fact: String): String =
+    Groups.find((_, _, prefix) => fact.startsWith(prefix)).fold(fact)((fr, name, _) => s"$fr $name")
+
   def fit(conditions: Vector[Condition]): Boolean = conditions.forall(_.verdict == Verdict.Met)
 
   /** The refusals for a real-money brand, one per unmet condition, naming it. */
