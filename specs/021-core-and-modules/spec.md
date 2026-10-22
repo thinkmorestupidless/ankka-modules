@@ -27,9 +27,10 @@ change and leaves the rest standing: the topic contract, route classes, realms, 
 money rules, recordings, the installation's fitness for real money.
 
 What becomes a module, and what stays core, follows one question: does every brand need it
-whatever it sells? Wallet, players, kyc, responsible-gambling and payouts do, and so do
-engagement, reporting and attribution, which know nothing of a game or a market. Game-provider,
-rewards and partner-api are the casino's. The support agent is a module of its own because spec
+whatever it sells? Wallet, players, kyc, responsible-gambling, payouts and attribution do.
+Engagement and reporting know nothing of a game or a market either, but a brand may be billed for
+CRM and for reporting separately, so each is a product module of its own, `engagement` and
+`reporting` (clarified 2026-10-22). Game-provider, rewards and partner-api are the casino's. The support agent is a module of its own because spec
 017 already makes it off by default. The prediction market is spec 023; the liquidity pool, a
 shared module, is spec 024. Rewards' home is the one placement argued below.
 
@@ -38,15 +39,24 @@ with a machine identity scoped to that project (ankka 040); this repository does
 builds the manifests the agent reads, the values a brand supplies, the tool that validates and
 renders them, and the backoffice view of what is enabled.
 
+## Clarifications
+
+### Session 2026-10-22
+
+- Q: Are `engagement` and `reporting` core, as assumed, or each a module so a brand can be billed
+  for CRM separately? → A: Each is a product module of its own, depending on `core` alone; a
+  migrated brand is entitled to both from the first apply.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A brand runs its core and the modules it is entitled to, no more (Priority: P1)
 
 A brand is provisioned by ankka-vendor: one project, the agent, an entitlement to `core`. The
 agent applies the core: `wallet`, `players`, `kyc`, `responsible-gambling`, `payouts`,
-`engagement`, `reporting`, `attribution`, in the order the core's manifest gives, with the grants
-the core makes to and receives from the shared `payments`, `programme` and `reasoner` projects.
-Players can register, deposit and withdraw; nothing can be played or traded. When eitheror
+`attribution`, in the order the core's manifest gives, with the grants the core makes to and
+receives from the shared `payments`, `programme` and `reasoner` projects. Players can register,
+deposit and withdraw; nothing can be played or traded, and no one is messaged or reported on
+until `engagement` or `reporting` is enabled beside the core. When eitheror
 enables `casino`, the agent adds `game-provider`, `rewards` and, if named, `partner-api`, and the
 grants between them and the core; now the brand is a casino. A brand entitled to `predictions` and
 not `casino` has markets and no games.
@@ -151,13 +161,16 @@ operator's page changes and no player data was readable from the console.
   its own module, `support`, so that spec 017 FR-001's off-by-default is an entitlement, not a
   switch.
 - A brand migrated from the original (spec 019): its values are written from the original's
-  configuration and its entitlement names `core` and `casino` from the first apply; nothing in
-  the migration changes.
+  configuration and its entitlements name `core`, `engagement`, `reporting` and `casino` from the
+  first apply, since the original had all four; nothing in the migration changes.
 - The `tools` shared project and the simulator (spec 020): not a module; applied by the modules
   tool in local mode, never to a real-money installation, as before.
 - Rewards' placement: rewards are bonuses on bets and are the casino's; a module that wants
-  rewards of its own declares its own. [NEEDS CLARIFICATION: whether `engagement` and `reporting`
-  are core, as assumed, or should each be a module so a brand can be billed for CRM separately]
+  rewards of its own declares its own.
+- `engagement` and `reporting` as modules: each depends on `core` alone and reads the brand's
+  facts as before; a brand without `engagement` sends no CRM message, and one without `reporting`
+  has no dashboard, day-end or revenue figures. A brand migrated from the original (spec 019) is
+  entitled to both from the first apply, since the original had them.
 
 ## Requirements *(mandatory)*
 
@@ -167,9 +180,10 @@ operator's page changes and no player data was readable from the console.
 
 - **FR-001**: A brand project MUST hold the services of `core` and of the modules the brand's
   entitlements name, and no others. `core` is `wallet`, `players`, `kyc`, `responsible-gambling`,
-  `payouts`, `engagement`, `reporting`, `attribution`, and the vendor's agent. `casino` is
-  `game-provider`, `rewards` and optionally `partner-api`. `support` is `support-agent`.
-  `predictions` is spec 023's; `pool` is spec 024's and shared.
+  `payouts`, `attribution`, and the vendor's agent. `casino` is `game-provider`, `rewards` and
+  optionally `partner-api`. `engagement` is `engagement`; `reporting` is `reporting`; each depends
+  on `core` alone. `support` is `support-agent`. `predictions` is spec 023's; `pool` is spec
+  024's and shared.
 - **FR-002**: Every module MUST be described by one manifest at `modules/<module>/module.json` in
   ankka-vendor's manifest format: services with descriptors, grants and topics declared by route
   class and topic name, dependencies with version ranges, configuration keys by name and type,
@@ -214,8 +228,8 @@ operator's page changes and no player data was readable from the console.
   the brands tool read.
 - **FR-011**: Every change to a brand's module entity MUST be a fact on the brand's
   `platform.modules` topic, a new topic of the contract: module, change, version, channel, actor
-  as the vendor's principal or the agent, time; `reporting` and the shared `audit` read it as they
-  read `platform.audit`.
+  as the vendor's principal or the agent, time; `reporting`, where enabled, and the shared `audit`
+  read it as they read `platform.audit`.
 
 **Who sees and who enables (extends spec 001 FR-020)**
 
