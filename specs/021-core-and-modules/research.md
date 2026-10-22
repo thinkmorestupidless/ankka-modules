@@ -175,7 +175,10 @@ shared projects keep their manifests under `shared/` and the local tool; the sim
   secret value is refused naming the entry (US3).
 - `RenderSuite`: rendering goldvibe's values against `core` and `casino` at a fixed version set
   equals the descriptors, env and grants spec 001's tool produced, kept as the fixture
-  `tools/modules/src/test/resources/spec-001-goldvibe/` (SC-001).
+  `tools/modules/src/test/resources/spec-001-goldvibe/` (SC-001). The fixture was generated once
+  by spec 001's own `Render.plan` at `e9e3418`, the parent of the rename to `tools/modules`, from
+  goldvibe's manifest as it stood there, and is not regenerated (confirmed 2026-10-22; its
+  `README.md` says the same).
 - `ModulesFeatures`: `features/brands/modules.feature` bound against `InMemoryControlPlane` and an
   `AgentModel` that implements the vendor's apply order (vendor 004 `contracts/agent.md`) over the
   rendered plans, so every scenario runs in milliseconds; the scenarios that name eitheror staff and
