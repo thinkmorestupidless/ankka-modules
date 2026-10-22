@@ -6,9 +6,13 @@ service's own spec owns its full route list; this file holds the rows the contra
 
 Rows are read by `ReadOnlyRoutesSuite` (spec 021 SC-003): every route whose path holds `/modules`
 is a `GET` or the request `POST …/modules/requests`. No route on an installation enables, disables,
-pins or moves a module; that is the vendor's act (spec 021 FR-013).
+pins or moves a module; that is the vendor's act (spec 021 FR-013). A module manifest's grant may
+target only a route listed here; the modules tool refuses any other.
 
 | Service | Method | Path | Class | Spec |
 |---|---|---|---|---|
 | players | GET | /v1/casino/brands/{brand}/modules | operator | 021 (contracts/routes.md), 008 |
 | players | POST | /v1/casino/brands/{brand}/modules/requests | operator | 021 (contracts/routes.md), 008 |
+| wallet | POST | /v1/casino/brands/{brand}/wallets/{player}/{currency}/deposits | service | 001 FR-016, 002 (granted to payments/merchant) |
+| wallet | POST | /v1/casino/brands/{brand}/payments/{paymentId}/outcome | service | 001 FR-016, 002 (granted to payments/merchant) |
+| payouts | POST | /v1/casino/brands/{brand}/withdrawals/{requestId}/outcome | service | 001 FR-016, 007 (granted to payments/psp-gateway) |
