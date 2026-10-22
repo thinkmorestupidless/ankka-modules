@@ -1,8 +1,8 @@
 # ankka-modules — agent context
 
 Until 2026-10-21 `ankka-casino`. The brain's decision 0055 renames it and lays it out as a core and
-product modules (casino, predictions, pool) run from ankka-vendor; the specs below are being amended
-to that shape and until they are, they describe the earlier one.
+product modules (casino, predictions, pool) run from ankka-vendor; spec 021 builds that shape, and
+the specs before it describe the earlier one.
 
 eitheror's casino and payments verticals, rebuilt as domain services on
 [ankka](../../thinkmorestupidless/ankka) and operated with the ankka runtime. This replaces the
