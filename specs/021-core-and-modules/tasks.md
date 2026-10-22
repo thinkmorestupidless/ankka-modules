@@ -82,7 +82,7 @@ written `main/…`, `tools/modules/src/test/scala/io/eitheror/casino/modules/` i
 
 **Independent Test**: `modules.feature` scenarios 11 to 13; `ReadOnlyRoutesSuite`.
 
-- [ ] T025 [US4] `contract/access/routes.md` and `specs/008-players/contracts/routes.md`: the two routes of contracts/routes.md under `players`; `test/ReadOnlyRoutesSuite.scala`: every route under `/modules` in the contract is `GET` or `POST …/requests` (SC-003); `contract/access/Routes.scala` unchanged
+- [X] T025 [US4] `contract/access/routes.md` and `specs/008-players/contracts/routes.md`: the two routes of contracts/routes.md under `players`; `test/ReadOnlyRoutesSuite.scala`: every route under `/modules` in the contract is `GET` or `POST …/requests` (SC-003); `contract/access/Routes.scala` unchanged
 - [ ] T026 [US4] Steps for scenarios 11 to 13 in `ModulesFeatures`: the operator's read through the contract's route list and the model's entity; the enable attempt finds no route; the vendor-console scenario bound to `AgentModel`'s entitlement delivery with the assertion that the delivered record and the entity hold no player, wallet or value (field names checked against a deny list); the fact scenario on the model's `platform.modules` output validated against the family's schema. The step file says in a comment that the console itself is proven in ankka-vendor (vendor quickstart step 5)
 
 ---
