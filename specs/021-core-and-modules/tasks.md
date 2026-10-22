@@ -24,7 +24,7 @@ written `main/…`, `tools/modules/src/test/scala/io/eitheror/casino/modules/` i
 ## Phase 1: Setup
 
 - [X] T001 `git mv tools/brands tools/modules`; rename package `io.eitheror.casino.brands` → `io.eitheror.casino.modules` in every file under `tools/modules/src`; `build.sbt`: project `modules` (was `brands`, `name := "casino-modules"`, `Compile / mainClass := Some("io.eitheror.casino.modules.Main")`, `executableScriptName := "ankka-casino"`) and `modulesIt`; `Justfile`: `modules *args`, `it` → `modulesIt/test`; `sbt test` green on the rename alone
-- [ ] T002 [P] `tools/modules/src/main/resources/ankka-vendor-manifest.schema.json`: the vendor's schema, written from ankka-vendor 004 `contracts/manifest.md` until `ankka vendor modules schema` exists (then `schema-sync`, T027); `tools/modules/README.md` records the vendor version
+- [X] T002 [P] `tools/modules/src/main/resources/ankka-vendor-manifest.schema.json`: the vendor's schema, written from ankka-vendor 004 `contracts/manifest.md` until `ankka vendor modules schema` exists (then `schema-sync`, T027); `tools/modules/README.md` records the vendor version
 - [ ] T003 [P] `contract/keys.md`: every configuration key a manifest may name, by module, with type and whether secret, and for a secret key the `<secret>/<KEY>` it is read from (`st8-api-key` ← `goldvibe-st8/API_KEY`); the five identity keys of the core (data-model.md)
 - [ ] T004 [P] `CLAUDE.md`: the module model in "Working here" (manifests, values, `just modules`, local mode, the tag), spec 021 in the table; `README.md` the same in two lines
 

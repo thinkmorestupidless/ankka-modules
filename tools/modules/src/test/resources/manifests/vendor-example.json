@@ -1,0 +1,39 @@
+{
+  "name": "casino",
+  "kind": "product",
+  "description": "Games, rewards and the partner API on the core",
+  "dependencies": [ { "module": "core", "range": ">=1.4.0 <2.0.0" } ],
+  "services": [
+    {
+      "name": "game-provider",
+      "descriptor": { "image": "europe-west1-docker.pkg.dev/eitheror/casino/game-provider:1.4.0",
+                      "expose": true, "resources": { "instanceType": "medium" },
+                      "env": [ { "name": "GAME_PROVIDER_MODE", "key": "game-provider-mode" } ] },
+      "readyWithin": "5m"
+    }
+  ],
+  "topics": [ { "name": "casino.rounds", "partitions": 12, "retention": "everything" } ],
+  "grants": {
+    "made": [
+      { "principal": { "module": "core", "service": "wallet" },
+        "target": { "kind": "route", "service": "game-provider", "method": "POST", "path": "/v1/rounds/{round}/settle" } }
+    ],
+    "received": [
+      { "from": { "module": "core", "service": "wallet" }, "principal": { "service": "game-provider" },
+        "target": { "kind": "route", "service": "wallet", "method": "POST", "path": "/v1/wallets/{player}/{currency}/bets" } }
+    ]
+  },
+  "configuration": [
+    { "key": "game-provider-mode", "type": "string", "secret": false },
+    { "key": "provider-api-key",   "type": "string", "secret": true }
+  ],
+  "requires": [
+    { "when": { "key": "casino-real-money", "equals": "true" },
+      "installation": { "backups": { "target": "object-store", "copyRequired": true, "sharesFailureDomain": false },
+                        "erasure": { "enabled": true, "keyringInstances": 2 },
+                        "broker": { "nodes": 3 },
+                        "topics": { "longestRetention": "unbounded" } } }
+  ],
+  "retention": "30d",
+  "ending": { "mode": "delays", "check": { "service": "game-provider", "path": "/v1/ending" } }
+}

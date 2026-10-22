@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ankka.cloud/vendor/manifest.schema.json",
+  "title": "ankka-vendor module manifest",
+  "description": "Written by hand from ankka-vendor spec 004 contracts/manifest.md (no published schema yet); `ankka casino schema-sync` replaces it with `ankka vendor modules schema`. Shapes only: the refusals the contract names in words (a value where a key is expected, looks like a secret) are the tool's rules, so they keep the contract's words.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "kind", "services", "retention"],
+  "properties": {
+    "name": { "$ref": "#/$defs/serviceName" },
+    "kind": { "enum": ["core", "product", "shared"] },
+    "description": { "type": "string" },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["module", "range"],
+        "properties": {
+          "module": { "$ref": "#/$defs/serviceName" },
+          "range": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "services": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "descriptor"],
+        "properties": {
+          "name": { "$ref": "#/$defs/serviceName" },
+          "descriptor": { "$ref": "#/$defs/descriptor" },
+          "readyWithin": { "$ref": "#/$defs/duration" }
+        }
+      }
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "partitions"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9.-]*$" },
+          "partitions": { "type": "integer", "minimum": 1 },
+          "compacted": { "type": "boolean" },
+          "retention": { "anyOf": [ { "const": "everything" }, { "$ref": "#/$defs/duration" } ] },
+          "contract": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "schema"],
+            "properties": { "name": { "type": "string" }, "schema": { "type": "object" } }
+          }
+        }
+      }
+    },
+    "grants": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "made": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["principal", "target"],
+            "properties": {
+              "principal": {
+                "oneOf": [
+                  { "type": "string", "pattern": "^(service:[a-z][a-z0-9-]*/[a-z][a-z0-9-]*|machine:[a-z][a-z0-9-]*/[a-z][a-z0-9-]*)$" },
+                  { "$ref": "#/$defs/moduleService" },
+                  {
+                    "type": "object", "additionalProperties": false, "required": ["shared"],
+                    "properties": { "shared": { "$ref": "#/$defs/serviceName" } }
+                  }
+                ]
+              },
+              "target": { "$ref": "#/$defs/target" }
+            }
+          }
+        },
+        "received": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "principal", "target"],
+            "properties": {
+              "from": { "$ref": "#/$defs/moduleService" },
+              "principal": {
+                "type": "object", "additionalProperties": false, "required": ["service"],
+                "properties": { "service": { "$ref": "#/$defs/serviceName" } }
+              },
+              "target": { "$ref": "#/$defs/target" }
+            }
+          }
+        }
+      }
+    },
+    "configuration": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "type", "secret"],
+        "properties": {
+          "key": { "$ref": "#/$defs/serviceName" },
+          "type": { "enum": ["string", "integer", "boolean", "url"] },
+          "secret": { "type": "boolean" },
+          "value": {}
+        }
+      }
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["installation"],
+        "properties": {
+          "when": {
+            "type": "object", "additionalProperties": false, "required": ["key", "equals"],
+            "properties": { "key": { "$ref": "#/$defs/serviceName" }, "equals": { "type": "string" } }
+          },
+          "installation": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "backups": {
+                "type": "object", "additionalProperties": false,
+                "properties": {
+                  "target": { "type": "string" },
+                  "copyRequired": { "type": "boolean" },
+                  "sharesFailureDomain": { "type": "boolean" }
+                }
+              },
+              "erasure": {
+                "type": "object", "additionalProperties": false,
+                "properties": { "enabled": { "type": "boolean" }, "keyringInstances": { "type": "integer", "minimum": 0 } }
+              },
+              "broker": {
+                "type": "object", "additionalProperties": false,
+                "properties": { "nodes": { "type": "integer", "minimum": 1 } }
+              },
+              "topics": {
+                "type": "object", "additionalProperties": false,
+                "properties": { "longestRetention": { "anyOf": [ { "const": "unbounded" }, { "$ref": "#/$defs/duration" } ] } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "retention": { "$ref": "#/$defs/duration" },
+    "ending": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "check"],
+      "properties": {
+        "mode": { "enum": ["delays", "refuses"] },
+        "check": {
+          "type": "object", "additionalProperties": false, "required": ["service", "path"],
+          "properties": { "service": { "$ref": "#/$defs/serviceName" }, "path": { "type": "string", "pattern": "^/" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "serviceName": { "type": "string", "pattern": "^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$" },
+    "duration": { "type": "string", "pattern": "^[0-9]+(s|m|h|d)$" },
+    "moduleService": {
+      "type": "object", "additionalProperties": false, "required": ["module", "service"],
+      "properties": { "module": { "$ref": "#/$defs/serviceName" }, "service": { "$ref": "#/$defs/serviceName" } }
+    },
+    "target": {
+      "type": "object",
+      "required": ["kind"],
+      "oneOf": [
+        {
+          "additionalProperties": false, "required": ["kind", "service", "method", "path"],
+          "properties": {
+            "kind": { "const": "route" },
+            "service": { "$ref": "#/$defs/serviceName" },
+            "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+            "path": { "type": "string", "pattern": "^/" }
+          }
+        },
+        {
+          "additionalProperties": false, "required": ["kind", "topic", "right"],
+          "properties": {
+            "kind": { "const": "topic" },
+            "topic": { "type": "string" },
+            "right": { "enum": ["consume", "produce"] }
+          }
+        }
+      ]
+    },
+    "descriptor": {
+      "description": "The body PUT /services/{p}/{name} takes as its `service` object, without `name`, plus `expose`.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["image"],
+      "properties": {
+        "image": { "type": "string", "minLength": 1 },
+        "expose": { "type": "boolean" },
+        "runtime": { "type": "string" },
+        "hosting": { "enum": ["embedded", "process", "wasm", "web"] },
+        "protocol": { "type": "string" },
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+              "key": { "$ref": "#/$defs/serviceName" },
+              "value": { "type": "string" },
+              "secretKeyRef": { "type": "object" }
+            },
+            "minProperties": 2,
+            "maxProperties": 2
+          }
+        },
+        "labels": { "type": "object", "additionalProperties": { "type": "string" } },
+        "annotations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "http": { "type": "boolean" },
+        "port": { "type": "integer" },
+        "grpc": { "type": "boolean" },
+        "grpcPort": { "type": "integer" },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "instanceType": { "type": "string" },
+            "autoscaling": { "type": "object" },
+            "process": { "type": "object" }
+          }
+        },
+        "provisionObjectStorage": { "type": "boolean" },
+        "exposeObjectStorage": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -1,5 +1,9 @@
 # casino-brands
 
+> Vendor manifest schema: `src/main/resources/ankka-vendor-manifest.schema.json`, written by hand from
+> ankka-vendor spec 004 `contracts/manifest.md` (branch `004-modules`, the contract as of 1e9410d; no published schema yet).
+> `ankka casino schema-sync` replaces it with `ankka vendor modules schema` and rewrites this line.
+
 The tool that creates a brand, or a shared project, from its manifest on an ankka installation
 (spec 001 FR-007 to FR-010, FR-040). ankka has no project manifest of its own, so this composes its
 control plane: one project, its topics, one descriptor per service, exposure, grants and the brand's
