@@ -6,5 +6,6 @@ eitheror's casino, payments and prediction markets, as modules of services on
 core and product modules. The layout below is the one before that decision.
 
 Each brand is an ankka project of its own; payments, the affiliate programme and the reasoner are
-shared projects. The specs under `specs/` describe each service; `features/` holds what the system
+shared projects. A brand runs the `core` and the modules ankka-vendor entitles it to, each described
+by one manifest under `modules/` and applied by the vendor's agent (spec 021). The specs under `specs/` describe each service; `features/` holds what the system
 does, in the words `GLOSSARY.md` defines. `CLAUDE.md` says how to work here.

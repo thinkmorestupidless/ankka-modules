@@ -52,13 +52,15 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 018 | shared `reasoner` | audit (proposals are not carried over) | Scala |
 | 019 | all | the Spinvibe migration | — |
 | 020 | `tools` | game-provider-simulator: ST8's protocol, scripted, for parity and failure tests | Scala |
+| 021 | all | core and modules: module manifests in ankka-vendor's format, a brand's values, the modules tool (amends 001) | — |
 
 ## Working here
 
 - The root build holds two things: `contract/` (`io.eitheror:casino-contract`: the facts on every
   topic, money in minor units with keys, the six route classes, the personal-data markers, the
-  recording replayer) and `tools/brands/` (the tool that applies a brand's or a shared project's
-  manifest). `just build`, `just test`, `just schemas`, `just brands …`, `just it` (integration, on
+  recording replayer) and `tools/modules/` (the modules tool, `ankka casino` under ankka 056: it
+  validates and renders module manifests and a brand's values, and applies locally where there is no
+  vendor). `just build`, `just test`, `just schemas`, `just modules …`, `just it` (integration, on
   purpose only: it creates projects on the installation `ANKKA_URL` names).
 - A service is one sbt build of its own under `services/<name>/` (`ankka init`), depending on the
   published contract (`sbt contract/publishLocal`). It declares ACLs only through
@@ -68,6 +70,14 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   integration suites need Docker. In ankka 0.11 a route takes at most two path parameters and no two
   endpoints may share a prefix, so a service groups its endpoints by prefix and sets each route's
   audience with `withAcl`.
+- The module model (spec 021, decision 0055): a brand project runs `core` and the modules its
+  entitlement at ankka-vendor names. Each module is one manifest, `modules/<module>/module.json`, in
+  the vendor's format (the schema is vendored in `tools/modules/src/main/resources/`); a brand
+  supplies only its values, `brands/<slug>/values.json`; the vendor's agent applies modules in the
+  brand's project. Local mode (`just modules apply … --installation dev-kind`) plays the agent where
+  there is no vendor. One `v*` tag publishes every module and moves no channel. While spec 021's
+  tasks are open (`specs/021-core-and-modules/tasks.md`), `brands/<slug>/manifest.json` below is
+  still what the tool applies.
 - `brands/<slug>/manifest.json` and `shared/<project>/manifest.json` are how anything is deployed;
   `installation/overlays/<name>/settings.env` is what decides whether a brand may take real money.
 - `tests/original/` records the original (`README.md` there); `tests/port/<service>/` holds the
