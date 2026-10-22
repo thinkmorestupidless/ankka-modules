@@ -79,7 +79,10 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   the channel (`modules/README.md`). `just modules render <slug>` shows what a brand would run.
 - A brand's values and the modules' manifests, and `shared/<project>/manifest.json` for the shared
   projects, are how anything is deployed; `installation/overlays/<name>/settings.env` (or the control
-  plane's `GET /installation`) is what decides whether a brand may take real money.
+  plane's `GET /installation`) is what decides whether a brand may take real money. The tool agrees
+  with the vendor's agent and is as strict: a fact the installation does not report is unmet. ankka
+  057 (in flight) reports `broker` and `retention`; `erasure` stays "not stated" until ankka spec
+  042, so a real-money brand cannot be applied through the vendor until then.
 - `tests/original/` records the original (`README.md` there); `tests/port/<service>/` holds the
   recordings a service's parity tests replay.
 - The `ankka@ankka` plugin must be installed (`/plugin install ankka@ankka`) for `ankka-port` and

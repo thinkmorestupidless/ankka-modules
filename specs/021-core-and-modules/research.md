@@ -126,6 +126,9 @@ unmet fact. The cost is a dependency: ankka reports backups today and must gain 
 retention facts (ankka-vendor's request 4 of ankka, in T5's spec), so FR-010 holds end to end only
 once that release and the vendor's `requires` exist; until then the agent, finding the facts
 unreported, applies nothing of the core on a real-money brand, which is the safe side of the rule.
+The modules tool stays as strict as the agent (decided 2026-10-22, round 2): ankka 057 (in
+flight) reports `broker` and `retention`; `erasure` stays "not stated" until ankka spec 042, so a
+real-money brand cannot be applied through the vendor until then.
 
 **Alternatives**: the gate at `values push` (bypassable by a direct values write; a file, not the
 installation); a fitness route in the `tools` project (a service to read a file).
