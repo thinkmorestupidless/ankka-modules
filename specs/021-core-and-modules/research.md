@@ -199,3 +199,21 @@ shared projects keep their manifests under `shared/` and the local tool; the sim
 - The vendor's topic entry accepts an inline `schema` as the control plane's `PUT /projects/{p}/topics/{name}` does (ankka docs: topics); else the agent declares the topic without its contract and the modules tool's `status` says so.
 - The control plane's hostname routes (`add_hostname`) for the `hostnames` step.
 - The descriptor field that registers the erasure handler (ankka 042) for `players` and `kyc`.
+
+## The quickstart, as run (T030, 2026-10-22)
+
+- Step 1 ran green on branch `021-core-and-modules`: `just features` (0 findings in 1090 scenarios),
+  `just build`, `just test` (contract 186 passed; modules 152 passed; the Go stubs), `just modules
+  validate --all`, the `render` example, `just release-dry v9.9.9` (five publishes, core first, no
+  channel call).
+- Step 2 did not run: the kind cluster `eitheror-dev` holds no ankka installation (its namespaces are
+  the original platform's), and installing one is a deployment, which this run may not make.
+  `just it` passes with zero tests, since its suites run only with `CASINO_IT=1`; with it,
+  `ModulesOnKindSuite` fails at once: `could not reach https://api.127.0.0.1.sslip.io:8443`.
+- Step 3 did not run: it waits on ankka-vendor's 004 being merged and its compose stack running.
+- Verified at implementation: the vendor's topic entry carries its contract as `contract: {name,
+  schema}`, which the release renders; the hostname routes (`PUT /services/{p}/{name}/hostnames/{hostname}`)
+  are on ankka's `main` and not in 0.11.0, whose limitations list no custom hostnames, so `hostnames`
+  says each one waits until the pin moves; `GET /installation` reports `backups` today and
+  not `erasure`, `broker` or `topics`, so a real-money brand is refused on any installation until it
+  does (the overlay is read only where the control plane does not answer).
