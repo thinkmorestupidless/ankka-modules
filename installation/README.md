@@ -12,16 +12,21 @@ for a cloud); this directory holds what sits beside it.
 - `base/keycloak` — the casino's own Keycloak (spec 001 FR-019): the `casino-<slug>` realm per brand and
   the `eitheror` realm, separate from ankka's identity provider, which authenticates ankka's operators only.
 - `overlays/<name>/settings.env` — the installation's settings that decide whether a brand may take real
-  money (FR-034 to FR-039). kustomize renders them into the `casino-installation` ConfigMap, and the brands
-  tool reads the same file for its readiness check (`brands validate --installation <name> --real-money`).
-  A setting is what the installation is configured to do; until ankka reports each on its own status
-  (specs 041 to 043), this file is the source and the tool says so.
+  money (FR-034 to FR-039). kustomize renders them into the `casino-installation` ConfigMap, and the modules
+  tool reads the same file for its readiness check (`ankka casino validate <values> --installation <name>
+  --real-money`), mapped to the vendor's installation fact names (spec 021 research R6). Where the control
+  plane answers `GET /installation`, its facts win over the file; a fact neither reports is unmet.
+- `VENDOR_URL` in an overlay's `settings.env` marks an installation whose brands ankka-vendor serves: there
+  the vendor's agent applies modules from entitlements and `ankka casino apply <slug>` refuses, naming the
+  vendor. An overlay without it (dev-kind today) is local: the tool plays the agent. `ANKKA_VENDOR_URL` in
+  the environment has the same effect for one shell. Neither overlay sets it yet; the gke overlay gains
+  it when the vendor serves eitheror's GKE installation.
 
 `overlays/dev-kind` routes the casino's Keycloak through ankka's gateway at `auth-casino.<base>` (the
 gke overlay needs the same for its own hostname, and `KEYCLOAK_JWKS_BASE`; not yet written). Keycloak's issuer is the
 installation's `KEYCLOAK_ISSUER_BASE`, port included; services read its keys at `KEYCLOAK_JWKS_BASE`, inside the
 cluster, since a pod may not resolve the public name to Keycloak. The `eitheror` realm is expected to exist before a
-brand is applied: the brands tool imports it from `brands/_realm/eitheror-operators.json` when it is
+brand is applied: the modules tool imports it from `brands/_realm/eitheror-operators.json` when it is
 missing, with the staff audience `eitheror-casino` on every client, and adds `brand_<slug>` to it.
 dev-kind keeps the development Keycloak's database on a volume, so the realms survive a restart.
 
@@ -31,7 +36,7 @@ The Keycloak administrator's credential is never in this repository: create
 ## The `tools` project (spec 020)
 
 `shared/tools/manifest.json` deploys the game provider simulator to `dev-kind` or a pre-production
-installation; the brands tool refuses it with `--real-money`. Its operator routes admit the `eitheror`
+installation; the modules tool refuses it with `--real-money`. Its operator routes admit the `eitheror`
 realm's `platform_admin`, the brand's `brand_<slug>` for that brand's runs, and `brand_tools` for the
 scenario library and the status (spec 020 research R2). Create the realm role `brand_tools` in the
 `eitheror` realm when someone other than a platform administrator runs the simulator; until then

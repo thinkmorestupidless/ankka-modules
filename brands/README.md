@@ -30,7 +30,10 @@ brand's project with `ankka casino secrets <slug> --secrets <file>`.
 2. `just modules validate brands/<slug>/values.json`.
 3. With a vendor: eitheror staff provision the tenant and entitle it; then `ankka casino values
    push <slug>` and `ankka casino secrets <slug> --secrets <file>`.
-4. Locally: `just modules apply <slug> --installation dev-kind [--modules casino]`.
+4. Locally: `just modules secrets <slug> --installation dev-kind --secrets <file>` once the project
+   exists (the first apply makes it, holding each module whose secret key is missing), then
+   `just modules apply <slug> --installation dev-kind [--modules casino]`. `just modules render <slug>`
+   shows what either would run, and which keys are missing, before anything does.
 
 ## Taking real money
 

@@ -75,11 +75,11 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   the vendor's format (the schema is vendored in `tools/modules/src/main/resources/`); a brand
   supplies only its values, `brands/<slug>/values.json`; the vendor's agent applies modules in the
   brand's project. Local mode (`just modules apply … --installation dev-kind`) plays the agent where
-  there is no vendor. One `v*` tag publishes every module and moves no channel. While spec 021's
-  tasks are open (`specs/021-core-and-modules/tasks.md`), `brands/<slug>/manifest.json` below is
-  still what the tool applies.
-- `brands/<slug>/manifest.json` and `shared/<project>/manifest.json` are how anything is deployed;
-  `installation/overlays/<name>/settings.env` is what decides whether a brand may take real money.
+  there is no vendor. One `v*` tag publishes every module and moves no channel; a person moves
+  the channel (`modules/README.md`). `just modules render <slug>` shows what a brand would run.
+- A brand's values and the modules' manifests, and `shared/<project>/manifest.json` for the shared
+  projects, are how anything is deployed; `installation/overlays/<name>/settings.env` (or the control
+  plane's `GET /installation`) is what decides whether a brand may take real money.
 - `tests/original/` records the original (`README.md` there); `tests/port/<service>/` holds the
   recordings a service's parity tests replay.
 - The `ankka@ankka` plugin must be installed (`/plugin install ankka@ankka`) for `ankka-port` and

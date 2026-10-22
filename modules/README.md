@@ -34,4 +34,26 @@ the tag's version.
 ## What the tag does
 
 One `v*` tag builds every service's image and publishes every manifest at the tag's version to
-ankka-vendor; it moves no channel (`contracts/release.md` of spec 021).
+ankka-vendor; it moves no channel (`contracts/release.md` of spec 021). `core` is published first:
+the vendor refuses a module whose dependency's release it does not hold. A manifest naming a service
+with no build under `services/` fails the release before any publish.
+
+```bash
+just release-dry v9.9.9          # the same loop against the fake plugin: one publish per module, no channel
+```
+
+## Moving a channel
+
+A release reaches a brand only when a person moves the channel the brand follows, afterwards and
+deliberately, with the vendor's plugin:
+
+```bash
+ankka vendor channels set core stable 0.3.0
+ankka vendor channels set casino stable 0.3.0
+```
+
+The answer names the tenants now due the upgrade, and each one's agent applies it. Move the channel
+a single brand follows first (spec 001 FR-008's one-brand-at-a-time rule, through channels), watch
+that brand's `platform.modules` facts and its status, then the channel the rest follow. A module's
+version must stay within the range its dependants name (`casino` takes `core` `>=0.3.0 <1.0.0`):
+move `core` before a `casino` that needs it. Going back is the same command with the earlier version.
