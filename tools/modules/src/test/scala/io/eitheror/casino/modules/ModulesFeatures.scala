@@ -12,11 +12,6 @@ import scala.jdk.CollectionConverters.*
  */
 class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
 
-  override protected def ranElsewhere: Map[String, String] = Map(
-    "a brand operator sees their brand's modules and cannot enable one" -> "not yet bound: spec 021 T026",
-    "eitheror staff enable a module from the vendor's console and see no player of any brand" -> "not yet bound: spec 021 T026",
-    "a module's every change is a fact on the brand's platform topic" -> "not yet bound: spec 021 T026"
-  )
 
   private val root = Fixtures.root
   private lazy val view = ContractView.fromTree(root)
@@ -291,5 +286,86 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
     assertEquals(lastRecord.flatMap(_.dataKeptUntil), Some(java.time.Instant.parse("2026-10-22T12:00:00Z").plus(java.time.Duration.ofDays(AgentModel.days(m.retention)))))
     // the topics stay declared: removing a module deletes services, never data
     assert(m.topics.map(_.name).forall(installation.topics("goldvibe").map(_.name).contains))
+  }
+
+  // ── who sees and who changes a brand's modules (US4) ───────────────────────
+  //
+  // The vendor's console itself is proven in ankka-vendor (its quickstart, step 5): here the console's
+  // act is the entitlement it delivers to the agent, and what it shows is the agent's module entity.
+
+  private var operatorOf: Option[String] = None
+
+  Given("an operator of brand {string}") { (slug: String) =>
+    operatorOf = Some(slug)
+    val a = agent(slug)
+    a.deliver("core", "0.3.0", "the vendor")
+    a.deliver("casino", "0.3.0", "staff:eitheror")
+  }
+
+  private lazy val moduleRoutes = ModuleManifest.ContractView.contractRoutes(root).toVector.filter(_._3.contains("/modules"))
+
+  When("the operator opens the modules page of the backoffice") { () =>
+    // the page reads players' GET …/modules, an operator route that passes the agent's module entity through (spec 008)
+    assert(moduleRoutes.contains(("players", "GET", "/v1/casino/brands/{brand}/modules")), moduleRoutes.mkString("\n"))
+  }
+
+  Then("the operator sees each module of brand {string} with its version, channel and the state of its services") { (slug: String) =>
+    val entity = agent(slug).entity
+    assertEquals(entity.keys.toVector, Vector("core", "casino"))
+    entity.values.foreach { r =>
+      assertEquals(r.version, Some("0.3.0"), r.name)
+      assert(r.channel.isDefined, r.name)
+      assertEquals(r.services.keySet, servicesOf(r.name).toSet, r.name)
+      assert(r.services.values.forall(_ == "Ready"), r.toString)
+    }
+  }
+
+  Then("the operator cannot enable a module") { () =>
+    val writes = moduleRoutes.filterNot((_, m, p) => m == "GET" || (m == "POST" && p.endsWith("/modules/requests")))
+    assertEquals(writes, Vector.empty, "no route on the installation enables, disables, pins or moves a module (FR-013)")
+    assert(moduleRoutes.exists(_._3.endsWith("/modules/requests")), "the operator can only ask")
+  }
+
+  When("eitheror staff enable the module {string} for brand {string} from the vendor's console") { (module: String, slug: String) =>
+    val a = agent(slug)
+    a.deliver("core", "0.3.0", "the vendor")
+    lastRecord = Some(a.deliver(module, "0.3.0", "staff:eitheror"))
+  }
+
+  Then("the module {string} is enabled for brand {string}") { (module: String, slug: String) =>
+    assertEquals(agent(slug).entity(module).status, AgentModel.Enabled)
+  }
+
+  /** What would name a player, a wallet or a configured value. */
+  private val Denied = Vector("player", "wallet", "balance", "amount", "email", "value", "secret", "iban", "address")
+
+  Then("the vendor's console shows no player, wallet or configured value of any brand") { () =>
+    val a = agent("goldvibe")
+    def fields(p: Product) = p.productElementNames.toVector.map(_.toLowerCase)
+    val shown = (a.entitlements.values.toVector ++ a.entity.values.toVector).flatMap(fields).distinct
+    assert(shown.nonEmpty)
+    assertEquals(shown.filter(f => Denied.exists(f.contains)), Vector.empty, shown.mkString(", "))
+    // and no value of the brand's crosses in a field that is allowed: no text shown equals a tenant-values entry
+    def texts(x: Any): Vector[String] = x match
+      case s: String       => Vector(s)
+      case Some(v)         => texts(v)
+      case m: Map[?, ?]    => m.toVector.flatMap((k, v) => texts(k) ++ texts(v))
+      case p: Product      => p.productIterator.toVector.flatMap(texts)
+      case _               => Vector.empty
+    val shownTexts = (a.entitlements.values.toVector ++ a.entity.values.toVector).flatMap(texts).toSet
+    assertEquals(a.tenantValues.values.toSet.intersect(shownTexts), Set.empty[String])
+  }
+
+  Then("a fact naming the module {string}, the change, the version and the actor is written on the brand's platform modules topic") { (module: String) =>
+    import com.github.plokhotnyuk.jsoniter_scala.core.writeToString
+    import io.eitheror.casino.contract.facts.ModuleChange
+    val fact = agent("goldvibe").facts.filter(_.module == module).lastOption.getOrElse(fail(s"no fact for $module"))
+    assertEquals((fact.change, fact.version, fact.actor), ("enabled", Some("0.3.0"), "staff:eitheror"))
+    val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+    val schema = com.networknt.schema.JsonSchemaFactory.getInstance(com.networknt.schema.SpecVersion.VersionFlag.V202012)
+      .getSchema(Files.readString(root.resolve("contract/schemas/platform.modules.v1.json")))
+    val problems = schema.validate(mapper.readTree(writeToString(fact))).asScala.toVector
+    assertEquals(problems.map(_.getMessage), Vector.empty)
+    assert(schema.validate(mapper.readTree(writeToString(fact.copy(change = "moved")))).asScala.nonEmpty, "the schema refuses a change it does not list")
   }
 
