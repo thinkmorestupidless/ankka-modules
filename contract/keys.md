@@ -31,6 +31,11 @@ Named by every brand service of every module, so each module's manifest lists th
 | auth-staff-issuer | core | url | no | | `<issuerBase>/realms/eitheror` | `ANKKA_AUTH_STAFF_ISSUER` |
 | auth-staff-jwks-url | core | url | no | | `<jwksBase>/realms/eitheror/protocol/openid-connect/certs` | `ANKKA_AUTH_STAFF_JWKS_URL` |
 
+`player-site-base`, `keycloak-issuer-base` and `keycloak-jwks-base` are rendered as
+`PLAYER_SITE_BASE`, `KEYCLOAK_ISSUER_BASE` and `KEYCLOAK_JWKS_BASE` beside the six auth keys
+(confirmed 2026-10-22): spec 001's tool rendered none of the three, so they are a difference from its
+output that `RenderSuite` lists (spec 021 T018).
+
 `ANKKA_AUTH_ISSUERS` (`player,staff`) and `ANKKA_AUTH_STAFF_AUDIENCE` (`eitheror-casino`) are the
 same for every brand and are literals in the descriptors, not keys.
 
