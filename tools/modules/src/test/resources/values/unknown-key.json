@@ -1,0 +1,30 @@
+{
+  "brand": {
+    "slug": "goldvibe",
+    "name": "Goldvibe",
+    "realMoney": false
+  },
+  "keycloak": {
+    "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"
+  },
+  "secrets": [
+    {
+      "name": "goldvibe-st8",
+      "keys": [
+        "API_KEY"
+      ]
+    },
+    {
+      "name": "goldvibe-kyc",
+      "keys": [
+        "API_KEY"
+      ]
+    }
+  ],
+  "values": {
+    "player-site-base": "https://goldvibe.127.0.0.1.sslip.io:8443",
+    "game-provider-mode": "demo",
+    "st8-operator-id": "op-1234",
+    "jackpot-size": "10"
+  }
+}

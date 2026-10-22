@@ -2,11 +2,11 @@
 features:
     .github/features-check.sh
 
-# Compile the contract and the brands tool.
+# Compile the contract and the modules tool.
 build:
     sbt compile
 
-# Every unit suite: the contract, the brands tool, the bound features and the Go stubs.
+# Every unit suite: the contract, the modules tool, the bound features and the Go stubs.
 test:
     sbt test
     cd tests && go test ./...
@@ -15,9 +15,23 @@ test:
 schemas:
     sbt contract/schemas
 
-# Run the brands tool: `just brands validate brands/goldvibe/manifest.json`.
-brands *args:
-    sbt "brands/run {{args}}"
+# Run the modules tool (`ankka casino`): `just modules validate --all`.
+modules *args:
+    sbt "modules/run {{args}}"
+
+# Every manifest at a release version into target/release/, images at the version, schemas inlined (spec 021).
+release-render version:
+    sbt "modules/run release render {{version}} --out target/release"
+
+# The release's publish loop against the fake vendor plugin: one publish per module, no channel moved (SC-004).
+release-dry version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out="$(mktemp -d)"
+    sbt "modules/run release render {{version}} --out $out"
+    ANKKA_VENDOR_FAKE_LOG="$out/vendor.log" PATH="$PWD/tests/fakes:$PATH" scripts/release-publish.sh "$out" "{{version}}"
+    echo "the fake vendor was called:"; cat "$out/vendor.log"
+    if grep -q '^channels' "$out/vendor.log"; then echo "a channel was moved" >&2; exit 1; fi
 
 # Build the payment-provider stubs into tests/stubs/bin/.
 stubs:
@@ -25,7 +39,7 @@ stubs:
 
 # The integration suites, against the installation ANKKA_URL names (a project is created there).
 it:
-    sbt brandsIt/test
+    sbt modulesIt/test
 
 # Convert the original's wallet handler fixtures into the wallet's JSON case files (once; spec 002 R13).
 tl-fixtures original="../eitheror-platform":

@@ -24,6 +24,14 @@ jobs:
         run: .github/features-check.sh
       - name: Unit suites and bound features
         run: sbt test
+      - name: Every module manifest and every brand's values (spec 021)
+        run: sbt "modules/run validate --all"
+      - name: The release's publish loop against the fake vendor, moving no channel (spec 021 SC-004)
+        run: |
+          out="$(mktemp -d)"
+          sbt "modules/run release render v9.9.9 --out $out"
+          ANKKA_VENDOR_FAKE_LOG="$out/vendor.log" PATH="$PWD/tests/fakes:$PATH" scripts/release-publish.sh "$out" v9.9.9
+          ! grep -q '^channels' "$out/vendor.log"
       - name: Schemas match the families
         run: |
           sbt contract/schemas
@@ -138,4 +146,4 @@ jobs:
       - name: Integration suites
         env:
           CASINO_IT: "1"
-        run: sbt brandsIt/test
+        run: sbt modulesIt/test

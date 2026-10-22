@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eitheror.io/schemas/casino/values.v1.json",
+  "title": "a brand's values",
+  "description": "brands/<slug>/values.json (spec 021 contracts/values.md): what one brand supplies, and nothing a module owns. The refusals the contract names in words (a version, a derived key, a secret key, a value that looks like a secret) are the modules tool's rules, so they keep the contract's words.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["brand", "keycloak", "values"],
+  "properties": {
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug", "name", "realMoney"],
+      "properties": {
+        "slug": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "realMoney": { "type": "boolean" }
+      }
+    },
+    "keycloak": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issuerBase"],
+      "properties": { "issuerBase": { "type": "string", "pattern": "^https?://" } }
+    },
+    "hostnames": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[a-z0-9.-]+(:[0-9]+)?$" }
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "keys"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "keys": { "type": "array", "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" } }
+        }
+      }
+    },
+    "values": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

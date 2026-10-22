@@ -1,0 +1,29 @@
+{
+  "brand": {
+    "slug": "spinvibe",
+    "name": "Spinvibe",
+    "realMoney": false
+  },
+  "keycloak": {
+    "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"
+  },
+  "secrets": [
+    {
+      "name": "spinvibe-st8",
+      "keys": [
+        "API_KEY"
+      ]
+    },
+    {
+      "name": "spinvibe-kyc",
+      "keys": [
+        "API_KEY"
+      ]
+    }
+  ],
+  "values": {
+    "player-site-base": "https://spinvibe.127.0.0.1.sslip.io:8443",
+    "game-provider-mode": "demo",
+    "st8-operator-id": "op-1234"
+  }
+}

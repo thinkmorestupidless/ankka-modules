@@ -1,9 +1,9 @@
 // The two things every casino service depends on or is deployed by: the contract library and the
-// brands tool. Services are not built here: each is one sbt build of its own under services/<name>/
+// modules tool. Services are not built here: each is one sbt build of its own under services/<name>/
 // (ankka's one-service-per-directory convention), depending on the published contract artifact.
 //
 // ankka's libraries come from Maven Central. The same version is every service descriptor's
-// `runtime`, rendered by the brands tool from the manifest's `ankka.runtime`.
+// `runtime`, rendered by the modules tool from the manifest's `ankka.runtime`.
 val ankkaVersion = "0.11.0"
 val munitVersion = "1.3.6"
 
@@ -27,8 +27,25 @@ lazy val contract = project
   .settings(commonTest)
   .settings(
     name := "casino-contract",
-    // The topics' schemas ship in the artifact, so the brands tool and every service read one copy.
+    // The topics' schemas ship in the artifact, so the modules tool and every service read one copy.
     Compile / unmanagedResourceDirectories += baseDirectory.value / "schemas",
+    // The module manifests ship in the artifact too, as `modules/<module>/module.json` with an index,
+    // so Layout reads the services, topics and grants from them (spec 021 T009) and a service's ACLs
+    // admit exactly the grantees the core's manifest names.
+    Compile / resourceGenerators += Def.task {
+      val source = (ThisBuild / repoRoot).value / "modules"
+      val target = (Compile / resourceManaged).value / "modules"
+      val names  = IO.listFiles(source).filter(d => (d / "module.json").isFile).map(_.getName).sorted.toVector
+      val order  = Vector("core") ++ names.filterNot(_ == "core")
+      val copied = order.map { n =>
+        val to = target / n / "module.json"
+        IO.copyFile(source / n / "module.json", to)
+        to
+      }
+      val index = target / "index"
+      IO.write(index, order.mkString("", "\n", "\n"))
+      copied :+ index
+    }.taskValue,
     libraryDependencies ++= Seq(
       "com.thinkmorestupidless" %% "ankka-sdk"       % ankkaVersion,
       "com.thinkmorestupidless" %% "ankka-http"      % ankkaVersion,
@@ -48,20 +65,22 @@ lazy val contract = project
 
 lazy val schemas = taskKey[Unit]("Writes contract/schemas/<topic>.v1.json from the families")
 
-lazy val brands = project
-  .in(file("tools/brands"))
+lazy val modules = project
+  .in(file("tools/modules"))
   .enablePlugins(JavaAppPackaging)
   .dependsOn(contract)
   .settings(commonTest)
   .settings(
-    name := "casino-brands",
+    name := "casino-modules",
     libraryDependencies ++= Seq(
       "com.thinkmorestupidless" %% "ankka-controlplane-api" % ankkaVersion,
       "com.networknt"            % "json-schema-validator"  % "1.5.8",
       "com.thinkmorestupidless" %% "ankka-testkit"          % ankkaVersion % Test,
       "org.scalameta"           %% "munit"                  % munitVersion % Test
     ),
-    Compile / mainClass := Some("io.eitheror.casino.brands.Main"),
+    Compile / mainClass := Some("io.eitheror.casino.modules.Main"),
+    // `ankka casino …` under ankka 056 finds `ankka-casino` on the path.
+    executableScriptName := "ankka-casino",
     Compile / run / fork := true,
     Compile / run / baseDirectory := (ThisBuild / repoRoot).value
   )
@@ -69,16 +88,16 @@ lazy val brands = project
 /**
  * The suites that act on a real installation: they create projects there, and a deleted project's
  * id is never reusable. Run only on purpose, with ANKKA_URL (and ANKKA_TOKEN, ANKKA_CA) naming the
- * installation: `just it`. Sources live beside the tool, in tools/brands/src/it/scala.
+ * installation: `just it`. Sources live beside the tool, in tools/modules/src/it/scala.
  */
-lazy val brandsIt = project
-  .in(file("tools/brands/target/it-project"))
-  .dependsOn(brands % "compile->compile;test->test")
+lazy val modulesIt = project
+  .in(file("tools/modules/target/it-project"))
+  .dependsOn(modules % "compile->compile;test->test")
   .settings(commonTest)
   .settings(
-    name := "casino-brands-it",
+    name := "casino-modules-it",
     publish / skip := true,
-    Test / scalaSource := (ThisBuild / repoRoot).value / "tools" / "brands" / "src" / "it" / "scala",
+    Test / scalaSource := (ThisBuild / repoRoot).value / "tools" / "modules" / "src" / "it" / "scala",
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
@@ -103,5 +122,5 @@ lazy val tlFixtures = project
 
 lazy val root = project
   .in(file("."))
-  .aggregate(contract, brands)  // brandsIt and tlFixtures are not aggregated: each runs on purpose
+  .aggregate(contract, modules)  // modulesIt and tlFixtures are not aggregated: each runs on purpose
   .settings(publish / skip := true, name := "ankka-casino")

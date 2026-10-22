@@ -513,6 +513,11 @@ findings, and the last one has none open.
 
 ## Assumptions
 
+- Spinvibe is described by its values, not a manifest (spec 021, research R9): the migration writes
+  `brands/spinvibe/values.json` and the brand's modules come from its entitlements at ankka-vendor,
+  `core`, `engagement`, `reporting` and `casino` from the first apply, at the versions their channel
+  gives. Wherever this spec says the brand's manifest, read its values and those entitlements; the
+  shared projects keep their manifests under `shared/`.
 - The pilot brand (spec 001's open question) is live on ankka before this spec is planned; this spec
   is not the first real money on the installation.
 - The original's production stores are as the Phase 2 rehearsal runbook recorded them on

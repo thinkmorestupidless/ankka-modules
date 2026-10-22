@@ -2,19 +2,19 @@ package io.eitheror.casino.contract.facts
 
 import io.eitheror.casino.contract.Layout
 
-/** Every topic of the contract (spec 001 FR-011), in the order the spec lists them. */
+/** Every topic of the contract (spec 001 FR-011, plus spec 021's `platform.modules`), in the order the specs list them. */
 object Topics:
   val brand: Vector[Topic[?]] = Vector(
     MoneyTransactions, PaymentsPayments, CasinoPlayers, CasinoSessions, CasinoRounds, CasinoWithdrawals,
-    CasinoRewards, AffiliatesAttribution, CasinoPush, PlatformAudit
+    CasinoRewards, AffiliatesAttribution, CasinoPush, PlatformAudit, PlatformModules
   )
   val shared: Vector[Topic[?]] = Vector(PaymentsMerchants)
   val all: Vector[Topic[?]]    = brand ++ shared
 
   def named(name: String): Option[Topic[?]] = all.find(_.name == name)
 
-  // The layout and the facts name the same topics, or the build says so.
-  require(brand.map(_.name) == Layout.BrandTopics, s"facts ${brand.map(_.name)} differ from Layout ${Layout.BrandTopics}")
+  // The modules' manifests and the facts name the same topics, or the build says so.
+  require(brand.map(_.name).toSet == Layout.BrandTopics.toSet, s"facts ${brand.map(_.name)} differ from the modules' topics ${Layout.BrandTopics}")
   // A shared project's topic is the contract's own or a brand topic's shape reused (payments' platform.audit, spec 004 R13).
   require(Layout.SharedTopics.values.flatten.toSet.subsetOf(all.map(_.name).toSet), s"a shared topic of ${Layout.SharedTopics} is no topic of the contract")
   require(shared.map(_.name).toSet.subsetOf(Layout.SharedTopics.values.flatten.toSet))
