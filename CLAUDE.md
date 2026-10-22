@@ -1,4 +1,8 @@
-# ankka-casino — agent context
+# ankka-modules — agent context
+
+Until 2026-10-21 `ankka-casino`. The brain's decision 0055 renames it and lays it out as a core and
+product modules (casino, predictions, pool) run from ankka-vendor; the specs below are being amended
+to that shape and until they are, they describe the earlier one.
 
 eitheror's casino and payments verticals, rebuilt as domain services on
 [ankka](../../thinkmorestupidless/ankka) and operated with the ankka runtime. This replaces the
@@ -8,7 +12,7 @@ generic twin substrate (concepts, TL functions, Go action handlers, Neo4j, Cloud
 
 ## Read first
 
-- `brain/projects/ankka-casino.md` (in the eitheror brain) — status, people, decisions.
+- `brain/projects/ankka-modules.md` (in the eitheror brain) — status, people, decisions.
 - The plan: [eitheror on ankka: casino and payments build plan](https://claude.ai/code/artifact/d8568586-5a81-465f-a8d5-a87722d235c1)
   — projects, services, component tables, topic contract, phases. Decisions live in its comment threads.
 - The platform features it depends on: [ankka core features for eitheror](https://claude.ai/code/artifact/568e0f36-01dc-45f0-a2f2-1ba40ae93623)
