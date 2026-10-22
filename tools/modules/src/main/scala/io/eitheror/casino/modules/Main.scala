@@ -49,6 +49,7 @@ object Main:
         statusBrand(args, root, slug, out, controlPlane, realms, env)
       case Vector("status", which)    => status(args, root, which, out, controlPlane, realms)
       case Vector("release", "render", tag) => releaseRender(args, root, tag, out)
+      case Vector("schema-sync")      => SchemaSync.run(root, out, vendor)
       case Vector("recordings", "check") => Recordings.check(root, out)
       case Vector("specs", "established") => Established.check(root, out)
       case _ =>
@@ -64,6 +65,7 @@ object Main:
             |       ankka casino apply shared/<project>/manifest.json --installation <name> [--secrets <file>]
             |       ankka casino status <slug | shared project> [--installation <name>]
             |       ankka casino release render <tag> --out <dir>
+            |       ankka casino schema-sync
             |       ankka casino recordings check
             |       ankka casino specs established""".stripMargin)
         2

@@ -293,10 +293,7 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
   // The vendor's console itself is proven in ankka-vendor (its quickstart, step 5): here the console's
   // act is the entitlement it delivers to the agent, and what it shows is the agent's module entity.
 
-  private var operatorOf: Option[String] = None
-
   Given("an operator of brand {string}") { (slug: String) =>
-    operatorOf = Some(slug)
     val a = agent(slug)
     a.deliver("core", "0.3.0", "the vendor")
     a.deliver("casino", "0.3.0", "staff:eitheror")
