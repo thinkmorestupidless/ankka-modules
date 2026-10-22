@@ -161,3 +161,125 @@ object Render:
       s"ANKKA_AUTH_${name}_JWKS_URL" -> s"${keys.getOrElse(issuerBase).stripSuffix("/")}/realms/$realm/protocol/openid-connect/certs",
       s"ANKKA_AUTH_${name}_AUDIENCE" -> audience
     )
+
+/** One module as it would be applied in a brand's project (spec 021 data-model.md, "Plan"). */
+final case class ModulePlan(
+    name: String,
+    kind: String,
+    version: Option[String],
+    dependencies: Vector[String],
+    topics: Vector[TopicPlan],
+    /** In the manifest's order, which is the order they are applied and waited for. */
+    services: Vector[ServiceDescriptor],
+    exposed: Vector[String],
+    grantsMade: Vector[GrantRequest],
+    grantsReceived: Vector[GrantRequest],
+    retention: String,
+    requires: Vector[ModuleManifest.Requirement],
+    /** The configuration keys the brand's values do not supply: the module is held until each is set (FR-009). */
+    missing: Vector[String]
+)
+
+/**
+ * What the agent would apply in one brand's project, from the brand's values, the manifests its
+ * entitlements (or `--modules`) name and the versions a channel (or `--version`) gives (spec 021
+ * data-model.md). A module missing a key is held, not planned: it is in `held`, naming the keys.
+ */
+final case class BrandPlan(project: String, slug: String, realMoney: Boolean, modules: Vector[ModulePlan], held: Vector[ModulePlan]):
+  def missing: Vector[(String, String)] = held.flatMap(m => m.missing.map(m.name -> _))
+  def services: Vector[ServiceDescriptor] = modules.flatMap(_.services)
+  def module(name: String): Option[ModulePlan] = (modules ++ held).find(_.name == name)
+
+object BrandRender:
+
+  /** The project secret every secret key is read from, as the vendor's agent renders it. */
+  val TenantValues = "tenant-values"
+
+  /**
+   * The modules named, with their dependencies, `core` first and each after what it depends on.
+   * A name with no manifest, or a dependency cycle, is an error naming it.
+   */
+  def ordered(named: Vector[String], manifests: Vector[ModuleManifest]): Either[String, Vector[ModuleManifest]] =
+    val byName = manifests.map(m => m.name -> m).toMap
+    def visit(name: String, path: Vector[String], acc: Vector[ModuleManifest]): Either[String, Vector[ModuleManifest]] =
+      if acc.exists(_.name == name) then Right(acc)
+      else if path.contains(name) then Left(s"modules depend on each other: ${(path :+ name).mkString(" -> ")}")
+      else
+        byName.get(name) match
+          case None => Left(s"no module '$name'${path.lastOption.fold("")(p => s" (a dependency of $p)")}")
+          case Some(m) =>
+            m.dependencies.map(_.module).foldLeft[Either[String, Vector[ModuleManifest]]](Right(acc))((a, d) => a.flatMap(visit(d, path :+ name, _)))
+              .map(_ :+ m)
+    (("core" +: named).distinct).foldLeft[Either[String, Vector[ModuleManifest]]](Right(Vector.empty))((a, n) => a.flatMap(visit(n, Vector.empty, _)))
+
+  def plan(
+      values: Values,
+      keys: Keys,
+      manifests: Vector[ModuleManifest],
+      named: Vector[String],
+      versions: Map[String, String],
+      installation: Option[Installation],
+      organization: Option[String] = None
+  ): Either[String, BrandPlan] =
+    ordered(named, manifests).map { order =>
+      val project = Values.tenantProject(values.slug, organization)
+      val known   = Values.all(values, project, installation)
+      val planned = order.map(module(_, values, keys, known, versions.get, installation))
+      // A module held for a key holds every module that depends on it: the agent resolves dependencies first.
+      val held = planned.foldLeft(Vector.empty[ModulePlan]) { (held, m) =>
+        if m.missing.nonEmpty || m.dependencies.exists(d => held.exists(_.name == d)) then held :+ m else held
+      }
+      BrandPlan(project, values.slug, values.realMoney, planned.filterNot(held.contains), held)
+    }
+
+  private def module(m: ModuleManifest, values: Values, keys: Keys, known: Map[String, String], version: String => Option[String], installation: Option[Installation]): ModulePlan =
+    val v = version(m.name)
+    val missing = m.configuration.collect {
+      case c if c.secret && keys.named(c.key).flatMap(values.secretFor).isEmpty => c.key
+      case c if !c.secret && !known.contains(c.key)                            => c.key
+    }
+    ModulePlan(
+      name = m.name,
+      kind = m.kind,
+      version = v,
+      dependencies = m.dependencies.map(_.module),
+      topics = m.topics.map(t => Render.topic(TopicDeclaration(t.name, t.partitions, Layout.retentionOf(t.name)), installation)),
+      services = m.services.map(descriptor(_, m.secretKeys, known, v)),
+      exposed = m.services.filter(_.expose).map(_.name),
+      grantsMade = m.grantsMade.collect {
+        // `{module, service}` is within the project and is no grant (FR-007); `{shared}` resolves to a bound instance, none today.
+        case ModuleManifest.MadeGrant(ModuleManifest.Principal.Literal(p), t) => GrantRequest(p, target(t))
+      },
+      grantsReceived = m.grantsReceived.map(g => GrantRequest(s"service:{project}/${g.service}", target(g.target))),
+      retention = m.retention,
+      requires = m.requires,
+      missing = missing
+    )
+
+  def target(t: ModuleManifest.Target): String = t match
+    case ModuleManifest.Target.Route(service, method, path) => s"route:$service $method $path"
+    case ModuleManifest.Target.Topic(topic, right)          => s"topic:$topic:$right"
+
+  /** A service's descriptor as the agent renders it: keys to values, secret keys to `tenant-values`, the image at the version. */
+  def descriptor(s: ModuleManifest.Service, secretKeys: Set[String], known: Map[String, String], version: Option[String]): ServiceDescriptor =
+    val env = s.env.flatMap { e =>
+      e.key match
+        case Some(k) if secretKeys.contains(k) => Some(EnvVar(e.name, secretKeyRef = Some(SecretKeyRef(TenantValues, k))))
+        case Some(k)                           => known.get(k).map(v => EnvVar(e.name, value = Some(v)))
+        case None                              => e.value.map(v => EnvVar(e.name, value = Some(v)))
+    }
+    val d       = s.descriptor
+    val hosting = Option(d.get("hosting")).map(_.asText()).getOrElse(ServiceSpec.Embedded)
+    val image   = version.fold(s.image)(v => s.image.replaceAll(":0\\.0\\.0$", s":$v"))
+    ServiceDescriptor(
+      s.name,
+      ServiceSpec(
+        image = image,
+        env = env,
+        runtime = Option(d.get("runtime")).map(_.asText()),
+        hosting = hosting,
+        protocol = Option(d.get("protocol")).map(_.asText()),
+        resources = ServiceResources(instanceType = Option(d.path("resources").get("instanceType")).map(_.asText()).getOrElse("small")),
+        provisionObjectStorage = s.objectStorage
+      )
+    )

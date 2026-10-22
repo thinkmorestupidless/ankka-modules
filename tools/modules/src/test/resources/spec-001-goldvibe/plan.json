@@ -1,0 +1,535 @@
+{
+  "descriptors" : [ {
+    "name" : "wallet",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/wallet:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "resources" : {
+        "instanceType" : "medium"
+      },
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "payouts",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/payouts:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "players",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/players:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "kyc",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/kyc:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0",
+      "provisionObjectStorage" : true
+    }
+  }, {
+    "name" : "responsible-gambling",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/responsible-gambling:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "rewards",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/rewards:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "game-provider",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/game-provider:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "resources" : {
+        "instanceType" : "medium"
+      },
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "attribution",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/attribution:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "engagement",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/engagement:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0"
+    }
+  }, {
+    "name" : "reporting",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/reporting:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      } ],
+      "runtime" : "0.11.0",
+      "provisionObjectStorage" : true
+    }
+  }, {
+    "name" : "support-agent",
+    "service" : {
+      "image" : "europe-west1-docker.pkg.dev/eitheror/casino/support-agent:0.1.0",
+      "env" : [ {
+        "name" : "CASINO_PROJECT",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_BRAND",
+        "value" : "goldvibe"
+      }, {
+        "name" : "CASINO_REAL_MONEY",
+        "value" : "false"
+      }, {
+        "name" : "ANKKA_AUTH_ISSUERS",
+        "value" : "player,staff"
+      }, {
+        "name" : "ANKKA_AUTH_REALM",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_PLAYER_AUDIENCE",
+        "value" : "casino-goldvibe"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_ISSUER",
+        "value" : "https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_JWKS_URL",
+        "value" : "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs"
+      }, {
+        "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
+        "value" : "eitheror-casino"
+      }, {
+        "name" : "SUPPORT_AGENT_ENABLED",
+        "value" : "false"
+      } ],
+      "runtime" : "0.11.0"
+    }
+  } ],
+  "exposed" : [ "wallet", "payouts", "players", "kyc", "responsible-gambling", "rewards", "game-provider", "attribution", "engagement", "reporting", "support-agent" ],
+  "topics" : [ {
+    "name" : "money.transactions",
+    "partitions" : 12,
+    "retention" : "as a fact topic",
+    "contract" : "money.transactions.v1"
+  }, {
+    "name" : "payments.payments",
+    "partitions" : 6,
+    "retention" : "as a fact topic",
+    "contract" : "payments.payments.v1"
+  }, {
+    "name" : "casino.players",
+    "partitions" : 6,
+    "retention" : "as a fact topic",
+    "contract" : "casino.players.v1"
+  }, {
+    "name" : "casino.sessions",
+    "partitions" : 12,
+    "retention" : "for 90 days",
+    "contract" : "casino.sessions.v1"
+  }, {
+    "name" : "casino.rounds",
+    "partitions" : 12,
+    "retention" : "as a fact topic",
+    "contract" : "casino.rounds.v1"
+  }, {
+    "name" : "casino.withdrawals",
+    "partitions" : 6,
+    "retention" : "as a fact topic",
+    "contract" : "casino.withdrawals.v1"
+  }, {
+    "name" : "casino.rewards",
+    "partitions" : 6,
+    "retention" : "as a fact topic",
+    "contract" : "casino.rewards.v1"
+  }, {
+    "name" : "affiliates.attribution",
+    "partitions" : 6,
+    "retention" : "as a fact topic",
+    "contract" : "affiliates.attribution.v1"
+  }, {
+    "name" : "casino.push",
+    "partitions" : 6,
+    "retention" : "for 1 day",
+    "contract" : "casino.push.v1"
+  }, {
+    "name" : "platform.audit",
+    "partitions" : 12,
+    "retention" : "as a fact topic",
+    "contract" : "platform.audit.v1"
+  } ],
+  "grantsMade" : [ {
+    "principal" : "service:payments/merchant",
+    "target" : "route:wallet POST /v1/casino/brands/{brand}/wallets/{player}/{currency}/deposits"
+  }, {
+    "principal" : "service:payments/merchant",
+    "target" : "route:wallet POST /v1/casino/brands/{brand}/payments/{paymentId}/outcome"
+  }, {
+    "principal" : "service:payments/psp-gateway",
+    "target" : "route:payouts POST /v1/casino/brands/{brand}/withdrawals/{requestId}/outcome"
+  }, {
+    "principal" : "service:programme/affiliate-programme",
+    "target" : "topic:affiliates.attribution:consume"
+  }, {
+    "principal" : "service:reasoner/audit",
+    "target" : "topic:platform.audit:consume"
+  } ],
+  "grantsReceived" : [ {
+    "principal" : "service:goldvibe/payouts",
+    "target" : "route:psp-gateway POST /v1/payments/withdrawals"
+  }, {
+    "principal" : "service:goldvibe/payouts",
+    "target" : "route:psp-gateway GET /v1/payments/withdrawals/{requestId}"
+  }, {
+    "principal" : "service:goldvibe/payouts",
+    "target" : "route:psp-gateway GET /v1/payments/withdrawal-terminals"
+  }, {
+    "principal" : "service:goldvibe/players",
+    "target" : "erasure"
+  } ]
+}

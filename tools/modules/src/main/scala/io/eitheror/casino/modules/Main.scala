@@ -31,8 +31,10 @@ object Main:
   def root(): Path = sys.env.get("CASINO_ROOT").orElse(sys.props.get("casino.root")).map(Paths.get(_)).getOrElse(Paths.get("").toAbsolutePath)
 
   /** Everything but the process: the tests call this with an in-memory control plane. */
-  def run(args: Args, root: Path, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin] = None): Int =
+  def run(args: Args, root: Path, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin] = None,
+      vendor: () => Vendor = () => PluginVendor.fromEnvironment()): Int =
     args.command match
+      case Vector("render", slug)     => render(args, root, slug, out, vendor)
       case Vector("validate") if args.switches.contains("--all") => validateAll(root, out)
       case Vector("validate", path) if path.endsWith("module.json") => validateModule(root, root.resolve(path), out)
       case Vector("validate", path) if path.endsWith("values.json") => validateValues(args, root, root.resolve(path), out)
@@ -70,6 +72,65 @@ object Main:
       case Right(v) =>
         out.line(s"valid values ${v.slug}: ${v.values.size} values, ${v.secrets.size} secrets")
         out.line("calls: 0"); 0
+
+  // ── the brand's values and the modules (spec 021) ──────────────────────────
+
+  /** The tree's manifests, every one valid, or the refusals printed. */
+  def manifests(root: Path, out: Output): Either[Int, Vector[ModuleManifest]] =
+    val (valid, refused) = ModuleManifest.validateTree(root, ModuleManifest.ContractView.fromTree(root))
+    if refused.isEmpty then Right(valid)
+    else
+      refused.foreach((p, rs) => rs.foreach(r => out.line(s"refused ${root.relativize(p)}: $r")))
+      Left(1)
+
+  /** `brands/<slug>/values.json`, valid, or the refusals printed. */
+  def values(root: Path, slug: String, out: Output): Either[Int, Values] =
+    val path = root.resolve(s"brands/$slug/values.json")
+    if !Files.exists(path) then { out.err(s"no values for '$slug': $path does not exist"); Left(2) }
+    else
+      Values.load(path, valuesView(root)).left.map { rs =>
+        rs.foreach(r => out.line(s"refused brands/$slug/values.json: $r")); 1
+      }
+
+  def list(args: Args, flag: String): Vector[String] =
+    args.flags.get(flag).toVector.flatMap(_.split(',').map(_.trim).filter(_.nonEmpty))
+
+  /** `--version core=1.2.0,casino=1.1.0`, or every named module's version on `--channel` at the vendor. */
+  def versions(args: Args, modules: Vector[String], vendor: () => Vendor): Either[String, Map[String, String]] =
+    (args.flags.get("--version"), args.flags.get("--channel")) match
+      case (Some(_), Some(_)) => Left("--version and --channel are one or the other")
+      case (Some(_), None) =>
+        val pairs = list(args, "--version").map(_.split('=') match
+          case Array(m, v) => Right(m -> v.stripPrefix("v"))
+          case other       => Left(s"--version: '${other.mkString("=")}' is not <module>=<version>"))
+        pairs.collectFirst { case Left(e) => e }.toLeft(pairs.collect { case Right(p) => p }.toMap)
+      case (None, Some(channel)) =>
+        val v = vendor()
+        val found = modules.map(m => v.channelVersion(m, channel).map(m -> _))
+        found.collectFirst { case Left(e) => e }.toLeft(found.collect { case Right(p) => p }.toMap)
+      case (None, None) => Right(Map.empty)
+
+  /** `render <slug>`: what the agent would apply, for a person to read before anything runs (FR-005). No call but the vendor's for a channel. */
+  private def render(args: Args, root: Path, slug: String, out: Output, vendor: () => Vendor): Int =
+    val installation = args.flags.get("--installation").map(Installation.load(root, _))
+    installation match
+      case Some(Left(problem)) => out.err(problem); 2
+      case _ =>
+        val result = for
+          ms   <- manifests(root, out)
+          v    <- values(root, slug, out)
+          keys  = Keys.load(root)
+          order <- BrandRender.ordered(list(args, "--modules"), ms).left.map { e => out.err(e); 2 }
+          vs   <- versions(args, order.map(_.name), vendor).left.map { e => out.err(e); 2 }
+          plan <- BrandRender.plan(v, keys, ms, list(args, "--modules"), vs, installation.flatMap(_.toOption),
+                    args.flags.get("--organization")).left.map { e => out.err(e); 2 }
+        yield plan
+        result match
+          case Left(code) => code
+          case Right(plan) =>
+            if args.flags.get("--format").contains("json") then out.line(PlanJson.render(plan))
+            else PlanText.lines(plan).foreach(out.line)
+            0
 
   /** `release render <version> --out <dir>`: what release.yml publishes (spec 021 T013). */
   private def releaseRender(args: Args, root: Path, tag: String, out: Output): Int =

@@ -1,126 +1,128 @@
 package io.eitheror.casino.modules
 
-import com.thinkmorestupidless.ankka.controlplane.api.ServiceSpec
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.plokhotnyuk.jsoniter_scala.core.readFromString
+import com.thinkmorestupidless.ankka.controlplane.api.{EnvVar, SecretKeyRef, ServiceDescriptor}
+import com.thinkmorestupidless.ankka.controlplane.api.Wire.descriptorCodec
 
+import scala.jdk.CollectionConverters.*
+
+/**
+ * SC-001: rendering goldvibe's values against `core` and `casino` at the versions spec 001 pinned
+ * yields what spec 001's tool produced for goldvibe (`spec-001-goldvibe/plan.json`), field by field,
+ * but for the differences listed here, each of which a contract of spec 021 makes:
+ *
+ *  - E1: the three identity keys spec 001 did not render (`PLAYER_SITE_BASE`, `KEYCLOAK_ISSUER_BASE`,
+ *    `KEYCLOAK_JWKS_BASE`) are named by every service (contracts/module-manifests.md);
+ *  - the modules' own keys are new env: `KYC_PROVIDER_KEY` on kyc, and on game-provider
+ *    `ST8_OPERATOR_ID`, `ST8_API_KEY`, `GAME_PROVIDER_MODE`; a secret one is a `secretKeyRef` to
+ *    `tenant-values`;
+ *  - `SUPPORT_AGENT_ENABLED` is gone: `support` is a module and being entitled is the switch;
+ *  - E2: the three `psp-gateway` routes and the erasure grant are not received by the core's manifest:
+ *    `shared/payments/manifest.json` makes them per brand in local mode;
+ *  - `platform.modules` is a new topic of the core, and `reasoner/audit` is granted to consume it;
+ *  - `casino.push` is engagement's topic, and engagement, reporting and support-agent are modules of
+ *    their own, rendered in the second case.
+ */
 class RenderSuite extends munit.FunSuite:
 
-  private val brand = Fixtures.brand("goldvibe")
-  private val plan  = Render.plan(brand, Some(Fixtures.devKind))
+  private val mapper  = ObjectMapper()
+  private val fixture = mapper.readTree(getClass.getResourceAsStream("/spec-001-goldvibe/plan.json"))
+  private val keys    = Keys.load(Fixtures.root)
+  private val values  = Values.load(Fixtures.root.resolve("brands/goldvibe/values.json"), Main.valuesView(Fixtures.root)).toOption.get
+  private val modules = ModuleManifest.validateTree(Fixtures.root, ModuleManifest.ContractView.fromTree(Fixtures.root))._1
+  private val at      = Map("core" -> "0.1.0", "casino" -> "0.1.0", "engagement" -> "0.1.0", "reporting" -> "0.1.0", "support" -> "0.1.0")
 
-  private def env(service: String): Map[String, String] =
-    plan.descriptors.find(_.name == service).get.service.env.flatMap(e => e.value.map(e.name -> _)).toMap
+  private val spec001: Vector[ServiceDescriptor] =
+    fixture.path("descriptors").elements().asScala.toVector.map(n => readFromString[ServiceDescriptor](n.toString))
 
-  test("one descriptor per service, at the image and runtime the manifest pins") {
-    assertEquals(plan.descriptors.map(_.name), brand.services.map(_.name))
-    plan.descriptors.foreach { d =>
-      assertEquals(d.service.runtime, Some("0.11.0"))
-      assert(d.service.image.endsWith(":0.1.0"))
-      assertEquals(d.problems, Vector.empty, d.name)
+  private val NewIdentity = Set("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE")
+  private val NewOwnKeys  = Map(
+    "kyc"           -> Set("KYC_PROVIDER_KEY"),
+    "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
+    "engagement"    -> Set("PUSH_PROVIDER_KEY"),
+    "support-agent" -> Set("MODEL_PROVIDER_KEY")
+  )
+
+  private def plan(named: Vector[String], v: Values = values) =
+    BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)
+
+  /** A descriptor with spec 021's listed additions taken out, and spec 001's dropped switch taken out of the other. */
+  private def comparable(d: ServiceDescriptor, dropped: Set[String]): ServiceDescriptor =
+    d.copy(service = d.service.copy(env = d.service.env.filterNot(e => dropped.contains(e.name))))
+
+  private def sameAsSpec001(rendered: Vector[ServiceDescriptor]): Unit =
+    val byName = spec001.map(d => d.name -> d).toMap
+    rendered.foreach { d =>
+      val before = byName.getOrElse(d.name, fail(s"${d.name} is not a service spec 001 rendered"))
+      val now    = comparable(d, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
+      assertEquals(now, comparable(before, Set("SUPPORT_AGENT_ENABLED")), d.name)
+      assertEquals(d.service.env.map(_.name).filter(NewIdentity), Vector("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE"), d.name)
     }
+
+  test("core and casino render spec 001's services for goldvibe field by field, but for the listed differences (SC-001)") {
+    val p = plan(Vector("casino"))
+    assertEquals(p.held, Vector.empty, p.missing.toString)
+    assertEquals(p.modules.map(_.name), Vector("core", "casino"))
+    assertEquals(p.services.map(_.name).toSet, spec001.map(_.name).toSet -- Set("engagement", "reporting", "support-agent"))
+    sameAsSpec001(p.services)
+    assertEquals(p.modules.flatMap(_.exposed).toSet, p.services.map(_.name).toSet, "spec 001 exposed every brand service")
   }
 
-  test("Scala services are embedded; the TypeScript ones are processes") {
-    assertEquals(plan.descriptors.find(_.name == "wallet").get.service.hosting, ServiceSpec.Embedded)
-    assertEquals(Render.ProcessHosted, Set("partner-api"))
-    val shared = Render.plan(Fixtures.load("shared-payments"), None)
-    // Scala since spec 005 R1: as a process it ran in the sidecar's 128Mi process allowance and was OOM-killed (T072).
-    assertEquals(shared.descriptors.find(_.name == "psp-gateway").get.service.hosting, ServiceSpec.Embedded)
+  test("the identity values are spec 001's, and a secret key is a secretKeyRef to tenant-values, never a value") {
+    val p = plan(Vector("casino"))
+    def env(s: String) = p.services.find(_.name == s).get.service.env
+    assertEquals(env("wallet").find(_.name == "KEYCLOAK_JWKS_BASE").flatMap(_.value), Some("http://casino-keycloak.casino-identity.svc"))
+    assertEquals(env("kyc").find(_.name == "KYC_PROVIDER_KEY"), Some(EnvVar("KYC_PROVIDER_KEY", secretKeyRef = Some(SecretKeyRef("tenant-values", "kyc-provider-key")))))
+    assertEquals(env("game-provider").find(_.name == "ST8_API_KEY").flatMap(_.secretKeyRef), Some(SecretKeyRef("tenant-values", "st8-api-key")))
+    assertEquals(env("game-provider").find(_.name == "GAME_PROVIDER_MODE").flatMap(_.value), Some("demo"))
   }
 
-  test("only kyc and reporting get a bucket") {
-    assertEquals(plan.descriptors.filter(_.service.provisionObjectStorage).map(_.name).toSet, Set("kyc", "reporting"))
+  test("the topics are spec 001's for core and casino, less engagement's push, plus platform.modules") {
+    val p = plan(Vector("casino"))
+    val before = fixture.path("topics").elements().asScala.toVector.map(t => t.path("name").asText() -> (t.path("partitions").asInt(), t.path("retention").asText(), t.path("contract").asText())).toMap
+    val now = p.modules.flatMap(_.topics).map(t => t.declaration.name -> (t.request.partitions, Manifest.show(t.declaration.retention), t.request.contract.map(_._1).getOrElse(""))).toMap
+    assertEquals(now - "platform.modules", before - "casino.push")
+    assertEquals(now("platform.modules"), (6, "as a fact topic", "platform.modules.v1"))
   }
 
-  test("a brand service trusts its own players' realm and the operators' realm, and knows its brand") {
-    val wallet = env("wallet")
-    assertEquals(wallet("ANKKA_AUTH_ISSUERS"), "player,staff")
-    assert(wallet("ANKKA_AUTH_PLAYER_ISSUER").endsWith("/realms/casino-goldvibe"))
-    assert(wallet("ANKKA_AUTH_STAFF_ISSUER").endsWith("/realms/eitheror"))
-    assertEquals(wallet("ANKKA_AUTH_PLAYER_AUDIENCE"), "casino-goldvibe")
-    assertEquals(wallet("CASINO_BRAND"), "goldvibe")
-    assertEquals(wallet("CASINO_REAL_MONEY"), "false")
+  test("the grants made are spec 001's plus audit's consume of platform.modules; none is received by the core (E2)") {
+    val p = plan(Vector("casino"))
+    val before = fixture.path("grantsMade").elements().asScala.toVector.map(g => GrantRequest(g.path("principal").asText(), g.path("target").asText()))
+    assertEquals(p.modules.flatMap(_.grantsMade), before :+ GrantRequest("service:reasoner/audit", "topic:platform.modules:consume"))
+    assertEquals(p.modules.flatMap(_.grantsReceived), Vector.empty)
+    val received = fixture.path("grantsReceived").elements().asScala.toVector.map(_.path("target").asText())
+    assertEquals(received, Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
+      "route:psp-gateway GET /v1/payments/withdrawal-terminals", "erasure"), "what shared payments now makes per brand")
   }
 
-  test("a service reads its issuers' keys from inside the cluster when the installation names where; the issuer stays public") {
-    val pin = brand.services.head
-    def envWith(i: Option[Installation]) = Render.descriptor(brand, pin, i).service.env.flatMap(e => e.value.map(e.name -> _)).toMap
-    val inside = Fixtures.devKind.copy(settings = Fixtures.devKind.settings + ("KEYCLOAK_JWKS_BASE" -> "http://casino-keycloak.casino-identity.svc"))
-    val keys   = envWith(Some(inside))
-    assertEquals(keys("ANKKA_AUTH_STAFF_JWKS_URL"), "http://casino-keycloak.casino-identity.svc/realms/eitheror/protocol/openid-connect/certs")
-    assertEquals(keys("ANKKA_AUTH_PLAYER_JWKS_URL"), "http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs")
-    assertEquals(keys("ANKKA_AUTH_STAFF_ISSUER"), s"${brand.issuerBase.stripSuffix("/")}/realms/eitheror")
-    val public = envWith(Some(Fixtures.devKind.copy(settings = Fixtures.devKind.settings - "KEYCLOAK_JWKS_BASE")))
-    assertEquals(public("ANKKA_AUTH_STAFF_JWKS_URL"), s"${brand.issuerBase.stripSuffix("/")}/realms/eitheror/protocol/openid-connect/certs")
+  test("all five modules render spec 001's eleven services, the support switch gone, once the brand names the two secrets") {
+    val more = values.copy(secrets = values.secrets ++ Vector(SecretRef("goldvibe-push", Vector("API_KEY")), SecretRef("goldvibe-model", Vector("API_KEY"))))
+    val p = plan(Vector("casino", "engagement", "reporting", "support"), more)
+    assertEquals(p.held, Vector.empty)
+    assertEquals(p.services.map(_.name).toSet, spec001.map(_.name).toSet)
+    sameAsSpec001(p.services)
+    assert(!p.services.exists(_.service.env.exists(_.name == "SUPPORT_AGENT_ENABLED")))
   }
 
-  test("a shared service trusts the operators' realm only") {
-    val shared = Render.plan(Fixtures.load("shared-payments"), None)
-    val env = shared.descriptors.head.service.env.flatMap(e => e.value.map(e.name -> _)).toMap
-    assertEquals(env("ANKKA_AUTH_ISSUERS"), "staff")
-    assert(!env.contains("CASINO_BRAND"))
+  test("without the secrets engagement and support name, those modules are held, naming the keys (FR-009)") {
+    val p = plan(Vector("casino", "engagement", "support"))
+    assertEquals(p.modules.map(_.name), Vector("core", "casino"))
+    assertEquals(p.missing.toSet, Set("engagement" -> "push-provider-key", "support" -> "model-provider-key"))
   }
 
-  test("a secret reference renders as a secretKeyRef, never a value") {
-    // goldvibe's manifest names no project secret since game-provider keeps its provider
-    // configuration in its own secret store (spec 003 research R4), so the test names one.
-    val withSecret = brand.copy(
-      services = brand.services.map(s => if s.name == "engagement" then s.copy(env = s.env + ("SENDER_KEY" -> "secret:engagement-mail/KEY")) else s),
-      secrets = brand.secrets :+ SecretRef("engagement-mail", Vector("KEY"))
-    )
-    val ref = Render.plan(withSecret, Some(Fixtures.devKind)).descriptors.find(_.name == "engagement").get.service.env.find(_.name == "SENDER_KEY").get
-    assertEquals(ref.value, None)
-    assertEquals(ref.secretKeyRef.map(r => r.name -> r.key), Some("engagement-mail" -> "KEY"))
+  test("core comes first and a module after its dependencies; a module that does not exist is named") {
+    assertEquals(BrandRender.ordered(Vector("casino"), modules).map(_.map(_.name)), Right(Vector("core", "casino")))
+    assertEquals(BrandRender.ordered(Vector("jackpots"), modules).left.toOption, Some("no module 'jackpots'"))
   }
 
-  test("a setting reference renders the installation's value, and is left out where the installation has none (spec 005 T069)") {
-    val shared  = Fixtures.load("shared-payments")
-    def env(i: Option[Installation]) =
-      Render.plan(shared, i).descriptors.find(_.name == "psp-gateway").get.service.env.flatMap(e => e.value.map(e.name -> _)).toMap
-    val devKind = env(Some(Fixtures.devKind))
-    assertEquals(devKind.get("DREAMZPAY_BASE_URL"), Some("http://psp-stub.casino-stubs.svc:18103"))
-    assertEquals(devKind.get("PUBLIC_URL"), Some("https://psp-gateway-payments.127.0.0.1.sslip.io:8443"))
-    assertEquals(devKind.get("PROVIDER_TIMEOUT"), Some("20s"), "a literal is still a literal")
-    val bare = env(Some(Fixtures.devKind.copy(settings = Fixtures.devKind.settings - "DREAMZPAY_BASE_URL" + ("T365_BASE_URL" -> ""))))
-    assert(!bare.contains("DREAMZPAY_BASE_URL"), "a missing setting leaves the variable out")
-    assert(!bare.contains("T365_BASE_URL"), "an empty setting leaves the variable out")
-    assert(!bare.values.exists(_.startsWith("setting:")), "no reference reaches a descriptor")
-    assert(!env(None).contains("PUBLIC_URL"), "without an installation nothing is resolved")
-    val uses = Render.settingUses(shared, Some(Fixtures.devKind))
-    assertEquals(uses.count(_.service == "psp-gateway"), 12)
-    assert(uses.forall(_.value.isDefined), uses.filter(_.value.isEmpty).map(_.setting).mkString(", "))
+  test("the versions come from the channel when one is named") {
+    val vendor = new Vendor:
+      def channelVersion(module: String, channel: String) = Right(if channel == "stable" then "0.4.0" else "0.5.0")
+      def setValues(tenant: String, entries: Map[String, String]) = Right(())
+      def schema() = Left("not asked")
+      def calls = Vector.empty
+    assertEquals(Main.versions(Main.parse(Seq("--channel", "stable")), Vector("core", "casino"), () => vendor), Right(Map("core" -> "0.4.0", "casino" -> "0.4.0")))
+    assertEquals(PluginVendor.channel(mapper.readTree("""{"channels":{"stable":"1.4.0"}}"""), "stable"), Some("1.4.0"))
+    assertEquals(PluginVendor.channel(mapper.readTree("""{"channels":[{"name":"stable","version":"1.4.0"}]}"""), "stable"), Some("1.4.0"))
   }
-
-  test("ten topic declarations with their partitions; the status is told what ankka 0.11 cannot declare") {
-    assertEquals(plan.topics.map(_.declaration.name).toSet.size, 10)
-    plan.topics.foreach(t => assert(t.notes.exists(_.contains("lacks 043")), t.declaration.name))
-  }
-
-  test("a fact topic on an installation keeping facts for days is noted as below its intent") {
-    val facts = plan.topics.find(_.declaration.name == "money.transactions").get
-    assert(facts.notes.exists(_.startsWith("retention below intent")), facts.notes.mkString("; "))
-    val push = plan.topics.find(_.declaration.name == "casino.push").get
-    assert(!push.notes.exists(_.startsWith("retention below intent")), push.notes.mkString("; "))
-  }
-
-  test("a shared project's grants are made once per brand") {
-    val shared = Render.plan(Fixtures.load("shared-payments"), None, Vector("goldvibe", "spinvibe"))
-    assertEquals(shared.grantsMade.map(_.principal).toSet,
-      Set("service:goldvibe/payouts", "service:goldvibe/players", "service:spinvibe/payouts", "service:spinvibe/players"))
-    assertEquals(shared.grantsMade.filter(_.principal == "service:goldvibe/payouts").map(_.target),
-      Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
-        "route:psp-gateway GET /v1/payments/withdrawal-terminals"))
-  }
-
-  test("a brand's rendered plan receives the gateway's three payout grants (spec 005 research R12)") {
-    assertEquals(plan.grantsReceived.filter(_.target.startsWith("route:psp-gateway")).map(_.target),
-      Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
-        "route:psp-gateway GET /v1/payments/withdrawal-terminals"))
-  }
-
-  test("shared payments' merchant is told every brand to seed, from the repository's brand manifests (spec 004 FR-003)") {
-    val shared   = Render.plan(Fixtures.load("shared-payments"), None, Vector("spinvibe", "goldvibe"))
-    val merchant = shared.descriptors.find(_.name == "merchant").get
-    assertEquals(merchant.service.env.find(_.name == "MERCHANT_BRANDS").flatMap(_.value), Some("""[{"slug":"goldvibe"},{"slug":"spinvibe"}]"""))
-    assert(!shared.descriptors.find(_.name == "ingest").get.service.env.exists(_.name == "MERCHANT_BRANDS"))
-  }
-
