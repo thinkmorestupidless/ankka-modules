@@ -138,4 +138,4 @@ jobs:
       - name: Integration suites
         env:
           CASINO_IT: "1"
-        run: sbt brandsIt/test
+        run: sbt modulesIt/test
