@@ -94,6 +94,11 @@
       "key": "st8-api-key",
       "type": "string",
       "secret": true
+    },
+    {
+      "key": "casino-brand",
+      "type": "string",
+      "secret": false
     }
   ],
   "retention": "30d"

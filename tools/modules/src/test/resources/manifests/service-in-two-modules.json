@@ -28,6 +28,12 @@
     "made": [],
     "received": []
   },
-  "configuration": [],
+  "configuration": [
+    {
+      "key": "casino-brand",
+      "type": "string",
+      "secret": false
+    }
+  ],
   "retention": "90d"
 }

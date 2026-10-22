@@ -168,6 +168,54 @@ object ModuleManifest:
       sharedModules: Set[String]
   )
 
+  object ContractView:
+    /** The modules data-model.md names, by kind; a manifest's dependency is checked against these. */
+    val ProductModules: Set[String] = Set("casino", "engagement", "reporting", "support", "partner", "predictions")
+    val SharedModules: Set[String]  = Set("pool")
+
+    /**
+     * The tree's contract: the brand services that have a build under `services/` or are listed as not
+     * yet built in `contract/keys.md` (spec 021 T011), the contract's topics, the routes of
+     * `contract/access/routes.md` and the keys of `contract/keys.md`.
+     */
+    def fromTree(root: Path): ContractView =
+      val keys   = Keys.load(root)
+      val shared = io.eitheror.casino.contract.Layout.SharedProjects.values.flatten.toSet
+      ContractView(
+        services = (Keys.built(root) -- shared) ++ keys.notYetBuilt.keySet,
+        topics = io.eitheror.casino.contract.facts.Topics.all.map(_.name).toSet,
+        routes = contractRoutes(root),
+        keys = keys.names,
+        productModules = ProductModules,
+        sharedModules = SharedModules
+      )
+
+    /** The rows of `contract/access/routes.md`: service, method, path. */
+    def contractRoutes(root: Path): Set[(String, String, String)] =
+      Files.readAllLines(root.resolve("contract/access/routes.md")).asScala.toVector
+        .map(_.trim)
+        .filter(l => l.startsWith("|") && !l.startsWith("|---") && !l.startsWith("| Service"))
+        .map(_.stripPrefix("|").stripSuffix("|").split('|').map(_.trim).toVector)
+        .collect { case Vector(service, method, path, _*) => (service, method, path) }
+        .toSet
+
+  /** Every manifest under `modules/`, in the order Layout reads them: `core` first. */
+  def treeManifests(root: Path): Vector[Path] =
+    val dir = root.resolve("modules")
+    if !Files.isDirectory(dir) then Vector.empty
+    else
+      val all = Files.list(dir).iterator().asScala.toVector.map(_.resolve("module.json")).filter(Files.exists(_))
+        .sortBy(_.getParent.getFileName.toString)
+      all.filter(_.getParent.getFileName.toString == "core") ++ all.filterNot(_.getParent.getFileName.toString == "core")
+
+  /** Every manifest of the tree, each validated, then the rules across them (one service, one module). */
+  def validateTree(root: Path, view: ContractView): (Vector[ModuleManifest], Vector[(Path, Vector[Refusal])]) =
+    val results  = treeManifests(root).map(p => p -> validate(p, view))
+    val valid    = results.collect { case (_, Right(m)) => m }
+    val refused  = results.collect { case (p, Left(rs)) => p -> rs }
+    val across   = this.across(valid)
+    (valid, if across.isEmpty then refused else refused :+ (root.resolve("modules") -> across))
+
   /** The one product module allowed to depend on another (FR-002): `partner` on `casino`. */
   val ProductOnProduct: Set[(String, String)] = Set("partner" -> "casino")
 
@@ -210,7 +258,9 @@ object ModuleManifest:
         s.env.zipWithIndex.flatMap { (e, j) =>
           val at = s"services[$i].descriptor.env[$j]"
           Option.when(e.secretKeyRef)(Refusal(at, s"a value where a key is expected: '${e.name}' names a secretKeyRef; the agent writes those")).toVector ++
-            e.key.filterNot(view.keys.contains).map(k => Refusal(s"$at.key", s"configuration key '$k' is not in the contract")).toVector
+            e.key.filterNot(view.keys.contains).map(k => Refusal(s"$at.key", s"configuration key '$k' is not in the contract")).toVector ++
+            e.key.filter(view.keys.contains).filterNot(k => m.configuration.exists(_.key == k))
+              .map(k => Refusal(s"$at.key", s"configuration key '$k' is not one this module names")).toVector
         }
     }
     val topics = m.topics.zipWithIndex.collect {

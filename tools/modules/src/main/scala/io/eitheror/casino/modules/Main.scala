@@ -33,6 +33,9 @@ object Main:
   /** Everything but the process: the tests call this with an in-memory control plane. */
   def run(args: Args, root: Path, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin] = None): Int =
     args.command match
+      case Vector("validate") if args.switches.contains("--all") => validateAll(root, out)
+      case Vector("validate", path) if path.endsWith("module.json") => validateModule(root, root.resolve(path), out)
+      case Vector("validate", path) if path.endsWith("values.json") => validateValues(args, root, root.resolve(path), out)
       case Vector("validate", path)   => validate(args, root, root.resolve(path), out)
       case Vector("apply", path)      => apply(args, root, root.resolve(path), out, controlPlane, realms)
       case Vector("status", which)    => status(args, root, which, out, controlPlane, realms)
@@ -46,6 +49,40 @@ object Main:
             |       brands recordings check
             |       brands specs established""".stripMargin)
         2
+
+  /** One module manifest: the vendor's schema, then the contract's rules (spec 021 FR-002). No call. */
+  private def validateModule(root: Path, path: Path, out: Output): Int =
+    ModuleManifest.validate(path, ModuleManifest.ContractView.fromTree(root)) match
+      case Left(refusals) =>
+        refusals.foreach(r => out.line(s"refused ${root.relativize(path)}: $r")); out.line("calls: 0"); 1
+      case Right(m) =>
+        out.line(s"valid module ${m.name} (${m.kind}): ${m.services.size} services, ${m.topics.size} topics, ${m.configuration.size} keys")
+        out.line("calls: 0"); 0
+
+  def valuesView(root: Path): Values.View = Values.View(Keys.load(root), io.eitheror.casino.contract.Layout.Services.toSet)
+
+  /** One brand's values (spec 021 FR-003); with `--installation` and `--real-money`, the core's requirements too. */
+  private def validateValues(args: Args, root: Path, path: Path, out: Output): Int =
+    Values.load(path, valuesView(root)) match
+      case Left(refusals) =>
+        refusals.foreach(r => out.line(s"refused ${root.relativize(path)}: $r")); out.line("calls: 0"); 1
+      case Right(v) =>
+        out.line(s"valid values ${v.slug}: ${v.values.size} values, ${v.secrets.size} secrets")
+        out.line("calls: 0"); 0
+
+  /** Every manifest under modules/ and every values file under brands/: the CI's check. */
+  private def validateAll(root: Path, out: Output): Int =
+    val (valid, refused) = ModuleManifest.validateTree(root, ModuleManifest.ContractView.fromTree(root))
+    valid.foreach(m => out.line(s"valid module ${m.name} (${m.kind}): ${m.services.size} services, ${m.topics.size} topics"))
+    refused.foreach((p, rs) => rs.foreach(r => out.line(s"refused ${root.relativize(p)}: $r")))
+    val view = valuesView(root)
+    val brands = brandSlugs(root).map(s => s -> Values.load(root.resolve(s"brands/$s/values.json"), view))
+    brands.foreach {
+      case (_, Right(v)) => out.line(s"valid values ${v.slug}")
+      case (s, Left(rs)) => rs.foreach(r => out.line(s"refused brands/$s/values.json: $r"))
+    }
+    out.line("calls: 0")
+    if refused.isEmpty && brands.forall(_._2.isRight) then 0 else 1
 
   /** Validation: schema, rules, and readiness for real money, with no call (FR-010, FR-040). */
   def checked(args: Args, root: Path, path: Path, out: Output): Either[Int, (Manifest, Option[Installation])] =
@@ -103,8 +140,8 @@ object Main:
     if !Files.isDirectory(dir) then Vector.empty
     else
       Files.list(dir).iterator().asScala.toVector
-        .filter(d => Files.exists(d.resolve("manifest.json")))
-        .flatMap(d => Manifest.load(d.resolve("manifest.json")).toOption.collect { case b: BrandManifest => b.slug })
+        .filter(d => Files.exists(d.resolve("values.json")))
+        .map(_.getFileName.toString)
         .sorted
 
   private def apply(args: Args, root: Path, path: Path, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin]): Int =
@@ -141,7 +178,9 @@ object Main:
       .getOrElse(s"https://${brand.slug}.invalid")
 
   private def status(args: Args, root: Path, which: String, out: Output, controlPlane: () => ControlPlane, realms: Option[RealmAdmin]): Int =
-    val candidates = Vector(root.resolve("brands").resolve(which).resolve("manifest.json"), root.resolve("shared").resolve(which).resolve("manifest.json"))
+    val candidates =
+      if which.endsWith(".json") then Vector(root.resolve(which))
+      else Vector(root.resolve("shared").resolve(which).resolve("manifest.json"))
     candidates.find(Files.exists(_)) match
       case None => out.err(s"no manifest for '$which' under brands/ or shared/"); 2
       case Some(path) =>

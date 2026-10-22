@@ -39,13 +39,13 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   }
 
   When("the operator applies the manifest for a brand named {string}") { (slug: String) =>
-    assertEquals(run("apply", s"brands/$slug/manifest.json", "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
+    assertEquals(run("apply", s"tests/fixtures/manifests/$slug.json", "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
     // the shared projects grant per brand under brands/: applied again now the brand exists
     applyShared()
   }
 
   Then("brand {string} is running with every part of it at the version its manifest pins") { (slug: String) =>
-    val manifest = Fixtures.root.resolve(s"brands/$slug/manifest.json")
+    val manifest = Fixtures.manifest(slug)
     val pins = Manifest.load(manifest).toOption.get.services.map(s => s.name -> s.image).toMap
     val running = cp.services(slug).map(s => s.name -> (s.lifecycle, s.image)).toMap
     assertEquals(running.keySet, pins.keySet)
@@ -69,7 +69,7 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   Given("brands {string} and {string} created from the same manifest") { (a: String, b: String) =>
     fresh(); applyShared()
     for slug <- Vector(a, b) do
-      val path = if slug == "goldvibe" then "brands/goldvibe/manifest.json" else s"tests/fixtures/manifests/$slug.json"
+      val path = s"tests/fixtures/manifests/$slug.json"
       assertEquals(run("apply", path, "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
     before = cp.services(b).map(s => s.name -> s.generation).toMap
   }
@@ -116,7 +116,7 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   }
 
   When("a manifest not marked for real money is applied") { () =>
-    run(Seq("apply", "brands/goldvibe/manifest.json") ++ installationArgs*)
+    run(Seq("apply", "tests/fixtures/manifests/goldvibe.json") ++ installationArgs*)
   }
 
   Then("it is refused, naming the backups") { () => refusedNaming("the backups") }
@@ -133,7 +133,7 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
     assertEquals(code, 0, out.lines.mkString("\n"))
     assert(cp.project("goldvibe").isDefined)
     out = Output.Collected()
-    Main.run(Main.parse(Seq("status", "goldvibe") ++ installationArgs), Fixtures.root, out, () => cp, Some(realms))
+    Main.run(Main.parse(Seq("status", "tests/fixtures/manifests/real-money.json") ++ installationArgs), Fixtures.root, out, () => cp, Some(realms))
     assert(out.lines.contains("real money: fit"), out.lines.mkString("\n"))
     for c <- Vector("the backups", "the erasure of personal data", "the retention of facts", "the copies of its facts") do
       assert(out.lines.exists(l => l.contains(c) && l.trim.startsWith("met")), c)
