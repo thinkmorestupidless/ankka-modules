@@ -17,9 +17,6 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
     "enabling a module adds its services and grants to the brand and nothing to any other brand" -> "not yet bound: spec 021 T023",
     "a brand entitled to the prediction market and not the casino serves markets and no games" -> "not yet bound: spec 021 T023",
     "disabling a module removes its services and keeps its data for the module's retention" -> "not yet bound: spec 021 T023",
-    "a brand's values carry no version, no service and no grant" -> "not yet bound: spec 021 T020",
-    "a brand whose values lack a key an enabled module names runs nothing of that module until the key is set" -> "not yet bound: spec 021 T020",
-    "a real-money brand is refused by the agent on an installation that is not fit for it" -> "not yet bound: spec 021 T020",
     "a brand operator sees their brand's modules and cannot enable one" -> "not yet bound: spec 021 T026",
     "eitheror staff enable a module from the vendor's console and see no player of any brand" -> "not yet bound: spec 021 T026",
     "a module's every change is a fact on the brand's platform topic" -> "not yet bound: spec 021 T026"
@@ -41,6 +38,102 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
 
   Given("a brand {string} provisioned by the vendor with an entitlement to the module {string}") { (slug: String, module: String) =>
     entitled = entitled.updated(slug, Set(module))
+    brandValues = brandValues.updated(slug, goldvibe.copy(slug = slug, name = slug))
+    installationName = "dev-kind"
+    agents = Map.empty
+  }
+
+  // ── the brand side: values, the agent (US1, US3) ───────────────────────────
+
+  private lazy val manifests = ModuleManifest.validateTree(root, view)._1
+  private lazy val keys      = Keys.load(root)
+  private lazy val goldvibe  = Values.load(root.resolve("brands/goldvibe/values.json"), Main.valuesView(root)).fold(rs => fail(rs.mkString), identity)
+
+  private var brandValues: Map[String, Values]    = Map.empty
+  private var installationName: String             = "dev-kind"
+  private var agents: Map[String, AgentModel]      = Map.empty
+  private var lastRecord: Option[AgentModel.ModuleRecord] = None
+  private var writesBefore: Int = 0
+
+  /** The brand's project as values push and secrets leave it, and its agent; made once per brand per scenario. */
+  private def agent(slug: String): AgentModel =
+    agents.getOrElse(slug, {
+      val v    = brandValues(slug)
+      val inst = Installation.load(root, installationName).toOption
+      val cp   = InMemoryControlPlane(hasGrants = true)
+      cp.createProject(slug, slug, "eitheror")
+      val secrets = keys.rows.filter(_.secret).filter(r => v.secretFor(r).isDefined).map(_.key -> "test").toMap
+      cp.setSecret(slug, BrandRender.TenantValues, Values.all(v, slug, inst) ++ secrets)
+      val a = AgentModel(cp, slug, manifests ++ testManifests, inst)
+      agents = agents.updated(slug, a)
+      a
+    })
+
+  /** Manifests the tree does not carry but a scenario needs (the predictions modules are spec 004 of ankka-predictions'). */
+  private lazy val testManifests: Vector[ModuleManifest] =
+    Vector("predictions").map(n => ModuleManifest.load(variant(n)).fold(rs => fail(rs.mkString("\n")), identity))
+
+  When("the agent applies the brand's entitlements") { () =>
+    val a = agent("goldvibe")
+    writesBefore = a.cp.writes.size
+    entitled("goldvibe").toVector.sortBy(m => if m == "core" then 0 else 1).foreach(m => lastRecord = Some(a.deliver(m, "0.3.0", "the vendor")))
+  }
+
+  When("eitheror staff enable the module {string} for brand {string}") { (module: String, slug: String) =>
+    val a = agent(slug)
+    if !a.entity.get("core").exists(_.status == AgentModel.Enabled) && module != "core" then a.deliver("core", "0.3.0", "the vendor")
+    writesBefore = a.cp.writes.size
+    entitled = entitled.updated(slug, entitled.getOrElse(slug, Set.empty) + module)
+    lastRecord = Some(a.deliver(module, "0.3.0", "staff:eitheror"))
+  }
+
+  Given("the values of brand {string} lack a key the module {string} names") { (slug: String, module: String) =>
+    val own = manifests.find(_.name == module).get.configuration.map(_.key).filter(k => keys.named(k).exists(_.module == module))
+    val drop = own.filterNot(k => keys.named(k).exists(_.secret)).head
+    brandValues = brandValues.updated(slug, brandValues(slug).copy(values = brandValues(slug).values - drop))
+    missingKey = drop
+  }
+  private var missingKey = ""
+
+  Then("nothing of the module {string} runs at brand {string}") { (module: String, slug: String) =>
+    val a = agent(slug)
+    val services = manifests.find(_.name == module).get.services.map(_.name)
+    assert(!services.exists(a.cp.servicesBy.get(slug).getOrElse(Map.empty).contains), a.cp.writes.mkString("\n"))
+    assertEquals(a.entity(module).status, AgentModel.Failed)
+    // render says the same before anything runs (FR-005): the module is held for the key.
+    val plan = BrandRender.plan(brandValues(slug), keys, manifests, Vector(module), Map.empty, Installation.load(root, installationName).toOption).toOption.get
+    assertEquals(plan.missing, Vector(module -> missingKey))
+  }
+
+  Then("the brand's module entity names the missing key") { () =>
+    val r = lastRecord.get
+    assert(r.missing.contains(missingKey), r.toString)
+  }
+
+  Given("an installation that is not fit for real money") { () =>
+    installationName = "dev-kind"
+    assert(!Readiness.fit(Readiness.conditions(Installation.load(root, installationName).toOption.get)))
+  }
+
+  Given("the values of brand {string} mark it for real money") { (slug: String) =>
+    brandValues = brandValues.updated(slug, brandValues(slug).copy(realMoney = true))
+  }
+
+  Then("nothing is applied, naming the condition the installation fails") { () =>
+    val a = agent("goldvibe")
+    val r = lastRecord.get
+    assertEquals(r.status, AgentModel.Unfit)
+    assert(r.reason.exists(_.contains("backups.target")), r.toString)
+    assertEquals(a.cp.writes.drop(writesBefore).filterNot(_.startsWith("POST /projects/goldvibe/grants")), Vector.empty)
+  }
+
+  When("the modules tool validates a values file that names a version") { () =>
+    valuesRefusals = Values.load(Path.of(getClass.getResource("/values/with-version.json").toURI), Main.valuesView(root)).fold(identity, _ => Vector.empty)
+  }
+  private var valuesRefusals: Vector[Refusal] = Vector.empty
+
+  Then("the values file is refused, naming the entry") { () =>
+    assert(valuesRefusals.exists(r => r.path == "version" && r.message.contains("'version' is the module's, not the brand's")), valuesRefusals.mkString("\n"))
   }
 
   // ── a module is described by one manifest and released by one tag (US2) ───
