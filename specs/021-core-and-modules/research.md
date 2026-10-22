@@ -151,7 +151,8 @@ failing early is the same rule applied first.
 
 **Decision**: `contract/facts/PlatformModules.scala`: family `platform.modules` v1 with `module`,
 `change` (`enabled`, `disabled`, `upgraded`, `failed`, `requested`, `values-changed`), `version`,
-`channel`, `actor`, `at`; the schema written by `just schemas`; listed in `Layout.BrandTopics`
+`channel`, `actor`, `at`, flat, with no body `type` field (the vendor's `ModuleFacts` shape is the
+family; the one exception `Topics` and `FactsSuite` make, E3); the schema written by `just schemas`; listed in `Layout.BrandTopics`
 and declared by the core's manifest with the grant to `reasoner/audit` to consume it. The vendor's
 agent publishes to it as CloudEvents (vendor 004 FR-006) in exactly this shape, which the vendor's
 `ModuleFacts` contract names; `reporting` and `audit` read it as they read `platform.audit`.

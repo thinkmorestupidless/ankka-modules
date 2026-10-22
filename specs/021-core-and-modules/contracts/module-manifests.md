@@ -8,23 +8,42 @@ release renders the tag's version.
 
 | Service | From the brand manifest | Keys named in `env` |
 |---|---|---|
-| `wallet` | expose, `medium` | `casino-brand`, `casino-project`, `casino-real-money`, `keycloak-issuer-base`, `keycloak-jwks-base` |
-| `players` | expose; erasure handler | the same, plus `player-site-base` |
+| `wallet` | expose, `medium` | the identity keys (below) |
+| `players` | expose; erasure handler | the identity keys |
 | `kyc` | expose, object storage; erasure handler | the same, plus `kyc-provider-key` (secret) |
 | `responsible-gambling` | expose | the same |
 | `payouts` | expose | the same |
 | `attribution` | expose | the same |
+
+The identity keys, named by every brand service: `casino-brand`, `casino-project`,
+`casino-real-money`, `player-site-base`, `keycloak-issuer-base`, `keycloak-jwks-base`, and the six
+auth keys spec 001's tool computed and `Values` now derives from `keycloak.issuerBase` and the
+slug (E1, 2026-10-22): `auth-realm` (`casino-<slug>`), `auth-player-issuer`
+(`<issuerBase>/realms/casino-<slug>`), `auth-player-jwks-url`, `auth-player-audience`
+(`casino-<slug>`), `auth-staff-issuer` (`<issuerBase>/realms/eitheror`), `auth-staff-jwks-url`.
+`ANKKA_AUTH_ISSUERS` and the staff audience are literals in the descriptors. The vendor's format has
+no templating, so a derived value is a key the brand's values carry, written by `values push`.
 
 Topics: `money.transactions` 12, `payments.payments` 6, `casino.players` 6, `casino.sessions` 12
 (90d), `casino.withdrawals` 6, `affiliates.attribution` 6, `platform.audit` 12,
 `platform.modules` 6. Grants made: spec 001 FR-016's five (`merchant` → wallet deposits and
 payment outcome; `psp-gateway` → payouts outcome; `affiliate-programme` consumes
 `affiliates.attribution`; `audit` consumes `platform.audit`) plus `audit` consumes
-`platform.modules`. Received: `psp-gateway`'s `POST /v1/payments/withdrawals` for `payouts`.
+`platform.modules`. Received: none in the manifest (E2, 2026-10-22): the vendor's `received[].from`
+names a module, and `payments` is a shared project, not a module, so the three `psp-gateway` routes
+and the erasure grant a brand receives are made by `shared/payments/manifest.json` through the
+local tool, per brand, as spec 001 had it; they become `received` entries when `payments` is a
+vendor shared module.
 Configuration: the six keys above, `kyc-provider-key` secret. Requires: one entry, `when`
 `casino-real-money` equals `"true"`, with `backups.target: object-store`, `backups.copyRequired:
 true`, `backups.sharesFailureDomain: false`, `erasure.enabled: true`, `erasure.keyringInstances: 2`,
-`broker.nodes: 3`, `topics.longestRetention: unbounded` (spec 001 FR-035 to FR-038, research R6).
+`broker.nodes: 3`, `broker.defaultCopies: 3`, `broker.minInSync: 2`, `topics.longestRetention:
+unbounded` (spec 001 FR-035 to FR-038 and the tool's `TOPIC_COPIES` and `BROKER_MIN_IN_SYNC`
+checks, research R6). In local mode `Readiness` maps the overlay's settings to the same facts:
+`BACKUP_POINT_IN_TIME` → `backups.target` (`object-store` when true), `BACKUP_OFF_CLUSTER_COPY_REQUIRED`
+→ `backups.copyRequired` and, negated, `backups.sharesFailureDomain`; `ERASURE_*` → `erasure`;
+`BROKER_REPLICAS`, `TOPIC_COPIES`, `BROKER_MIN_IN_SYNC` → `broker`; `TOPIC_LONGEST_RETENTION` →
+`topics.longestRetention`. No new overlay setting; what real money requires is unchanged.
 Retention: none. Ending: none. Dependencies: none.
 
 ## `casino` (kind `product`, depends on `core >=0.3.0 <1.0.0`)

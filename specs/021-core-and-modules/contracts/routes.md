@@ -26,6 +26,7 @@ Its copy says "ask eitheror for this module", never "enable".
 ```
 
 Keyed by `module`; a fact topic; written by the vendor's agent as CloudEvents whose `data` is this
-family, `type` `io.eitheror.casino.platform.modules.v1`; read by `reporting` (where enabled) and by
+flat record, `ce-type` as ankka sets it (`platform.modules.v1`); the one topic of the contract whose
+schema has no body `type` field, since the vendor's shape is the family (E3, 2026-10-22); read by `reporting` (where enabled) and by
 `reasoner/audit` under the core's grant. The schema `contract/schemas/platform.modules.v1.json` is
 inlined into the core's manifest at release so the agent declares the topic with it.

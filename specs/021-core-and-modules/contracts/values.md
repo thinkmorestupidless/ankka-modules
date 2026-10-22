@@ -29,8 +29,10 @@
 | `values` | keys from `contract/keys.md`, non-secret; a value matching the vendor's secret patterns is refused | `'<k>' is a secret key: set it with secrets`, `looks like a secret` |
 | `version`, `ankka`, `services`, `topics`, `grants` | absent | `'<field>' is the module's, not the brand's` |
 
-`casino-brand` and `casino-project` are derived (`brand.slug`, the tenant project id) and refused
-if written. `casino-real-money` is derived from `brand.realMoney`.
+`casino-brand`, `casino-project`, `casino-real-money`, `auth-realm`, `auth-player-issuer`,
+`auth-player-jwks-url`, `auth-player-audience`, `auth-staff-issuer` and `auth-staff-jwks-url` are
+derived (from `brand.slug`, the tenant project id, `brand.realMoney`, `keycloak.issuerBase` and the
+overlay's `KEYCLOAK_JWKS_BASE`) and refused if written (E1).
 
 ## Where the values go
 
