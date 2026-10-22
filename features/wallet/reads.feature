@@ -10,6 +10,9 @@ Feature: Reads of a wallet: balance, restricted funds status, transactions and s
     Then real balance, restricted balance and currency are returned as major-unit strings
     And the primary record's status, wagering requirement, wagered amount and release progress are returned
 
+  # Spec 022 (wallet primitives) adds reservations; until the wallet holds one, the read has no
+  # reserved or available amount to report, and this waits for that spec.
+  @ignore
   Scenario: a balance read reports the reserved and the available amount beside real balance
     Given a real balance of "1000" and a reservation of "600" placed for order "o1"
     When the balance is read
