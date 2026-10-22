@@ -156,8 +156,9 @@ operator's page changes and no player data was readable from the console.
 
 - A module whose dependency is disabled: disabling `core` is refused while any module is enabled;
   disabling a product module another module depends on is refused naming the dependent.
-- `partner-api` and `support-agent`: `partner-api` is a service of `casino` the manifest marks
-  optional, named in a brand's values when a partner is contracted (spec 016); `support-agent` is
+- `partner-api` and `support-agent`: the manifest format has no optional service, so `partner-api`
+  is its own module, `partner`, depending on `casino` (the one product module allowed to depend on
+  a product module, FR-002), entitled when a partner is contracted (spec 016); `support-agent` is
   its own module, `support`, so that spec 017 FR-001's off-by-default is an entitlement, not a
   switch.
 - A brand migrated from the original (spec 019): its values are written from the original's
@@ -180,15 +181,16 @@ operator's page changes and no player data was readable from the console.
 
 - **FR-001**: A brand project MUST hold the services of `core` and of the modules the brand's
   entitlements name, and no others. `core` is `wallet`, `players`, `kyc`, `responsible-gambling`,
-  `payouts`, `attribution`, and the vendor's agent. `casino` is `game-provider`, `rewards` and
-  optionally `partner-api`. `engagement` is `engagement`; `reporting` is `reporting`; each depends
+  `payouts`, `attribution`, and the vendor's agent. `casino` is `game-provider` and `rewards`; `partner` is
+  `partner-api`, a product module depending on `casino`, entitled when a partner is contracted
+  (spec 016). `engagement` is `engagement`; `reporting` is `reporting`; each depends
   on `core` alone. `support` is `support-agent`. `predictions` is spec 023's; `pool` is spec
   024's and shared.
 - **FR-002**: Every module MUST be described by one manifest at `modules/<module>/module.json` in
   ankka-vendor's manifest format: services with descriptors, grants and topics declared by route
   class and topic name, dependencies with version ranges, configuration keys by name and type,
   retention after disable, and any condition on ending; a product module MUST depend on `core`
-  and on no other product module.
+  and on no other product module, except `partner` on `casino`.
 - **FR-003**: A brand MUST supply its values at `brands/<slug>/values.json`: realm settings, real
   money, secret names, hostnames, and a value for every key its enabled modules name; a value
   file MUST hold no version, service, grant or secret value.
@@ -199,7 +201,9 @@ operator's page changes and no player data was readable from the console.
 - **FR-005**: `tools/brands` MUST become `tools/modules`: `validate` a manifest or a values file
   against the vendor's schema and this repository's contract; `render <slug>` what the agent would
   apply; `apply` in local mode only, to an installation with no vendor, for development, parity
-  and the simulator; `status <slug>` from the agent's module entity. It MUST be reachable as
+  and the simulator; `status <slug>` from the agent's module entity; and the brand-side writes
+  that are no module's (`values push`, `secrets`, `hostnames`, `realm`), the secret ones never
+  through the vendor. It MUST be reachable as
   `ankka casino` under ankka 056.
 
 **Grants (replaces spec 001 FR-016's fixed list)**
@@ -246,7 +250,7 @@ operator's page changes and no player data was readable from the console.
 ### Key Entities
 
 - **Module**: a named set of services, grants, topics, dependencies, keys and retention, described
-  by one manifest; `core`, `casino`, `support`, `predictions`, `pool`.
+  by one manifest; `core`, `casino`, `engagement`, `reporting`, `support`, `partner`, `predictions`, `pool`.
 - **Values**: what one brand supplies: realm, real money, secret names, hostnames, configured
   values; `brands/<slug>/values.json`.
 - **Entitlement**: ankka-vendor's record that a brand may run a module on a channel or pin; read,
@@ -259,8 +263,8 @@ operator's page changes and no player data was readable from the console.
 
 ### Measurable Outcomes
 
-- **SC-001**: The four manifests (`core`, `casino`, `support`, `predictions`) validate, and
-  rendering goldvibe's values against `core` and `casino` yields the same services, env and grants
+- **SC-001**: The five manifests (`core`, `casino`, `engagement`, `reporting`, `support`) validate,
+  and rendering goldvibe's values against `core` and `casino` yields the same services, env and grants
   spec 001's tool produced for goldvibe, with versions from the channel.
 - **SC-002**: A brand with `core` alone answers every scenario of `features/players/`,
   `features/wallet/deposits.feature` and `features/payouts/` and serves no game route; enabling
