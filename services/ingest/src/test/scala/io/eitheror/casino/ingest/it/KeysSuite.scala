@@ -29,11 +29,13 @@ class KeysSuite extends munit.FunSuite:
     kit.eventually("10,000 keys indexed", 300.seconds)(Option(indexed()).filter(_ >= 10_000)): Unit
     println(s"SC-003: 10,000 keys indexed ${(System.nanoTime() - waited) / 1_000_000} ms after the last was published")
 
+    // SC-003 bounds the steady state: 200 creates first, untimed, so the JIT's first compilations stay out of the tail.
+    val random = Random(7)
+    (1 to 200).foreach(_ => assertEquals(kit.create(keys(random.nextInt(keys.size))).status, 200))
     val steps = ConcurrentLinkedQueue[Long]()
     Context.onKeyStep = steps.add(_): Unit
     try
       val creates = kit.merchant.received(FakeMerchant.Create).size
-      val random  = Random(7)
       (1 to 1000).foreach(_ => assertEquals(kit.create(keys(random.nextInt(keys.size))).status, 200))
       val sorted = steps.asScala.toVector.sorted
       val p99    = sorted((sorted.size * 0.99).toInt - 1) / 1_000_000.0

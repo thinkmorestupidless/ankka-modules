@@ -180,9 +180,9 @@ class DepositsFeatures extends MerchantFeatures("deposits.feature"):
     assertEquals(kit.wallet.depositsOf(paymentId).size, 1)
   }
   Then("the payment is listed among the captured deposits not credited, with the wallet's reason") { () =>
-    val listed = kit.eventually("listed")(Option(kit.request("GET", "/v1/payments/cashier/uncredited", None, kit.asOperator()))
-      .filter(_.text.contains(paymentId)))
-    assert(listed.text.contains("WALLET_NOT_FOUND"), listed.text)
+    // The row lands first as captured and pending, and takes the wallet's reason when the refusal is projected.
+    kit.eventually("listed with the wallet's reason")(Option(kit.request("GET", "/v1/payments/cashier/uncredited", None, kit.asOperator()))
+      .filter(r => r.text.contains(paymentId) && r.text.contains("WALLET_NOT_FOUND"))): Unit
   }
   Then("an operator can retry it once the cause is fixed") { () =>
     kit.wallet.reset()
