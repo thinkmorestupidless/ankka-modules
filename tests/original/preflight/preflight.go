@@ -9,6 +9,9 @@
 //	go run ./original/preflight -original ../../eitheror-platform
 //	go run ./original/preflight -original ../../eitheror-platform -receiver http://localhost:18110/healthz
 //	go run ./original/preflight -original ../../eitheror-platform -cashier http://localhost:8085
+//	go run ./original/preflight -original ../../eitheror-platform -register http://localhost:8085 -brand spinvibe
+//
+// For a recording of players (spec 008) the original's registration route must answer too.
 package main
 
 import (
@@ -62,6 +65,26 @@ func CashierAnswers(base string, client *http.Client) string {
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Sprintf("%s: %s answered %d", Cashier, base, resp.StatusCode)
+	}
+	return ""
+}
+
+// Register is the name the original's registration route is reported under.
+const Register = "casino-service registration"
+
+// RegisterAnswers says why the registration route at base does not answer for brand, or "" when it
+// does: an empty registration, which the original refuses 400 naming the required fields and which
+// creates nothing (PlayerRoutes), so a players recording does not start on a casino-service that is
+// not up or a brand it does not serve.
+func RegisterAnswers(base, brand string, client *http.Client) string {
+	url := strings.TrimSuffix(base, "/") + "/v1/casino/players/" + brand + "/register"
+	resp, err := client.Post(url, "application/json", strings.NewReader("{}"))
+	if err != nil {
+		return fmt.Sprintf("%s: nothing answers at %s (%v)", Register, base, err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		return fmt.Sprintf("%s: %s answered %d to an empty registration (want 400)", Register, url, resp.StatusCode)
 	}
 	return ""
 }
@@ -133,6 +156,8 @@ func main() {
 	receiver := flag.String("receiver", os.Getenv("GATEWAY_RECEIVER_HEALTH"),
 		"the gateway driver's receiver's health address, checked when given (a recording of the gateway)")
 	cashier := flag.String("cashier", "", "the original merchant-service, whose cashier route is checked when given (a recording of the cashier edge)")
+	register := flag.String("register", "", "the original casino-service, whose registration route is checked when given (a recording of players)")
+	brand := flag.String("brand", "spinvibe", "the brand the registration route is checked for")
 	flag.Parse()
 	providers, err := Providers(*original)
 	if err != nil {
@@ -145,6 +170,12 @@ func main() {
 	if *cashier != "" {
 		systems = append(systems, Cashier)
 		if why := CashierAnswers(*cashier, client); why != "" {
+			missing = append(missing, why)
+		}
+	}
+	if *register != "" {
+		systems = append(systems, Register)
+		if why := RegisterAnswers(*register, *brand, client); why != "" {
 			missing = append(missing, why)
 		}
 	}

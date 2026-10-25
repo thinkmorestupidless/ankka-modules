@@ -106,7 +106,7 @@ checkout, not this service).
       `TestScenario7_CasinoGate3_*` drive the substrate's action executor and fail on the original,
       `TestScenario9_CasinoRF_*` are skipped, and 12 and 14 are merchant's and ingest's recordings;
       keep the Playwright sentence; `just features` 0 findings
-- [ ] T005 [P] Write `tests/original/players-driver/` (Go, as `tests/original/ingest-driver/`:
+- [X] T005 [P] Write `tests/original/players-driver/` (Go, as `tests/original/ingest-driver/`:
       `doc.go`, `driver.go`, `scenarios.go`, `record_test.go` under `//go:build e2e`,
       `driver_test.go` offline), against the original's `casino-service` and its Keycloak on the
       KinD stack: one scenario per `kept` row of contracts/surface.md the original can show, named as
@@ -128,6 +128,14 @@ checkout, not this service).
       http://localhost:8080`; extend `tests/original/preflight` to check the register route answers;
       `go test ./original/players-driver/...` green offline (the names against the features; the
       recorded shape against a stub)
+      *Done 2026-10-25*: the original has no test hook for the verification email, so the driver mints
+      the link as `EmailVerificationTokenStore` does from `EMAIL_TOKEN_SIGNING_SECRET` (a test vector
+      computed with openssl holds it), and reads a second address's and a password change's tokens from
+      the player twin. The operator's routes are `BackofficePlayerRoutes`' `/v1/casino/{brand}/players/…`
+      and `PlayerProfileRoutes`' `/v1/casino/backoffice/{brand}/…`; the run signs in an operator and an
+      operator of no brand by password grant (passwords from env, never recorded). 46 recordings, 19
+      feature scenarios not driven with the reason, and three extras (message, unknown merge tag,
+      activity export). `preflight -register <casino-url> -brand <brand>` checks the route.
 
 ---
 
