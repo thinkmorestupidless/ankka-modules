@@ -73,3 +73,10 @@ Feature: A player submits documents and sees where they stand
       | fault                                   |
       | of a type other than JPEG, PNG or PDF   |
       | larger than the brand's limit           |
+
+  Scenario: an operator uploads a document for a player with a reason and it shows as submitted by support
+    Given a document support received by email
+    When an operator asks to upload it for the player with a reason and confirms the upload
+    Then the category is pending review
+    And the audit record names the operator and the reason
+    And the player's own list shows the document as submitted by support, with the time

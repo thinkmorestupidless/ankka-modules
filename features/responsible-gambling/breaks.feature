@@ -1,7 +1,7 @@
 Feature: A player takes a break or excludes themselves, and an operator does the same for them
   A player sets a break until a date and cannot shorten it. A player excludes themselves
   permanently in one confirmed action. An operator sets a break, lifts one, excludes for at least
-  183 days or permanently, and reinstates after the period.
+  183 days or permanently; after the period the player asks to return and is reinstated a day later.
 
   Background:
     Given a player of brand "goldvibe"
@@ -56,20 +56,25 @@ Feature: A player takes a break or excludes themselves, and an operator does the
       | for "183" days  |
       | permanently     |
 
-  Scenario: a reinstatement before an exclusion's period ends is refused naming the end
+  Scenario: a request to return before an exclusion's period ends is refused naming the end
     Given the player is excluded for "183" days
-    When an operator reinstates them before the period ends
+    When the player asks to return before the period ends
     Then it is refused naming the end of the period
 
-  Scenario: a reinstatement after an exclusion's period ends is accepted and the player may sign in
+  Scenario: a request to return after an exclusion's period ends reinstates the player 24 hours later
     Given the player is excluded for "183" days and the period has ended
-    When an operator reinstates them
-    Then it is accepted
-    And the player may sign in
+    When the player asks to return
+    Then it is accepted and the player is still excluded
+    And "24" hours later the exclusion and the break are cleared, the case closes and the player may sign in
 
-  Scenario: a reinstatement of a permanently self-excluded player is refused
+  Scenario: an operator recording a player's request to return starts the same day's wait
+    Given the player is excluded for "183" days and the period has ended
+    When an operator records the player's request to return
+    Then the player is reinstated "24" hours later and not before
+
+  Scenario: a request to return from a permanently self-excluded player is refused
     Given the player is permanently self-excluded
-    When an operator reinstates them
+    When the player asks to return
     Then it is refused
 
   Scenario: a player both excluded and on a break is answered with the exclusion

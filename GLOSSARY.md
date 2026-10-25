@@ -23,6 +23,7 @@ agreement, basis, build, burdens, caught, ceiling, complexity, consumer, degrade
 arguments, budget, compaction, composed, contains, control, explains, express, forgotten, fourth, further, help, helpline, hidden, input, instead, instructions, internal, invents, irreversible, judged, judgment, opted, output, permanent, phrase, redacted, replaced, reply, safeguarding, scores, self-harm, softening, softens, spent, verbatim
 agreed, approver, causation, database, declined, entity, format, ingest, inside, joins, lookup, occurrence, officer, performed, principal, re-read, recursively, regulator, survives
 advertises, began, begin, begins, decremented, defect, doubled, elapsed, evidence, expected, fake, finding, instants, instructs, observed, percentile, production, projection, proposed, reconciliation, retired, runbook, scaled, schedule, shape, snapshot, snapshots, spends, step, study, sweep, th, took, verdict
+another, try
 
 ## Terms
 
@@ -423,6 +424,9 @@ A brand setting per network that emits a fact for every settled round beside the
 
 ### reporting day
 One day in the brand's reporting zone; when it closes, one daily GGR fact is emitted per attributed player with activity.
+
+### reopen
+An operator's return of a closed account to active, on the player's request and within the retention hold; a reopening is not a reinstatement, which lifts a suspension or an exclusion.
 
 ### self-exclusion
 A player's bar from a brand: permanent when the player sets it in one confirmed action, for at least 183 days or permanent when an operator sets it; reinstated by an operator only after the period, never when permanent. Emitted to the programme as a closed player with the category self-excluded.

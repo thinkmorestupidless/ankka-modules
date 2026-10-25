@@ -50,6 +50,21 @@ Feature: An operator suspends, reinstates, excludes, closes and tiers a player
     And a "player_closed" fact is produced with the actor and the reason
     And the brand's attribution emits its closure fact from it
 
+  Scenario: a player closes their own account and it is a closure, not a self-exclusion
+    Given the player is active
+    When the player closes their account confirming with their password
+    Then the player status is "closed"
+    And a "player_closed" fact is produced with actor "player" and reason "player_request"
+    And no responsible-gambling flag is set
+    And the same retention hold starts as for an operator's closure
+
+  Scenario: an operator reopens a closed account on the player's request within the hold
+    Given the player closed their own account and the retention hold has not passed
+    When an operator reopens the account on the player's request with a reason
+    Then the player status is "active"
+    And the realm user is enabled
+    And a "player_reopened" fact is produced with the actor and the reason
+
   Scenario: a closed player's sign-in is refused and their wallet balances are untouched
     Given the player is closed
     When they sign in

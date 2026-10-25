@@ -105,6 +105,16 @@ Settled with specs 008–011 once they existed.
 - A payout terminal's coins are its `supportedCurrencies` property, as the original's casino-service
   reads it; the gateway's `GET /v1/payments/withdrawal-terminals` answers them as `coins[]`.
 
+### Session 2026-10-25
+
+The markers left open for product and regulatory decisions, settled with Trevor before 008 is planned.
+
+- Q: A provider rejects the payout at initiation: park it for a manual payout, or release the hold?
+  → A: Release the hold and tell the player to try another terminal; manual payout is only ever an
+  operator's act (FR-018).
+- Q: May a suspended, self-excluded or closed account withdraw? → A: Yes, as the original, gated by
+  identity and funds: the money is the player's (FR-005, Assumptions).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A verified player requests a withdrawal and the money is held (Priority: P1)
@@ -236,7 +246,8 @@ rule that "ambiguous means in doubt, never manual" is the heart of this story.
 - added `features/payouts/settlement.feature`: a provider saying the withdrawal payment was never created marks the request needs review and stops the polling
 - added `features/payouts/settlement.feature`: a withdrawal payment in doubt to a provider that only sends webhooks is marked needs review after the provider's window
 - added `features/payouts/settlement.feature`: a withdrawal payment the gateway cannot answer is in doubt and reconciled, never awaiting manual payment
-- added `features/payouts/settlement.feature`: a request rejected at initiation or to a terminal without automated withdrawal payment awaits manual payment with the money held
+- added `features/payouts/settlement.feature`: a request rejected at initiation returns the money and tells the player to try another terminal
+- added `features/payouts/settlement.feature`: a request to a terminal without automated withdrawal payment awaits manual payment with the money held
 - added `features/payouts/settlement.feature`: an operator confirms a manual payment and the hold is confirmed
 - added `features/payouts/settlement.feature`: an operator marks a manual payment failed and the amount returns
 - added `features/payouts/settlement.feature`: confirming or failing a manual payment for a request in any other state is refused as not awaiting payment
@@ -379,7 +390,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
   the gateway with the request id as the idempotency key, the amount, currency, terminal, destination
   or address and coin, or Gigadat fields; otherwise the request MUST be awaiting manual payout.
 - **FR-018**: The gateway's answer MUST be read as: *completed* — confirm the hold and complete;
-  *initiated* with a provider reference — record it and wait; *rejected* — awaiting manual payout;
+  *initiated* with a provider reference — record it and wait; *rejected* — release the hold as a
+  withdrawal return with reason `provider_rejected` (FR-023) and tell the player to try another
+  terminal (**change from the original**, which parks the request for a manual payout);
   *in doubt*, an unreachable gateway, an unparseable answer or an unrecognised status — record what
   is known and wait. A request waiting MUST NOT become awaiting manual payout by any path but an
   operator's.
@@ -523,13 +536,13 @@ provider reference and status; the queue's needs-review set is visible at a glan
 - The roles the original admits (`brand_admin`, `resource_admin`, `platform_admin`, `brand_finance`,
   `resource_finance`) map onto the operator realm's roles for the brand (spec 001 FR-020); which of
   them is "finance or admin" is the realm's configuration, not this spec's.
-- [NEEDS CLARIFICATION: a provider's explicit rejection at initiation parks the request for manual
-  payout (the original, kept here) rather than releasing the hold (the plan). Product confirmation:
-  is a human paying another way the right default, or should the player get the money back and be
-  told to try another terminal?]
-- [NEEDS CLARIFICATION: the original lets a suspended, self-excluded or closed account request a
-  withdrawal, gated only by identity and funds. Should a closed account be refused, or steered to a
-  support flow, under the brand's licence?]
+- A provider's explicit rejection at initiation releases the hold and tells the player to try another
+  terminal (FR-018), as the plan had it; the original parks the request for a manual payout, which
+  waits on a person and makes a support ticket of every rejection. Awaiting manual payout is reached
+  only by an operator's act (settled 2026-10-25).
+- A suspended, self-excluded or closed account may request a withdrawal, gated by identity and funds
+  as today (FR-005): the balance is the player's, and regulators expect it returned on exclusion and
+  closure; refusing would trap the money. Kept as the original (settled 2026-10-25).
 
 ## Dependencies
 

@@ -32,6 +32,14 @@ wallet keeps restricted funds apart from real balance (FR-021). Reservations and
 real balance only: restricted funds are never reserved, never settled, never paid. A bonus on a
 market is a product decision this spec does not take.
 
+## Clarifications
+
+### Session 2026-10-25
+
+- Q: Does reserved money count towards a player's limits while the order rests? → A: As a stake,
+  yes, from reservation, returned on cancellation; as a loss, only at settlement, when it is real
+  (Assumptions).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Money is reserved against an order and released (Priority: P1)
@@ -138,10 +146,12 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
 - A non-player account's owner principal is removed (a module disabled): the account keeps its
   balance; only its owner may move it; an operator adjustment with a reason is how the money
   leaves.
-- Whether a reservation counts as a stake for `may-bet` (spec 010): the exchange asks the gate
-  with the order's cost before reserving; the wallet asks nothing. [NEEDS CLARIFICATION: whether
-  reserved money counts towards a player's loss and stake limits while the order rests, or only
-  at settlement]
+- A reservation is a bet to `may-bet` (spec 010): the exchange asks the gate with the order's cost
+  before reserving, so an excluded or cooling-off player rests no order, and the cost counts as
+  the player's stake from the moment it is reserved; a cancelled order returns its stake. A loss
+  counts only at settlement, when it is real: a resting order's cost is not in the loss sums the
+  gate is given, and a cancelled order was never a loss. The wallet asks nothing (Clarifications
+  2026-10-25).
 
 ## Requirements *(mandatory)*
 

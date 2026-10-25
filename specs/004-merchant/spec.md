@@ -138,7 +138,8 @@ Settled with specs 008–011 once they existed.
 
 - Q: What does `merchant` do with a deposit the wallet refuses for a limit, a break or an exclusion?
   → A: Treats it as final (FR-021): no retry, the reason and allowance recorded and shown to the
-  player. The money's fate — refund or an operator's hold — is spec 010's marked question.
+  player. The money is refunded through the provider, automatically (spec 010 FR-013, settled
+  2026-10-25).
 
 ### Session 2026-10-08 (reconciliation 3)
 
@@ -475,8 +476,8 @@ original refuses a capture it cannot trust rather than credit it.
   A refusal the wallet states as final (no such wallet, a currency mismatch, or a
   responsible-gambling refusal — excluded, cooling off, over a limit, spec 002 FR-022) MUST end the
   retries, record the reason and, for a limit, the remaining allowance, leave the payment captured and
-  not credited, and show the player the reason in their currency (spec 010 FR-013); whether such a
-  payment is refunded or held for an operator is spec 010's open question.
+  not credited, show the player the reason in their currency, and refund it through the provider
+  without an operator (spec 010 FR-013, settled 2026-10-25).
 - **FR-022**: A consumer of the payment's events MUST call the brand wallet's outcome route (spec 002
   FR-022a) for `initiated`, `failed`, `expired` and `abandoned`, keyed by the payment id and the
   outcome, carrying the payment provider and the failure code and reason where there is one, retried

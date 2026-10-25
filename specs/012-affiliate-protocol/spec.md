@@ -105,6 +105,18 @@ Settled with specs 001 and 013 once all three existed.
   one by name (FR-030); an approval and a cancellation produce nothing, since the programme counts
   only completed and reversed withdrawals (spec 013).
 
+### Session 2026-10-25
+
+The markers left open for product and regulatory decisions, settled with Trevor before 008 is planned.
+
+- Q: How long are bare UUID tags accepted? → A: Until the first of 12 months from the brand's
+  first day on the protocol or 90 days with no legacy tag presented; the brand records which
+  ended it (FR-004).
+- Q: The attribution window's installation default? → A: 30 days, today's cookie (FR-008).
+- Q: Does every network receive rounds? → A: No. The daily aggregate is the default; rounds are
+  opt-in per network, since every round to every network multiplies volume and personal-data
+  exposure for nothing (FR-016).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A visitor arrives on an affiliate's link and registers (Priority: P1)
@@ -198,7 +210,8 @@ the commission inputs the original's notifications carried for the same recordin
 - added `features/attribution/facts.feature`: a later captured deposit emits only a deposit fact
 - added `features/attribution/facts.feature`: one daily GGR fact is emitted per player when the brand's reporting day closes
 - added `features/attribution/facts.feature`: a round of a closed day that settles after the close emits a GGR adjustment for that day
-- added `features/attribution/facts.feature`: a brand with the round stream turned on emits a round fact at settlement and the daily fact at the close
+- added `features/attribution/facts.feature`: a network that opted into the round stream receives a round fact at settlement and the daily fact at the close
+- added `features/attribution/facts.feature`: a network with the default configuration receives the daily fact and no rounds
 - added `features/attribution/facts.feature`: what happens to an attributed player's money is emitted as the matching fact with its amount and reference
 - added `features/attribution/closure.feature`: closing, permanently self-excluding or erasing an attributed player emits one player-closed fact with a category and no reason
 - added `features/attribution/facts.feature`: no fact carries a personal field
@@ -244,6 +257,7 @@ message the reverse channel does not define.
 - added `features/attribution/networks.feature`: a revoked link binds no new player and players already bound stay bound
 - added `features/attribution/networks.feature`: a revoked affiliate has every tag naming them refused for new bindings
 - added `features/attribution/networks.feature`: anything but signing keys and revocations from a network is refused
+- added `features/attribution/networks.feature`: the transition period ends at the first of 12 months or 90 days without a legacy tag
 
 ---
 
@@ -313,8 +327,10 @@ attribution record.
 - **FR-004**: For a transition period from the brand's first day on this protocol, a brand MUST
   accept a bare UUID tag that the programme's legacy tag document (FR-023) lists, treating it as a
   token of eitheror's own programme naming that link's affiliate and link with no sub-ids. After the period a bare UUID
-  MUST be refused as legacy. [NEEDS CLARIFICATION: how long is the transition period — twelve
-  months from go-live, or until no legacy link has been clicked for ninety days?]
+  MUST be refused as legacy. The period MUST end at the first of 12 months from that first day
+  or 90 days in which no legacy tag was presented; the brand MUST keep the day it ended and which
+  of the two ended it, and the programme (spec 013) MUST be able to read it to tell affiliates
+  (Clarifications 2026-10-25).
 - **FR-005**: A refused tag (bad signature, unknown network, withdrawn key, revoked link or
   affiliate, legacy after the period, malformed) MUST never fail a registration; the player MUST be
   recorded as organic with the refused tag and the reason kept.
@@ -334,7 +350,8 @@ attribution record.
   there was one, the pseudonym, the bound-at time and the kind of touch that bound it.
 - **FR-008**: A tag presented at registration MUST bind only when it was issued no longer ago
   than the brand's attribution window. The window MUST be a brand setting with an installation
-  default. [NEEDS CLARIFICATION: the default — 30 days, matching today's cookie, or longer?]
+  default of 30 days, matching the original's cookie, so affiliates' terms do not change at the
+  migration (Clarifications 2026-10-25).
 - **FR-009**: A tag, code or link presented for a player already bound MUST NOT change the
   binding and MUST be recorded on the player's attribution record as a later touch with its time.
 - **FR-010**: The click id MUST be carried from the click to the binding and into every fact about
@@ -365,8 +382,9 @@ attribution record.
   activity, when the day closes in the brand's reporting zone, holding total stake, total win and
   GGR. A round settling after its day's close MUST produce a `ggr-adjustment` fact for that day.
   A day earlier than the binding, for a player bound by a later code, MUST be emitted at the binding
-  marked as before the binding. [NEEDS CLARIFICATION: is the daily aggregate the default and the
-  per-round stream opt-in per network, or must every network receive rounds?]
+  marked as before the binding. The daily aggregate MUST be what every network receives by default;
+  the per-round facts MUST be emitted to a network only when its configuration at the brand opts in
+  (Clarifications 2026-10-25).
 - **FR-017**: Facts MUST be versioned by the protocol version; a change to a fact's shape MUST be
   a new version emitted beside the old until no reader of the brand's reads the old.
 

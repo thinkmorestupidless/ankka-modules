@@ -22,6 +22,17 @@ Feature: A network's tags are trusted, rotated and retired, and a network can re
     When a visitor lands with it during the transition period
     Then it is treated as a tag from the programme for that link's affiliate, with no sub-ids
 
+  Scenario Outline: the transition period ends at the first of 12 months or 90 days without a legacy tag
+    Given a brand on the protocol for <time> and <legacy use>
+    When a visitor lands with a legacy tag
+    Then the tag is refused as legacy
+    And the brand keeps the day the period ended and that <ended by> ended it
+
+    Examples:
+      | time             | legacy use                                   | ended by                     |
+      | 12 months    | a legacy tag presented every month           | 12 months                |
+      | four months      | no legacy tag presented for 90 days      | 90 days without a legacy tag |
+
   Scenario: a legacy tag after the transition period is refused and the player is organic
     Given the transition period has ended
     When a visitor lands with a legacy tag

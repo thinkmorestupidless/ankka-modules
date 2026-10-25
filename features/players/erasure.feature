@@ -39,3 +39,15 @@ Feature: A player's data is erased and the erasure response assembled
     When a visitor registers with it
     Then a new player with a new id is created
     And the realm accepts the address
+
+  Scenario: a player's export carries everything the brand holds, each service's part named
+    Given a player with sessions, deposits, bets and a reviewed document
+    When the player asks for their export
+    Then it carries their profile, consents, sessions, activity and inbox items
+    And the wallet's transactions, the payments and the document records, not the documents
+    And no operator note
+
+  Scenario: a service that does not answer the export is named as missing, not left out
+    Given the wallet does not answer in time
+    When the player asks for their export
+    Then the export names the wallet's part as missing

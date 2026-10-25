@@ -127,6 +127,19 @@ Settled with specs 014, 015 and 017.
   (`close_active_session`, FR-017), each by `support-agent`'s identity within the project (spec 017
   FR-009, FR-010); it reads no `Personal` field but the display name.
 
+### Session 2026-10-25
+
+The markers left open for product and regulatory decisions, settled with Trevor before 008 is planned.
+
+- Q: Is the activity export the whole data-subject response? → A: Yes. It carries everything the
+  brand holds: `players` asks the wallet, `merchant` and `kyc` for their parts by the erasure's
+  fan-out and assembles one response, naming a service that did not answer (FR-040).
+- Q: May a brand require one session at a time? → A: As a brand setting, off by default: when on, a
+  sign-in ends the player's other sessions with reason `superseded` (FR-012, FR-041).
+- Q: May a player close their own account? → A: Yes, and it is not a self-exclusion: the same
+  closure and retention hold as an operator's, no RG flag, reopenable by an operator on the
+  player's request within the hold; the route offers self-exclusion beside it (FR-032a).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A person registers and becomes a player of the brand (Priority: P1)
@@ -207,6 +220,8 @@ duration; open another with a 1-minute limit and see it end by itself with reaso
 - added `features/players/sessions.feature`: a player ending a game session records its end time and duration, and ending it again changes nothing
 - added `features/players/sessions.feature`: an operator ending a game session by force ends it with reason forced and is named in the audit record
 - added `features/players/sessions.feature`: a player reading their sessions sees their own and nobody else's
+- added `features/players/sessions.feature`: a brand with one session at a time ends the older player session on a new sign-in
+- added `features/players/sessions.feature`: a brand with the default configuration lets two devices hold two player sessions
 
 ---
 
@@ -263,6 +278,8 @@ close; see `player_closed` and that the realm user is disabled.
 - added `features/players/status.feature`: a tier set on a player at no tier carries an empty previous tier and names the operator in the audit record
 - added `features/players/status.feature`: a closure ends everything, disables the realm user and is produced with actor and reason
 - added `features/players/status.feature`: a closed player's sign-in is refused and their wallet balances are untouched
+- added `features/players/status.feature`: a player closes their own account and it is a closure, not a self-exclusion
+- added `features/players/status.feature`: an operator reopens a closed account on the player's request within the hold
 - added `features/players/status.feature`: an operator without the brand's role is refused any action on its player however they signed in
 - added `features/players/status.feature`: a pinned note is personal data under the player, first in the operator's view and invisible to the player
 
@@ -313,6 +330,8 @@ store and `payments` for a personal field; fetch the response.
 - added `features/players/erasure.feature`: an erasure filed for a player with an open withdrawal is held until the withdrawal completes or fails
 - added `features/players/erasure.feature`: a player asking for their data receives an export with operator notes excluded
 - added `features/players/erasure.feature`: a registration with an erased player's email address creates a new player with a new id
+- added `features/players/erasure.feature`: a player's export carries everything the brand holds, each service's part named
+- added `features/players/erasure.feature`: a service that does not answer the export is named as missing, not left out
 
 ---
 
@@ -400,7 +419,9 @@ store and `payments` for a personal field; fetch the response.
 - **FR-012**: A successful sign-in MUST open a player session recording the realm session id, the
   network address, the user agent and the device fingerprint, MUST stamp the last sign-in time, and
   MUST answer the tokens, brand, player id, currency, country and the bonus code still pending from
-  registration. `player_logged_in` MUST carry the session id.
+  registration. `player_logged_in` MUST carry the session id. When the brand's `brand-config` sets
+  `single_session` (FR-041; default off), opening the session MUST first end the player's other open
+  player sessions with reason `superseded`, FR-020 cascading to their game sessions.
 - **FR-013**: `players` MUST serve the realm's authenticators a route answering whether a player may
   sign in — the account status from its own state and, from `responsible-gambling`'s `may-log-in`
   within the project (spec 010 FR-009), any break or exclusion — as a public route served only when
@@ -509,6 +530,12 @@ store and `payments` for a personal field; fetch the response.
   time under the one name readers use, end every session with reason `suspended`, revoke the realm's
   sessions, and produce `player_self_excluded`. Close MUST end every session, disable the realm user,
   keep the closure time, and produce `player_closed`.
+- **FR-032a**: A player MUST be able to close their own account from their routes, confirming with
+  their password; it is FR-032's closure with actor `player` and reason `player_request`, and starts
+  the same retention hold. It is not a self-exclusion: no responsible-gambling flag is set, the route
+  MUST offer self-exclusion (spec 010) beside it, and an operator MAY reopen the account on the
+  player's request within the hold (status `active`, realm user enabled, `player_reopened` with the
+  actor and reason). **Change from the original**, which offers the player only self-exclusion.
 - **FR-033**: VIP tier MUST be set with the previous tier read first so `vip_tier_changed` carries it
   (empty when none); PotVIP MUST be a flag whose change writes an operator note; an operator's
   password reset MUST send the realm's link and MUST NOT be an account-trail event. (Source:
@@ -547,9 +574,12 @@ store and `payments` for a personal field; fetch the response.
   user, assemble the certificates (ankka 042 FR-016) into the response, and set the status `erased`;
   a later registration with the same address MUST be a new player.
 - **FR-040**: A player, or an operator for them, MUST obtain an export of profile, consents, sessions,
-  activity history and messages, excluding operator notes, in the original's activity-export shape.
-  [NEEDS CLARIFICATION: is the activity export the whole data-subject response, or must it also
-  carry wallet transactions (002), payments (004) and KYC documents (009)? Regulatory; Sheldon's.]
+  activity history and messages, excluding operator notes, in the original's activity-export shape,
+  extended to everything the brand holds on the player: `players` MUST ask the services the erasure
+  reaches (FR-039) for their part — the wallet's transactions (spec 002), the payments (spec 004) and
+  the document records without the images (spec 009) — and MUST assemble one response; a service that
+  does not answer MUST be named in the response as missing, never left out silently. **Change from the
+  original**, whose export is the profile's alone (Clarifications 2026-10-25).
 
 **Configuration and limits**
 
@@ -647,13 +677,11 @@ registration and sign-in specs of the frontend suite 001 names.
 
 ## Assumptions
 
-- No concurrent-session rule: the original's login carries a TODO for one and brand configuration
-  has no switch; two devices may hold two player sessions. [NEEDS CLARIFICATION: should a brand be
-  able to require one session at a time, ending the older on a new sign-in? Product; Sheldon's.]
-- A player cannot close their own account; the original offers only permanent self-exclusion (010)
-  to the player and closure to operators. [NEEDS CLARIFICATION: should a player be able to close
-  their account themselves, and does that differ from self-exclusion for retention? Product and
-  regulatory; Sheldon's.]
+- One session at a time is a brand setting, off by default (FR-012, FR-041): the original's login
+  carries a TODO for one and no brand configuration has a switch, so two devices may hold two player
+  sessions until a brand turns it on.
+- A player may close their own account (FR-032a), apart from self-exclusion; the original offers the
+  player only permanent self-exclusion (010) and leaves closure to operators.
 - The realm's authenticators (`eitheror-rg-status-authenticator`, GAMSTOP) are the casino's Keycloak
   plugins and change only their read, from the twin API to `players`' route (FR-013); the GAMSTOP
   call itself and `GAMSTOP_ENABLED` stay as spec 104 of the original decided.
