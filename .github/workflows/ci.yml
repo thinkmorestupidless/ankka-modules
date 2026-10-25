@@ -1,11 +1,73 @@
 name: ci
 
+# A pull request runs the jobs its changes reach; main, a tag and a manual run run all of them.
 on:
   push:
+    branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: read
+
+# A new push to a pull request cancels the run it supersedes; main's runs all finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # Which services a pull request's changes reach. Each service's tests read its own directory, its
+  # features, its recordings and the contract, and no other service (their kits fake their neighbours),
+  # so a change to one service runs that service's job; a change to the contract or the build runs all.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      wallet: ${{ steps.filter.outputs.wallet }}
+      merchant: ${{ steps.filter.outputs.merchant }}
+      psp-gateway: ${{ steps.filter.outputs.psp-gateway }}
+      game-provider: ${{ steps.filter.outputs.game-provider }}
+      simulator: ${{ steps.filter.outputs.simulator }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        if: github.event_name == 'pull_request'
+        id: filter
+        with:
+          filters: |
+            build: &build
+              - contract/**
+              - build.sbt
+              - project/**
+              - .github/workflows/ci.yml
+            wallet:
+              - *build
+              - services/wallet/**
+              - features/wallet/**
+              - tests/port/wallet/**
+              - tests/original/wallet-driver/**
+            merchant:
+              - *build
+              - services/merchant/**
+              - features/payments/**
+              - tests/port/merchant/**
+            psp-gateway:
+              - *build
+              - services/psp-gateway/**
+              - features/payments/**
+              - tests/port/psp-gateway/**
+              - tests/stubs/psp-stub/**
+            game-provider:
+              - *build
+              - services/game-provider/**
+              - features/game-provider/**
+              - tests/port/game-provider/**
+            simulator:
+              - *build
+              - services/game-provider-simulator/**
+              - features/simulator/**
+              - tests/port/simulator/**
+
   check:
     runs-on: ubuntu-latest
     steps:
@@ -39,14 +101,32 @@ jobs:
       - name: Payment-provider stubs and the wallet and merchant drivers' offline checks
         working-directory: tests
         run: go test ./...
-      - name: game-provider (spec 003)
-        run: |
-          sbt contract/publishLocal
-          cd services/game-provider && sbt test
+
+  # game-provider (spec 003): its own sbt build against the contract published from this commit; its
+  # integration suites start Postgres in Docker.
+  game-provider:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.game-provider == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: game-provider's suites
+        working-directory: services/game-provider
+        run: sbt test
 
   # The wallet (spec 002): its own sbt build against the contract published from this commit. The
   # integration suites start Postgres in Docker, which the hosted runner provides.
   wallet:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.wallet == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +146,8 @@ jobs:
   # contract published from this commit; its integration suites start Postgres in Docker. The merchant
   # driver's offline checks run in the check job's `go test ./...`.
   merchant:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.merchant == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +168,8 @@ jobs:
   # tests/stubs/psp-stub/Dockerfile) in Docker. The stubs' and the gateway driver's offline checks run
   # in the check job's `go test ./...`.
   psp-gateway:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.psp-gateway == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -123,6 +207,8 @@ jobs:
   # The game provider simulator (spec 020): its own sbt build against the contract published from this
   # commit; its suites start Postgres in Docker and run the features of features/simulator.
   simulator:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.simulator == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
