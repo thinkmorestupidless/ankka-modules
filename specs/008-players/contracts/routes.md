@@ -1,16 +1,134 @@
-# Contract: routes of `players` added by other specs
+# Contract: routes of `players`, by endpoint
 
-Spec 008 writes the rest of this contract when it is planned. These rows are spec 021's (core and
-modules, `specs/021-core-and-modules/contracts/routes.md`), which `players` serves because it is the
-core's operator-facing service and the vendor's agent does not trust the `eitheror` realm.
+Six endpoints (research R14), each one prefix with the brand's slug as a literal, so every route has
+at most two path parameters and no two endpoints share a prefix. Classes are spec 001's
+(`contract.access.Routes`); a class in *italics* is set per route with `withAcl`. Bodies keep the
+original's field names (`contracts/wire.md`). Every refusal is `{"error", "message", ...}`; the
+statuses are the original's where it had the route.
 
-## The operator's modules page
+## `PlayerEndpoint` — `/v1/casino/players/<slug>` — `player(slug)`
 
 | Route | Class | Does | Answers |
 |---|---|---|---|
-| `GET /v1/casino/brands/{brand}/modules` | `operator(brand)` | calls the vendor's agent, inside the project by its certificate, at `GET /vendor/modules` and passes the answer through: modules with `status`, `version`, `follow` (channel or pin), each service's state, `lastChange`, `dataKeptUntil`; the open requests; the names of missing keys | 200; 503 `agent unreachable` |
-| `POST /v1/casino/brands/{brand}/modules/requests` | `operator(brand)` | body `{"module", "note"?}`; forwards to the agent's `POST /vendor/requests` with the operator's subject as `by` | 204; 400 unknown module; 503 |
+| `POST /register` | *public* | `RegistrationWorkflow`, awaited 5 s (R3); body `email`, `password`, `currency` required; `displayName`, `firstName`, `lastName`, `country`, `language`, `dateOfBirth`, `bonusCode`, `btag`, `clickId`, `deviceFingerprint`, `emailMarketingConsent`, `smsMarketingConsent` | 201 `{playerId, status}`; 400 `missing_fields` naming them; 409 `email_already_exists`; 422 `password_too_weak`; 404 `brand_not_found`; 503 `service_unavailable` |
+| `POST /login` | *public* | the realm's direct grant, `SignIn`, `may-log-in`, the session (R4) | 200 `{token, refreshToken, brandId, playerId, currency, country, pendingBonusCode}`; 401 `invalid_credentials`; 401 `email_not_verified`; 403 `account_restricted` + `reason`; 403 `cooling_off` + `until`; 401 `missing_token` |
+| `POST /refresh` | *public* | the realm's refresh | 200 `{accessToken, refreshToken, expiresIn}`; 400 `missing_refresh_token`; 401 `refresh_expired` |
+| `POST /verify-email` | *public* | `VerifyEmail` from the token (R16) | 200; 400 `missing_token`; 400 `invalid_or_expired_token` |
+| `POST /resend-verification-email` | *public* | `ResendVerification` | 200; 429 `rate_limited` + `retry_after_seconds` |
+| `POST /password-reset/request`, `POST /password-reset/confirm` | *public* | the realm's reset | 200; 400 `invalid_or_expired_token` |
+| `POST /password-change` | player | verify the current password with the realm, send the confirmation | 202; 400 `missing_fields`; 400 `invalid_password` |
+| `POST /password-change/verify` | *public* | change on the realm | 200; 400 `invalid_token`; 400 `expired_token`; 409 `account_suspended` |
+| `POST /{playerId}/logout` | player | `SessionEndWorkflow(logout)`, awaited; revoke the realm session | 200; 403 `player_id_mismatch` |
+| `GET /{playerId}` | player | `PlayerEntity.get` | 200 the profile; 404 `player_not_found` |
+| `PATCH /{playerId}` | player | `EditProfile`, the allow-list read first | 200 the profile; 400 `no_fields_provided`; 400 `invalid_country` |
+| `POST /{playerId}/close` | player | body `password`; verify with the realm; `Close(player, player_request)` | 200; 400 `invalid_password`; 409 `already_closed` |
+| `GET /{playerId}/consent`, `PATCH /{playerId}/consent` | player | consents | 200; 400 `no_fields_provided` |
+| `PATCH /{playerId}/cookie-consent` | player | `RecordCookieDecision` | 200; 400 `invalid_cookie_consent_body`; 400 `missing_device_id` |
+| `GET /{playerId}/favourites`, `POST`/`DELETE /{playerId}/favourites/{gameId}` | player | favourites | 200 |
+| `GET /{playerId}/recently-played` | player | `RecentlyPlayedView` | 200 |
+| `GET /{playerId}/activity-history?category&page` | player | `ActivityView` | 200 |
+| `GET /{playerId}/messages?page` | player | `MessagesView`, unread count | 200 `{messages, unreadCount}` |
+| `POST /messages/{messageId}/read`, `POST /messages/{messageId}/delete` | player | `MessageEntity` | 200; 404 `message_not_found` |
+| `GET /{playerId}/emails`, `POST /{playerId}/emails` | player | the list; `AddEmail` and the verification send | 200; 202; 400 `invalid_address`; 409 `address_already_in_list`; 409 `address_already_registered` |
+| `POST /emails/verify` | *public* | `EmailAddressVerified` from the token | 200; 400 `invalid_token`; 400 `expired_token` |
+| `POST /emails/{address}/resend`, `POST /emails/{address}/promote`, `DELETE /emails/{address}` | player | `PlayerEntity` | 202; 200; 404 `address_not_found`; 400 `already_verified`; 400 `not_verified`; 400 `already_primary`; 409 `email_conflict`; 400 `cannot_remove_primary` |
+| `POST /{playerId}/email-change` | player | body `newEmail`, `password` | 202; 400 `missing_fields`; 400 `invalid_password`; 409 `email_already_registered` |
+| `POST /email-change/verify` | *public* | `ChangeEmail`, the realm's address | 200; 400 `invalid_token`; 400 `expired_token`; 409 `email_already_registered` |
+| `POST /{playerId}/deposits` | player | FR-043 (R15); body `amount` (minor units), `currency`, `method` | 200 `{redirectUrl, paymentId}`; the refusal `kyc` or `responsible-gambling` answered, naming it; 503 naming the silent service |
+| `POST /{playerId}/erasure` | player | `ErasureWorkflow` | 202 `{correlationId, holdUntil}`; 409 `not_closed` |
+| `POST /{playerId}/exports`, `GET /{playerId}/exports/{exportId}` | player | `ExportWorkflow`; the read | 202 `{exportId}`; 200 the response with `missing`; 409 `export_not_ready`; 404 `export_not_found`; 410 `export_expired` |
+
+The address in a path (`/emails/{address}/…`) is the original's shape; it is URL-encoded and never
+logged (001 FR-023).
+
+## `SessionEndpoint` — `/v1/casino/sessions/<slug>` — `player(slug)`
+
+| Route | Does | Answers |
+|---|---|---|
+| `GET /players/{playerId}` | `SessionsView` by player (the original's `GET ?playerId=`) | 200; 403 `player_id_mismatch` |
+| `GET /{sessionId}` | the session | 200; 404 `session_not_found` (another player's too) |
+| `PATCH /{sessionId}/end` | `GameSessionEntity.End(player)`, `PlayerEntity.GameSessionEnded`; idempotent | 200 `{sessionId, durationMinutes}`; 404 |
+
+`POST /launch` is spec 003's (`game-provider`) and is not served here.
+
+## `OperatorEndpoint` — `/v1/casino/backoffice/<slug>` — `operator(slug)`
+
+| Route | Does | Answers |
+|---|---|---|
+| `GET /players?status&tier&flagged&q&page` | `PlayersView` | 200 |
+| `GET /players/{playerId}/profile`, `PATCH /players/{playerId}/profile` | `get`; `EditProfile` (the same locks) | 200; 400 `no_fields_provided` |
+| `PATCH /players/{playerId}/date-of-birth` | body `dateOfBirth`, `reason` | 200; 400 `reason_required`, `date_of_birth_required`, `invalid_date_of_birth`, `underage`; 409 `kyc_locked` |
+| `GET /players/{playerId}/wallet` | `WalletSummaryView` | 200 |
+| `GET /players/{playerId}/activity`, `GET /players/{playerId}/bets?from&to`, `GET /players/{playerId}/sessions/{sessionId}/bets` | the views | 200; 400 `invalid_date_range` |
+| `GET /players/{playerId}/sessions` | `SessionsView` | 200 |
+| `GET`/`PATCH /players/{playerId}/crm` | consents, suppression, tier, notes summary | 200; 400 `no_fields_provided` |
+| `PATCH /players/{playerId}/suspend` | body `reason`; `Suspend`; `SessionEndWorkflow(suspended)` per open session; revoke | 200 |
+| `PATCH /players/{playerId}/reinstate` | `Reinstate` | 200; 409 `not_suspended` |
+| `POST /players/{playerId}/close` | `Close(operator, reason)`; disable the realm user | 200; 409 `already_closed` |
+| `POST /players/{playerId}/reopen` | body `reason`; `Reopen`; enable the realm user | 200; 409 `not_closed`; 409 `hold_lapsed` |
+| `PUT /players/{playerId}/vip-tier`, `PUT /players/{playerId}/pot-vip` | `SetVipTier` (previous read first), `SetPotVip` (writes a note) | 200 `{vipTier}` |
+| `POST /players/{playerId}/reset-password` | the realm's reset link | 200; 404 `player_not_found` |
+| `POST /players/{playerId}/sessions/{sessionId}/force-end`, `POST /players/{playerId}/sessions/force-end-all` | `GameSessionEntity.End(forced)`; `SessionEndWorkflow(forced)` for each open player session | 200 `{ended}` |
+| `POST /players/{playerId}/notes`, `PATCH /players/{playerId}/notes/{noteId}/pin`, `/unpin` | `NoteEntity` | 201; 200 |
+| `GET /players/{playerId}/messages`, `POST /players/{playerId}/messages` | `MessagesView`; `MessageEntity.Created` (origin `operator`), merge tags rendered | 200; 201; 422 `unknown_merge_tag` + `tag`; 422 `category_required`; 422 `marketing_suppressed`; 422 `account_closed`; 404 `player_not_found` |
+| `GET /merge-tags`, `POST /messages/preview` | the merge tags; a render | 200; 422; 404 |
+| `POST /players/{playerId}/clear-suspect-flag` | `ClearDuplicate` | 200 |
+| `GET /fraud-cases?status`, `PATCH /fraud-cases/{caseId}/review`, `PATCH /fraud-cases/{caseId}/dismiss` | `FraudCasesView`; `FraudCaseEntity` | 200 `{status, reviewedBy}`; 404 `case_not_found` |
+| `POST /players/{playerId}/activity-export`, `GET /exports/{exportId}` | `ExportWorkflow` for the player | 202 `{exportId}`; 200; 409; 404; 410 |
+| `POST /players/{playerId}/erasure` | `ErasureWorkflow` | 202; 409 `not_closed` |
+| `GET /players/{playerId}/verification-link` | the current link, only when `CASINO_REAL_MONEY=false` (R16) | 200; 404 on a real-money brand |
+| `GET`/`PUT /brand-config`, `GET`/`PUT /currency-config`, `GET`/`PUT /allow-list` | the three key value entities | 200; 400 `invalid_config` naming the field |
+| `GET /modules`, `POST /modules/requests` | spec 021's rows, unchanged (below) | 200; 204; 400; 503 |
+
+### The operator's modules page (spec 021)
+
+These rows are spec 021's (`specs/021-core-and-modules/contracts/routes.md`), which `players` serves
+because it is the core's operator-facing service and the vendor's agent does not trust the `eitheror`
+realm.
+
+| Route | Class | Does | Answers |
+|---|---|---|---|
+| `GET /v1/casino/backoffice/{brand}/modules` | `operator(brand)` | calls the vendor's agent, inside the project by its certificate, at `GET /vendor/modules` and passes the answer through: modules with `status`, `version`, `follow` (channel or pin), each service's state, `lastChange`, `dataKeptUntil`; the open requests; the names of missing keys | 200; 503 `agent unreachable` |
+| `POST /v1/casino/backoffice/{brand}/modules/requests` | `operator(brand)` | body `{"module", "note"?}`; forwards to the agent's `POST /vendor/requests` with the operator's subject as `by` | 204; 400 unknown module; 503 |
 
 Nothing else is served under `/modules`: no role on the installation enables, disables, pins or
 moves a module (spec 021 FR-013, SC-003). The `platform_admin` role is admitted as any operator is
 and gains no enable. The page's copy says "ask eitheror for this module", never "enable".
+
+## `ServiceEndpoint` — `/v1/casino/brands/<slug>/players` — `service`
+
+In-project callers by certificate; no route here is granted to a shared project.
+
+| Route | Caller | Does | Answers |
+|---|---|---|---|
+| `GET /{playerId}/status` | `game-provider` (003 FR-007), `support-agent` (017 `get_player_state`) | `PlayerEntity.status`, display name, verification status from the kyc facts | 200 `{status, displayName, verification}`; 404 |
+| `POST /{playerId}/game-sessions` | `game-provider` (003 FR-009) | body `gameId`, `currency`, `demo`, `playerSessionId`; opens the game session, schedules the limit (R5) | 201 `{sessionId}`; 403 `account_restricted`; 403 `session_limit_reached` + `limitMinutes`, `usedMinutes`; 409 `session_expired` |
+| `GET /{playerId}/game-sessions`, `POST /game-sessions/{sessionId}/end` | `support-agent` (017 `get_session_history`, `close_active_session`) | `SessionsView`; `End(forced)` with the approval id as the key | 200 |
+| `POST /{playerId}/suspend` | `kyc` (009 FR-025) | body `reason` (`kyc_window_expired`), `deadline`; idempotent under player and deadline | 200 |
+| `PUT /{playerId}/exclusion` | `responsible-gambling` (010 FR-018, FR-019) | body `at`; `SetSelfExcluded`; sessions end `suspended`; revoke | 200 |
+| `DELETE /{playerId}/exclusion` | `responsible-gambling` (010 FR-020) | `LiftExclusion` | 200; 409 `not_excluded` |
+| `POST /{playerId}/messages` | `engagement` (014) | body `deliveryId`, `category`, `subject`, `body`; `MessageEntity.Created` under the delivery id, origin `crm` | 201; 422 `marketing_suppressed`; 422 `account_closed`; 404 `player_not_found` |
+| `GET /config/{name}` | any brand service | `brand-config` \| `currency-config` \| `allow-list` | 200 |
+| `POST /erasure/players/{playerId}`, `GET /exports/players/{playerId}` | this service's own part, the same shape every brand service serves (below) | `Erase`; `exportPart` | 200 the certificate; 200 the part |
+
+### The two routes every brand service serves to `players`
+
+`POST /erasure/players/{playerId}` (served today by `wallet` and `merchant`) and
+`GET /exports/players/{playerId}` (new; specs 002 and 004 gain it) under `Routes.service` admitting
+`players` of the brand; `merchant`'s under the brand's erasure grant (`grants.md`). The erasure
+answers `{service, playerId, appliedAt, certificate}`; the export answers `{service, playerId, part}`
+with `Personal` values marked. `ErasureWorkflow` and `ExportWorkflow` call them (R10).
+
+## `RealmEndpoint` — `/internal/realm/<slug>` — `public`, verified per route
+
+| Route | Header | Does | Answers |
+|---|---|---|---|
+| `POST /webhook` | `X-Webhook-Secret` | body `type`, `realmId`, `sessionId`, `userId`, `timestamp`; ignores other realms and no session id; counts `LOGIN`; `SessionEndWorkflow(logout)` on `LOGOUT`, `(expired)` on `SESSION_EXPIRED` | always 200 `{ok: true}`; 401 `unauthorized`; 503 `webhook_secret_not_configured` |
+| `POST /may-sign-in` | `X-Realm-Secret` | body `email`; the status and `may-log-in` (R4), under 100 ms p99 | 200 `{allowed: true}` or `{allowed: false, reason: <status> \| cooling_off, until?}`; 401 |
+| `POST /gamstop-refusal` | `X-Realm-Secret` | body `email`, `result` (`excluded` \| `api_error` \| `timeout`); passes to RG (010 FR-022) | 200; 401 |
+
+## `GeoEndpoint` — `/v1/casino/geo` — `public`
+
+| Route | Answers |
+|---|---|
+| `GET /lookup` | 200 `{country, dialCode}`, both `null` when the lookup fails (FR-006) |
