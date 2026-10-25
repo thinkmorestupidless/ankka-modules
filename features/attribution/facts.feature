@@ -47,8 +47,6 @@ Feature: A player's money and play reach the programme as facts
     Examples:
       | happening                            | kind                 |
       | restricted funds are awarded         | bonus-cost           |
-      | their restricted funds are forfeited | bonus-cost           |
-      | their restricted funds are converted | bonus-cost           |
       | a deposit is charged back            | chargeback           |
       | a withdrawal is requested            | withdrawal-requested |
       | a withdrawal is completed            | withdrawal-completed |

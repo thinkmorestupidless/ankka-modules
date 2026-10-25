@@ -424,7 +424,7 @@ A code an affiliate hands out instead of a link; a player who presents it is bou
 Avoid: promo code, promotion code
 
 ### bonus cost
-What a brand spent on a player's rewards: emitted as a fact when restricted funds are awarded, forfeited or converted, and folded into NGR by the programme.
+What a brand spent on a player's rewards: emitted as a fact when restricted funds are awarded to the player, or a free round's winnings land as restricted funds, never negative, and folded into NGR by the programme.
 
 ### chargeback
 A deposit the player's payment provider took back; emitted as a fact and folded into NGR.

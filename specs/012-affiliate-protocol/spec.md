@@ -69,7 +69,8 @@ or what an affiliate is owed.
   an optional brand setting for a network that asks for it.
 - Q: How do facts reach a programme? → A: Three carriers with one payload. A topic the brand
   declares, granted to the programme project or to a registered machine (ankka 040); a cursor-paged
-  feed over HTTPS; webhooks with retries and a dead letter, replacing today's postback. Every
+  feed over HTTPS; webhooks with retries that keep an undelivered fact for the operator, replacing
+  today's postback. Every
   carrier is at least once and every fact carries an id the reader deduplicates by.
 - Q: What may a programme tell a brand? → A: Nothing that changes money or an attribution already
   made. A programme publishes its signing keys and may revoke a link or a tag, which stops new
@@ -301,7 +302,7 @@ attribution record.
   unreachable.
 - **A token longer than the brand accepts** (1 KiB): refused as malformed.
 - **A machine or programme that falls behind.** The topic keeps facts for the brand's retention
-  (ankka 043), set long for this topic; the feed keeps every fact; the webhook dead letter keeps a
+  (ankka 043), set long for this topic; the feed keeps every fact; a webhook keeps an undelivered
   fact until it is resent or the operator discards it.
 - **A brand that uses several networks.** A tag names its network; the brand holds a pseudonym
   key per network and a feed, webhook subscriptions and grants per network; a fact goes only to the
@@ -329,8 +330,9 @@ attribution record.
   token of eitheror's own programme naming that link's affiliate and link with no sub-ids. After the period a bare UUID
   MUST be refused as legacy. The period MUST end at the first of 12 months from that first day
   or 90 days in which no legacy tag was presented; the brand MUST keep the day it ended and which
-  of the two ended it, and the programme (spec 013) MUST be able to read it to tell affiliates
-  (Clarifications 2026-10-25).
+  of the two ended it, and the programme (spec 013) MUST be able to read it to tell affiliates:
+  the brand publishes it in its key document, as a public document (Clarifications 2026-10-25;
+  plan research R16).
 - **FR-005**: A refused tag (bad signature, unknown network, withdrawn key, revoked link or
   affiliate, legacy after the period, malformed) MUST never fail a registration; the player MUST be
   recorded as organic with the refused tag and the reason kept.
@@ -345,8 +347,9 @@ attribution record.
   NOT set any cookie.
 - **FR-007**: A brand MUST bind a player to an affiliate at most once, at the first of: a valid
   tag presented at registration, an affiliate's bonus code presented at registration, or an
-  affiliate's bonus code presented after an organic registration within the window counted from
-  registration. The binding MUST hold the network, affiliate, link, campaign, sub-ids, click id when
+  affiliate's bonus code presented after an organic registration within the bonus code window
+  counted from registration, a brand setting with an installation default of 30 days (plan
+  research R7). The binding MUST hold the network, affiliate, link, campaign, sub-ids, click id when
   there was one, the pseudonym, the bound-at time and the kind of touch that bound it.
 - **FR-008**: A tag presented at registration MUST bind only when it was issued no longer ago
   than the brand's attribution window. The window MUST be a brand setting with an installation
@@ -360,8 +363,7 @@ attribution record.
 **Facts**
 
 - **FR-011**: A brand MUST emit facts of these kinds: `click`, `registration`, `first-deposit`,
-  `deposit`, `ggr-daily`, `ggr-adjustment`, `ggr-round` (only when the brand turns the stream on
-  for a network), `bonus-cost`, `chargeback`, `withdrawal-requested`, `withdrawal-completed`,
+  `deposit`, `ggr-daily`, `ggr-adjustment`, `ggr-round` (FR-016 says when), `bonus-cost`, `chargeback`, `withdrawal-requested`, `withdrawal-completed`,
   `withdrawal-failed`, `withdrawal-reversed` and `player-closed`.
 - **FR-012**: Every fact MUST carry: the protocol version, a fact id that is the same every time
   the fact is emitted, the kind, when it occurred, the brand, the network, the affiliate, the link,
@@ -404,8 +406,8 @@ attribution record.
   the network it is registered for.
 - **FR-021**: A brand's operator MUST be able to create a webhook subscription for a network with
   an address and a shared secret; the brand MUST post each fact once, signed under the secret, MUST
-  retry on failure with increasing delay for 24 hours, and MUST then hold the fact in a dead letter
-  the operator can see, resend or discard. The original's postback URL and its macros MUST NOT be
+  retry on failure with increasing delay for 24 hours, and MUST then keep the fact as an undelivered
+  fact the operator can see, resend or discard. The original's postback URL and its macros MUST NOT be
   carried over.
 - **FR-022**: Every carrier MUST deliver at least once, and a reader MUST be able to discard a
   repeat by its fact id.
@@ -415,8 +417,10 @@ attribution record.
 - **FR-023**: A network MUST publish a key document listing its current signing keys by id, with
   how long a brand may cache it, and a revocation list naming links and affiliates whose tokens
   bind no new player; eitheror's own programme MUST also publish, for the transition period, a
-  legacy tag document mapping each imported bare-UUID tag to its affiliate and link. A brand MUST
-  fetch each as a public client, cache it for the stated time and refresh it on the stated
+  legacy tag document mapping each imported bare-UUID tag to its affiliate and link; and a network
+  that issues bonus codes MUST publish a code document per brand (spec 013 FR-023a) naming each
+  affiliate bonus code with its signed tag, which is how a brand tells an affiliate's code from its
+  own. A brand MUST fetch each as a public client, cache it for the stated time and refresh it on the stated
   interval; it MUST NOT call a network at registration.
 - **FR-024**: A brand MUST refuse any other message from a network; nothing from a network
   changes a binding, a fact or an amount.
@@ -447,14 +451,23 @@ attribution record.
   other brand service MUST hold any of these.
 - **FR-030**: `attribution` MUST learn everything it binds and emits from the brand's own topics
   and from nothing else: the tag, click id and bonus code presented at registration from
-  `player_registered` on `casino.players`; a code presented later from `bonus_granted` on
-  `casino.rewards`; deposits, chargebacks and refunds from `payments.payments`; stakes and wins
-  from `casino.rounds`; bonus costs from `casino.rewards`; withdrawals from `casino.withdrawals`
+  `player_registered` on `casino.players`; a code presented later from `bonus_code_entered` on
+  `casino.rewards` (the presentation, not the grant; an affiliate's code is told from the brand's
+  own by the programme's code document, FR-023); deposits from `payment.captured`, and chargebacks
+  from `payment.dispute.opened` and `payment.refunded`, on `payments.payments`; stakes and wins
+  from the real-money movements of `bet_placed`, `win_credited`, `bet_rolled_back`,
+  `round_settled_as_loss` and `provider_credited` on `money.transactions`, so a round funded by
+  restricted funds earns the affiliate nothing, as the original's rule had it (its specs 250 and
+  253); bonus costs from `restricted_funds_awarded`, and from a `provider_credited` landing on
+  restricted funds, on `money.transactions`, recognised at the award and never negative (spec 011
+  FR-028); withdrawals from `casino.withdrawals`
   (`withdrawal_requested` → `withdrawal-requested`, `withdrawal_completed` →
   `withdrawal-completed`, `withdrawal_failed` → `withdrawal-failed`, `withdrawal_reversed` →
   `withdrawal-reversed`; `withdrawal_approved` and `withdrawal_cancelled` produce no fact — spec
-  007 FR-025, FR-026); closure from `casino.players`. No brand service MUST call `attribution`, and `attribution` MUST
-  call no brand service.
+  007 FR-025, FR-026); closure from `casino.players`. Every topic but `casino.rewards` is the
+  core's (spec 021), so `attribution` runs with or without the casino module. No brand service MUST
+  call `attribution` but `players`, for the erasure every brand service serves (spec 008 FR-038),
+  and `attribution` MUST call no brand service.
 
 ### Key Entities
 
@@ -471,7 +484,7 @@ attribution record.
 - **Fact**: one versioned, idempotent statement about a click or an attributed player, of one of
   the kinds in FR-011.
 - **Feed cursor**: an opaque position in the brand's fact sequence for one network.
-- **Webhook subscription**: a network's address and secret, with its dead letter.
+- **Webhook subscription**: a network's address and secret, with its undelivered facts.
 
 ## Success Criteria *(mandatory)*
 
@@ -489,7 +502,7 @@ attribution record.
 - **SC-004**: A fact is readable on the topic within 60 seconds of the event it describes, and on
   the feed within the same bound, under the brand's normal load.
 - **SC-005**: Over a day of production traffic, no fact is delivered to a webhook fewer than once,
-  and no fact reaches the dead letter while the subscriber is reachable.
+  and no fact becomes an undelivered fact while the subscriber is reachable.
 - **SC-006**: No fact on any carrier contains a `Personal` value or a field a reviewer can map to
   a person; an automated check over a day's facts finds none.
 - **SC-007**: A token issued by a test network at one installation verifies at a brand on another
@@ -541,7 +554,7 @@ attribution record.
 - The seven `notify/*` internal routes and the `affiliate_notify_ggr` capability are replaced by
   facts on a topic derived from the brand's own facts; the brand calls no affiliate service.
 - The postback URL with `{event}`, `{clickid}`, `{payout}` and `{status}` is replaced by signed
-  webhooks carrying the fact, with retries and a dead letter.
+  webhooks carrying the fact, with retries and an undelivered fact the operator resends or discards.
 - The tag gains a network, sub-ids and a signature; bare UUIDs are accepted only for the
   transition.
 - An attribution window is enforced by the brand; the original enforced none.
@@ -550,10 +563,25 @@ attribution record.
 - GGR is emitted per player per day, with adjustments, instead of per round through a feature
   that shipped switched off; the per-round stream is optional.
 - The first-deposit guard is per player for life, not per player per period.
+- Affiliate GGR counts the player's real-money stakes and wins, as the original did, but money
+  converted from restricted funds counts as real once converted; the original excluded it (its
+  spec 253). Bonus cost is recognised at the award from the wallet's fact; the original's call at
+  the bonus grant never reached its affiliate service.
 - Commission, plans, overrides, the network tree, payouts, the portal and fraud flags leave the
   brand for the programme (spec 013).
 
 ## Open Questions
 
-- The three markers above: the transition period, the attribution window default, and whether
-  the per-round GGR stream is opt-in. The lifetime first-deposit guard is confirmed in spec 013.
+The transition period, the attribution window default and the per-round stream were settled on
+2026-10-25 (Clarifications; FR-004, FR-008, FR-016). The lifetime first-deposit guard is confirmed in
+spec 013. Four decisions the plan made are stated above as requirements and still await Sheldon
+(plan research *Open for Sheldon*); each names what changes if the answer differs:
+
+- A player who deposits while organic and is bound by a code later gets no `first-deposit` and no
+  facts for that money (research R8; FR-007, FR-015). The alternative emits them at the binding,
+  dated to the deposit and marked before the binding, as FR-016 does for GGR days.
+- Money converted from restricted funds counts in affiliate GGR once it is real (*Changes from the
+  original*, FR-030). The alternative is a deposit-origin marker on the wallet's facts, a spec 002
+  change.
+- The bonus code window's default is 30 days, the attribution window's (FR-007).
+- A refunded deposit is reported as a `chargeback` with a `/refund` reference (FR-030).
