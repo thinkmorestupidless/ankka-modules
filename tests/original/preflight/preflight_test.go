@@ -79,6 +79,26 @@ func TestTheReceiverIsCheckedOnlyWhenGivenAndRefusedWhenSilent(t *testing.T) {
 	}
 }
 
+func TestTheCashierRouteMustAnswerItsPreflight(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions && r.URL.Path == "/v1/cashier/sessions" {
+			w.WriteHeader(200)
+			return
+		}
+		w.WriteHeader(404)
+	}))
+	defer up.Close()
+	if why := CashierAnswers(up.URL, up.Client()); why != "" {
+		t.Fatalf("an answering cashier: %s", why)
+	}
+	if why := CashierAnswers(up.URL+"/elsewhere", up.Client()); !strings.HasPrefix(why, Cashier) {
+		t.Fatalf("a cashier answering 404: %q", why)
+	}
+	if why := CashierAnswers("http://127.0.0.1:1", http.DefaultClient); !strings.HasPrefix(why, Cashier) {
+		t.Fatalf("a silent cashier: %q", why)
+	}
+}
+
 func TestEveryAdapterOfTheOriginalHasAStubKnown(t *testing.T) {
 	ps, err := Providers("../../../../eitheror-platform")
 	if err != nil {

@@ -1,0 +1,102 @@
+{
+  "a cashier session created under an active key answers a cashier ticket and the terminals the routing tree allows": [
+    "",
+    ""
+  ],
+  "a cashier session that cannot be routed is refused naming why [a sub-brand whose routing tree has no branch that matches]": [
+    "",
+    ""
+  ],
+  "a cashier session that cannot be routed is refused naming why [a sub-brand with no routing tree deployed at any level]": [
+    "",
+    ""
+  ],
+  "a create with no request id is served under one the shared payments mints, and the same content again makes a second session": [
+    "",
+    ""
+  ],
+  "a key presented in a different header case": [
+    "",
+    ""
+  ],
+  "a payment read by another sub-brand is refused as not found": [
+    "",
+    ""
+  ],
+  "a payment read by the sub-brand that created it returns its state": [
+    "",
+    ""
+  ],
+  "a repeated create under the same request id with a different amount is refused naming the request id": [
+    "",
+    ""
+  ],
+  "a repeated create under the same request id with the same content returns the first session and asks the cashier nothing": [
+    "",
+    ""
+  ],
+  "a request id belongs to the sub-brand and not to the installation": [
+    "",
+    ""
+  ],
+  "a request missing or malforming a field is refused naming the field before the cashier is asked [a player id without the brand part]": [
+    "",
+    ""
+  ],
+  "a request missing or malforming a field is refused naming the field before the cashier is asked [an amount that is not a whole number of minor units]": [
+    "",
+    ""
+  ],
+  "a request missing or malforming a field is refused naming the field before the cashier is asked [no amount]": [
+    "",
+    ""
+  ],
+  "a request missing or malforming a field is refused naming the field before the cashier is asked [no country]": [
+    "",
+    ""
+  ],
+  "a request missing or malforming a field is refused naming the field before the cashier is asked [no currency]": [
+    "",
+    ""
+  ],
+  "a request missing or malforming a field is refused naming the field before the cashier is asked [no player id]": [
+    "",
+    ""
+  ],
+  "a request missing or malforming a field is refused naming the field before the cashier is asked [no return address]": [
+    "",
+    ""
+  ],
+  "a request under a key no sub-brand holds active is refused without saying why [a cashier key a sub-brand disabled]": [
+    "",
+    ""
+  ],
+  "a request under a key no sub-brand holds active is refused without saying why [a cashier key no sub-brand holds]": [
+    "",
+    ""
+  ],
+  "a request with no cashier key is refused as unauthenticated and no session exists": [
+    "",
+    ""
+  ],
+  "a submit under a cashier ticket no session has is refused as not found": [
+    "",
+    ""
+  ],
+  "reading a payment tells its status in the frontend's words with its amounts, currency, provider, scheme, terminal and redirect address": [
+    "",
+    ""
+  ],
+  "submitting a session already submitted returns the first submit's answer and makes no second payment": [
+    "",
+    ""
+  ],
+  "submitting a session naming a terminal it did not offer is refused naming the terminal": [
+    "",
+    ""
+  ],
+  "submitting a session naming an offered terminal initiates the payment and answers the payment id and the status": [
+    "",
+    ""
+  ]
+}

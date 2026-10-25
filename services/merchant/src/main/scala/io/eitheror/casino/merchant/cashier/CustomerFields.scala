@@ -35,9 +35,13 @@ final case class CustomerFields(
       .collect { case (k, Some(v)) => k -> v.reveal }
 
 object CustomerFields:
-  /** Reads the fields from a body by their wire names; an empty value is absent. */
+  /**
+   * Reads the fields from a body by their wire names; an empty value is absent. The address is the body's
+   * `customerIp`, else the `clientIp` ingest read from `X-Forwarded-For`, as the original's
+   * `handleCreateSession` took it.
+   */
   def from(field: String => Option[String]): CustomerFields =
     def f(name: String) = field(name).map(_.trim).filter(_.nonEmpty).map(Personal(_))
     CustomerFields(f("customerEmail"), f("customerFirstName"), f("customerLastName"), f("customerPhone"), f("customerMobile"),
-      f("customerProvince"), f("customerIp"), f("customerCountry"), f("customerCity"), f("customerAddress"), f("customerPostCode"),
+      f("customerProvince"), f("customerIp").orElse(f("clientIp")), f("customerCountry"), f("customerCity"), f("customerAddress"), f("customerPostCode"),
       f("customerState"))

@@ -11,6 +11,10 @@
     "pass",
     "pass"
   ],
+  "TestCashier": [
+    "fail",
+    "fail"
+  ],
   "TestCrypto": [
     "fail",
     "fail"

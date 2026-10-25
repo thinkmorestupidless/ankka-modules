@@ -1,0 +1,89 @@
+{
+  "scenario": "a request under a key no sub-brand holds active is refused without saying why [a cashier key no sub-brand holds]",
+  "requirement": "006/FR-005",
+  "recorded_at": "2026-10-24T18:00:51.675577Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "ingest",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "eb373e7c-737e-3c52-a453-3bf7893bc722",
+          "holdingId": "82040bfb-76b1-3efe-bb86-b5b740b47e66",
+          "subBrandId": "cfe37893-df4e-3e1f-a20e-b97e9ea8bc55"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "cfe37893-df4e-3e1f-a20e-b97e9ea8bc55",
+          "merchantKey": "eo_live_71467ee340054e758a618dec"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session under a made-up key",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "eo_live_000000000000000000000000"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": "INVALID_MERCHANT_KEY"
+        }
+      }
+    }
+  ]
+}

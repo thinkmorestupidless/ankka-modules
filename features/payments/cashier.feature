@@ -30,7 +30,6 @@ Feature: A sub-brand opens a cashier session under its key, submits it and reads
 
     Examples:
       | situation                                                   | reason             |
-      | a request naming no country or no player id                 | no routing context |
       | a sub-brand with no routing tree deployed at any level      | no routing tree    |
       | a sub-brand whose routing tree has no branch that matches   | no routing match   |
 
@@ -57,6 +56,24 @@ Feature: A sub-brand opens a cashier session under its key, submits it and reads
       | a cashier key no sub-brand holds    |
       | a cashier key a sub-brand disabled  |
 
+  Scenario: a cashier key the sub-brand disabled is refused within a minute
+    Given a sub-brand whose active cashier key opened a cashier session
+    When the sub-brand disables that key
+    Then a create under that key is refused as "invalid cashier key" once "60" seconds have passed
+
+  Scenario: a refusal of a cashier key or for rate is an audit record naming the sub-brand where known and never the key
+    Given a create under a cashier key no sub-brand holds and a sub-brand refused as too many
+    When the shared audit is read
+    Then each refusal is an audit record naming the sub-brand where known
+    And no audit record holds a cashier key
+
+  Scenario: a body larger than the installation's bound or not readable is refused before the key is checked and recorded under no sub-brand
+    Given a request presenting an active cashier key
+    When it creates a cashier session with a body larger than the installation's bound
+    Then it is refused as larger than the bound
+    And the key is not checked
+    And the refusal is recorded under no sub-brand
+
   Scenario Outline: a request missing or malforming a field is refused naming the field before the cashier is asked
     Given a sub-brand with an active cashier key
     When it creates a cashier session with <field>
@@ -68,7 +85,10 @@ Feature: A sub-brand opens a cashier session under its key, submits it and reads
       | an amount that is not a whole number of minor units  |
       | no amount                                            |
       | no currency                                          |
+      | no player id                                         |
       | a player id without the brand part                   |
+      | no country                                           |
+      | no return address                                    |
 
   Scenario: a repeated create under the same request id with the same content returns the first session and asks the cashier nothing
     Given a cashier session created under request id "t-1"
@@ -91,6 +111,12 @@ Feature: A sub-brand opens a cashier session under its key, submits it and reads
     When it creates a cashier session with no request id
     Then it is served under a request id the shared payments mints and returns
     And the same content sent again creates a second session
+
+  Scenario: a create the cashier did not answer in time is told to try again, and a repeat under its request id is forwarded again
+    Given a create under request id "t-2" the cashier did not answer in time
+    When the sub-brand creates one under request id "t-2" again
+    Then the cashier is asked again
+    And a late answer to the first create is a lost answer and is not returned to the sub-brand
 
   Scenario: submitting a session already submitted returns the first submit's answer and makes no second payment
     Given a cashier session already submitted

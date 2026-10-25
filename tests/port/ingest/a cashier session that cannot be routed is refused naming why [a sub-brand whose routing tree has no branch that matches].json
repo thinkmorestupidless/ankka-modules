@@ -1,0 +1,113 @@
+{
+  "scenario": "a cashier session that cannot be routed is refused naming why [a sub-brand whose routing tree has no branch that matches]",
+  "requirement": "006/FR-006",
+  "recorded_at": "2026-10-24T18:00:51.374968Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "ingest",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "06d1847c-5e15-3b65-9b13-11da6e69d77b",
+          "holdingId": "6555434e-bcf6-338a-81a4-f32b75f3fe51",
+          "subBrandId": "e28dd1c8-4fb0-39d9-8546-06575ca63241"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "e28dd1c8-4fb0-39d9-8546-06575ca63241",
+          "merchantKey": "eo_live_d9d0c619c0af448590252ae0"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the sub-brand's tree routes only France",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-merchant-routing/{subBrandId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "routingTree": "{\"draft\":null,\"liveDeployedAt\":\"2026-01-01T00:00:00Z\",\"liveVersion\":1,\"versions\":[{\"deployedAt\":\"2026-01-01T00:00:00Z\",\"tree\":{\"nodes\":{\"fr\":{\"branches\":null,\"nodeId\":\"fr\",\"terminals\":[\"SIM\"]},\"root\":{\"branches\":[{\"conditions\":[{\"conditionType\":\"COUNTRY\",\"operator\":\"EQ\",\"value\":\"FR\"}],\"nextNodeId\":\"fr\"}],\"nodeId\":\"root\",\"terminals\":null}},\"rootNodeId\":\"root\"},\"version\":1}]}",
+          "sub_brand_id": "{subBrandId}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-merchant-routing/e28dd1c8-4fb0-39d9-8546-06575ca63241"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "NO_ROUTING_MATCH"
+        }
+      }
+    }
+  ]
+}

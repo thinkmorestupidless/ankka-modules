@@ -24,6 +24,18 @@ class DepositWorkflowSuite extends SharedKitSuite:
     assertEquals(kit.flow(id).status, DepositFlow.Awaiting)
   }
 
+  test("the player's address is the body's customerIp, else the clientIp ingest read from X-Forwarded-For (research 006 R11)") {
+    val r = kit.subBrand()
+    def sentIp(extra: (String, Any)*): String =
+      val s = kit.session(r, extra = extra)
+      assertEquals(s.status, 200, s.text)
+      val id = kit.submit(s.str("session_token")).str("paymentId")
+      kit.gateway.initiates.flatMap(_.json).find(_.textOr("paymentId", "") == id).get.textOr("customerIp", "")
+    assertEquals(sentIp("clientIp" -> "203.0.113.7"), "203.0.113.7")
+    assertEquals(sentIp("clientIp" -> "203.0.113.7", "customerIp" -> "198.51.100.2"), "198.51.100.2")
+    assertEquals(sentIp("clientIp" -> ""), "")
+  }
+
   test("a capture credits the brand's wallet once under the payment id with the provider's reference, and is acknowledged after") {
     val r  = kit.subBrand()
     val id = kit.payment(r)

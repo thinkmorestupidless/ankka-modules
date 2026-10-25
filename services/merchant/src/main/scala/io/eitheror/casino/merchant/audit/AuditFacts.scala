@@ -1,8 +1,9 @@
 package io.eitheror.casino.merchant.audit
 
-import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId, Metadata, Serializer}
+import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.contract.facts.{AuditChange, AuditRecord, PlatformAudit, PlatformAuditFact}
+import io.eitheror.casino.contract.audit
+import io.eitheror.casino.contract.facts.{AuditChange, AuditRecord, PlatformAuditFact}
 import io.eitheror.casino.merchant.hierarchy.*
 import io.eitheror.casino.merchant.operators.{Operator, OperatorEvent}
 import io.eitheror.casino.merchant.payments.{Payment, PaymentEvent}
@@ -89,20 +90,17 @@ object AuditFacts:
       case PaymentEvent.Expired(at)                     => money("payment expired", at)
       case PaymentEvent.Waiting(_, _) | PaymentEvent.CreditAttempted(_, _) => None
 
-/** The shared shape of the seven: the entity's events in, its audit records out. */
-abstract class AuditConsumer[E](subjectKind: String) extends Consumer[E, PlatformAuditFact]:
+/**
+ * The shared shape of the seven: the entity's events in, its audit records out, over the contract's
+ * base (hoisted from here for `ingest`, spec 006 T003).
+ */
+abstract class AuditConsumer[E](subjectKind: String) extends audit.AuditConsumer[E]:
   protected def audited(event: E): Option[Audited]
-  def onMessage(event: E): Effect =
-    audited(event).fold(effects.ignore()) { a =>
-      val r = AuditFacts.record(subjectKind, messageContext.subject, messageContext.sequenceNumber, a)
-      effects.produceAll(Seq(effects.message(r: PlatformAuditFact).withKey(r.key).withMetadata(Metadata.empty.set("ce-id", r.recordId))))
-    }
+  protected def audit(event: E): Option[AuditRecord] =
+    audited(event).map(AuditFacts.record(subjectKind, messageContext.subject, messageContext.sequenceNumber, _))
 
 abstract class AuditCompanion[C <: Consumer[E, PlatformAuditFact], E](id: String, source: ChangeSource[E])
-    extends Consumer.Companion[C, E, PlatformAuditFact](ComponentId(id), source):
-  override val outputSerializer: Option[Serializer[PlatformAuditFact]] = Some(PlatformAudit.serializer)
-  override val produceTo: Option[String]                              = Some(PlatformAudit.name)
-  override val produces: Option[Publication] = Some(Publication(PlatformAudit.name, Some(PlatformAudit.contract), None))
+    extends audit.AuditCompanion[C, E](id, source)
 
 final class HoldingAudit extends AuditConsumer[OrgEvent]("holding"):
   protected def audited(e: OrgEvent) = AuditFacts.org("holding", e)

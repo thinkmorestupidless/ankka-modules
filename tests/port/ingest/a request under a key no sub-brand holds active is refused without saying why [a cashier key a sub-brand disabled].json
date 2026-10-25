@@ -1,0 +1,173 @@
+{
+  "scenario": "a request under a key no sub-brand holds active is refused without saying why [a cashier key a sub-brand disabled]",
+  "requirement": "006/FR-005",
+  "recorded_at": "2026-10-24T18:00:52.026665Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "ingest",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "145552b5-b9f2-3e3d-a947-7a7fbe988cdb",
+          "holdingId": "9860722d-8c50-3992-86c1-e4bd3404c12b",
+          "subBrandId": "0f54e340-bad8-3f84-ae0d-b3fc6063e47f"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "0f54e340-bad8-3f84-ae0d-b3fc6063e47f",
+          "merchantKey": "eo_live_e19368334a9a4df4a25f8390"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session while the key is active",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "available_terminals": [
+            {
+              "name": "SIM",
+              "scheme": "CARD_VISA",
+              "terminalEntityId": "SIM"
+            }
+          ],
+          "redirectUrl": "https://merchant.example/return",
+          "session_token": "8f20a6d8-c018-49a0-bf45-0a0bffddafb3",
+          "transactionId": "txn-0d222fbb"
+        }
+      },
+      "capture": {
+        "session": "$.session_token"
+      },
+      "vary": {
+        "$.session_token": "differs between two runs of the original",
+        "$.transactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the sub-brand's keys",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-merchant-keys/{subBrandId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "keys": "[{\"active\":true,\"createdAt\":\"2026-10-24T18:00:52.079559Z\",\"keyHash\":\"f02f9b8281aae34eba99d8b8da441d68662cb471854a09c4e47983abdd71d217\",\"keyId\":\"key_11d9e2c8\",\"name\":\"default\"}]"
+        }
+      },
+      "vary": {
+        "$.keys": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: disable the key",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-merchant-keys/{subBrandId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "keys": "[{\"active\":false,\"createdAt\":\"{createdAt}\",\"keyHash\":\"{keyHash}\",\"keyId\":\"{keyId}\",\"name\":\"default\"}]"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-merchant-keys/0f54e340-bad8-3f84-ae0d-b3fc6063e47f"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session under the disabled key",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn2}"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": "INVALID_MERCHANT_KEY"
+        }
+      }
+    }
+  ]
+}
