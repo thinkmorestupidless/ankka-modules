@@ -40,7 +40,7 @@
       "resources" : {
         "instanceType" : "medium"
       },
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "payouts",
@@ -80,7 +80,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "players",
@@ -120,7 +120,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "kyc",
@@ -160,7 +160,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0",
+      "runtime" : "0.13.0",
       "provisionObjectStorage" : true
     }
   }, {
@@ -201,7 +201,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "rewards",
@@ -241,7 +241,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "game-provider",
@@ -284,7 +284,7 @@
       "resources" : {
         "instanceType" : "medium"
       },
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "attribution",
@@ -324,7 +324,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "engagement",
@@ -364,7 +364,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   }, {
     "name" : "reporting",
@@ -404,7 +404,7 @@
         "name" : "ANKKA_AUTH_STAFF_AUDIENCE",
         "value" : "eitheror-casino"
       } ],
-      "runtime" : "0.11.0",
+      "runtime" : "0.13.0",
       "provisionObjectStorage" : true
     }
   }, {
@@ -448,7 +448,7 @@
         "name" : "SUPPORT_AGENT_ENABLED",
         "value" : "false"
       } ],
-      "runtime" : "0.11.0"
+      "runtime" : "0.13.0"
     }
   } ],
   "exposed" : [ "wallet", "payouts", "players", "kyc", "responsible-gambling", "rewards", "game-provider", "attribution", "engagement", "reporting", "support-agent" ],

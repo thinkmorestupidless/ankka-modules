@@ -1,7 +1,7 @@
 package io.eitheror.casino.modules
 
 import com.github.plokhotnyuk.jsoniter_scala.core.{readFromString, writeToString}
-import com.thinkmorestupidless.ankka.controlplane.api.*
+import com.thinkmorestupidless.ankka.controlplane.api.{GrantRequest as _, *}
 import com.thinkmorestupidless.ankka.controlplane.api.Wire.given
 
 import java.io.FileInputStream

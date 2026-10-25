@@ -139,11 +139,18 @@ final class Kit(baseSettings: Settings = Settings(), val backoff: Backoff = Back
   def submit(token: String, terminal: String = "main", extra: Seq[(String, Any)] = Nil): Reply =
     request("POST", s"/v1/cashier/sessions/$token/submit", Some(Json.render(Json.obj((("selectedTerminalEntityId" -> terminal) +: extra)*))), asIngest)
 
-  /** A session submitted to the fake gateway: the payment id. */
+  /**
+   * A session submitted to the fake gateway: the payment id. A submit that is not decided within its 2 s is
+   * `503 OUTCOME_PENDING`, which asks the caller to submit the same session again.
+   */
   def payment(r: Ready, amount: Long = 5000, currency: String = "EUR", customerId: Option[String] = None): String =
     val s = session(r, amount, currency, customerId)
     assertOk(s)
-    val p = submit(s.str("session_token"))
+    val token = s.str("session_token")
+    var p     = submit(token)
+    var tries = 1
+    while p.status == 503 && p.str("error") == "OUTCOME_PENDING" && tries < 10 do
+      p = submit(token); tries += 1
     assertOk(p)
     p.str("paymentId")
 

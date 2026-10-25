@@ -45,7 +45,7 @@ how to read the answer, how to verify and read a webhook. `providers/Catalogue` 
 
 ## The routes
 
-One endpoint per prefix (ankka 0.11 refuses two sharing one), each route's audience its ACL. The service
+One endpoint per prefix (ankka refuses two sharing one), each route's audience its ACL. The service
 is exposed for the providers' webhooks, the player's browser and the payments operators.
 
 | Prefix | Audience |

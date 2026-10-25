@@ -14,7 +14,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/game-provider:0.0.0",
         "expose": true,
-        "runtime": "0.11.0",
+        "runtime": "0.13.0",
         "resources": {
           "instanceType": "medium"
         },
@@ -95,7 +95,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/rewards:0.0.0",
         "expose": true,
-        "runtime": "0.11.0",
+        "runtime": "0.13.0",
         "env": [
           {
             "name": "CASINO_PROJECT",

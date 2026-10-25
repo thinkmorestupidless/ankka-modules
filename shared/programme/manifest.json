@@ -4,7 +4,7 @@
     "name": "Affiliate programme"
   },
   "ankka": {
-    "runtime": "0.11.0"
+    "runtime": "0.13.0"
   },
   "keycloak": {
     "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"

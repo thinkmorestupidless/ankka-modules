@@ -4,7 +4,7 @@
 //
 // ankka's libraries come from Maven Central. The same version is every service descriptor's
 // `runtime`, rendered by the modules tool from the manifest's `ankka.runtime`.
-val ankkaVersion = "0.11.0"
+val ankkaVersion = "0.13.0"
 val munitVersion = "1.3.6"
 
 ThisBuild / scalaVersion := "3.9.0"

@@ -2,7 +2,7 @@
   "name": "sample-service",
   "service": {
     "image": "sample-service:latest",
-    "runtime": "0.11.0",
+    "runtime": "0.13.0",
     "database": "none"
   }
 }

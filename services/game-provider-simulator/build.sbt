@@ -3,7 +3,7 @@
 // ankka's libraries come from Maven Central (or ~/.ivy2/local while the platform is being
 // developed). The same version is declared in service.json as `runtime`: change both together
 // when upgrading — see README.md, "Upgrading ankka".
-val ankkaVersion = "0.11.0"
+val ankkaVersion = "0.13.0"
 
 // The casino's contract (facts, money, route classes, personal markers, the recording replayer),
 // published from the repository root with `sbt contract/publishLocal`. The root build's version.

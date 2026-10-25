@@ -1,6 +1,6 @@
 package io.eitheror.casino.modules
 
-import com.thinkmorestupidless.ankka.controlplane.api.*
+import com.thinkmorestupidless.ankka.controlplane.api.{GrantRequest as _, Installation as _, *}
 import io.eitheror.casino.contract.Layout
 import io.eitheror.casino.contract.Layout.{Grant, GrantTarget, Retention}
 
