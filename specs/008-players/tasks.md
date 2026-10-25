@@ -73,7 +73,7 @@ checkout, not this service).
       `signal`, `send_class`); facts.md now follows the contract. Spec 021's two modules routes keep
       their `/v1/casino/brands/{brand}/modules` paths (`tools/modules`' `ReadOnlyRoutesSuite` checks
       them), so they are a seventh endpoint, `ModulesEndpoint`. `just test`: contract 193, modules 153.
-- [ ] T002 Create `services/players/` on `services/wallet/`'s template: `build.sbt` on Scala 3.9.0
+- [X] T002 Create `services/players/` on `services/wallet/`'s template: `build.sbt` on Scala 3.9.0
       with ankka 0.13.0 (`ankka-sdk`, `ankka-runtime`, `ankka-http`, `ankka-auth-oidc`,
       `ankka-telemetry-otlp`, `ankka-testkit`), `io.eitheror:casino-contract` from the local publish,
       munit, the Postgres driver as a test dependency (for `LeakSuite`); `project/plugins.sbt`;
@@ -88,7 +88,7 @@ checkout, not this service).
       `reads/`, `facts/`, `realm/`, `clients/`, `api/`) and `p-test/` (the same, plus `it/`, `port/`,
       `features/`); `services/players/README.md` naming the service's purpose in two lines (filled
       by T085)
-- [ ] T003 [P] Add to `justfile` the recipes `players-test` (`sbt contract/publishLocal` then `sbt
+- [X] T003 [P] Add to `justfile` the recipes `players-test` (`sbt contract/publishLocal` then `sbt
       test` in `services/players`), `players-it` (`testOnly io.eitheror.casino.players.it.*
       io.eitheror.casino.players.port.* io.eitheror.casino.players.features.*`), `players-run`
       (`CASINO_BRAND=goldvibe ANKKA_HTTP_PORT=9003`, `-Dankka.local-services.responsible-gambling`,
@@ -99,7 +99,7 @@ checkout, not this service).
       gated on it; note in the pull request that `players` must be added to `main`'s required status
       checks (`gh api -X PATCH repos/thinkmorestupidless/ankka-modules/branches/main/protection/required_status_checks`
       adding the context) by a person once the job has run green once
-- [ ] T004 [P] Correct `specs/008-players/spec.md`'s *Recordings* section per research R1: replace
+- [X] T004 [P] Correct `specs/008-players/spec.md`'s *Recordings* section per research R1: replace
       the list of Go-suite scenarios with the driver's scenarios (one per feature scenario the
       original can show, named as the feature names it) plus the four
       `TestScenario18_MultiAccountDetection_*` registrations, and state that

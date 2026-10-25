@@ -1,0 +1,14 @@
+{
+  "name": "players",
+  "service": {
+    "image": "players:latest",
+    "runtime": "0.13.0",
+    "env": {
+      "ANKKA_HTTP_PORT": "9003",
+      "CASINO_BRAND": "goldvibe",
+      "CASINO_REAL_MONEY": "false",
+      "KEYCLOAK_URL": "http://127.0.0.1:8080",
+      "PLAYER_SITE_BASE": "http://localhost:3000"
+    }
+  }
+}

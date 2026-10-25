@@ -133,6 +133,29 @@ rg-run brand="goldvibe":
     cd services/responsible-gambling && CASINO_BRAND={{brand}} ANKKA_HTTP_PORT=9006 ANKKA_DB_PORT=5436 \
       sbt -Dankka.local-services.players=http://127.0.0.1:9005 run
 
+# players' suites (spec 008; Docker for the integration kit). The contract is published first.
+players-test:
+    sbt contract/publishLocal
+    cd services/players && sbt test
+
+# players' integration, parity and feature suites only (Docker).
+players-it:
+    cd services/players && sbt "testOnly io.eitheror.casino.players.it.* io.eitheror.casino.players.port.* io.eitheror.casino.players.features.*"
+
+# players, locally on 9003 as brand goldvibe (`sbt schema && docker compose up -d` in services/players
+# first: Postgres on 5435 and the brand's Keycloak on 8080). The services it calls are the fakes
+# (`sbt "Test/runMain io.eitheror.casino.players.it.fakes"` in services/players) on 9010–9015.
+players-run:
+    cd services/players && ANKKA_HTTP_PORT=9003 ANKKA_DB_PORT=5435 CASINO_BRAND=goldvibe CASINO_REAL_MONEY=false \
+      KEYCLOAK_URL=http://127.0.0.1:8080 PLAYER_SITE_BASE=http://localhost:3000 \
+      ANKKA_AUTH_ISSUERS=player ANKKA_AUTH_REALM=casino-goldvibe ANKKA_AUTH_PLAYER_AUDIENCE=account \
+      ANKKA_AUTH_PLAYER_ISSUER=http://127.0.0.1:8080/realms/casino-goldvibe \
+      ANKKA_AUTH_PLAYER_JWKS_URL=http://127.0.0.1:8080/realms/casino-goldvibe/protocol/openid-connect/certs \
+      sbt -Dankka.local-services.responsible-gambling=http://127.0.0.1:9010 \
+        -Dankka.local-services.kyc=http://127.0.0.1:9011 -Dankka.local-services.engagement=http://127.0.0.1:9012 \
+        -Dankka.local-services.ingest=http://127.0.0.1:9013 -Dankka.local-services.wallet=http://127.0.0.1:9014 \
+        -Dankka.local-services.merchant=http://127.0.0.1:9015 run
+
 # The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
 psp-stub gateway="http://localhost:9001":
     cd tests && go build -o stubs/bin/ ./stubs/psp-stub

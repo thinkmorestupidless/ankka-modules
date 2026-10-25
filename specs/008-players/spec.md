@@ -667,16 +667,25 @@ store and `payments` for a personal field; fetch the response.
 
 ## Recordings
 
-Go end-to-end scenarios whose requests reach `players` (001 FR-030; the suite holds 118 functions):
-`TestScenario7_CasinoGate3_FullPlayerJourney`, `TestScenario7_CasinoGate3_SessionLifecycle`,
-`TestScenario7_CasinoGate3_RGEnforcement` (the sign-in refusal), `TestScenario12_OnboardingGate3_FullChain`,
-`TestScenario14_CasinoDeposit_PlayerToWallet` (registration and sign-in steps),
-`TestScenario16_BonusGrant_RegistrationTrigger` (the registration fact),
-`TestScenario18_MultiAccountDetection_IdentityMatch`, `TestScenario18_MultiAccountDetection_BonusBlock`,
-`TestScenario18_MultiAccountDetection_FraudCaseReview`, `TestScenario9_CasinoRF_SessionDurationLimitCheck`.
-`TestScenario9_CasinoRF_LoginFailureLockout` records a function that does nothing and is not a parity
-test. Playwright: `ssr-authenticated-first-paint.spec.ts`, `activity-tab-game-lookup.spec.ts`, and the
-registration and sign-in specs of the frontend suite 001 names.
+The recordings come from a driver, `tests/original/players-driver/` (research R1): one scenario per
+scenario of `features/players/*.feature` the original can show, named as the feature names it, run
+against the original's `casino-service` and its Keycloak, written to `tests/port/players/`. The Go
+suite contributes only the four `TestScenario18_MultiAccountDetection_*` tests, whose registrations
+reach the player routes (the rest of each reads twins and fraud cases, `observe:` steps).
+
+Read and not recorded: `TestScenario7_CasinoGate3_*` drive the substrate's action executor
+(`/internal/actions/execute`), not the player routes, and fail or skip on the original;
+`TestScenario9_CasinoRF_SessionDurationLimitCheck` waits for an event its TL function never emits
+and is skipped; `TestScenario9_CasinoRF_LoginFailureLockout` records a function that does nothing;
+`TestScenario12_*`, `TestScenario14_*` and `TestScenario16_*` are `merchant`'s, `ingest`'s and
+`rewards`' recordings, whose registration and sign-in steps are their set-up. What the original
+cannot show at all (one session at a time, a player's own closure and reopening, the export's
+fan-out, the authenticator asking `players`, the session timer, a sign-in refused by `may-log-in`)
+is proven by the integration suites instead (`contracts/surface.md`, `new` and `inspected` rows).
+
+Playwright: `ssr-authenticated-first-paint.spec.ts`, `activity-tab-game-lookup.spec.ts`, and the
+registration and sign-in specs of the frontend suite 001 names, run against the rebuilt brand (SC-001;
+spec 001 FR-033), not recorded.
 
 ## Assumptions
 
