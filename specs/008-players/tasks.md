@@ -329,7 +329,7 @@ parity task and can run the moment T005 and the original's stack are up.
       *Done 2026-10-25.* The grant's answer is `RealmTokens` (T009's signed links own `Tokens`);
       `liveSessions()` reads `casino-frontend` only, the one client the reconciler needs. The suite runs
       against T022's `FakeRealm` (written here), which signs HS256 tokens the kit will check.
-- [ ] T021 [P] Implement `p/clients/`: `Rg.scala` (`mayLogIn(playerId): Either[CoolingOff(until) |
+- [X] T021 [P] Implement `p/clients/`: `Rg.scala` (`mayLogIn(playerId): Either[CoolingOff(until) |
       Restricted, Allowed]`, `mayDeposit(playerId, amount, sums)`, `gamstopRefusal(email, result)`),
       `Kyc.scala` (`depositCheck(playerId)`), `Engagement.scala` (`send(playerId, template, link)`),
       `Ingest.scala` (`createSession(body, merchantKey)` on ingest's public route), `Geo.scala`
@@ -339,6 +339,12 @@ parity task and can run the moment T005 and the original's stack are up.
       with an HTTP implementation over `componentClient`'s service client, each call under `Bound.race`
       with its setting; tests `p-test/clients/ClientsSuite.scala` on a scripted `HttpServer`: each
       answer mapped; a silent server → `Unanswered` at the bound
+      *Done 2026-10-25.* In-project calls go through `clients/Neighbour.scala` (`Target`, `Reply`,
+      `bounded`: an unreadable answer is `Failed`, never a decision); each call takes its bound from the
+      caller. The suite uses ankka's `ScriptedServices` for those and `FakeServer` for ingest and ip-api.
+      **Assumed until their specs build them**: `responsible-gambling` at `/v1/casino/brands/<b>/rg/`
+      `may-log-in` and `gamstop-refusal` (the wallet's prefix for `may-deposit`); `kyc` at `…/kyc/deposit-check`
+      answering `{allowed}` or `{code, message}`; `engagement` at `…/engagement/sends` answering `status`.
 - [ ] T022 [P] Write the fakes in `p-test/it/`: `FakeServer.scala` copied from `i-test/it/`;
       `FakeRealm.scala` (users by address with password, verified, enabled, the twin-id attribute;
       the admin token route; direct grant issuing a signed JWT the kit's OIDC fake accepts with
