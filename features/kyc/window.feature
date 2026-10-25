@@ -25,6 +25,13 @@ Feature: The verification window runs out
     Then the player is flagged for review with reason "window"
     And the player is not suspended
 
+  Scenario: a migrated deadline already passed flags the player for review and suspends no one
+    Given a player the migration carried with a deadline already passed, unverified, under a policy that suspends on expiry
+    When the migration's timer fires
+    Then the player is flagged for review with reason "window"
+    And a "player_kyc_review_required" fact is published with reason "window"
+    And the player is not suspended
+
   Scenario: a deadline passing on a player verified before it does nothing
     Given a player verified before their deadline
     When the timer fires

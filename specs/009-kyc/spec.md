@@ -103,6 +103,19 @@ Settled with specs 008–011 once they existed.
 - Q: Did 008 add `player_profile_updated`? → A: Yes (spec 008 FR-025), carrying the eight
   completeness fields as `Personal` values; spec 001 FR-011 lists it and `kyc` as a producer.
 
+### Session 2026-10-25
+
+The markers left open for product and regulatory decisions, settled with Trevor before 008 is planned.
+
+- Q: Enforce the verification window the original never acted on? → A: Yes, for deadlines set from
+  go-live; a migrated deadline already passed flags the player for review and suspends no one
+  (FR-025).
+- Q: How long are documents kept after closure, per licence profile? → A: Five years for UKGC, MGA
+  and Curaçao; Curaçao's is a default the compliance officer confirms before a Curaçao brand takes
+  real money (FR-034).
+- Q: May an operator upload for a player? → A: Yes, with a reason, audited under the operator, and
+  shown in the player's list as submitted by support (FR-005, Assumptions).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player submits documents and sees where they stand (Priority: P1)
@@ -134,6 +147,7 @@ path.
 - added `features/kyc/documents.feature`: a player viewing one of their documents is given a view address valid for fifteen minutes to it alone, and the view is recorded
 - added `features/kyc/documents.feature`: a player asking to view another player's document is refused
 - added `features/kyc/documents.feature`: a file of a type or size the brand does not take is refused naming the rule
+- added `features/kyc/documents.feature`: an operator uploads a document for a player with a reason and it shows as submitted by support
 
 ---
 
@@ -250,6 +264,7 @@ clock; observe suspension; register on a brand with no suspension; observe the r
 - added `features/kyc/window.feature`: a deadline passing on an unverified player under a policy that does not suspend flags them for review
 - added `features/kyc/window.feature`: a deadline passing on a player verified before it does nothing
 - added `features/kyc/window.feature`: a changed window applies to players registered after it and not before
+- added `features/kyc/window.feature`: a migrated deadline already passed flags the player for review and suspends no one
 
 ---
 
@@ -332,7 +347,7 @@ the player sees their own; other services read facts.
   `payment_method`, `bank_account_details` and `other`; a document of the legacy category `identity`
   MUST be accepted from the migration and treated as FR-013 says. Every category but `other` MUST hold
   one current document, the latest uploaded; `other` MUST hold every document uploaded to it.
-- **FR-005**: An upload MUST begin with the player (or an operator for the player) asking for an upload
+- **FR-005**: An upload MUST begin with the player (or an operator for the player, with a reason) asking for an upload
   link for a category and a content type among `image/jpeg`, `image/png`, `application/pdf`. The
   service MUST answer a link to its own bucket valid for one hour, the object name
   `subjects/<player id>/kyc/<category>-<time>.<ext>`, and a document id; the link MUST allow one
@@ -422,10 +437,12 @@ the player sees their own; other services read facts.
   tell `players` to suspend the player with reason `kyc_window_expired` if the policy suspends on
   expiry, else flag the player for review (window), and in both cases publish
   `player_kyc_review_required`; the command MUST be idempotent under the player id and deadline.
-  [NEEDS CLARIFICATION: the original sets the deadline at registration and nothing acts on it — the
-  expiry function's body is empty and no sweeper reads `kyc_check_deadline_at` — so the window has
-  never suspended anyone on Spinvibe. Spec 137 intended it (FR-010/011) and the UKGC profile is built
-  on it. Enforce it as written here, or keep the window as data only until a licence needs it?]
+  The window is enforced for every deadline set from go-live; a deadline the migration (spec 019)
+  carries that has already passed MUST flag the player for review (window) and publish the fact, and
+  MUST NOT suspend, so no one is suspended in one sweep at cutover. **Change from the original**:
+  it sets the deadline at registration and nothing acts on it (the expiry function's body is empty
+  and no sweeper reads `kyc_check_deadline_at`), so the window has never suspended anyone on
+  Spinvibe; spec 137 intended it and the UKGC profile is built on it (Clarifications 2026-10-25).
 
 **The policy**
 
@@ -464,10 +481,10 @@ the player sees their own; other services read facts.
   a late upload is removed. Erasure MUST NOT remove the document records' non-personal fields.
 - **FR-034**: Documents MUST be kept until the player's erasure applies; this service MUST NOT delete
   a document for any other reason. The hold a brand's licence requires on erasure is `players`'
-  (spec 001 FR-025) to file. [NEEDS CLARIFICATION: the retention period per licence profile after
-  account closure — five years for UKGC and MGA anti-money-laundering records is the usual figure,
-  and Curaçao's is not written down anywhere in the original. Whose figures go in the profile
-  defaults?]
+  (spec 001 FR-025) to file. The profile defaults MUST be five years after the account closes for
+  UKGC (MLR 2017 regulation 40), MGA and Curaçao alike; Curaçao's figure is not written down anywhere
+  in the original, so it is a default the licence holder's compliance officer confirms, and records
+  in the brand's values, before a Curaçao brand takes real money (Clarifications 2026-10-25).
 
 **Reads and audit**
 
@@ -588,10 +605,11 @@ Every requirement above names its source: the routes and Go capability cited in 
 - The migration (spec 019) copies each player's `kyc_documents` array, statuses, mode, required
   categories, deadline and cumulative deposits into one opening event per player, and copies the
   objects from MinIO `casino-kyc` into the service's bucket under the subject prefix.
-- [NEEDS CLARIFICATION: may an operator upload on a player's behalf and confirm it, as the backoffice
-  `upload-url` route allows today? It is kept here (FR-005 "or an operator") but no Playwright test
-  exercises it, and a document a player never saw being submitted under their name is a compliance
-  question.]
+- An operator may upload on a player's behalf and confirm it, as the backoffice `upload-url` route
+  allows today (FR-005), for the documents support receives by email: the upload takes a reason, is
+  audited under the operator's identity, and the document shows in the player's own list as
+  submitted by support, with the time, so nothing is filed under a player's name unseen. No
+  Playwright test exercises the original's route; the port's parity test is the first.
 
 ## Dependencies
 

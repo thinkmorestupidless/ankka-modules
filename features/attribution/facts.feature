@@ -27,11 +27,17 @@ Feature: A player's money and play reach the programme as facts
     Then a "ggr-adjustment" fact is emitted for that day with the difference
     And the day's earlier fact is not emitted again
 
-  Scenario: a brand with the round stream turned on emits a round fact at settlement and the daily fact at the close
-    Given a brand that has turned on the round stream for a network
+  Scenario: a network that opted into the round stream receives a round fact at settlement and the daily fact at the close
+    Given a network whose configuration at the brand opts into the round stream
     When a round settles
     Then a "ggr-round" fact is emitted with the round's stake, win and GGR
     And the daily fact is still emitted at the close
+
+  Scenario: a network with the default configuration receives the daily fact and no rounds
+    Given a network with the default configuration at the brand
+    When a round settles
+    Then no "ggr-round" fact is emitted for it
+    And the daily fact is emitted at the close
 
   Scenario Outline: what happens to an attributed player's money is emitted as the matching fact with its amount and reference
     Given an attributed player

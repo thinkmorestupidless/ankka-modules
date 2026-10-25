@@ -129,3 +129,14 @@ Feature: A player signs in, plays in game sessions, and signs out
     When the player reads their sessions
     Then they see their own sessions and nobody else's
     And the other player's session is answered "session_not_found"
+
+  Scenario: a brand with one session at a time ends the older player session on a new sign-in
+    Given a brand whose configuration sets one session at a time and a player signed in on one device
+    When the player signs in on a second device
+    Then the first player session ends with reason "superseded" and its game sessions with it
+    And the second is the player's open session
+
+  Scenario: a brand with the default configuration lets two devices hold two player sessions
+    Given a brand with the default configuration and a player signed in on one device
+    When the player signs in on a second device
+    Then both player sessions are open

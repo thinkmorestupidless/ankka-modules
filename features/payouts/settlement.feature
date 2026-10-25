@@ -3,9 +3,9 @@ Feature: The withdrawal payment is made, reconciled, and settled by hand when it
   request id as its key. The gateway answers completed, initiated, in doubt or rejected. Completed
   confirms the hold. Initiated and in doubt wait for the provider's outcome, or ask the provider's
   status until it is final, or, for a provider with no status to ask, mark the request needs review
-  after the provider's window. Rejected at initiation, or a terminal without automated withdrawal
-  payment, parks the request awaiting manual payment. Nothing in doubt is ever offered for manual
-  payment.
+  after the provider's window. Rejected at initiation releases the hold and tells the player to try
+  another terminal; a terminal without automated withdrawal payment parks the request awaiting
+  manual payment. Nothing in doubt is ever offered for manual payment.
 
   Background:
     Given a player with a wallet in "EUR"
@@ -79,17 +79,19 @@ Feature: The withdrawal payment is made, reconciled, and settled by hand when it
       | cannot be reached            |
       | answers something unrecognised |
 
-  Scenario Outline: a request rejected at initiation or to a terminal without automated withdrawal payment awaits manual payment with the money held
-    Given <situation>
+  Scenario: a request rejected at initiation returns the money and tells the player to try another terminal
+    Given a withdrawal request whose withdrawal payment the gateway rejects at initiation
+    When the request is approved
+    Then the hold is released as a withdrawal return with reason "provider_rejected"
+    And the player sees it as failed and is told to try another terminal
+    And the request is not awaiting manual payment
+
+  Scenario: a request to a terminal without automated withdrawal payment awaits manual payment with the money held
+    Given a withdrawal request to a terminal with no automated withdrawal payment
     When the request is approved
     Then the request is awaiting manual payment
     And the player sees it as approved
     And the money stays held
-
-    Examples:
-      | situation                                                                            |
-      | a withdrawal request whose withdrawal payment the gateway rejects at initiation     |
-      | a withdrawal request to a terminal with no automated withdrawal payment             |
 
   Scenario Outline: an operator confirms a manual payment and the hold is confirmed
     Given a withdrawal request <state>

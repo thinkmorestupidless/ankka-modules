@@ -98,18 +98,15 @@ should be and the code does not do.
   `applies_at`, replaced by name on a further change. The original stages it and never applies it.
 - Q: What ends a self-exclusion with a period? → A: Nothing automatic. After the period an
   operator may reinstate; before it the service refuses. A permanent exclusion is never reinstated
-  by this service. [NEEDS CLARIFICATION: Sheldon — after a period exclusion ends, does the player
-  ask to return and wait a further 24 hours (UKGC's "positive action plus a day"), or may the
-  operator reinstate on request?]
+  by this service. Settled 2026-10-25: the player asks to return and is reinstated 24 hours later;
+  an operator may record the request, the day still runs (FR-020).
 - Q: Are loss limits enforced? → A: The original sets and shows them and enforces nothing. This spec
-  keeps them settable and shown, and leaves enforcement out until decided. [NEEDS CLARIFICATION:
-  Sheldon — enforce loss limits at bet time (the wallet asks `may-bet` with the loss sums; a bet
-  that would cross the limit is refused `spending_limit`), or keep them informational?]
+  enforces them at bet time (settled 2026-10-25): the wallet asks `may-bet` with the loss sums and a
+  bet that would cross a limit is refused `spending_limit` (FR-010).
 - Q: What happens to a deposit the limit refuses, now that it is refused before credit? → A: The
-  money is with the provider; `merchant` sees a final refusal and refunds (spec 004). [NEEDS
-  CLARIFICATION: Sheldon — automatic refund, or held for an operator who may credit it after
-  review, since some regulators read "refuse" as "do not credit" and a refund fee is the
-  operator's?]
+  money is with the provider; `merchant` sees a final refusal and refunds (spec 004), and the player
+  is told (FR-013). Settled 2026-10-25: automatic, not held for an operator; a refund fee is the
+  operator's cost of a limit it let the provider reach.
 - Q: Fail open or closed? → A: Closed, everywhere. The original fails closed at login and launch,
   open at bet and deposit. A check this service cannot answer is a refusal, and the refusal says
   so.
@@ -131,6 +128,19 @@ Settled with specs 008–011 once they existed.
   `may-bet` before funding (spec 002 FR-022, FR-007a), `game-provider` asks `may-play` (spec 003
   FR-007), `players` asks `may-log-in` (spec 008 FR-011) and may pre-check `may-deposit` at initiation
   (spec 008 FR-043), and `merchant` treats a refusal as final (spec 004 FR-021).
+
+### Session 2026-10-25
+
+The markers left open for product and regulatory decisions, settled with Trevor before 008 is planned.
+
+- Q: After a period exclusion ends, how does the player return? → A: They ask, and are reinstated
+  24 hours later by a timer; an operator may record the request for them and the day still runs
+  (FR-020).
+- Q: Are loss limits enforced? → A: Yes, at bet time: the wallet's `may-bet` carries the loss sums
+  and a bet that would cross a limit is refused `spending_limit`; a limit a player can set but that
+  never applies is a liability (FR-010; spec 003 FR-012's step carries the sums spec 002 FR-030 gives it).
+- Q: A deposit refused at the limit, money already with the provider? → A: `merchant` refunds
+  automatically and the player is told; nothing waits on an operator (FR-013).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -157,7 +167,7 @@ profile after each step and after the timer fires.
 - added `features/responsible-gambling/limits.feature`: a session limit below the brand's minimum is refused naming the minimum
 - added `features/responsible-gambling/limits.feature`: a session limit at the brand's minimum is accepted
 - added `features/responsible-gambling/limits.feature`: a session limit that is not a positive whole number is refused
-- added `features/responsible-gambling/limits.feature`: a weekly loss limit shows with the losses of the last week and refuses no bet
+- added `features/responsible-gambling/limits.feature`: a weekly loss limit shows with the losses of the last week and refuses the bet that would cross it
 - added `features/responsible-gambling/limits.feature`: a limit change by the player is recorded in the history and published as a limit applied fact
 
 ---
@@ -235,9 +245,10 @@ facts after each.
 - added `features/responsible-gambling/breaks.feature`: a player excluding themselves permanently is excluded at once with every game session ended
 - added `features/responsible-gambling/breaks.feature`: an operator's exclusion shorter than 183 days is refused naming the minimum
 - added `features/responsible-gambling/breaks.feature`: an operator's exclusion of 183 days or permanent is accepted
-- added `features/responsible-gambling/breaks.feature`: a reinstatement before an exclusion's period ends is refused naming the end
-- added `features/responsible-gambling/breaks.feature`: a reinstatement after an exclusion's period ends is accepted and the player may sign in
-- added `features/responsible-gambling/breaks.feature`: a reinstatement of a permanently self-excluded player is refused
+- added `features/responsible-gambling/breaks.feature`: a request to return before an exclusion's period ends is refused naming the end
+- added `features/responsible-gambling/breaks.feature`: a request to return after an exclusion's period ends reinstates the player 24 hours later
+- added `features/responsible-gambling/breaks.feature`: an operator recording a player's request to return starts the same day's wait
+- added `features/responsible-gambling/breaks.feature`: a request to return from a permanently self-excluded player is refused
 - added `features/responsible-gambling/breaks.feature`: a player both excluded and on a break is answered with the exclusion
 - added `features/responsible-gambling/breaks.feature`: a break ending on a suspended player leaves them suspended
 
@@ -382,8 +393,13 @@ CRM events and exports RGCase twins.
   the realm reaches no other service, spec 001 FR-022): refused as excluded, else refused as cooling
   off naming the end, else allowed. Established from `RgStatusAuthenticator` and `PlayerRoutes`.
 - **FR-010**: The service MUST serve `may-bet` within the project for the wallet: refused as locked
-  for an excluded or cooling-off player, else allowed; loss limits take no part until decided
-  (Clarifications). Established from `St8Routes.isCoolingOff` and `isPlayerLocked`.
+  for an excluded or cooling-off player; else refused `spending_limit`, naming the limit and the
+  remaining allowance, when the stake would take the player's losses over 24 hours, 7 days or 30
+  days past a loss limit, from the loss sums the wallet carries in the request as FR-007's deposit
+  sums are carried; else allowed. Established from `St8Routes.isCoolingOff` and `isPlayerLocked`;
+  the loss-limit refusal is a **change from the original**, which sets and shows loss limits and
+  enforces nothing (Clarifications 2026-10-25). The `may-bet` step is spec 003 FR-012's; it carries
+  the sums spec 002 FR-030 gives it, so FR-011 holds and the gate calls nothing.
 - **FR-011**: Every check MUST answer from the service's own state and the figures the request
   carries, and MUST NOT call another service on the way; a check the service cannot answer MUST
   be answered unavailable, and every caller MUST treat unavailable as a refusal. **Change from the
@@ -395,8 +411,10 @@ CRM events and exports RGCase twins.
   `fetchUsedAmounts`; the 100-row truncation incident is the reason for exactness.
 - **FR-013**: A deposit refused under FR-007 MUST be refused by the wallet before any credit, MUST
   be reported to `merchant` as final with the reason and the remaining allowance, and MUST be
-  shown to the player in their currency; what `merchant` then does is spec 004's and the
-  Clarifications' open question. **Change from the original**, which credits and logs.
+  shown to the player in their currency; `merchant` MUST treat the refusal as final and refund
+  through the provider (spec 004), and the player MUST be told the deposit was refused and refunded,
+  with the reason and the remaining allowance: nothing waits on an operator and nothing is credited
+  past a limit. **Change from the original**, which credits and logs.
 
 **Breaks and exclusions**
 
@@ -424,11 +442,14 @@ CRM events and exports RGCase twins.
   or permanently, trigger operator, on this service's route — `players` has no exclusion action of
   its own (spec 008 FR-032) — with the same command to `players` as FR-018; a shorter period MUST be
   refused naming the minimum. Established from `BackofficePlayerRoutes.parseDays`.
-- **FR-020**: A period exclusion MUST NOT end by itself; reinstatement MUST be an operator's action,
-  refused before the period's end naming it, and refused always for a permanent exclusion; a
-  reinstatement MUST clear the exclusion and the break together, close the case, and tell
-  `players` to set the status active. **Change from the original**, whose reinstate leaves
-  `rg_is_cooling_off` set and whose period is written and never read.
+- **FR-020**: A period exclusion MUST NOT end by itself. After the period the player MUST be able
+  to ask to return, from their own routes or through an operator recording the request for them,
+  and the service MUST reinstate 24 hours after the request by a timer (UKGC's positive action plus
+  a day) — never sooner, whoever asks; a request before the period's end MUST be refused naming it,
+  and always for a permanent exclusion. A reinstatement MUST clear the exclusion and the break
+  together, close the case, and tell `players` to set the status active. **Change from the
+  original**, whose reinstate is an operator's at once, leaves `rg_is_cooling_off` set and whose
+  period is written and never read.
 - **FR-021**: An exclusion MUST take precedence over a break in every answer; both MUST remain on
   the profile.
 - **FR-022**: The casino realm's GAMSTOP authenticator MUST stay as the original has it, failing

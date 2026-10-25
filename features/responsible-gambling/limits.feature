@@ -59,11 +59,12 @@ Feature: A player sets, lowers, raises and removes a limit
       | -5    |
       | abc   |
 
-  Scenario: a weekly loss limit shows with the losses of the last week and refuses no bet
+  Scenario: a weekly loss limit shows with the losses of the last week and refuses the bet that would cross it
     Given a weekly loss limit of "500"
     When the player reads their profile
     Then it shows the limit and the losses of the last "7" days
-    And no bet is refused for it
+    And a bet that would take the week's losses past "500" is refused as "spending_limit" naming the remaining allowance
+    And a bet within it is allowed
 
   Scenario: a limit change by the player is recorded in the history and published as a limit applied fact
     Given any limit of the player
