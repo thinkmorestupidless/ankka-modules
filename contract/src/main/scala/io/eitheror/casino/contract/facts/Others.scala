@@ -17,9 +17,10 @@ sealed trait CasinoSessionsFact extends Fact:
 final case class GameSessionStarted(playerId: String, sessionId: String, gameId: String, playerSessionId: String,
     occurredAt: Instant) extends CasinoSessionsFact
 
+/** `close_reason` (spec 008 FR-022): `player`, `limit`, `forced`, `logout`, `expired`, `suspended`, `superseded`; optional, so readers of the first shape still read it. */
 @named("game_session_ended")
 final case class GameSessionEnded(playerId: String, sessionId: String, gameId: String, durationMinutes: Int,
-    occurredAt: Instant) extends CasinoSessionsFact
+    occurredAt: Instant, closeReason: Option[String] = None) extends CasinoSessionsFact
 
 /** The network address and user agent are personal (FR-023). */
 @named("player_session_started")

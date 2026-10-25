@@ -95,7 +95,7 @@ a plugin change in the original's repository and the installation's Keycloak ima
 | Item | Count |
 |---|---|
 | Player routes | 34 at 1 prefix (`PlayerEndpoint`), 3 at `SessionEndpoint` |
-| Operator routes | 36 at 1 prefix, including spec 021's two modules rows |
+| Operator routes | 34 at 1 prefix; spec 021's two modules routes at their own (`ModulesEndpoint`, `/v1/casino/brands/<slug>/modules`), a seventh endpoint |
 | Service routes | 10 at 1 prefix; realm routes 3; geo 1 |
 | Event sourced entities | 5 (player, player session, game session, message, fraud case; `LookupIndex` is key value) |
 | Key value entities | 5 (note, lookup index, brand config, currency config, allow-list) |

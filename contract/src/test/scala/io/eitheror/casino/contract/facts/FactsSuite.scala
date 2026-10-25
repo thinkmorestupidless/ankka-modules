@@ -85,6 +85,13 @@ class FactsSuite extends munit.FunSuite:
     assert(Set("session_id", "game_id", "duration_minutes").subsetOf(fields(CasinoSessions, "game_session_ended")))
   }
 
+  test("spec 008's additions: player_reopened has the status families' fields, and game_session_ended an optional close reason") {
+    def family(topic: Topic[?], name: String) = topic.families.find(_.name == name).getOrElse(fail(s"$name is missing"))
+    assertEquals(family(CasinoPlayers, "player_reopened").fields.map(_._1).toSet, family(CasinoPlayers, "player_closed").fields.map(_._1).toSet)
+    val reason = family(CasinoSessions, "game_session_ended").fields.toMap.get("close_reason")
+    assert(reason.exists(_.optional), s"close_reason must be optional, so the first shape's readers still read it: $reason")
+  }
+
   test("round_settled carries the provider's and the wallet's ids and the grant, keyed by the wallet (spec 003 FR-019)") {
     val family = CasinoRounds.families.find(_.name == "round_settled").get
     val fields = family.fields.toMap

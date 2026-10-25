@@ -33,6 +33,9 @@
     {
       "additionalProperties": true,
       "properties": {
+        "close_reason": {
+          "type": "string"
+        },
         "duration_minutes": {
           "type": "integer"
         },

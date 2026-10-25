@@ -79,18 +79,20 @@ logged (001 FR-023).
 | `GET /players/{playerId}/erasure` | the erasure's state: `correlationId`, `holdUntil`, `status` (`held` \| `applying` \| `erased`), each service's certificate | 200; 404 `erasure_not_found` |
 | `GET /players/{playerId}/verification-link` | the current link, only when `CASINO_REAL_MONEY=false` (R16) | 200; 404 on a real-money brand |
 | `GET`/`PUT /brand-config`, `GET`/`PUT /currency-config`, `GET`/`PUT /allow-list` | the three key value entities; bodies are data-model.md's fields in camelCase (`singleSession`, `multiAccountDetection`, `reportingZone`, `retentionDays`, `features`; `offered`; `countries`) | 200; 400 `invalid_config` naming the field |
-| `GET /modules`, `POST /modules/requests` | spec 021's rows, unchanged (below) | 200; 204; 400; 503 |
+| (none) | spec 021's two modules routes are served by `ModulesEndpoint`, below, not here | — |
 
-### The operator's modules page (spec 021)
+### `ModulesEndpoint` — `/v1/casino/brands/<slug>/modules` — `operator(slug)`: the operator's modules page (spec 021)
 
 These rows are spec 021's (`specs/021-core-and-modules/contracts/routes.md`), which `players` serves
 because it is the core's operator-facing service and the vendor's agent does not trust the `eitheror`
-realm.
+realm. Their paths are 021's and are checked by `tools/modules`' `ReadOnlyRoutesSuite`, so they keep
+the `/v1/casino/brands/{brand}` prefix and are a seventh endpoint of their own rather than rows of
+`OperatorEndpoint`.
 
 | Route | Class | Does | Answers |
 |---|---|---|---|
-| `GET /v1/casino/backoffice/{brand}/modules` | `operator(brand)` | calls the vendor's agent, inside the project by its certificate, at `GET /vendor/modules` and passes the answer through: modules with `status`, `version`, `follow` (channel or pin), each service's state, `lastChange`, `dataKeptUntil`; the open requests; the names of missing keys | 200; 503 `agent unreachable` |
-| `POST /v1/casino/backoffice/{brand}/modules/requests` | `operator(brand)` | body `{"module", "note"?}`; forwards to the agent's `POST /vendor/requests` with the operator's subject as `by` | 204; 400 unknown module; 503 |
+| `GET /v1/casino/brands/{brand}/modules` | `operator(brand)` | calls the vendor's agent, inside the project by its certificate, at `GET /vendor/modules` and passes the answer through: modules with `status`, `version`, `follow` (channel or pin), each service's state, `lastChange`, `dataKeptUntil`; the open requests; the names of missing keys | 200; 503 `agent unreachable` |
+| `POST /v1/casino/brands/{brand}/modules/requests` | `operator(brand)` | body `{"module", "note"?}`; forwards to the agent's `POST /vendor/requests` with the operator's subject as `by` | 204; 400 unknown module; 503 |
 
 Nothing else is served under `/modules`: no role on the installation enables, disables, pins or
 moves a module (spec 021 FR-013, SC-003). The `platform_admin` role is admitted as any operator is

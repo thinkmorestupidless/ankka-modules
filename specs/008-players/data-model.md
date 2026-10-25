@@ -17,7 +17,7 @@ once a journal holds them.
 | `trail` | Vector[AccountEvent] | every transition: `changeType`, `previousValue`, `newValue`, `actor` (`operator` \| `player` \| `system`), `actorId`, `reason`, `at` |
 | `profile` | Profile | below; every field `Personal` |
 | `locked` | Set[field] | the lock-once fields that hold a value (FR-024) |
-| `kycVerified` | Boolean | from `kyc_verified` / `kyc_rejected` facts; locks `CorrectDateOfBirth` (FR-025) |
+| `kycVerified` | Boolean | from `player_kyc_verified` / `player_kyc_rejected` facts; locks `CorrectDateOfBirth` (FR-025) |
 | `emails` | Vector[EmailAddress] | `address: Personal`, `verified`, `primary`, `addedAt`; exactly one primary (FR-026) |
 | `consents` | Consents | `emailMarketing`, `smsMarketing`: each `given`, `at`, `source`; `messagesSuppressed` (the operator's flag, FR-030) |
 | `cookieDecisions` | Map[deviceId, CookieDecision] | every field required; replaced on repeat (FR-028) |
@@ -164,7 +164,7 @@ with per-currency settings. `AllowList`: `countries: Set[String]` (empty = all).
 | `SessionsPublisher` | events of the two session entities | `casino.sessions` families |
 | `AuditPublisher` | operator actions' events | `platform.audit` records (spec 018 FR-001's shape) |
 | `RgLimitsConsumer` | `casino.players`, `StartFrom.Latest`, family `rg_limit_applied` | `PlayerEntity.SetSessionLimit`; reschedules the timers |
-| `KycFactsConsumer` | `casino.players`, `StartFrom.Latest`, families `kyc_verified`, `kyc_rejected` (spec 009) | `PlayerEntity.KycVerified` / `KycWithdrawn`: the date-of-birth lock |
+| `KycFactsConsumer` | `casino.players`, `StartFrom.Latest`, families `player_kyc_verified`, `player_kyc_rejected` (spec 009) | `PlayerEntity.KycVerified` / `KycWithdrawn`: the date-of-birth lock |
 | `WithdrawalsConsumer` | `casino.withdrawals`, `StartFrom.Latest` | `WithdrawalOpened` / `WithdrawalSettled` on the player (the erasure hold) |
 | `PushDeliveredConsumer` | `casino.push`, `StartFrom.Latest` | `MessageEntity.Delivered` |
 | `RewardsConsumer` | `casino.rewards`, `StartFrom.Latest`, `bonus_code_entered` | clears `pendingBonusCode` |

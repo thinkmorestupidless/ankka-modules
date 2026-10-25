@@ -51,7 +51,7 @@ deposit route (FR-043) belongs to no story and sits in Polish.
 Recordings section corrected, and the recording driver (which needs only Go and the original's
 checkout, not this service).
 
-- [ ] T001 Add to `contract/` (contracts/facts.md, additive): the family `player_reopened`
+- [X] T001 Add to `contract/` (contracts/facts.md, additive): the family `player_reopened`
       (`previous_value`, `new_value`, `actor`, `actor_id`, `reason`) in
       `contract/src/main/scala/io/eitheror/casino/contract/facts/CasinoPlayers.scala`; `superseded`
       as a close reason on `player_logged_out` there and on `player_session_ended` and
@@ -64,6 +64,15 @@ checkout, not this service).
       (`CasinoPlayersSuite`: the new family round-trips and the schema lists it; `RoutesSuite`:
       `playersOnly("goldvibe")` admits `players` and refuses `wallet`, a player and a staff token);
       `sbt contract/test contract/publishLocal`; every existing service's suites unchanged
+      *Done 2026-10-25*: `click_id` and `bonus_code` were already typed, and the close reasons of
+      `player_logged_out` and `player_session_ended` are free strings, so `superseded` needed nothing;
+      `game_session_ended` gained an optional `close_reason` (FR-022 names it). `Routes.playersOnly`
+      takes no slug (`Callers.service("players")` admits the caller's own project), and
+      `Routes.serviceOf(names*)` was added for the service endpoint's per-caller routes. The contract's
+      families differ from the first facts.md in places (consent per channel, `fraud_case_id` and
+      `signal`, `send_class`); facts.md now follows the contract. Spec 021's two modules routes keep
+      their `/v1/casino/brands/{brand}/modules` paths (`tools/modules`' `ReadOnlyRoutesSuite` checks
+      them), so they are a seventh endpoint, `ModulesEndpoint`. `just test`: contract 193, modules 153.
 - [ ] T002 Create `services/players/` on `services/wallet/`'s template: `build.sbt` on Scala 3.9.0
       with ankka 0.13.0 (`ankka-sdk`, `ankka-runtime`, `ankka-http`, `ankka-auth-oidc`,
       `ankka-telemetry-otlp`, `ankka-testkit`), `io.eitheror:casino-contract` from the local publish,
@@ -262,8 +271,8 @@ parity task and can run the moment T005 and the original's stack are up.
 - [ ] T018 [P] `p-test/facts/ConsumersSuite.scala` (`ConsumerTestKit`): `rg_limit_applied` for
       `SESSION_MINUTES` → `PlayerEntity.SetSessionLimit(minutes)` and, for each open game session
       the entity answers, a `SessionLimits` timer rescheduled by name (a session over the new limit
-      ends at once); any other `rg_limit_applied` kind → nothing; `kyc_verified` →
-      `PlayerEntity.KycVerified`, `kyc_rejected` → `KycWithdrawn`; `casino.withdrawals` requested →
+      ends at once); any other `rg_limit_applied` kind → nothing; `player_kyc_verified` →
+      `PlayerEntity.KycVerified`, `player_kyc_rejected` → `KycWithdrawn`; `casino.withdrawals` requested →
       `WithdrawalOpened`, settled or failed → `WithdrawalSettled`; `push_delivered` →
       `MessageEntity.Delivered`; `bonus_code_entered` → `ClearPendingBonusCode`; a fact the codec
       cannot read is logged and skipped

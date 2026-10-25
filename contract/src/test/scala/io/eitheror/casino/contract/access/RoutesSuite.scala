@@ -132,6 +132,22 @@ class RoutesSuite extends munit.FunSuite:
       case Right(_) => fail("served another brand")
   }
 
+  test("the routes every brand service serves players admit players of this brand and nothing else (spec 008)") {
+    assertEquals(outcome(Routes.playersOnly, Request(caller = Caller.Service("goldvibe", "players"))), Outcome.Served)
+    assert(outcome(Routes.playersOnly, Request(caller = Caller.Service("spinvibe", "players"))).isInstanceOf[Outcome.Refused], "another brand's players")
+    assert(outcome(Routes.playersOnly, Request(caller = Caller.Service("goldvibe", "wallet"))).isInstanceOf[Outcome.Refused], "another service")
+    assert(outcome(Routes.playersOnly, Request(token = Some(playerOf("goldvibe")))).isInstanceOf[Outcome.Refused], "a player")
+    assert(outcome(Routes.playersOnly, Request(token = Some(operatorWith("brand_goldvibe")))).isInstanceOf[Outcome.Refused], "an operator")
+  }
+
+  test("a service route served to named callers admits each of them and no other service of the project") {
+    val acl = Routes.serviceOf("kyc", "responsible-gambling")
+    assertEquals(outcome(acl, Request(caller = Caller.Service("goldvibe", "kyc"))), Outcome.Served)
+    assertEquals(outcome(acl, Request(caller = Caller.Service("goldvibe", "responsible-gambling"))), Outcome.Served)
+    assert(outcome(acl, Request(caller = Caller.Service("goldvibe", "game-provider"))).isInstanceOf[Outcome.Refused])
+    assert(outcome(acl, Request(caller = Caller.Gateway)).isInstanceOf[Outcome.Refused])
+  }
+
   test("a signed-in recipe refuses an ACL that cannot authenticate") {
     intercept[IllegalArgumentException](Routes.player("goldvibe", com.thinkmorestupidless.ankka.http.Acl.AllowAll))
   }
