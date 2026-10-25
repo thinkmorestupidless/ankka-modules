@@ -144,17 +144,20 @@ players-it:
 
 # players, locally on 9003 as brand goldvibe (`sbt schema && docker compose up -d` in services/players
 # first: Postgres on 5435 and the brand's Keycloak on 8080). The services it calls are the fakes
-# (`sbt "Test/runMain io.eitheror.casino.players.it.fakes"` in services/players) on 9010–9015.
+# (`sbt "Test/runMain io.eitheror.casino.players.it.fakes"` in services/players): responsible-gambling
+# 9011, kyc 9012, engagement 9013, ingest 9014, wallet 9015, ip-api 9016, the vendor's agent 9017
+# (FakeRealm on 9010 stands in for Keycloak when KEYCLOAK_URL points at it).
 players-run:
     cd services/players && ANKKA_HTTP_PORT=9003 ANKKA_DB_PORT=5435 CASINO_BRAND=goldvibe CASINO_REAL_MONEY=false \
       KEYCLOAK_URL=http://127.0.0.1:8080 PLAYER_SITE_BASE=http://localhost:3000 \
+      INGEST_URL=http://127.0.0.1:9014 GEO_URL=http://127.0.0.1:9016 \
       ANKKA_AUTH_ISSUERS=player ANKKA_AUTH_REALM=casino-goldvibe ANKKA_AUTH_PLAYER_AUDIENCE=account \
       ANKKA_AUTH_PLAYER_ISSUER=http://127.0.0.1:8080/realms/casino-goldvibe \
       ANKKA_AUTH_PLAYER_JWKS_URL=http://127.0.0.1:8080/realms/casino-goldvibe/protocol/openid-connect/certs \
-      sbt -Dankka.local-services.responsible-gambling=http://127.0.0.1:9010 \
-        -Dankka.local-services.kyc=http://127.0.0.1:9011 -Dankka.local-services.engagement=http://127.0.0.1:9012 \
-        -Dankka.local-services.ingest=http://127.0.0.1:9013 -Dankka.local-services.wallet=http://127.0.0.1:9014 \
-        -Dankka.local-services.merchant=http://127.0.0.1:9015 run
+      sbt -Dankka.local-services.responsible-gambling=http://127.0.0.1:9011 \
+        -Dankka.local-services.kyc=http://127.0.0.1:9012 -Dankka.local-services.engagement=http://127.0.0.1:9013 \
+        -Dankka.local-services.wallet=http://127.0.0.1:9015 -Dankka.local-services.merchant=http://127.0.0.1:9015 \
+        -Dankka.local-services.vendor-agent=http://127.0.0.1:9017 run
 
 # The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
 psp-stub gateway="http://localhost:9001":

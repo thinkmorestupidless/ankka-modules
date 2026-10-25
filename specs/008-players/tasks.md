@@ -404,7 +404,7 @@ parity task and can run the moment T005 and the original's stack are up.
       `FakeGeo` is silent
       *Done 2026-10-25.* Plus a settled round reaching both plain views, and another brand's player
       token refused `403` on the player routes.
-- [ ] T026 [P] Write `p-test/port/Parity.scala` (the replay over `contract.port.Replay.run` through
+- [X] T026 [P] Write `p-test/port/Parity.scala` (the replay over `contract.port.Replay.run` through
       `WireTranslation`; `divergences` as a named list, empty until each story names its own;
       `vary` fields compared for presence; `setup:`/`observe:` steps run, not compared),
       `p-test/port/ParitySuite.scala` (one test per `tests/port/players/*.json`, named after the
@@ -414,18 +414,21 @@ parity task and can run the moment T005 and the original's stack are up.
       feature file (`RegistrationFeatures`, `SessionsFeatures`, `ProfileFeatures`, `StatusFeatures`,
       `DuplicatesFeatures`, `ErasureFeatures`), each listing every scenario of its file with a
       pending step so the suite reports 63 scenarios unbound
-- [ ] T027 [P] Write `p-test/it/LeakSuite.scala`'s frame (SC-006): the marker values (a display
+      *Done 2026-10-25. The six suites report 73 ignored pickles, not 63: the outlines expand per example row. `ParitySuite` reports one ignored test while tests/port/players is empty; `CoverageSuite` reports each Divergences row as unhit. `Parity.ours` decides which recorded steps are this service's and answers the rest as recorded.*
+- [X] T027 [P] Write `p-test/it/LeakSuite.scala`'s frame (SC-006): the marker values (a display
       name, a given and family name, a date of birth, an address, a telephone, a bank account, a
       network address, a user agent, a device fingerprint, a password, a note's text, a message
       body) and `assertNowhere(markers)` over `Kit.tables`, every view's rows, every fact on every
       topic, every audit record, every operator answer and `Kit.log`; the registration case written
       here (a registration with every marker; after it the password and nothing from the body is in
       the log, no marker is in any fact but as a `Personal` field, and no marker is in the audit
-      records); the rest filled by T081
-- [ ] T028 Confirm the kit, the shells and the listings: `sbt compile test` green for T006–T025;
+      records); the rest filled by T069 (erasure) and T072 (deposit)
+      *Done 2026-10-25. Facts are checked outside their personal fields (`PersonalFields.names`, snake case); the registration case accepts `201` or `501` so it holds before and after T030.*
+- [X] T028 Confirm the kit, the shells and the listings: `sbt compile test` green for T006–T025;
       `ParitySuite` reports ignored (no recording yet); the six `GherkinSuite`s report every
       scenario pending; `LeakSuite`'s registration case passes against the shells (nothing leaks
       from a `501`); `CoverageSuite` names plan.md's divergences as unhit
+      *Done 2026-10-25. `sbt test`: 138 passed, 92 ignored. The service also starts locally (`sbt run` against compose Postgres, the player issuer set as `just players-run` does): every component registers, geo answers nulls with no geo service, a register answers `501`, `/me` without a token `401`, and the reconciler runs and logs the realm unavailable when its secret is missing. Compose Keycloak was skipped: port 8080 is held by the kind control-plane ingress.*
 - [ ] T029 Run the recording: the original's KinD stack up (`tests/original/README.md`;
       `kubectl --context kind-…` only), `tests/original/preflight -players`, `go test -tags e2e
       ./original/players-driver/...` twice, `tests/original/recorder` over the four
@@ -967,6 +970,9 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       secret names under `secrets`, and the `vendor-agent` and `ingest` reach it needs (the shared
       `payments` grant for `merchant`'s erasure route under `grants.made` if not already there);
       `brands/_realm/casino-template.json` gains the `eitheror_twin_id` mapper if missing (**verify
+      at task time**), the confidential client `players-admin` with a service account holding
+      `realm-management`'s `manage-users`, `view-users` and `view-clients` (T020's `KeycloakRealm` takes its
+      admin token by client credentials on the brand realm; the template has no such client today),
       at task time**), the three realm attributes `players_url`, `players_realm_secret`,
       `players_webhook_secret`, and the audit listener pointed at the brand's `players`;
       `brands/goldvibe/values.json` the values; `just modules validate` and `just modules render
