@@ -203,6 +203,17 @@ final class Kit(base: Settings = Kit.Base):
   /** Every row of a view's table, as its payload text. */
   def rows(table: String): Vector[String] = Kit.query(testKit.jdbcUrl, s"SELECT payload FROM $table")
 
+  /** Whole seconds until the timer named is due, by the database's clock; none when no such timer. */
+  def timerDueIn(name: String): Option[Long] =
+    Kit.query(testKit.jdbcUrl, s"SELECT CAST(EXTRACT(EPOCH FROM (due_at - now())) AS bigint) FROM ankka_timers WHERE timer_name = '$name'")
+      .headOption.map(_.toLong)
+
+  /** The timer named, due now: the clock stepped past it, as far as the timer runtime is concerned. */
+  def fireTimer(name: String): Unit =
+    val c = java.sql.DriverManager.getConnection(testKit.jdbcUrl, "ankka", "ankka")
+    try c.createStatement().executeUpdate(s"UPDATE ankka_timers SET due_at = now() WHERE timer_name = '$name'"): Unit
+    finally c.close()
+
   /** Every table of the service's database, each row as text: what `LeakSuite` searches. */
   def tables: Map[String, Vector[String]] =
     Kit.query(testKit.jdbcUrl, "SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'")

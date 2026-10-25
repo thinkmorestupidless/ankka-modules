@@ -55,6 +55,7 @@ object PlayersService:
     MessageAudit.descriptor,
     NoteAudit.descriptor,
     FraudCaseAudit.descriptor,
+    GameSessionAudit.descriptor,
     RgLimitsConsumer.descriptor,
     KycFactsConsumer.descriptor,
     WithdrawalsConsumer.descriptor,

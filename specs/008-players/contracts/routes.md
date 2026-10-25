@@ -47,7 +47,7 @@ logged (001 FR-023).
 |---|---|---|
 | `GET /players/{playerId}` | `SessionsView` by player (the original's `GET ?playerId=`) | 200; 403 `player_id_mismatch` |
 | `GET /{sessionId}` | the session | 200; 404 `session_not_found` (another player's too) |
-| `PATCH /{sessionId}/end` | `GameSessionEntity.End(player)`, `PlayerEntity.GameSessionEnded`; idempotent | 200 `{sessionId, durationMinutes}`; 404 |
+| `PATCH /{sessionId}/end` | `GameSessionEntity.End(player)`, `PlayerEntity.GameSessionEnded`; idempotent | 200 `{status: completed, sessionId, durationMinutes}`; 403 `player_id_mismatch` (another player's, as the original); 404 |
 
 `POST /launch` is spec 003's (`game-provider`) and is not served here.
 
@@ -68,7 +68,7 @@ logged (001 FR-023).
 | `POST /players/{playerId}/reopen` | body `reason`; `Reopen`; enable the realm user | 200; 409 `not_closed`; 409 `hold_lapsed` |
 | `PUT /players/{playerId}/vip-tier`, `PUT /players/{playerId}/pot-vip` | `SetVipTier` (previous read first), `SetPotVip` (writes a note) | 200 `{vipTier}` |
 | `POST /players/{playerId}/reset-password` | the realm's reset link | 200; 404 `player_not_found` |
-| `POST /players/{playerId}/sessions/{sessionId}/force-end`, `POST /players/{playerId}/sessions/force-end-all` | `GameSessionEntity.End(forced)`; `SessionEndWorkflow(forced)` for each open player session | 200 `{ended}` |
+| `POST /players/{playerId}/sessions/{sessionId}/force-end`, `POST /players/{playerId}/sessions/force-end-all` | `GameSessionEntity.End(forced)` with the operator as the actor (audited by `GameSessionAudit`); force-end-all ends every open game session, not the player sessions, as the original | 200 `{sessionId, status: ended}`; 404 `session_not_found`; 200 `{ended}` |
 | `POST /players/{playerId}/notes`, `PATCH /players/{playerId}/notes/{noteId}/pin`, `/unpin` | `NoteEntity` | 201; 200 |
 | `GET /players/{playerId}/messages`, `POST /players/{playerId}/messages` | `MessagesView`; `MessageEntity.Created` (origin `operator`), merge tags rendered | 200; 201; 422 `unknown_merge_tag` + `tag`; 422 `category_required`; 422 `marketing_suppressed`; 422 `account_closed`; 404 `player_not_found` |
 | `GET /merge-tags`, `POST /messages/preview` | the merge tags; a render | 200; 422; 404 |

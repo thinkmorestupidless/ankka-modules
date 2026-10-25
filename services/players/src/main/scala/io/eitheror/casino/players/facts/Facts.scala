@@ -146,6 +146,18 @@ object Facts:
         Vector(named("text"), f.AuditChange("pinned", None, Some(state.pinned.toString))),
         state.updatedAt.orElse(state.createdAt).getOrElse(Instant.EPOCH))))
 
+  /**
+   * A game session ended by force (FR-021): the operator, or the support agent's approval, that forced it.
+   * The subject is the player; the session is named, it is not personal.
+   */
+  def gameSessionAudit(brand: String, sessionId: String, sequence: Long, event: GameSessionEvent): Option[Published[f.AuditRecord]] =
+    event match
+      case e: GameSessionEvent.Ended if e.reason == "forced" && e.actorId.nonEmpty =>
+        Some(record(brand, eventId("audit/game-session", sessionId, sequence),
+          Action("force-end", e.actorId.get, "player", e.playerId, Some("forced"),
+            Vector(f.AuditChange("gameSession", Some(sessionId), None), change("status", "active", "ended")), e.at)))
+      case _ => None
+
   /** An operator's review or dismissal of a suspected duplicate. */
   def fraudAudit(brand: String, caseId: String, sequence: Long, event: FraudCaseEvent): Option[Published[f.AuditRecord]] =
     val action = event match

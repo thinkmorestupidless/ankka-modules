@@ -627,7 +627,7 @@ scenarios; the driver's launch and end recordings.
 
 ### Tests for User Story 3
 
-- [ ] T044 [P] [US3] Extend `p-test/it/SessionsSuite.scala` (game cases; FR-016 to FR-022, SC-003):
+- [X] T044 [P] [US3] Extend `p-test/it/SessionsSuite.scala` (game cases; FR-016 to FR-022, SC-003):
       a service token for `game-provider` opening a session for an active signed-in player → `201
       {sessionId}`, the `GameSessionEntity` under the player session, `game_session_started` with
       `game_id` and `player_session_id`; for a suspended player → `403 account_restricted` naming it;
@@ -645,17 +645,20 @@ scenarios; the driver's launch and end recordings.
       directly) each end every open game session with their reason within 5 s, before
       `player_logged_out` (fact order on the broker); game session open makes no outbound call
       (SC-007)
-- [ ] T045 [P] [US3] Bind the nine game scenarios of `features/players/sessions.feature` in
+      *Done 2026-10-25.* Eight game cases in `SessionsSuite`. The limit timer is read and fired through `ankka_timers` (`Kit.timerDueIn`, `Kit.fireTimer`) because the timer runtime runs on the wall clock, not the kit's. A player token on the service route is `403`. Fact order across `casino.sessions` and `casino.players` is not asserted: the broker orders within a topic only. The suspension case waits for US5's route.
+- [X] T045 [P] [US3] Bind the nine game scenarios of `features/players/sessions.feature` in
       `p-test/features/SessionsFeatures.scala`; "the timer fires" steps the clock; "one session at a
       time" sets `brand-config`
+      *Done 2026-10-25.* All nine game pickles bound; `closed` now runs in both outlines (`Close` exists), `blocked` stays skipped (migration only).
 - [ ] T046 [US3] Confirm `ParitySuite` lists the driver's launch and session recordings as failing;
       name the divergences (`/launch` recorded on the original's sessions route replays through
       `ServiceEndpoint`'s `POST /{playerId}/game-sessions` with a service token, the translation
       named; `?playerId=` translated). Needs T029
+      *Open 2026-10-25:* waits on T029 (the recordings).
 
 ### Implementation for User Story 3
 
-- [ ] T047 [US3] Implement `p/sessions/SessionLimits.scala` (the timed action `end(sessionId)`:
+- [X] T047 [US3] Implement `p/sessions/SessionLimits.scala` (the timed action `end(sessionId)`:
       `GameSessionEntity.End(limit)`, `PlayerEntity.GameSessionEnded`; `schedule(sessionId, minutesLeft)`
       and `reschedule` by name through `TimerScheduler.createSingleTimer`, as merchant's timed
       actions are wired) and wire `RgLimitsConsumer` (T019) to it; fill `ServiceEndpoint`'s `POST
@@ -663,10 +666,12 @@ scenarios; the driver's launch and end recordings.
       → the minutes left; `GameSessionEntity.Open`; `PlayerSessionEntity.AddGameSession`; the timer
       when a limit is set), `GET /{playerId}/status` (for `game-provider` and `support-agent`),
       `GET /{playerId}/game-sessions` and `POST /game-sessions/{sessionId}/end` (for `support-agent`)
-- [ ] T048 [US3] Fill `SessionEndpoint` (`GET /players/{playerId}`, `GET /{sessionId}` with the
+      *Done 2026-10-25.* `SessionLimits` and the consumer's rescheduling were already in place from the foundation; this filled the four service routes in `api/GameSessionRoutes.scala`, each under `Routes.serviceOf` naming its callers.
+- [X] T048 [US3] Fill `SessionEndpoint` (`GET /players/{playerId}`, `GET /{sessionId}` with the
       ownership check, `PATCH /{sessionId}/end` idempotent) and `OperatorEndpoint`'s
       `POST /players/{playerId}/sessions/{sessionId}/force-end` and `sessions/force-end-all` (each
       an audit record through `AuditPublisher`); T044–T046 green
+      *Done 2026-10-25.* Follows the original where routes.md differed (amended there): `PATCH /end` answers `{status: completed, sessionId, durationMinutes}` and another player's session is `403 player_id_mismatch`; force-end answers `{sessionId, status: ended}` and force-end-all ends game sessions only, `{ended}`. The operator is carried on `GameSessionEvent.Ended` as `actorId` and audited by a new `GameSessionAudit` consumer.
 
 **Checkpoint**: a launch opens a session with its timer; every end reason works and cascades within
 5 s; the game scenarios pass; the launch recordings replay with the named translation.

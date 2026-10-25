@@ -5,25 +5,17 @@ import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.config.{BrandConfig, BrandConfigEntity}
 import io.eitheror.casino.players.it.Reply
-import io.eitheror.casino.players.player.{PlayerEntity, PlayerState, SessionId, SetSelfExcluded, Suspend}
+import io.eitheror.casino.players.player.{Actor, Close, PlayerEntity, PlayerState, SessionId, SetSelfExcluded, Suspend}
 import io.eitheror.casino.players.sessions.*
 
 import java.util.UUID
 
 /**
- * features/players/sessions.feature: US2's sign-in scenarios (T039). The game session scenarios are
- * US3's (T045) and stay pending until it binds them.
+ * features/players/sessions.feature: US2's sign-in scenarios (T039) and US3's game session scenarios
+ * (T045). A `blocked` player is skipped: only the migration (spec 019) sets that status.
  */
 class SessionsFeatures extends PlayersFeatures("sessions.feature"):
-  protected def pending = Vector(
-    "a game session opened at launch for an active verified player is recorded under the player session",
-    "a game session asked for a restricted or closed player is refused naming the status",
-    "a game session's timer is set from the minutes left of the session limit",
-    "a game session whose timer fires ends with reason limit",
-    "a player ending a game session records its end time and duration, and ending it again changes nothing",
-    "an operator ending a game session by force ends it with reason forced and is named in the audit record",
-    "a player reading their sessions sees their own and nobody else's"
-  ).map(_ -> "T045 (pending)").toMap
+  protected def pending = Map.empty
 
   private var email    = ""
   private var playerId = ""
@@ -65,6 +57,8 @@ class SessionsFeatures extends PlayersFeatures("sessions.feature"):
       kit.components.forEventSourcedEntity(PlayerEntity.id(playerId)).call(PlayerEntity.suspend).invoke(Suspend("feature", Some("op-1"), kit.now())): Unit
     case "self-excluded" =>
       kit.components.forEventSourcedEntity(PlayerEntity.id(playerId)).call(PlayerEntity.setSelfExcluded).invoke(SetSelfExcluded(None, kit.now())): Unit
+    case "closed" =>
+      kit.components.forEventSourcedEntity(PlayerEntity.id(playerId)).call(PlayerEntity.close).invoke(Close(Actor.Operator, Some("op-1"), "feature", kit.now())): Unit
     case other =>
       assume(false, s"$other is set only by the migration (spec 019): no command of this service sets it")
 
@@ -199,4 +193,123 @@ class SessionsFeatures extends PlayersFeatures("sessions.feature"):
   Then("the second is the player's open session") { () => assertEquals(player.openPlayerSessions, Set(sessions(1))) }
   Then("both player sessions are open") { () =>
     assertEquals(sessions.map(session(_).status), Vector(SessionStatus.Active, SessionStatus.Active))
+  }
+
+  // ── game sessions (US3) ────────────────────────────────────────────────────────────────────────
+
+  private var gameId = ""
+  private var other  = ""
+
+  private def launch(forPlayer: String = playerId, under: Option[String] = sessions.lastOption): Reply =
+    kit.json("POST", kit.servicePath(s"/$forPlayer/game-sessions"),
+      Json.obj("gameId" -> "g-9", "currency" -> "EUR", "playerSessionId" -> under), kit.asService("game-provider"))
+
+  private def opened(): String =
+    reply = launch()
+    assertEquals(reply.status, 201, reply.text)
+    gameId = reply.str("sessionId")
+    gameId
+
+  private def limitOf(minutes: Long): Unit =
+    kit.publish(CasinoPlayers, playerId, RgLimitApplied(playerId, "SESSION_MINUTES", None, Some(minutes), "player", kit.now()))
+    kit.eventually("the limit")(Option.when(player.sessionLimitMinutes.contains(minutes.toInt))(()))
+
+  private def endMine(id: String): Reply = kit.request("PATCH", kit.sessionPath(s"/$id/end"), Some("{}"), kit.asToken(token))
+
+  private def gameEnded(id: String) =
+    kit.facts(CasinoSessions).collect { case f: GameSessionEnded if f.sessionId == id => f }
+
+  Given("the player is active and verified with a player session") { () => active(); signIn() }
+  When("the game provider asks to open a game session for a game and the player's currency") { () => opened(): Unit }
+  Then("a game session opens under the player session recording the game, the start time and the currency") { () =>
+    val g = game(gameId)
+    assertEquals((g.playerSessionId, g.gameId, g.currency, g.startedAt.isDefined), (sessions.last, "g-9", "EUR", true))
+    assert(session(sessions.last).gameSessions.contains(gameId))
+  }
+  Then("a {string} fact is produced") { (name: String) =>
+    name match
+      case "game_session_started" =>
+        kit.eventually(name)(kit.facts(CasinoSessions).collectFirst { case f: GameSessionStarted if f.sessionId == gameId => f })
+      case "game_session_ended" => kit.eventually(name)(gameEnded(gameId).headOption)
+      case other                => fail(s"no binding for the fact $other")
+  }
+  Then("the id is returned") { () => assertEquals((reply.status, reply.str("sessionId")), (201, gameId)) }
+
+  When("the game provider asks to open a game session") { () => reply = launch(under = None) }
+  Then("it is refused naming the status") { () =>
+    assertEquals((reply.status, reply.str("error"), reply.str("reason")), (403, "account_restricted", player.status), reply.text)
+  }
+
+  Given("the player has a session limit of {string} minutes and {string} already used today") { (limit: String, used: String) =>
+    active(); signIn()
+    val first = opened()
+    kit.advance(java.time.Duration.ofMinutes(used.toLong))
+    assertEquals(endMine(first).status, 200)
+    limitOf(limit.toLong)
+  }
+  When("a game session opens") { () => opened(): Unit }
+  Then("its timer is set for {string} minutes") { (minutes: String) =>
+    val due = kit.timerDueIn(SessionLimits.name(gameId)).getOrElse(fail("no timer"))
+    assert(due > minutes.toLong * 60 - 10 && due <= minutes.toLong * 60, s"due in $due s")
+  }
+
+  Given("an open game session whose timer was set for {string} minutes") { (minutes: String) =>
+    active(); signIn(); limitOf(minutes.toLong); opened()
+    games = Vector(minutes)
+  }
+  When("the timer fires") { () =>
+    kit.advance(java.time.Duration.ofMinutes(games.head.toLong))
+    kit.fireTimer(SessionLimits.name(gameId))
+  }
+  Then("the game session ends with reason {string}") { (reason: String) =>
+    kit.eventually(s"ended $reason", scala.concurrent.duration.Duration(5, "s"))(Option.when(game(gameId).endReason.contains(reason))(()))
+  }
+  Then("the {string} fact says so") { (name: String) =>
+    assertEquals(name, "game_session_ended")
+    assertEquals(kit.eventually(name)(gameEnded(gameId).headOption).closeReason, game(gameId).endReason)
+  }
+
+  Given("an open game session") { () => active(); signIn(); opened(): Unit }
+  When("the player ends it") { () =>
+    kit.advance(java.time.Duration.ofMinutes(2))
+    reply = endMine(gameId)
+  }
+  Then("it records the end time and the duration in whole minutes") { () =>
+    val g = game(gameId)
+    assertEquals((reply.status, g.endedAt.isDefined, g.durationMinutes, reply.json.get("durationMinutes").asLong), (200, true, Some(2L), 2L))
+  }
+  Then("ending it again changes nothing") { () =>
+    val before = game(gameId)
+    assertEquals(endMine(gameId).status, 200)
+    Thread.sleep(300)
+    assertEquals((game(gameId), gameEnded(gameId).size), (before, 1))
+  }
+
+  When("an operator of the brand ends it by force") { () =>
+    reply = kit.request("POST", kit.operatorPath(s"/players/$playerId/sessions/$gameId/force-end"), Some("{}"), kit.asOperator(subject = "op-9"))
+  }
+  Then("it ends with reason {string}") { (reason: String) => assertEquals(game(gameId).endReason, Some(reason)) }
+  Then("the audit record names the operator") { () =>
+    kit.eventually("the audit record")(kit.facts(PlatformAudit).collectFirst {
+      case f: AuditRecord if f.action == "force-end" && f.subjectId == playerId && f.actorId == "op-9" => f
+    })
+  }
+
+  Given("the player has game sessions and another player has one") { () =>
+    val (e, id) = kit.activePlayer()
+    val t       = kit.signIn(e).str("token")
+    other = launch(id, Some(kit.sessionOf(t))).str("sessionId")
+    active(); signIn()
+    games = Vector(opened(), opened())
+  }
+  When("the player reads their sessions") { () =>
+    reply = kit.eventually("both listed")(Option(kit.request("GET", kit.sessionPath(s"/players/$playerId"), None, kit.asToken(token)))
+      .filter(_.json.get("sessions").size == 2))
+  }
+  Then("they see their own sessions and nobody else's") { () =>
+    val ids = (0 until reply.json.get("sessions").size).map(reply.json.get("sessions").get(_).get("sessionId").asText).toSet
+    assertEquals(ids, games.toSet)
+  }
+  Then("the other player's session is answered {string}") { (code: String) =>
+    assertEquals(kit.request("GET", kit.sessionPath(s"/$other"), None, kit.asToken(token)).str("error"), code)
   }

@@ -106,6 +106,13 @@ final class NoteAudit extends AuditConsumer[NoteState]:
 object NoteAudit extends AuditCompanion[NoteAudit, NoteState]("note-audit", ChangeSource.stateOf(NoteEntity)):
   def create(ctx: ConsumerContext) = new NoteAudit
 
+final class GameSessionAudit extends AuditConsumer[GameSessionEvent]:
+  protected def audit(change: GameSessionEvent): Option[AuditRecord] =
+    Facts.gameSessionAudit(PlayersRuntime.settings.brand, messageContext.subject, messageContext.sequenceNumber, change).map(_.fact)
+
+object GameSessionAudit extends AuditCompanion[GameSessionAudit, GameSessionEvent]("game-session-audit", ChangeSource.eventsOf(GameSessionEntity)):
+  def create(ctx: ConsumerContext) = new GameSessionAudit
+
 final class FraudCaseAudit extends AuditConsumer[FraudCaseEvent]:
   protected def audit(change: FraudCaseEvent): Option[AuditRecord] =
     Facts.fraudAudit(PlayersRuntime.settings.brand, messageContext.subject, messageContext.sequenceNumber, change)

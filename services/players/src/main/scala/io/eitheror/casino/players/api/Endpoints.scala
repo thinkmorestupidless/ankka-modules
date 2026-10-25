@@ -62,15 +62,18 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/$
 final class SessionEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/sessions/${ctx.slug}"):
   val acl: Acl = Routes.player(ctx.slug, ctx.authenticate())
 
-  get("/players/{playerId}") { (_: String) => notYet("sessions by player") }
-  get("/{sessionId}") { (_: String) => notYet("session") }
-  patch("/{sessionId}/end") { (_: String) => notYet("session end") }
+  private val games = GameSessionRoutes(ctx)
+
+  get("/players/{playerId}") { (playerId: String) => games.mine(principal, playerId) }
+  get("/{sessionId}") { (sessionId: String) => games.one(principal, sessionId) }
+  patch("/{sessionId}/end") { (sessionId: String) => games.endMine(principal, sessionId) }
 
 /** `/v1/casino/backoffice/<slug>`: the brand's operators. */
 final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}"):
   val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
 
-  private val P = "/players/{playerId}"
+  private val P     = "/players/{playerId}"
+  private val games = GameSessionRoutes(ctx)
 
   get("/players") { () => notYet("players") }
   get(s"$P/profile") { (_: String) => notYet("operator profile") }
@@ -90,8 +93,8 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   put(s"$P/vip-tier") { (_: String) => notYet("vip-tier") }
   put(s"$P/pot-vip") { (_: String) => notYet("pot-vip") }
   post(s"$P/reset-password") { (_: String) => notYet("reset-password") }
-  post(s"$P/sessions/{sessionId}/force-end") { (_: String, _: String) => notYet("force-end") }
-  post(s"$P/sessions/force-end-all") { (_: String) => notYet("force-end-all") }
+  post(s"$P/sessions/{sessionId}/force-end") { (playerId: String, sessionId: String) => games.forceEnd(principal, playerId, sessionId) }
+  post(s"$P/sessions/force-end-all") { (playerId: String) => games.forceEndAll(principal, playerId) }
   post(s"$P/notes") { (_: String) => notYet("note") }
   patch(s"$P/notes/{noteId}/pin") { (_: String, _: String) => notYet("note pin") }
   patch(s"$P/notes/{noteId}/unpin") { (_: String, _: String) => notYet("note unpin") }
@@ -126,10 +129,18 @@ final class ModulesEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/players"):
   val acl: Acl = Routes.service()
 
-  get("/{playerId}/status") { (_: String) => notYet("status") }
-  post("/{playerId}/game-sessions") { (_: String) => notYet("game session open") }
-  get("/{playerId}/game-sessions") { (_: String) => notYet("game sessions") }
-  post("/game-sessions/{sessionId}/end") { (_: String) => notYet("game session end") }
+  private val games = GameSessionRoutes(ctx)
+
+  withAcl(Routes.serviceOf("game-provider", "support-agent")) {
+    get("/{playerId}/status") { (playerId: String) => games.status(playerId) }
+  }
+  withAcl(Routes.serviceOf("game-provider")) {
+    postBody("/{playerId}/game-sessions") { (playerId: String, text: String) => games.open(playerId, text) }
+  }
+  withAcl(Routes.serviceOf("support-agent")) {
+    get("/{playerId}/game-sessions") { (playerId: String) => games.history(playerId, query.raw("offset")) }
+    postBody("/game-sessions/{sessionId}/end") { (sessionId: String, text: String) => games.endByAgent(sessionId, text) }
+  }
   post("/{playerId}/suspend") { (_: String) => notYet("kyc suspend") }
   put("/{playerId}/exclusion") { (_: String) => notYet("exclusion") }
   delete("/{playerId}/exclusion") { (_: String) => notYet("exclusion lift") }
