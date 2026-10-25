@@ -537,11 +537,12 @@ it.
 
 ### Tests for User Story 2
 
-- [ ] T036 [P] [US2] `p-test/sessions/SessionEndWorkflowSuite.scala`: `games` ends each open game
+- [X] T036 [P] [US2] `p-test/sessions/SessionEndWorkflowSuite.scala`: `games` ends each open game
       session of the player session with the reason (an empty list passes through), `session` ends
       the player session, `player` tells the entity; the reason carried to every end; a step failing
       is retried; a second `start` with the same id answers the first outcome
-- [ ] T037 [P] [US2] `p-test/it/SessionsSuite.scala` (sign-in cases; FR-010 to FR-015, SC-003 for
+      *Done 2026-10-25.* Four cases on the integration kit. "A step failing is retried" is not tested: ankka 0.13 has no workflow testkit or fault injection; the steps carry `maxRetries(5)`.
+- [X] T037 [P] [US2] `p-test/it/SessionsSuite.scala` (sign-in cases; FR-010 to FR-015, SC-003 for
       logout): sign-in with the right password → `200` with `token`, `refreshToken`, `brandId`,
       `playerId`, `currency`, `country`, `pendingBonusCode` from registration; a `PlayerSessionEntity`
       with the realm session id, the `Personal` address, agent and fingerprint; `player_logged_in`
@@ -559,7 +560,8 @@ it.
       the realm and `FakeRg` once each at sign-in, nothing else; `brand-config` `singleSession true`
       → a second sign-in ends the first session `superseded` and its fact says so; `false` → both
       open
-- [ ] T038 [P] [US2] `p-test/it/RealmSuite.scala` (FR-008, FR-009, FR-013, SC-002, SC-004):
+      *Done 2026-10-25.* Nine cases, all as listed.
+- [X] T038 [P] [US2] `p-test/it/RealmSuite.scala` (FR-008, FR-009, FR-013, SC-002, SC-004):
       `POST /webhook` with the right secret and `LOGOUT` for a known realm session → `200 {ok}` and
       the session `completed`; `SESSION_EXPIRED` → `expired`; `LOGIN` → `200`, nothing changes but
       the gauge; another realm id or no session id → `200`, nothing; a wrong secret → `401`;
@@ -571,27 +573,32 @@ it.
       the reconciler: a session `FakeRealm` no longer lists ends `expired` within two intervals and
       `player_session_ended` says `expired`; `FakeRealm` silent for one tick → the next tick runs
       (the timer survives a failure)
-- [ ] T039 [P] [US2] Bind the nine sign-in scenarios of `features/players/sessions.feature` in
+      *Done 2026-10-25.* Six cases; may-sign-in measured p50 31.7 ms, p99 44.0 ms over 1,000 asks.
+- [X] T039 [P] [US2] Bind the nine sign-in scenarios of `features/players/sessions.feature` in
       `p-test/features/SessionsFeatures.scala`; "the realm asking" posts to `/may-sign-in`; "has
       gone idle" removes the session from `FakeRealm` and waits two intervals
+      *Done 2026-10-25.* Fifteen pickles bound; the game-session scenarios stay pending for T045. The outline's `blocked` and `closed` rows are skipped: no command of this service sets those statuses (only the migration, spec 019).
 - [ ] T040 [US2] Confirm `ParitySuite` lists the driver's sign-in, refresh, sign-out and webhook
       recordings as failing; name the divergences in `Parity.scala` (the token values `vary`; the
       webhook path translated; `401 unauthenticated` for the rejection page). Needs T029
+      *Open 2026-10-25:* waits on T029 (the recordings).
 
 ### Implementation for User Story 2
 
-- [ ] T041 [US2] Implement `p/sessions/SessionEndWorkflow.scala` (research R6; the games from
+- [X] T041 [US2] Implement `p/sessions/SessionEndWorkflow.scala` (research R6; the games from
       `SessionsView.openGameSessionsOf` filtered to the session, ended through `GameSessionEntity.End`
       and `PlayerEntity.GameSessionEnded`; then `PlayerSessionEntity.End`; then
       `PlayerEntity.SessionEnded`); T036 green
-- [ ] T042 [US2] Fill `PlayerEndpoint`'s `POST /login` (research R4's order: `Realm.directGrant`;
+      *Done 2026-10-25.* The games are read from the `PlayerSessionEntity`'s own `gameSessions`, not `SessionsView`, so the step reads what it just wrote rather than a lagging view.
+- [X] T042 [US2] Fill `PlayerEndpoint`'s `POST /login` (research R4's order: `Realm.directGrant`;
       the claims; `PlayerEntity.SignIn`; `Rg.mayLogIn` under `MAY_LOG_IN_BOUND`, `Unanswered` →
       `account_restricted`; `BrandConfig.singleSession` → `SessionEndWorkflow(superseded)` for each
       other open session, awaited; `PlayerSessionEntity.Open`; `PlayerEntity.SessionOpened`; the
       answer), `POST /refresh`, `POST /{playerId}/logout` (`SessionEndWorkflow(logout)` awaited
       under `SESSION_END_BOUND`, then `Realm.revokeSession`), and `Answers`' player-token check
       (`player_id_mismatch`, `missing_token`) applied to every player route
-- [ ] T043 [US2] Fill `RealmEndpoint`: `POST /webhook` (the secret; the realm id checked against
+      *Done 2026-10-25.* `lastSignInAt` is stamped by `SignIn` before the RG check, as R4 orders it; a refusal then stamps `lastRefusedSignInAt` too.
+- [X] T043 [US2] Fill `RealmEndpoint`: `POST /webhook` (the secret; the realm id checked against
       `casino-<slug>`; `SessionsView.byRealmSession`; `SessionEndWorkflow(logout | expired)` started,
       not awaited; always `200`), `POST /may-sign-in` (`PlayersView.search` by address → the entity's
       status; `Rg.mayLogIn` under `REALM_ANSWER_BOUND`; the answer), `POST /gamstop-refusal`
@@ -600,6 +607,7 @@ it.
       session not live, the OpenTelemetry gauge `players.active_sessions` set through
       `ankka-telemetry-otlp`; a failure logged and the next tick unaffected) scheduled by
       `PlayersService.started` as a recurring timer named `realm-reconcile`; T037–T040 green
+      *Done 2026-10-25.* `may-sign-in` finds the player through the registration workflow's outcome, else `PlayersView.find` with an exact primary-address match. The webhook reads `SessionsView.ofRealm`.
 
 **Checkpoint**: sign-in, refresh and sign-out work end to end against `FakeRealm`; the realm's
 authenticator is answered under 100 ms and fails closed; idle sessions expire; the sign-in

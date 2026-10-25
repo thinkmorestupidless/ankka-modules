@@ -144,6 +144,9 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
     else
       effects.persist(SignedIn(c.at)).thenReply(n => SignInAnswer(None, n.currency, n.profile.get("country"), n.pendingBonusCode))
 
+  /** A refusal after the entity served the sign-in (`may-log-in`, R4): stamps the refused attempt. */
+  def signInRefused(c: RefuseSignIn): Effect[Done] = effects.persist(SignInRefused(c.reason, c.at)).thenReply(_ => Done.changed)
+
   def sessionOpened(c: SessionId): Effect[OtherSessions] =
     val others = currentState.openPlayerSessions - c.sessionId
     if currentState.openPlayerSessions(c.sessionId) then effects.reply(OtherSessions(others))
@@ -374,6 +377,7 @@ object PlayerEntity
   given Serializer[Register]              = PlayersCodecs.serializer[Register]("register")
   given Serializer[RegisterAnswer]        = PlayersCodecs.serializer[RegisterAnswer]("register-answer")
   given Serializer[At]                    = PlayersCodecs.serializer[At]("at")
+  given Serializer[RefuseSignIn]          = PlayersCodecs.serializer[RefuseSignIn]("refuse-sign-in")
   given Serializer[Resend]                = PlayersCodecs.serializer[Resend]("resend")
   given Serializer[Done]                  = PlayersCodecs.serializer[Done]("done")
   given Serializer[SignIn]                = PlayersCodecs.serializer[SignIn]("sign-in")
@@ -417,6 +421,7 @@ object PlayerEntity
   val verificationSent      = command("verification-sent")(_.verificationSent)
   val verificationPending   = command("verification-pending")(_.verificationPending)
   val signIn                = command("sign-in")(_.signIn)
+  val signInRefused         = command("sign-in-refused")(_.signInRefused)
   val sessionOpened         = command("session-opened")(_.sessionOpened)
   val sessionEnded          = command("session-ended")(_.sessionEnded)
   val gameSessionOpened     = command("game-session-opened")(_.gameSessionOpened)

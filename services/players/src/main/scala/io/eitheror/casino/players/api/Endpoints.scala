@@ -16,11 +16,12 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/$
   val acl: Acl = Routes.player(ctx.slug, ctx.authenticate())
 
   private val registration = RegistrationRoutes(ctx)
+  private val sessions     = SessionRoutes(ctx)
 
   withAcl(Routes.public) {
     postBody("/register") { (text: String) => registration.register(text, request.header) }
-    post("/login") { () => notYet("login") }
-    post("/refresh") { () => notYet("refresh") }
+    postBody("/login") { (text: String) => sessions.login(text, request.header) }
+    postBody("/refresh") { (text: String) => sessions.refresh(text) }
     postBody("/verify-email") { (text: String) => registration.verifyEmail(text) }
     postBody("/resend-verification-email") { (text: String) => registration.resend(text) }
     post("/password-reset/request") { () => notYet("password-reset/request") }
@@ -31,7 +32,7 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/$
   }
 
   post("/password-change") { () => notYet("password-change") }
-  post("/{playerId}/logout") { (_: String) => notYet("logout") }
+  post("/{playerId}/logout") { (playerId: String) => sessions.logout(principal, playerId) }
   get("/{playerId}") { (_: String) => notYet("profile") }
   patch("/{playerId}") { (_: String) => notYet("profile edit") }
   post("/{playerId}/close") { (_: String) => notYet("close") }
@@ -141,9 +142,11 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 final class RealmEndpoint(ctx: Ctx) extends HttpEndpoint(s"/internal/realm/${ctx.slug}"):
   val acl: Acl = Routes.public
 
-  post("/webhook") { () => notYet("webhook") }
-  post("/may-sign-in") { () => notYet("may-sign-in") }
-  post("/gamstop-refusal") { () => notYet("gamstop-refusal") }
+  private val realm = RealmRoutes(ctx)
+
+  postBody("/webhook") { (text: String) => realm.webhook(text, request.header) }
+  postBody("/may-sign-in") { (text: String) => realm.maySignIn(text, request.header) }
+  postBody("/gamstop-refusal") { (text: String) => realm.gamstopRefusal(text, request.header) }
 
 /** `/v1/casino/geo`: the public lookup (FR-006), `null`s when it fails. */
 final class GeoEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/casino/geo"):

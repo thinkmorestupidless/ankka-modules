@@ -6,7 +6,7 @@ import io.eitheror.casino.players.fraud.FraudCaseEvent
 import io.eitheror.casino.players.inbox.{MessageEvent, MessageOrigin, NoteState}
 import io.eitheror.casino.players.player.{Actor, PlayerEvent, Profile, Status}
 import io.eitheror.casino.players.player.PlayerEvent.*
-import io.eitheror.casino.players.sessions.{GameSessionEvent, PlayerSessionEvent}
+import io.eitheror.casino.players.sessions.{EndReason, GameSessionEvent, PlayerSessionEvent}
 
 import java.time.Instant
 
@@ -74,7 +74,7 @@ object Facts:
   def logins(sessionId: String, sequence: Long, event: PlayerSessionEvent): Option[Published[f.CasinoPlayersFact]] =
     val fact: Option[f.CasinoPlayersFact] = event match
       case e: PlayerSessionEvent.Opened => Some(f.PlayerLoggedIn(e.playerId, sessionId, e.at))
-      case e: PlayerSessionEvent.Ended  => Option.when(e.playerId.nonEmpty)(f.PlayerLoggedOut(e.playerId, sessionId, e.reason, e.at))
+      case e: PlayerSessionEvent.Ended  => Option.when(e.playerId.nonEmpty)(f.PlayerLoggedOut(e.playerId, sessionId, EndReason.closeReason(e.reason), e.at))
       case _                            => None
     fact.map(Published(_, eventId("player-session-login", sessionId, sequence)))
 
@@ -83,7 +83,7 @@ object Facts:
   def playerSessions(sessionId: String, sequence: Long, event: PlayerSessionEvent): Option[Published[f.CasinoSessionsFact]] =
     val fact: Option[f.CasinoSessionsFact] = event match
       case e: PlayerSessionEvent.Opened => Some(f.PlayerSessionStarted(e.playerId, sessionId, e.networkAddress, e.userAgent, e.at))
-      case e: PlayerSessionEvent.Ended  => Option.when(e.playerId.nonEmpty)(f.PlayerSessionEnded(e.playerId, sessionId, e.reason, e.at))
+      case e: PlayerSessionEvent.Ended  => Option.when(e.playerId.nonEmpty)(f.PlayerSessionEnded(e.playerId, sessionId, EndReason.closeReason(e.reason), e.at))
       case _                            => None
     fact.map(Published(_, eventId("player-session", sessionId, sequence)))
 

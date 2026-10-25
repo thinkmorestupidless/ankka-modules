@@ -27,6 +27,7 @@ object PlayersService:
     LookupIndexEntity.descriptor,
     PendingRegistration.descriptor,
     RegistrationWorkflow.descriptor,
+    SessionEndWorkflow.descriptor,
     BrandConfigEntity.descriptor,
     CurrencyConfigEntity.descriptor,
     AllowListEntity.descriptor,
@@ -77,8 +78,9 @@ object PlayersService:
     )
 
   /** Once the service has started: the timers reachable from the consumers, and the realm's reconciler. */
-  def started(timers: TimerRuntime): Unit =
+  def started(timers: TimerRuntime, views: com.thinkmorestupidless.ankka.runtime.ViewClient): Unit =
     PlayersRuntime.timers = () => timers.timerScheduler
+    PlayersRuntime.views = () => views
     RealmReconcile.schedule(timers.timerScheduler)
 
 @main def run(): Unit =
@@ -99,6 +101,6 @@ object PlayersService:
     .withExtension(timers)
     .withExtension(HttpServer.of(PlayersService.endpoints(() => Oidc.authenticate())*))
     .start(name = "players") // the name the local console and `ankka mcp` list it under
-  PlayersService.started(timers)
+  PlayersService.started(timers, service.viewClient)
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

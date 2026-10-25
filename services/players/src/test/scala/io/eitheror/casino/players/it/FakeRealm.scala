@@ -35,6 +35,8 @@ final class FakeRealm(val slug: String, bind: Int = 0) extends FakeServer(bind):
   @volatile var silent: Boolean   = false
   @volatile var minPassword: Int  = 8
   @volatile var adminTokens: Int  = 0
+  /** Grants issue tokens with no `session_state` (a realm misconfigured), for `missing_token`. */
+  @volatile var withoutSession: Boolean = false
   private val refusals = ConcurrentHashMap[String, String]()
 
   /** The next grant for `address` is refused with Keycloak's `error_description`, e.g. "Account disabled". */
@@ -42,7 +44,7 @@ final class FakeRealm(val slug: String, bind: Int = 0) extends FakeServer(bind):
 
   def reset(): Unit =
     users.clear(); sessions.clear(); usedRefresh.clear(); refusals.clear(); clearReceived()
-    delayMillis = 0; silent = false; minPassword = 8; adminTokens = 0
+    delayMillis = 0; silent = false; minPassword = 8; adminTokens = 0; withoutSession = false
 
   def userByEmail(email: String): Option[User] = users.values.asScala.find(_.email.equalsIgnoreCase(email))
 
@@ -50,8 +52,10 @@ final class FakeRealm(val slug: String, bind: Int = 0) extends FakeServer(bind):
   def receivedOf(call: String): Vector[Received] = received.filter(r => FakeRealm.callOf(r).contains(call))
 
   private def tokenFor(u: User, s: Session): String =
-    FakeRealm.jwt(Json.obj("sub" -> u.id, "iss" -> s"https://auth.example/realms/$realm", "eitheror_twin_id" -> u.playerId,
-      "session_state" -> s.id, "email" -> u.email, "exp" -> (System.currentTimeMillis / 1000 + 300)))
+    val claims = Json.obj("sub" -> u.id, "iss" -> s"https://auth.example/realms/$realm", "eitheror_twin_id" -> u.playerId,
+      "session_state" -> s.id, "email" -> u.email, "exp" -> (System.currentTimeMillis / 1000 + 300))
+    if withoutSession then claims.remove("session_state"): Unit
+    FakeRealm.jwt(claims)
 
   private def tokens(u: User, s: Session) =
     Answer.ok(Json.obj("access_token" -> tokenFor(u, s), "refresh_token" -> s.refresh, "expires_in" -> 300L, "token_type" -> "Bearer"))

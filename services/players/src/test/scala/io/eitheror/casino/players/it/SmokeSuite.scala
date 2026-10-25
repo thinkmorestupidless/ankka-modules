@@ -26,12 +26,12 @@ class SmokeSuite extends munit.FunSuite:
       "realm-reconcile").foreach(id => assert(ids.contains(id), s"$id is not registered"))
   }
 
-  test("each prefix answers its audience: 401 with no token, 501 for a shell, never 404") {
+  test("each prefix answers its audience: 401 with no token, 501 for a shell, a filled route reached, never 404") {
     def status(method: String, path: String, headers: Seq[(String, String)]) =
       kit.request(method, path, if method == "GET" then None else Some("{}"), headers).status
     assertEquals(status("GET", kit.playerPath("/p-1"), kit.asVisitor), 401)
     assertEquals(status("GET", kit.playerPath("/p-1"), kit.asPlayer("p-1")), 501)
-    assertEquals(status("POST", kit.playerPath("/login"), kit.asVisitor), 501)
+    assertEquals(status("POST", kit.playerPath("/login"), kit.asVisitor), 400)
     assertEquals(status("GET", kit.sessionPath("/s-1"), kit.asVisitor), 401)
     assertEquals(status("GET", kit.sessionPath("/s-1"), kit.asPlayer("p-1")), 501)
     assertEquals(status("GET", kit.operatorPath("/players"), kit.asVisitor), 401)
@@ -39,7 +39,7 @@ class SmokeSuite extends munit.FunSuite:
     assertEquals(status("GET", kit.operatorPath("/players"), kit.asOperator()), 501)
     assertEquals(status("GET", s"/v1/casino/brands/${kit.slug}/modules/", kit.asOperator()), 501)
     assertEquals(status("GET", kit.servicePath("/p-1/status"), kit.asService("game-provider")), 501)
-    assertEquals(status("POST", kit.realmPath("/webhook"), kit.asVisitor), 501)
+    assertEquals(status("POST", kit.realmPath("/webhook"), kit.asVisitor), 401)
   }
 
   test("a player token of another brand's realm is refused on the player routes") {

@@ -79,7 +79,7 @@ final class Kit(base: Settings = Kit.Base):
 
   Kit.Secrets.foreach((name, value) => testKit.secrets.put(name, value))
   testKit.secrets.put(Secrets.RealmAdmin, Json.render(Json.obj("clientId" -> realm.adminClient, "clientSecret" -> realm.adminSecret)))
-  PlayersService.started(timers)
+  PlayersService.started(timers, testKit.service.viewClient)
 
   def components = testKit.componentClient
   def views      = testKit.service.viewClient
@@ -168,6 +168,24 @@ final class Kit(base: Settings = Kit.Base):
 
   def signIn(address: String, password: String = "Passw0rd!"): Reply =
     json("POST", playerPath("/login"), Json.obj("email" -> address, "password" -> password), asVisitor)
+
+  /** A registered player whose address is verified: the address and the player id. */
+  def activePlayer(fields: (String, Any)*): (String, String) =
+    val address = s"p-${UUID.randomUUID().toString.take(8)}@example.test"
+    val r       = register((("email" -> address) +: fields)*)
+    if r.status != 201 then fail(s"registration: ${r.status} ${r.text}")
+    val v = verify(address)
+    if v.status != 200 then fail(s"verification: ${v.status} ${v.text}")
+    (address, r.str("playerId"))
+
+  /** The realm session a token names (`session_state`). */
+  def realmSessionOf(token: String): String =
+    FakeRealm.verify(token).flatMap(_.text("session_state")).getOrElse(fail("the token names no session"))
+
+  /** The player session opened for a sign-in's token, once `SessionsView` holds it. */
+  def sessionOf(token: String): String =
+    val realmSession = realmSessionOf(token)
+    eventually(s"the session of $realmSession")(io.eitheror.casino.players.sessions.SessionsView.ofRealm(views, realmSession).map(_.sessionId))
 
   // ── facts, views, tables ────────────────────────────────────────────────────────────────────────
 

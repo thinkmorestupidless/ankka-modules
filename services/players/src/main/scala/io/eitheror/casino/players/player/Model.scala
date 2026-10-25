@@ -183,6 +183,9 @@ final case class At(at: Instant)
 final case class Resend(at: Instant, interval: java.time.Duration)
 final case class SignIn(at: Instant)
 
+/** A sign-in the entity served but responsible gambling refused (FR-011): recorded as the refused attempt. */
+final case class RefuseSignIn(reason: String, at: Instant)
+
 /** What a served sign-in answers the route (FR-012): the player's details. */
 final case class SignInAnswer(refusal: Option[Refusal] = None, currency: String = "", country: Option[String] = None,
     pendingBonusCode: Option[String] = None)

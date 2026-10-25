@@ -41,6 +41,10 @@ object PlayersRuntime:
   @volatile var timers: () => com.thinkmorestupidless.ankka.sdk.TimerScheduler =
     () => throw IllegalStateException("the timers are not wired: PlayersService sets PlayersRuntime.timers at start")
 
+  /** The view client, for the components the runtime offers none (a timed action); the service sets it at start. */
+  @volatile var views: () => com.thinkmorestupidless.ankka.runtime.ViewClient =
+    () => throw IllegalStateException("the views are not wired: PlayersService sets PlayersRuntime.views at start")
+
   def wire(s: Settings, clock: () => Instant = () => Instant.now()): Unit =
     settings = s
     now = clock
