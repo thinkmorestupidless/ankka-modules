@@ -192,7 +192,7 @@ parity task and can run the moment T005 and the original's stack are up.
       `p-test/inbox/MergeTagsSuite.scala` (every tag renders; an unknown tag names itself; a
       `Personal` value renders through `.reveal` only inside the message body) and
       `p-test/clients/BoundSuite.scala` (as ingest's)
-- [ ] T010 [P] Implement `p-test/port/WireTranslation.scala`: every row of contracts/wire.md's
+- [X] T010 [P] Implement `p-test/port/WireTranslation.scala`: every row of contracts/wire.md's
       *Paths* and *Bodies* tables as a function from a recorded step to the replayed request and
       from the recorded answer to the compared fields (`trackingContext.btag` → `btag`;
       `/me/` → `/{player}/`; the operator block under `/backoffice/`; `?playerId=` → `/players/{id}`;
