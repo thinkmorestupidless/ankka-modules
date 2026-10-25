@@ -121,9 +121,9 @@ passed; zero a no-op), `set-credit-line` (owner; refused `NOT_CLEARING` on a poo
 **Rationale**: FR-006 and FR-007 describe a ledger with a check followed by the change it guards
 (the floor), which is an entity (`ankka-design` step 1); it is not a wallet because it has no player,
 no records, no rounds, no deposits, no erasure subject, and a floor below zero. Its own id is the
-account's natural key, so "created by its owner's first move" is the entity's first event. The owner
-is recorded, not configured: FR-006's "moved only by its owner" needs the owner known at the first
-move, and the caller's principal is the only fact the wallet has.
+account's natural key, so "created by the first move that names it" is the entity's first event.
+The owner is recorded, not configured: FR-006's "moved only by its owner" needs the owner known at
+the first move, and the caller's principal is the only fact the wallet has.
 
 **Alternatives**: accounts as `WalletEntity` instances with a synthetic player id (rejected: every
 wallet rule would need a "not for accounts" branch, and the floor contradicts the wallet's); a key
@@ -146,7 +146,11 @@ steps; the route starts and polls as R4.
 
 **Rationale**: FR-005, FR-008 and the clearing scenarios are two-entity moves; `ankka-workflows`
 rules 1, 3 and 6. Ordering the one refusable write first and reading what could refuse before it
-(ownership through `claim`, the wallet's existence through a query) means no step compensates. The
+(ownership through `claim`, the wallet's existence through a query) means no step compensates.
+The claim creates the account as it checks the owner, so a move refused after it (the wallet cannot
+pay, or does not exist) leaves the account created, owned by the caller, at 0 (FR-006). That is
+kept: only the project's services reach these routes, a service could take the name as well with a
+move of 1, and undoing the claim, or claiming at the credit, would bring back a compensating step. The
 ledger port answers done, insufficient, or a refusal (predictions spec 004 FR-012): the flow's
 outcome is exactly that.
 

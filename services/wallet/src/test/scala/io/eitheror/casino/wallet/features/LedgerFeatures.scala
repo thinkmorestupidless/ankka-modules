@@ -50,7 +50,8 @@ abstract class LedgerFeatures(file: String) extends GherkinSuite(s"../../feature
 
   protected def refusedAs(phrase: String): Unit =
     val code = Map("insufficient funds" -> "INSUFFICIENT_FUNDS", "credit line reached" -> "CREDIT_LINE_REACHED",
-      "not owner" -> "NOT_OWNER", "reservation short" -> "RESERVATION_SHORT", "reservation not found" -> "RESERVATION_NOT_FOUND")
+      "not owner" -> "NOT_OWNER", "reservation short" -> "RESERVATION_SHORT", "reservation not found" -> "RESERVATION_NOT_FOUND",
+      "wallet not found" -> "WALLET_NOT_FOUND")
       .getOrElse(phrase, fail(s"no refusal is named '$phrase'"))
     assertEquals(field(last._2, "error"), Some(code), last.toString)
 

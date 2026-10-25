@@ -76,7 +76,7 @@ amount, real balance less reserved. Its calls, in order
 | pay(market, position, player, amount) | `POST /accounts/pool/{market}/payments` | market + position |
 
 `W` is `/v1/casino/brands/<brand>/wallets/<player>/<currency>`. An account's owner is the service that
-first moved money into it (`service:<project>/<name>`, from `Routes.serviceNamed`); any other is
+sent the first move naming it, even one refused after the claim (`service:<project>/<name>`, from `Routes.serviceNamed`); any other is
 `NOT_OWNER`. An operator adjusts an account with a reason, a category and their token
 (`POST /v1/casino/backoffice/<brand>/accounts/{kind}/{name}/adjustments`); the fact carries the
 category and the actor, the journal the reason. `OUTCOME_PENDING` means call again under the same key.

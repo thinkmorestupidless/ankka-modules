@@ -186,8 +186,10 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
 
 - **FR-006**: A non-player account MUST be a ledger in the wallet service, one currency, owned by
   a service principal, keyed by its kind and what it is for (a pool account by market id; a
-  clearing account by the pool's name), created by its owner's first move, never deleted, and moved
-  only by its owner or an operator adjustment.
+  clearing account by the pool's name), created by the first move that names it, never deleted,
+  and moved only by its owner or an operator adjustment. Its owner is the service that sent that
+  first move, whether the move was accepted or refused: a split refused because the player's wallet
+  cannot pay still creates the account, at a balance of 0, under that service.
 - **FR-007**: A pool account MUST refuse any move that would take it below zero; a clearing
   account MUST carry a credit line set by its owner's entitlement (spec 024) and refuse any move
   that would take it below the negative of the line.

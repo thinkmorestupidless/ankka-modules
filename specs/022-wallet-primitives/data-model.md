@@ -91,7 +91,7 @@ recorded; their readers take the two from `Balance`.
 |---|---|---|
 | `accountId` | String | `pool/<marketId>/<currency>` or `clearing/<poolName>/<currency>` |
 | `created` | Boolean | set by `AccountClaimed` |
-| `owner` | String | the service principal of the first move, `service:<project>/<name>` |
+| `owner` | String | the service principal of the first move to name the account, accepted or refused, `service:<project>/<name>` |
 | `creditLine` | Long = 0 | clearing accounts only; the floor is `−creditLine` (R7) |
 | `balance` | Long | signed; ≥ floor |
 | `seen`, `keyOrder` | KeyedOutcomes[Outcome], Vector[String] | the last 1,000 keys, as the wallet's |
@@ -118,7 +118,7 @@ operator route's documentation says the reason names no player, and the audit re
 category and the actor only.
 
 Account transitions: *none* → (`claim` by the first mover, or `set-credit-line` by its first
-setter) → *owned, balance 0*.
+setter) → *owned, balance 0*. The claim stands when the move that made it is then refused.
 
 ### Events (a closed `enum AccountEvent`; manifest `wallet.account.<Event>`)
 
