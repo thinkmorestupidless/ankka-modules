@@ -93,6 +93,16 @@ final class Kit(base: Settings = Kit.Base):
 
   def fakes: Seq[FakeServer] = Seq(realm, rg, kyc, engagement, ingest, wallet, geo, agent)
 
+  /** Points the process-wide runtime at this kit again (its clock, timers and views), after another kit took it. */
+  def adopt(): Unit =
+    rewire()
+    PlayersService.started(timers, views)
+
+  /** Stops the service and starts it again over the same database, as a crash and a redeploy would. */
+  def restart(): Unit =
+    testKit.restartService()
+    PlayersService.started(timers, views)
+
   def stop(): Unit =
     testKit.stop()
     fakes.foreach(_.stop())
@@ -279,7 +289,13 @@ object Kit:
 
 /** One kit for every suite in the test JVM that neither stops a fake nor moves the clock for good. */
 object SharedKit:
+  @volatile private var made = false
+
   lazy val kit: Kit =
     val k = Kit()
+    made = true
     sys.addShutdownHook(k.stop())
     k
+
+  /** After a suite ran its own kit: the shared one takes the process-wide runtime back, if it was made. */
+  def readopt(): Unit = if made then kit.adopt()

@@ -993,22 +993,25 @@ removed; an export carries every part and names a silent one; nothing personal i
 **Purpose**: the deposit route (FR-043, no story), durability, the module manifest and the realm
 template, a local run beside Keycloak, a kind run, the README and quickstart proven, research closed.
 
-- [ ] T072 [P] `p-test/it/DepositsSuite.scala` (FR-043): `POST /{playerId}/deposits` with `amount`
+- [X] T072 [P] `p-test/it/DepositsSuite.scala` (FR-043): `POST /{playerId}/deposits` with `amount`
       5000, `EUR`, `card` → `FakeKyc.depositCheck` asked, `FakeWallet.sums` read, `FakeRg.mayDeposit`
       asked with the sums, `FakeIngest`'s create called under `players-merchant-key` with the
       customer fields 001 FR-018 names and `customerId` `<slug>:<playerId>`, the answer `200
       {redirectUrl, paymentId}`; `FakeKyc` refusing → its code and message, nothing after it called;
       `FakeRg` refusing → the same; a service silent → `503` naming it within its bound; a decimal
       `amount` → `400`; no idempotency key (a repeat makes a second cashier session, as the original)
-- [ ] T073 Fill `PlayerEndpoint`'s `POST /{playerId}/deposits` (research R15's order and bounds,
+      *Done 2026-10-25.* Six cases in `it/DepositsSuite.scala`: the order and what each is asked with; kyc refusing (nothing after it asked); responsible gambling refusing; each of the four silent in turn, `503` naming it inside 4 s; a decimal, zero or missing amount and a bad currency `400`; a repeat opening a second cashier session; another player's token refused and an ingest refusal passed on with its status.
+- [X] T073 Fill `PlayerEndpoint`'s `POST /{playerId}/deposits` (research R15's order and bounds,
       no workflow); T072 green; `LeakSuite` extended with a marker deposit (the customer fields are
       forwarded and kept nowhere)
-- [ ] T074 [P] Add `p-test/it/DurabilitySuite.scala` on an own kit: a player registered and signed
+      *Done 2026-10-25.* In `api/DepositRoutes.scala`. The player must be active (`403 account_restricted` naming the status otherwise, as sign-in). A kyc or responsible-gambling refusal is `403` with its code, its message and `service`; an ingest refusal keeps ingest's status. The customer fields come from the entity's profile and the primary address. `LeakSuite`'s marker deposit: the cashier receives the given name and the address, and no marker is in the log, the audit, the facts or any row the deposit added.
+- [X] T074 [P] Add `p-test/it/DurabilitySuite.scala` on an own kit: a player registered and signed
       in with an open game session and its timer, a filed erasure in its hold, a pending export; the
       runtime restarted over the same database; the timer still fires, the hold still resumes, the
       reconciler still runs, the export completes, the session is still listed, and the workflow ids
       still answer their first outcomes
-- [ ] T075 [P] Extend `modules/core/module.json`'s `players` entry with R17's `env` and the six
+      *Done 2026-10-25.* `it/DurabilitySuite.scala` on its own kit, restarted with ankka's `restartService()` over the same database (`Kit.restart` points the process-wide runtime at the new views). After the restart, all of these hold: the session is listed, the export completes, the limit timer is still in `ankka_timers` and fires, the erasure keeps its correlation id and applies once the hold lapses, and the reconciler ends a session the realm dropped. `SharedKit.readopt()` hands the runtime back to the shared kit afterwards.
+- [X] T075 [P] Extend `modules/core/module.json`'s `players` entry with R17's `env` and the six
       secret names under `secrets`, and the `vendor-agent` and `ingest` reach it needs (the shared
       `payments` grant for `merchant`'s erasure route under `grants.made` if not already there);
       `brands/_realm/casino-template.json` gains the `eitheror_twin_id` mapper if missing (**verify
@@ -1020,6 +1023,7 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       `brands/goldvibe/values.json` the values; `just modules validate` and `just modules render
       goldvibe` green; `tools/modules/src/test/.../RenderSuite.scala` asserts the rendered `players`
       carries both issuers' `ANKKA_AUTH_*` variables and the secret references; `just test` green
+      *Done 2026-10-25.* Four divergences from the task. (1) The vendor's descriptor has no `secrets` field: the six are configuration keys with `secret: true` (`players-realm-admin` … `players-merchant-key`), rendered as `secretKeyRef`s to `tenant-values` from the brand's `<slug>-players/<KEY>` lines, as kyc's key is; `contract/keys.md` has the rows and `brands/goldvibe/values.json` declares `goldvibe-players`. (2) `INGEST_URL` is the derived key `ingest-url`, from the installation's `INGEST_URL` (dev-kind: `https://ingest-payments.127.0.0.1.sslip.io:8443`), empty where an installation names none; `KEYCLOAK_URL` reads `keycloak-jwks-base`. (3) `brands/_realm/casino-template.json` is the original's, copied unchanged (its README), so it is not edited. `Realm.withPlayers` adds the `players-admin` client with its service account and the three attributes to the rendered realm when `realm` or `apply` creates it (`--secrets`); a realm that exists is not changed. `players_url` is `https://players-<slug>.<PLAYER_SITE_BASE>`, to be confirmed on kind (T077). The template already maps `eitheror_twin_id` (verified 2026-10-25, `RealmPlayersSuite`). (4) No grant added: shared payments already makes the erasure grant to `{brand}/players`, and `vendor-agent` is in the brand's own project. `players` left `keys.md`'s *Not yet built*. `RenderSuite` asserts the rendered `players` carries both issuers' `ANKKA_AUTH_*`, `KEYCLOAK_URL`, `INGEST_URL` and the six references. `just modules validate --all` and `render goldvibe` are clean, and the modules tool's 157 tests pass.
 - [ ] T076 [P] Run quickstart §6 locally: `docker compose up -d` in `services/players` (Postgres,
       Keycloak with the realm), `FakesMain`, `just players-run`; the curl of §6 and its sequence
       (register twice, the verification link through the operator route, login) answer as §6 says;
@@ -1044,6 +1048,7 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       `tests/README.md` and `tests/original/README.md` name the `players-driver`;
       `specs/008-players/quickstart.md` re-read against what T076 and T077 did and corrected where the
       commands drifted
+      *Open 2026-10-25:* the README, `tests/README.md` and `tests/original/README.md` (*Recording the players*) are written, and quickstart §7's apply command and secrets file are corrected to the module tool. Re-reading §6 and §7 against an actual run waits on T076 and T077.
 - [ ] T079 Close research: the verify-at-task-time items written with their result and date (T001's
       fields, T016's multi-source view, T030's workflow kit, T075's mapper, T077's plugin and
       Playwright checks); *For ankka* checked against the pinned runtime; plan.md's *Divergences* checked against
@@ -1051,6 +1056,7 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       `wallet` and `merchant`; the plugins; `KycFactsConsumer`'s families from 009; the Playwright
       run) written as
       findings in research; `just features` green; `just players-test` and `just players-it` green
+      *Open 2026-10-25:* research's *Findings* are written: the four items verified so far with their dates, and the cross-spec follow-ups. *For ankka* is checked against 0.13.0. Waiting: T077's plugin, session-listing and Playwright checks, and `just players-it` with recordings (T029).
 
 ---
 

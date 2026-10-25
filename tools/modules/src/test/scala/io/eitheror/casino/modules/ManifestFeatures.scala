@@ -49,7 +49,7 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
   /** The brand's project with its secret keys set, as `secrets` leaves it before the first apply. */
   private def withSecrets(slug: String): Unit =
     if cp.project(slug).isEmpty then cp.createProject(slug, slug, "eitheror")
-    cp.setSecret(slug, "tenant-values", Map("kyc-provider-key" -> "test", "st8-api-key" -> "test"))
+    cp.setSecret(slug, "tenant-values", Fixtures.CoreSecrets + ("st8-api-key" -> "test"))
 
   private def applyBrand(slug: String, version: String, extra: String*): Int =
     withSecrets(slug)

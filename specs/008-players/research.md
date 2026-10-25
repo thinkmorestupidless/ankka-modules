@@ -425,10 +425,45 @@ the quickstart and the Playwright suite can verify an address; on a real-money b
 | A verification email that cannot be sent does not refuse the registration | R16 | `registration.feature`; the original answers 500 |
 | The player-facing KYC routes, `launch`, the RG limit routes and the wallet adjust route of the original's player and backoffice files are other services' | spec Context; 003, 009, 010, 002 | `contracts/surface.md` dispositions |
 
+## Findings
+
+The plan's *verify at task time* items, with what was found:
+
+- `player_registered`'s `click_id` and `bonus_code` (T001, 2026-10-25): already typed in the contract;
+  nothing added.
+- A view with several sources (T016, corrected at T025): a 0.13 keyed view reads entities only, so the
+  activity and recently played are a consumer per topic into an entity and a plain view over it (R11).
+- A workflow testkit (T030, T066, 2026-10-25): 0.13 has none. The workflows are tested on the
+  integration kit through their routes. `ErasureWorkflow`'s `failed` step has no test: the fakes cannot
+  fail one target alone.
+- The realm template's `eitheror_twin_id` mapper (T075, 2026-10-25): present on `casino-frontend`;
+  `RealmPlayersSuite` checks it. The template is the original's, unchanged. What `players` needs that
+  the template lacks (the `players-admin` client and its service account, and the three realm attributes)
+  is added by the modules tool when it creates the realm (`Realm.withPlayers`). A realm that exists is
+  not changed, so on an installation whose brand realm predates this, they are added by hand.
+- The realm's `user-sessions` listing naming the webhook's session ids, and the plugins' reads on kind
+  (T077): not yet verified; they need the installation's Keycloak.
+- The Playwright run against the kind brand (T077, SC-001): not yet run.
+
+Follow-ups owned by other specs or repositories:
+
+- The export route on `wallet` (spec 002) and `merchant` (spec 004): until each serves
+  `GET /exports/players/{id}`, its part of an export is named under `missing`.
+- The realm plugins (contracts/realm.md): `EitherOrAuditListener` and the authenticators are rebuilt
+  in the original's repository to call `players` at the realm's `players_url`. That URL is
+  `https://players-<slug>.<PLAYER_SITE_BASE>`, by psp-gateway's pattern; T077 confirms it.
+- `KycFactsConsumer`'s families come from spec 009, and the consumer is written against what 009
+  publishes.
+- The shared payments' `ingest` address is the installation's `INGEST_URL`, rendered as the derived key
+  `ingest-url`; gke's overlay names none yet, so a brand there answers a deposit `503` naming `ingest`.
+
 ## For ankka (checked against 0.13.0)
 
 - 042 (personal data erasure, lookup tokens): spec only; R8 and R9 stand in and are replaced by it.
-- A view with several topic sources (R11): to be checked in `views.md` at task time; one view per
-  source otherwise.
+- A view with several topic sources (R11): a keyed view reads entities only (Findings); one consumer
+  per topic into an entity and a plain view over it.
+- A step's service call runs on the step's thread and has no bound of its own: the step's timeout is
+  its bound, so a fan-out takes one step per target (R10, `ErasureWorkflow`, `ExportWorkflow`).
+- `AnkkaTestKit.restartService()` restarts a service over the same database; `DurabilitySuite` uses it.
 - No per-call service-client timeout (spec 006 R6): every bound here is a race against the call, as
   `ingest` does.

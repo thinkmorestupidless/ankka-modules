@@ -1,12 +1,15 @@
 package io.eitheror.casino.modules
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.file.{Files, Path}
 import java.time.Duration
 import scala.collection.mutable
+import scala.jdk.CollectionConverters.*
+import scala.util.Try
 
 /** What the tool asks of the casino's Keycloak: a brand's realm, and its role in `eitheror`. */
 trait RealmAdmin:
@@ -23,6 +26,43 @@ object Realm:
   /** The original's template with the brand substituted, and nothing else changed (brands/_realm/README.md). */
   def render(template: String, slug: String, frontendBaseUrl: String): String =
     template.replace("${brandId}", slug).replace("${frontendBaseUrl}", frontendBaseUrl)
+
+  /** The confidential client the brand's `players` takes its admin token with (spec 008 FR-007). */
+  val PlayersAdmin = "players-admin"
+
+  /**
+   * What the brand's `players` needs of its realm (spec 008 contracts/realm.md), added to the rendered
+   * template so the template stays the original's: the `players-admin` client with a service account
+   * holding `realm-management`'s `manage-users`, `view-users` and `view-clients`, and the realm attributes
+   * the plugins read, `players_url` and the two shared secrets. `secrets` is the brand's
+   * `<slug>-players` entry of the secrets file; a value it lacks is left out, and the client then has a
+   * secret Keycloak mints, which `players-realm-admin` must be set to.
+   */
+  def withPlayers(realmJson: String, playersUrl: Option[String], secrets: Map[String, String]): String =
+    val mapper = ObjectMapper()
+    val realm  = mapper.readTree(realmJson).asInstanceOf[ObjectNode]
+    val attributes = Option(realm.get("attributes")).collect { case o: ObjectNode => o }
+      .getOrElse(realm.putObject("attributes"))
+    playersUrl.foreach(attributes.put("players_url", _))
+    secrets.get("REALM_SECRET").foreach(attributes.put("players_realm_secret", _))
+    secrets.get("WEBHOOK_SECRET").foreach(attributes.put("players_webhook_secret", _))
+    val clients = Option(realm.get("clients")).collect { case a: ArrayNode => a }
+      .getOrElse(realm.putArray("clients"))
+    if !clients.elements().asScala.exists(_.path("clientId").asText() == PlayersAdmin) then
+      val c = clients.addObject()
+      c.put("clientId", PlayersAdmin).put("enabled", true).put("publicClient", false).put("serviceAccountsEnabled", true)
+        .put("standardFlowEnabled", false).put("directAccessGrantsEnabled", false).put("clientAuthenticatorType", "client-secret")
+      // a bare secret or {clientId, clientSecret}, as players reads it
+      secrets.get("REALM_ADMIN").map { s =>
+        Try(mapper.readTree(s)).toOption.flatMap(n => Option(n).flatMap(n => Option(n.get("clientSecret")))).map(_.asText()).getOrElse(s)
+      }.foreach(c.put("secret", _))
+      val users = Option(realm.get("users")).collect { case a: ArrayNode => a }
+        .getOrElse(realm.putArray("users"))
+      val u = users.addObject()
+      u.put("username", s"service-account-$PlayersAdmin").put("enabled", true).put("serviceAccountClientId", PlayersAdmin)
+      val roles = u.putObject("clientRoles").putArray("realm-management")
+      Seq("manage-users", "view-users", "view-clients").foreach(roles.add)
+    mapper.writerWithDefaultPrettyPrinter().writeValueAsString(realm)
 
   def template(root: Path): String =
     Files.readString(root.resolve("brands").resolve("_realm").resolve("casino-template.json"))

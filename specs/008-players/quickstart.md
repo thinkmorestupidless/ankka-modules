@@ -121,9 +121,18 @@ through `game-provider`, and the `realm-reconcile` timer firing every 60 s.
 
 ```bash
 just modules render goldvibe
-just modules apply brands/goldvibe/values.json --installation dev-kind --secrets <a file outside the repository with players-realm-admin, players-webhook-secret, players-realm-secret, players-email-token, players-lookup-key, players-merchant-key>
+just modules apply goldvibe --installation dev-kind --secrets <a file outside the repository>
 ankka services list --project goldvibe
 ```
+
+The secrets file holds `<secret>/<KEY>=<value>` lines: `goldvibe-kyc/API_KEY`, `goldvibe-st8/API_KEY`, and
+`goldvibe-players/` `REALM_ADMIN`, `WEBHOOK_SECRET`, `REALM_SECRET`, `EMAIL_TOKEN`, `LOOKUP_KEY`,
+`MERCHANT_KEY` (`contract/keys.md`). `apply` writes the brand's six into `tenant-values` only through
+`just modules secrets goldvibe --installation dev-kind --secrets <file>`, so run that first; `apply`'s
+own `--secrets` gives the realm it creates the `players-admin` secret and the two shared ones. A realm
+that already exists is not changed: add the client and the attributes by hand, or delete the realm
+first. The installation's `INGEST_URL` (`installation/overlays/dev-kind/settings.env`) is where a
+deposit opens its cashier.
 
 The current kubeconfig context must be `kind-ankka` (never production). Expected: `players` running
 beside `wallet` and `game-provider`, exposed at `players-goldvibe.<base domain>`; the installation's

@@ -141,3 +141,23 @@ class LeakSuite extends munit.FunSuite:
     assert(gap.exists(_._2.exists(_.contains(hex))), "the journal no longer holds the earlier events: ankka 042 has landed; flip this")
   }
 
+  test("T073: a marker deposit forwards the customer fields to the cashier and leaves them nowhere: the log, the audit, the facts, no new row") {
+    val m = Markers()
+    val r = kit.register("email" -> m.address, "password" -> m.password, "displayName" -> m.displayName, "firstName" -> m.givenName,
+      "lastName" -> m.familyName, "dateOfBirth" -> m.dateOfBirth)
+    assertEquals(r.status, 201, r.text)
+    val id = r.str("playerId")
+    assertEquals(kit.verify(m.address).status, 200)
+    val token = kit.signIn(m.address, m.password).str("token")
+    Thread.sleep(1000)
+    val before = tables.toMap
+    val d = kit.request("POST", kit.playerPath(s"/$id/deposits"), Some("""{"amount":2500,"currency":"EUR","method":"card"}"""), kit.asToken(token))
+    assertEquals(d.status, 200, d.text)
+    import io.eitheror.casino.players.Json.{text, textOr}
+    val sent = kit.ingest.creates.flatMap(_.json).filter(_.text("customerId").contains(s"${kit.slug}:$id"))
+    assertEquals(sent.map(b => (b.textOr("customerFirstName", ""), b.textOr("customerEmail", ""))), Vector((m.givenName, m.address)))
+    Thread.sleep(1000)
+    val added: Places = tables.map((place, rows) => s"$place (new rows)" -> rows.filterNot(before.getOrElse(place, Vector.empty).toSet))
+    assertNowhere(m.all, log ++ audit ++ facts ++ added)
+  }
+

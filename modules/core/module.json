@@ -134,6 +134,38 @@
           {
             "name": "KEYCLOAK_JWKS_BASE",
             "key": "keycloak-jwks-base"
+          },
+          {
+            "name": "KEYCLOAK_URL",
+            "key": "keycloak-jwks-base"
+          },
+          {
+            "name": "INGEST_URL",
+            "key": "ingest-url"
+          },
+          {
+            "name": "PLAYERS_REALM_ADMIN",
+            "key": "players-realm-admin"
+          },
+          {
+            "name": "PLAYERS_WEBHOOK_SECRET",
+            "key": "players-webhook-secret"
+          },
+          {
+            "name": "PLAYERS_REALM_SECRET",
+            "key": "players-realm-secret"
+          },
+          {
+            "name": "PLAYERS_EMAIL_TOKEN",
+            "key": "players-email-token"
+          },
+          {
+            "name": "PLAYERS_LOOKUP_KEY",
+            "key": "players-lookup-key"
+          },
+          {
+            "name": "PLAYERS_MERCHANT_KEY",
+            "key": "players-merchant-key"
           }
         ]
       }
@@ -569,6 +601,41 @@
     },
     {
       "key": "kyc-provider-key",
+      "type": "string",
+      "secret": true
+    },
+    {
+      "key": "ingest-url",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "players-realm-admin",
+      "type": "string",
+      "secret": true
+    },
+    {
+      "key": "players-webhook-secret",
+      "type": "string",
+      "secret": true
+    },
+    {
+      "key": "players-realm-secret",
+      "type": "string",
+      "secret": true
+    },
+    {
+      "key": "players-email-token",
+      "type": "string",
+      "secret": true
+    },
+    {
+      "key": "players-lookup-key",
+      "type": "string",
+      "secret": true
+    },
+    {
+      "key": "players-merchant-key",
       "type": "string",
       "secret": true
     }

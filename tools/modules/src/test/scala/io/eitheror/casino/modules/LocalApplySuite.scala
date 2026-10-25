@@ -33,7 +33,7 @@ class LocalApplySuite extends munit.FunSuite:
   test("the core alone: project, values, then topics, services in manifest order, exposure, grants") {
     val cp = InMemoryControlPlane(hasGrants = true)
     cp.createProject("goldvibe", "Goldvibe", "eitheror")
-    cp.setSecret("goldvibe", "tenant-values", Map("kyc-provider-key" -> "test"))
+    cp.setSecret("goldvibe", "tenant-values", Fixtures.CoreSecrets)
     val before = cp.writes.size
     val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--version", "core=0.3.0")
     assertEquals(code, 0, out.lines.mkString("\n"))

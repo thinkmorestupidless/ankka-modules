@@ -138,6 +138,11 @@ logged (001 FR-023).
   the operator reads it at `GET /exports/{exportId}`; the player's read of another player's export is
   `404`. The export answers `{service, playerId, profile, consents, sessions, activity, messages, parts,
   missing, generatedAt, expiresAt}`.
+- The deposit start (T073): a refusal is `403 {error, message, service}` with the refusing service's own
+  code and message (responsible gambling's `reason` passed on when it gives one), and an `ingest` refusal
+  keeps ingest's status; a player who is not active is `403 account_restricted` with `reason`, before
+  anything is asked; `amount` that is not a whole number above zero is `400 invalid_amount`, a currency
+  that is not three letters `400 invalid_currency`.
 - `platform_admin` is admitted on every operator route (contract `Routes.operator`, spec 001; the original's
   `requireBrandAccess`), so T056's "a `platform_admin` without the brand role → `403`" does not hold.
 

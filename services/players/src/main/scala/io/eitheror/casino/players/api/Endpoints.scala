@@ -58,7 +58,7 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/$
   post("/emails/{address}/promote") { (a: String) => profile.promoteEmail(principal, a) }
   delete("/emails/{address}") { (a: String) => profile.removeEmail(principal, a) }
   postBody("/{playerId}/email-change") { (id: String, text: String) => profile.emailChange(principal, id, text) }
-  post("/{playerId}/deposits") { (_: String) => notYet("deposits") }
+  postBody("/{playerId}/deposits") { (id: String, text: String) => DepositRoutes(ctx).deposit(principal, id, text) }
   post("/{playerId}/erasure") { (id: String) => ErasureRoutes(ctx).fileMine(principal, id) }
   post("/{playerId}/exports") { (id: String) => ErasureRoutes(ctx).startMine(principal, id) }
   get("/{playerId}/exports/{exportId}") { (id: String, exportId: String) => ErasureRoutes(ctx).readMine(principal, id, exportId) }
