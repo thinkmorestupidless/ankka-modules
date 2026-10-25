@@ -174,9 +174,11 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
 
 - **FR-004**: A settlement MUST move quantity times price from the buyer's reservation to the
   seller's real balance in one command keyed by the trade id, across the two wallets, releasing to
-  the buyer any part of the reservation the trade did not use; a repeat MUST return the first
-  outcome; an interrupted settlement MUST be completed on restart with the same key, never left
-  with one side done.
+  the buyer any part of the reservation the trade did not use; the exchange supplies that unused
+  amount with the settlement (the order's price less the trade's over the filled quantity, plus the
+  remainder on the order's last trade), because the wallet holds no order prices; a repeat MUST
+  return the first outcome; an interrupted settlement MUST be completed on restart with the same
+  key, never left with one side done.
 - **FR-005**: A resolution payment (the word `payout` being the withdrawal's, spec 007) MUST credit a player's real balance from a non-player account, keyed by the
   market id and the position, and MUST be refused when the account cannot cover it under FR-007.
 
@@ -192,7 +194,8 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
 - **FR-008**: Splitting a complete set MUST move one unit per set from the player's available
   amount to the market's pool account; merging MUST move it back; both keyed by the caller.
 - **FR-009**: An operator adjustment of a non-player account MUST require a reason and carry the
-  actor and a signature as spec 002 FR-026 requires of a wallet's.
+  actor, taken from the operator's authenticated staff token, as spec 002 FR-026 requires of a
+  wallet's; the token is the signature, and no separate signed payload is carried.
 
 **Keys, facts, reads**
 
@@ -203,7 +206,11 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
   contract: `reservation_placed`, `reservation_released`, `settlement_debit`,
   `settlement_credit`, `resolution_payment`, `account_debit`, `account_credit`, `account_adjusted`, each
   carrying the balances after it; the families are added, nothing existing changes (spec 001
-  FR-013).
+  FR-013). The first seven are keyed by the wallet and name what happened to it (`account_debit`
+  is the wallet debited into an account, `account_credit` the wallet credited from one), carrying
+  the wallet's real, restricted and reserved balance after; `account_adjusted` is keyed by the
+  account and carries the account's balance after. A move's account side is not a message of its
+  own: the wallet-keyed message names the account.
 - **FR-012**: Balance MUST report real, restricted, reserved and available; transactions MUST be
   filterable by the new types; the deposit sums MUST be unchanged.
 - **FR-013**: The routes MUST be of the service class, admitted in-project to `exchange` and, when
@@ -230,13 +237,28 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
   100 ms at p99 under 500 such commands per second across wallets in the brand's testkit.
 - **SC-003**: No sequence of commands leaves available below zero, reserved unmatched by
   reservations, or a pool account below zero; a property suite over random sequences proves it.
-- **SC-004**: A wallet's and an account's balances are reconstructable from their
-  `money.transactions` facts alone.
+- **SC-004**: A wallet's balances are reconstructable from its `money.transactions` facts alone,
+  and an account's balance from the `money.transactions` facts that name it: the sum of
+  `account_debit` less `account_credit` and `resolution_payment` naming the account, plus its
+  `account_adjusted` amounts, in any order, equals the account's balance.
+
+## Changes from the original
+
+Everything here is new. The original (`eitheror-platform`) has no reservation, no settlement
+between two players, no non-player account and no resolution payment: its wallet is a round's
+wallet, and the exchange that needs these primitives (spec 023) does not exist there.
+ankka-predictions spec 001 wrote a wallet of its own with the same moves; decision 0055 brings them
+into the brand's wallet instead. No route, command, event, fact or scenario of spec 002 changes
+(SC-001); there is no recording to replay for any of this, and no parity test is left.
 
 ## Assumptions
 
 - The pool account and the clearing account are the only two kinds of non-player account; a
   third is a change to this spec.
+- Until spec 024 exists, a clearing account's credit line is a value its owner sets on the account
+  (0 until set, never below what the balance already owes); spec 024 decides where the owner gets
+  the value. Setting the line on an account that does not exist yet creates it under the setter,
+  as the owner's first move would.
 - The exchange reserves before an order reaches a book and settles after a trade, at least once
   (ankka-predictions spec 003 FR-012 and the libraries' ledger port); the wallet is told, never
   asked, which trades happened.
