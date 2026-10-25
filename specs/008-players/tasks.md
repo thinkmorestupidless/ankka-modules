@@ -313,7 +313,7 @@ parity task and can run the moment T005 and the original's stack are up.
 
 ### The seams, the fakes and the kit
 
-- [ ] T020 [P] Implement `p/realm/Realm.scala`: the trait with every row of contracts/realm.md's
+- [X] T020 [P] Implement `p/realm/Realm.scala`: the trait with every row of contracts/realm.md's
       first table (`createUser(email, password, playerId): Either[EmailExists | PasswordTooWeak |
       RealmNotFound, userId]`, `deleteUser`, `setVerified`, `changeAddress`, `directGrant(email,
       password): Either[InvalidCredentials | EmailNotVerified, Tokens]`, `refresh`, `verifyPassword`,
@@ -326,6 +326,9 @@ parity task and can run the moment T005 and the original's stack are up.
       time). Tests `p-test/realm/KeycloakRealmSuite.scala` against a JDK `HttpServer` scripted with
       Keycloak's answers: each row's call and each mapped refusal; the admin token fetched once for
       two calls; a token without the claim → `missing_token`
+      *Done 2026-10-25.* The grant's answer is `RealmTokens` (T009's signed links own `Tokens`);
+      `liveSessions()` reads `casino-frontend` only, the one client the reconciler needs. The suite runs
+      against T022's `FakeRealm` (written here), which signs HS256 tokens the kit will check.
 - [ ] T021 [P] Implement `p/clients/`: `Rg.scala` (`mayLogIn(playerId): Either[CoolingOff(until) |
       Restricted, Allowed]`, `mayDeposit(playerId, amount, sums)`, `gamstopRefusal(email, result)`),
       `Kyc.scala` (`depositCheck(playerId)`), `Engagement.scala` (`send(playerId, template, link)`),
