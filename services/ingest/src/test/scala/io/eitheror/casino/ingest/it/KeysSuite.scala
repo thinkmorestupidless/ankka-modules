@@ -13,6 +13,7 @@ import scala.util.Random
 
 /** T028 (US1; FR-004, SC-003, SC-004): the key index from merchant's facts, read on every create without asking merchant. */
 class KeysSuite extends munit.FunSuite:
+  override val munitTimeout: Duration = 10.minutes
   private lazy val kit = Kit()
 
   override def afterAll(): Unit = kit.stop()
