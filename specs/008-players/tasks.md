@@ -691,7 +691,7 @@ email, consent and cookie recordings.
 
 ### Tests for User Story 4
 
-- [ ] T049 [P] [US4] `p-test/it/ProfileSuite.scala` (FR-023 to FR-030): `GET /{playerId}` reads
+- [X] T049 [P] [US4] `p-test/it/ProfileSuite.scala` (FR-023 to FR-030): `GET /{playerId}` reads
       every field; another player's token → `403`; a `PATCH` with `firstName`, `phone` and a changed
       `dateOfBirth` → `200`, the date unchanged, the others applied, `player_profile_updated`
       naming `firstName` and `phone` only and carrying the eight `Personal` fields; `country` not in
@@ -720,32 +720,38 @@ email, consent and cookie recordings.
       reason_required`; to 17 years → `400 underage`; to 18 → `200` and an audit record naming the
       field and the reason, never the date; a `player_kyc_verified` fact first → `409 kyc_locked`;
       the operator's `PATCH /players/{id}/profile` honours the same locks
-- [ ] T050 [P] [US4] Bind every scenario of `features/players/profile.feature` in
+      *Done 2026-10-25.* Eleven cases in `it/ProfileSuite.scala`. It found two bugs: the history keyed a line by the topic message's sequence number, which ankka 0.13 sets to 0 for every topic message, so two facts under one record key collapsed into one line (now a digest of the fact); and `player_profile_updated` sent only the changed fields where the contract and profile.feature say every completeness field.
+- [X] T050 [P] [US4] Bind every scenario of `features/players/profile.feature` in
       `p-test/features/ProfileFeatures.scala`; "marketing email stops from that fact" reads the
       broker for `player_consent_changed`
+      *Done 2026-10-25.* All twelve scenarios bound.
 - [ ] T051 [US4] Confirm `ParitySuite` lists the driver's profile, email, password, consent and
       cookie recordings as failing; name the divergences (`/me/` and `/emails` paths translated;
       `{email}` placeholders). Needs T029
+      *Open 2026-10-25:* waits on T029 (the recordings).
 
 ### Implementation for User Story 4
 
-- [ ] T052 [P] [US4] Fill `PlayerEndpoint`'s `GET /{playerId}`, `PATCH /{playerId}` (`AllowList`
+- [X] T052 [P] [US4] Fill `PlayerEndpoint`'s `GET /{playerId}`, `PATCH /{playerId}` (`AllowList`
       read first, `PlayerEntity.EditProfile`), `GET`/`PATCH /{playerId}/consent`, `PATCH
       /{playerId}/cookie-consent`, the three favourites routes, `GET /{playerId}/recently-played`,
       `GET /{playerId}/activity-history` (over `ActivityView`, or the per-source views merged, T016)
-- [ ] T053 [P] [US4] Fill the email routes: `GET`/`POST /{playerId}/emails` (the add with
+      *Done 2026-10-25.* In `api/ProfileRoutes.scala`; the divergences from the original are named in contracts/routes.md (amended at T052–T055).
+- [X] T053 [P] [US4] Fill the email routes: `GET`/`POST /{playerId}/emails` (the add with
       `Tokens.mint(email_add)` and `Engagement.send`; `address_already_registered` through
       `PlayersView.search`), `POST /emails/verify`, `POST /emails/{address}/resend`, `/promote`
       (`Realm.changeAddress` after `PlayerEntity.PromoteEmail`), `DELETE /emails/{address}`,
       `POST /{playerId}/email-change` (`Realm.verifyPassword`, `Tokens.mint(email_change)`) and
       `POST /email-change/verify` (`PlayerEntity.ChangeEmail`, `Realm.changeAddress`); the address
       in a path URL-decoded and never logged
-- [ ] T054 [P] [US4] Fill `POST /password-change` (`Realm.verifyPassword`, `Tokens.mint(password_change)`,
+      *Done 2026-10-25.* The realm's address is changed before the entity's primary, so a realm refusal leaves the player as it was. `api/Lookup.scala` (registration outcome, else the players view) now serves the realm's authenticator too.
+- [X] T054 [P] [US4] Fill `POST /password-change` (`Realm.verifyPassword`, `Tokens.mint(password_change)`,
       `Engagement.send`), `POST /password-change/verify` (`Realm.setPassword` through the admin
       API; `409 account_suspended` for a suspended player), `POST /password-reset/request` and
       `/confirm` (`Realm.sendResetEmail`; the realm's own confirm), and `OperatorEndpoint`'s
       `POST /players/{playerId}/reset-password` (audited, not a trail event)
-- [ ] T055 [US4] Fill the inbox: `PlayerEndpoint`'s `GET /{playerId}/messages` (`MessagesView`,
+      *Done 2026-10-25.* `password-reset/confirm` answers `400`: the realm confirms its own reset. The operator's reset is audited from a new `ResetLinkSent` event, which is not a trail entry.
+- [X] T055 [US4] Fill the inbox: `PlayerEndpoint`'s `GET /{playerId}/messages` (`MessagesView`,
       `unreadCount` over the rows), `POST /messages/{messageId}/read` and `/delete` (ownership
       checked); `ServiceEndpoint`'s `POST /{playerId}/messages` (`Routes.service` admitting
       `engagement`; the suppression and closure checks on the entity, then `MessageEntity.Created`
@@ -753,6 +759,7 @@ email, consent and cookie recordings.
       `OperatorEndpoint`'s `GET`/`PATCH /players/{playerId}/profile`, `PATCH
       /players/{playerId}/date-of-birth` (the kyc lock from the entity's `kycVerified`, fed by
       `KycFactsConsumer`, T019), `GET`/`PATCH /players/{playerId}/crm`; T049–T051 green
+      *Done 2026-10-25.* `PushDeliveredConsumer` was already wired at T019. `engagement`'s write refuses a closed player (`account_closed`), suppressed messages, and a marketing message without email consent (`marketing_suppressed`).
 
 **Checkpoint**: every profile, address, consent and inbox route of contracts/routes.md answers as
 written; `profile.feature` passes; the profile recordings replay with only the named divergences.

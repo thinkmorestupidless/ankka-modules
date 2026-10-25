@@ -1,15 +1,12 @@
 package io.eitheror.casino.players.api
 
-import com.thinkmorestupidless.ankka.core.EntityId
-import io.eitheror.casino.players.{Json, PlayersRuntime, Secrets}
+import io.eitheror.casino.players.{Json, Secrets}
 import io.eitheror.casino.players.Json.*
 import io.eitheror.casino.players.clients.{LogIn, Raced}
-import io.eitheror.casino.players.player.{PlayerEntity, PlayersView, Status}
+import io.eitheror.casino.players.player.{PlayerEntity, Status}
 import io.eitheror.casino.players.realm.Webhook
-import io.eitheror.casino.players.registration.RegistrationWorkflow
 import io.eitheror.casino.players.sessions.{EndReason, SessionEndWorkflow, SessionsView}
 
-import java.util.Locale
 import scala.util.Try
 
 import Answers.*
@@ -67,12 +64,7 @@ final class RealmRoutes(ctx: Ctx):
     }
 
   /** The player holding an address: its registration's outcome, else the players view's primary address. */
-  private def playerOf(email: String): Option[String] =
-    val flow = components.forWorkflow(RegistrationWorkflow.idOf(ctx.slug, email)).call(RegistrationWorkflow.status).invoke()
-    flow.outcome.flatMap(_.playerId).orElse {
-      val lower = email.trim.toLowerCase(Locale.ROOT)
-      PlayersView.find(ctx.clients.viewClient, lower, 5).find(_.primaryEmail.reveal.equalsIgnoreCase(lower)).map(_.playerId)
-    }
+  private def playerOf(email: String): Option[String] = Lookup.playerOf(components, ctx.clients.viewClient, ctx.slug, email)
 
   // ── POST /gamstop-refusal ──────────────────────────────────────────────────────────────────────
 

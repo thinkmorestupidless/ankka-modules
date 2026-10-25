@@ -174,6 +174,9 @@ object PlayerEvent:
   /** A status carried over from the original by the migration (spec 019), `blocked` among them; no command persists it. */
   final case class StatusImported(status: String, at: Instant)                                     extends PlayerEvent
 
+  /** An operator sent the realm's reset link (FR-033): audited, not a trail entry, and it changes nothing on the player. */
+  final case class ResetLinkSent(operatorId: String, at: Instant)                                  extends PlayerEvent
+
 // ── commands and their answers ─────────────────────────────────────────────
 
 final case class Register(playerId: String, profile: Profile, address: String, currency: String, consents: Consents,
@@ -224,3 +227,4 @@ final case class FlagDuplicate(caseId: String, linked: Set[String], signals: Set
 final case class ClearDuplicate(caseId: String, actorId: Option[String], at: Instant)
 final case class Withdrawal(withdrawalId: String, at: Instant)
 final case class FileErasure(correlationId: String, holdUntil: Instant, at: Instant)
+final case class SendResetLink(operatorId: String, at: Instant)

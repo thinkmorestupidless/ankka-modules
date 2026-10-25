@@ -127,13 +127,19 @@ object ActivityEntry
   val record = command("record")(_.record)
   val erase  = command("erase")(_.erase)
 
-  /** A fact's id: its topic, record key and offset. */
-  def key(topic: String, subject: String, offset: Long): String = s"$topic/$subject/$offset"
+  /**
+   * A fact's id: its topic, record key and a digest of the fact. ankka hands a topic consumer no offset
+   * (its sequence number is always 0), so two facts under one key are told apart by what they say, and a
+   * redelivery of the same fact lands on the same line.
+   */
+  def key(topic: String, subject: String, fact: Any): String =
+    val digest = java.security.MessageDigest.getInstance("SHA-256").digest(fact.toString.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+    s"$topic/$subject/${java.util.HexFormat.of().formatHex(digest).take(32)}"
 
   /** Records the line `row` names for the fact the consumer is handling, if it is one. */
-  def keep(client: ComponentClient, topic: String, change: ChangeContext, row: Option[ActivityRow]): Unit =
+  def keep(client: ComponentClient, topic: String, change: ChangeContext, fact: Any, row: Option[ActivityRow]): Unit =
     row.foreach { r =>
-      val id = key(topic, change.subject, change.sequenceNumber)
+      val id = key(topic, change.subject, fact)
       client.forKeyValueEntity(EntityId(id)).call(record).invoke(r.copy(factId = id)): Unit
     }
 
@@ -147,7 +153,7 @@ private[reads] object FromTopic:
 
 final class MoneyActivity(client: ComponentClient) extends Consumer[Option[MoneyTransactionsFact], Nothing]:
   def onMessage(fact: Option[MoneyTransactionsFact]): Effect =
-    ActivityEntry.keep(client, MoneyTransactions.name, messageContext, fact.flatMap(ActivityLines.money))
+    ActivityEntry.keep(client, MoneyTransactions.name, messageContext, fact, fact.flatMap(ActivityLines.money))
     effects.done()
 
 object MoneyActivity extends Consumer.Companion[MoneyActivity, Option[MoneyTransactionsFact], Nothing](
@@ -157,7 +163,7 @@ object MoneyActivity extends Consumer.Companion[MoneyActivity, Option[MoneyTrans
 /** `casino.rounds`: the history's line and the player's recently played game. */
 final class RoundsActivity(client: ComponentClient) extends Consumer[Option[CasinoRoundsFact], Nothing]:
   def onMessage(fact: Option[CasinoRoundsFact]): Effect =
-    ActivityEntry.keep(client, CasinoRounds.name, messageContext, fact.flatMap(ActivityLines.round))
+    ActivityEntry.keep(client, CasinoRounds.name, messageContext, fact, fact.flatMap(ActivityLines.round))
     fact.collect { case r: RoundSettled => r }.foreach(r => RecentlyPlayed.touch(client, r.playerId, r.gameId, r.occurredAt))
     effects.done()
 
@@ -167,7 +173,7 @@ object RoundsActivity extends Consumer.Companion[RoundsActivity, Option[CasinoRo
 
 final class RewardsActivity(client: ComponentClient) extends Consumer[Option[CasinoRewardsFact], Nothing]:
   def onMessage(fact: Option[CasinoRewardsFact]): Effect =
-    ActivityEntry.keep(client, CasinoRewards.name, messageContext, fact.flatMap(ActivityLines.reward))
+    ActivityEntry.keep(client, CasinoRewards.name, messageContext, fact, fact.flatMap(ActivityLines.reward))
     effects.done()
 
 object RewardsActivity extends Consumer.Companion[RewardsActivity, Option[CasinoRewardsFact], Nothing](
@@ -176,7 +182,7 @@ object RewardsActivity extends Consumer.Companion[RewardsActivity, Option[Casino
 
 final class PlayersActivity(client: ComponentClient) extends Consumer[Option[CasinoPlayersFact], Nothing]:
   def onMessage(fact: Option[CasinoPlayersFact]): Effect =
-    ActivityEntry.keep(client, CasinoPlayers.name, messageContext, fact.flatMap(ActivityLines.player))
+    ActivityEntry.keep(client, CasinoPlayers.name, messageContext, fact, fact.flatMap(ActivityLines.player))
     effects.done()
 
 object PlayersActivity extends Consumer.Companion[PlayersActivity, Option[CasinoPlayersFact], Nothing](
@@ -185,7 +191,7 @@ object PlayersActivity extends Consumer.Companion[PlayersActivity, Option[Casino
 
 final class SessionsActivity(client: ComponentClient) extends Consumer[Option[CasinoSessionsFact], Nothing]:
   def onMessage(fact: Option[CasinoSessionsFact]): Effect =
-    ActivityEntry.keep(client, CasinoSessions.name, messageContext, fact.flatMap(ActivityLines.session))
+    ActivityEntry.keep(client, CasinoSessions.name, messageContext, fact, fact.flatMap(ActivityLines.session))
     effects.done()
 
 object SessionsActivity extends Consumer.Companion[SessionsActivity, Option[CasinoSessionsFact], Nothing](

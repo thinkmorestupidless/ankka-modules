@@ -30,7 +30,7 @@ class SmokeSuite extends munit.FunSuite:
     def status(method: String, path: String, headers: Seq[(String, String)]) =
       kit.request(method, path, if method == "GET" then None else Some("{}"), headers).status
     assertEquals(status("GET", kit.playerPath("/p-1"), kit.asVisitor), 401)
-    assertEquals(status("GET", kit.playerPath("/p-1"), kit.asPlayer("p-1")), 501)
+    assertEquals(status("GET", kit.playerPath("/p-1"), kit.asPlayer("p-1")), 404)
     assertEquals(status("POST", kit.playerPath("/login"), kit.asVisitor), 400)
     assertEquals(status("GET", kit.sessionPath("/s-1"), kit.asVisitor), 401)
     assertEquals(status("GET", kit.sessionPath("/s-1"), kit.asPlayer("p-1")), 404)

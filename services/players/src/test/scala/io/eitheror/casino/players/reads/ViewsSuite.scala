@@ -45,7 +45,8 @@ class ViewsSuite extends munit.FunSuite:
       (ActivityCategory.Transactions, "deposit", "player"),
       (ActivityCategory.Rg, "rg_limit_applied", "operator")))
     assertEquals(lines.find(_.eventType == "deposit").map(r => (r.amountMinorUnits, r.currency)), Some((Some(5000L), Some("EUR"))))
-    val id    = ActivityEntry.key(MoneyTransactions.name, "p-1/EUR", 7)
+    val id    = ActivityEntry.key(MoneyTransactions.name, "p-1/EUR", "a deposit")
+    assertNotEquals(id, ActivityEntry.key(MoneyTransactions.name, "p-1/EUR", "another deposit"))
     val entry = KeyValueEntityTestKit.of(ActivityEntry, id)
     val line  = lines.find(_.eventType == "deposit").get.copy(factId = id)
     assertEquals(entry.call(ActivityEntry.record)(line).replyValue, Done(changed = true))

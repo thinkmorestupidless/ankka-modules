@@ -55,11 +55,10 @@ class PublishersSuite extends munit.FunSuite:
     assertEquals(players(e).messages.head.metadata.get("ce-id"), players(e).messages.head.metadata.get("ce-id"))
   }
 
-  test("a profile edit carries only the changed fields, personal ones through the marker, never a bare value of the others") {
+  test("a profile edit names the changed fields and carries every completeness field, personal ones through the marker") {
     val out = players(ProfileEdited(profile, Set("firstName", "country"), at))
-    assertEquals(out.payloads, Vector(PlayerProfileUpdated("p-1", Vector("country", "firstName"), Some(Personal("Ada")), None, None, None,
-      None, None, None, Some("GB"), at)))
-    assert(!out.messages.head.text.contains("Lovelace"), out.messages.head.text)
+    assertEquals(out.payloads, Vector(PlayerProfileUpdated("p-1", Vector("country", "firstName"), Some(Personal("Ada")), Some(Personal("Lovelace")),
+      Some(Personal("1990-01-02")), None, None, None, None, Some("GB"), at)))
     val dob = players(DateOfBirthCorrected(Personal("1990-01-03"), "op-1", "typo", at)).payloads.head.asInstanceOf[PlayerProfileUpdated]
     assertEquals((dob.changedFields, dob.dateOfBirth.map(_.reveal)), (Vector("dateOfBirth"), Some("1990-01-03")))
   }

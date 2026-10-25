@@ -93,6 +93,7 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       case e: WithdrawalSettled       => s.copy(withdrawalsOpen = s.withdrawalsOpen - e.withdrawalId)
       case _: PendingBonusCodeCleared => s.copy(pendingBonusCode = None)
       case e: StatusImported          => status(e.status, "imported", Actor.System)
+      case _: ResetLinkSent           => s
       case e: ErasureFiled =>
         status(Status.ErasurePending, "erasure_filed", Actor.System).copy(erasure = Some(ErasureFiling(e.correlationId, e.holdUntil)))
       case _: Erased =>
@@ -353,6 +354,9 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
 
   // ── erasure ───────────────────────────────────────────────────────────────
 
+  /** The operator's reset link, once the realm has sent it: recorded for the audit record only. */
+  def resetLinkSent(c: SendResetLink): Effect[Done] = effects.persist(ResetLinkSent(c.operatorId, c.at)).thenReply(_ => Done.changed)
+
   def fileErasure(c: FileErasure): Effect[Done] =
     val s = currentState
     if s.status == Status.ErasurePending || s.status == Status.Erased then effects.reply(Done.unchanged)
@@ -407,6 +411,7 @@ object PlayerEntity
   given Serializer[ClearDuplicate]        = PlayersCodecs.serializer[ClearDuplicate]("clear-duplicate")
   given Serializer[Withdrawal]            = PlayersCodecs.serializer[Withdrawal]("withdrawal")
   given Serializer[FileErasure]           = PlayersCodecs.serializer[FileErasure]("file-erasure")
+  given Serializer[SendResetLink]         = PlayersCodecs.serializer[SendResetLink]("send-reset-link")
   given Serializer[PlayerState]           = PlayersCodecs.serializer[PlayerState]("player-state-reply")
 
   override def snapshotEvery: Option[Int] = Some(100)
@@ -455,6 +460,7 @@ object PlayerEntity
   val withdrawalSettled     = command("withdrawal-settled")(_.withdrawalSettled)
   val clearPendingBonusCode = command("clear-pending-bonus-code")(_.clearPendingBonusCode)
   val fileErasure           = command("file-erasure")(_.fileErasure)
+  val resetLinkSent         = command("reset-link-sent")(_.resetLinkSent)
   val erase                 = command("erase")(_.erase)
   val get                   = query("get")(_.get)
 

@@ -53,13 +53,14 @@ object Facts:
 
   /**
    * The profile as `player_profile_updated` carries it (spec 009 FR-016): the eight fields `kyc` reads,
-   * personal ones as `Personal`; only the fields named changed are sent, the rest left out.
+   * personal ones as `Personal`; every one the player holds is sent, so `kyc` can judge completeness from the
+   * fact alone, and `changed_fields` names what this change moved (profile.feature).
    */
   private def profileUpdated(playerId: String, p: Profile, changed: Vector[String], at: Instant): f.PlayerProfileUpdated =
-    def personal(field: String) = Option.when(changed.contains(field))(p.get(field).getOrElse("")).map(Personal(_))
+    def personal(field: String) = p.get(field).map(Personal(_))
     f.PlayerProfileUpdated(playerId, changed, personal("firstName"), personal("lastName"), personal("dateOfBirth"),
       personal("phone"), personal("addressLine1"), personal("city"), personal("postalCode"),
-      Option.when(changed.contains("country"))(p.get("country").getOrElse("")), at)
+      p.get("country"), at)
 
   /** `player_message_*` on `casino.players`, keyed by the player. */
   def messages(messageId: String, sequence: Long, event: MessageEvent): Option[Published[f.CasinoPlayersFact]] =
@@ -128,6 +129,7 @@ object Facts:
       case e: ConsentChanged if e.source == "operator" =>
         op("consent", e.actorId, None, Vector(change(e.channel, (!e.granted).toString, e.granted.toString)), e.at)
       case e: DuplicateCleared if e.actorId.nonEmpty => op("fraud-clear", e.actorId, None, Vector.empty, e.at)
+      case e: ResetLinkSent => op("reset-password", Some(e.operatorId), None, Vector(named("password")), e.at)
       case _ => None
     action.map(record(brand, eventId("audit/player", playerId, sequence), _))
 

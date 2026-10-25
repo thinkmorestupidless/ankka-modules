@@ -38,6 +38,22 @@ statuses are the original's where it had the route.
 | `POST /{playerId}/erasure` | player | `ErasureWorkflow` | 202 `{correlationId, holdUntil}`; 409 `not_closed` |
 | `POST /{playerId}/exports`, `GET /{playerId}/exports/{exportId}` | player | `ExportWorkflow`; the read | 202 `{exportId}`; 200 the response with `missing`; 409 `export_not_ready`; 404 `export_not_found`; 410 `export_expired` |
 
+*Amended at T052–T055 (2026-10-25)*, where the original's answer is not kept:
+
+- `GET /{playerId}` answers a built profile (`playerId`, `status`, `email`, `emailVerified`, `currency`,
+  `registeredAt`, `vipTier`, `profileComplete`, `missingProfileFields` and each field held), not the
+  original's raw property map, which carried reset, change and verification tokens.
+- `PATCH /{playerId}`, `PATCH /consent` and `PATCH /cookie-consent` answer the original's `{updated: true}`;
+  a locked field sent is dropped and still `200`, as the original.
+- `GET /activity-history` keeps the original's CSV default and `format=json`, and pages (`page`, 100 a
+  page) with a `category` filter where the original capped at 500.
+- `POST /password-reset/confirm` answers `400 invalid_or_expired_token`: the realm's own email links to
+  the realm's own page, which confirms the reset.
+- The operator's `GET /players/{id}/profile` has no `rg` or `lifetimeStats` (specs 010 and 015 answer
+  those); `GET /players/{id}/crm` has no `lifecycleState` or `campaignSendHistory` (spec 014's).
+- The links this service emails go through `engagement` with the triggers `EmailAddressVerification`
+  (an added address), `EmailChangeVerification` and `PasswordChangeVerification`.
+
 The address in a path (`/emails/{address}/…`) is the original's shape; it is URL-encoded and never
 logged (001 FR-023).
 
