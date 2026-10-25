@@ -275,6 +275,13 @@ one source per view, merged by time in the route; the task checks `views.md`). T
 and emails from `PlayerEntity` queries (read your own write); the operator's profile read is the
 same query.
 
+**Checked at T016 (2026-10-25)**: a 0.13 `KeyedView` takes several sources, topics among them
+(`KeyedView.Companion.source`, one handler per source), so `ActivityView` is one keyed view over the
+five topics and `SessionsView` one over both session entities. A keyed view is one writer across the
+service, which the activity's rate allows. Activity rows are keyed by topic, record key and offset, so
+a redelivered fact rewrites its own row. Every topic source reads through a lenient serializer that
+skips a family newer than this service's contract.
+
 **Rationale**: the operator's list and search are questions over many players; the inbox is many
 messages; the activity is other services' facts (constitution IV: a reader builds its own view).
 Views are never the input to a refusal: every refusal is the entity's.

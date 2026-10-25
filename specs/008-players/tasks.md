@@ -259,7 +259,7 @@ parity task and can run the moment T005 and the original's stack are up.
 
 ### The views and the consumers (tests first)
 
-- [ ] T016 Implement the eight views of data-model.md: `p/player/PlayersView.scala` (over
+- [X] T016 Implement the eight views of data-model.md: `p/player/PlayersView.scala` (over
       `PlayerEntity` state; queries `list(status?, tier?, flagged?, page)`, `search(q)` over the
       display name and primary address text, `byId`), `p/sessions/SessionsView.scala` (over both
       session entities; `byPlayer`, `openPlayerSessions`, `openGameSessionsOf(player)`, `byRealmSession`),
@@ -276,6 +276,10 @@ parity task and can run the moment T005 and the original's stack are up.
       `erased` (the view handler reads the status on the row's update); `sbt schema` regenerates;
       tests on the kit come with T027's `SmokeSuite` (a row per view appears after the event that
       feeds it)
+      *Done 2026-10-25.* ActivityView and SessionsView are keyed views (R11 checked); the activity rows
+      keep the original's columns (`eventType`, `actor`, `amountMinorUnits`, `currency`, `description`)
+      and take bonuses from `casino.rewards` only. `reads/ViewsSuite.scala` covers the folds on the kit
+      ahead of T027.
 - [ ] T017 [P] `p-test/facts/PublishersSuite.scala` (`ConsumerTestKit`): every row of
       contracts/facts.md's three tables, event in → one fact out with the family, the payload's
       field names, `ce-subject` and the key the player id, `ce-id` the event id; the same event
