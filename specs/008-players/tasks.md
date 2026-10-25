@@ -133,7 +133,7 @@ checkout, not this service).
       computed with openssl holds it), and reads a second address's and a password change's tokens from
       the player twin. The operator's routes are `BackofficePlayerRoutes`' `/v1/casino/{brand}/players/…`
       and `PlayerProfileRoutes`' `/v1/casino/backoffice/{brand}/…`; the run signs in an operator and an
-      operator of no brand by password grant (passwords from env, never recorded). 46 recordings, 19
+      operator of no brand by password grant (passwords from env, never recorded). 54 feature recordings, 19
       feature scenarios not driven with the reason, and three extras (message, unknown merge tag,
       activity export). `preflight -register <casino-url> -brand <brand>` checks the route.
 
