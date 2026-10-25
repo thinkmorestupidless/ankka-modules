@@ -97,6 +97,26 @@ leaves the orphan the spec forbids, which is what the original does today); the 
 realm second (rejected: the realm is the authority on the address and the password policy, so its
 refusal must come before anything is written).
 
+**Amended at T034 (2026-10-25)**: the route makes the realm call, not a step. A step can only read
+the password from the workflow's state, and that state is journaled, so the password would be in a
+table (SC-006). `start` mints the attempt and pauses in `realm`. The caller holding the attempt
+writes the request, without the password, to `PendingRegistration`. It then calls the realm and
+reports the answer with `realm-answered`. A refusal ends the attempt with it. A created user moves to
+`player`. A failed or unanswered call, or no report within twice the bound, runs `undo-realm`. A user
+the realm creates after the route gave up is removed by the route when the late answer arrives, and
+otherwise by `undo-realm`'s look-up by player id. The workflow still owns the compensation, so FR-002
+holds across a crash of either side.
+
+The route polls the workflow's outcome rather than `thenAwaitEnd`: the outcome is held once
+`player` has written, but the workflow runs on through `email`, which retries a send `engagement`
+does not take for a minute (R16). Awaiting the end would hold the answer for that minute. A second
+registration while the attempt has no outcome joins it. One that comes while `email` is still
+retrying is answered `email_already_exists`, as the realm would answer a new attempt.
+
+A step calls `engagement` on its own thread (`Neighbour.inline`): 0.13 admits a workflow's service
+call only on the step's thread. The email step's timeout (5 s) is the send's bound, and a timeout
+fails over to `email-unanswered`.
+
 ## R4. Sign-in: the realm's direct grant, the status from the entity, `may-log-in` once, fail closed
 
 **Decision**: the public sign-in route calls the realm's token endpoint (direct grant, client

@@ -143,10 +143,14 @@ with per-currency settings. `AllowList`: `countries: Set[String]` (empty = all).
 
 | Workflow | Id | Steps | State |
 |---|---|---|---|
-| `RegistrationWorkflow` | `sha256(<slug>:<address lower-cased>)` | `mint` → `realm` → `player` → `match` → `email`; `undo-realm` on a failed `player` | the id minted, the outcome (`playerId` or the refusal) |
+| `RegistrationWorkflow` | `sha256(<slug>:<address lower-cased>)` | `start` mints the id and waits in `realm` for the route's realm answer → `player` → `match` → `email` (`email-unanswered` retries for a minute) → `forget`; `undo-realm` on a failed `player`, a realm call that failed or an answer that never came | the attempt, the id minted, the realm user, the outcome (`playerId` or the refusal), the sends, the lookup tokens; nothing personal |
 | `SessionEndWorkflow` | player session id | `games` → `session` → `player` | reason, the game sessions ended |
 | `ErasureWorkflow` | `erasure/<playerId>` | `file` → `hold` (timer) → `apply` (every service's route, own `Erase`) → `realm` → `done` | correlation id, hold, each service's certificate |
 | `ExportWorkflow` | `export/<playerId>/<requestId>` | `own` → `others` → `done` | the assembled response, `missing: Vector[service]`, `expiresAt` (24 h) |
+
+`PendingRegistration` (key value, id = the workflow's id) holds the request the `player` and `email`
+steps read: the address, currency, profile, consents and what registration presented, never the
+password. `forget` deletes it, so the workflow's journal holds no personal value (T034).
 
 ## Timers
 

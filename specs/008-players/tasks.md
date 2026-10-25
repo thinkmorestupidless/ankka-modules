@@ -458,7 +458,7 @@ registration recordings.
 
 ### Tests for User Story 1
 
-- [ ] T030 [P] [US1] `p-test/registration/RegistrationWorkflowSuite.scala` (the workflow testkit of
+- [X] T030 [P] [US1] `p-test/registration/RegistrationWorkflowSuite.scala` (the workflow testkit of
       0.13, or the integration kit with `FakeRealm` if 0.13 has none; **verify at task time**):
       the steps in order; the id `sha256(<slug>:<lower address>)` so `A@x` and `a@x` share a
       workflow; `FakeRealm` refusing `EmailExists` → the outcome `email_already_exists`, no player
@@ -467,7 +467,8 @@ registration recordings.
       started again after that → a new attempt, `201`; `FakeEngagement` silent → the player exists,
       `VerificationEmailPending` recorded, the send retried for a minute (the clock stepped) then
       left pending; a second `start` with the same address while in flight → the same outcome once
-- [ ] T031 [P] [US1] `p-test/it/RegistrationSuite.scala` on the kit (FR-001 to FR-006, SC-007):
+      *Done 2026-10-25. On the integration kit (0.13 has no workflow testkit). The realm call is the route's, not a step (research R3, amended), so the cases are driven through `POST /register`; the player write fails through `RegistrationRuntime.write`. Added: a realm answer after the bound has its late user removed. 8 tests.*
+- [X] T031 [P] [US1] `p-test/it/RegistrationSuite.scala` on the kit (FR-001 to FR-006, SC-007):
       a registration with every field answers `201`, `playerId` a UUID, `status`
       `pending_email_verification`; `FakeRealm` holds the user with `eitheror_twin_id` the id,
       `emailVerified false`; `GET /{playerId}` as the player reads every field; the fact on
@@ -483,17 +484,20 @@ registration recordings.
       rate_limited` with `retry_after_seconds`; after 5 min → `200` and a second send; the fakes'
       call counts: `FakeRealm` one create, `FakeEngagement` one send, nothing else called;
       `GET /v1/casino/geo/lookup` with `FakeGeo` silent → `{country: null, dialCode: null}`
-- [ ] T032 [P] [US1] Bind every scenario of `features/players/registration.feature` in
+      *Done 2026-10-25. 12 tests. `GET /{playerId}` stays US3's (T050), so the fields are read from the entity. A consent given false has no time, as the original's.*
+- [X] T032 [P] [US1] Bind every scenario of `features/players/registration.feature` in
       `p-test/features/RegistrationFeatures.scala`, each step over the kit's helpers; "the fact
       carries no tag" reads the broker; "nothing is created" reads `FakeRealm` and `PlayersView`
+      *Done 2026-10-25. All 10 pickles bound; "nothing is created" reads `FakeRealm` and the workflow's outcome.*
 - [ ] T033 [US1] Confirm `ParitySuite` lists the driver's registration recordings and the four
       Scenario 18 registrations as failing; name in `p-test/port/Parity.scala` the divergences that
       hold on them (`playerId` presence-only; `400 missing_fields` for the plain-text `400`;
       `trackingContext.btag` translated). Needs T029
+      *Open 2026-10-25: blocked on T029's recordings. The divergences to name: the minted `playerId` (the original derives it from the address) compared for presence, and `missing_fields` for the original's `{"error": "email, password, and currency are required"}`.*
 
 ### Implementation for User Story 1
 
-- [ ] T034 [US1] Implement `p/registration/RegistrationWorkflow.scala` as research R3 and
+- [X] T034 [US1] Implement `p/registration/RegistrationWorkflow.scala` as research R3 and
       data-model.md say: `start(request)` the atomic claim answering the outcome when one is held;
       `mint`; `realm` (`Realm.createUser`, the refusals as outcomes); `player`
       (`PlayerEntity.Register` with the profile, consents, registration fields, the lookup tokens
@@ -501,7 +505,8 @@ registration recordings.
       `email` (`Tokens.mint(email_verify)`, `Engagement.send`, `VerificationEmailSent` or
       `VerificationEmailPending` with the retry over a minute); `undo-realm` on a failed `player`;
       the state holding the outcome; T030 green
-- [ ] T035 [US1] Fill `PlayerEndpoint`'s `POST /register` (the body checked for the three
+      *Done 2026-10-25. Amended as research R3 says: `start` claims and pauses in `realm`; the route holds the password and reports the realm's answer; `PendingRegistration` holds the request (no password) and `forget` deletes it; `email-unanswered` retries for a minute.*
+- [X] T035 [US1] Fill `PlayerEndpoint`'s `POST /register` (the body checked for the three
       required fields first, `400 missing_fields`; the tag checked against FR-003's grammar and
       dropped; the network address from `X-Forwarded-For`'s first entry and its country from
       `Geo`; `client.forWorkflow(id).call(start).thenAwaitEnd(REGISTRATION_BOUND)`; the outcome to
@@ -510,6 +515,7 @@ registration recordings.
       and `OperatorEndpoint`'s `GET /players/{playerId}/verification-link` (the current token's
       link, `404` when `CASINO_REAL_MONEY=true`); T031–T033 green; `LeakSuite`'s registration case
       green against the real route
+      *Done 2026-10-25. The route polls the outcome within `REGISTRATION_BOUND` (research R3, amended). Resend answers 200 `{"result":"sent"}` for an unknown or verified address, as the original does. `sbt test`: 168 passed, 82 ignored.*
 
 **Checkpoint**: a registration makes one realm user and one player, sends one email and produces
 one fact; the link verifies once; `registration.feature` passes; the registration recordings replay

@@ -103,6 +103,7 @@ final class Kit(base: Settings = Kit.Base):
     realm.reset(); rg.reset(); kyc.reset(); engagement.reset(); ingest.reset(); wallet.reset(); geo.reset(); agent.reset()
     clockOffset = JDuration.ZERO
     log.list.clear()
+    io.eitheror.casino.players.registration.RegistrationRuntime.reset()
     rewire()
 
   // ── HTTP ────────────────────────────────────────────────────────────────────────────────────────

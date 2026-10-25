@@ -15,12 +15,14 @@ import Answers.notYet
 final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/${ctx.slug}"):
   val acl: Acl = Routes.player(ctx.slug, ctx.authenticate())
 
+  private val registration = RegistrationRoutes(ctx)
+
   withAcl(Routes.public) {
-    post("/register") { () => notYet("register") }
+    postBody("/register") { (text: String) => registration.register(text, request.header) }
     post("/login") { () => notYet("login") }
     post("/refresh") { () => notYet("refresh") }
-    post("/verify-email") { () => notYet("verify-email") }
-    post("/resend-verification-email") { () => notYet("resend-verification-email") }
+    postBody("/verify-email") { (text: String) => registration.verifyEmail(text) }
+    postBody("/resend-verification-email") { (text: String) => registration.resend(text) }
     post("/password-reset/request") { () => notYet("password-reset/request") }
     post("/password-reset/confirm") { () => notYet("password-reset/confirm") }
     post("/password-change/verify") { () => notYet("password-change/verify") }
@@ -104,7 +106,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   get("/exports/{exportId}") { (_: String) => notYet("operator export read") }
   post(s"$P/erasure") { (_: String) => notYet("operator erasure") }
   get(s"$P/erasure") { (_: String) => notYet("erasure state") }
-  get(s"$P/verification-link") { (_: String) => notYet("verification-link") }
+  get(s"$P/verification-link") { (playerId: String) => RegistrationRoutes(ctx).verificationLink(playerId) }
   get("/brand-config") { () => notYet("brand-config") }
   put("/brand-config") { () => notYet("brand-config set") }
   get("/currency-config") { () => notYet("currency-config") }

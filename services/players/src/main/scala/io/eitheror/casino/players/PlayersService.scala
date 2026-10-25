@@ -11,7 +11,7 @@ import io.eitheror.casino.players.fraud.{FraudCaseEntity, FraudCasesView}
 import io.eitheror.casino.players.inbox.{MessageEntity, MessagesView, NoteEntity, NotesView}
 import io.eitheror.casino.players.player.{PlayerEntity, PlayersView}
 import io.eitheror.casino.players.reads.*
-import io.eitheror.casino.players.registration.LookupIndexEntity
+import io.eitheror.casino.players.registration.{LookupIndexEntity, PendingRegistration, RegistrationWorkflow}
 import io.eitheror.casino.players.sessions.*
 
 /** Every component of the service (plan.md's table), registered by the service and by its test kit alike. */
@@ -25,6 +25,8 @@ object PlayersService:
     NoteEntity.descriptor,
     FraudCaseEntity.descriptor,
     LookupIndexEntity.descriptor,
+    PendingRegistration.descriptor,
+    RegistrationWorkflow.descriptor,
     BrandConfigEntity.descriptor,
     CurrencyConfigEntity.descriptor,
     AllowListEntity.descriptor,
