@@ -4,6 +4,9 @@ package io.eitheror.casino.pspgateway.it
 class SmokeSuite extends munit.FunSuite:
   private lazy val kit = SharedKit.kit
 
+  // Start the shared kit outside the first test's timeout, as the other suites do: whichever suite runs first pays for it.
+  override def beforeAll(): Unit = kit: Unit
+
   test("/status answers the project's caller") {
     val r = kit.request("GET", "/status", headers = kit.asService("local", "ingest"))  // the kit runs unnamed: its project is `local`
     assertEquals(r.status, 200, r.text)
