@@ -163,7 +163,7 @@ parity task and can run the moment T005 and the original's stack are up.
       duration refused naming the variable; a missing secret refused naming it) and
       `p-test/PlayersCodecsSuite.scala` (every type round-trips; a `Personal` field serialises
       through the marker and never as a bare string)
-- [ ] T007 [P] Implement `p/player/Profile.scala`: the `Profile` type of data-model.md (sixteen
+- [X] T007 [P] Implement `p/player/Profile.scala`: the `Profile` type of data-model.md (sixteen
       `Personal[String]` fields in the original's camelCase names), `Profile.lockOnce` (the six
       fields), `Profile.clearable` (the five), `Profile.required` (the original's `RequiredFields`
       eight), `Profile.apply(current, edit, locked): (Profile, changed: Set[field], nowLocked)`
@@ -173,7 +173,7 @@ parity task and can run the moment T005 and the original's stack are up.
       first value and ignores the next edit; each clearable field clears; a non-clearable field with
       an empty value is unchanged; `changed` names exactly what changed; 17 years and 364 days is
       underage, 18 years is not
-- [ ] T008 [P] Implement `p/realm/Tokens.scala` (the verification token: payload
+- [X] T008 [P] Implement `p/realm/Tokens.scala` (the verification token: payload
       `{b, p, e, x, t}` base64url, `.` and the HMAC-SHA256 under `players-email-token`, `mint`,
       `verify(token, now): Either[invalid | expired, Claims]` with the purposes `email_verify`,
       `email_add`, `email_change`, `password_change`; constant-time compare) and
@@ -184,7 +184,7 @@ parity task and can run the moment T005 and the original's stack are up.
       another; a known payload under a known key gives the original's `payload.signature` form) and
       `p-test/registration/LookupTokensSuite.scala` (`" Ann "`, `"SMITH"`, `"1990-01-01"` and
       `"ann"`, `"smith"`, `"1990-01-01"` share a token; a missing part is none; two keys give two tokens)
-- [ ] T009 [P] Implement `p/inbox/MergeTags.scala` (the original's tags: `{{firstName}}`,
+- [X] T009 [P] Implement `p/inbox/MergeTags.scala` (the original's tags: `{{firstName}}`,
       `{{displayName}}`, `{{brandName}}`, `{{currency}}`, …, read from `BackofficePlayerRoutes`'s
       merge-tag list; `render(template, values): Either[UnknownTag(name), String]`; `list`) and
       `p/clients/Bound.scala` copied from `i-test`'s pattern in `services/ingest/.../merchant/Bound.scala`
