@@ -16,6 +16,7 @@ else. The realm talks to `players` and to no other service (spec 001 FR-022).
 | reopen, reinstate | `enabled: true` (reinstate never disabled; exclusion and closure did) |
 | live sessions (the reconciler) | `GET /admin/realms/casino-<slug>/clients/{casino-frontend id}/user-sessions` every 60 s |
 | password reset (player and operator) | `PUT /admin/realms/casino-<slug>/users/{userId}/execute-actions-email` with `UPDATE_PASSWORD` |
+| password change (the confirmed link, FR-027) | `PUT /admin/realms/casino-<slug>/users/{userId}/reset-password` with the new credential |
 | erasure | `DELETE /admin/realms/casino-<slug>/users/{userId}` |
 
 The token `players` reads at sign-in carries `eitheror_twin_id` (the player id, the original's

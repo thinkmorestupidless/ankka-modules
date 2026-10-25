@@ -45,7 +45,7 @@ none in a row, an event or a fact.
 
 **Testing**:
 
-- munit; `EventSourcedTestKit` for the six event sourced entities, `KeyValueEntityTestKit` for the
+- munit; `EventSourcedTestKit` for the five event sourced entities, `KeyValueEntityTestKit` for the
   five key value ones, `ConsumerTestKit` for the seven consumers, `WorkflowTestKit` for the four
   workflows (the realm and the other services as traits with fakes);
 - `AnkkaTestKit.start` over Postgres with `FakeRealm` (Keycloak's admin and token routes, scripted),
@@ -97,11 +97,11 @@ a plugin change in the original's repository and the installation's Keycloak ima
 | Player routes | 34 at 1 prefix (`PlayerEndpoint`), 3 at `SessionEndpoint` |
 | Operator routes | 36 at 1 prefix, including spec 021's two modules rows |
 | Service routes | 10 at 1 prefix; realm routes 3; geo 1 |
-| Event sourced entities | 6 (player, player session, game session, message, fraud case; `LookupIndex` is key value) |
+| Event sourced entities | 5 (player, player session, game session, message, fraud case; `LookupIndex` is key value) |
 | Key value entities | 5 (note, lookup index, brand config, currency config, allow-list) |
 | Workflows | 4 |
 | Timed actions | 2 (`SessionLimits`, `RealmReconcile`) |
-| Consumers, views | 7, 8 |
+| Consumers, views | 8, 8 |
 | Feature scenarios bound | 63 (`registration` 8, `sessions` 18, `profile` 12, `status` 11, `duplicates` 7, `erasure` 7) |
 | Recordings replayed | one per driver scenario the original can show (R1; `contracts/surface.md`'s `kept` rows), plus the four Scenario 18 registrations |
 
@@ -115,7 +115,7 @@ a plugin change in the original's repository and the installation's Keycloak ima
 | II. Money is exact, the wallet is the ledger | `Long` minor units; every money command keyed; no balance kept | Pass. `players` holds no money. The deposit route passes `amount` through as a `Long`; `WalletSummaryView` folds `money.transactions` into a read, never a balance of its own (FR-034). |
 | III. A brand is a project | Keys carry no brand; the realm per brand; shared projects by grant | Pass. Every entity id is brand-free; the slug is in the route prefix and the realm name. `merchant`'s erasure route is reached under the brand's erasure grant (R10); `ingest`'s cashier route as the internet reaches it, under the merchant key. The realm reaches `players` through public routes verified by per-realm secrets. |
 | IV. Commands over HTTP, facts over topics | No store read across services | Pass. Every exchange with the realm, `responsible-gambling`, `kyc`, `engagement`, `ingest` and the erasure and export routes is a call. Every fact comes from a consumer folding events (R7); every read of another service's data is a view over its topic (R11). |
-| V. Personal data marked, erasure honoured | `Personal` everywhere; the erasure handler | Pass with a named gap. Every identifying field is `Personal` (data-model.md); `Erase` blanks state, views redact, the realm user is removed. The journal's earlier events keep their `Personal` values until ankka 042 lands: the gap is R8's and the pilot blocker the brain already records, not a workaround. |
+| V. Personal data marked, erasure honoured | `Personal` everywhere; the erasure handler | Pass with a named gap. Every identifying field is `Personal` (data-model.md); `Erase` blanks state, views redact, the realm user is removed. The journal's earlier events, and the facts already on `casino.players` and `casino.sessions` (kept for ever; `player_profile_updated` and `player_session_started` carry `Personal` fields), keep their values until ankka 042 lands: the gap is R8's and the pilot blocker the brain already records, not a workaround. |
 | VI. Scala by default | | Pass: Scala. Go for the driver; Java for the plugins because they are Keycloak's. |
 | VII. Specs in the domain's words | `just features` passes; scenarios live in the features | Pass: 0 findings in 1,108 scenarios after the 2026-10-25 clarification. |
 | Workflow: clarify before plan | | Pass: clarified 2026-10-08 (three sessions) and 2026-10-25. |
@@ -131,9 +131,9 @@ No violations; Complexity Tracking is empty.
 | FR-005, FR-016's email, FR-026 | the stateless HMAC token (`players-email-token`), `PlayerEntity.VerifyEmail`, `EmailAddressVerified` | the original's choice, kept because verification is idempotent; nothing stored to leak or expire | a token entity per send (a row holding the address; the original moved off it) (R16) |
 | FR-010 to FR-015: sign-in and sessions | `PlayerEntity.SignIn`, `PlayerSessionEntity`, `SessionEndWorkflow`, `Realm` client | the status refusals before any realm call cost; the cascade of a session's end survives a crash as a workflow | ending the games in the endpoint (a crash leaves them open past SC-003) (R4, R6) |
 | FR-013, SC-004: the authenticator's route | `RealmEndpoint./may-sign-in`, `X-Realm-Secret`, `may-log-in` bounded 80 ms, fail closed | one entity read and one bounded call fit under 100 ms; the secret is per realm | the plugin reading a view (constitution IV) (R4) |
-| FR-009: the reconciler | `RealmReconcile` recurring timer (60 s) → `SessionEndWorkflow(expired)` | the original's reconciler as a durable, replace-by-name timer | a consumer of the webhook alone (the listener never sends `SESSION_EXPIRED`) (R5) |
+| FR-009: the reconciler | `RealmReconcile` recurring timer (60 s) → `SessionEndWorkflow(expired)`; the gauge `players.active_sessions` through `ankka-telemetry-otlp` | the original's reconciler as a durable, replace-by-name timer | a consumer of the webhook alone (the listener never sends `SESSION_EXPIRED`) (R5) |
 | FR-017 to FR-020, FR-022: game sessions and the limit | `GameSessionEntity`, `PlayerEntity.GameSessionOpened` (answers minutes left), `SessionLimits` timed action, one timer per session, `RgLimitsConsumer` | the minutes left are known at open, so one timer per session replaces the hourly scan; a new limit reschedules by name | the hourly scan as a recurring timer (late by up to an hour; the original's TL rule is empty) (R5) |
-| FR-023 to FR-029: the profile | `PlayerEntity` (`EditProfile` dropping locked fields, `CorrectDateOfBirth`, emails, consents, cookies, favourites) | one aggregate, one fold, one `Erase` | an entity per concern (five erasure handlers for one subject) (R2) |
+| FR-023 to FR-029: the profile | `PlayerEntity` (`EditProfile` dropping locked fields, `CorrectDateOfBirth` with the kyc lock from `KycFactsConsumer`, emails, consents, cookies, favourites) | one aggregate, one fold, one `Erase`; the kyc lock is a flag the entity hears from `kyc`'s facts, never a call | an entity per concern (five erasure handlers for one subject) (R2) |
 | FR-030: the inbox | `MessageEntity`, `MessagesView`; `ServiceEndpoint./messages` for `engagement` | the delivery id as the entity id makes a repeat send one message | messages as a list on the player (unbounded state) (R2, R11) |
 | FR-031 to FR-033, FR-032a: status | `PlayerEntity`'s transitions and `trail`; `Realm` enable/disable/revoke | the trail is the entity's own; every transition one event and one fact | a status entity apart from the profile (two subjects for one person) (R2) |
 | FR-034: notes, wallet summary, activity | `NoteEntity`, `NotesView`, `WalletSummaryView`, `ActivityView` | notes are personal data under the player; the wallet read is a fold of its facts | reading the wallet's store or route in the request path (constitution IV; SC-007) (R11) |
@@ -191,7 +191,7 @@ services/players/                               # ankka init; one sbt build; dep
 │   ├── erasure/                                # ErasureWorkflow, ExportWorkflow, the Erasure/Export client traits
 │   ├── config/                                 # BrandConfigEntity, CurrencyConfigEntity, AllowListEntity
 │   ├── reads/                                  # WalletSummaryView, RecentlyPlayedView, ActivityView
-│   ├── facts/                                  # PlayersPublisher, SessionsPublisher, AuditPublisher, RgLimitsConsumer, WithdrawalsConsumer, PushDeliveredConsumer, RewardsConsumer
+│   ├── facts/                                  # PlayersPublisher, SessionsPublisher, AuditPublisher, RgLimitsConsumer, KycFactsConsumer, WithdrawalsConsumer, PushDeliveredConsumer, RewardsConsumer
 │   ├── realm/                                  # Realm (trait + Keycloak), Tokens (verification), the webhook body
 │   ├── clients/                                # Rg, Kyc, Engagement, Ingest, Geo (traits + HTTP), Bound
 │   ├── api/                                    # PlayerEndpoint, SessionEndpoint, OperatorEndpoint, ServiceEndpoint, RealmEndpoint, GeoEndpoint; Answers, Deposits
@@ -230,8 +230,8 @@ with a fallback:
 
 ## Phase 1: design
 
-- [data-model.md](data-model.md): eleven entities with their state, events, commands and refusals
-  in check order; the four workflows; the three timers; the seven consumers; the eight views; the
+- [data-model.md](data-model.md): ten entities with their state, events, commands and refusals
+  in check order; the four workflows; the three timers; the eight consumers; the eight views; the
   invariants and the status transitions.
 - [contracts/](contracts/): the original's surface disposed of; every route by endpoint with bodies
   and refusals; events to families and the contract additions; the parity translation and refusal

@@ -17,6 +17,7 @@ once a journal holds them.
 | `trail` | Vector[AccountEvent] | every transition: `changeType`, `previousValue`, `newValue`, `actor` (`operator` \| `player` \| `system`), `actorId`, `reason`, `at` |
 | `profile` | Profile | below; every field `Personal` |
 | `locked` | Set[field] | the lock-once fields that hold a value (FR-024) |
+| `kycVerified` | Boolean | from `kyc_verified` / `kyc_rejected` facts; locks `CorrectDateOfBirth` (FR-025) |
 | `emails` | Vector[EmailAddress] | `address: Personal`, `verified`, `primary`, `addedAt`; exactly one primary (FR-026) |
 | `consents` | Consents | `emailMarketing`, `smsMarketing`: each `given`, `at`, `source`; `messagesSuppressed` (the operator's flag, FR-030) |
 | `cookieDecisions` | Map[deviceId, CookieDecision] | every field required; replaced on repeat (FR-028) |
@@ -51,9 +52,11 @@ once a journal holds them.
 values), `DateOfBirthCorrected` (operator, reason), `EmailAdded`, `EmailAddressVerified`,
 `EmailPromoted`, `EmailRemoved`, `EmailChanged`, `ConsentChanged`, `CookieDecisionRecorded`,
 `FavouriteAdded`, `FavouriteRemoved`, `Suspended`, `Reinstated`, `SelfExcluded`, `ExclusionLifted`,
-`Closed` (actor, reason), `Reopened`, `Blocked`, `VipTierChanged` (previous, new), `PotVipSet`,
-`DuplicateFlagged` (caseId, linked, signals), `DuplicateCleared`, `WithdrawalOpened`,
-`WithdrawalSettled`, `ErasureFiled` (correlationId, holdUntil), `Erased`. Every status change appends
+`Closed` (actor, reason), `Reopened`, `VipTierChanged` (previous, new), `PotVipSet`,
+`DuplicateFlagged` (caseId, linked, signals), `DuplicateCleared`, `KycVerified`, `KycWithdrawn`,
+`WithdrawalOpened`, `WithdrawalSettled`, `ErasureFiled` (correlationId, holdUntil), `Erased`. There
+is no `Blocked` event: `blocked` is a status the migration (019) carries and nothing here sets
+(spec FR-031). Every status change appends
 to `trail`.
 
 ### Commands and their refusals, in order
@@ -119,7 +122,8 @@ id returns the first answer.
 
 ## FraudCaseEntity (event sourced, id = case id)
 
-`playerIds`, `signals` (`identity`, `device`), `status` (`open` \| `reviewed` \| `dismissed`),
+`playerIds`, `signals` (`identity`, `device`), `status` (`open` \| `reviewed` \| `dismissed`, stored
+lower-case; the wire carries the original's `OPEN` \| `REVIEWED` \| `DISMISSED`, `contracts/wire.md`),
 `openedAt`, `reviewedBy`, `reviewedAt`. Events `Opened`, `Reviewed`, `Dismissed`. Dismissal commands
 `ClearDuplicate` on every player.
 
@@ -160,6 +164,7 @@ with per-currency settings. `AllowList`: `countries: Set[String]` (empty = all).
 | `SessionsPublisher` | events of the two session entities | `casino.sessions` families |
 | `AuditPublisher` | operator actions' events | `platform.audit` records (spec 018 FR-001's shape) |
 | `RgLimitsConsumer` | `casino.players`, `StartFrom.Latest`, family `rg_limit_applied` | `PlayerEntity.SetSessionLimit`; reschedules the timers |
+| `KycFactsConsumer` | `casino.players`, `StartFrom.Latest`, families `kyc_verified`, `kyc_rejected` (spec 009) | `PlayerEntity.KycVerified` / `KycWithdrawn`: the date-of-birth lock |
 | `WithdrawalsConsumer` | `casino.withdrawals`, `StartFrom.Latest` | `WithdrawalOpened` / `WithdrawalSettled` on the player (the erasure hold) |
 | `PushDeliveredConsumer` | `casino.push`, `StartFrom.Latest` | `MessageEntity.Delivered` |
 | `RewardsConsumer` | `casino.rewards`, `StartFrom.Latest`, `bonus_code_entered` | clears `pendingBonusCode` |
@@ -193,8 +198,8 @@ with per-currency settings. `AllowList`: `countries: Set[String]` (empty = all).
 pending_email_verification --VerifyEmail--> active
 active --Suspend--> suspended --Reinstate--> active
 active --SetSelfExcluded (RG)--> self_excluded --LiftExclusion (RG)--> active
-active | suspended --Block--> blocked
-active | suspended | self_excluded --Close (operator | player)--> closed --Reopen (operator, within hold)--> active
+active | suspended | self_excluded | blocked --Close (operator | player)--> closed --Reopen (operator, within hold)--> active
+(blocked: only from the migration; no command reaches it)
 closed --FileErasure--> erasure_pending --Erase--> erased
 ```
 

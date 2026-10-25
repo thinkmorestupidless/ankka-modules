@@ -108,7 +108,7 @@ refused `email_not_verified` for `pending_email_verification`. Only then the rou
 the end or `account_restricted` when there is no answer; a refusal is recorded on the player as the
 refused attempt (FR-011). Then `PlayerSessionEntity.Open`, `PlayerEntity.SessionOpened` (which stamps
 the last sign-in and answers the player's other open sessions), and, when `brand-config` sets
-`single_session`, `SessionEnd` (R6) for each other session with reason `superseded` before the
+`singleSession`, `SessionEnd` (R6) for each other session with reason `superseded` before the
 answer (FR-012). The answer keeps the original's fields (`token`, `refreshToken`, `brandId`,
 `playerId`, `currency`, `country`, `pendingBonusCode`).
 
@@ -195,7 +195,10 @@ wallet and merchant do. The erasure handler of this service is `PlayerEntity.Era
 every personal field in the fold (the values are gone from state and from every later snapshot), the
 views project the event as a redacted row, the two lookup tokens are removed from the index (R9),
 the player session rows keep no address or agent. The journal's earlier events still hold the values
-until ankka 042's crypto-shredding exists; that is the gap SC-006 names "within ankka 042's bound",
+until ankka 042's crypto-shredding exists, and so do the facts already on `casino.players` and
+`casino.sessions` (`player_profile_updated`'s eight `Personal` fields, which spec 009 reads;
+`player_session_started`'s address and agent), whose topics the core module keeps for ever; that is
+the gap SC-006 names "within ankka 042's bound",
 and the plan reports it as "platform lacks 042" exactly as the modules tool reports `erasure` as not
 stated. Nothing here is a workaround for 042: when it ships, `Personal` becomes its type and the
 journal is covered.
@@ -384,7 +387,7 @@ the quickstart and the Playwright suite can verify an address; on a real-money b
 | Duplicates are matched by token, not by a scan | FR-036 | `duplicates.feature`; Scenario 18's recordings pass either way |
 | The export carries every service's part | FR-040 | `erasure.feature`; no recording (new) |
 | A player may close their own account; an operator may reopen it | FR-032a | `status.feature`; no recording (new) |
-| `single_session` ends the older session | FR-012 | `sessions.feature`; no recording (new) |
+| `singleSession` ends the older session | FR-012 | `sessions.feature`; no recording (new) |
 | A verification email that cannot be sent does not refuse the registration | R16 | `registration.feature`; the original answers 500 |
 | The player-facing KYC routes, `launch`, the RG limit routes and the wallet adjust route of the original's player and backoffice files are other services' | spec Context; 003, 009, 010, 002 | `contracts/surface.md` dispositions |
 

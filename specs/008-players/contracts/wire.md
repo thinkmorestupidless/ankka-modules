@@ -33,6 +33,7 @@ here is the plan's reading of the Scala; the driver's recordings confirm or corr
 | `500 refresh_failed`, `500 refresh_error` | `503 service_unavailable` — a listed divergence |
 | `403 player_id_missing` on the message routes | `401 missing_token` (001 FR-020) — a listed divergence |
 | `POST /register` answer `201 {playerId, status}` | unchanged; `playerId` is `vary` (minted, not derived) |
+| a fraud case's `status` `OPEN` \| `REVIEWED` \| `DISMISSED` | unchanged on the wire; stored lower-case (data-model.md) |
 
 ## Placeholders the driver writes
 

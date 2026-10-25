@@ -13,7 +13,7 @@ feature bindings, the SC suites, the parity tests over the recordings.
 **Organization**: By user story, in spec.md's order. US1 to US3 are P1 and together are what a
 player and `game-provider` need on day one; US1 alone is the MVP (a registration that makes one
 realm user and one player, sends one email, produces one fact, and is verified by its link). The
-pure packages, the eleven entities, the eight views, the seven consumers, the realm and service
+pure packages, the ten entities, the eight views, the eight consumers, the realm and service
 seams, the fakes and the kit are foundational: no route can be tested before a player can be written,
 a realm can be asked and a fact can be read. US2 and US3 extend the player with sessions; US4 and US5
 the profile and the status; US6 hangs off US1's workflow; US7 fans out to every other service. The
@@ -124,8 +124,8 @@ checkout, not this service).
 
 ## Phase 2: Foundational
 
-**Purpose**: what every story needs: the pure packages with their suites, the eleven entities and
-eight views with their kits, the seven consumers, the realm and service seams, the fakes and the
+**Purpose**: what every story needs: the pure packages with their suites, the ten entities and
+eight views with their kits, the eight consumers, the realm and service seams, the fakes and the
 kit, the parity and feature suites listing their tests, the service and its endpoint shells.
 
 **⚠️ CRITICAL**: no story starts before this phase is done. T029 (the recording run) gates every
@@ -140,7 +140,7 @@ parity task and can run the moment T005 and the original's stack are up.
       `EXPORT_PART_BOUND` `10s`, `EXPORT_RETENTION` `24h`, `REGISTRATION_BOUND` `5s`; the six secrets
       read by name from the secret store or, locally, from env; `fromEnvironment` refusing a value it
       cannot read by the variable's name, as `services/wallet/.../Settings.scala` does) and
-      `p/PlayersCodecs.scala` (codecs for every stored type of data-model.md: the eleven states and
+      `p/PlayersCodecs.scala` (codecs for every stored type of data-model.md: the ten states and
       their events, `Personal[String]` as the contract's codec gives it, `Instant` ISO-8601, the
       workflow states, the view rows); tests `p-test/SettingsSuite.scala` (every default; a malformed
       duration refused naming the variable; a missing secret refused naming it) and
@@ -202,7 +202,10 @@ parity task and can run the moment T005 and the original's stack are up.
       every email command and refusal; `ChangeConsent`, `RecordCookieDecision` (replaced per device);
       favourites; `Suspend` twice is one event with the reason updated; `Reinstate` `not_suspended`;
       `SetSelfExcluded` / `LiftExclusion` `not_excluded`; `Close` idempotent; `Reopen` `not_closed`
-      and `hold_lapsed`; `Block`; `SetVipTier` answers the previous; `FlagDuplicate` idempotent under
+      and `hold_lapsed`; a state seeded `blocked` (the migration's) is refused sign-in and play and
+      closes like any other, and no command reaches `blocked`; `KycVerified` then
+      `CorrectDateOfBirth` → `kyc_locked`, `KycWithdrawn` lifts it; `SetVipTier` answers the previous;
+      `FlagDuplicate` idempotent under
       the case id; `FileErasure` `not_closed`; `Erase` leaves every `Personal` field empty and every
       status, time and count unchanged, and again no event; every transition appends one trail entry
       with actor, actor id, reason and time; the state type has no field for a password, a realm
@@ -259,14 +262,15 @@ parity task and can run the moment T005 and the original's stack are up.
 - [ ] T018 [P] `p-test/facts/ConsumersSuite.scala` (`ConsumerTestKit`): `rg_limit_applied` for
       `SESSION_MINUTES` → `PlayerEntity.SetSessionLimit(minutes)` and, for each open game session
       the entity answers, a `SessionLimits` timer rescheduled by name (a session over the new limit
-      ends at once); any other `rg_limit_applied` kind → nothing; `casino.withdrawals` requested →
+      ends at once); any other `rg_limit_applied` kind → nothing; `kyc_verified` →
+      `PlayerEntity.KycVerified`, `kyc_rejected` → `KycWithdrawn`; `casino.withdrawals` requested →
       `WithdrawalOpened`, settled or failed → `WithdrawalSettled`; `push_delivered` →
       `MessageEntity.Delivered`; `bonus_code_entered` → `ClearPendingBonusCode`; a fact the codec
       cannot read is logged and skipped
 - [ ] T019 Implement `p/facts/PlayersPublisher.scala`, `SessionsPublisher.scala`,
       `AuditPublisher.scala` (over the contract's `AuditConsumer` base as ingest's `AuditFacts`
-      does), `RgLimitsConsumer.scala`, `WithdrawalsConsumer.scala`, `PushDeliveredConsumer.scala`,
-      `RewardsConsumer.scala` (topic sources `StartFrom.Latest`; `Consumer.Companion` and
+      does), `RgLimitsConsumer.scala`, `KycFactsConsumer.scala`, `WithdrawalsConsumer.scala`,
+      `PushDeliveredConsumer.scala`, `RewardsConsumer.scala` (topic sources `StartFrom.Latest`; `Consumer.Companion` and
       `produceTo` as `services/wallet/.../facts/` has them); T017 and T018 green
 
 ### The seams, the fakes and the kit
@@ -276,7 +280,7 @@ parity task and can run the moment T005 and the original's stack are up.
       RealmNotFound, userId]`, `deleteUser`, `setVerified`, `changeAddress`, `directGrant(email,
       password): Either[InvalidCredentials | EmailNotVerified, Tokens]`, `refresh`, `verifyPassword`,
       `revokeSession`, `setEnabled`, `liveSessions(clientId): Seq[LiveSession]`,
-      `sendResetEmail`, `sendActions`) and `p/realm/KeycloakRealm.scala` over the service's HTTP
+      `sendResetEmail`, `setPassword`, `sendActions`) and `p/realm/KeycloakRealm.scala` over the service's HTTP
       client after `m/operators/KeycloakAdmin.scala`'s pattern (the admin token under
       `players-realm-admin`, cached to its expiry; the realm `casino-<slug>`; `casino-frontend`'s
       client id read once; the twin-id claim read from the token's `eitheror_twin_id` and
@@ -303,7 +307,8 @@ parity task and can run the moment T005 and the original's stack are up.
       `FakeEngagement.scala` (every send recorded with its link, so a test follows it),
       `FakeIngest.scala` (the cashier create answering `redirectUrl` and `paymentId`, the merchant
       key recorded), `FakeWallet.scala` (`sums`; `/erasure/players/{id}` answering a certificate;
-      `/exports/players/{id}` answering a part; knobs `silent`, `delay`), `FakeAgent.scala` (the
+      `/exports/players/{id}` answering a part; knobs `silent`, `delay`), `FakeGeo.scala` (the
+      lookup answering a country and dial code per address; knob `silent`), `FakeAgent.scala` (the
       vendor's `GET /vendor/modules` and `POST /vendor/requests` for spec 021's rows, as the wallet's
       tests fake it if they do, else new); `FakesMain.scala` starting them on 9010–9015 for
       `players-run`
@@ -489,7 +494,7 @@ it.
       `POST /may-sign-in` for an active player with `FakeRg` allowing → `{allowed: true}`; after
       `Suspend` → `{allowed: false, reason: suspended}` within 2 s; `FakeRg` `cooling_off` →
       `{allowed: false, reason: cooling_off, until}`; `FakeRg` silent → `{allowed: false}` within
-      `REALM_ANSWER_BOUND`; 1,000 asks at the kit's rate with `FakeRg` answering in 20 ms → p99 under
+      `REALM_ANSWER_BOUND`; 1,000 asks at 20 per second (the spec's assumed peak) with `FakeRg` answering in 20 ms → p99 under
       100 ms (the figure printed); `POST /gamstop-refusal` → `200` and `FakeRg.received(gamstop)`;
       the reconciler: a session `FakeRealm` no longer lists ends `expired` within two intervals and
       `player_session_ended` says `expired`; `FakeRealm` silent for one tick → the next tick runs
@@ -520,7 +525,8 @@ it.
       status; `Rg.mayLogIn` under `REALM_ANSWER_BOUND`; the answer), `POST /gamstop-refusal`
       (`Rg.gamstopRefusal`, best effort); `p/sessions/RealmReconcile.scala` (the timed action:
       `Realm.liveSessions`, `SessionsView.openPlayerSessions`, a `SessionEndWorkflow(expired)` per
-      session not live, the gauge set; a failure logged and the next tick unaffected) scheduled by
+      session not live, the OpenTelemetry gauge `players.active_sessions` set through
+      `ankka-telemetry-otlp`; a failure logged and the next tick unaffected) scheduled by
       `PlayersService.started` as a recurring timer named `realm-reconcile`; T037–T040 green
 
 **Checkpoint**: sign-in, refresh and sign-out work end to end against `FakeRealm`; the realm's
@@ -660,11 +666,8 @@ email, consent and cookie recordings.
       `engagement`; the suppression and closure checks on the entity, then `MessageEntity.Created`
       under the delivery id with origin `crm`); wire `PushDeliveredConsumer` (T019);
       `OperatorEndpoint`'s `GET`/`PATCH /players/{playerId}/profile`, `PATCH
-      /players/{playerId}/date-of-birth` (the kyc lock from the `kyc_verified`/`kyc_rejected` facts
-      the entity records; **note**: the entity gains `KycVerified`/`KycWithdrawn` events fed by a
-      `casino.players` consumer of `kyc`'s families, added to `RgLimitsConsumer`'s file as
-      `KycFactsConsumer` and to data-model.md), `GET`/`PATCH /players/{playerId}/crm`; T049–T051
-      green
+      /players/{playerId}/date-of-birth` (the kyc lock from the entity's `kycVerified`, fed by
+      `KycFactsConsumer`, T019), `GET`/`PATCH /players/{playerId}/crm`; T049–T051 green
 
 **Checkpoint**: every profile, address, consent and inbox route of contracts/routes.md answers as
 written; `profile.feature` passes; the profile recordings replay with only the named divergences.
@@ -851,9 +854,11 @@ recording: the original has neither.
       plain inputs and every marker in the log and the audit records before erasure; after the
       erasure (the hold zero): `assertNowhere` for every marker in every table, view row, fact on
       every topic, operator answer and the export; `WalletSummaryView`'s balances, the status trail,
-      the session counts and durations read unchanged; the journal's earlier events are the named gap
-      (research R8): the suite asserts they still hold the markers and the test's name says so, so the
-      day ankka 042 lands the assertion flips
+      the session counts and durations read unchanged; the journal's earlier events and the facts
+      already on `casino.players` and `casino.sessions` are the named gap (research R8): the suite
+      asserts both still hold the markers and the tests' names say so, so the day ankka 042 lands the
+      assertions flip; the `assertNowhere` over facts therefore runs only over facts produced after
+      the `Erased` event
 
 ### Implementation for User Story 7
 
@@ -866,7 +871,8 @@ recording: the original has neither.
 - [ ] T071 [US7] Fill `PlayerEndpoint`'s `POST /{playerId}/erasure`, `POST /{playerId}/exports`,
       `GET /{playerId}/exports/{exportId}` and `OperatorEndpoint`'s `POST /players/{playerId}/erasure`,
       `GET /players/{playerId}/erasure` (the certificates), `POST /players/{playerId}/activity-export`,
-      `GET /exports/{exportId}`; T067–T069 green
+      `GET /exports/{exportId}`, `GET /players/{playerId}/erasure` (contracts/routes.md: the
+      workflow's state and certificates; `404 erasure_not_found`); T067–T069 green
 
 **Checkpoint**: an erasure is filed, held, applied everywhere with certificates and the realm user
 removed; an export carries every part and names a silent one; nothing personal is readable after;
@@ -916,7 +922,11 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       (a sign-in through `casino-frontend` ends in `player_logged_in` on the topic) — **until the
       plugins are rebuilt** (contracts/realm.md; a separate pull request in the original's
       repository and the installation image), `/may-sign-in` is exercised by hand with the secret and
-      the result recorded in research R13. Needs T075; a kind cluster
+      the result recorded in research R13; the Playwright specs spec 001 FR-033 names
+      (`ssr-authenticated-first-paint.spec.ts`, `activity-tab-game-lookup.spec.ts`, the registration
+      and sign-in specs) run against the kind brand with only base URLs changed (SC-001), or, if the
+      frontend's base-URL move has not happened, the run is recorded as waiting on it in research
+      *Findings*. Needs T075; a kind cluster
 - [ ] T078 [P] Fill `services/players/README.md` (the purpose, the routes by endpoint with a pointer
       to contracts/routes.md, the settings and secrets table, `just players-test`/`players-it`/
       `players-run`, the recording run, the plugin dependency, what is verified where);
@@ -924,11 +934,11 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       `specs/008-players/quickstart.md` re-read against what T076 and T077 did and corrected where the
       commands drifted
 - [ ] T079 Close research: the verify-at-task-time items written with their result and date (T001's
-      fields, T016's multi-source view, T030's workflow kit, T075's mapper, T077's plugin check);
-      data-model.md gains `KycVerified`/`KycWithdrawn` and `KycFactsConsumer` (T055) if added;
-      *For ankka* checked against the pinned runtime; plan.md's *Divergences* checked against
+      fields, T016's multi-source view, T030's workflow kit, T075's mapper, T077's plugin and
+      Playwright checks); *For ankka* checked against the pinned runtime; plan.md's *Divergences* checked against
       `Parity.divergences` (`CoverageSuite` green); the cross-spec follow-ups (the export route on
-      `wallet` and `merchant`; the plugins; `KycFactsConsumer`'s families from 009) written as
+      `wallet` and `merchant`; the plugins; `KycFactsConsumer`'s families from 009; the Playwright
+      run) written as
       findings in research; `just features` green; `just players-test` and `just players-it` green
 
 ---

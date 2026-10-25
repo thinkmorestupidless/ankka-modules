@@ -29,8 +29,9 @@ field names are the original's schemas' (`specs/001-brands-and-projects/contract
 Not published: `EmailVerified` (the status change to `active` is read from `player_registered`'s
 absence of a later refusal; `kyc` and `rewards` wait for no verification fact today), the email list
 changes, cookie decisions, favourites, `Erased` (an erasure is ankka 042's record, not a fact;
-readers redact from their own handler), `Blocked` (carried on `player_suspended` with
-`new_value: blocked`, as the original's AccountEvent has no `blocked` type).
+readers redact from their own handler). Nothing produces a `blocked` transition: the status comes
+only from the migration (spec FR-031), and a migrated `blocked` player's later transitions carry
+`previous_value: blocked`.
 
 ## `casino.sessions` (`SessionsPublisher`)
 

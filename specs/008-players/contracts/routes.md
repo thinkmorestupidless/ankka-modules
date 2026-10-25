@@ -76,8 +76,9 @@ logged (001 FR-023).
 | `GET /fraud-cases?status`, `PATCH /fraud-cases/{caseId}/review`, `PATCH /fraud-cases/{caseId}/dismiss` | `FraudCasesView`; `FraudCaseEntity` | 200 `{status, reviewedBy}`; 404 `case_not_found` |
 | `POST /players/{playerId}/activity-export`, `GET /exports/{exportId}` | `ExportWorkflow` for the player | 202 `{exportId}`; 200; 409; 404; 410 |
 | `POST /players/{playerId}/erasure` | `ErasureWorkflow` | 202; 409 `not_closed` |
+| `GET /players/{playerId}/erasure` | the erasure's state: `correlationId`, `holdUntil`, `status` (`held` \| `applying` \| `erased`), each service's certificate | 200; 404 `erasure_not_found` |
 | `GET /players/{playerId}/verification-link` | the current link, only when `CASINO_REAL_MONEY=false` (R16) | 200; 404 on a real-money brand |
-| `GET`/`PUT /brand-config`, `GET`/`PUT /currency-config`, `GET`/`PUT /allow-list` | the three key value entities | 200; 400 `invalid_config` naming the field |
+| `GET`/`PUT /brand-config`, `GET`/`PUT /currency-config`, `GET`/`PUT /allow-list` | the three key value entities; bodies are data-model.md's fields in camelCase (`singleSession`, `multiAccountDetection`, `reportingZone`, `retentionDays`, `features`; `offered`; `countries`) | 200; 400 `invalid_config` naming the field |
 | `GET /modules`, `POST /modules/requests` | spec 021's rows, unchanged (below) | 200; 204; 400; 503 |
 
 ### The operator's modules page (spec 021)
