@@ -29,6 +29,7 @@ jobs:
       wallet: ${{ steps.filter.outputs.wallet }}
       merchant: ${{ steps.filter.outputs.merchant }}
       psp-gateway: ${{ steps.filter.outputs.psp-gateway }}
+      ingest: ${{ steps.filter.outputs.ingest }}
       game-provider: ${{ steps.filter.outputs.game-provider }}
       simulator: ${{ steps.filter.outputs.simulator }}
     steps:
@@ -59,6 +60,12 @@ jobs:
               - features/payments/**
               - tests/port/psp-gateway/**
               - tests/stubs/psp-stub/**
+            ingest:
+              - *build
+              - services/ingest/**
+              - features/payments/**
+              - tests/port/ingest/**
+              - tests/original/ingest-driver/**
             game-provider:
               - *build
               - services/game-provider/**
@@ -191,6 +198,8 @@ jobs:
   # contract published from this commit; its integration suites start Postgres in Docker. The ingest
   # driver's offline checks run in the check job's `go test ./...`.
   ingest:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.ingest == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
