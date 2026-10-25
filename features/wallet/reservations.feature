@@ -44,7 +44,7 @@ Feature: Money is reserved against an order and released
     Given a reservation of "600" is placed for order "o1"
     When a hold of "500" is placed for request "w1"
     Then it is refused as "insufficient funds"
-    When a hold of "400" is placed for request "w1"
+    When a hold of "400" is placed for request "w2"
     Then the real balance is "600"
     And the reserved amount is "600"
     When the player places a bet of "500" in round "r1"

@@ -127,6 +127,27 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       case e: TurnoverOverrideSet =>
         s.copy(turnoverOverride = e.terms)
 
+      case e: ReservationPlaced =>
+        s.reserving(e.orderId, s.reservations.get(e.orderId).fold(0L)(_.amount) + e.amount, e.at)
+          .withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
+
+      case e: ReservationReleased =>
+        s.reserving(e.orderId, s.reservations.get(e.orderId).fold(0L)(_.amount) - e.amount, e.at)
+          .withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
+
+      case e: SettlementDebited =>
+        s.reserving(e.orderId, s.reservations.get(e.orderId).fold(0L)(_.amount) - e.amount - e.unused, e.at)
+          .copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
+
+      case e: SettlementCredited =>
+        s.copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
+
+      case e: MovedToAccount =>
+        s.copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
+
+      case e: MovedFromAccount =>
+        s.copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
+
       case e: CommandRefused =>
         s.remember(e.key, e.digest, e.outcome)
 
@@ -514,11 +535,11 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
     Resolver.withdraw(s.fundingWallet, s.openRecords, holdInput(s, p.amount)) match
       case Left(deny) =>
         effects.reply(HoldPreview(Some(deny.code), Some(deny.message), forfeited.nonEmpty, bonus, holdClawback(s),
-          forfeited.map(_.balance).sum, math.max(0L, s.realBalance - holdClawback(s)), Vector.empty))
+          forfeited.map(_.balance).sum, math.max(0L, s.available - holdClawback(s)), Vector.empty, available = s.available))
       case Right(plan) =>
         effects.reply(HoldPreview(None, None, plan.requiresConfirmation, bonus, plan.clawback, plan.forfeits.map(_.amount).sum,
-          math.max(0L, s.realBalance - plan.clawback), plan.forfeits, Some(plan.clawbackParts.deposit),
-          Some(plan.voidedParts.deposit), Some(plan.paidParts.deposit)))
+          math.max(0L, s.available - plan.clawback), plan.forfeits, Some(plan.clawbackParts.deposit),
+          Some(plan.voidedParts.deposit), Some(plan.paidParts.deposit), s.available))
 
   def release(c: Release): Effect[Outcome] = keyed(c, "release") { digest =>
     val s = currentState
@@ -623,6 +644,130 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
   def setTurnoverOverride(c: SetTurnoverOverride): Effect[Done] =
     effects.persist(TurnoverOverrideSet(c.terms, c.actorId, c.at)).thenReply(_ => Done)
 
+  // ── spec 022: reservations (FR-001, FR-002) ───────────────────────────────
+
+  /** An accepted spec 022 command's outcome: the balances after, with the reserved and available amounts. */
+  private def ledgerOutcome(wireName: String, command: MoneyCommand, txId: String, real: Long, reserved: Long): Outcome =
+    accepted(wireName, command, Some(txId), real, currentState.restrictedBalance)
+      .copy(reserved = Some(reserved), available = Some(math.max(0L, real - reserved)), balanceBefore = Some(currentState.realBalance),
+        balanceAfter = Some(real))
+
+  def reserve(c: Reserve): Effect[Outcome] = keyed(c, "reserve") { digest =>
+    val s = currentState
+    if !s.created then refuse(c, "reserve", digest, Refusals.WalletNotFound, Refusals.walletNotFound)
+    else if c.amount > s.available then
+      refuse(c, "reserve", digest, Codes.InsufficientFunds, Messages.InsufficientRealBalance,
+        Map("amount" -> c.amount.toString, "available" -> s.available.toString))
+    else
+      val txId     = transactionId(c.key)
+      val reserved = s.reserved + c.amount
+      val outcome  = ledgerOutcome("reserve", c, txId, s.realBalance, reserved)
+      effects.persist(ReservationPlaced(c.key, digest, txId, c.key, c.amount, s.realBalance, s.restrictedBalance, reserved, c.at, outcome,
+        s.depositPool, s.convertedPool)).thenReply(_ => outcome)
+  }
+
+  def releaseReservation(c: ReleaseReservation): Effect[Outcome] = keyed(c, "release-reservation") { digest =>
+    val s = currentState
+    s.reservations.get(c.orderId) match
+      case None => refuse(c, "release-reservation", digest, Refusals.ReservationNotFound, Refusals.reservationNotFound(c.orderId),
+          Map("orderId" -> c.orderId))
+      case Some(r) if c.amount > r.amount =>
+        refuse(c, "release-reservation", digest, Refusals.ReleaseExceedsReservation, Refusals.releaseExceeds(c.amount, r.amount),
+          Map("amount" -> c.amount.toString, "reserved" -> r.amount.toString))
+      case Some(_) =>
+        val txId     = transactionId(c.key)
+        val reserved = s.reserved - c.amount
+        val outcome  = ledgerOutcome("release-reservation", c, txId, s.realBalance, reserved)
+        effects.persist(ReservationReleased(c.key, digest, txId, c.orderId, c.amount, s.realBalance, s.restrictedBalance, reserved, c.at,
+          outcome, s.depositPool, s.convertedPool)).thenReply(_ => outcome)
+  }
+
+  // ── spec 022: the two sides of a settlement (FR-004) ──────────────────────
+
+  def settleDebit(c: SettleDebit): Effect[Outcome] = keyed(c, "settle-debit") { digest =>
+    val s        = currentState
+    val required = Math.addExact(c.amount, c.unused)
+    s.reservations.get(c.orderId) match
+      case None => refuse(c, "settle-debit", digest, Refusals.ReservationNotFound, Refusals.reservationNotFound(c.orderId),
+          Map("orderId" -> c.orderId))
+      case Some(r) if required > r.amount =>
+        refuse(c, "settle-debit", digest, Refusals.ReservationShort, Refusals.reservationShort(required, r.amount),
+          Map("required" -> required.toString, "reserved" -> r.amount.toString))
+      case Some(_) =>
+        val txId     = transactionId(c.key)
+        val real     = s.realBalance - c.amount
+        val reserved = s.reserved - required
+        movePools(s, debit = c.amount) match
+          case Left(deny) => refuseDeny(c, "settle-debit", digest, deny)
+          case Right((pools, parts)) =>
+            val outcome = pooled(ledgerOutcome("settle-debit", c, txId, real, reserved), pools)
+            effects.persist(SettlementDebited(c.key, digest, txId, c.key, c.orderId, c.amount, c.unused, c.counterparty, real,
+              s.restrictedBalance, reserved, c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
+  }
+
+  def settleCredit(c: SettleCredit): Effect[Outcome] = keyed(c, "settle-credit") { digest =>
+    val s = currentState
+    if !s.created then refuse(c, "settle-credit", digest, Refusals.WalletNotFound, Refusals.walletNotFound)
+    else
+      val txId = transactionId(c.key)
+      val real = Math.addExact(s.realBalance, c.amount)
+      movePools(s, credit = c.amount) match
+        case Left(deny) => refuseDeny(c, "settle-credit", digest, deny)
+        case Right((pools, parts)) =>
+          val outcome = pooled(ledgerOutcome("settle-credit", c, txId, real, s.reserved), pools)
+          effects.persist(SettlementCredited(c.key, digest, txId, c.key, c.amount, c.counterparty, real, s.restrictedBalance, s.reserved,
+            c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
+  }
+
+  // ── spec 022: moves with a non-player account (FR-005, FR-006, FR-008) ────
+
+  def debitToAccount(c: DebitToAccount): Effect[Outcome] = keyed(c, "debit-to-account") { digest =>
+    val s = currentState
+    if !s.created then refuse(c, "debit-to-account", digest, Refusals.WalletNotFound, Refusals.walletNotFound)
+    else if c.amount > s.available then
+      refuse(c, "debit-to-account", digest, Codes.InsufficientFunds, Messages.InsufficientRealBalance,
+        Map("amount" -> c.amount.toString, "available" -> s.available.toString))
+    else
+      val txId = transactionId(c.key)
+      val real = s.realBalance - c.amount
+      movePools(s, debit = c.amount) match
+        case Left(deny) => refuseDeny(c, "debit-to-account", digest, deny)
+        case Right((pools, parts)) =>
+          val outcome = pooled(ledgerOutcome("debit-to-account", c, txId, real, s.reserved), pools)
+          effects.persist(MovedToAccount(c.key, digest, txId, c.accountKind, c.accountName, c.purpose, c.reference, c.amount, real,
+            s.restrictedBalance, s.reserved, c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
+  }
+
+  def creditFromAccount(c: CreditFromAccount): Effect[Outcome] = keyed(c, "credit-from-account") { digest =>
+    val s = currentState
+    if !s.created then refuse(c, "credit-from-account", digest, Refusals.WalletNotFound, Refusals.walletNotFound)
+    else
+      val txId = transactionId(c.key)
+      val real = Math.addExact(s.realBalance, c.amount)
+      movePools(s, credit = c.amount) match
+        case Left(deny) => refuseDeny(c, "credit-from-account", digest, deny)
+        case Right((pools, parts)) =>
+          val outcome = pooled(ledgerOutcome("credit-from-account", c, txId, real, s.reserved), pools)
+          effects.persist(MovedFromAccount(c.key, digest, txId, c.accountKind, c.accountName, c.purpose, c.reference, c.amount, real,
+            s.restrictedBalance, s.reserved, c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
+  }
+
+  /**
+   * The pools of a spec 022 move (research R16, spec 025's Assumptions): a debit of real balance (a
+   * settlement's buyer side, a split, a clearing move out) leaves the converted pool first; a credit
+   * (a settlement's seller side, a merge, a resolution payment, a clearing move in) joins the
+   * converted pool, its origin being money the wallet cannot trace. A settlement draws on its
+   * reservation, which a correction debit may have left above real balance; the shortfall beyond both
+   * pools is charged to the converted pool, as an allow-negative bet's is (spec 025 FR-003).
+   */
+  private def movePools(s: WalletState, debit: Long = 0L, credit: Long = 0L): Either[Deny, (Pools, Parts)] =
+    Pools.consistent(s.pools, s.realBalance).flatMap { p =>
+      if debit > 0 then Pools.bet(p, debit, convertedIn = 0L, allowNegative = true) else Pools.credit(p, Parts.ofConverted(credit))
+    }
+
+  /** Whether the wallet exists: a flow reads it before its first write, so no later step can be refused (research R3, R6). */
+  def exists: ReadOnlyEffect[Boolean] = effects.reply(currentState.created)
+
   // ── reads (FR-028, FR-030) ────────────────────────────────────────────────
 
   def balance: ReadOnlyEffect[Balance] =
@@ -631,7 +776,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       val percent = if r.releaseRequirement == 0 then 100L else math.min(100L, r.releasedProgress * 100 / r.releaseRequirement)
       PrimaryStatus(r.id, r.grantRef, r.status, r.releaseRequirement, r.releasedProgress, percent)
     }
-    effects.reply(Balance(s.realBalance, s.restrictedBalance, s.currency, primary, s.depositPool, s.convertedPool))
+    effects.reply(Balance(s.realBalance, s.restrictedBalance, s.currency, primary, s.depositPool, s.convertedPool, s.reserved,
+      s.available))
 
   def restrictedFundsStatus: ReadOnlyEffect[RestrictedFundsStatus] =
     val s = currentState
@@ -677,6 +823,13 @@ object WalletEntity
   given Serializer[SetTurnoverOverride]   = Codecs.serializer[SetTurnoverOverride]("wallet.set-turnover-override")
   given Serializer[DepositSumsAt]         = Codecs.serializer[DepositSumsAt]("wallet.deposit-sums-at")
   given Serializer[PreviewHold]           = Codecs.serializer[PreviewHold]("wallet.preview-hold")
+  given Serializer[Reserve]               = Codecs.serializer[Reserve]("wallet.reserve")
+  given Serializer[ReleaseReservation]    = Codecs.serializer[ReleaseReservation]("wallet.release-reservation")
+  given Serializer[SettleDebit]           = Codecs.serializer[SettleDebit]("wallet.settle-debit")
+  given Serializer[SettleCredit]          = Codecs.serializer[SettleCredit]("wallet.settle-credit")
+  given Serializer[DebitToAccount]        = Codecs.serializer[DebitToAccount]("wallet.debit-to-account")
+  given Serializer[CreditFromAccount]     = Codecs.serializer[CreditFromAccount]("wallet.credit-from-account")
+  given Serializer[Boolean]               = Codecs.serializer[Boolean]("wallet.exists")
   given Serializer[Outcome]               = Codecs.serializer[Outcome]("wallet.outcome")
   given Serializer[Option[Outcome]]       = Codecs.serializer[Option[Outcome]]("wallet.outcome-of")
   given Serializer[Balance]               = Codecs.serializer[Balance]("wallet.balance")
@@ -708,6 +861,13 @@ object WalletEntity
   val reverse               = command("reverse")(_.reverse)
   val adjust                = command("adjust")(_.adjust)
   val setTurnoverOverride   = command("set-turnover-override")(_.setTurnoverOverride)
+  val reserve               = command("reserve")(_.reserve)
+  val releaseReservation    = command("release-reservation")(_.releaseReservation)
+  val settleDebit           = command("settle-debit")(_.settleDebit)
+  val settleCredit          = command("settle-credit")(_.settleCredit)
+  val debitToAccount        = command("debit-to-account")(_.debitToAccount)
+  val creditFromAccount     = command("credit-from-account")(_.creditFromAccount)
+  val exists                = query("exists")(_.exists)
   val balance               = query("balance")(_.balance)
   val restrictedFundsStatus = query("restricted-funds-status")(_.restrictedFundsStatus)
   val depositSums           = query("deposit-sums")(_.depositSums)
@@ -724,8 +884,14 @@ object WalletEntity
     case c: ProviderCredit => Some(c.amount)
     case c: Award          => Some(c.amount)
     case c: Hold           => Some(c.amount)
-    case c: Adjust         => Some(c.amount)
-    case _                 => None
+    case c: Adjust             => Some(c.amount)
+    case c: Reserve            => Some(c.amount)
+    case c: ReleaseReservation => Some(c.amount)
+    case c: SettleDebit        => Some(c.amount)
+    case c: SettleCredit       => Some(c.amount)
+    case c: DebitToAccount     => Some(c.amount)
+    case c: CreditFromAccount  => Some(c.amount)
+    case _                     => None
 
   /** One round's bets as one funding split: legs summed, records in first-drawn order. */
   private[entity] def mergedLegs(bets: Vector[Bet]): Legs =

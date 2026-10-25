@@ -61,7 +61,7 @@ trait Harness extends munit.FunSuite with LogCapturing:
   def localServices: Map[String, String] = Map.empty
 
   override def beforeAll(): Unit =
-    server = HttpServer.at("127.0.0.1", 0)(WalletService.endpoints(brand, () => TestTokens.authenticate)*)
+    server = HttpServer.at("127.0.0.1", 0)(WalletService.endpoints(brand, () => TestTokens.authenticate, project = Harness.Project)*)
     kit = AnkkaTestKit.start(components, Seq(ProjectionRuntime.withPublisher(publisher), server), localServices = localServices)
 
   override def afterAll(): Unit = if kit != null then kit.stop()
@@ -105,6 +105,10 @@ trait Harness extends munit.FunSuite with LogCapturing:
   /** A JSON field's value as text, crude but enough to read a reply in a test. */
   def field(json: String, name: String): Option[String] =
     s""""$name"\\s*:\\s*("([^"]*)"|-?[0-9]+|true|false)""".r.findFirstMatchIn(json).map(m => Option(m.group(2)).getOrElse(m.group(1)))
+
+object Harness:
+  /** The integration kit's project: what `Caller.Service` names for a service of this one. */
+  val Project = "local"
 
 /**
  * Tokens for the suites: a header the test authenticator reads as a verified token would be read

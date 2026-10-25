@@ -20,6 +20,16 @@ object Refusals:
   val WithdrawalNotCompleted = "WITHDRAWAL_NOT_IN_COMPLETED_STATE"
   val ReasonRequired         = "REASON_REQUIRED"
 
+  // spec 022: reservations, settlement, non-player accounts (data-model.md)
+  val ReservationNotFound          = "RESERVATION_NOT_FOUND"
+  val ReleaseExceedsReservation    = "RELEASE_EXCEEDS_RESERVATION"
+  val ReservationShort             = "RESERVATION_SHORT"
+  val AccountNotFound              = "ACCOUNT_NOT_FOUND"
+  val NotOwner                     = "NOT_OWNER"
+  val CreditLineReached            = "CREDIT_LINE_REACHED"
+  val NotClearing                  = "NOT_CLEARING"
+  val CreditLineBelowBalance       = "CREDIT_LINE_BELOW_BALANCE"
+
   val walletNotFound    = "Wallet not found"
   val walletAlreadyOpen = "Wallet already open"
   val bonusAlreadyActive = "A bonus is already active"
@@ -35,6 +45,21 @@ object Refusals:
   /** The original's text; `target` is real or bonus, as its admin-adjust names the balance. */
   def debitExceeds(amount: Long, target: String, balance: Long): String =
     s"Requested debit of $amount exceeds current $target balance of $balance"
+
+  def reservationNotFound(order: String): String = s"No reservation stands for order $order"
+  def releaseExceeds(amount: Long, reserved: Long): String =
+    s"Release of $amount exceeds the $reserved reserved for the order"
+  def reservationShort(required: Long, reserved: Long): String =
+    s"Settlement needs $required of the reservation and $reserved is reserved"
+  def accountNotFound(account: String): String = s"No account $account"
+  def notOwner(account: String, owner: String): String = s"Account $account is owned by $owner"
+  def poolShort(amount: Long, balance: Long): String =
+    s"Debit of $amount would take the pool account below zero from $balance"
+  def creditLineReached(amount: Long, balance: Long, floor: Long): String =
+    s"Debit of $amount from $balance would pass the credit line's floor of $floor"
+  def notClearing(account: String): String = s"Account $account is not a clearing account and has no credit line"
+  def creditLineBelowBalance(line: Long, balance: Long): String =
+    s"A credit line of $line is less than the $balance the account already owes"
 
   /** FR-002: names the key and the first command's type and amount. */
   def keyReused(key: String, first: Outcome): String =

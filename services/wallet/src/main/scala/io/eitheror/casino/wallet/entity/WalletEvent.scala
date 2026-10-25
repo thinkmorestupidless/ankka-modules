@@ -106,6 +106,34 @@ enum WalletEvent:
 
   case TurnoverOverrideSet(terms: Option[TurnoverTerms], actorId: String, at: Instant)
 
+  // ── spec 022 (data-model.md): each carries the reserved balance after beside real and restricted, and,
+  // as every money event, both pools after it and the parts of any real balance it moves (spec 025) ──
+
+  case ReservationPlaced(key: String, digest: String, transactionId: String, orderId: String, amount: Long,
+      realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
+      depositAfter: Long = 0L, convertedAfter: Long = 0L)
+
+  case ReservationReleased(key: String, digest: String, transactionId: String, orderId: String, amount: Long,
+      realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
+      depositAfter: Long = 0L, convertedAfter: Long = 0L)
+
+  /** The buyer's side: real − amount; the order's reservation − amount − unused, removed at 0. */
+  case SettlementDebited(key: String, digest: String, transactionId: String, tradeId: String, orderId: String, amount: Long,
+      unused: Long, counterparty: String, realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
+      parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L)
+
+  case SettlementCredited(key: String, digest: String, transactionId: String, tradeId: String, amount: Long, counterparty: String,
+      realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
+      parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L)
+
+  case MovedToAccount(key: String, digest: String, transactionId: String, accountKind: String, accountName: String, purpose: String,
+      reference: String, amount: Long, realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
+      parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L)
+
+  case MovedFromAccount(key: String, digest: String, transactionId: String, accountKind: String, accountName: String, purpose: String,
+      reference: String, amount: Long, realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
+      parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L)
+
   /** A refusal recorded under its key, so a repeat is refused the same way (research R3). */
   case CommandRefused(key: String, digest: String, commandType: String, code: String, message: String,
       amount: Option[Long], at: Instant, outcome: Outcome)

@@ -94,11 +94,35 @@ final case class MoneyReply(
     depositPoolBalance: Option[Long] = None,
     convertedPoolBalance: Option[Long] = None,
     fundedDepositAmount: Option[Long] = None,
-    wonDepositAmount: Option[Long] = None
+    wonDepositAmount: Option[Long] = None,
+    /** Spec 022: on the reservation, settlement and account replies only; a spec 002 reply is unchanged. */
+    reserved: Option[Long] = None,
+    available: Option[Long] = None
 )
 
 /** A refusal: the original's `error` code, the message, and the amounts it names. */
 final case class RefusalBody(error: String, message: String, details: Map[String, String] = Map.empty)
+
+// ── spec 022 (contracts/routes.md) ──────────────────────────────────────────
+
+final case class ReservationRequest(key: Option[String], amount: AmountText)
+final case class ReleaseReservationRequest(orderId: Option[String], sequence: Option[Long], amount: AmountText)
+final case class SettlementRequest(tradeId: Option[String], currency: String, buyer: String, orderId: String, seller: String,
+    amount: AmountText, unused: Option[AmountText] = None)
+final case class AccountMoveRequest(key: Option[String], currency: String, player: String, amount: AmountText,
+    direction: Option[String] = None)
+final case class ResolutionPaymentRequest(positionId: Option[String], currency: String, player: String, amount: AmountText)
+final case class CreditLineRequest(currency: String, creditLine: AmountText)
+
+final case class SettlementBuyer(realBalance: Long, reserved: Long, available: Long, txnId: Option[String])
+final case class SettlementSeller(realBalance: Long, txnId: Option[String])
+final case class SettlementReply(buyer: SettlementBuyer, seller: SettlementSeller, currency: String)
+
+final case class MoveWallet(realBalance: Long, reserved: Long, available: Long, txnId: Option[String])
+final case class MoveAccount(balance: Long, txnId: Option[String])
+final case class AccountMoveReply(wallet: MoveWallet, account: MoveAccount, currency: String)
+
+final case class AccountBalanceReply(balance: Long, creditLine: Long, floor: Long, owner: String, currency: String)
 
 object Wire:
   given JsonValueCodec[MoneyReply]  = io.eitheror.casino.wallet.WalletCodecs.wire[MoneyReply]
@@ -108,7 +132,9 @@ object Wire:
   def status(code: String): Int = code match
     case "INVALID_REQUEST" | "MISSING_KEY" | "REASON_REQUIRED" | "MISSING_BONUS_REF" | "DEBIT_EXCEEDS_BALANCE" => 400
     case "WALLET_NOT_FOUND" | "ROUND_NOT_FOUND" | "GRANT_NOT_FOUND"                                           => 404
-    case "PLAYER_LOCKED" | "EXCLUDED" | "COOLING_OFF" | "player_id_mismatch"                                   => 403
+    case "RESERVATION_NOT_FOUND" | "ACCOUNT_NOT_FOUND"                                                        => 404
+    case "NOT_CLEARING" | "CREDIT_LINE_BELOW_BALANCE"                                                         => 400
+    case "PLAYER_LOCKED" | "EXCLUDED" | "COOLING_OFF" | "player_id_mismatch" | "NOT_OWNER"                     => 403
     case "RG_UNAVAILABLE" | "OUTCOME_PENDING"                                                                   => 503
     case _                                                                                                      => 409
 
@@ -134,7 +160,8 @@ object Wire:
           balanceBefore = o.balanceBefore, balanceAfter = o.balanceAfter,
           depositPoolBalance = o.depositPool, convertedPoolBalance = o.convertedPool,
           fundedDepositAmount = o.parts.filter(_ => o.commandType == "place-bet").map(_.deposit),
-          wonDepositAmount = o.parts.filter(_ => o.commandType == "credit-win").map(_.deposit)
+          wonDepositAmount = o.parts.filter(_ => o.commandType == "credit-win").map(_.deposit),
+          reserved = o.reserved, available = o.available
         ))
 
   /** The boundary refusal for an amount that is not whole minor units (spec 001 FR-026). */

@@ -811,6 +811,417 @@
       "required": ["type", "player_id", "currency", "transaction_id", "provider_ref", "amount_cents", "landed_on", "real_balance_after", "restricted_balance_after", "occurred_at"],
       "title": "provider_credited",
       "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reserved_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "reservation_placed"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "order_id", "amount_cents", "real_balance_after", "restricted_balance_after", "reserved_balance_after", "occurred_at"],
+      "title": "reservation_placed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reserved_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "reservation_released"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "order_id", "amount_cents", "real_balance_after", "restricted_balance_after", "reserved_balance_after", "occurred_at"],
+      "title": "reservation_released",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "counterparty_player_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "released_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reserved_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "trade_id": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "settlement_debit"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "trade_id", "order_id", "amount_cents", "released_cents", "counterparty_player_id", "real_balance_after", "restricted_balance_after", "reserved_balance_after", "occurred_at"],
+      "title": "settlement_debit",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "counterparty_player_id": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reserved_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "trade_id": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "settlement_credit"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "trade_id", "amount_cents", "counterparty_player_id", "real_balance_after", "restricted_balance_after", "reserved_balance_after", "occurred_at"],
+      "title": "settlement_credit",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "position_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reserved_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "resolution_payment"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "market_id", "position_id", "amount_cents", "real_balance_after", "restricted_balance_after", "reserved_balance_after", "occurred_at"],
+      "title": "resolution_payment",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "account_kind": {
+          "type": "string"
+        },
+        "account_name": {
+          "type": "string"
+        },
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "reserved_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "account_debit"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "account_kind", "account_name", "purpose", "reference", "amount_cents", "real_balance_after", "restricted_balance_after", "reserved_balance_after", "occurred_at"],
+      "title": "account_debit",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "account_kind": {
+          "type": "string"
+        },
+        "account_name": {
+          "type": "string"
+        },
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "reserved_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "account_credit"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "account_kind", "account_name", "purpose", "reference", "amount_cents", "real_balance_after", "restricted_balance_after", "reserved_balance_after", "occurred_at"],
+      "title": "account_credit",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "account_kind": {
+          "type": "string"
+        },
+        "account_name": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "credit_line": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "account_adjusted"
+        }
+      },
+      "required": ["type", "account_kind", "account_name", "currency", "transaction_id", "amount", "reason", "actor_id", "balance_after", "credit_line", "occurred_at"],
+      "title": "account_adjusted",
+      "type": "object"
     }
   ],
   "title": "money.transactions.v1"

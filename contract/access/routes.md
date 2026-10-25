@@ -15,4 +15,15 @@ target only a route listed here; the modules tool refuses any other.
 | players | POST | /v1/casino/brands/{brand}/modules/requests | operator | 021 (contracts/routes.md), 008 |
 | wallet | POST | /v1/casino/brands/{brand}/wallets/{player}/{currency}/deposits | service | 001 FR-016, 002 (granted to payments/merchant) |
 | wallet | POST | /v1/casino/brands/{brand}/payments/{paymentId}/outcome | service | 001 FR-016, 002 (granted to payments/merchant) |
+| wallet | POST | /v1/casino/brands/{brand}/wallets/{player}/{currency}/reservations | service | 022 FR-001 |
+| wallet | POST | /v1/casino/brands/{brand}/wallets/{player}/{currency}/reservations/release | service | 022 FR-002 |
+| wallet | POST | /v1/casino/brands/{brand}/settlements | service | 022 FR-004 |
+| wallet | POST | /v1/casino/brands/{brand}/accounts/{kind}/{name}/splits | service | 022 FR-008 |
+| wallet | POST | /v1/casino/brands/{brand}/accounts/{kind}/{name}/merges | service | 022 FR-008 |
+| wallet | POST | /v1/casino/brands/{brand}/accounts/{kind}/{name}/payments | service | 022 FR-005 |
+| wallet | POST | /v1/casino/brands/{brand}/accounts/{kind}/{name}/moves | service | 022 FR-006, FR-013 (granted to the pool's clearing by the predictions module's manifest) |
+| wallet | PUT | /v1/casino/brands/{brand}/accounts/{kind}/{name}/credit-line | service | 022 FR-007 (granted likewise) |
+| wallet | GET | /v1/casino/brands/{brand}/accounts/{kind}/{name}/balance | service | 022 FR-012 |
+| wallet | POST | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/adjustments | operator | 022 FR-009 |
+| wallet | GET | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/balance | operator | 022 FR-012 |
 | payouts | POST | /v1/casino/brands/{brand}/withdrawals/{requestId}/outcome | service | 001 FR-016, 007 (granted to payments/psp-gateway) |

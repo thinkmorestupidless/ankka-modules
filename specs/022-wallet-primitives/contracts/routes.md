@@ -67,8 +67,8 @@ lists the new types with `reference`. No new route.
 | wallet | POST | /v1/casino/brands/{brand}/accounts/{kind}/{name}/moves | service | 022 FR-006, FR-013 (granted to the pool's clearing by the predictions module's manifest) |
 | wallet | PUT | /v1/casino/brands/{brand}/accounts/{kind}/{name}/credit-line | service | 022 FR-007 (granted likewise) |
 | wallet | GET | /v1/casino/brands/{brand}/accounts/{kind}/{name}/balance | service | 022 FR-012 |
-| wallet | POST | <operator prefix>/accounts/{kind}/{name}/adjustments | operator | 022 FR-009 |
-| wallet | GET | <operator prefix>/accounts/{kind}/{name}/balance | operator | 022 FR-012 |
+| wallet | POST | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/adjustments | operator | 022 FR-009 |
+| wallet | GET | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/balance | operator | 022 FR-012 |
 
 ## The exchange's calls, in order (the ledger port, ankka-predictions spec 004)
 

@@ -65,10 +65,28 @@ class FactsSuite extends munit.FunSuite:
     assertEquals(PaymentsPayments.families.head.sample.asInstanceOf[Fact].key, "x")
   }
 
-  test("a fact about a player carries player_id, except attribution, which never does (FR-012)") {
+  test("spec 022: the seven wallet families are keyed by the wallet and carry the reserved balance after; account_adjusted is keyed by the account") {
+    val wallet = Vector("reservation_placed", "reservation_released", "settlement_debit", "settlement_credit",
+      "resolution_payment", "account_debit", "account_credit")
+    wallet.foreach { name =>
+      val family = MoneyTransactions.families.find(_.name == name).getOrElse(fail(s"no family $name"))
+      assertEquals(family.sample.asInstanceOf[Fact].key, "x/EUR", name)
+      assert(family.fields.exists(_._1 == "reserved_balance_after"), name)
+    }
+    val adjusted = AccountAdjusted("clearing", "north", io.eitheror.casino.contract.money.Currency.unsafe("EUR"), "t",
+      io.eitheror.casino.contract.money.SignedMinorUnits(500), "correction", "op-1",
+      io.eitheror.casino.contract.money.SignedMinorUnits(0), io.eitheror.casino.contract.money.MinorUnits.unsafe(500),
+      java.time.Instant.parse("2026-10-25T10:00:00Z"))
+    assertEquals(adjusted.key, "clearing/north/EUR")
+    val back = readFromString[MoneyTransactionsMessage](MoneyTransactions.encode(adjusted))(using MoneyTransactions.codec)
+    assertEquals(back, adjusted)
+  }
+
+  test("a fact about a player carries player_id, except attribution, which never does, and a non-player account's (FR-012; spec 022)") {
     for topic <- Topics.brand; family <- topic.families do
       val has = family.fields.exists(_._1 == "player_id")
       if topic.name == "affiliates.attribution" then assert(!has, family.name)
+      else if family.sample.isInstanceOf[AccountFact] then assert(!has, s"${family.name} is about an account, not a player")
       else if topic.name != "platform.audit" && topic.name != "platform.modules" then assert(has, s"${topic.name} ${family.name}")
   }
 
@@ -114,9 +132,10 @@ class FactsSuite extends munit.FunSuite:
     assertEquals(RoundSettled.Outcome.all, Set("win", "loss", "cancelled", "credit"))
   }
 
-  test("every money family carries the balances after the movement") {
+  test("every money family carries the balances after the movement: a wallet's real and restricted, an account's its own (spec 022 FR-011)") {
     MoneyTransactions.families.foreach { f =>
-      assert(Set("real_balance_after", "restricted_balance_after").subsetOf(f.fields.map(_._1).toSet), f.name)
+      val after = if f.sample.isInstanceOf[AccountFact] then Set("balance_after") else Set("real_balance_after", "restricted_balance_after")
+      assert(after.subsetOf(f.fields.map(_._1).toSet), f.name)
     }
   }
 
@@ -166,7 +185,7 @@ class FactsSuite extends munit.FunSuite:
     val json = writeToString(MoneyTransactions.families.head.sample.asInstanceOf[MoneyTransactionsFact])(using MoneyTransactions.codec)
     assert(json.contains("\"amount_cents\":1050"), json)
     val decimal = json.replace("\"amount_cents\":1050", "\"amount_cents\":10.50")
-    intercept[Exception](readFromString[MoneyTransactionsFact](decimal)(using MoneyTransactions.codec))
+    intercept[Exception](readFromString[MoneyTransactionsMessage](decimal)(using MoneyTransactions.codec))
   }
 
   test("the merchants' key facts never carry a raw key") {

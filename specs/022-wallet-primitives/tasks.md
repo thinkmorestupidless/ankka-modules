@@ -35,7 +35,7 @@ mostly falls out of the foundational phase.
 
 **Purpose**: the contract additions everything compiles against (contracts/facts.md).
 
-- [ ] T001 Add to `contract/src/main/scala/io/eitheror/casino/contract/facts/MoneyTransactions.scala`
+- [X] T001 Add to `contract/src/main/scala/io/eitheror/casino/contract/facts/MoneyTransactions.scala`
       the seven wallet-keyed families extending `MoneyTransactionsFact` exactly as contracts/facts.md
       lists them (`ReservationPlaced`, `ReservationReleased`, `SettlementDebit`, `SettlementCredit`,
       `ResolutionPayment`, `AccountDebit`, `AccountCredit`, each with `reservedBalanceAfter:
@@ -44,20 +44,20 @@ mostly falls out of the foundational phase.
       SignedMinorUnits`, `reason`, `actorId`, `balanceAfter: SignedMinorUnits`, `creditLine:
       MinorUnits`, `occurredAt`; `key = s"$accountKind/$accountName/${currency.code}"`); register all
       eight in `MoneyTransactions.families` with their family names
-- [ ] T002 Extend `contract/src/test/scala/io/eitheror/casino/contract/facts/FactsSuite.scala` with a
+- [X] T002 Extend `contract/src/test/scala/io/eitheror/casino/contract/facts/FactsSuite.scala` with a
       sample per new family (the suite auto-tests every family's sample; add the eight samples), run
       `sbt contract/test`, then `just schemas` and commit the regenerated
       `contract/schemas/money.transactions.v1.json` so `SchemaDriftSuite` is green; confirm the diff
       adds definitions and removes none
-- [ ] T003 [P] Add `Routes.serviceNamed(grantedRoute: Option[GrantTarget.Route] = None): Acl` to
+- [X] T003 [P] Add `Routes.serviceNamed(grantedRoute: Option[GrantTarget.Route] = None): Acl` to
       `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`: `Routes.service`'s
       admission as `Acl.Authenticate`, yielding `Principal(s"service:$project/$name")` for an
       in-project `Caller.Service` and the grant's principal for a grantee of the named route,
       `Forbidden` otherwise; a test in `contract/src/test/scala/io/eitheror/casino/contract/access/`
       for the three cases (in-project, grantee, outsider)
-- [ ] T004 [P] Add the eleven rows of contracts/routes.md ("Rows for `contract/access/routes.md`") to
+- [X] T004 [P] Add the eleven rows of contracts/routes.md ("Rows for `contract/access/routes.md`") to
       `contract/access/routes.md`, in the wallet's block, columns as the table has them
-- [ ] T005 Run `sbt contract/publishLocal` and confirm `services/wallet` compiles against it (`just
+- [X] T005 Run `sbt contract/publishLocal` and confirm `services/wallet` compiles against it (`just
       service wallet compile`)
 
 ---
@@ -67,46 +67,46 @@ mostly falls out of the foundational phase.
 **Purpose**: the available amount in the resolver and the wallet's state, and the shared shapes
 every story writes to. Blocks all stories.
 
-- [ ] T006 Add `reserved: Long = 0L` to `Wallet` in `M/funding/Types.scala`; in
+- [X] T006 Add `reserved: Long = 0L` to `Wallet` in `M/funding/Types.scala`; in
       `M/funding/Resolver.scala` make `placeBet` pass `w.realBalance - w.reserved` to `fundBet` and
       make `withdraw` compare `w.realBalance - w.reserved` and `realAfter - w.reserved` with
       `in.amount` (research R1); every absolute a plan returns stays in real terms
-- [ ] T007 Add resolver cases in `T/funding/` (beside the ported Go tables): a bet of 500 on real
+- [X] T007 Add resolver cases in `T/funding/` (beside the ported Go tables): a bet of 500 on real
       1,000 with 600 reserved is `InsufficientFunds`; a bet of 400 funds; a withdraw of 500 with 600
       reserved is `InsufficientFunds` in FR-023's order (after the pending-request check, before the
       turnover check); a withdraw of 400 pays with `newReal = 600`; run the whole `funding` package:
       every Go table still green with `reserved = 0`
-- [ ] T008 Add `Reservation(orderId, amount, placedAt)` and `reservations: Map[String, Reservation] =
+- [X] T008 Add `Reservation(orderId, amount, placedAt)` and `reservations: Map[String, Reservation] =
       Map.empty` to `WalletState` in `M/entity/WalletState.scala`, with `def reserved`, `def
       available`, and `fundingWallet` passing `reserved` (data-model.md); `WalletCodecs.stored`
       already treats an empty map as transient, so the journal's existing states still decode
-- [ ] T009 [P] Add to `Outcome` in `M/entity/Model.scala` the optional fields `reserved`, `available`,
+- [X] T009 [P] Add to `Outcome` in `M/entity/Model.scala` the optional fields `reserved`, `available`,
       `counterpartyTransactionId`, `counterpartyRealBalance`, `accountBalance`; add `reserved` and
       `available` to `Balance` and `available` to `HoldPreview`; make `WalletEntity.balance` and
       `previewHold` fill them (`M/entity/WalletEntity.scala`); make `accepted(...)` fill `reserved`
       and `available` from the state after
-- [ ] T010 [P] Add the refusal codes and messages to `M/entity/Refusals.scala`:
+- [X] T010 [P] Add the refusal codes and messages to `M/entity/Refusals.scala`:
       `RESERVATION_NOT_FOUND`, `RELEASE_EXCEEDS_RESERVATION`, `RESERVATION_SHORT`,
       `ACCOUNT_NOT_FOUND`, `NOT_OWNER`, `CREDIT_LINE_REACHED`, `NOT_CLEARING`,
       `CREDIT_LINE_BELOW_BALANCE`, each with its message as data-model.md words it (both amounts
       named in the `details` map where the spec says so)
-- [ ] T011 [P] In `M/wire/Wire.scala` add `reserved: Option[Long]` and `available: Option[Long]` to
+- [X] T011 [P] In `M/wire/Wire.scala` add `reserved: Option[Long]` and `available: Option[Long]` to
       `MoneyReply` (rendered from `Outcome`), and the statuses to `Wire.status`:
       `RESERVATION_NOT_FOUND` and `ACCOUNT_NOT_FOUND` 404, `NOT_OWNER` 403, `NOT_CLEARING` and
       `CREDIT_LINE_BELOW_BALANCE` 400 (contracts/routes.md)
-- [ ] T012 [P] In `M/views/Views.scala` add the seven `TransactionType` values (`reservation`,
+- [X] T012 [P] In `M/views/Views.scala` add the seven `TransactionType` values (`reservation`,
       `reservation_release`, `settlement_debit`, `settlement_credit`, `resolution_payment`,
       `account_debit`, `account_credit`) and an optional `reference: String = ""` column to
       `TransactionRow` (rows already stored decode with the default through `WalletCodecs.stored`;
       the view's version does not change, and a test in `T/views/` reads a row written without the
       field); add `reference` to `MajorTransaction` in `M/api/AudienceEndpoints.scala`
-- [ ] T013 Add to `M/api/Flows.scala` the shared answer for a flow started under a key (research R4):
+- [X] T013 Add to `M/api/Flows.scala` the shared answer for a flow started under a key (research R4):
       `Flows.answer(start: => Unit, read: => (digest: String, outcome: Option[Outcome]),
       digest: String, commandType: String, amount: Long): Outcome` that claims, then on `Conflict`
       compares the flow's digest and answers the first outcome, `KEY_REUSED` naming the first
       command's type and amount, or `pending`; a unit test in `T/api/FlowsSuite.scala` with a fake
       flow for the three answers
-- [ ] T014 Extend `T/features/WalletFeatures.scala` with the step vocabulary the four features share:
+- [X] T014 Extend `T/features/WalletFeatures.scala` with the step vocabulary the four features share:
       "the reserved amount is", "the available amount is", "a reservation of X is placed for order
       o1 [again]", "a release of X is placed for order o1", "a reservation transaction of X is
       written", and the `refusals` entries "release exceeds reservation" → `RELEASE_EXCEEDS_RESERVATION`,
@@ -130,42 +130,42 @@ scenario, Go table and fixture unchanged.
 
 ### Tests for User Story 1
 
-- [ ] T015 [US1] Create `T/features/ReservationsFeatures.scala` (`extends
+- [X] T015 [US1] Create `T/features/ReservationsFeatures.scala` (`extends
       WalletFeatures("reservations.feature")`, one subclass per feature file as the existing ones
       are) binding the five reservation scenarios of `features/wallet/reservations.feature` (set
       aside and reduce available; above available refused; release part and all; repeated returns
       the first outcome; restricted never reserved) to the unit kit; run them and see them fail on
       the missing commands
-- [ ] T016 [P] [US1] Add `Reserve` and `ReleaseReservation` cases to
+- [X] T016 [P] [US1] Add `Reserve` and `ReleaseReservation` cases to
       `T/entity/EveryCommandIdempotentSuite.scala` (accepted and refused first outcomes; a changed
       amount under the key is `KEY_REUSED`)
-- [ ] T017 [P] [US1] Add `ReserveS(amount, order)` and `ReleaseReservationS(order, amount)` steps to
+- [X] T017 [P] [US1] Add `ReserveS(amount, order)` and `ReleaseReservationS(order, amount)` steps to
       `T/entity/InvariantsSuite.scala` and the invariants `reserved == Σ reservations.amount`, no
       reservation at or below 0, `available ≥ 0` unless a correction debit or an `allowNegative` bet
       took it there, restricted balance untouched by the two commands
-- [ ] T018 [P] [US1] Add to `T/publish/MappingSuite.scala` the mapping of `ReservationPlaced` and
+- [X] T018 [P] [US1] Add to `T/publish/MappingSuite.scala` the mapping of `ReservationPlaced` and
       `ReservationReleased` to `reservation_placed` and `reservation_released` with
       `reserved_balance_after` and `ce-id` the transaction id
 
 ### Implementation for User Story 1
 
-- [ ] T019 [US1] Add `Reserve(key, amount, at)` and `ReleaseReservation(key, orderId, amount, at)` to
+- [X] T019 [US1] Add `Reserve(key, amount, at)` and `ReleaseReservation(key, orderId, amount, at)` to
       `M/entity/Commands.scala` as `MoneyCommand`s (digested; `orderId` is payload) and the events
       `ReservationPlaced` and `ReservationReleased` to `M/entity/WalletEvent.scala` with the fields
       data-model.md lists (`reservedAfter` included); register their serializers in
       `WalletEntity`'s companion through `Codecs.serializer`
-- [ ] T020 [US1] Implement `reserve` and `releaseReservation` in `M/entity/WalletEntity.scala` through
+- [X] T020 [US1] Implement `reserve` and `releaseReservation` in `M/entity/WalletEntity.scala` through
       `keyed`: `WALLET_NOT_FOUND`, `INSUFFICIENT_FUNDS` (`Messages.InsufficientRealBalance`) when
       `amount > available`; `RESERVATION_NOT_FOUND`, `RELEASE_EXCEEDS_RESERVATION` naming both
       amounts; the folds in `WalletState` (a release that empties a reservation removes it); the
       wire names `reserve` and `release-reservation` in the companion; `transactionId =
       Ids.transactionId(walletId, key)`
-- [ ] T021 [US1] Add the rows for the two events to `TransactionRows.of` in `M/views/Views.scala`
+- [X] T021 [US1] Add the rows for the two events to `TransactionRows.of` in `M/views/Views.scala`
       (`type` `reservation` / `reservation_release`, `walletType = real`, before and after equal,
       `reference` the order id) and the sums under their names in `SumsView`
-- [ ] T022 [US1] Map the two events in `Facts.moneyTransactions` (`M/publish/Facts.scala`) per
+- [X] T022 [US1] Map the two events in `Facts.moneyTransactions` (`M/publish/Facts.scala`) per
       contracts/facts.md; `MappingSuite` green
-- [ ] T023 [US1] Add `POST W/reservations` (body `key`, `amount`) and `POST W/reservations/release`
+- [X] T023 [US1] Add `POST W/reservations` (body `key`, `amount`) and `POST W/reservations/release`
       (body `orderId`, `sequence`, `amount`; key `<orderId>/<sequence>`) to
       `M/api/ServiceEndpoint.scala` through the `money(currency)` boundary; replies carry `reserved`
       and `available`
@@ -200,25 +200,25 @@ kit, including the restart; `EveryCommandIdempotentSuite` with `SettleDebit` and
       keys), "the service stops after the debit" (the step hook of T029 blocking `credit`) and "the
       service restarts" (`testKit.restartService()`, then the lifecycle query reports `Completed`);
       run it and see the four scenarios fail
-- [ ] T026 [P] [US2] Add `SettleDebit` and `SettleCredit` cases to
+- [X] T026 [P] [US2] Add `SettleDebit` and `SettleCredit` cases to
       `T/entity/EveryCommandIdempotentSuite.scala`
-- [ ] T027 [P] [US2] Add `SettleDebitS(order, amount, unused)` to `T/entity/InvariantsSuite.scala`
+- [X] T027 [P] [US2] Add `SettleDebitS(order, amount, unused)` to `T/entity/InvariantsSuite.scala`
       (the single-wallet side: a settle-debit never takes available below 0 and never exceeds the
       reservation)
-- [ ] T028 [P] [US2] Add to `T/publish/MappingSuite.scala` the mapping of `SettlementDebited` and
+- [X] T028 [P] [US2] Add to `T/publish/MappingSuite.scala` the mapping of `SettlementDebited` and
       `SettlementCredited` to `settlement_debit` (with `released_cents` and the counterparty) and
       `settlement_credit`
 
 ### Implementation for User Story 2
 
-- [ ] T029 [US2] Add `SettleDebit(key, orderId, amount, unused, counterparty, at)` and
+- [X] T029 [US2] Add `SettleDebit(key, orderId, amount, unused, counterparty, at)` and
       `SettleCredit(key, amount, counterparty, at)` to `M/entity/Commands.scala`, the events
       `SettlementDebited` and `SettlementCredited` to `M/entity/WalletEvent.scala`, and the handlers
       `settleDebit` (`RESERVATION_NOT_FOUND`; `RESERVATION_SHORT` naming `amount + unused` and the
       reservation; real − amount; reservation − amount − unused, removed at 0) and `settleCredit`
       (`WALLET_NOT_FOUND`; real + amount) in `M/entity/WalletEntity.scala`, wire names
       `settle-debit` and `settle-credit`; rows in `TransactionRows.of` (`reference` the trade id)
-- [ ] T030 [US2] Create `M/settlement/SettlementWorkflow.scala` per data-model.md: `SettlementStart`,
+- [X] T030 [US2] Create `M/settlement/SettlementWorkflow.scala` per data-model.md: `SettlementStart`,
       `SettlementFlow(status, request, digest, debit, outcome)`, component `settlement-flow`, id
       `<currency>/<tradeId>`, `start` (Conflict once started), steps `check` (seller's `balance`
       query → `WALLET_NOT_FOUND` ends refused), `debit` (buyer's `settle-debit`; a refusal ends the
@@ -226,7 +226,7 @@ kit, including the restart; `EveryCommandIdempotentSuite` with `SettleDebit` and
       timeout 5 s, `maxRetries(3)` on `debit` and `credit`; query `status`; serializers through
       `WalletCodecs.stored`; a `private[wallet] val faults: AtomicReference[String => Unit]` test
       hook run at the top of each step (a no-op in production), as `DepositWorkflow.rg` is set
-- [ ] T031 [US2] Add `POST /settlements` to `M/api/ServiceEndpoint.scala`: boundary (`tradeId`,
+- [X] T031 [US2] Add `POST /settlements` to `M/api/ServiceEndpoint.scala`: boundary (`tradeId`,
       `currency`, `buyer`, `orderId`, `seller`, `amount`, `unused` default 0; buyer = seller is
       `INVALID_REQUEST`), `Flows.answer` over the flow's `start` and `status`, the reply body
       `{buyer{realBalance, reserved, available, txnId}, seller{realBalance, txnId}, currency}`
@@ -249,7 +249,7 @@ resolution payments and clearing moves; the operator's adjustment; the facts.
 
 ### Tests for User Story 3
 
-- [ ] T033 [P] [US3] Create `T/accounts/AccountEntitySuite.scala` (`EventSourcedTestKit`): a pool
+- [X] T033 [P] [US3] Create `T/accounts/AccountEntitySuite.scala` (`EventSourcedTestKit`): a pool
       account is claimed by its first mover and refuses a second owner `NOT_OWNER`; a debit below 0
       is `INSUFFICIENT_FUNDS` naming amount, balance and floor; a clearing account with a line of 500
       takes a debit to −500 and refuses the next unit `CREDIT_LINE_REACHED`; `set-credit-line` on a
@@ -258,7 +258,7 @@ resolution payments and clearing moves; the operator's adjustment; the facts.
       adjustment without a reason is `REASON_REQUIRED`, past the floor `DEBIT_EXCEEDS_BALANCE`, of
       zero a no-op; every keyed command repeated answers the first outcome and `KEY_REUSED` on a
       changed one
-- [ ] T034 [P] [US3] Create `T/accounts/AccountInvariantsSuite.scala` (`ScalaCheckSuite`, 200
+- [X] T034 [P] [US3] Create `T/accounts/AccountInvariantsSuite.scala` (`ScalaCheckSuite`, 200
       sequences of claim, debit, credit, adjust, set-credit-line, repeat): `balance ≥ floor` after
       every event, `creditLine == 0` on a pool account, `owner` never changes, a key kept until 1,000
       later
@@ -277,10 +277,10 @@ resolution payments and clearing moves; the operator's adjustment; the facts.
       settled and a signature" (the operator route with a staff token from `TestTokens`), "an
       adjustment transaction ... with the reason and the actor is written" (the `account_adjusted`
       fact under the account's key, category and actor); run and see them fail
-- [ ] T036 [P] [US3] Add `DebitToAccount` and `CreditFromAccount` cases to
+- [X] T036 [P] [US3] Add `DebitToAccount` and `CreditFromAccount` cases to
       `T/entity/EveryCommandIdempotentSuite.scala`; add `MoveToAccountS(amount)` to
       `T/entity/InvariantsSuite.scala` (never below available)
-- [ ] T037 [P] [US3] Add to `T/publish/MappingSuite.scala` the mapping of `MovedToAccount` to
+- [X] T037 [P] [US3] Add to `T/publish/MappingSuite.scala` the mapping of `MovedToAccount` to
       `account_debit`, `MovedFromAccount` to `resolution_payment` (purpose `resolution_payment`:
       `market_id` = account name, `position_id` = reference) or `account_credit` (any other purpose),
       and a `T/publish/AccountMappingSuite.scala` for `AccountAdjusted` → `account_adjusted` under the
@@ -288,33 +288,33 @@ resolution payments and clearing moves; the operator's adjustment; the facts.
 
 ### Implementation for User Story 3
 
-- [ ] T038 [US3] Create `M/accounts/AccountState.scala`, `AccountEvent.scala`, `AccountCommands.scala`
+- [X] T038 [US3] Create `M/accounts/AccountState.scala`, `AccountEvent.scala`, `AccountCommands.scala`
       per data-model.md: state (`accountId`, `created`, `owner`, `creditLine`, `balance`, `seen`,
       `keyOrder`; derived `kind`, `name`, `currency`, `floor`), the closed `enum AccountEvent`
       (`AccountClaimed`, `AccountDebited`, `AccountCredited`, `AccountAdjusted`, `CreditLineSet`,
       `CommandRefused`; manifests `wallet.account.<Event>`), the commands `Claim`, `Debit`, `Credit`,
       `Adjust`, `SetCreditLine` (the three money commands digested with `MoneyCommand.digest`'s
       rule), queries `AccountBalance`, `OutcomeOf`; codecs from `WalletCodecs.stored`
-- [ ] T039 [US3] Create `M/accounts/AccountEntity.scala` (component `account`, id
+- [X] T039 [US3] Create `M/accounts/AccountEntity.scala` (component `account`, id
       `<kind>/<name>/<currency>`): the handlers with the refusal orders of data-model.md, `keyed`
       and `refuse` helpers as the wallet's, `Ids.transactionId(accountId, key)`, wire names `claim`,
       `debit`, `credit`, `adjust`, `set-credit-line`, `balance`, `outcome-of`; `AccountEntitySuite`
       and `AccountInvariantsSuite` green
-- [ ] T040 [US3] Add `DebitToAccount(key, accountKind, accountName, purpose, reference, amount, at)`
+- [X] T040 [US3] Add `DebitToAccount(key, accountKind, accountName, purpose, reference, amount, at)`
       and `CreditFromAccount(...)` to `M/entity/Commands.scala`, the events `MovedToAccount` and
       `MovedFromAccount` to `M/entity/WalletEvent.scala`, the handlers `debitToAccount`
       (`WALLET_NOT_FOUND`; `INSUFFICIENT_FUNDS` beyond available; real − amount) and
       `creditFromAccount` (`WALLET_NOT_FOUND`; real + amount) in `M/entity/WalletEntity.scala`, wire
       names `debit-to-account` and `credit-from-account`; rows in `TransactionRows.of` (`type`
       `account_debit` / `account_credit` / `resolution_payment` by purpose, `reference`)
-- [ ] T041 [US3] Create `M/accounts/AccountMoveWorkflow.scala` (component `account-move-flow`, id
+- [X] T041 [US3] Create `M/accounts/AccountMoveWorkflow.scala` (component `account-move-flow`, id
       `<kind>/<name>/<currency>/<key>`): `AccountMoveStart` (account id, direction, purpose, player,
       amount, key, reference, caller principal, at), `AccountMoveFlow(status, request, digest, first,
       outcome)`, `start` (Conflict once started), steps for `to-account` (`claim` with the caller as
       owner → `NOT_OWNER` ends refused; `debit-wallet`; `credit-account`) and `from-account` (`check`
       the wallet's balance → `WALLET_NOT_FOUND`; `debit-account` with the owner and floor refusals;
       `credit-wallet`), settings as the settlement flow's, query `status`, the same test hook
-- [ ] T042 [US3] Add the account routes to `M/api/ServiceEndpoint.scala` under
+- [X] T042 [US3] Add the account routes to `M/api/ServiceEndpoint.scala` under
       `withAcl(Routes.serviceNamed())` (the caller's principal read from the request as the owner):
       `POST /accounts/{kind}/{name}/splits`, `/merges`, `/payments` (key `<name>/<positionId>`), and
       under `withAcl(Routes.serviceNamed(Some(GrantTarget.Route("wallet", "POST", "/v1/casino/brands/
@@ -324,11 +324,11 @@ resolution payments and clearing moves; the operator's adjustment; the facts.
       `splits`/`merges`/`payments` on a clearing account, are `INVALID_REQUEST`; each move through
       `Flows.answer`; the reply `{wallet{...}, account{balance, txnId}}` (`M/wire/Wire.scala`, an
       `AccountMoveReply`, `AccountBalanceReply`)
-- [ ] T043 [US3] Add to `OperatorEndpoint` in `M/api/AudienceEndpoints.scala` `POST
+- [X] T043 [US3] Add to `OperatorEndpoint` in `M/api/AudienceEndpoints.scala` `POST
       /accounts/{kind}/{name}/adjustments` (body `key`, `currency`, `amount` signed major-unit string,
       `reason`, `category`; the actor `principal.subject`) and `GET
       /accounts/{kind}/{name}/balance?currency=` in major units
-- [ ] T044 [US3] Create `M/publish/AccountAuditPublisher.scala`: a consumer over `AccountEntity`
+- [X] T044 [US3] Create `M/publish/AccountAuditPublisher.scala`: a consumer over `AccountEntity`
       publishing `AccountAdjusted` as `account_adjusted` on `money.transactions` (key the account's,
       `ce-id` the transaction id, `reason` the category) and `AccountClaimed`, `CreditLineSet`,
       `CommandRefused` on `platform.audit` in spec 001's audit shape (`ce-id` `<accountId>/<sequence>`);
@@ -353,7 +353,7 @@ balance scenario in the unit kit; the player's and operator's balance over HTTP.
 
 ### Tests for User Story 4
 
-- [ ] T046 [P] [US4] Bind in `T/features/ReservationsFeatures.scala` "a hold or a bet draws only on
+- [X] T046 [P] [US4] Bind in `T/features/ReservationsFeatures.scala` "a hold or a bet draws only on
       real balance that is not reserved" (`hold(500, "w1")` refused `INSUFFICIENT_FUNDS`; `hold(400,
       "w1")` leaves real 600, reserved 600; "the player places a bet of 500 in round r1" refused
       `INSUFFICIENT_FUNDS` through the existing `bet` helper, reserved still 600)
@@ -372,11 +372,11 @@ balance scenario in the unit kit; the player's and operator's balance over HTTP.
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Add `reserved` and `available` (major-unit strings) to `MajorBalance` and its
+- [X] T049 [US4] Add `reserved` and `available` (major-unit strings) to `MajorBalance` and its
       rendering in `M/api/AudienceEndpoints.scala` (both the operator's and the player's balance
       routes); `available` to the preview's wire body in `M/wire/Wire.scala`; `reference` to the
       operator's and player's transaction rows
-- [ ] T050 [US4] Accept the seven new types in the `type` filter of `TransactionsQuery.page`
+- [X] T050 [US4] Accept the seven new types in the `type` filter of `TransactionsQuery.page`
       (`M/api/ServiceEndpoint.scala`) and the audiences' transaction routes; run T046–T048 green
 
 **Checkpoint**: every scenario of the four feature files green; `just features` 0 findings.

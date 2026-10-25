@@ -14,8 +14,14 @@ import java.time.Instant
  * converted-origin parts of that movement (`deposit_part_cents`, `converted_part_cents`). The fields
  * are optional in the schema because they were added (spec 001 FR-013); the wallet always writes them. `amount_cents` and `transaction_id` are the original's
  * export names (FR-014).
+ *
+ * Spec 022 adds `account_adjusted`, keyed by a non-player account (`AccountFact`); the topic's type is
+ * the parent of both, `MoneyTransactionsMessage`.
  */
-sealed trait MoneyTransactionsFact extends Fact:
+sealed trait MoneyTransactionsMessage extends Fact
+
+/** A message about a player's wallet, keyed `<player>/<currency>`: every family but `account_adjusted`. */
+sealed trait MoneyTransactionsFact extends MoneyTransactionsMessage:
   def playerId: String
   def currency: Currency
   def transactionId: String
@@ -98,10 +104,94 @@ final case class ProviderCredited(playerId: String, currency: Currency, transact
     amountCents: MinorUnits, landedOn: String, awardId: Option[String], realBalanceAfter: SignedMinorUnits,
     restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
 
+// ── spec 022: reservations, settlement, resolution payments, non-player accounts ──
+// The seven wallet-keyed families name what happened to the wallet and carry its reserved balance
+// after beside real and restricted. A move's account side is no message of its own: the wallet's
+// message names the account, and an account's balance is the fold over the messages that name it
+// (specs/022-wallet-primitives/contracts/facts.md, SC-004). Each carries both pools after it and,
+// where it moves real balance, its parts, as spec 025 FR-012 asks of every family.
+
+/** Money set aside from real balance under an order (spec 022 FR-001). Real is unchanged. */
+@named("reservation_placed")
+final case class ReservationPlaced(playerId: String, currency: Currency, transactionId: String, orderId: String,
+    amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
+    reservedBalanceAfter: MinorUnits, occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None) extends MoneyTransactionsFact
+
+/** Part or all of a reservation returned to the available amount (FR-002). */
+@named("reservation_released")
+final case class ReservationReleased(playerId: String, currency: Currency, transactionId: String, orderId: String,
+    amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
+    reservedBalanceAfter: MinorUnits, occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None) extends MoneyTransactionsFact
+
+/** The buyer's side of a trade (FR-004): real down by the cost, the reservation by the cost and what was released. */
+@named("settlement_debit")
+final case class SettlementDebit(playerId: String, currency: Currency, transactionId: String, tradeId: String,
+    orderId: String, amountCents: MinorUnits, releasedCents: MinorUnits, counterpartyPlayerId: String,
+    realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, reservedBalanceAfter: MinorUnits,
+    occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+
+/** The seller's side of a trade (FR-004): real up by the cost. */
+@named("settlement_credit")
+final case class SettlementCredit(playerId: String, currency: Currency, transactionId: String, tradeId: String,
+    amountCents: MinorUnits, counterpartyPlayerId: String, realBalanceAfter: SignedMinorUnits,
+    restrictedBalanceAfter: MinorUnits, reservedBalanceAfter: MinorUnits, occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+
+/** A position paid at resolution from the market's pool account (FR-005). */
+@named("resolution_payment")
+final case class ResolutionPayment(playerId: String, currency: Currency, transactionId: String, marketId: String,
+    positionId: String, amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
+    reservedBalanceAfter: MinorUnits, occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+
+/** The wallet debited into a non-player account: a split, or a clearing move from the wallet (FR-006, FR-008). */
+@named("account_debit")
+final case class AccountDebit(playerId: String, currency: Currency, transactionId: String, accountKind: String,
+    accountName: String, purpose: String, reference: String, amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits,
+    restrictedBalanceAfter: MinorUnits, reservedBalanceAfter: MinorUnits, occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+
+/** The wallet credited from a non-player account: a merge, or a clearing move to the wallet (FR-006, FR-008). */
+@named("account_credit")
+final case class AccountCredit(playerId: String, currency: Currency, transactionId: String, accountKind: String,
+    accountName: String, purpose: String, reference: String, amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits,
+    restrictedBalanceAfter: MinorUnits, reservedBalanceAfter: MinorUnits, occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+
+/**
+ * A message about a non-player account (spec 022 FR-006), keyed `<kind>/<name>/<currency>`. It is
+ * about no player, so it carries no `player_id`.
+ */
+sealed trait AccountFact extends MoneyTransactionsMessage:
+  def accountKind: String
+  def accountName: String
+  def currency: Currency
+  def transactionId: String
+  def balanceAfter: SignedMinorUnits
+  def occurredAt: Instant
+  def key: String = s"$accountKind/$accountName/${currency.code}"
+
+/** An operator's adjustment of a non-player account (FR-009). `reason` is the category, never the operator's text. */
+@named("account_adjusted")
+final case class AccountAdjusted(accountKind: String, accountName: String, currency: Currency, transactionId: String,
+    amount: SignedMinorUnits, reason: String, actorId: String, balanceAfter: SignedMinorUnits, creditLine: MinorUnits,
+    occurredAt: Instant) extends AccountFact
+
+object MoneyTransactionsMessage:
+  given JsonValueCodec[MoneyTransactionsMessage] = FactCodecs.make
+
 object MoneyTransactionsFact:
   given JsonValueCodec[MoneyTransactionsFact] = FactCodecs.make
 
-object MoneyTransactions extends Topic[MoneyTransactionsFact]("money.transactions", Vector("wallet")):
+object MoneyTransactions extends Topic[MoneyTransactionsMessage]("money.transactions", Vector("wallet")):
   val families = Vector(
     FamilyDef.of[DepositConfirmed]("deposit_confirmed"),
     FamilyDef.of[BetPlaced]("bet_placed"),
@@ -115,5 +205,13 @@ object MoneyTransactions extends Topic[MoneyTransactionsFact]("money.transaction
     FamilyDef.of[HoldPlaced]("hold_placed"),
     FamilyDef.of[HoldReleased]("hold_released"),
     FamilyDef.of[WalletWithdrawalReversed]("withdrawal_reversed"),
-    FamilyDef.of[ProviderCredited]("provider_credited")
+    FamilyDef.of[ProviderCredited]("provider_credited"),
+    FamilyDef.of[ReservationPlaced]("reservation_placed"),
+    FamilyDef.of[ReservationReleased]("reservation_released"),
+    FamilyDef.of[SettlementDebit]("settlement_debit"),
+    FamilyDef.of[SettlementCredit]("settlement_credit"),
+    FamilyDef.of[ResolutionPayment]("resolution_payment"),
+    FamilyDef.of[AccountDebit]("account_debit"),
+    FamilyDef.of[AccountCredit]("account_credit"),
+    FamilyDef.of[AccountAdjusted]("account_adjusted")
   )

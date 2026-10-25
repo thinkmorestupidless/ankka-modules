@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain (one, whether reserved money counts towards limits while an order rests)
+- [x] No [NEEDS CLARIFICATION] markers remain (the one, whether reserved money counts towards limits while an order rests, was settled by the clarification of 2026-10-25)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)

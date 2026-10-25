@@ -150,7 +150,15 @@ final case class Outcome(
     depositPool: Option[Long] = None,
     convertedPool: Option[Long] = None,
     /** A bet's real-leg parts or a win's real-share parts: `fundedDepositAmount`, `wonDepositAmount`. */
-    parts: Option[Parts] = None
+    parts: Option[Parts] = None,
+    // spec 022: set by the reservation, settlement and account commands and by nothing older, so a
+    // spec 002 route's reply is unchanged.
+    reserved: Option[Long] = None,
+    available: Option[Long] = None,
+    /** A two-entity move's other side: the seller's or the buyer's wallet, or the account. */
+    counterpartyTransactionId: Option[String] = None,
+    counterpartyRealBalance: Option[Long] = None,
+    accountBalance: Option[Long] = None
 ):
   def accepted: Boolean = code.isEmpty
 
@@ -160,7 +168,12 @@ final case class PrimaryStatus(recordId: String, grantRef: String, status: Strin
 /** The balance read (FR-028). */
 final case class Balance(realBalance: Long, restrictedBalance: Long, currency: String, primary: Option[PrimaryStatus],
     /** No defaults: the reply's codec leaves a default out, and a reader must see a pool of 0 (spec 025). */
-    depositPoolBalance: Long, convertedPoolBalance: Long)
+    depositPoolBalance: Long, convertedPoolBalance: Long,
+    /** Spec 022 FR-010: likewise every read reports them, at 0 too. */
+    reserved: Long, available: Long)
+
+/** Real balance set aside under an order (spec 022 FR-001); `amount` is what remains reserved. */
+final case class Reservation(orderId: String, amount: Long, placedAt: Instant)
 
 /** One open record as the restricted-funds status lists it (FR-028, User Story 6 scenario 2). */
 final case class RecordStatus(
@@ -197,5 +210,7 @@ final case class HoldPreview(
     /** The deposit part of each movement the hold would record (spec 025 FR-008; names assumed). */
     clawbackDepositAmount: Option[Long] = None,
     voidedDepositAmount: Option[Long] = None,
-    paidDepositAmount: Option[Long] = None
+    paidDepositAmount: Option[Long] = None,
+    /** Real balance less reserved (spec 022 FR-003): the most a hold may draw before any clawback. */
+    available: Long = 0L
 )

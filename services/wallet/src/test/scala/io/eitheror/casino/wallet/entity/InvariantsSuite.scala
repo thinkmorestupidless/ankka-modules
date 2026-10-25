@@ -39,6 +39,13 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
   private final case class RepeatS(back: Int) extends Step
   /** A provider's correction debit: a bet that may take real balance negative (spec 025 FR-003). */
   private final case class CorrectionS(amount: Long, round: Int) extends Step
+  // spec 022
+  private final case class ReserveS(amount: Long, order: Int) extends Step
+  private final case class ReleaseReservationS(order: Int, amount: Long) extends Step
+  private final case class SettleDebitS(order: Int, amount: Long, unused: Long) extends Step
+  private final case class SettleCreditS(amount: Long) extends Step
+  private final case class MoveToAccountS(amount: Long) extends Step
+  private final case class MoveFromAccountS(amount: Long) extends Step
 
   private val step: Gen[Step] = Gen.frequency(
     4 -> Gen.zip(Gen.choose(0L, 5000L), Gen.oneOf(0L, 0L, 1L)).map(DepositS.apply),
@@ -57,12 +64,20 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
     1 -> Gen.const(ReverseS),
     1 -> Gen.zip(Gen.oneOf("real", "restricted"), Gen.choose(-2000L, 2000L)).map(AdjustS.apply),
     1 -> Gen.choose(0L, 1000L).map(CreditS.apply),
-    2 -> Gen.choose(1, 5).map(RepeatS.apply)
+    2 -> Gen.choose(1, 5).map(RepeatS.apply),
+    3 -> Gen.zip(Gen.choose(1L, 4000L), Gen.choose(1, 3)).map(ReserveS.apply),
+    2 -> Gen.zip(Gen.choose(1, 3), Gen.choose(1L, 2000L)).map(ReleaseReservationS.apply),
+    2 -> Gen.zip(Gen.choose(1, 3), Gen.choose(1L, 2000L), Gen.choose(0L, 500L)).map(SettleDebitS.apply),
+    1 -> Gen.choose(1L, 2000L).map(SettleCreditS.apply),
+    2 -> Gen.choose(1L, 4000L).map(MoveToAccountS.apply),
+    1 -> Gen.choose(1L, 2000L).map(MoveFromAccountS.apply)
   )
 
   private def run(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], steps: List[Step],
       checkStep: (WalletState, Set[String], String) => Unit = check(_, _, _)): Unit =
     var sent = Vector.empty[MoneyCommand]
+    // A correction debit may take real balance below what is reserved (data-model.md's invariants).
+    var corrected = false
     steps.zipWithIndex.foreach { (s, i) =>
       val at  = t0.plusSeconds(i.toLong * 60)
       val key = s"k-$i"
@@ -87,11 +102,26 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
         case AdjustS(t, a)    => Adjust(key, t, a, "a reason", "correction", "op-1", at)
         case CreditS(a)       => ProviderCredit(key, a, s"pr-$i", "free spins", "st8", at)
         case RepeatS(back)    => sent.lift(sent.size - back).getOrElse(Deposit(key, 1, "psp", "t1", "psp", "card", TurnoverTerms(0, "gross_wagered"), at))
+        case ReserveS(a, o)   => Reserve(s"o$o-$i", a, at)
+        case ReleaseReservationS(o, a) => ReleaseReservation(key, st.reservations.keys.toVector.sorted.lift(o - 1).getOrElse(s"none-$o"), a, at)
+        case SettleDebitS(o, a, u) => SettleDebit(key, st.reservations.keys.toVector.sorted.lift(o - 1).getOrElse(s"none-$o"), a, u, "bob", at)
+        case SettleCreditS(a) => SettleCredit(key, a, "ada", at)
+        case MoveToAccountS(a) => DebitToAccount(key, "pool", "m1", Purpose.Split, key, a, at)
+        case MoveFromAccountS(a) => CreditFromAccount(key, "pool", "m1", Purpose.Merge, key, a, at)
+      if command.isInstanceOf[Adjust] && command.asInstanceOf[Adjust].target == "real" && command.asInstanceOf[Adjust].amount < 0 then corrected = true
       val seenBefore = kit.currentState.seen.seen.keySet
+      val restrictedBefore = kit.currentState.restrictedBalance
       call(kit, command)
       sent :+= command
-      if s.isInstanceOf[CorrectionS] then sawCorrection = true
+      if s.isInstanceOf[CorrectionS] then
+        sawCorrection = true
+        corrected = true
       checkStep(kit.currentState, seenBefore, s"after step $i: $s")
+      checkLedger(kit.currentState, corrected, s"after step $i: $s")
+      command match
+        case _: Reserve | _: ReleaseReservation | _: SettleDebit | _: SettleCredit | _: DebitToAccount | _: CreditFromAccount =>
+          assertEquals(kit.currentState.restrictedBalance, restrictedBefore, s"a ledger command moved restricted funds after step $i: $s")
+        case _ => ()
     }
 
   private def call(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], c: MoneyCommand): Unit = c match
@@ -110,6 +140,12 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
     case x: Reverse         => kit.call(WalletEntity.reverse)(x): Unit
     case x: Adjust          => kit.call(WalletEntity.adjust)(x): Unit
     case x: ProviderCredit  => kit.call(WalletEntity.providerCredit)(x): Unit
+    case x: Reserve            => kit.call(WalletEntity.reserve)(x): Unit
+    case x: ReleaseReservation => kit.call(WalletEntity.releaseReservation)(x): Unit
+    case x: SettleDebit        => kit.call(WalletEntity.settleDebit)(x): Unit
+    case x: SettleCredit       => kit.call(WalletEntity.settleCredit)(x): Unit
+    case x: DebitToAccount     => kit.call(WalletEntity.debitToAccount)(x): Unit
+    case x: CreditFromAccount  => kit.call(WalletEntity.creditFromAccount)(x): Unit
     case other              => fail(s"not generated: $other")
 
   private def check(s: WalletState, seenBefore: Set[String], where: String): Unit =
@@ -149,6 +185,12 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
     assert(seenBefore.subsetOf(s.seen.seen.keySet), s"a seen key was forgotten $where")
 
   private var sawCorrection = false
+
+  /** Spec 022: reserved is the sum of the reservations, none at or below zero; available never negative without a correction. */
+  private def checkLedger(s: WalletState, corrected: Boolean, where: String): Unit =
+    assertEquals(s.reserved, s.reservations.values.map(_.amount).sum, s"reserved is the sum of the reservations $where")
+    assert(s.reservations.values.forall(_.amount > 0), s"a reservation at or below zero $where: ${s.reservations}")
+    if !corrected then assert(s.realBalance - s.reserved >= 0, s"available below zero with no correction debit $where: $s")
 
   private var accepted = 0L
   private var refused  = 0L
@@ -212,4 +254,7 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
     intercept[AssertionError](check(WalletState("x/EUR"), Set("k-1"), "planted"))
     intercept[AssertionError](check(WalletState("x/EUR", realBalance = 100, depositPool = 60, convertedPool = 30), Set.empty, "planted"))
     intercept[AssertionError](check(WalletState("x/EUR", realBalance = 100, depositPool = -10, convertedPool = 110), Set.empty, "planted"))
+    val reservation = Reservation("o1", 600, t0)
+    intercept[AssertionError](checkLedger(WalletState("x/EUR", realBalance = 500, reservations = Map("o1" -> reservation)), false, "planted"))
+    intercept[AssertionError](checkLedger(WalletState("x/EUR", realBalance = 500, reservations = Map("o1" -> reservation.copy(amount = 0))), false, "planted"))
   }

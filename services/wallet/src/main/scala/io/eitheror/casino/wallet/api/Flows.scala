@@ -1,7 +1,7 @@
 package io.eitheror.casino.wallet.api
 
 import com.thinkmorestupidless.ankka.core.{CommandError, ErrorCode}
-import io.eitheror.casino.wallet.entity.Outcome
+import io.eitheror.casino.wallet.entity.{Outcome, Refusals}
 
 import scala.concurrent.duration.*
 
@@ -32,6 +32,24 @@ object Flows:
       Thread.sleep(Interval.toMillis)
       found = read
     found
+
+  /** What a flow started under a key holds: the first start's digest and amount, and its outcome once decided. */
+  final case class Seen(digest: String, amount: Option[Long], outcome: Option[Outcome])
+
+  /**
+   * The answer to a command a flow carries out under the caller's key (spec 022 research R4): claim
+   * the flow; then, if the flow was first started with a different command, `KEY_REUSED` naming the
+   * first command's type and amount; otherwise the flow's outcome, awaited, or `pending`. A repeat
+   * of the same command is answered with the first outcome, as a wallet answers a repeated key.
+   */
+  def answer(start: => Unit, read: => Seen, digest: String, commandType: String, key: String, bound: FiniteDuration = Bound): Outcome =
+    claim(start)
+    val first = read
+    if first.digest != digest then
+      val earlier = Outcome(commandType = commandType, amount = first.amount)
+      Outcome(code = Some(Refusals.KeyReused), message = Some(Refusals.keyReused(key, earlier)), details = Map("key" -> key),
+        commandType = commandType, amount = first.amount)
+    else first.outcome.orElse(await(read.outcome, bound)).getOrElse(pending)
 
   /** The route's answer while a flow is still deciding: the caller retries and is answered from the flow. */
   val pending: Outcome = Outcome(code = Some("OUTCOME_PENDING"), message = Some("The outcome is still being decided; retry"))
