@@ -150,7 +150,7 @@ parity task and can run the moment T005 and the original's stack are up.
 
 ### Pure packages (tests beside each)
 
-- [ ] T006 [P] Implement `p/Settings.scala` (research R17's table: `CASINO_BRAND`,
+- [X] T006 [P] Implement `p/Settings.scala` (research R17's table: `CASINO_BRAND`,
       `CASINO_REAL_MONEY`, `KEYCLOAK_URL`, `PLAYER_SITE_BASE`, `INGEST_URL`,
       `REALM_RECONCILE_INTERVAL` `60s`, `VERIFICATION_VALIDITY` `24h`, `VERIFICATION_RESEND_INTERVAL`
       `5m`, `MAY_LOG_IN_BOUND` `500ms`, `REALM_ANSWER_BOUND` `80ms`, `SESSION_END_BOUND` `5s`,
@@ -202,7 +202,7 @@ parity task and can run the moment T005 and the original's stack are up.
 
 ### The entities (tests first)
 
-- [ ] T011 [P] `p-test/player/PlayerEntitySuite.scala` (`EventSourcedTestKit`), every row of
+- [X] T011 [P] `p-test/player/PlayerEntitySuite.scala` (`EventSourcedTestKit`), every row of
       data-model.md's command table in its order: `Register` records the profile, consents with time
       and source, the registration fields and `pending_email_verification`; a second `Register`
       answers the first; `VerifyEmail` → `active`, and again no event; `ResendVerification`
@@ -227,29 +227,35 @@ parity task and can run the moment T005 and the original's stack are up.
       status, time and count unchanged, and again no event; every transition appends one trail entry
       with actor, actor id, reason and time; the state type has no field for a password, a realm
       token or a lookup token (the codec's field list asserted, SC-006)
-- [ ] T012 [P] `p-test/sessions/PlayerSessionEntitySuite.scala` and `GameSessionEntitySuite.scala`
+- [X] T012 [P] `p-test/sessions/PlayerSessionEntitySuite.scala` and `GameSessionEntitySuite.scala`
       (`EventSourcedTestKit`): `Open` records player, realm session id, the three `Personal` fields,
       `active`; `AddGameSession`; `End(reason)` sets the status to the reason's status and the end
       time, and again no event; a game session's `Open` and `End(reason, at)` with `durationMinutes`
       the whole minutes between, and again no event; each end reason of data-model.md accepted
-- [ ] T013 [P] `p-test/inbox/MessageEntitySuite.scala` (`Created` under an id twice answers the first;
+- [X] T013 [P] `p-test/inbox/MessageEntitySuite.scala` (`Created` under an id twice answers the first;
       `Read`, `Deleted`, `Delivered` each once; a deleted message keeps `body`), `NoteEntitySuite.scala`
       (`KeyValueEntityTestKit`: write, pin, unpin; `text` is `Personal`) and
       `p-test/fraud/FraudCaseEntitySuite.scala` (`Opened` with players and signals; `Reviewed` with
       operator and time; `Dismissed`; a second `Opened` under the id answers the first)
-- [ ] T014 [P] `p-test/registration/LookupIndexEntitySuite.scala` (`KeyValueEntityTestKit`: `Add(p1)`
+- [X] T014 [P] `p-test/registration/LookupIndexEntitySuite.scala` (`KeyValueEntityTestKit`: `Add(p1)`
       on an empty index answers no others; `Add(p2)` answers `{p1}`; `Add(p1)` again answers `{p2}`
       and holds two; `Remove(p1)`) and `p-test/config/ConfigEntitiesSuite.scala` (`BrandConfig`'s
       defaults of data-model.md on an empty entity; `set` validates `reportingZone` as an IANA id and
       refuses `invalid_config` naming the field; `CurrencyConfig` refuses an unknown ISO code;
       `AllowList` empty means every country)
-- [ ] T015 Implement `p/player/PlayerEntity.scala` (state, events, commands and queries of
+- [X] T015 Implement `p/player/PlayerEntity.scala` (state, events, commands and queries of
       data-model.md, the fold with the day pruning and `Erased` blanking; `snapshotEvery` 100),
       `p/sessions/PlayerSessionEntity.scala`, `p/sessions/GameSessionEntity.scala`,
       `p/inbox/MessageEntity.scala`, `p/inbox/NoteEntity.scala`, `p/fraud/FraudCaseEntity.scala`,
       `p/registration/LookupIndexEntity.scala`, `p/config/BrandConfigEntity.scala`,
       `CurrencyConfigEntity.scala`, `AllowListEntity.scala`; each with its companion as
       `services/wallet/.../WalletEntity.scala` has it; T011–T014 green
+      *Done 2026-10-25.* Two calls the tables left open: a second `Suspend` is no event and keeps the
+      first reason and time (data-model.md said "updated, no event", which an event-sourced entity
+      cannot do; T011 had "one event"); a `blocked` player is seeded by `StatusImported`, an event
+      only the migration (spec 019) writes. `CurrencyConfig` holds `offered` and the original's
+      `defaultCurrency`; per-currency settings wait for a service that reads one. The suites are one
+      file per package (`SessionEntitiesSuite`, `InboxEntitiesSuite`, `FraudCaseEntitySuite`).
 
 ### The views and the consumers (tests first)
 
@@ -650,7 +656,7 @@ email, consent and cookie recordings.
       marketing_suppressed`; a closed player → `422 account_closed`; `push_delivered` → `delivered`
       on the row; the operator's `PATCH /players/{id}/date-of-birth` without `reason` → `400
       reason_required`; to 17 years → `400 underage`; to 18 → `200` and an audit record naming the
-      field and the reason, never the date; a `kyc_verified` fact first → `409 kyc_locked`;
+      field and the reason, never the date; a `player_kyc_verified` fact first → `409 kyc_locked`;
       the operator's `PATCH /players/{id}/profile` honours the same locks
 - [ ] T050 [P] [US4] Bind every scenario of `features/players/profile.feature` in
       `p-test/features/ProfileFeatures.scala`; "marketing email stops from that fact" reads the
