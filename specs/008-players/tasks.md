@@ -345,7 +345,7 @@ parity task and can run the moment T005 and the original's stack are up.
       **Assumed until their specs build them**: `responsible-gambling` at `/v1/casino/brands/<b>/rg/`
       `may-log-in` and `gamstop-refusal` (the wallet's prefix for `may-deposit`); `kyc` at `…/kyc/deposit-check`
       answering `{allowed}` or `{code, message}`; `engagement` at `…/engagement/sends` answering `status`.
-- [ ] T022 [P] Write the fakes in `p-test/it/`: `FakeServer.scala` copied from `i-test/it/`;
+- [X] T022 [P] Write the fakes in `p-test/it/`: `FakeServer.scala` copied from `i-test/it/`;
       `FakeRealm.scala` (users by address with password, verified, enabled, the twin-id attribute;
       the admin token route; direct grant issuing a signed JWT the kit's OIDC fake accepts with
       `eitheror_twin_id` and `session_state`; refresh with a reuse list; sessions listed and revoked;
@@ -359,6 +359,9 @@ parity task and can run the moment T005 and the original's stack are up.
       vendor's `GET /vendor/modules` and `POST /vendor/requests` for spec 021's rows, as the wallet's
       tests fake it if they do, else new); `FakesMain.scala` starting them on 9010–9015 for
       `players-run`
+      *Done 2026-10-25.* `FakeRealm.scala` (T020) and the rest in `it/Fakes.scala` over a `KnobbedServer`
+      base (`silent`, `delayMillis`); `FakeGeo` stands in for ip-api.com. `FakesMain` uses 9010–9017: the
+      eight fakes need eight ports.
 - [ ] T023 Write `p-test/it/Kit.scala` and `SharedKit.scala` after `i-test/it/Kit.scala`:
       `AnkkaTestKit.start` over throwaway Postgres with the fakes under `localServices`
       (`responsible-gambling`, `kyc`, `engagement`, `ingest`, `wallet`, `merchant`, `vendor-agent`),
