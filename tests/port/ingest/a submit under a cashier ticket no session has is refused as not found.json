@@ -1,0 +1,32 @@
+{
+  "scenario": "a submit under a cashier ticket no session has is refused as not found",
+  "requirement": "006/FR-009",
+  "recorded_at": "2026-10-24T18:00:55.303668Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "ingest",
+  "steps": [
+    {
+      "name": "submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/00000000-0000-0000-0000-000000000000/submit",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "selectedTerminalEntityId": "SIM"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "SESSION_NOT_FOUND"
+        }
+      }
+    }
+  ]
+}

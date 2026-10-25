@@ -13,10 +13,11 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `e2e-rg-kyc.patch` | the responsible-gambling and KYC scenarios the original's suite lacks (FR-030); see `e2e-rg-kyc.md` |
 | `e2e-merchant.patch` | unskips `TestScenario12_OnboardingGate3_FullChain`; corrects scenario 12's and 13's routing-rules calls to the route as served (spec 004 research R6); registers scenarios 12 to 14's DreamzPay terminal as a gateway integration carrying its credentials, as the original has needed since `2add2353`; clears a new casino player's `VERIFY_EMAIL` in scenario 14; and corrects two stale assertions (`memberId`, the wallet's minor units). See `tests/port/README.md` |
 | `merchant-driver/` | drives the original's `merchant-service` cashier for the behaviours the suite never reaches (spec 004); see *Recording the cashier directly* |
+| `ingest-driver/` | drives the original's cashier edge, the routes spec 006's `ingest` takes over, for what the suite never sends; see *Recording the cashier edge* |
 | `gateway-driver/` | drives the original's `psp-gateway` against `psp-stub`, with a receiver standing in for merchant-service and casino-service (spec 005); see *Recording the gateway directly* |
 | `recorder/` | the transport `record_test.go` installs |
 | `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies |
-| `preflight/` | refuses to start while any outside system the original calls has no stub answering: psp-stub's nine ports, the game provider and, given `-receiver`, the gateway driver's receiver |
+| `preflight/` | refuses to start while any outside system the original calls has no stub answering: psp-stub's nine ports, the game provider and, given `-receiver`, the gateway driver's receiver; given `-cashier`, also that the original's cashier route answers |
 
 ## Steps
 
@@ -43,7 +44,7 @@ done
 cd ../../../ankka-casino/tests
 go run ./original/merge -run1 /tmp/recording-1 -run2 /tmp/recording-2 \
   -results1 /tmp/recording-1.json -results2 /tmp/recording-2.json -out port
-cd .. && just brands recordings check
+cd .. && just modules recordings check
 ```
 
 For the casino scenarios the original's KinD stack is the one that runs (`just dev-kind`,
@@ -124,6 +125,39 @@ for run in 1 2; do
       -args -merchant-url http://localhost:8085 -substrate-url http://localhost:8080 > /tmp/merchant-$run.json
 done
 go run ./original/merge -run1 /tmp/merchant-1 -run2 /tmp/merchant-2 -results1 /tmp/merchant-1.json -results2 /tmp/merchant-2.json -out port
+```
+
+## Recording the cashier edge
+
+`ingest-driver/` drives merchant-service's public cashier routes as a sub-brand's server would (spec 006;
+`specs/006-ingest/contracts/recording.md`): one scenario per scenario and outline example of
+`features/payments/cashier.feature` the original can show, named as the feature names it with the example
+in brackets, and the header-case edge case. `NotDriven` says why the rest are not; `go test` checks every
+name against the feature.
+
+- It reuses merchant-driver's `Session` with `Service: "ingest"`, so recordings land under `ingest/`. Each
+  scenario seeds its own sub-brand (and a second one where it needs another sub-brand's key) through the
+  seed routes; the raw key is captured from the seed's answer.
+- The key header is recorded as sent: `{merchantKey}` for the seeded key, `{otherMerchantKey}` for the
+  second sub-brand's, empty when none was sent (`NoKey`), the literal made-up key otherwise. Extra headers
+  go on the wire spelt as given, so `MerchantKey` is sent as `MerchantKey`.
+- What the original has no route for is written to substrate as merchant-service writes it: a key
+  disabled (the `eitheror-merchant-keys` twin with `active: false`), a tree with no deployed version or one
+  that matches nothing (`eitheror-merchant-routing`). The key's hash, id and creation time are templated.
+
+On 2026-10-24 the original's KinD cluster was gone and the disk had no room to rebuild it, so the run used
+the original natively: Postgres, Neo4j and NATS in Docker; substrate, merchant-service and psp-gateway from a
+worktree at the pinned commit (`tests/port/ingest/README.md` has every setting).
+
+```bash
+cd tests
+go run ./original/preflight -original <the original's checkout> -cashier http://localhost:8085
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/ingest-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -json ./original/ingest-driver/... -run TestCashier \
+      -args -merchant-url http://localhost:8085 -substrate-url http://localhost:8080 > /tmp/ingest-$run.json
+done
+go run ./original/merge -run1 /tmp/ingest-1 -run2 /tmp/ingest-2 -results1 /tmp/ingest-1.json -results2 /tmp/ingest-2.json -out port
 ```
 
 ## Recording the gateway directly

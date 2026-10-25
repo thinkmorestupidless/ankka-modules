@@ -44,6 +44,7 @@ type Config struct {
 	InternalSecret string // MERCHANT_SERVICE_INTERNAL_SECRET; never recorded
 	RecordTo       string // EITHEROR_RECORD_TO; empty runs without writing
 	Commit         string // EITHEROR_ORIGINAL_COMMIT
+	Service        string // the port the recordings are for, and their directory; "merchant" when empty
 	Client         *http.Client
 	Now            func() time.Time
 }
@@ -82,13 +83,16 @@ type Session struct {
 }
 
 // Scenario runs body on a fresh brand id and writes one recording named exactly `name`.
-func Scenario(t *testing.T, cfg Config, name, requirement string, body func(s *Session)) {
+func Scenario(t testing.TB, cfg Config, name, requirement string, body func(s *Session)) {
 	t.Helper()
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{Timeout: 30 * time.Second}
 	}
 	if cfg.Now == nil {
 		cfg.Now = time.Now
+	}
+	if cfg.Service == "" {
+		cfg.Service = "merchant"
 	}
 	s := &Session{
 		t:   t,
@@ -100,7 +104,7 @@ func Scenario(t *testing.T, cfg Config, name, requirement string, body func(s *S
 			RecordedAt:  time.Now().UTC(),
 			Original:    map[string]string{"commit": cfg.Commit},
 			Runs:        1,
-			Service:     "merchant",
+			Service:     cfg.Service,
 		},
 	}
 	defer s.write()
@@ -135,6 +139,9 @@ func (s *Session) Grab(name, jsonPath, value string) {
 	last.Capture[name] = jsonPath
 	s.remember(name, value)
 }
+
+// Remember names a value this run made or read, so every later request carries `{name}` in its place.
+func (s *Session) Remember(name, value string) { s.remember(name, value) }
 
 func (s *Session) remember(name, value string) {
 	if _, ok := s.ids[name]; !ok {
@@ -192,6 +199,9 @@ const (
 	NoAuth Auth = iota
 	MerchantKey
 	Internal
+	// NoKey sends no merchantKey and records the header empty, so a replay knows none was sent
+	// rather than that the recorder dropped it (the Go suite's recordings keep no such header).
+	NoKey
 )
 
 // Merchant calls merchant-service.
@@ -238,9 +248,11 @@ func (s *Session) call(name, service, method, base, path string, body any, auth 
 		headers["merchantKey"] = "{merchantKey}" // the raw key is captured, so a replay uses its own
 	case Internal:
 		req.Header.Set("X-Internal-Secret", s.cfg.InternalSecret) // never recorded
+	case NoKey:
+		headers["merchantKey"] = ""
 	}
 	for k, v := range extra {
-		req.Header.Set(k, v)
+		req.Header[k] = []string{v} // spelt as given, not canonicalised: a scenario may name the header's case
 		headers[k] = s.template(v)
 	}
 	resp, err := s.cfg.Client.Do(req)
@@ -288,7 +300,7 @@ func (s *Session) write() {
 	if s.cfg.RecordTo == "" {
 		return
 	}
-	path := filepath.Join(s.cfg.RecordTo, "merchant", FileName(s.rec.Scenario)+".json")
+	path := filepath.Join(s.cfg.RecordTo, s.rec.Service, FileName(s.rec.Scenario)+".json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		s.t.Errorf("recording %s: %v", s.rec.Scenario, err)
 		return

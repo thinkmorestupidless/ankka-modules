@@ -1,0 +1,11 @@
+{
+  "name": "ingest",
+  "service": {
+    "image": "ingest:latest",
+    "runtime": "0.13.0",
+    "env": {
+      "ANKKA_HTTP_PORT": "9002",
+      "ANSWER_BOUND": "10s"
+    }
+  }
+}

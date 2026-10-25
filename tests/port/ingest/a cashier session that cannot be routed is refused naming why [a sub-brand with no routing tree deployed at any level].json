@@ -1,0 +1,113 @@
+{
+  "scenario": "a cashier session that cannot be routed is refused naming why [a sub-brand with no routing tree deployed at any level]",
+  "requirement": "006/FR-006",
+  "recorded_at": "2026-10-24T18:00:51.187059Z",
+  "original": {
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "ingest",
+  "steps": [
+    {
+      "name": "setup: seed hierarchy",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/hierarchy/{brand}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "companyId": "40e6fda9-b542-3190-b948-8c7c97afd9c2",
+          "holdingId": "f9cab090-92d3-38df-ab3a-1910589b52a2",
+          "subBrandId": "ce84ff61-f892-3033-b775-9c35f114c2ef"
+        }
+      },
+      "capture": {
+        "subBrandId": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: seed merchant: key, tree to SIM, SIM credential",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/seed/merchants/{brand}",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "merchantId": "ce84ff61-f892-3033-b775-9c35f114c2ef",
+          "merchantKey": "eo_live_ecb21776afdf4507b41a8d05"
+        }
+      },
+      "capture": {
+        "merchantKey": "$.merchantKey"
+      },
+      "vary": {
+        "$.merchantId": "differs between two runs of the original",
+        "$.merchantKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the sub-brand's tree has no deployed version",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-merchant-routing/{subBrandId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "routingTree": "{\"draft\":null,\"liveVersion\":null,\"versions\":[]}",
+          "sub_brand_id": "{subBrandId}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-merchant-routing/ce84ff61-f892-3033-b775-9c35f114c2ef"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create cashier session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json",
+          "merchantKey": "{merchantKey}"
+        },
+        "body": {
+          "amountCents": 5000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerEmail": "player@example.com",
+          "customerId": "{brand}:{player}",
+          "redirectUrl": "https://merchant.example/return",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "NO_ROUTING_TREE"
+        }
+      }
+    }
+  ]
+}

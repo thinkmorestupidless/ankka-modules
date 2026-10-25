@@ -2,11 +2,13 @@
 // has no stub answering (spec 001 FR-029): every payment adapter under the original's
 // services/psp-gateway/internal/ (each on its psp-stub port), and the game provider; and, for a
 // recording of the gateway (spec 005), the gateway driver's receiver, which stands in for
-// merchant-service and casino-service. Exit 0 when all answer, 1 naming each that does not, 2 when
+// merchant-service and casino-service; and, for a recording of the cashier edge (spec 006), the
+// original's cashier route itself, so a run does not record a merchant-service that is not up. Exit 0 when all answer, 1 naming each that does not, 2 when
 // the original cannot be read.
 //
 //	go run ./original/preflight -original ../../eitheror-platform
 //	go run ./original/preflight -original ../../eitheror-platform -receiver http://localhost:18110/healthz
+//	go run ./original/preflight -original ../../eitheror-platform -cashier http://localhost:8085
 package main
 
 import (
@@ -44,6 +46,25 @@ var Stubs = map[string]string{
 
 // Receiver is the name the gateway driver's receiver is reported under.
 const Receiver = "gateway-driver receiver"
+
+// Cashier is the name the original's cashier route is reported under.
+const Cashier = "merchant-service cashier"
+
+// CashierAnswers says why the cashier route at base does not answer, or "" when it does: the browser
+// preflight the original serves on `/v1/cashier/sessions` (CashierRoutes), which needs no key and
+// makes no session.
+func CashierAnswers(base string, client *http.Client) string {
+	req, _ := http.NewRequest(http.MethodOptions, strings.TrimSuffix(base, "/")+"/v1/cashier/sessions", nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Sprintf("%s: nothing answers at %s (%v)", Cashier, base, err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Sprintf("%s: %s answered %d", Cashier, base, resp.StatusCode)
+	}
+	return ""
+}
 
 // Providers lists what the original calls: its adapters, less the dropped ones, plus the game provider.
 func Providers(original string) ([]string, error) {
@@ -111,6 +132,7 @@ func main() {
 	original := flag.String("original", "../../eitheror-platform", "the original's checkout")
 	receiver := flag.String("receiver", os.Getenv("GATEWAY_RECEIVER_HEALTH"),
 		"the gateway driver's receiver's health address, checked when given (a recording of the gateway)")
+	cashier := flag.String("cashier", "", "the original merchant-service, whose cashier route is checked when given (a recording of the cashier edge)")
 	flag.Parse()
 	providers, err := Providers(*original)
 	if err != nil {
@@ -118,7 +140,14 @@ func main() {
 		os.Exit(2)
 	}
 	systems, url := Systems(providers, *receiver)
-	missing := Missing(systems, url, &http.Client{Timeout: 3 * time.Second})
+	client := &http.Client{Timeout: 3 * time.Second}
+	missing := Missing(systems, url, client)
+	if *cashier != "" {
+		systems = append(systems, Cashier)
+		if why := CashierAnswers(*cashier, client); why != "" {
+			missing = append(missing, why)
+		}
+	}
 	for _, m := range missing {
 		fmt.Println("refused", m)
 	}

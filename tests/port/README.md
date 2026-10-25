@@ -46,6 +46,21 @@ with another key, since the recorder keeps no signature header.
 - The Playwright launch and catalogue reads: the recorder is the Go suite's transport, and the
   Playwright suite is spec 001 FR-033's check against a rebuilt brand, not a recording.
 
+## ingest (spec 006, T005)
+
+Three of merchant's recordings, copied unchanged: `TestScenario12_OnboardingGate3_FullChain`,
+`TestScenario13_DreamzPay_FullChain` and `TestScenario14_CasinoDeposit_PlayerToWallet`, whose public cashier
+steps are `ingest`'s. The key the replay sends is the one the key-generation step answered. `ingest/README.md`
+says which steps are the service's and which are `FakeMerchant`'s.
+
+## ingest (spec 006, T026)
+
+Recorded 2026-10-24 from the original at `659c2d6b`, twice, on fresh ids: 25 recordings by
+`tests/original/ingest-driver/`, one per scenario of `features/payments/cashier.feature` the original can
+show. Run natively (substrate, merchant-service and psp-gateway from the `659c2d6b` worktree), not on the
+KinD stack; `ingest/README.md` says how, what the original answered and which answers are marked
+divergences.
+
 ## merchant (spec 004, T019)
 
 Recorded 2026-10-18 from the original at `659c2d6b`, run on its own KinD stack, twice, on fresh ids:

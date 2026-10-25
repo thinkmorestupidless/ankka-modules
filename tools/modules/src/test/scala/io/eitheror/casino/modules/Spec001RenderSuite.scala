@@ -61,6 +61,18 @@ class Spec001RenderSuite extends munit.FunSuite:
     assert(!env.contains("CASINO_BRAND"))
   }
 
+  test("the shared payments' ingest renders its settings and trusts the operators' realm, as merchant and psp-gateway do (spec 006 R13)") {
+    val shared = Render.plan(Manifest.load(Fixtures.root.resolve("shared/payments/manifest.json")).fold(ps => throw AssertionError(ps.mkString("; ")), identity), None)
+    def env(name: String) = shared.descriptors.find(_.name == name).get.service.env.flatMap(e => e.value.map(e.name -> _)).toMap
+    val ingest = env("ingest")
+    assertEquals(Seq("MERCHANT_SERVICE", "ANSWER_BOUND", "RATE_LIMIT", "BODY_BOUND", "REQUEST_ID_BOUND", "REQUEST_ID_RETENTION", "RECORD_RETENTION").map(ingest.get),
+      Seq("merchant", "10s", "600", "65536", "128", "24h", "90d").map(Some(_)))
+    val auth = ingest.filter(_._1.startsWith("ANKKA_AUTH_"))
+    assertEquals(auth("ANKKA_AUTH_ISSUERS"), "staff")
+    assertEquals(auth, env("merchant").filter(_._1.startsWith("ANKKA_AUTH_")))
+    assertEquals(auth, env("psp-gateway").filter(_._1.startsWith("ANKKA_AUTH_")))
+  }
+
   test("a secret reference renders as a secretKeyRef, never a value") {
     // goldvibe's manifest names no project secret since game-provider keeps its provider
     // configuration in its own secret store (spec 003 research R4), so the test names one.

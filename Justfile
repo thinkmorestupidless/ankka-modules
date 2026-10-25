@@ -99,6 +99,25 @@ psp-gateway-run:
       DIGITARIUM_SANDBOX_URL=http://localhost:18109 DIGITARIUM_PRODUCTION_URL=http://localhost:18109 \
       sbt -Dankka.local-services.merchant=http://localhost:9000 run
 
+# ingest's suites (spec 006; Docker for the integration kit). The contract is published first.
+ingest-test:
+    sbt contract/publishLocal
+    cd services/ingest && sbt test
+
+# ingest's integration, parity and feature suites only (Docker).
+ingest-it:
+    cd services/ingest && sbt "testOnly io.eitheror.casino.ingest.it.* io.eitheror.casino.ingest.port.* io.eitheror.casino.ingest.features.*"
+
+# ingest, locally on 9002 beside merchant on 9000 (`just merchant-run` first; `sbt schema && docker compose up -d` in services/ingest).
+# The operator routes trust dev-kind's eitheror realm, as merchant's §7 run does (its JWKS through a
+# port-forward on 18180); the cashier routes need no Keycloak.
+ingest-run:
+    cd services/ingest && ANKKA_HTTP_PORT=9002 ANKKA_DB_PORT=5434 ANSWER_BOUND=10s \
+      ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs \
+      sbt -Dankka.local-services.merchant=http://127.0.0.1:9000 run
+
 # The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
 psp-stub gateway="http://localhost:9001":
     cd tests && go build -o stubs/bin/ ./stubs/psp-stub

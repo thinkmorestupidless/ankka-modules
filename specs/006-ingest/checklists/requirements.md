@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -47,3 +47,7 @@
   kept of the customer fields against 001 FR-018, and the exact commands `ingest` forwards.
 - The mandatory `after_specify` hook (`/speckit-bdd-features`) has not been run; the acceptance
   scenarios stay in the spec until the batch's living-features pass.
+- 2026-10-22 (plan analysis): the two markers above are resolved (FR-009 clarified 2026-10-21; the
+  rate is 600 a minute in *Assumptions*); the features were written and `just features` passes;
+  spec 004 was reconciled 2026-10-12. *Recordings* corrected: scenario 12 is recorded, the scenario
+  10 pair stays skipped and the driver holds their behaviours.

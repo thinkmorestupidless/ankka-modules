@@ -52,7 +52,16 @@
     {
       "name": "ingest",
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/ingest:0.1.0",
-      "expose": true
+      "expose": true,
+      "env": {
+        "MERCHANT_SERVICE": "merchant",
+        "ANSWER_BOUND": "10s",
+        "RATE_LIMIT": "600",
+        "BODY_BOUND": "65536",
+        "REQUEST_ID_BOUND": "128",
+        "REQUEST_ID_RETENTION": "24h",
+        "RECORD_RETENTION": "90d"
+      }
     }
   ],
   "topics": [

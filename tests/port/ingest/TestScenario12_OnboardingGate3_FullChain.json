@@ -1,0 +1,667 @@
+{
+  "scenario": "TestScenario12_OnboardingGate3_FullChain",
+  "requirement": "004/SC-001",
+  "recorded_at": "2026-10-18T06:31:58.328925Z",
+  "original": {
+    "brand": "",
+    "commit": "659c2d6b"
+  },
+  "runs": 2,
+  "service": "merchant",
+  "steps": [
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=payments-backoffice&grant_type=password&password=<redacted>&username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "<redacted>",
+          "scope": "profile email",
+          "session_state": "829b588e-a447-4acb-a2b7-7f1dfc3987c1",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/operators",
+      "request": {
+        "method": "POST",
+        "path": "/v1/operators",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "e2e-2366c3ae@e2e-scenario12.test",
+          "firstName": "E2E",
+          "lastName": "Scenario12",
+          "role": "resource_admin",
+          "scopeId": "*",
+          "scopeLevel": "platform"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "email": "e2e-2366c3ae@e2e-scenario12.test",
+          "operatorId": "131dca2d-0c7f-440d-a072-e6c31d1f1128",
+          "role": "resource_admin",
+          "scopeId": "*",
+          "scopeLevel": "platform"
+        }
+      },
+      "capture": {
+        "c0": "$.operatorId"
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.operatorId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli&grant_type=password&password=<redacted>&username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "<redacted>",
+          "scope": "profile email",
+          "session_state": "eed928fa-e904-4238-b243-3a933aa78c56",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/eitheror/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/eitheror/users?email=e2e-2366c3ae%40e2e-scenario12.test",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "attributes": {
+              "eitheror_scope_id": [
+                "*"
+              ],
+              "eitheror_scope_level": [
+                "platform"
+              ]
+            },
+            "createdTimestamp": 1792305118360,
+            "disableableCredentialTypes": [],
+            "email": "e2e-2366c3ae@e2e-scenario12.test",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "131dca2d-0c7f-440d-a072-e6c31d1f1128",
+            "lastName": "Scenario12",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-2366c3ae@e2e-scenario12.test"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/eitheror/users/131dca2d-0c7f-440d-a072-e6c31d1f1128",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/eitheror/users/{c0}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "enabled": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "PUT /admin/realms/eitheror/users/131dca2d-0c7f-440d-a072-e6c31d1f1128/reset-password",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/eitheror/users/{c0}/reset-password",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "temporary": false,
+          "type": "password",
+          "value": "E2e-2366c3ae!Pwd"
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=payments-backoffice&grant_type=password&password=<redacted>&username=e2e-2366c3ae%40e2e-scenario12.test"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "<redacted>",
+          "scope": "profile email",
+          "session_state": "e46d4c70-ad5b-4988-819a-35bdb7105a69",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/holdings",
+      "request": {
+        "method": "POST",
+        "path": "/v1/holdings",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "E2E Holding 2366c3ae"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "createdAt": "2026-10-18T06:31:58.483612136Z",
+          "holdingId": "h_80ba3d93",
+          "name": "E2E Holding 2366c3ae",
+          "status": "Active"
+        }
+      },
+      "capture": {
+        "c1": "$.holdingId"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.name": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/companies",
+      "request": {
+        "method": "POST",
+        "path": "/v1/companies",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "holdingId": "{c1}",
+          "name": "E2E Company 2366c3ae"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "companyId": "c_dae77585",
+          "createdAt": "2026-10-18T06:31:58.501797432Z",
+          "holdingId": "h_80ba3d93",
+          "name": "E2E Company 2366c3ae",
+          "status": "Active"
+        }
+      },
+      "capture": {
+        "c2": "$.companyId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.createdAt": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.name": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/sub-brands",
+      "request": {
+        "method": "POST",
+        "path": "/v1/sub-brands",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "companyId": "{c2}",
+          "name": "E2E SubBrand 2366c3ae",
+          "type": "Payments"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "companyId": "c_dae77585",
+          "createdAt": "2026-10-18T06:31:58.518266150Z",
+          "holdingId": "h_80ba3d93",
+          "name": "E2E SubBrand 2366c3ae",
+          "status": "Active",
+          "subBrandId": "sb_d2662201",
+          "type": "Payments",
+          "withdrawalTurnoverDefinition": "gross_wagered",
+          "withdrawalTurnoverMultiplier": 1
+        }
+      },
+      "capture": {
+        "c3": "$.subBrandId"
+      },
+      "vary": {
+        "$.companyId": "differs between two runs of the original",
+        "$.createdAt": "differs between two runs of the original",
+        "$.holdingId": "differs between two runs of the original",
+        "$.name": "differs between two runs of the original",
+        "$.subBrandId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/merchants/sb_d2662201/gateways/DREAMZPAY/integrations",
+      "request": {
+        "method": "POST",
+        "path": "/v1/merchants/{c3}/gateways/DREAMZPAY/integrations",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "e2e-scenario12",
+          "properties": {
+            "memberId": "e2e-test-member",
+            "secureKey": "e2e-scenario12-secure-key",
+            "totype": "e2e-test-totype"
+          },
+          "regions": [],
+          "scheme": "DREAMZPAY"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "integrationId": "sb_d2662201_DREAMZPAY_DREAMZPAY_e2e-scenario12"
+        }
+      },
+      "vary": {
+        "$.integrationId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PATCH /v1/merchants/sb_d2662201/gateways/integrations/sb_d2662201_DREAMZPAY_DREAMZPAY_e2e-scenario12/activate",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/merchants/{c3}/gateways/integrations/{c3}_DREAMZPAY_DREAMZPAY_e2e-scenario12/activate",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "POST /v1/merchants/sb_d2662201/keys",
+      "request": {
+        "method": "POST",
+        "path": "/v1/merchants/{c3}/keys",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "E2E Scenario12 Key"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "createdAt": "2026-10-18T06:31:58.574139704Z",
+          "keyId": "key_4142b19a",
+          "name": "E2E Scenario12 Key",
+          "rawKey": "eo_live_79dbbde5b6bd4970a0373f7a"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.keyId": "differs between two runs of the original",
+        "$.rawKey": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/eitheror-merchants-index/8918a607-0e7e-3399-97c9-49110dff703a",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-merchants-index/8918a607-0e7e-3399-97c9-49110dff703a",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|7578c15e-ddb6-331e-92e7-fb94884e21ef|2867b301-c32d-3879-b766-10321f0302a8|3c0134dc-ef1c-3656-9aca-7cfd423b0604|1ea1d473-9531-3cbf-8091-74c35fbc6429|24f79252-4faf-3bee-bcb8-c9973b6c5656|54106222-ad80-3f93-a228-83f8816f8abd|3a2de176-5413-3389-82ba-c92a4efc0ce9|769e63bb-8955-37f1-9b16-1f7c7fa31c77|543eddb2-56cb-3f15-b76f-77b95479f99a|c3d49d5d-79e4-3cfc-b8b7-4f93571c1bf9|3d2b1da5-0f4a-3b78-b8cf-746d1e2c3f2d|8241518a-2dea-38b5-a7cf-6e3b99a8d505|2d24eebc-a5c0-3b3e-965e-3d034de16fd6|11b7a74c-8913-39ef-800c-6cf001f405f3|a26c1a11-8cff-3f7a-ae1c-0941d12a4d81|f0117b5b-b440-3763-8a5b-7326916a765b|fa32726a-73f4-3e6e-a483-c48d155dc2ec|558f6534-a831-342b-be15-5d57ff227c36|e55ff5e3-bb27-3cb3-9703-23aba1bf0f58|87fa7f75-fdde-32cb-8632-ea43f4c60cf2|f2220a54-1bfa-3057-82b6-cf11616777b3|62b243a7-a152-3dbf-8357-bdc31925a97d|bc7b3cea-9ee3-3390-9592-292582c5984d|746d51bc-6929-3fb7-9722-dcbc1f1dbb9d|528b4424-ade9-3247-91e6-40e6f34fbec9|922f0787-8e45-3e73-ba5f-d0de6ae8e51d|8fb2618f-613b-3ca5-ae40-031e524a5266|22885680-f96f-39d0-a1d5-6ca4d368c13f|7b81fc78-70ef-3395-b6ba-eb9cceea4644|e9b7b855-d17c-3c12-8d97-3f7c83245b08|0652064f-8d23-3109-a3ac-0c5161740638|417784df-7d17-3073-809f-3599c3e095b4|df6e59a5-33ab-3e62-841c-df24a3bfad22|e9bcf5a5-7684-330c-8328-dc41345314ee|54ff7fc1-8e1a-38ca-8349-773315f6172e|e2c9e213-3f99-3271-9c11-0881343eaed2|168e1919-ec97-32b7-aa30-dbe862a83f0c|52127efb-1b90-3df9-9608-eee69281328f|2a62f7f1-4770-3811-b44a-00c81d032d34|970c3487-790a-32b1-a3c1-fd845fbce54c|9d45a721-93b0-3628-9e54-c72648648340|0574f4eb-21a9-371e-8413-f3ef229ce696|2b85ccd3-305d-30da-92f2-c31531c01d16|a299918e-c39e-30bf-a9b3-6c00bee273e9|32dfab5d-4eca-382a-9b5f-72f032344a29|829f76bc-3d6a-3d4f-8eb7-c051acc35109|8580b43b-4699-3b0c-bb92-cc7e3948531a|fa2b15aa-437a-3dc0-8f66-f8e07b420adc|30fc6aca-2fba-39ac-a7c2-84d11d377c56|9916a96d-d06d-370f-805b-288bbe2070ce|5e2e3f03-1a4a-3705-8676-bd2ec66c9562|69e07231-d4ec-37da-9229-2d417622c3ab|4432a824-4ad1-348c-9350-b78bddba9326|ead149b6-1a76-34e3-828d-501662db1a81|fdab930c-cf98-395d-bc5a-ba0aa7aa2b39|e67fc313-24ca-3302-9214-3d5890662e4a|6a1db66e-02e2-3395-90cc-51b1c1d8b45a|b36b994d-d6c4-334b-b279-1ed47e892a5c|ed6f263d-6ac2-3e55-870f-5e5e450c94ae|560e7d25-9dbe-3bff-ab06-11f534a4ae6e|18d6f41d-4d62-3720-80cf-8dad6b444cf0|b22436e1-65f0-3aa1-8183-e4ac4da49472|825c0414-3822-3554-9b3f-2ebb151b6f81|755bd7c9-858a-3f05-896e-62b6b3fc1a9f|c6a632de-ffb6-325f-b3ca-bfa5a227ae64|abf8aec1-1546-3ed7-8b7f-395a79a1ed52|5797dd8b-0e66-39d7-a06c-c827551abbbe|3292c3ca-8c09-3e3d-a8c4-8524d759ae8f|021c4157-96a7-3518-b557-f8d6ea3b1d23|5453af21-6f58-35b8-a847-58ccfe6bd46f|dc796942-4483-3249-b649-8beb23de163d|7fbdb701-08df-30ec-9638-b2d219adf85c|e04b6b30-3648-3d0c-b7de-8a3c453feff4|28779d65-975a-318e-86c4-eb0a60c13344|sb_4ca6a085|sb_1f752edf|sb_2e0c555e|sb_dee625d8|sb_062a662c|sb_c417c2ae|sb_9f2b4784|sb_27535387|sb_7a099148|sb_d2662201|"
+        }
+      },
+      "vary": {
+        "$.ids": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/merchants/sb_d2662201/keys",
+      "request": {
+        "method": "GET",
+        "path": "/v1/merchants/{c3}/keys",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "keys": [
+            {
+              "active": true,
+              "createdAt": "2026-10-18T06:31:58.574139704Z",
+              "keyId": "key_4142b19a",
+              "name": "E2E Scenario12 Key"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.keys[0].createdAt": "differs between two runs of the original",
+        "$.keys[0].keyId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/payments/routing-rules",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/routing-rules",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "entityId": "{c3}",
+          "level": "subBrand",
+          "tree": {
+            "nodes": {
+              "root": {
+                "branches": null,
+                "nodeId": "root",
+                "terminals": [
+                  "{c3}_DREAMZPAY_DREAMZPAY_e2e-scenario12"
+                ]
+              }
+            },
+            "rootNodeId": "root"
+          }
+        }
+      },
+      "response": {
+        "status": 202,
+        "body": "The request has been accepted for processing, but the processing has not been completed."
+      }
+    },
+    {
+      "name": "POST /v1/payments/routing-rules/deploy",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/routing-rules/deploy?level=subBrand&entityId={c3}",
+        "service": "merchant"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "deployedAt": "2026-10-18T06:31:58.601052442Z",
+          "version": 1
+        }
+      },
+      "vary": {
+        "$.deployedAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/cashier/sessions",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amountCents": 1000,
+          "country": "GB",
+          "currency": "EUR",
+          "customerId": "e2e-brand:e2e-player-001",
+          "redirectUrl": "https://e2e-scenario12.test/return",
+          "transactionId": "e46fcf30-53e0-4a24-9f3e-73dd585d33ac"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "available_terminals": [
+            {
+              "gateway": "DREAMZPAY",
+              "name": "e2e-scenario12",
+              "scheme": "DREAMZPAY",
+              "terminalEntityId": "sb_d2662201_DREAMZPAY_DREAMZPAY_e2e-scenario12"
+            }
+          ],
+          "redirectUrl": "https://e2e-scenario12.test/return",
+          "session_token": "dc605017-8a54-48fa-bb63-510f998adcd7",
+          "transactionId": "e46fcf30-53e0-4a24-9f3e-73dd585d33ac"
+        }
+      },
+      "capture": {
+        "c4": "$.session_token"
+      },
+      "vary": {
+        "$.available_terminals[0].terminalEntityId": "differs between two runs of the original",
+        "$.session_token": "differs between two runs of the original",
+        "$.transactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/cashier/sessions/dc605017-8a54-48fa-bb63-510f998adcd7/submit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/cashier/sessions/{c4}/submit",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "selectedTerminalEntityId": "{c3}_DREAMZPAY_DREAMZPAY_e2e-scenario12"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "paymentId": "3d34282a-bb49-4286-89ff-b4278c70513b",
+          "status": "AWAITING_REDIRECT"
+        }
+      },
+      "capture": {
+        "c5": "$.paymentId"
+      },
+      "vary": {
+        "$.paymentId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/payments/3d34282a-bb49-4286-89ff-b4278c70513b/capture",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{c5}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "b8fc7e9e-1ebb-478c-8c1a-0712dd3d1703"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": "UNAUTHORIZED"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/payments/3d34282a-bb49-4286-89ff-b4278c70513b/fail",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{c5}/fail",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "failureCode": "forged",
+          "failureReason": "forged"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": "UNAUTHORIZED"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/payments/3d34282a-bb49-4286-89ff-b4278c70513b/capture",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/{c5}/capture",
+        "service": "merchant",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "outcome": "success",
+          "psp_transaction_id": "b8fc7e9e-1ebb-478c-8c1a-0712dd3d1703"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "GET /internal/twins/cashier-payment/3d34282a-bb49-4286-89ff-b4278c70513b",
+      "request": {
+        "method": "GET",
+        "path": "/internal/twins/cashier-payment%2F{c5}",
+        "service": "unsorted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "catalogue_version": "0.1",
+          "data": {
+            "concept_ids": [
+              "payment.captured"
+            ],
+            "properties": {
+              "amount": "10.00",
+              "amount_cents": "1000",
+              "captured_at": "2026-10-18T06:31:58.664553149Z",
+              "created_at": "2026-10-18T06:31:58.651277300Z",
+              "currency": "EUR",
+              "customer_id": "dev",
+              "customer_ref": "e2e-brand:e2e-player-001",
+              "expires_at": "2026-10-18T06:36:58.651277300Z",
+              "merchant_id": "sb_d2662201",
+              "psp": "DREAMZPAY",
+              "psp_redirect_url": "http://psp-gateway:8087/v1/psp/checkout/dreamzpay/a827ccdf-510d-4702-8c0e-5a8bce4001f3",
+              "psp_transaction_id": "a827ccdf-510d-4702-8c0e-5a8bce4001f3",
+              "scheme": "DREAMZPAY",
+              "status": "captured",
+              "terminal_id": "sb_d2662201_DREAMZPAY_DREAMZPAY_e2e-scenario12"
+            },
+            "twin_id": "cashier-payment/3d34282a-bb49-4286-89ff-b4278c70513b"
+          },
+          "ok": true
+        }
+      },
+      "vary": {
+        "$.data.properties.captured_at": "differs between two runs of the original",
+        "$.data.properties.created_at": "differs between two runs of the original",
+        "$.data.properties.expires_at": "differs between two runs of the original",
+        "$.data.properties.merchant_id": "differs between two runs of the original",
+        "$.data.properties.psp_redirect_url": "differs between two runs of the original",
+        "$.data.properties.psp_transaction_id": "differs between two runs of the original",
+        "$.data.properties.terminal_id": "differs between two runs of the original",
+        "$.data.twin_id": "differs between two runs of the original"
+      }
+    }
+  ]
+}
