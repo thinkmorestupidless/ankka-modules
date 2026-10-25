@@ -34,8 +34,8 @@ sealed trait MessageEvent
 object MessageEvent:
   final case class Created(playerId: String, category: String, origin: String, subject: Personal[String], body: Personal[String],
       createdBy: Option[String], at: Instant) extends MessageEvent
-  final case class Read(at: Instant)    extends MessageEvent
-  final case class Deleted(at: Instant) extends MessageEvent
+  final case class Read(at: Instant, playerId: String = "")    extends MessageEvent
+  final case class Deleted(at: Instant, playerId: String = "") extends MessageEvent
   final case class Delivered(at: Instant) extends MessageEvent
   final case class Erased(at: Instant)  extends MessageEvent
 
@@ -69,11 +69,11 @@ final class MessageEntity(@scala.annotation.unused context: EventSourcedEntityCo
 
   def read(c: MessageAt): Effect[MessageAnswer] =
     if !currentState.exists || currentState.readAt.nonEmpty then unchanged
-    else effects.persist(Read(c.at)).thenReply(MessageAnswer(true, _))
+    else effects.persist(Read(c.at, currentState.playerId)).thenReply(MessageAnswer(true, _))
 
   def delete(c: MessageAt): Effect[MessageAnswer] =
     if !currentState.exists || currentState.deletedByPlayerAt.nonEmpty then unchanged
-    else effects.persist(Deleted(c.at)).thenReply(MessageAnswer(true, _))
+    else effects.persist(Deleted(c.at, currentState.playerId)).thenReply(MessageAnswer(true, _))
 
   def delivered(c: MessageAt): Effect[MessageAnswer] =
     if !currentState.exists || currentState.delivered then unchanged

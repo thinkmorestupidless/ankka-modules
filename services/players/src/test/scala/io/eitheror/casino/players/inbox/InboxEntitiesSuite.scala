@@ -44,8 +44,8 @@ class InboxEntitiesSuite extends munit.FunSuite:
     val kit = KeyValueEntityTestKit.of(NoteEntity, "n-1")
     kit.call(NoteEntity.write)(WriteNote("p-1", "called about limits", "op-1", at)): Unit
     assertEquals(kit.call(NoteEntity.write)(WriteNote("p-1", "other", "op-2", at)).replyValue.text.reveal, "called about limits")
-    assert(kit.call(NoteEntity.pin)(PinNote(true)).replyValue.pinned)
-    assert(!kit.call(NoteEntity.pin)(PinNote(false)).replyValue.pinned)
+    assert(kit.call(NoteEntity.pin)(PinNote(true, at)).replyValue.pinned)
+    assert(!kit.call(NoteEntity.pin)(PinNote(false, at)).replyValue.pinned)
     val text: Personal[String] = kit.currentState.text
     assertEquals(text.reveal, "called about limits")
     assertEquals(kit.call(NoteEntity.erase).replyValue.text.reveal, "")

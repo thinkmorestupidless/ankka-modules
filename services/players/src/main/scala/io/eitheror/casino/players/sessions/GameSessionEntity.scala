@@ -34,7 +34,9 @@ sealed trait GameSessionEvent
 object GameSessionEvent:
   final case class Opened(playerId: String, playerSessionId: String, gameId: String, currency: String, demo: Boolean, at: Instant)
       extends GameSessionEvent
-  final case class Ended(reason: String, at: Instant) extends GameSessionEvent
+  /** Carries the player, the game and the whole minutes, so a reader of the event alone has the fact. */
+  final case class Ended(reason: String, at: Instant, playerId: String = "", gameId: String = "", durationMinutes: Long = 0L)
+      extends GameSessionEvent
 
 final case class OpenGameSession(playerId: String, playerSessionId: String, gameId: String, currency: String, demo: Boolean, at: Instant)
 final case class EndGameSession(reason: String, at: Instant)
@@ -63,7 +65,10 @@ final class GameSessionEntity(@scala.annotation.unused context: EventSourcedEnti
   def end(c: EndGameSession): Effect[GameSessionEnd] =
     if !GameEndReason.all(c.reason) then effects.reply(GameSessionEnd(false, currentState, Some("invalid_reason")))
     else if !currentState.open then effects.reply(GameSessionEnd(false, currentState))
-    else effects.persist(Ended(c.reason, c.at)).thenReply(n => GameSessionEnd(true, n))
+    else
+      val s = currentState
+      val minutes = s.startedAt.fold(0L)(start => math.max(0L, Duration.between(start, c.at).toMinutes))
+      effects.persist(Ended(c.reason, c.at, s.playerId, s.gameId, minutes)).thenReply(n => GameSessionEnd(true, n))
 
   def get: ReadOnlyEffect[GameSessionState] = effects.reply(currentState)
 

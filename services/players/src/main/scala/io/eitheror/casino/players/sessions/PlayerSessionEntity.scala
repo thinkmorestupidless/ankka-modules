@@ -38,7 +38,8 @@ object PlayerSessionEvent:
   final case class Opened(playerId: String, realmSessionId: String, networkAddress: Personal[String], userAgent: Personal[String],
       deviceFingerprint: Personal[String], at: Instant) extends PlayerSessionEvent
   final case class GameSessionAdded(sessionId: String) extends PlayerSessionEvent
-  final case class Ended(reason: String, at: Instant)  extends PlayerSessionEvent
+  /** Carries the player, so a reader of the event alone can name them. */
+  final case class Ended(reason: String, at: Instant, playerId: String = "") extends PlayerSessionEvent
 
 final case class OpenPlayerSession(playerId: String, realmSessionId: String, networkAddress: String, userAgent: String,
     deviceFingerprint: String, at: Instant)
@@ -77,7 +78,7 @@ final class PlayerSessionEntity(@scala.annotation.unused context: EventSourcedEn
     val s = currentState
     if !SessionStatus.endings(c.reason) then effects.reply(SessionEnd(false, Vector.empty, Some("invalid_reason")))
     else if !s.open then effects.reply(SessionEnd(false, s.gameSessions))
-    else effects.persist(Ended(c.reason, c.at)).thenReply(n => SessionEnd(true, n.gameSessions))
+    else effects.persist(Ended(c.reason, c.at, s.playerId)).thenReply(n => SessionEnd(true, n.gameSessions))
 
   def get: ReadOnlyEffect[PlayerSessionState] = effects.reply(currentState)
 

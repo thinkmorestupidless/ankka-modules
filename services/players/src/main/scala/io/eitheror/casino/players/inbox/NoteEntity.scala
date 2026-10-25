@@ -13,12 +13,13 @@ final case class NoteState(
     text: Personal[String] = Personal(""),
     author: String = "",
     createdAt: Option[Instant] = None,
-    pinned: Boolean = false
+    pinned: Boolean = false,
+    updatedAt: Option[Instant] = None
 ):
   def exists: Boolean = playerId.nonEmpty
 
 final case class WriteNote(playerId: String, text: String, author: String, at: Instant)
-final case class PinNote(pinned: Boolean)
+final case class PinNote(pinned: Boolean, at: Instant)
 
 final class NoteEntity(@scala.annotation.unused context: KeyValueEntityContext) extends KeyValueEntity[NoteState]:
   def emptyState: NoteState = NoteState()
@@ -26,11 +27,11 @@ final class NoteEntity(@scala.annotation.unused context: KeyValueEntityContext) 
   /** Writes the note once under its id; a repeat answers the first. */
   def write(c: WriteNote): Effect[NoteState] =
     if currentState.exists then effects.reply(currentState)
-    else effects.updateState(NoteState(c.playerId, Personal(c.text), c.author, Some(c.at))).thenReplyState
+    else effects.updateState(NoteState(c.playerId, Personal(c.text), c.author, Some(c.at), updatedAt = Some(c.at))).thenReplyState
 
   def pin(c: PinNote): Effect[NoteState] =
     if !currentState.exists || currentState.pinned == c.pinned then effects.reply(currentState)
-    else effects.updateState(currentState.copy(pinned = c.pinned)).thenReplyState
+    else effects.updateState(currentState.copy(pinned = c.pinned, updatedAt = Some(c.at))).thenReplyState
 
   /** Erasure blanks the text and keeps who wrote it and when. */
   def erase: Effect[NoteState] =

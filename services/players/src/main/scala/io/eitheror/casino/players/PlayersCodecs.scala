@@ -37,6 +37,10 @@ object PlayersRuntime:
   @volatile var settings: Settings = Settings()
   @volatile var now: () => Instant = () => Instant.now()
 
+  /** The timers, for the components the runtime offers none (a consumer); the service sets it at start. */
+  @volatile var timers: () => com.thinkmorestupidless.ankka.sdk.TimerScheduler =
+    () => throw IllegalStateException("the timers are not wired: PlayersService sets PlayersRuntime.timers at start")
+
   def wire(s: Settings, clock: () => Instant = () => Instant.now()): Unit =
     settings = s
     now = clock

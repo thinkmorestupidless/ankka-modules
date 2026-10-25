@@ -280,13 +280,13 @@ parity task and can run the moment T005 and the original's stack are up.
       keep the original's columns (`eventType`, `actor`, `amountMinorUnits`, `currency`, `description`)
       and take bonuses from `casino.rewards` only. `reads/ViewsSuite.scala` covers the folds on the kit
       ahead of T027.
-- [ ] T017 [P] `p-test/facts/PublishersSuite.scala` (`ConsumerTestKit`): every row of
+- [X] T017 [P] `p-test/facts/PublishersSuite.scala` (`ConsumerTestKit`): every row of
       contracts/facts.md's three tables, event in → one fact out with the family, the payload's
       field names, `ce-subject` and the key the player id, `ce-id` the event id; the same event
       twice → the same `ce-id`; the events the table lists as not published → nothing; a `Personal`
       payload field carried as the marker, never a bare string; an `AuditRecord` per operator action
       with no `Personal` value and the field named for a date-of-birth correction, a note or a message
-- [ ] T018 [P] `p-test/facts/ConsumersSuite.scala` (`ConsumerTestKit`): `rg_limit_applied` for
+- [X] T018 [P] `p-test/facts/ConsumersSuite.scala` (`ConsumerTestKit`): `rg_limit_applied` for
       `SESSION_MINUTES` → `PlayerEntity.SetSessionLimit(minutes)` and, for each open game session
       the entity answers, a `SessionLimits` timer rescheduled by name (a session over the new limit
       ends at once); any other `rg_limit_applied` kind → nothing; `player_kyc_verified` →
@@ -294,11 +294,22 @@ parity task and can run the moment T005 and the original's stack are up.
       `WithdrawalOpened`, settled or failed → `WithdrawalSettled`; `push_delivered` →
       `MessageEntity.Delivered`; `bonus_code_entered` → `ClearPendingBonusCode`; a fact the codec
       cannot read is logged and skipped
-- [ ] T019 Implement `p/facts/PlayersPublisher.scala`, `SessionsPublisher.scala`,
+- [X] T019 Implement `p/facts/PlayersPublisher.scala`, `SessionsPublisher.scala`,
       `AuditPublisher.scala` (over the contract's `AuditConsumer` base as ingest's `AuditFacts`
       does), `RgLimitsConsumer.scala`, `KycFactsConsumer.scala`, `WithdrawalsConsumer.scala`,
       `PushDeliveredConsumer.scala`, `RewardsConsumer.scala` (topic sources `StartFrom.Latest`; `Consumer.Companion` and
       `produceTo` as `services/wallet/.../facts/` has them); T017 and T018 green
+      *Done 2026-10-25.* A consumer reads one source and writes one topic, so the publishers are nine,
+      in `facts/Publishers.scala` over the pure `facts/Facts.scala`: `casino.players` from the player
+      (`PlayersPublisher`), the messages (`MessagesPublisher`) and the player sessions
+      (`LoginsPublisher`: `player_logged_in` comes from the session's `Opened`, which has the session id
+      `SignedIn` lacks); `casino.sessions` from each session entity; `platform.audit` from the player,
+      the messages, the notes and the fraud cases. The audits a route or workflow makes (force-end,
+      reset-password, export, erasure, config) belong to their stories. The session and message `Ended`,
+      `Read` and `Deleted` events now carry the player (and the game and minutes) so the fact needs no
+      read. The consumers are in `facts/Consumers.scala`; `sessions/SessionLimits.scala` is the timed
+      action the limit consumer reschedules, reached through `PlayersRuntime.timers`. `push_delivered`'s
+      correlation id is taken as the message id (spec 014 to confirm).
 
 ### The seams, the fakes and the kit
 
