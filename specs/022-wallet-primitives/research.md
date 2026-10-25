@@ -288,6 +288,19 @@ have.
 balances. An account whose owner's module is disabled keeps its balance and owner; the operator's
 adjustment is the only other move, as FR-006 and the edge case say; nothing detects the removal.
 
+## R14. A cancel's clawback takes only what is available
+
+**Decision**: the original clamps a cancel's clawback to the real balance; here it is clamped to the
+available amount (real balance less reserved; the real balance when nothing is reserved, so the
+original's behaviour is unchanged for every wallet without a reservation). A clawback never draws on
+money the exchange holds for an order.
+
+**Rationale**: FR-003 says nothing but a settlement or a release draws on a reservation. Clamping to
+real would let a cancel leave `reserved > realBalance`, which breaks the invariant every fold checks.
+
+**Alternatives considered**: refusing the cancel while a reservation stands (the original never
+refuses a cancel for want of money); clawing back the shortfall from the reservation (FR-003).
+
 ## Resolved unknowns
 
 | Unknown | Resolved by |
@@ -305,3 +318,4 @@ adjustment is the only other move, as FR-006 and the edge case say; nothing dete
 | How each scenario is tested; parity with no original | R11 |
 | RG and the signature | R12 |
 | Erasure, removed owners | R13 |
+| A cancel's clawback beside a reservation | R14 |

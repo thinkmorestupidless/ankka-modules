@@ -71,6 +71,10 @@ amount folds the new ones).
 `counterpartyRealBalance: Option[Long]`, `accountBalance: Option[Long]`. `Balance` gains `reserved`
 and `available`; `HoldPreview` gains `available`.
 
+Only spec 022's commands set `reserved` and `available` on their outcome. The outcomes of the
+commands that came before (bets, wins, deposits, holds, awards) leave both unset, as they were
+recorded; their readers take the two from `Balance`.
+
 ### Invariants (added to those tested on every fold)
 
 - `reserved == Σ reservations.amount`; no reservation's amount is negative or zero (an entry at 0 is

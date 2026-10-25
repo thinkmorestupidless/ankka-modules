@@ -423,7 +423,9 @@ object ServiceEndpoint:
   given JsonValueCodec[TransactionsPage] =
     com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(
       com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withTransientNone(false).withTransientDefault(false).withTransientEmpty(false))
-  given JsonValueCodec[Balance]               = Codecs.make[Balance]
+  /** reserved and available are written at 0 too: the read reports both (spec 022 contracts/routes.md). */
+  given JsonValueCodec[Balance] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withAllowRecursiveTypes(true).withRequireDiscriminatorFirst(false).withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
   given JsonValueCodec[RestrictedFundsStatus] = Codecs.make[RestrictedFundsStatus]
   given JsonValueCodec[DepositSums]           = Codecs.make[DepositSums]
   given JsonValueCodec[LifetimeTotals]        = Codecs.make[LifetimeTotals]

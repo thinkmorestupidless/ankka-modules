@@ -32,7 +32,9 @@ final case class MajorAccountBalance(balance: String, creditLine: String, floor:
 final case class OperatorAdjustRequest(key: Option[String], walletType: String = "real", amount: String, reason: String = "", category: String = "other")
 
 private[api] object Major:
-  given JsonValueCodec[MajorBalance]          = Codecs.make[MajorBalance]
+  /** reserved and available are written at "0.00" too: the read reports both (spec 022). */
+  given JsonValueCodec[MajorBalance] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withAllowRecursiveTypes(true).withRequireDiscriminatorFirst(false).withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
   given JsonValueCodec[MajorTransactions]     = Codecs.make[MajorTransactions]
   given JsonValueCodec[MajorLifetime]         = Codecs.make[MajorLifetime]
   given JsonValueCodec[OperatorAdjustRequest] = Codecs.make[OperatorAdjustRequest]

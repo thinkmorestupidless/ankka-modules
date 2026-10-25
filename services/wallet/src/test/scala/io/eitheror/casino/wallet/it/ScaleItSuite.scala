@@ -3,7 +3,11 @@ package io.eitheror.casino.wallet.it
 import com.thinkmorestupidless.ankka.core.Serializer
 import io.eitheror.casino.wallet.entity.*
 
+import com.thinkmorestupidless.ankka.http.Caller
+
 import java.time.Instant
+import java.util.concurrent.{ConcurrentLinkedQueue, Executors, TimeUnit}
+import scala.jdk.CollectionConverters.*
 
 /**
  * SC-005's local form and SC-003: a wallet of many transactions survives losing every entity from
@@ -66,4 +70,68 @@ class ScaleItSuite extends Harness:
     val p99    = times((times.size * 99) / 100)
     println(f"bet latency over 1,000 bets: median $median%.1f ms, p99 $p99%.1f ms")
     assert(median < 50 && p99 < 250, s"median $median ms, p99 $p99 ms")
+  }
+
+  /**
+   * SC-002: 500 reserve, release, settle and resolution payment commands a second across 50 wallets
+   * for 20 seconds, over HTTP. Each wallet runs a cycle of the four, one command every 100 ms: reserve
+   * 100 for an order, release 20 of it, settle 50 of it to the next wallet with the 30 left released,
+   * and take a payment of 10 from the pool account of a market of its own, which it seeded.
+   */
+  test("SC-002: reserve, release, settle and payment at 500 a second over 50 wallets, median under 20 ms and p99 under 100 ms".tag(
+    if perf then new munit.Tag("perf") else munit.Ignore)) {
+    val exchange = Caller.Service(Harness.Project, "exchange")
+    val wallets  = (0 until 50).map(i => s"sc2-$i")
+    def market(w: String) = s"sc2-m-$w" // a market per wallet: the load is across wallets, not on one pool
+    wallets.foreach { w =>
+      testKit.componentClient.forEventSourcedEntity(WalletEntity.id(w, "EUR")).call(WalletEntity.openMigrated)
+        .invoke(OpenMigrated("open", 10_000_000L, 0, Vector.empty, 0, 0, 0, t0)): Unit
+      val (status, body) = send("POST", s"/v1/casino/brands/$brand/accounts/pool/${market(w)}/splits",
+        Some(s"""{"key":"seed-$w","currency":"EUR","player":"$w","amount":100000}"""), as = exchange)
+      assertEquals(status, 200, body)
+    }
+    val seconds = 20
+    val period  = 100L // ms between one wallet's commands: 50 wallets at 10 a second each
+    val times   = ConcurrentLinkedQueue[(String, Double)]()
+    val refused = ConcurrentLinkedQueue[String]()
+    val pool    = Executors.newFixedThreadPool(wallets.size)
+    val start   = System.nanoTime()
+    wallets.zipWithIndex.foreach { (w, i) =>
+      pool.execute { () =>
+        val next = wallets((i + 1) % wallets.size)
+        (0 until (seconds * 1000 / period).toInt).foreach { n =>
+          val due  = start + n * period * 1000000L
+          val wait = (due - System.nanoTime()) / 1000000L
+          if wait > 0 then Thread.sleep(wait)
+          val order = s"$w-o${n / 4}"
+          val (kind, path, body) = n % 4 match
+            case 0 => ("reserve", s"${wallet(w)}/reservations", s"""{"key":"$order","amount":100}""")
+            case 1 => ("release", s"${wallet(w)}/reservations/release", s"""{"orderId":"$order","sequence":1,"amount":20}""")
+            case 2 => ("settle", s"/v1/casino/brands/$brand/settlements",
+                s"""{"tradeId":"$order-t","currency":"EUR","buyer":"$w","orderId":"$order","seller":"$next","amount":50,"unused":30}""")
+            case _ => ("payment", s"/v1/casino/brands/$brand/accounts/pool/${market(w)}/payments",
+                s"""{"positionId":"$order","currency":"EUR","player":"$w","amount":10}""")
+          val sent = System.nanoTime()
+          val (status, reply) = send("POST", path, Some(body), as = exchange)
+          times.add((kind, (System.nanoTime() - sent) / 1000000.0))
+          if status != 200 then refused.add(s"$kind $order: $status $reply")
+        }
+      }
+    }
+    pool.shutdown()
+    assert(pool.awaitTermination(seconds + 60L, TimeUnit.SECONDS), "the load did not finish")
+    val elapsed = (System.nanoTime() - start) / 1e9
+    assert(refused.isEmpty, refused.asScala.take(5).mkString("\n"))
+    def figures(all: Vector[Double]) =
+      val sorted = all.sorted
+      (sorted(sorted.size / 2), sorted((sorted.size * 99) / 100))
+    val all = times.asScala.toVector
+    all.groupBy(_._1).toVector.sortBy(_._1).foreach { (kind, ts) =>
+      val (m, p) = figures(ts.map(_._2))
+      println(f"SC-002 $kind%-8s ${ts.size}%,6d commands: median $m%.1f ms, p99 $p%.1f ms")
+    }
+    val (median, p99) = figures(all.map(_._2))
+    println(f"SC-002 all ${all.size}%,d commands in $elapsed%.1f s (${all.size / elapsed}%.0f a second): median $median%.1f ms, p99 $p99%.1f ms")
+    assert(all.size / elapsed >= 450, f"the load ran at ${all.size / elapsed}%.0f a second, short of 500")
+    assert(median < 20 && p99 < 100, s"median $median ms, p99 $p99 ms")
   }

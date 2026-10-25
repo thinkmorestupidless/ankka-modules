@@ -169,7 +169,7 @@ scenario, Go table and fixture unchanged.
       (body `orderId`, `sequence`, `amount`; key `<orderId>/<sequence>`) to
       `M/api/ServiceEndpoint.scala` through the `money(currency)` boundary; replies carry `reserved`
       and `available`
-- [ ] T024 [US1] Add to `T/it/` (an existing wallet integration suite or a new
+- [X] T024 [US1] Add to `T/it/` (an existing wallet integration suite or a new
       `ReservationsItSuite.scala`) a test through HTTP as `Caller.Service(project, "exchange")`:
       reserve 600 of 1,000, release 200, read balance (`reserved` 400, `available` 600), repeat the
       reserve (first outcome), reserve 600 again under a new key (`INSUFFICIENT_FUNDS`), and the
@@ -189,7 +189,7 @@ kit, including the restart; `EveryCommandIdempotentSuite` with `SettleDebit` and
 
 ### Tests for User Story 2
 
-- [ ] T025 [US2] Create `T/features/LedgerFeatures.scala` (an abstract `GherkinSuite(file)` over the
+- [X] T025 [US2] Create `T/features/LedgerFeatures.scala` (an abstract `GherkinSuite(file)` over the
       `Harness`: `AnkkaTestKit`, Postgres, the shared step vocabulary) and
       `T/features/SettlementFeaturesItSuite.scala` (`extends LedgerFeatures("settlement.feature")`)
       binding `features/wallet/settlement.feature`: the
@@ -231,7 +231,7 @@ kit, including the restart; `EveryCommandIdempotentSuite` with `SettleDebit` and
       `INVALID_REQUEST`), `Flows.answer` over the flow's `start` and `status`, the reply body
       `{buyer{realBalance, reserved, available, txnId}, seller{realBalance, txnId}, currency}`
       (`M/wire/Wire.scala`, a `SettlementReply`)
-- [ ] T032 [US2] Register `SettlementWorkflow.descriptor` in `M/WalletService.scala`; map the two
+- [X] T032 [US2] Register `SettlementWorkflow.descriptor` in `M/WalletService.scala`; map the two
       events in `M/publish/Facts.scala`; run `SettlementFeaturesItSuite`: the four settlement
       scenarios green, the restart one asserting `Completed` by the lifecycle query and bob at 600
 
@@ -262,7 +262,7 @@ resolution payments and clearing moves; the operator's adjustment; the facts.
       sequences of claim, debit, credit, adjust, set-credit-line, repeat): `balance ≥ floor` after
       every event, `creditLine == 0` on a pool account, `owner` never changes, a key kept until 1,000
       later
-- [ ] T035 [US3] Create `T/features/AccountsFeaturesItSuite.scala` (`extends
+- [X] T035 [US3] Create `T/features/AccountsFeaturesItSuite.scala` (`extends
       LedgerFeatures("accounts.feature")`) binding the five scenarios of
       `features/wallet/accounts.feature`: "the service exchange moves 100 from the wallet of ada into
       the pool account of market m1 in EUR" (`POST /accounts/pool/m1/splits` as
@@ -334,7 +334,7 @@ resolution payments and clearing moves; the operator's adjustment; the facts.
       `CommandRefused` on `platform.audit` in spec 001's audit shape (`ce-id` `<accountId>/<sequence>`);
       the pure mapping in `M/publish/Facts.scala` (`accountFacts`, `accountAudit`); map
       `MovedToAccount` and `MovedFromAccount` in `moneyTransactions`
-- [ ] T045 [US3] Register `AccountEntity`, `AccountMoveWorkflow` and `AccountAuditPublisher` in
+- [X] T045 [US3] Register `AccountEntity`, `AccountMoveWorkflow` and `AccountAuditPublisher` in
       `M/WalletService.scala`; run `AccountsFeaturesItSuite`: the five account scenarios green, and
       the fold of contracts/facts.md over the published facts equal to each account's balance
       (assert it in the suite)
@@ -357,12 +357,12 @@ balance scenario in the unit kit; the player's and operator's balance over HTTP.
       real balance that is not reserved" (`hold(500, "w1")` refused `INSUFFICIENT_FUNDS`; `hold(400,
       "w1")` leaves real 600, reserved 600; "the player places a bet of 500 in round r1" refused
       `INSUFFICIENT_FUNDS` through the existing `bet` helper, reserved still 600)
-- [ ] T047 [P] [US4] Remove `@ignore` and its comment from the scenario "a balance read reports the
+- [X] T047 [P] [US4] Remove `@ignore` and its comment from the scenario "a balance read reports the
       reserved and the available amount beside real balance" in `features/wallet/reads.feature`;
       bind it in the existing reads subclass of `WalletFeatures` (`T/features/`, the one constructed
       with `"reads.feature"`; major-unit strings "1000.00", "600.00", "400.00" through `Major`);
       `just features` still 0 findings
-- [ ] T048 [P] [US4] Add to the wallet's integration suite in `T/it/`: the player's `GET /balance`
+- [X] T048 [P] [US4] Add to the wallet's integration suite in `T/it/`: the player's `GET /balance`
       with a player token and the operator's `GET W/balance` with a staff token carry `reserved` and
       `available`; `GET W/transactions?type=reservation` lists the row with `reference` the order id;
       `GET W/holds/preview?amount=500` with 600 reserved of 1,000 answers the hold's
@@ -388,10 +388,13 @@ balance scenario in the unit kit; the player's and operator's balance over HTTP.
 - [ ] T051 Add the SC-002 test to `T/it/ScaleItSuite.scala` under `WALLET_PERF=1`: 500 reserve /
       release / settle / payment commands per second across 50 wallets for 20 s, median under 20 ms
       and p99 under 100 ms, printed and asserted; `just wallet-perf`
-- [ ] T052 [P] Update `services/wallet/README.md`: the components (the account entity, the two flows,
+      *Written; not met (2026-10-25)*: at 501 a second with a market per wallet, reserve
+      (8.4/41 ms) and release (11.5/46 ms) meet it; settle (95/278 ms) and payment (82/171 ms), each a
+      workflow of three steps, do not. The suite asserts the target and fails until they do.
+- [X] T052 [P] Update `services/wallet/README.md`: the components (the account entity, the two flows,
       the publisher), the routes, the suites, the test hook, and how the exchange calls the wallet
       (contracts/routes.md's port table)
-- [ ] T053 [P] Remove the `*Proposed.*` marker from the ten entries of `GLOSSARY.md` this feature
+- [X] T053 [P] Remove the `*Proposed.*` marker from the ten entries of `GLOSSARY.md` this feature
       builds (reservation, reserved amount, available amount, settlement, non-player account, pool
       account, clearing account, credit line, resolution payment, service principal), now that the
       terms are in use in the features and the code, leaving the definitions as they are; `just
@@ -399,6 +402,9 @@ balance scenario in the unit kit; the player's and operator's balance over HTTP.
 - [ ] T054 Run quickstart.md steps 1 to 8 end to end and fix what does not match; then step 9: build
       the wallet image, apply the brand on the kind installation (`--context kind-…`, never the
       default context), and run the eight `curl` calls of step 8 against it
+      *Steps 1 to 8 run (2026-10-25)*; step 8 rewritten to what the service needs locally (a broker,
+      an issuer, a `responsible-gambling`; port 9000). Step 9 not run: goldvibe has no project on
+      kind-ankka, and applying creates one that is never reusable (as spec 002's T080).
 
 ---
 

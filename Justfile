@@ -53,7 +53,7 @@ wallet-test:
 
 # The wallet's integration and parity suites only (Docker).
 wallet-it:
-    cd services/wallet && sbt "testOnly io.eitheror.casino.wallet.it.* io.eitheror.casino.wallet.port.*"
+    cd services/wallet && sbt "testOnly io.eitheror.casino.wallet.it.* io.eitheror.casino.wallet.features.*ItSuite io.eitheror.casino.wallet.port.*"
 
 # The wallet's scale and latency suites: 10,000 transactions, SC-003's figures (Docker).
 wallet-perf:

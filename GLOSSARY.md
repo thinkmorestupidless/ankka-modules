@@ -1243,31 +1243,31 @@ Avoid: brand manifest
 ## Reservations and accounts
 
 ### reservation
-*Proposed.* Money set aside from real balance under an order's key; released in part or whole, or drawn down by a settlement.
+Money set aside from real balance under an order's key; released in part or whole, or drawn down by a settlement.
 
 ### reserved amount
-*Proposed.* The sum of a wallet's reservations.
+The sum of a wallet's reservations.
 
 ### available amount
-*Proposed.* Real balance less the reserved amount; what a bet or a hold may take.
+Real balance less the reserved amount; what a bet or a hold may take.
 
 ### settlement
-*Proposed.* One keyed move of a trade's cost from the buyer's reservation to the seller's real balance, across two wallets.
+One keyed move of a trade's cost from the buyer's reservation to the seller's real balance, across two wallets.
 
 ### non-player account
-*Proposed.* A ledger in the wallet service owned by a service principal and keyed by what it is for: a pool account or a clearing account.
+A ledger in the wallet service owned by a service principal and keyed by what it is for: a pool account or a clearing account.
 
 ### pool account
-*Proposed.* The non-player account of one market that backs its complete sets; never below zero.
+The non-player account of one market that backs its complete sets; never below zero.
 
 ### clearing account
-*Proposed.* The non-player account a pool owns in a brand's wallet service; may go below zero to its credit line.
+The non-player account a pool owns in a brand's wallet service; may go below zero to its credit line.
 
 ### credit line
-*Proposed.* How far below zero a clearing account may go, set by the pool's entitlement.
+How far below zero a clearing account may go, set by the pool's entitlement.
 
 ### resolution payment
-*Proposed.* A credit to a player's real balance from a market's pool account when the market is final, keyed by the market and the position. Not a payout, which is an affiliate's.
+A credit to a player's real balance from a market's pool account when the market is final, keyed by the market and the position. Not a payout, which is an affiliate's.
 
 ### service principal
-*Proposed.* A service, named as its project and name, that owns a non-player account or calls a granted route.
+A service, named as its project and name, that owns a non-player account or calls a granted route.
