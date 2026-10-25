@@ -4,6 +4,8 @@ import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId, Serializer}
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.players.{Neighbours, PlayersCodecs, PlayersRuntime, Secrets}
 import io.eitheror.casino.players.clients.{Neighbour, Raced, SendOutcome}
+import io.eitheror.casino.players.config.BrandConfigEntity
+import io.eitheror.casino.players.fraud.{FraudCaseEntity, OpenCase}
 import io.eitheror.casino.players.player.*
 import io.eitheror.casino.players.player.Done
 import io.eitheror.casino.players.realm.Tokens
@@ -111,7 +113,7 @@ final case class Taken(taken: Boolean)
  * the attempt with it; a created user moves to `player`. `player` writes the player, retried twice and
  * then failed over to `undo-realm`, which removes the user, so no player exists without its realm user
  * and no realm user without its player (FR-002). An answer that never comes is undone after `realm`'s
- * pause. `match` is US6's (no signal until T071). `email` sends the verification link, retried for a
+ * pause. `match` flags a suspected duplicate (US6). `email` sends the verification link, retried for a
  * minute and then left pending on the player (R16). `forget` deletes the request and ends.
  */
 final class RegistrationWorkflow(context: WorkflowContext) extends Workflow[RegistrationFlow]:
@@ -176,14 +178,34 @@ final class RegistrationWorkflow(context: WorkflowContext) extends Workflow[Regi
       r.registration, r.at))
     val tokens = neighbours.secret(Secrets.LookupKey).toOption.toVector.flatMap { key =>
       LookupTokens.identity(key, r.profile.get("firstName").getOrElse(""), r.profile.get("lastName").getOrElse(""),
-        r.profile.get("dateOfBirth").getOrElse("")).toVector ++ r.registration.deviceFingerprint.flatMap(f => LookupTokens.device(key, f.reveal))
+        r.profile.get("dateOfBirth").getOrElse("")).map(LookupTokens.tagged(LookupTokens.Identity, _)).toVector ++
+        r.registration.deviceFingerprint.flatMap(f => LookupTokens.device(key, f.reveal)).map(LookupTokens.tagged(LookupTokens.Device, _))
     }
     stepEffects.updateState(currentState.copy(step = Match, lookupTokens = tokens,
       outcome = Some(Outcome(Some(answer.playerId), Some(answer.status))))).thenTransitionTo(RegistrationWorkflow.matchStep)
 
-  /** Duplicate detection (R9): no signal until US6 (T071). */
+  /**
+   * Duplicate detection (FR-036, R9): each lookup token's index entry takes the player and answers the
+   * others under it, so the match is two reads, never a scan. A match opens one case under the player's
+   * id (a retried step opens the same one) and flags every player it links, the new one included.
+   * Nothing is compared when the brand's `multiAccountDetection` is off or the registration has no token.
+   */
   def matchStep: StepEffect =
-    stepEffects.updateState(currentState.copy(step = Email)).thenTransitionTo(RegistrationWorkflow.emailStep)
+    val s      = currentState
+    val detect = components.forKeyValueEntity(EntityId(live.brand)).call(BrandConfigEntity.get).invoke().multiAccountDetection
+    if detect && s.lookupTokens.nonEmpty then
+      val found = s.lookupTokens.map(LookupTokens.split).map { (signal, token) =>
+        signal -> components.forKeyValueEntity(EntityId(token)).call(LookupIndexEntity.add).invoke(LookupPlayer(s.playerId)).playerIds
+      }.filter(_._2.nonEmpty)
+      if found.nonEmpty then
+        val players = found.flatMap(_._2).toSet + s.playerId
+        val signals = found.map(_._1).toSet
+        val caseId  = RegistrationWorkflow.caseOf(s.playerId)
+        val at      = now()
+        components.forEventSourcedEntity(EntityId(caseId)).call(FraudCaseEntity.open).invoke(OpenCase(players, signals, at)): Unit
+        players.toVector.sorted.foreach(p =>
+          components.forEventSourcedEntity(PlayerEntity.id(p)).call(PlayerEntity.flagDuplicate).invoke(FlagDuplicate(caseId, players, signals, at)): Unit)
+    stepEffects.updateState(s.copy(step = Email)).thenTransitionTo(RegistrationWorkflow.emailStep)
 
   /**
    * One verification send, made on the step's thread (`Neighbour.inline`), so the step's timeout is its
@@ -312,6 +334,9 @@ object RegistrationWorkflow
   val awaitRealm = step("realm")(_.awaitRealmStep)
   val playerStep = step("player")(_.playerStep)
   val matchStep  = step("match")(_.matchStep)
+
+  /** The case a registration's match opens: one per new player, so a retry opens the same one. */
+  def caseOf(playerId: String): String = s"dup-$playerId"
   val emailStep  = step("email")(_.emailStep)
   val emailUnanswered = step("email-unanswered")(_.emailUnansweredStep)
   val undoRealm  = step("undo-realm")(_.undoRealmStep)

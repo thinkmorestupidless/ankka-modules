@@ -11,6 +11,7 @@ import io.eitheror.casino.players.fraud.{FraudCaseEntity, FraudCasesView}
 import io.eitheror.casino.players.inbox.{MessageEntity, MessagesView, NoteEntity, NotesView}
 import io.eitheror.casino.players.player.{PlayerEntity, PlayersView}
 import io.eitheror.casino.players.reads.*
+import io.eitheror.casino.players.erasure.{ErasureWorkflow, ExportBody, ExportWorkflow}
 import io.eitheror.casino.players.registration.{LookupIndexEntity, PendingRegistration, RegistrationWorkflow}
 import io.eitheror.casino.players.sessions.*
 
@@ -28,6 +29,9 @@ object PlayersService:
     PendingRegistration.descriptor,
     RegistrationWorkflow.descriptor,
     SessionEndWorkflow.descriptor,
+    ErasureWorkflow.descriptor,
+    ExportWorkflow.descriptor,
+    ExportBody.descriptor,
     BrandConfigEntity.descriptor,
     CurrencyConfigEntity.descriptor,
     AllowListEntity.descriptor,

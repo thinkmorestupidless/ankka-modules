@@ -25,7 +25,8 @@ final case class Settings(
     sessionEndBound: Duration = Duration.ofSeconds(5),
     exportPartBound: Duration = Duration.ofSeconds(10),
     exportRetention: Duration = Duration.ofHours(24),
-    registrationBound: Duration = Duration.ofSeconds(5)
+    registrationBound: Duration = Duration.ofSeconds(5),
+    erasureHoldPoll: Duration = Duration.ofHours(1)
 ):
   /** The brand's realm (contracts/realm.md). */
   def realm: String = s"casino-$brand"
@@ -48,6 +49,7 @@ object Settings:
       exportPart <- duration(env, "EXPORT_PART_BOUND", d.exportPartBound)
       exportKept <- duration(env, "EXPORT_RETENTION", d.exportRetention)
       register   <- duration(env, "REGISTRATION_BOUND", d.registrationBound)
+      holdPoll   <- duration(env, "ERASURE_HOLD_POLL", d.erasureHoldPoll)
     yield Settings(
       brand = brand,
       realMoney = realMoney,
@@ -63,7 +65,8 @@ object Settings:
       sessionEndBound = sessionEnd,
       exportPartBound = exportPart,
       exportRetention = exportKept,
-      registrationBound = register
+      registrationBound = register,
+      erasureHoldPoll = holdPoll
     )
 
   private def text(env: Map[String, String], name: String): Option[String] = env.get(name).map(_.trim).filter(_.nonEmpty)

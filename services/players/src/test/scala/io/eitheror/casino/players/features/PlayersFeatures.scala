@@ -34,12 +34,3 @@ object PlayersFeatures:
 
   /** Every scenario of `file` pending on `task`. */
   def all(file: String, task: String): Map[String, String] = scenarios(file).map(_ -> s"$task (pending)").toMap
-
-class StatusFeatures extends PlayersFeatures("status.feature"):
-  protected def pending = PlayersFeatures.all("status.feature", "T057")
-
-class DuplicatesFeatures extends PlayersFeatures("duplicates.feature"):
-  protected def pending = PlayersFeatures.all("duplicates.feature", "T063")
-
-class ErasureFeatures extends PlayersFeatures("erasure.feature"):
-  protected def pending = PlayersFeatures.all("erasure.feature", "T068")

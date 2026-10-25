@@ -363,6 +363,7 @@ object ProfileRoutes:
       "registeredAt" -> s.registeredAt.map(_.toString).orNull, "vipTier" -> s.vipTier.orNull,
       "profileComplete" -> Profile.required.forall(s.profile.has),
       "missingProfileFields" -> Json.arr(Profile.required.filterNot(s.profile.has)*))
+    s.erasure.foreach(e => o.put("erasureHoldUntil", e.holdUntil.toString))
     Profile.all.foreach(f => s.profile.get(f).foreach(v => o.put(f, v): Unit))
     o
 

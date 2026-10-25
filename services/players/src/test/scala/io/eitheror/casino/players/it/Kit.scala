@@ -234,7 +234,8 @@ object Kit:
     mayLogInBound = JDuration.ofMillis(500),
     realmAnswerBound = JDuration.ofMillis(300),
     exportPartBound = JDuration.ofSeconds(2),
-    registrationBound = JDuration.ofSeconds(5)
+    registrationBound = JDuration.ofSeconds(5),
+    erasureHoldPoll = JDuration.ofMillis(300)
   )
 
   /** The secrets but the realm's admin client, which names `FakeRealm`'s. */

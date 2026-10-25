@@ -36,7 +36,7 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/$
   post("/{playerId}/logout") { (playerId: String) => sessions.logout(principal, playerId) }
   get("/{playerId}") { (id: String) => profile.profile(principal, id) }
   patchBody("/{playerId}") { (id: String, text: String) => profile.editProfile(principal, id, text) }
-  post("/{playerId}/close") { (_: String) => notYet("close") }
+  postBody("/{playerId}/close") { (id: String, text: String) => OperatorStatusRoutes(ctx).closeMine(principal, id, text) }
   get("/{playerId}/consent") { (id: String) => profile.consent(principal, id) }
   patchBody("/{playerId}/consent") { (id: String, text: String) => profile.changeConsent(principal, id, text) }
   patchBody("/{playerId}/cookie-consent") { (id: String, text: String) => profile.cookieConsent(principal, id, text) }
@@ -59,9 +59,9 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/players/$
   delete("/emails/{address}") { (a: String) => profile.removeEmail(principal, a) }
   postBody("/{playerId}/email-change") { (id: String, text: String) => profile.emailChange(principal, id, text) }
   post("/{playerId}/deposits") { (_: String) => notYet("deposits") }
-  post("/{playerId}/erasure") { (_: String) => notYet("erasure") }
-  post("/{playerId}/exports") { (_: String) => notYet("exports") }
-  get("/{playerId}/exports/{exportId}") { (_: String, _: String) => notYet("export read") }
+  post("/{playerId}/erasure") { (id: String) => ErasureRoutes(ctx).fileMine(principal, id) }
+  post("/{playerId}/exports") { (id: String) => ErasureRoutes(ctx).startMine(principal, id) }
+  get("/{playerId}/exports/{exportId}") { (id: String, exportId: String) => ErasureRoutes(ctx).readMine(principal, id, exportId) }
 
 /** `/v1/casino/sessions/<slug>`: the player's sessions. */
 final class SessionEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/sessions/${ctx.slug}"):
@@ -80,56 +80,61 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   private val P     = "/players/{playerId}"
   private val account = OperatorProfileRoutes(ctx)
   private val games = GameSessionRoutes(ctx)
+  private val status = OperatorStatusRoutes(ctx)
 
-  get("/players") { () => notYet("players") }
+  get("/players") { () =>
+    status.players(query.raw("search"), query.raw("status"), query.raw("vipOnly"), query.raw("page"), query.raw("pageSize"))
+  }
   get(s"$P/profile") { (id: String) => account.profile(id) }
   patchBody(s"$P/profile") { (id: String, text: String) => account.editProfile(id, text) }
   patchBody(s"$P/date-of-birth") { (id: String, text: String) => account.dateOfBirth(principal, id, text) }
-  get(s"$P/wallet") { (_: String) => notYet("wallet summary") }
-  get(s"$P/activity") { (_: String) => notYet("activity") }
-  get(s"$P/bets") { (_: String) => notYet("bets") }
+  get(s"$P/wallet") { (id: String) => status.wallet(id) }
+  get(s"$P/activity") { (id: String) => status.activity(id, query.raw("category"), query.raw("page")) }
+  get(s"$P/bets") { (id: String) =>
+    status.bets(id, query.raw("fromDate"), query.raw("toDate"), query.raw("limit"), query.raw("offset"))
+  }
   get(s"$P/sessions/{sessionId}/bets") { (_: String, _: String) => notYet("session bets") }
-  get(s"$P/sessions") { (_: String) => notYet("operator sessions") }
+  get(s"$P/sessions") { (id: String) => status.sessions(id) }
   get(s"$P/crm") { (id: String) => account.crm(id) }
   patchBody(s"$P/crm") { (id: String, text: String) => account.editCrm(principal, id, text) }
-  patch(s"$P/suspend") { (_: String) => notYet("suspend") }
-  patch(s"$P/reinstate") { (_: String) => notYet("reinstate") }
-  post(s"$P/close") { (_: String) => notYet("operator close") }
-  post(s"$P/reopen") { (_: String) => notYet("reopen") }
-  put(s"$P/vip-tier") { (_: String) => notYet("vip-tier") }
-  put(s"$P/pot-vip") { (_: String) => notYet("pot-vip") }
+  patchBody(s"$P/suspend") { (id: String, text: String) => status.suspend(principal, id, text) }
+  patch(s"$P/reinstate") { (id: String) => status.reinstate(principal, id) }
+  postBody(s"$P/close") { (id: String, text: String) => status.close(principal, id, text) }
+  postBody(s"$P/reopen") { (id: String, text: String) => status.reopen(principal, id, text) }
+  putBody(s"$P/vip-tier") { (id: String, text: String) => status.vipTier(principal, id, text) }
+  putBody(s"$P/pot-vip") { (id: String, text: String) => status.potVip(principal, id, text) }
   post(s"$P/reset-password") { (id: String) => account.resetPassword(principal, id) }
   post(s"$P/sessions/{sessionId}/force-end") { (playerId: String, sessionId: String) => games.forceEnd(principal, playerId, sessionId) }
   post(s"$P/sessions/force-end-all") { (playerId: String) => games.forceEndAll(principal, playerId) }
-  post(s"$P/notes") { (_: String) => notYet("note") }
-  patch(s"$P/notes/{noteId}/pin") { (_: String, _: String) => notYet("note pin") }
-  patch(s"$P/notes/{noteId}/unpin") { (_: String, _: String) => notYet("note unpin") }
-  get(s"$P/messages") { (_: String) => notYet("operator messages") }
-  post(s"$P/messages") { (_: String) => notYet("operator message") }
-  get("/merge-tags") { () => notYet("merge-tags") }
-  post("/messages/preview") { () => notYet("message preview") }
-  post(s"$P/clear-suspect-flag") { (_: String) => notYet("clear-suspect-flag") }
-  get("/fraud-cases") { () => notYet("fraud-cases") }
-  patch("/fraud-cases/{caseId}/review") { (_: String) => notYet("fraud review") }
-  patch("/fraud-cases/{caseId}/dismiss") { (_: String) => notYet("fraud dismiss") }
-  post(s"$P/activity-export") { (_: String) => notYet("activity-export") }
-  get("/exports/{exportId}") { (_: String) => notYet("operator export read") }
-  post(s"$P/erasure") { (_: String) => notYet("operator erasure") }
-  get(s"$P/erasure") { (_: String) => notYet("erasure state") }
+  postBody(s"$P/notes") { (id: String, text: String) => status.note(principal, id, text) }
+  patch(s"$P/notes/{noteId}/pin") { (id: String, noteId: String) => status.pin(id, noteId, pinned = true) }
+  patch(s"$P/notes/{noteId}/unpin") { (id: String, noteId: String) => status.pin(id, noteId, pinned = false) }
+  get(s"$P/messages") { (id: String) => status.messages(id, query.raw("page"), query.raw("pageSize")) }
+  postBody(s"$P/messages") { (id: String, text: String) => status.message(principal, id, text) }
+  get("/merge-tags") { () => status.mergeTags }
+  postBody("/messages/preview") { (text: String) => status.preview(text) }
+  post(s"$P/clear-suspect-flag") { (id: String) => status.clearSuspectFlag(principal, id) }
+  get("/fraud-cases") { () => FraudRoutes(ctx).cases(query.raw("status")) }
+  patch("/fraud-cases/{caseId}/review") { (id: String) => FraudRoutes(ctx).review(principal, id) }
+  patch("/fraud-cases/{caseId}/dismiss") { (id: String) => FraudRoutes(ctx).dismiss(principal, id) }
+  post(s"$P/activity-export") { (id: String) => ErasureRoutes(ctx).startExport(id, principal.subject) }
+  get("/exports/{exportId}") { (exportId: String) => ErasureRoutes(ctx).read(None, exportId) }
+  post(s"$P/erasure") { (id: String) => ErasureRoutes(ctx).file(id) }
+  get(s"$P/erasure") { (id: String) => ErasureRoutes(ctx).state(id) }
   get(s"$P/verification-link") { (playerId: String) => RegistrationRoutes(ctx).verificationLink(playerId) }
-  get("/brand-config") { () => notYet("brand-config") }
-  put("/brand-config") { () => notYet("brand-config set") }
-  get("/currency-config") { () => notYet("currency-config") }
-  put("/currency-config") { () => notYet("currency-config set") }
-  get("/allow-list") { () => notYet("allow-list") }
-  put("/allow-list") { () => notYet("allow-list set") }
+  get("/brand-config") { () => status.config("brand-config") }
+  putBody("/brand-config") { (text: String) => status.setBrandConfig(text) }
+  get("/currency-config") { () => status.config("currency-config") }
+  putBody("/currency-config") { (text: String) => status.setCurrencyConfig(text) }
+  get("/allow-list") { () => status.config("allow-list") }
+  putBody("/allow-list") { (text: String) => status.setAllowList(text) }
 
 /** `/v1/casino/brands/<slug>/modules`: spec 021's operator modules page, through the vendor's agent. */
 final class ModulesEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/modules"):
   val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
 
-  get("/") { () => notYet("modules") }
-  post("/requests") { () => notYet("modules request") }
+  get("/") { () => OperatorStatusRoutes(ctx).modules }
+  postBody("/requests") { (text: String) => OperatorStatusRoutes(ctx).moduleRequest(principal, text) }
 
 /** `/v1/casino/brands/<slug>/players`: the project's services, by certificate. */
 final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ctx.slug}/players"):
@@ -147,15 +152,21 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
     get("/{playerId}/game-sessions") { (playerId: String) => games.history(playerId, query.raw("offset")) }
     postBody("/game-sessions/{sessionId}/end") { (sessionId: String, text: String) => games.endByAgent(sessionId, text) }
   }
-  post("/{playerId}/suspend") { (_: String) => notYet("kyc suspend") }
-  put("/{playerId}/exclusion") { (_: String) => notYet("exclusion") }
-  delete("/{playerId}/exclusion") { (_: String) => notYet("exclusion lift") }
+  withAcl(Routes.serviceOf("kyc")) {
+    postBody("/{playerId}/suspend") { (id: String, text: String) => OperatorStatusRoutes(ctx).suspendByKyc(id, text) }
+  }
+  withAcl(Routes.serviceOf("responsible-gambling")) {
+    putBody("/{playerId}/exclusion") { (id: String, text: String) => OperatorStatusRoutes(ctx).exclude(id, text) }
+    delete("/{playerId}/exclusion") { (id: String) => OperatorStatusRoutes(ctx).liftExclusion(id) }
+  }
   withAcl(Routes.serviceOf("engagement")) {
     postBody("/{playerId}/messages") { (id: String, text: String) => OperatorProfileRoutes(ctx).crmMessage(id, text) }
   }
-  get("/config/{name}") { (_: String) => notYet("config") }
-  post("/erasure/players/{playerId}") { (_: String) => notYet("own erasure") }
-  get("/exports/players/{playerId}") { (_: String) => notYet("own export part") }
+  get("/config/{name}") { (name: String) => OperatorStatusRoutes(ctx).config(name) }
+  withAcl(Routes.serviceOf("players")) {
+    post("/erasure/players/{playerId}") { (id: String) => ErasureRoutes(ctx).eraseOwn(id) }
+    get("/exports/players/{playerId}") { (id: String) => ErasureRoutes(ctx).ownPart(id) }
+  }
 
 /** `/internal/realm/<slug>`: the realm's listener and authenticators, each route checking its secret header. */
 final class RealmEndpoint(ctx: Ctx) extends HttpEndpoint(s"/internal/realm/${ctx.slug}"):

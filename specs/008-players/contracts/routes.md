@@ -97,6 +97,50 @@ logged (001 FR-023).
 | `GET`/`PUT /brand-config`, `GET`/`PUT /currency-config`, `GET`/`PUT /allow-list` | the three key value entities; bodies are data-model.md's fields in camelCase (`singleSession`, `multiAccountDetection`, `reportingZone`, `retentionDays`, `features`; `offered`; `countries`) | 200; 400 `invalid_config` naming the field |
 | (none) | spec 021's two modules routes are served by `ModulesEndpoint`, below, not here | — |
 
+*Amended at T059–T061 (2026-10-25)*, where the original's answer is not kept or the original has none:
+
+- Suspend, reinstate, close, reopen, `vip-tier`, `pot-vip` and `clear-suspect-flag` keep the original's
+  bodies and answers (`{status}`, `{vipTier}`, `{potVip}`, `{playerId, flagCleared, linkedCasesFound}`).
+  The original's suspend and reinstate never refused; here reinstating a player who is not suspended is
+  `409 not_suspended`, and closing a closed account `409 already_closed`. The original's suspend,
+  reinstate, vip-tier, pot-vip and clear-suspect-flag sat under `/v1/casino/{brand}/players/…` and its
+  close under `/backoffice/`; all are under `/backoffice/` here.
+- Reopen and the player's own close are new (FR-032a); the original had neither. With no `retentionDays`
+  in `brand-config`, the hold is 1825 days (5 years).
+- A closure ends the player sessions with reason `forced`; suspension and exclusion use `suspended`.
+- `GET /players` keeps `search`, `status`, `vipOnly`, `page` and `pageSize` and answers `{items, total}`
+  with each item's `playerId` beside the original's `twinId`; the original's `kyc`, `birthday`,
+  `country`, `currency`, `onlineOnly` filters and its `facetCounts` are not served (kyc is spec 009's,
+  online is the sessions view's) until the backoffice asks for them.
+- `GET /players/{id}/wallet` answers minor units (`realBalanceMinorUnits`, `bonusBalanceMinorUnits`,
+  `currency`) from `money.transactions`, not decimal strings; bonus and wagering are spec 011's.
+- `GET /players/{id}/bets` is the settled rounds in the activity, filtered by `fromDate`/`toDate`, with
+  `summary.totalBets` only; the stake and win totals wait on the round fact carrying both into the row.
+  `GET /players/{id}/sessions/{sessionId}/bets` stays `501`: an activity row carries no session.
+- `GET /players/{id}/sessions` lists the game sessions (the original had no operator list).
+- A note's author is the operator's subject from the token, not the body's `authorName`/`authorId`;
+  empty content is `400 missing_fields`; pinning a note that is not the player's is `404 note_not_found`.
+- The operator's `POST /players/{id}/messages` takes `subjectTemplate`/`bodyTemplate` (or `subject`/`body`)
+  and an optional `notificationId` as its idempotency key; it has no `rewardId` (spec 011).
+- The configuration routes: `brand-config` carries data-model.md's fields, not the original's `lobbyUrl`,
+  `depositUrl`, `jurisdiction` (the manifest's); `currency-config` is `{offered, defaultCurrency}`;
+  `allow-list` is `{countries}` at `/allow-list`, without the original's per-country `POST`/`DELETE`. A
+  `PUT` sets the fields it names over what is held.
+- `GET /fraud-cases` answers the original's `{cases}` with `playerIds` (every player the case links)
+  where the original had `playerRef` and `linkedPlayerRef`; review and dismiss answer `{caseId, status,
+  reviewedBy, reviewedAt}`. Dismissing clears the flag on every linked player (FR-037); the original left
+  the flags set. `clear-suspect-flag` dismisses the player's open cases, as the original, and so clears
+  the flags of the players those cases link. A second decision on a dismissed case is `409 case_closed`.
+- Erasure and the export (T070–T071), which the original had neither of: the player's `GET /{playerId}`
+  carries `erasureHoldUntil` while an erasure is filed; the operator's `GET /players/{id}/erasure` answers
+  `{correlationId, holdUntil, status, heldFor, failedAt, certificates}` with `status` `held` | `applying` |
+  `erased` | `failed` and `heldFor` `retention` | `open_withdrawal`. An export's id is the workflow's, and
+  the operator reads it at `GET /exports/{exportId}`; the player's read of another player's export is
+  `404`. The export answers `{service, playerId, profile, consents, sessions, activity, messages, parts,
+  missing, generatedAt, expiresAt}`.
+- `platform_admin` is admitted on every operator route (contract `Routes.operator`, spec 001; the original's
+  `requireBrandAccess`), so T056's "a `platform_admin` without the brand role → `403`" does not hold.
+
 ### `ModulesEndpoint` — `/v1/casino/brands/<slug>/modules` — `operator(slug)`: the operator's modules page (spec 021)
 
 These rows are spec 021's (`specs/021-core-and-modules/contracts/routes.md`), which `players` serves

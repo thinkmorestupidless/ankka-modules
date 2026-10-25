@@ -36,11 +36,12 @@ class SmokeSuite extends munit.FunSuite:
     assertEquals(status("GET", kit.sessionPath("/s-1"), kit.asPlayer("p-1")), 404)
     assertEquals(status("GET", kit.operatorPath("/players"), kit.asVisitor), 401)
     assertEquals(status("GET", kit.operatorPath("/players"), kit.asOperator(roles = "brand_other")), 403)
-    assertEquals(status("GET", kit.operatorPath("/players"), kit.asOperator()), 501)
-    assertEquals(status("GET", s"/v1/casino/brands/${kit.slug}/modules/", kit.asOperator()), 501)
+    assertEquals(status("GET", kit.operatorPath("/players"), kit.asOperator()), 200)
+    assertEquals(status("GET", s"/v1/casino/brands/${kit.slug}/modules/", kit.asOperator()), 200)
     assertEquals(status("GET", kit.servicePath("/p-1/status"), kit.asService("game-provider")), 404)
     assertEquals(status("GET", kit.servicePath("/p-1/status"), kit.asService("wallet")), 403)
-    assertEquals(status("POST", kit.servicePath("/p-1/suspend"), kit.asService("kyc")), 501)
+    assertEquals(status("POST", kit.servicePath("/p-1/suspend"), kit.asService("kyc")), 404)
+    assertEquals(status("GET", kit.operatorPath("/players/p-1/sessions/s-1/bets"), kit.asOperator()), 501)
     assertEquals(status("POST", kit.realmPath("/webhook"), kit.asVisitor), 401)
   }
 

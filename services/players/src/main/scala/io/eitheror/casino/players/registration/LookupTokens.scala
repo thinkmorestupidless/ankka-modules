@@ -21,6 +21,18 @@ object LookupTokens:
   def device(key: String, fingerprint: String): Option[String] =
     Option(fingerprint).map(_.trim).filter(_.nonEmpty).map(f => digest(key, "device|" + f))
 
+  /** The signal a token was found by, as the workflow's state keeps it: `identity:<token>`, `device:<token>`. */
+  def tagged(signal: String, token: String): String = s"$signal:$token"
+
+  /** The signal and the token (the index key) of a tagged token. */
+  def split(tagged: String): (String, String) =
+    tagged.split(":", 2) match
+      case Array(signal, token) => (signal, token)
+      case _                    => ("identity", tagged)
+
+  val Identity = "identity"
+  val Device   = "device"
+
   private def digest(key: String, text: String): String =
     val mac = Mac.getInstance("HmacSHA256")
     mac.init(SecretKeySpec(key.getBytes(UTF_8), "HmacSHA256"))

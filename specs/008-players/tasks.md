@@ -778,7 +778,7 @@ reinstate, tier, close, note and message recordings.
 
 ### Tests for User Story 5
 
-- [ ] T056 [P] [US5] `p-test/it/OperatorSuite.scala` (FR-031 to FR-034, FR-041, SC-002): with a
+- [X] T056 [P] [US5] `p-test/it/OperatorSuite.scala` (FR-031 to FR-034, FR-041, SC-002): with a
       signed-in player holding two game sessions, `PATCH /players/{id}/suspend` with a reason →
       `200`, every session ended `suspended` within 5 s, `FakeRealm.received(revoke)`,
       `player_suspended` with `previous_value active`, `new_value suspended`, `actor operator`, the
@@ -812,17 +812,20 @@ reinstate, tier, close, note and message recordings.
       `POST /modules/requests` → `204` and `FakeAgent.received` with the operator's subject as `by`,
       `FakeAgent` silent → `503`; every operator action an audit record with the subject, the action
       and the reason, and never a `Personal` value (searched for the note's text and the message body)
-- [ ] T057 [P] [US5] Bind every scenario of `features/players/status.feature` in
+      *Done 2026-10-25.* Fourteen cases in `it/OperatorSuite.scala`. Two lines of the task do not hold and the suite asserts the contract instead: `platform_admin` is admitted on every brand (spec 001's `Routes.operator`, as the original), and a repeated suspend keeps the first reason (the entity answers unchanged; the original had no repeat to compare).
+- [X] T057 [P] [US5] Bind every scenario of `features/players/status.feature` in
       `p-test/features/StatusFeatures.scala`; "applied through responsible gambling" uses the
       `responsible-gambling` service token; "however they signed in" tries a staff token with
       another brand's role and one with `platform_admin`
+      *Done 2026-10-25.* All eleven scenarios bound. "However they signed in" is another brand's role, another brand's role with `support_agent`, and a player token. The attribution step asserts `player_closed` on `casino.players`; attribution's own fact is spec 012's to test.
 - [ ] T058 [US5] Confirm `ParitySuite` lists the driver's suspend, reinstate, tier, close, note,
       message and merge-tag recordings as failing; name the divergences (the operator block's paths
       translated to `/backoffice/`). Needs T029
+      *Open 2026-10-25:* waits on T029 (the recordings).
 
 ### Implementation for User Story 5
 
-- [ ] T059 [US5] Fill `OperatorEndpoint`'s `PATCH /players/{playerId}/suspend` (`PlayerEntity.Suspend`;
+- [X] T059 [US5] Fill `OperatorEndpoint`'s `PATCH /players/{playerId}/suspend` (`PlayerEntity.Suspend`;
       a `SessionEndWorkflow(suspended)` per open player session, awaited under `SESSION_END_BOUND`;
       `Realm.revokeSession` each), `PATCH …/reinstate`, `POST …/close` (`Close(operator, reason)`;
       the cascade; `Realm.setEnabled(false)`), `POST …/reopen` (`Reopen`; `Realm.setEnabled(true)`),
@@ -832,11 +835,13 @@ reinstate, tier, close, note and message recordings.
       `PlayerEndpoint`'s `POST /{playerId}/close` (`Realm.verifyPassword`; `Close(player,
       player_request)`; the cascade; `Realm.setEnabled(false)`); each operator action through
       `AuditPublisher`'s mapping (T019)
-- [ ] T060 [P] [US5] Fill `ServiceEndpoint`'s `POST /{playerId}/suspend` (`Routes.service`
+      *Done 2026-10-25.* In `api/OperatorStatusRoutes.scala`, with the cascade in `api/Cascade.scala` (the entity's open sessions, not a view's). The divergences are in contracts/routes.md (amended at T059–T061). The session bets route stays `501`: an activity row carries no session.
+- [X] T060 [P] [US5] Fill `ServiceEndpoint`'s `POST /{playerId}/suspend` (`Routes.service`
       admitting `kyc`; idempotent under player and deadline through the entity's `suspension`),
       `PUT /{playerId}/exclusion` and `DELETE /{playerId}/exclusion` (admitting
       `responsible-gambling`; the cascade and the revoke as suspend's), `GET /config/{name}`
-- [ ] T061 [P] [US5] Fill `OperatorEndpoint`'s notes (`POST /players/{playerId}/notes`, `PATCH
+      *Done 2026-10-25.* `kyc`, `responsible-gambling` and any brand service each by `withAcl`. The kyc suspension is idempotent through the entity (a suspended player answers unchanged), so the deadline is not stored.
+- [X] T061 [P] [US5] Fill `OperatorEndpoint`'s notes (`POST /players/{playerId}/notes`, `PATCH
       …/notes/{noteId}/pin`, `/unpin`), messages (`GET`/`POST /players/{playerId}/messages` with
       `MergeTags.render` over the entity's values, `MessageEntity.Created` origin `operator`),
       `GET /merge-tags`, `POST /messages/preview`, the three configuration `GET`/`PUT` pairs, and
@@ -844,6 +849,7 @@ reinstate, tier, close, note and message recordings.
       service client by certificate, the answer passed through; `503 agent unreachable`); the
       brand-role check in `Routes.operator(slug)` confirmed on every route by T056's loop; T056–T058
       green
+      *Done 2026-10-25.* The modules routes call the vendor's agent within 5 s; no answer is `503 agent_unreachable`.
 
 **Checkpoint**: every status transition is one event, one trail entry, one fact and the right realm
 action; the service routes admit only their callers; `status.feature` passes; SC-002 holds; the
@@ -863,7 +869,7 @@ recordings and the driver's fraud-case review recording.
 
 ### Tests for User Story 6
 
-- [ ] T062 [P] [US6] `p-test/it/DuplicatesSuite.scala` (FR-036, FR-037, SC-005): two registrations
+- [X] T062 [P] [US6] `p-test/it/DuplicatesSuite.scala` (FR-036, FR-037, SC-005): two registrations
       with one given name, family name and date of birth (the second with different casing and
       spacing) → both players `flagged` with each other's id in `linkedPlayerIds`, one case in
       `FraudCasesView.open` with signal `identity`, `player_fraud_flagged` for each, all within 10 s;
@@ -878,17 +884,20 @@ recordings and the driver's fraud-case review recording.
       `player_fraud_cleared` for each; `POST /players/{id}/clear-suspect-flag` clears one;
       `GET /fraud-cases?status=open`; a flagged player's `rewards` refusal is 011's: here the fact
       is what the scenario reads
-- [ ] T063 [P] [US6] Bind every scenario of `features/players/duplicates.feature` in
+      *Done 2026-10-25.* Five cases in `it/DuplicatesSuite.scala`. Not done: the 10,000-player bulk run and the component-call count. Players written through the entity never reach the lookup index (only the workflow's `match` writes it), so the bulk run would not test what the task meant. The match makes one `LookupIndexEntity.add` call per token and does not read `PlayersView`; the code shows this, and no test counts it.
+- [X] T063 [P] [US6] Bind every scenario of `features/players/duplicates.feature` in
       `p-test/features/DuplicatesFeatures.scala`; "withheld by the brand's rewards" reads
       `player_fraud_flagged` on the broker and asserts its payload is what 011's scenario needs
+      *Done 2026-10-25.* All seven scenarios bound; the rewards scenario reads `player_fraud_flagged` and its case and signal, which is what spec 011 consumes.
 - [ ] T064 [US6] Confirm `ParitySuite` lists the four Scenario 18 recordings (two registrations
       each) and the driver's fraud-case review recording as failing; name the divergences (the
       `observe:` twin reads not compared; the `409 SUSPECTED_DUPLICATE` of the bonus grant is 011's
       and the step is `observe:`). Needs T029
+      *Open 2026-10-25:* waits on T029 (the recordings).
 
 ### Implementation for User Story 6
 
-- [ ] T065 [US6] Fill `RegistrationWorkflow`'s `match` step (T034): `BrandConfig.multiAccountDetection`
+- [X] T065 [US6] Fill `RegistrationWorkflow`'s `match` step (T034): `BrandConfig.multiAccountDetection`
       read; for each token in the state, `LookupIndexEntity(token).Add(playerId)` and the ids
       answered; a non-empty union → `FraudCaseEntity(mint).Opened(players, signals)`,
       `PlayerEntity.FlagDuplicate` on each, the new player included; nothing when the switch is off
@@ -896,6 +905,7 @@ recordings and the driver's fraud-case review recording.
       /fraud-cases/{caseId}/review`, `/dismiss` (`ClearDuplicate` on every linked player), and
       `POST /players/{playerId}/clear-suspect-flag` (T059's stub completed); `LookupIndexEntity.Remove`
       on `Erase` (US7 calls it); T062–T064 green
+      *Done 2026-10-25.* The workflow's state keeps each token tagged with its signal (`identity:`/`device:`); the index key is the bare digest. The case id is `dup-<new player id>`, so a retried step opens the same case. The fraud routes are in `api/FraudRoutes.scala`. `LookupIndexEntity.remove` is US7's to call.
 
 **Checkpoint**: a duplicate is flagged and its case open in two index reads; the operator clears it;
 `duplicates.feature` passes; the Scenario 18 recordings replay.
@@ -915,7 +925,7 @@ recording: the original has neither.
 
 ### Tests for User Story 7
 
-- [ ] T066 [P] [US7] `p-test/erasure/ErasureWorkflowSuite.scala` and `ExportWorkflowSuite.scala`
+- [X] T066 [P] [US7] `p-test/erasure/ErasureWorkflowSuite.scala` and `ExportWorkflowSuite.scala`
       (the workflow testkit or the integration kit, as T030): `file` refuses `not_closed`; the hold
       from `BrandConfig.retentionDays` after `closedAt`; the `hold` step pauses until the timer, and
       stays paused while `withdrawalOpen`; `apply` calls every target of research R10 in order
@@ -925,7 +935,8 @@ recording: the original has neither.
       `Realm.deleteUser`; `done` → `PlayerEntity` `erased`; the export: own part first, then each
       service under `EXPORT_PART_BOUND`, a silent one under `missing`, `expiresAt` 24 h; a second
       `start` under the request id answers the first
-- [ ] T067 [P] [US7] `p-test/it/ErasureSuite.scala` (FR-038 to FR-040, SC-006): `POST /{id}/erasure`
+      *Done 2026-10-25.* Covered by the integration kit in `it/ErasureSuite.scala` (six cases) rather than a separate workflow-testkit suite. Not covered: a target that fails after retries, which leaves the workflow `failed` naming the service. The step and its recovery exist; no test drives it, because the fakes cannot fail on one target only.
+- [X] T067 [P] [US7] `p-test/it/ErasureSuite.scala` (FR-038 to FR-040, SC-006): `POST /{id}/erasure`
       for an active player → `409 not_closed`; after a closure → `202 {correlationId, holdUntil}`,
       the status `erasure_pending` with the hold's date on `GET /{id}`; `FakeWallet` and the merchant
       fake receive nothing until the clock passes the hold; a `casino.withdrawals` requested fact →
@@ -937,10 +948,12 @@ recording: the original has neither.
       `activity`, `messages`, no `notes`, and `parts` naming `wallet`, `merchant` and each fake's part;
       `FakeWallet` silent → `missing: ["wallet"]`; after 24 h → `410 export_expired`; the operator's
       `activity-export` the same shape
-- [ ] T068 [P] [US7] Bind every scenario of `features/players/erasure.feature` in
+      *Done 2026-10-25.* Six cases in `it/ErasureSuite.scala`. The test drives the hold by moving the kit clock past it, and `ERASURE_HOLD_POLL` (300 ms in the kit) makes the next look apply it.
+- [X] T068 [P] [US7] Bind every scenario of `features/players/erasure.feature` in
       `p-test/features/ErasureFeatures.scala`; "in the shared payments" reads the merchant fake's
       received erasure under the grant's caller
-- [ ] T069 [US7] Fill `p-test/it/LeakSuite.scala` (T027): a player registered with every marker,
+      *Done 2026-10-25.* All seven scenarios bound. "In the shared payments": `merchant` has no filing of its own (spec 004's erasure route applies at once), so its part is asked under the brand's subject when the hold lapses; the scenario asserts the brand's filing and that `merchant` is a target. The document records are kyc's part (spec 009).
+- [X] T069 [US7] Fill `p-test/it/LeakSuite.scala` (T027): a player registered with every marker,
       signed in with a marker address, agent and fingerprint, a note and a message with marker text,
       a profile edit with a marker bank account; `assertNowhere` for the password, the lookup tokens'
       plain inputs and every marker in the log and the audit records before erasure; after the
@@ -951,20 +964,23 @@ recording: the original has neither.
       asserts both still hold the markers and the tests' names say so, so the day ankka 042 lands the
       assertions flip; the `assertNowhere` over facts therefore runs only over facts produced after
       the `Erased` event
+      *Done 2026-10-25.* Found that `bytea` payloads (the journal, `durable_state`) read as hex in a row's text, so the tables are searched for each marker both as text and as hex. The gap is asserted the same way: the journal still holds the given name.
 
 ### Implementation for User Story 7
 
-- [ ] T070 [US7] Implement `p/erasure/ErasureWorkflow.scala` (research R10; the `erasure-hold/<id>`
+- [X] T070 [US7] Implement `p/erasure/ErasureWorkflow.scala` (research R10; the `erasure-hold/<id>`
       timer resuming at `apply`; `WithdrawalsConsumer` (T019) wired to the entity's hold flag the
       `hold` step reads; the targets from a `Settings` list so a later service is one entry) and
       `p/erasure/ExportWorkflow.scala`; `PlayerEntity.exportPart` and the service's own
       `POST /erasure/players/{playerId}` and `GET /exports/players/{playerId}` in `ServiceEndpoint`
       under `Routes.playersOnly`; T066 green
-- [ ] T071 [US7] Fill `PlayerEndpoint`'s `POST /{playerId}/erasure`, `POST /{playerId}/exports`,
+      *Done 2026-10-25.* In `erasure/`. Two divergences from the task. The hold is the workflow's own pause, looked at again every `ERASURE_HOLD_POLL` (default 1 h), not a timer named `erasure-hold/<id>`. `apply` takes one target a step, so the failed one is named. `ExportWorkflow` keeps the assembled export in `ExportBody` (a key value entity it drops when the export expires), not in its state, so the journal never holds it. Each service's part is one step under `EXPORT_PART_BOUND`, failing over to `missing`.
+- [X] T071 [US7] Fill `PlayerEndpoint`'s `POST /{playerId}/erasure`, `POST /{playerId}/exports`,
       `GET /{playerId}/exports/{exportId}` and `OperatorEndpoint`'s `POST /players/{playerId}/erasure`,
       `GET /players/{playerId}/erasure` (the certificates), `POST /players/{playerId}/activity-export`,
       `GET /exports/{exportId}`, `GET /players/{playerId}/erasure` (contracts/routes.md: the
       workflow's state and certificates; `404 erasure_not_found`); T067–T069 green
+      *Done 2026-10-25.* In `api/ErasureRoutes.scala`; the service's own `POST /erasure/players/{id}` and `GET /exports/players/{id}` admit `players` by name.
 
 **Checkpoint**: an erasure is filed, held, applied everywhere with certificates and the realm user
 removed; an export carries every part and names a silent one; nothing personal is readable after;

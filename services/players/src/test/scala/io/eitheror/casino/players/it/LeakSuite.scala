@@ -6,6 +6,7 @@ import io.eitheror.casino.contract.personal.PersonalFields
 import io.eitheror.casino.players.Json
 
 import java.util.UUID
+import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /**
@@ -93,3 +94,50 @@ class LeakSuite extends munit.FunSuite:
     assertNowhere(m.all, audit)
     assertNowhere(Seq(m.password), tables)
   }
+
+  /** The tables the named gap covers until ankka 042 (research R8): the journal's earlier events and their snapshots. */
+  val JournalGap: Set[String] = Set("event_journal", "snapshot")
+
+  test("T069: before erasure no marker in the log or the audit; after it none in any table outside the journal, view row, later fact, operator answer") {
+    val m = Markers()
+    val r = kit.register("email" -> m.address, "password" -> m.password, "displayName" -> m.displayName, "firstName" -> m.givenName,
+      "lastName" -> m.familyName, "dateOfBirth" -> m.dateOfBirth, "deviceFingerprint" -> m.fingerprint)
+    assertEquals(r.status, 201, r.text)
+    val id = r.str("playerId")
+    assertEquals(kit.verify(m.address).status, 200)
+    val signIn = kit.json("POST", kit.playerPath("/login"), Json.obj("email" -> m.address, "password" -> m.password),
+      kit.asVisitor ++ Seq("X-Forwarded-For" -> m.network, "User-Agent" -> m.userAgent))
+    assertEquals(signIn.status, 200, signIn.text)
+    val token = signIn.str("token")
+    assertEquals(kit.request("PATCH", kit.playerPath(s"/$id"), Some(Json.render(Json.obj("phone" -> m.telephone, "bankAccount" -> m.bankAccount))),
+      kit.asToken(token)).status, 200)
+    def op(method: String, path: String, body: String = "{}") = kit.request(method, kit.operatorPath(path), Some(body), kit.asOperator())
+    assertEquals(op("POST", s"/players/$id/notes", Json.render(Json.obj("content" -> m.noteText))).status, 201)
+    assertEquals(op("POST", s"/players/$id/messages", Json.render(Json.obj("category" -> "service", "bodyTemplate" -> m.messageBody))).status, 201)
+    kit.eventually("the message listed")(io.eitheror.casino.players.inbox.MessagesView.ofPlayer(kit.views, id, 0, 10).headOption)
+    Thread.sleep(1000)
+    assertNowhere(m.all, log)
+    assertNowhere(m.all, audit)
+
+    assertEquals(op("POST", s"/players/$id/close").status, 200)
+    assertEquals(op("POST", s"/players/$id/erasure").status, 202)
+    val factsBefore = topics.map(t => t.name -> kit.factTexts(t).size).toMap
+    kit.advance(java.time.Duration.ofDays(io.eitheror.casino.players.erasure.ErasureWorkflow.DefaultRetentionDays.toLong + 1))
+    kit.eventually("erased", 20.seconds)(Option.when(
+      io.eitheror.casino.players.erasure.ErasureWorkflow.stateOf(kit.components, id).step == io.eitheror.casino.players.erasure.ErasureFlow.Erased)(()))
+    kit.eventually("the views erased")(io.eitheror.casino.players.player.PlayersView.one(kit.views, id).filter(_.primaryEmail.reveal.isEmpty))
+    Thread.sleep(1500)
+
+    val answers: Places = Vector("profile", "crm", "messages", "activity", "sessions", "wallet").map(r =>
+      s"operator $r" -> Vector(kit.request("GET", kit.operatorPath(s"/players/$id/$r"), None, kit.asOperator()).text))
+    val later: Places = topics.map(t => s"facts on ${t.name} after the erasure" -> kit.factTexts(t).drop(factsBefore(t.name)))
+    val (gap, rest) = tables.partition((place, _) => JournalGap.exists(t => place == s"table $t"))
+    assertNowhere(m.personal, answers ++ later)
+    // a bytea column (durable_state's payload) reads as hex in a row's text, so the tables are searched both ways
+    assertNowhere(m.personal ++ m.personal.map(v => java.util.HexFormat.of().formatHex(v.getBytes("UTF-8"))), rest)
+    // the named gap (R8): the journal still holds the earlier events; this flips when ankka 042 lands
+    // the payload is bytea, which a row's text shows as hex
+    val hex = java.util.HexFormat.of().formatHex(m.givenName.getBytes("UTF-8"))
+    assert(gap.exists(_._2.exists(_.contains(hex))), "the journal no longer holds the earlier events: ankka 042 has landed; flip this")
+  }
+
