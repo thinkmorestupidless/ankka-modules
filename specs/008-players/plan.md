@@ -190,7 +190,7 @@ services/players/                               # ankka init; one sbt build; dep
 │   ├── inbox/                                  # MessageEntity, MessagesView, MergeTags, NoteEntity, NotesView
 │   ├── erasure/                                # ErasureWorkflow, ExportWorkflow, the Erasure/Export client traits
 │   ├── config/                                 # BrandConfigEntity, CurrencyConfigEntity, AllowListEntity
-│   ├── reads/                                  # WalletSummaryView, RecentlyPlayedView, ActivityView
+│   ├── reads/                                  # WalletSummaryView; ActivityEntry, RecentlyPlayed, their five consumers and two views
 │   ├── facts/                                  # PlayersPublisher, SessionsPublisher, AuditPublisher, RgLimitsConsumer, KycFactsConsumer, WithdrawalsConsumer, PushDeliveredConsumer, RewardsConsumer
 │   ├── realm/                                  # Realm (trait + Keycloak), Tokens (verification), the webhook body
 │   ├── clients/                                # Rg, Kyc, Engagement, Ingest, Geo (traits + HTTP), Bound
@@ -224,7 +224,7 @@ with a fallback:
   the template gains the mapper, R13);
 - `player_registered` in the contract already types `click_id` and `bonus_code` (fallback: added,
   additive);
-- a 0.13 view takes several topic sources (fallback: one `ActivityView` per source, R11);
+- a 0.13 keyed view reads entities only, so the activity and recently played are a consumer per topic into an entity and a plain view over it (R11, corrected at T025);
 - the realm's `user-sessions` listing for `casino-frontend` returns the session ids the webhook names
   (fallback: the reconciler keys on user id and start time, as the original does on a miss).
 

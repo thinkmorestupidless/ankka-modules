@@ -275,12 +275,19 @@ one source per view, merged by time in the route; the task checks `views.md`). T
 and emails from `PlayerEntity` queries (read your own write); the operator's profile read is the
 same query.
 
-**Checked at T016 (2026-10-25)**: a 0.13 `KeyedView` takes several sources, topics among them
-(`KeyedView.Companion.source`, one handler per source), so `ActivityView` is one keyed view over the
-five topics and `SessionsView` one over both session entities. A keyed view is one writer across the
-service, which the activity's rate allows. Activity rows are keyed by topic, record key and offset, so
-a redelivered fact rewrites its own row. Every topic source reads through a lenient serializer that
-skips a family newer than this service's contract.
+**Checked at T016, corrected at T025 (2026-10-25)**: the keyed view's test kit takes topic sources,
+but the 0.13 runtime refuses a keyed view that reads a topic ("a keyed view reads entities, and a view
+of a topic is a plain view"; ankka `build/views.md`), and a plain view of a topic keys its row by the
+message's subject, so it cannot hold one row per fact. So each topic has a consumer that writes the
+facts' lines into a key value entity of this service, and a plain view reads that entity's state:
+`MoneyActivity`, `RoundsActivity`, `RewardsActivity`, `PlayersActivity` and `SessionsActivity` write
+`ActivityEntry` (id = topic, record key and offset, so a redelivered fact records nothing new), and
+`ActivityView` reads it; `RoundsActivity` also touches `RecentlyPlayed` (id = player and game, the
+later time kept), which `RecentlyPlayedView` reads. The mapping is the pure `ActivityLines`.
+`SessionsView` stays one keyed view over the two session entities. Constitution IV holds: the service
+folds other services' facts into state of its own. Erasure deletes a player's `ActivityEntry` and
+`RecentlyPlayed` entities, found through the two views. Every topic source reads through a lenient
+serializer that skips a family newer than this service's contract.
 
 **Rationale**: the operator's list and search are questions over many players; the inbox is many
 messages; the activity is other services' facts (constitution IV: a reader builds its own view).

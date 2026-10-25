@@ -179,8 +179,8 @@ with per-currency settings. `AllowList`: `countries: Set[String]` (empty = all).
 | `NotesView` | `NoteEntity` | `noteId`, `playerId`, `pinned`, `createdAt`, `author` | by player, pinned first |
 | `FraudCasesView` | `FraudCaseEntity` | `caseId`, `playerIds`, `signals`, `status`, `openedAt` | open cases; by player |
 | `WalletSummaryView` | `money.transactions`, `StartFrom.Earliest` | `playerId`, `currency`, `realBalanceAfter`, `restrictedBalanceAfter`, `lastMovementAt` | by player (FR-034) |
-| `RecentlyPlayedView` | `casino.rounds`, `StartFrom.Earliest` | `playerId`, `gameId`, `lastPlayedAt` | by player, newest first (FR-029) |
-| `ActivityView` | `money.transactions`, `casino.rounds`, `casino.rewards`, `casino.players` (account families), `casino.sessions`; one view per source if 0.13 takes one | `playerId`, `at`, `category` (`transactions` \| `games` \| `bonus` \| `account` \| `rg`), `summary`, `factId` | by player and category, paged (FR-029, FR-034); never notes or messages |
+| `RecentlyPlayedView` | the `RecentlyPlayed` entity's state (`<player>/<game>`), written by `RoundsActivity` from `casino.rounds`, `StartFrom.Earliest` | `playerId`, `gameId`, `lastPlayedAt` | by player, newest first (FR-029) |
+| `ActivityView` | `money.transactions`, `casino.rounds`, `casino.rewards`, `casino.players` (account families), `casino.sessions`, each through its consumer into an `ActivityEntry` (R11, corrected at T025); the view reads the entity's state | `playerId`, `at`, `category` (`transactions` \| `games` \| `bonus` \| `account` \| `rg`), `summary`, `factId` | by player and category, paged (FR-029, FR-034); never notes or messages |
 
 ## Invariants
 

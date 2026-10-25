@@ -28,8 +28,8 @@ class SettingsSuite extends munit.FunSuite:
       "PLAYER_SITE_BASE" -> "https://goldvibe.example", "INGEST_URL" -> "http://ingest", "REALM_RECONCILE_INTERVAL" -> "1s",
       "VERIFICATION_VALIDITY" -> "1h", "VERIFICATION_RESEND_INTERVAL" -> "1m", "MAY_LOG_IN_BOUND" -> "100ms",
       "REALM_ANSWER_BOUND" -> "50ms", "SESSION_END_BOUND" -> "2s", "EXPORT_PART_BOUND" -> "3s", "EXPORT_RETENTION" -> "2h",
-      "REGISTRATION_BOUND" -> "4s")).toOption.get
-    assertEquals(s, Settings("goldvibe", true, "http://kc:8080", "https://goldvibe.example", Some("http://ingest"),
+      "REGISTRATION_BOUND" -> "4s", "GEO_URL" -> "http://geo/")).toOption.get
+    assertEquals(s, Settings("goldvibe", true, "http://kc:8080", "https://goldvibe.example", Some("http://ingest"), "http://geo",
       Duration.ofSeconds(1), Duration.ofHours(1), Duration.ofMinutes(1), Duration.ofMillis(100), Duration.ofMillis(50),
       Duration.ofSeconds(2), Duration.ofSeconds(3), Duration.ofHours(2), Duration.ofSeconds(4)))
   }

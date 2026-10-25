@@ -362,7 +362,7 @@ parity task and can run the moment T005 and the original's stack are up.
       *Done 2026-10-25.* `FakeRealm.scala` (T020) and the rest in `it/Fakes.scala` over a `KnobbedServer`
       base (`silent`, `delayMillis`); `FakeGeo` stands in for ip-api.com. `FakesMain` uses 9010–9017: the
       eight fakes need eight ports.
-- [ ] T023 Write `p-test/it/Kit.scala` and `SharedKit.scala` after `i-test/it/Kit.scala`:
+- [X] T023 Write `p-test/it/Kit.scala` and `SharedKit.scala` after `i-test/it/Kit.scala`:
       `AnkkaTestKit.start` over throwaway Postgres with the fakes under `localServices`
       (`responsible-gambling`, `kyc`, `engagement`, `ingest`, `wallet`, `merchant`, `vendor-agent`),
       `InMemoryBroker` for `casino.players`, `casino.sessions`, `platform.audit`, `money.transactions`,
@@ -372,7 +372,10 @@ parity task and can run the moment T005 and the original's stack are up.
       `signIn(address)`, `playerToken(playerId)`, `staffToken(roles)`, `serviceToken(name)`,
       `facts(topic)`, `eventually`, `realm` (the `FakeRealm`), `rows(view)`, `tables` (every table's
       text for `LeakSuite`), `log` (the captured appender)
-- [ ] T024 Implement `p/PlayersService.scala` (`Ankka.service.registerAll` of every entity, view,
+      *Done 2026-10-25.* The verifier stand-in accepts a token `FakeRealm` signed (issuer `player`,
+      subject the `eitheror_twin_id`) and `staff|<subject>|<roles>`; the six secrets go in the service's
+      store after start. `merchant` resolves to `FakeWallet` for its erasure and export routes.
+- [X] T024 Implement `p/PlayersService.scala` (`Ankka.service.registerAll` of every entity, view,
       consumer, workflow and timed action, `ProjectionRuntime.fromEnv()`, `TimerRuntime`, the
       `realm-reconcile` recurring timer and the HTTP server with the six endpoints, `started(timers,
       settings)` as merchant's; `InMemoryBroker` when `ANKKA_KAFKA_BOOTSTRAP_SERVERS` is unset) and
@@ -385,12 +388,22 @@ parity task and can run the moment T005 and the original's stack are up.
       answering `501` until its story fills it; `p/api/Answers.scala` (the refusal body
       `{error, message, …}` with contracts/wire.md's texts; the 401s of 001 FR-020); the slug from
       `CASINO_BRAND` at start; `sbt compile` green; the service starts against the compose file
-- [ ] T025 Write `p-test/it/SmokeSuite.scala` on `SharedKit` (`beforeAll` starts the kit, as
+      *Done 2026-10-25.* Seven endpoints, not six: contracts/routes.md adds `ModulesEndpoint` (spec 021).
+      The geo lookup is whole (it is one call). `Neighbours` builds every client from a context's service
+      clients and secret store; the realm and the lookup are one per process. `RealmReconcile` is
+      registered and scheduled and only reads the realm's sessions until US2's task fills it.
+      **Found at T025 and fixed**: the runtime refuses a keyed view reading a topic (the test kit had
+      allowed it), so the activity and recently played are now a consumer per topic into an entity and a
+      plain view over it (R11 corrected); and `by-id` is a reserved query name (now `one-player`,
+      `one-case`). Starting against the compose file is T028's.
+- [X] T025 Write `p-test/it/SmokeSuite.scala` on `SharedKit` (`beforeAll` starts the kit, as
       psp-gateway's): the service registers every component plan.md's table names (the descriptor
       listed); each endpoint prefix answers (`401`/`501`, not `404`); a `Registered` event reaches
       `PlayersView`; a `player_registered` fact reaches the broker; the `realm-reconcile` timer has
       fired once within 3 s (`FakeRealm.received(liveSessions)`); `GeoEndpoint` answers `null`s when
       `FakeGeo` is silent
+      *Done 2026-10-25.* Plus a settled round reaching both plain views, and another brand's player
+      token refused `403` on the player routes.
 - [ ] T026 [P] Write `p-test/port/Parity.scala` (the replay over `contract.port.Replay.run` through
       `WireTranslation`; `divergences` as a named list, empty until each story names its own;
       `vary` fields compared for presence; `setup:`/`observe:` steps run, not compared),

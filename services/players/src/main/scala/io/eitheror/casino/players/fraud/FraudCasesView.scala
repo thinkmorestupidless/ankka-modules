@@ -34,7 +34,7 @@ object FraudCasesView extends View.Companion[FraudCasesViewRows, FraudCaseEvent,
   val byPlayer: DeclaredQuery = query("by-player")(
     s"SELECT payload FROM $table WHERE COALESCE(payload::jsonb->'playerIds', '[]'::jsonb) @> jsonb_build_array(CAST(:player AS text)) ORDER BY $opened DESC, row_key ASC")
 
-  val byId: DeclaredQuery = query("by-id")(s"SELECT payload FROM $table WHERE row_key = :id")
+  val byId: DeclaredQuery = query("one-case")(s"SELECT payload FROM $table WHERE row_key = :id")
 
   def withStatus(views: ViewClient, status: Option[String], limit: Int = 1000): Vector[FraudCaseRow] =
     views.forView(FraudCasesView).ask(byStatus, limit, "status" -> status.fold("")(_.toLowerCase))

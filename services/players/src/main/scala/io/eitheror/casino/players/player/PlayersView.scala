@@ -85,7 +85,7 @@ object PlayersView extends View.Companion[PlayersViewRows, PlayerEvent, PlayerRo
     s"SELECT payload FROM $table WHERE (LOWER(COALESCE(payload::jsonb->>'displayName', '')) LIKE :q " +
       s"OR LOWER(COALESCE(payload::jsonb->>'primaryEmail', '')) LIKE :q OR row_key = :id) ORDER BY $at DESC, row_key ASC")
 
-  val byId: DeclaredQuery = query("by-id")(s"SELECT payload FROM $table WHERE row_key = :id")
+  val byId: DeclaredQuery = query("one-player")(s"SELECT payload FROM $table WHERE row_key = :id")
 
   final case class Filter(status: Option[String] = None, tier: Option[String] = None, flagged: Option[Boolean] = None)
 
