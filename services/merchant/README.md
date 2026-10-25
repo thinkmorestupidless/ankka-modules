@@ -41,7 +41,7 @@ The pure rules are their own packages, each with the original's cases: `routing/
 
 ## The routes
 
-One endpoint per prefix (ankka 0.11 refuses two sharing one), each route's audience its ACL. The service
+One endpoint per prefix (ankka refuses two sharing one), each route's audience its ACL. The service
 is exposed for its operator routes and `accept-invitation`; every other route refuses a token.
 
 | Prefix | Audience |

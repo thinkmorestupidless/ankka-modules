@@ -3,7 +3,7 @@
 // ankka's libraries come from Maven Central (or ~/.ivy2/local while the platform is being
 // developed). The same version is declared in service.json as `runtime`: change both together
 // when upgrading — see README.md, "Upgrading ankka".
-val ankkaVersion = "0.11.0"
+val ankkaVersion = "0.13.0"
 
 // The service name is also the image name, the descriptor's name, and — once exposed — the first
 // label of the hostname, so it has to be one Kubernetes and DNS accept. Checked here so that a

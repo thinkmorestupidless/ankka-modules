@@ -14,7 +14,7 @@ class Spec001RenderSuite extends munit.FunSuite:
   test("one descriptor per service, at the image and runtime the manifest pins") {
     assertEquals(plan.descriptors.map(_.name), brand.services.map(_.name))
     plan.descriptors.foreach { d =>
-      assertEquals(d.service.runtime, Some("0.11.0"))
+      assertEquals(d.service.runtime, Some("0.13.0"))
       assert(d.service.image.endsWith(":0.1.0"))
       assertEquals(d.problems, Vector.empty, d.name)
     }

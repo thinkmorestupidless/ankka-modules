@@ -47,7 +47,7 @@ class AccessSuite extends munit.FunSuite:
         .getOrElse(Fixtures.brand("goldvibe").copy(slug = brand))
       val env = Render.descriptor(manifest, ServicePin("sample-service", "sample-service:latest")).service.env
       cp.apply(brand, ServiceDescriptor("sample-service", ServiceSpec("sample-service:latest", env = env :+ EnvVar("CASINO_BRAND", Some(brand)),
-        runtime = Some("0.11.0"), database = Some("none"))))
+        runtime = Some("0.13.0"), database = Some("none"))))
       cp.expose(brand, "sample-service")
       Thread.sleep(60000)
 

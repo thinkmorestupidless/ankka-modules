@@ -14,7 +14,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/support-agent:0.0.0",
         "expose": true,
-        "runtime": "0.11.0",
+        "runtime": "0.13.0",
         "env": [
           {
             "name": "CASINO_PROJECT",

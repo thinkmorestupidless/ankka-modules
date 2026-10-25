@@ -1,6 +1,6 @@
 package io.eitheror.casino.modules
 
-import com.thinkmorestupidless.ankka.controlplane.api.*
+import com.thinkmorestupidless.ankka.controlplane.api.{GrantRequest as _, *}
 
 import scala.collection.mutable
 

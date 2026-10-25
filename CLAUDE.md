@@ -67,7 +67,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
   `contract.access.Routes`, money only through `contract.money`, facts only through `contract.facts`.
   `just service <name> <sbt task>` publishes the contract and runs the task in that build;
   `services/game-provider/` is the first (its `README.md` has the components and the suites). Its
-  integration suites need Docker. In ankka 0.11 a route takes at most two path parameters and no two
+  integration suites need Docker. In ankka (0.13) a route takes at most two path parameters and no two
   endpoints may share a prefix, so a service groups its endpoints by prefix and sets each route's
   audience with `withAcl`.
 - The module model (spec 021, decision 0055): a brand project runs `core` and the modules its

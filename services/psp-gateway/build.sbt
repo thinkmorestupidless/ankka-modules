@@ -3,7 +3,7 @@
 // One sbt build of its own, as every service under services/ is (spec 001): it depends on the
 // published contract (`sbt contract/publishLocal` at the repository root first) and on ankka.
 // The same ankka version is service.json's `runtime`; change both together.
-val ankkaVersion = "0.11.0"
+val ankkaVersion = "0.13.0"
 val serviceName  = "psp-gateway"
 // The root build's `version`; a mismatch resolves nothing in CI, where only this commit's is published.
 val contractVersion = "0.2.0-SNAPSHOT"

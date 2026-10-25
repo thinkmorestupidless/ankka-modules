@@ -2,7 +2,7 @@
 
 A brand's ledger (spec 002): every player's money, one wallet per player and currency, and the facts
 `money.transactions` and `payments.payments` that every other service reads instead of keeping a
-balance of its own (constitution II). An ankka 0.11 service in Scala, one sbt build.
+balance of its own (constitution II). An ankka 0.13 service in Scala, one sbt build.
 
 ## What it is
 

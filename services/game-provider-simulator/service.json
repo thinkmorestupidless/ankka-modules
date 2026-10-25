@@ -2,6 +2,6 @@
   "name": "game-provider-simulator",
   "service": {
     "image": "game-provider-simulator:latest",
-    "runtime": "0.11.0"
+    "runtime": "0.13.0"
   }
 }
