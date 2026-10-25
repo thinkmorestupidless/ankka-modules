@@ -43,8 +43,8 @@ Feature: A player's data is erased and the erasure response assembled
   Scenario: a player's export carries everything the brand holds, each service's part named
     Given a player with sessions, deposits, bets and a reviewed document
     When the player asks for their export
-    Then it carries their profile, consents, sessions, activity and messages
-    And the wallet's transactions, the payments and the document records without the images
+    Then it carries their profile, consents, sessions, activity and inbox items
+    And the wallet's transactions, the payments and the document records, not the documents
     And no operator note
 
   Scenario: a service that does not answer the export is named as missing, not left out
