@@ -273,6 +273,12 @@ Research R18's table, with what demonstrates each.
 | Erasure as a workflow with a hold and certificates; the export fans out | FR-038 to FR-040 | `ErasureSuite`, `LeakSuite`; `erasure.feature`; no recording (the original has neither) |
 | The operator block moves under `/v1/casino/backoffice/<slug>`; `me` paths carry the id | R14; 0.13's route limits | `WireTranslation`; every recorded operator and `me` path replays through it |
 | Health is the runtime's readiness, not `/health` | ankka runtime | `Parity.divergences` on any recorded `/health` step |
+| A password below the realm's policy is `422 password_too_weak` (the original: `503`, its mapping of Keycloak's error a bug) | FR-001 | the driver's weak-password recording, marked (T029, 2026-10-26) |
+| A `closed` player is refused sign-in and game sessions by `players` (the original refuses three statuses; a real closure disables the realm user) | FR-011, FR-018 | the driver's closed sign-in and game-session recordings, marked |
+| Refresh tokens rotate; a reused one is `refresh_expired` (the original's realm leaves rotation off) | FR-014 | the driver's `[reused]` recording, marked; `RealmPlayersSuite` in the modules tool |
+| Sign-out, a suspension and a revoke end the realm's session, awaited; the refresh after is `refresh_expired` (the original's revoke is fire-and-forget and does not take) | FR-014, FR-032 | the driver's sign-out, `[revoked]` and suspension recordings, marked |
+| A verified second address made the sign-in address is the one the realm signs in (the original keeps the old) | FR-026 | the driver's recording, marked |
+| An operator with no standing at the brand is `403` (the original: `401`, the token invalid to it) | 001 FR-020 | the driver's outsider recording, marked |
 
 ## What the next command needs to know
 

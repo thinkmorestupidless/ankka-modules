@@ -1,0 +1,156 @@
+{
+  "scenario": "a country the brand does not allow is refused and nothing changes",
+  "requirement": "008/FR-024",
+  "recorded_at": "2026-10-26T23:22:29.492315Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "ae21b3ac-5e92-34c1-a7fe-3a13b7031887",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": null,
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "ae21b3ac-5e92-34c1-a7fe-3a13b7031887",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "set a country the brand does not allow",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/players/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "XX"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "invalid_country"
+        }
+      }
+    },
+    {
+      "name": "read the profile",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "currency": "EUR",
+          "email": "a-country-the-brand-does-not-allow-is-re-email-2d4039a4@example.test",
+          "kyc_check_deadline_at": "2026-11-25T23:22:29.577590850Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_login_at": "2026-10-26T23:22:29.763685884Z",
+          "marketing_consent": "false",
+          "registered_at": "2026-10-26T23:22:29.577590850Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "a-country-the-brand-does-not-allow-is-re-email-2d4039a4@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    }
+  ]
+}

@@ -29,6 +29,12 @@ class RealmPlayersSuite extends munit.FunSuite:
     assert(r.path("eventsListeners").elements().asScala.exists(_.asText() == "eitheror-audit-listener"))
   }
 
+  test("refresh tokens rotate: the template leaves it off, players' realm refuses a reused one") {
+    assert(!mapper.readTree(rendered).path("revokeRefreshToken").asBoolean())
+    val r = mapper.readTree(Realm.withPlayers(rendered, None, Map.empty))
+    assertEquals((r.path("revokeRefreshToken").asBoolean(), r.path("refreshTokenMaxReuse").asInt(-1)), (true, 0))
+  }
+
   test("an admin secret given as {clientId, clientSecret} sets the client's secret; none leaves it to Keycloak; a second pass adds no second client") {
     val json = Realm.withPlayers(rendered, None, Map("REALM_ADMIN" -> """{"clientId":"players-admin","clientSecret":"inner"}"""))
     def admins(j: String) = mapper.readTree(j).path("clients").elements().asScala.filter(_.path("clientId").asText() == Realm.PlayersAdmin).toVector

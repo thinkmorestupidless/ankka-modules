@@ -1,0 +1,293 @@
+{
+  "scenario": "a player reading their sessions sees their own and nobody else's",
+  "requirement": "008/FR-021",
+  "recorded_at": "2026-10-26T23:22:27.387794Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "5b7ea461-31a2-33d5-87f2-9e056b268f4c",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "5b7ea461-31a2-33d5-87f2-9e056b268f4c",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: register the other player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{otherEmail}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "a1bd2c73-ddc5-3594-bbe6-90ae3d8fa4c0",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "otherPlayerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the other player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{otherLink}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the other player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{otherEmail}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "a1bd2c73-ddc5-3594-bbe6-90ae3d8fa4c0",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "otherToken": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: open the player's game session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/sessions/spinvibe/launch",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "gameId": "players-driver-game",
+          "playerId": "{playerId}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "gameUrl": "http://localhost:30096/game?token=2c36cb3f-3543-4d11-a28d-5e758fa6e376",
+          "launchToken": "2c36cb3f-3543-4d11-a28d-5e758fa6e376",
+          "sessionId": "7170ea9a-1d30-4866-888f-972e44875349"
+        }
+      },
+      "capture": {
+        "sessionId": "$.sessionId"
+      },
+      "vary": {
+        "$.gameUrl": "differs between two runs of the original",
+        "$.launchToken": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: open the other player's game session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/sessions/spinvibe/launch",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {otherToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "gameId": "players-driver-game",
+          "playerId": "{otherPlayerId}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "gameUrl": "http://localhost:30096/game?token=5f0c0a63-f696-4158-813c-3115acab0669",
+          "launchToken": "5f0c0a63-f696-4158-813c-3115acab0669",
+          "sessionId": "9abdd019-2b9b-4911-9893-a46a30835f06"
+        }
+      },
+      "capture": {
+        "otherSessionId": "$.sessionId"
+      },
+      "vary": {
+        "$.gameUrl": "differs between two runs of the original",
+        "$.launchToken": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the sessions",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/sessions/spinvibe?playerId={playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "sessions": [
+            {
+              "endedAt": null,
+              "gameId": "players-driver-game",
+              "lastBetAt": null,
+              "launchedAt": "2026-10-26T23:22:27.927570267Z",
+              "sessionId": "7170ea9a-1d30-4866-888f-972e44875349",
+              "status": "active"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.sessions[0].launchedAt": "differs between two runs of the original",
+        "$.sessions[0].sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the other player's session",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/sessions/spinvibe/{otherSessionId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "error": "session_not_found"
+        }
+      }
+    }
+  ]
+}

@@ -11,6 +11,14 @@ class WireTranslationSuite extends munit.FunSuite:
   private val ctx = Context("goldvibe", Some("p-1"))
   private def path(method: String, p: String) = WireTranslation.path(method, p, ctx)
 
+  test("a path recorded at the original's brand is served at the replay's") {
+    assertEquals(path("POST", "/v1/casino/players/spinvibe/register"), "/v1/casino/players/goldvibe/register")
+    assertEquals(path("GET", "/v1/casino/sessions/spinvibe?playerId=p-2"), "/v1/casino/sessions/goldvibe/players/p-2")
+    assertEquals(path("PATCH", "/v1/casino/spinvibe/players/p-2/suspend"), "/v1/casino/backoffice/goldvibe/players/p-2/suspend")
+    assertEquals(path("GET", "/v1/casino/backoffice/spinvibe/fraud-cases?status=OPEN"), "/v1/casino/backoffice/goldvibe/fraud-cases?status=OPEN")
+    assertEquals(path("GET", "/v1/casino/brands/spinvibe/merge-tags"), "/v1/casino/backoffice/goldvibe/merge-tags")
+  }
+
   test("/me/ routes name the player") {
     assertEquals(path("GET", "/v1/casino/players/goldvibe/me/activity-history?page=2"), "/v1/casino/players/goldvibe/p-1/activity-history?page=2")
     assertEquals(path("GET", "/v1/casino/players/goldvibe/me/recently-played"), "/v1/casino/players/goldvibe/p-1/recently-played")

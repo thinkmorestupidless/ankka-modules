@@ -2,11 +2,57 @@ package main
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/eitheror-io/ankka-casino/tests/original/recorder"
 )
+
+func TestADriversSubtestResultIsItsScenariosAndASecondMergeAddsToTheServicesResults(t *testing.T) {
+	dir := t.TempDir()
+	first := map[string]recorder.Recording{"a": {Scenario: "a closed player's sign-in is refused", Service: "players"}}
+	// the driver's offline check names its subtest after the scenario too, and runs first
+	events := filepath.Join(dir, "run.json")
+	lines := `{"Action":"pass","Test":"TestEveryScenarioRecordsNoCredential/a_closed_player's_sign-in_is_refused"}
+{"Action":"fail","Test":"TestPlayers/a_closed_player's_sign-in_is_refused"}
+{"Action":"fail","Test":"TestPlayers"}
+`
+	if err := os.WriteFile(events, []byte(lines), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := results(events)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := writeResults(dir, first, r, r); err != nil {
+		t.Fatal(err)
+	}
+	second := map[string]recorder.Recording{"b": {Scenario: "TestScenario18_X", Service: "players"}}
+	s18 := map[string]string{"TestScenario18_X": "pass"}
+	if err := writeResults(dir, second, s18, s18); err != nil {
+		t.Fatal(err)
+	}
+	read := func(service string) map[string][2]string {
+		b, err := os.ReadFile(filepath.Join(dir, service, "suite-result.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := map[string][2]string{}
+		if err := json.Unmarshal(b, &out); err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	players, suite := read("players"), read("_suite")
+	if players["a closed player's sign-in is refused"] != [2]string{"fail", "fail"} || players["TestScenario18_X"] != [2]string{"pass", "pass"} {
+		t.Fatalf("players: %v", players)
+	}
+	if _, sub := suite["TestPlayers/a_closed_player's_sign-in_is_refused"]; sub || suite["TestPlayers"] != [2]string{"fail", "fail"} || suite["TestScenario18_X"] != [2]string{"pass", "pass"} {
+		t.Fatalf("_suite: %v", suite)
+	}
+}
 
 func step(path, req, resp string) recorder.Step {
 	return recorder.Step{Request: recorder.Request{Method: "GET", Path: path, Body: json.RawMessage(req)}, Response: recorder.Response{Status: 200, Body: json.RawMessage(resp)}}

@@ -429,7 +429,7 @@ parity task and can run the moment T005 and the original's stack are up.
       scenario pending; `LeakSuite`'s registration case passes against the shells (nothing leaks
       from a `501`); `CoverageSuite` names plan.md's divergences as unhit
       *Done 2026-10-25. `sbt test`: 138 passed, 92 ignored. The service also starts locally (`sbt run` against compose Postgres, the player issuer set as `just players-run` does): every component registers, geo answers nulls with no geo service, a register answers `501`, `/me` without a token `401`, and the reconciler runs and logs the realm unavailable when its secret is missing. Compose Keycloak was skipped: port 8080 is held by the kind control-plane ingress.*
-- [ ] T029 Run the recording: the original's KinD stack up (`tests/original/README.md`;
+- [X] T029 Run the recording: the original's KinD stack up (`tests/original/README.md`;
       `kubectl --context kind-…` only), `tests/original/preflight -players`, `go test -tags e2e
       ./original/players-driver/...` twice, `tests/original/recorder` over the four
       `TestScenario18_MultiAccountDetection_*` tests (or their recordings moved from
@@ -439,6 +439,7 @@ parity task and can run the moment T005 and the original's stack are up.
       which scenarios the original could not show (research R1) and the four Scenario 18 recordings;
       `tests/port/README.md` gains the `players` directory. Needs T005, the original's stack and Docker;
       gates T034, T041, T048, T055, T063, T071, T077
+      *Done 2026-10-26.* From the original at `a78decf1` on its own KinD stack, twice, on fresh ids: 57 driver recordings (48 `pass`, 9 `fail` on both runs) and the original's three `TestScenario18_MultiAccountDetection_*` (`pass`; the suite has three, not four; `IdentityMatch`'s unconditional skip lifted locally), moved into `tests/port/players` with `008/FR-036` and `008/FR-037`. `just modules recordings check`: 287, 0 problems. `tests/port/players/README.md` names the commit, the date, the run's differences from `tests/original/README.md` (ports, `casino-backoffice`, psp-stub on the host, MinIO not pulled) and the nine `fail`s, each traced to the original's code; plan.md's *Divergences* gains six rows. Found on the way: the driver expected `200` for a password change (the original and the port answer `202`), corrected and both runs made again; `merge` replaced a service's `suite-result.json` and could not find a driver's subtest results, both fixed with a test; `WireTranslation` now serves a recorded brand at the replay's; refresh-token rotation added to `Realm.withPlayers` (the original's realm accepts a reused token).
 
 **Checkpoint**: `sbt compile test` green for T006–T028; `ParitySuite` lists one test per recording
 once T029 has run, every one failing against the shells.
@@ -493,7 +494,7 @@ registration recordings.
       Scenario 18 registrations as failing; name in `p-test/port/Parity.scala` the divergences that
       hold on them (`playerId` presence-only; `400 missing_fields` for the plain-text `400`;
       `trackingContext.btag` translated). Needs T029
-      *Open 2026-10-25: blocked on T029's recordings. The divergences to name: the minted `playerId` (the original derives it from the address) compared for presence, and `missing_fields` for the original's `{"error": "email, password, and currency are required"}`.*
+      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet. *Earlier:* The divergences to name: the minted `playerId` (the original derives it from the address) compared for presence, and `missing_fields` for the original's `{"error": "email, password, and currency are required"}`.*
 
 ### Implementation for User Story 1
 
@@ -581,7 +582,7 @@ it.
 - [ ] T040 [US2] Confirm `ParitySuite` lists the driver's sign-in, refresh, sign-out and webhook
       recordings as failing; name the divergences in `Parity.scala` (the token values `vary`; the
       webhook path translated; `401 unauthenticated` for the rejection page). Needs T029
-      *Open 2026-10-25:* waits on T029 (the recordings).
+      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
 
 ### Implementation for User Story 2
 
@@ -654,7 +655,7 @@ scenarios; the driver's launch and end recordings.
       name the divergences (`/launch` recorded on the original's sessions route replays through
       `ServiceEndpoint`'s `POST /{playerId}/game-sessions` with a service token, the translation
       named; `?playerId=` translated). Needs T029
-      *Open 2026-10-25:* waits on T029 (the recordings).
+      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
 
 ### Implementation for User Story 3
 
@@ -728,7 +729,7 @@ email, consent and cookie recordings.
 - [ ] T051 [US4] Confirm `ParitySuite` lists the driver's profile, email, password, consent and
       cookie recordings as failing; name the divergences (`/me/` and `/emails` paths translated;
       `{email}` placeholders). Needs T029
-      *Open 2026-10-25:* waits on T029 (the recordings).
+      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
 
 ### Implementation for User Story 4
 
@@ -821,7 +822,7 @@ reinstate, tier, close, note and message recordings.
 - [ ] T058 [US5] Confirm `ParitySuite` lists the driver's suspend, reinstate, tier, close, note,
       message and merge-tag recordings as failing; name the divergences (the operator block's paths
       translated to `/backoffice/`). Needs T029
-      *Open 2026-10-25:* waits on T029 (the recordings).
+      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
 
 ### Implementation for User Story 5
 
@@ -893,7 +894,7 @@ recordings and the driver's fraud-case review recording.
       each) and the driver's fraud-case review recording as failing; name the divergences (the
       `observe:` twin reads not compared; the `409 SUSPECTED_DUPLICATE` of the bonus grant is 011's
       and the step is `observe:`). Needs T029
-      *Open 2026-10-25:* waits on T029 (the recordings).
+      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
 
 ### Implementation for User Story 6
 

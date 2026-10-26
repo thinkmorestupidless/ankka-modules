@@ -238,14 +238,19 @@ in the original's `eitheror` realm, and fetching their tokens, is done by hand.
 
 ```bash
 cd tests
-go run ./original/preflight -original <the original's checkout> -register http://localhost:8085 -brand spinvibe
+go run ./original/preflight -original <the original's checkout> -register http://localhost:8091 -brand spinvibe
 for run in 1 2; do
   EITHEROR_RECORD_TO=/tmp/players-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
     go test -tags e2e -count=1 -json ./original/players-driver/... \
-      -args -casino-url http://localhost:8085 -keycloak-url http://localhost:8080 -substrate-url http://localhost:8082 \
-      -brand spinvibe -operator-user <an operator of the brand> -outsider-user <an operator of no brand> > /tmp/players-$run.json
+      -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -substrate-url http://localhost:9000 \
+      -brand spinvibe -operator-client casino-backoffice -operator-user dev-operator \
+      -outsider-user <an operator of no brand> > /tmp/players-$run.json
 done
 go run ./original/merge -run1 /tmp/players-1 -run2 /tmp/players-2 -results1 /tmp/players-1.json -results2 /tmp/players-2.json -out port
 ```
 
-No run has been made yet (spec 008 T029); `services/players`' parity tests are ignored until one is.
+The ports are the original's KinD stack's: casino-service's node port is 8091, Keycloak's 8180 (8080 is
+hugin), and the substrate's twin API is reached through
+`kubectl --context kind-eitheror-dev port-forward -n eitheror svc/eitheror-bundle-substrate 9000:9000`.
+`dev-operator`'s password is the one the realm-sync job logs. The run of 2026-10-26 (T029) and how it
+differed from these steps are in `tests/port/players/README.md`.

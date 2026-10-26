@@ -1,0 +1,207 @@
+{
+  "scenario": "a cookie decision recorded with every field is kept per device and visible to an operator",
+  "requirement": "008/FR-028",
+  "recorded_at": "2026-10-26T23:22:31.717211Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "fdcd806e-c60b-354c-9dfb-81c4db20993e",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "fdcd806e-c60b-354c-9dfb-81c4db20993e",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "record the cookie decision",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/players/spinvibe/{playerId}/cookie-consent",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "analyticsConsent": true,
+          "deviceId": "{device}",
+          "marketingConsent": false,
+          "timestamp": "2026-10-25T10:00:00Z",
+          "version": "2026-10"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "updated": true
+        }
+      }
+    },
+    {
+      "name": "an operator reads the profile",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/profile",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "activeSessions": [],
+          "lifetimeStats": {
+            "currency": "EUR",
+            "netPl": "0.00",
+            "totalDeposited": "0.00",
+            "totalWagered": "0.00",
+            "totalWon": "0.00"
+          },
+          "pinnedNotes": [],
+          "player": {
+            "addressLine1": "",
+            "city": "",
+            "country": "GB",
+            "currency": "EUR",
+            "dateOfBirth": "",
+            "email": "a-cookie-decision-recorded-with-every-fi-email-c91c24b9@example.test",
+            "firstName": "",
+            "isTestAccount": false,
+            "kycRequiredDocTypes": [],
+            "kycStatus": "unverified",
+            "kycVerificationMode": "automatic",
+            "language": "en",
+            "lastLoginAt": "2026-10-26T23:22:32.040630861Z",
+            "lastName": "",
+            "missingProfileFields": [
+              "firstName",
+              "lastName",
+              "dateOfBirth",
+              "phone",
+              "addressLine1",
+              "city",
+              "postalCode"
+            ],
+            "phone": "",
+            "playerId": "fdcd806e-c60b-354c-9dfb-81c4db20993e",
+            "postalCode": "",
+            "potVip": false,
+            "profileComplete": false,
+            "registrationDate": "2026-10-26T23:22:31.770836486Z",
+            "stateProv": "",
+            "status": "active",
+            "vipTier": ""
+          },
+          "rg": {
+            "coolingOff": null,
+            "isCoolingOff": false,
+            "limits": [],
+            "pendingChanges": []
+          },
+          "wallet": {
+            "activeBonuses": [],
+            "bonusBalance": "0.00",
+            "bonusStatus": "NONE",
+            "convertedPoolBalance": "0.00",
+            "currency": "EUR",
+            "depositPoolBalance": "0.00",
+            "freeSpins": [],
+            "realBalance": "0.00",
+            "wageringProgress": {
+              "percentage": 0,
+              "requirement": "0.00",
+              "wagered": "0.00"
+            }
+          }
+        }
+      },
+      "vary": {
+        "$.player.email": "differs between two runs of the original",
+        "$.player.lastLoginAt": "differs between two runs of the original",
+        "$.player.playerId": "differs between two runs of the original",
+        "$.player.registrationDate": "differs between two runs of the original"
+      }
+    }
+  ]
+}

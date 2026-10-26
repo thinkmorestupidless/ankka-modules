@@ -51,3 +51,9 @@ the plugins resolve the brand's `players` from the realm name, and the two secre
 - The realm attributes `players_url`, `players_realm_secret`, `players_webhook_secret`, read by the
   plugins.
 - The audit listener on, pointed at the brand's `players`.
+- Refresh-token rotation (`revokeRefreshToken: true`, `refreshTokenMaxReuse: 0`), so a refresh token
+  used twice is refused and `players` answers `refresh_expired`. The original leaves it off and accepts
+  a reused token (recorded 2026-10-26); this is a named divergence.
+
+*Amended at T029 (2026-10-26)*: these are made by the modules tool's `Realm.withPlayers` when it creates
+the realm, not by editing the template, which stays the original's (`brands/_realm/README.md`).

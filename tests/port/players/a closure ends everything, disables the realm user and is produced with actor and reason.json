@@ -1,0 +1,272 @@
+{
+  "scenario": "a closure ends everything, disables the realm user and is produced with actor and reason",
+  "requirement": "008/FR-032",
+  "recorded_at": "2026-10-26T23:22:35.051585Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "8313d854-1137-3ee9-a074-d0e709a8fddd",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "8313d854-1137-3ee9-a074-d0e709a8fddd",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: open a game session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/sessions/spinvibe/launch",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "gameId": "players-driver-game",
+          "playerId": "{playerId}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "gameUrl": "http://localhost:30096/game?token=23f19fba-556a-4612-afa8-84615f046f3b",
+          "launchToken": "23f19fba-556a-4612-afa8-84615f046f3b",
+          "sessionId": "b393474d-7db7-44c0-9fd5-2d247d7c33dd"
+        }
+      },
+      "capture": {
+        "sessionId": "$.sessionId"
+      },
+      "vary": {
+        "$.gameUrl": "differs between two runs of the original",
+        "$.launchToken": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "close the account",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/close",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "reason": "player request by email"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "closed"
+        }
+      }
+    },
+    {
+      "name": "read the sessions",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/sessions/spinvibe?playerId={playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "sessions": [
+            {
+              "endedAt": null,
+              "gameId": "players-driver-game",
+              "lastBetAt": null,
+              "launchedAt": "2026-10-26T23:22:35.499100070Z",
+              "sessionId": "b393474d-7db7-44c0-9fd5-2d247d7c33dd",
+              "status": "active"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.sessions[0].launchedAt": "differs between two runs of the original",
+        "$.sessions[0].sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: find the player in the realm",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?exact=true\u0026email={email}",
+        "service": "keycloak",
+        "headers": {
+          "Authorization": "Bearer {adminToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "attributes": {
+              "eitheror_twin_id": [
+                "casino.player/8313d854-1137-3ee9-a074-d0e709a8fddd"
+              ]
+            },
+            "createdTimestamp": 1793056955109,
+            "disableableCredentialTypes": [],
+            "email": "a-closure-ends-everything-disables-the-r-email-c57b9619@example.test",
+            "emailVerified": true,
+            "enabled": true,
+            "id": "41206cec-79f9-4199-9116-40d8924d28a9",
+            "notBefore": 0,
+            "requiredActions": [],
+            "totp": false,
+            "username": "a-closure-ends-everything-disables-the-r-email-c57b9619@example.test"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the realm user",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{realmUser}",
+        "service": "keycloak",
+        "headers": {
+          "Authorization": "Bearer {adminToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/8313d854-1137-3ee9-a074-d0e709a8fddd"
+            ]
+          },
+          "createdTimestamp": 1793056955109,
+          "disableableCredentialTypes": [],
+          "email": "a-closure-ends-everything-disables-the-r-email-c57b9619@example.test",
+          "emailVerified": true,
+          "enabled": true,
+          "id": "41206cec-79f9-4199-9116-40d8924d28a9",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "a-closure-ends-everything-disables-the-r-email-c57b9619@example.test"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    }
+  ]
+}

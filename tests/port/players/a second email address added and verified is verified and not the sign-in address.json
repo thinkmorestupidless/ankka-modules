@@ -1,0 +1,218 @@
+{
+  "scenario": "a second email address added and verified is verified and not the sign-in address",
+  "requirement": "008/FR-026",
+  "recorded_at": "2026-10-26T23:22:29.809944Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "791995b5-7f81-384a-bcd3-b51fbc1fac54",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "791995b5-7f81-384a-bcd3-b51fbc1fac54",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "add a second address",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/emails",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "address": "{secondEmail}"
+        }
+      },
+      "response": {
+        "status": 202,
+        "body": {
+          "status": "verification_email_sent"
+        }
+      }
+    },
+    {
+      "name": "setup: read the second address's verification token",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "email": "a-second-email-address-added-and-verifie-email-808738e4@example.test",
+          "kyc_check_deadline_at": "2026-11-25T23:22:29.878356813Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_login_at": "2026-10-26T23:22:30.127692682Z",
+          "marketing_consent": "false",
+          "player_email_list": "[{\"addedAt\":\"2026-10-26T23:22:30.138537430Z\",\"address\":\"a-second-email-address-added-and-verifie-email-808738e4@example.test\",\"primary\":true,\"verificationExpiresAt\":null,\"verificationToken\":null,\"verified\":true},{\"addedAt\":\"2026-10-26T23:22:30.168055448Z\",\"address\":\"a-second-email-address-added-and-verifie-secondemail-51eb89aa@example.test\",\"primary\":false,\"verificationExpiresAt\":\"2026-10-27T23:22:30.168051906Z\",\"verificationToken\":\"ce4a9e13-73dd-4318-851b-be74df4edb40\",\"verified\":false}]",
+          "registered_at": "2026-10-26T23:22:29.878356813Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "a-second-email-address-added-and-verifie-email-808738e4@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.player_email_list": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "follow the second address's link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/emails/verify",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "playerId": "{playerId}",
+          "token": "{secondLink}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "address": "a-second-email-address-added-and-verifie-secondemail-51eb89aa@example.test",
+          "status": "verified"
+        }
+      },
+      "vary": {
+        "$.address": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the addresses",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/spinvibe/emails",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "emails": [
+            {
+              "addedAt": "2026-10-26T23:22:30.138537430Z",
+              "address": "a-second-email-address-added-and-verifie-email-808738e4@example.test",
+              "primary": true,
+              "verified": true
+            },
+            {
+              "addedAt": "2026-10-26T23:22:30.168055448Z",
+              "address": "a-second-email-address-added-and-verifie-secondemail-51eb89aa@example.test",
+              "primary": false,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.emails[0].addedAt": "differs between two runs of the original",
+        "$.emails[0].address": "differs between two runs of the original",
+        "$.emails[1].addedAt": "differs between two runs of the original",
+        "$.emails[1].address": "differs between two runs of the original"
+      }
+    }
+  ]
+}

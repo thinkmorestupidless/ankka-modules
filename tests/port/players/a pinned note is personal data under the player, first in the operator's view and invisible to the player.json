@@ -1,0 +1,271 @@
+{
+  "scenario": "a pinned note is personal data under the player, first in the operator's view and invisible to the player",
+  "requirement": "008/FR-034",
+  "recorded_at": "2026-10-26T23:22:36.342806Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "dbc569bc-95fa-372f-85d8-488d4b74aba2",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "dbc569bc-95fa-372f-85d8-488d4b74aba2",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "write a note",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/notes",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "authorName": "Driver",
+          "content": "called about a late withdrawal"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "createdAt": "2026-10-26T23:22:36.876397719Z",
+          "noteId": "0f47fb4c-aad1-48f9-a708-56d3f8518959"
+        }
+      },
+      "capture": {
+        "noteId": "$.noteId"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.noteId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "pin the note",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/notes/{noteId}/pin",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "isPinned": true
+        }
+      }
+    },
+    {
+      "name": "an operator reads the profile",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/profile",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "activeSessions": [],
+          "lifetimeStats": {
+            "currency": "EUR",
+            "netPl": "0.00",
+            "totalDeposited": "0.00",
+            "totalWagered": "0.00",
+            "totalWon": "0.00"
+          },
+          "pinnedNotes": [],
+          "player": {
+            "addressLine1": "",
+            "city": "",
+            "country": "GB",
+            "currency": "EUR",
+            "dateOfBirth": "",
+            "email": "a-pinned-note-is-personal-data-under-the-email-4d7fde78@example.test",
+            "firstName": "",
+            "isTestAccount": false,
+            "kycRequiredDocTypes": [],
+            "kycStatus": "unverified",
+            "kycVerificationMode": "automatic",
+            "language": "en",
+            "lastLoginAt": "2026-10-26T23:22:36.811104358Z",
+            "lastName": "",
+            "missingProfileFields": [
+              "firstName",
+              "lastName",
+              "dateOfBirth",
+              "phone",
+              "addressLine1",
+              "city",
+              "postalCode"
+            ],
+            "phone": "",
+            "playerId": "dbc569bc-95fa-372f-85d8-488d4b74aba2",
+            "postalCode": "",
+            "potVip": false,
+            "profileComplete": false,
+            "registrationDate": "2026-10-26T23:22:36.466793654Z",
+            "stateProv": "",
+            "status": "active",
+            "vipTier": ""
+          },
+          "rg": {
+            "coolingOff": null,
+            "isCoolingOff": false,
+            "limits": [],
+            "pendingChanges": []
+          },
+          "wallet": {
+            "activeBonuses": [],
+            "bonusBalance": "0.00",
+            "bonusStatus": "NONE",
+            "convertedPoolBalance": "0.00",
+            "currency": "EUR",
+            "depositPoolBalance": "0.00",
+            "freeSpins": [],
+            "realBalance": "0.00",
+            "wageringProgress": {
+              "percentage": 0,
+              "requirement": "0.00",
+              "wagered": "0.00"
+            }
+          }
+        }
+      },
+      "vary": {
+        "$.pinnedNotes": "differs between two runs of the original",
+        "$.player.email": "differs between two runs of the original",
+        "$.player.lastLoginAt": "differs between two runs of the original",
+        "$.player.playerId": "differs between two runs of the original",
+        "$.player.registrationDate": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the player reads their profile",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "email": "a-pinned-note-is-personal-data-under-the-email-4d7fde78@example.test",
+          "kyc_check_deadline_at": "2026-11-25T23:22:36.466793654Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_login_at": "2026-10-26T23:22:36.811104358Z",
+          "marketing_consent": "false",
+          "registered_at": "2026-10-26T23:22:36.466793654Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "a-pinned-note-is-personal-data-under-the-email-4d7fde78@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    }
+  ]
+}

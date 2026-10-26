@@ -37,10 +37,15 @@ object Realm:
    * the plugins read, `players_url` and the two shared secrets. `secrets` is the brand's
    * `<slug>-players` entry of the secrets file; a value it lacks is left out, and the client then has a
    * secret Keycloak mints, which `players-realm-admin` must be set to.
+   *
+   * It also turns on refresh-token rotation (`revokeRefreshToken`, no reuse), which the template leaves
+   * off: the original accepts a refresh token used twice (recorded 2026-10-26), and spec 008 answers a
+   * reused one `refresh_expired`.
    */
   def withPlayers(realmJson: String, playersUrl: Option[String], secrets: Map[String, String]): String =
     val mapper = ObjectMapper()
     val realm  = mapper.readTree(realmJson).asInstanceOf[ObjectNode]
+    realm.put("revokeRefreshToken", true).put("refreshTokenMaxReuse", 0)
     val attributes = Option(realm.get("attributes")).collect { case o: ObjectNode => o }
       .getOrElse(realm.putObject("attributes"))
     playersUrl.foreach(attributes.put("players_url", _))

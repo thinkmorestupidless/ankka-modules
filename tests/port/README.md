@@ -181,3 +181,11 @@ requirement until its spec says so:
 | a confirmation with an unreadable received amount: Morphosis | nothing settles (the missing amount is failed `underpaid`) | treated as short |
 | a payout repeated under its request id, and a duplicate reference: Unity Finance | `409 {"status":"ALREADY_INITIATED"}` | the first answer; `already_initiated` |
 | a payout with an empty credential: Unity Finance | `400 {"error":"missing_credentials","status":"REJECTED"}` | a credential failure |
+
+## players (spec 008, T029)
+
+Recorded 2026-10-26 from the original at `a78decf1`, on its own KinD stack, twice, on fresh ids: 57
+recordings by `tests/original/players-driver/`, one per scenario of `features/players/*.feature` the
+original can show (48 `pass` and 9 `fail` on both runs), and the original's three
+`TestScenario18_MultiAccountDetection_*` tests (`pass`). `players/README.md` says how they were made,
+where that differs from `tests/original/README.md`, and why each of the nine differs.

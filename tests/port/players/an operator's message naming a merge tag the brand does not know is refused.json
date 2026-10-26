@@ -1,0 +1,213 @@
+{
+  "scenario": "an operator's message naming a merge tag the brand does not know is refused",
+  "requirement": "008/FR-030",
+  "recorded_at": "2026-10-26T23:22:41.064205Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "c86cf129-2be3-3d38-857e-285a2de4e463",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "c86cf129-2be3-3d38-857e-285a2de4e463",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the merge tags",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/merge-tags",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "tags": [
+            {
+              "example": "David",
+              "label": "First name",
+              "name": "first_name"
+            },
+            {
+              "example": "Verified",
+              "label": "Verification status",
+              "name": "verification_status"
+            },
+            {
+              "example": "6 August 2025",
+              "label": "Registration date",
+              "name": "registration_date"
+            },
+            {
+              "example": "VIP Titan",
+              "label": "VIP status",
+              "name": "vip_status"
+            },
+            {
+              "example": "Expert",
+              "label": "Loyalty status",
+              "name": "loyalty_status"
+            },
+            {
+              "example": "internal://my-account/profile",
+              "label": "My Account – Profile link",
+              "name": "my_account_profile_link"
+            },
+            {
+              "example": "internal://my-account/bonuses",
+              "label": "Bonuses section link",
+              "name": "bonuses_section_link"
+            },
+            {
+              "example": "internal://loyalty-program",
+              "label": "Loyalty program link",
+              "name": "loyalty_program_link"
+            },
+            {
+              "example": "internal://vip-program",
+              "label": "VIP program link",
+              "name": "vip_program_link"
+            },
+            {
+              "example": "Play now",
+              "label": "Play now CTA",
+              "name": "play_now_cta"
+            },
+            {
+              "example": "€42.50",
+              "label": "Cash balance",
+              "name": "cash_balance"
+            },
+            {
+              "example": "€10.00",
+              "label": "Bonus balance",
+              "name": "bonus_balance"
+            },
+            {
+              "example": "x10",
+              "label": "Wager requirement",
+              "name": "wager_requirement"
+            },
+            {
+              "example": "€65.00",
+              "label": "Remaining wager",
+              "name": "remaining_wager"
+            },
+            {
+              "example": "Book of Dead",
+              "label": "Free spins game",
+              "name": "free_spins_game"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "send a message naming an unknown merge tag",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/messages",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bodyTemplate": "Hello {{no_such_tag}}",
+          "category": "service",
+          "subjectTemplate": "Hi"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": "unknown_merge_tag",
+          "tag": "no_such_tag"
+        }
+      }
+    }
+  ]
+}

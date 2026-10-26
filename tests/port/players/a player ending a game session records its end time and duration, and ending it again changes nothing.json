@@ -1,0 +1,190 @@
+{
+  "scenario": "a player ending a game session records its end time and duration, and ending it again changes nothing",
+  "requirement": "008/FR-021",
+  "recorded_at": "2026-10-26T23:22:26.562213Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "13e4b99d-594a-354e-928e-870def82823b",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "13e4b99d-594a-354e-928e-870def82823b",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: open a game session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/sessions/spinvibe/launch",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "gameId": "players-driver-game",
+          "playerId": "{playerId}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "gameUrl": "http://localhost:30096/game?token=c27304b0-9ca8-41fb-abdd-e59fb0a16b18",
+          "launchToken": "c27304b0-9ca8-41fb-abdd-e59fb0a16b18",
+          "sessionId": "497d7e26-7379-49ec-a89b-b7482460c7be"
+        }
+      },
+      "capture": {
+        "sessionId": "$.sessionId"
+      },
+      "vary": {
+        "$.gameUrl": "differs between two runs of the original",
+        "$.launchToken": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "end the game session",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/sessions/spinvibe/{sessionId}/end",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "completed"
+        }
+      }
+    },
+    {
+      "name": "end the game session again",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/sessions/spinvibe/{sessionId}/end",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "completed"
+        }
+      }
+    },
+    {
+      "name": "read the game session",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/sessions/spinvibe/{sessionId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "endedAt": "2026-10-26T23:22:26.956024130Z",
+          "gameId": "players-driver-game",
+          "lastBetAt": null,
+          "launchedAt": "2026-10-26T23:22:26.879358734Z",
+          "sessionId": "497d7e26-7379-49ec-a89b-b7482460c7be",
+          "status": "completed"
+        }
+      },
+      "vary": {
+        "$.endedAt": "differs between two runs of the original",
+        "$.launchedAt": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

@@ -297,7 +297,7 @@ func Scenarios() []Def {
 			Run: func(t testing.TB, s *Session) {
 				s.Active("", nil)
 				r := s.Casino("change the password", http.MethodPost, s.Players()+"/password-change", map[string]any{"currentPassword": Password}, Player, nil)
-				s.WantField(s.Want(r, http.StatusOK), "status", "verification_email_sent")
+				s.WantField(s.Want(r, http.StatusAccepted), "status", "verification_email_sent")
 				s.Want(s.Login("sign in with the old password before the link", "", Password, false), http.StatusOK)
 				token := s.Twin("read the password change's token", "password_change_token")
 				s.Remember("changeToken", token)

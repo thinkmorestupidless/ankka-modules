@@ -1,0 +1,201 @@
+{
+  "scenario": "an operator's message to a player reaches the player's inbox",
+  "requirement": "008/FR-030",
+  "recorded_at": "2026-10-26T23:22:40.506776Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "b3ad2584-84f5-3b7e-b0a0-03214ce24989",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "b3ad2584-84f5-3b7e-b0a0-03214ce24989",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "send the player a message",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/messages",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bodyTemplate": "Hello {{first_name}}",
+          "category": "service",
+          "subjectTemplate": "Your account"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "body": "Hello",
+          "createdAt": "2026-10-26T23:22:40.832866796Z",
+          "notificationId": "b6319a62-9098-4c01-b284-5e185ce1fa7f",
+          "state": "sent",
+          "subject": "Your account"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.notificationId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the player reads their inbox",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/spinvibe/{playerId}/messages",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [
+            {
+              "body": "Hello",
+              "createdAt": "2026-10-26T23:22:40.832866796Z",
+              "notificationId": "b6319a62-9098-4c01-b284-5e185ce1fa7f",
+              "originName": "Operator",
+              "readAt": null,
+              "state": "sent",
+              "subject": "Your account"
+            }
+          ],
+          "page": 1,
+          "pageSize": 20,
+          "total": 1,
+          "unreadCount": 1
+        }
+      },
+      "vary": {
+        "$.items[0].createdAt": "differs between two runs of the original",
+        "$.items[0].notificationId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "an operator reads the player's messages",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/messages",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "items": [
+            {
+              "body": "Hello",
+              "bodyTemplate": "Hello {{first_name}}",
+              "category": "service",
+              "createdAt": "2026-10-26T23:22:40.832866796Z",
+              "deliveredAt": null,
+              "notificationId": "b6319a62-9098-4c01-b284-5e185ce1fa7f",
+              "origin": "operator",
+              "originName": "Operator",
+              "readAt": null,
+              "state": "sent",
+              "subject": "Your account",
+              "subjectTemplate": "Your account"
+            }
+          ],
+          "page": 1,
+          "pageSize": 20,
+          "total": 1
+        }
+      },
+      "vary": {
+        "$.items[0].createdAt": "differs between two runs of the original",
+        "$.items[0].notificationId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

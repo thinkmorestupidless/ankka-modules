@@ -241,6 +241,10 @@ class SessionsFeatures extends PlayersFeatures("sessions.feature"):
   }
 
   Given("the player has a session limit of {string} minutes and {string} already used today") { (limit: String, used: String) =>
+    // the minutes used must fall in one day: past midnight (UTC), the earlier ones are yesterday's
+    val midnight = kit.now().atZone(java.time.ZoneOffset.UTC).toLocalDate.plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toInstant
+    val left     = java.time.Duration.between(kit.now(), midnight)
+    if left.compareTo(java.time.Duration.ofMinutes(used.toLong + 5)) < 0 then kit.advance(left.plusMinutes(1))
     active(); signIn()
     val first = opened()
     kit.advance(java.time.Duration.ofMinutes(used.toLong))

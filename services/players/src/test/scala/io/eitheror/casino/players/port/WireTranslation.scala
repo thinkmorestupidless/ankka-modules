@@ -27,8 +27,22 @@ object WireTranslation:
   private val BrandScoped = """/v1/casino/brands/([^/]+)/(merge-tags|messages/preview)""".r
   private val NotABrand   = Set("players", "sessions", "backoffice", "brands", "geo")
 
-  /** The recorded path (with its query) as this service serves it. */
+  private val UnderPrefix = """/v1/casino/(players|sessions|backoffice|brands|geo)/[^/?]+(.*)""".r
+  private val BrandFirst  = """/v1/casino/([^/]+)(/.*)""".r
+
+  /**
+   * The recorded path (with its query) as this service serves it, under the replay's brand: the
+   * original was recorded at its own (`spinvibe`), which this service, run at another slug, does not serve.
+   */
   def path(method: String, recorded: String, ctx: Context): String =
+    rebrand(translate(method, recorded, ctx), ctx.brand)
+
+  private def rebrand(path: String, brand: String): String = path match
+    case UnderPrefix(prefix, rest)                    => s"/v1/casino/$prefix/$brand$rest"
+    case BrandFirst(first, rest) if !NotABrand(first) => s"/v1/casino/$brand$rest"
+    case other                                        => other
+
+  private def translate(method: String, recorded: String, ctx: Context): String =
     val (p, query) = recorded.split('?') match
       case Array(p)    => (p, None)
       case Array(p, q) => (p, Some(q))
