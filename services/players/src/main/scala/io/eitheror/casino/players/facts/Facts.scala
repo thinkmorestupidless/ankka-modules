@@ -118,6 +118,7 @@ object Facts:
       Some(Action(action, actorId.getOrElse(""), "player", playerId, reason, changes, at))
     val action: Option[Action] = event match
       case e: Suspended  => op("suspend", e.actorId, Some(e.reason), Vector(change("status", e.previous, Status.Suspended)), e.at)
+      case e: SuspensionUpdated => op("suspend", e.actorId, Some(e.reason), Vector.empty, e.at)
       case e: Reinstated => op("reinstate", e.actorId, e.reason, Vector(change("status", Status.Suspended, Status.Active)), e.at)
       case e: Closed if e.actor == Actor.Operator =>
         op("close", e.actorId, Some(e.reason), Vector(change("status", e.previous, Status.Closed)), e.at)

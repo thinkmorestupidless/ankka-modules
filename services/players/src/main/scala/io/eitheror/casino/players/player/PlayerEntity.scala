@@ -71,6 +71,8 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       case e: FavouriteRemoved       => s.copy(favourites = s.favourites - e.gameId)
       case e: Suspended =>
         status(Status.Suspended, "suspended", Actor.Operator, e.actorId, Some(e.reason)).copy(suspension = Some(Suspension(e.reason, e.at)))
+      case e: SuspensionUpdated =>
+        status(Status.Suspended, "suspension_updated", Actor.Operator, e.actorId, Some(e.reason)).copy(suspension = Some(Suspension(e.reason, e.at)))
       case e: Reinstated => status(Status.Active, "reinstated", Actor.Operator, e.actorId, e.reason).copy(suspension = None)
       case e: SelfExcluded =>
         status(Status.SelfExcluded, "self_excluded", Actor.System).copy(exclusionAt = Some(e.at), exclusionUntil = e.until)
@@ -286,7 +288,9 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
   def suspend(c: Suspend): Effect[Done] =
     val s = currentState
     if Status.ended(s.status) then effects.reply(Done.refused("account_closed"))
-    else if s.status == Status.Suspended then effects.reply(Done.unchanged)
+    else if s.status == Status.Suspended then
+      if s.suspension.exists(_.reason == c.reason.trim) then effects.reply(Done.unchanged)
+      else effects.persist(SuspensionUpdated(c.reason.trim, c.actorId, c.at)).thenReply(_ => Done.unchanged)
     else effects.persist(Suspended(s.status, c.reason.trim, c.actorId, c.at)).thenReply(_ => Done.changed)
 
   def reinstate(c: Reinstate): Effect[Done] =

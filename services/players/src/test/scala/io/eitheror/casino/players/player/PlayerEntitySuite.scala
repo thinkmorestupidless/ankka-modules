@@ -273,13 +273,17 @@ class PlayerEntitySuite extends munit.FunSuite:
 
   // ── the status ────────────────────────────────────────────────────────────
 
-  test("Suspend twice is one event and keeps the first reason; Reinstate refuses not_suspended") {
+  test("Suspend again updates the reason and time, unchanged; the same reason is no event; Reinstate refuses not_suspended") {
     val kit = active
     assertEquals(code(kit.call(PlayerEntity.reinstate)(Reinstate(Some("op-1"), None, at)).replyValue), Some("not_suspended"))
     assert(kit.call(PlayerEntity.suspend)(Suspend("review", Some("op-1"), at)).persisted)
-    assert(!kit.call(PlayerEntity.suspend)(Suspend("again", Some("op-2"), later(1))).persisted)
-    assertEquals(kit.currentState.suspension, Some(Suspension("review", at)))
-    assert(kit.call(PlayerEntity.reinstate)(Reinstate(Some("op-1"), Some("cleared"), later(2))).persisted)
+    val again = kit.call(PlayerEntity.suspend)(Suspend("chargeback", Some("op-2"), later(1)))
+    assertEquals(again.events, Vector(SuspensionUpdated("chargeback", Some("op-2"), later(1))))
+    assertEquals(again.replyValue, Done.unchanged)
+    assertEquals(kit.currentState.suspension, Some(Suspension("chargeback", later(1))))
+    assertEquals(kit.currentState.status, Status.Suspended)
+    assert(!kit.call(PlayerEntity.suspend)(Suspend("chargeback", Some("kyc"), later(2))).persisted)
+    assert(kit.call(PlayerEntity.reinstate)(Reinstate(Some("op-1"), Some("cleared"), later(3))).persisted)
     assertEquals(kit.currentState.status, Status.Active)
   }
 

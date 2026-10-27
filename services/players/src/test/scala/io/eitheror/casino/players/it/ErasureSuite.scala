@@ -108,6 +108,22 @@ class ErasureSuite extends munit.FunSuite:
     kit.eventually("erased", 20.seconds)(Option.when(flow(id).step == ErasureFlow.Erased)(()))
   }
 
+  test("past the hold, a target failing after its retries: failed naming it, the earlier certificate kept, nothing of this service's own erased") {
+    val (email, id, _) = closed("firstName" -> "Fay", "lastName" -> "Lorn", "dateOfBirth" -> "1979-05-06")
+    kit.wallet.failingErasures.add(s"${kit.slug}:$id")
+    assertEquals(op("POST", s"/players/$id/erasure").status, 202)
+    past()
+    kit.eventually("failed", 90.seconds)(Option.when(flow(id).step == ErasureFlow.Failed)(()))
+    assertEquals((flow(id).failedAt, flow(id).certificates.map(_.service)), (Some("merchant"), Vector("wallet")))
+    assertEquals(kit.wallet.erasures.count(_ == id), 1)
+    assert(merchantErasures(id).size > 1, "the merchant's part was retried")
+    val p = player(id)
+    assertEquals((p.status, p.profile.get("firstName")), (Status.ErasurePending, Some("Fay")))
+    assert(kit.realm.userByEmail(email).nonEmpty, "the realm user is kept")
+    val e = op("GET", s"/players/$id/erasure")
+    assertEquals((e.status, e.str("status"), e.str("failedAt")), (200, "failed", "merchant"))
+  }
+
   test("an operator's erasure read: 404 erasure_not_found before one is filed") {
     val (_, id) = kit.activePlayer()
     assertEquals(op("GET", s"/players/$id/erasure").str("error"), "erasure_not_found")

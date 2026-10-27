@@ -122,7 +122,10 @@ final class FakeWallet(brand: String, bind: Int = 0) extends KnobbedServer(bind)
   private val prefix = s"/v1/casino/brands/$brand"
   val sums = ConcurrentHashMap[String, (Long, Long, Long)]()
 
-  def reset(): Unit = { sums.clear(); knobsReset() }
+  /** Erasure subjects answered `500`: one target failing while the other answers. */
+  val failingErasures: java.util.Set[String] = ConcurrentHashMap.newKeySet[String]()
+
+  def reset(): Unit = { sums.clear(); failingErasures.clear(); knobsReset() }
 
   def erasures: Vector[String] = received.filter(_.path.startsWith(s"$prefix/erasure/players/")).map(_.path.split('/').last)
   def exports: Vector[String]  = received.filter(_.path.startsWith(s"$prefix/exports/players/")).map(_.path.split('/').last)
@@ -133,6 +136,8 @@ final class FakeWallet(brand: String, bind: Int = 0) extends KnobbedServer(bind)
       val player = java.net.URLDecoder.decode(p.split('/')(2), "UTF-8")
       val (d1, d7, d30) = Option(sums.get(player)).getOrElse((0L, 0L, 0L))
       Answer.ok(Json.obj("last24h" -> d1, "last7d" -> d7, "last30d" -> d30))
+    else if p.startsWith("/erasure/players/") && failingErasures.contains(p.split('/').last) then
+      Answer(500, """{"error":"boom"}""")
     else if p.startsWith("/erasure/players/") then
       Answer.ok(Json.obj("subject" -> s"player/${p.split('/').last}", "confirmed" -> true, "destroyed" -> Json.arr(), "note" -> "fake"))
     else if p.startsWith("/exports/players/") then

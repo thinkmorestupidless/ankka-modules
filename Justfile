@@ -142,6 +142,10 @@ players-test:
 players-it:
     cd services/players && sbt "testOnly io.eitheror.casino.players.it.* io.eitheror.casino.players.port.* io.eitheror.casino.players.features.*"
 
+# players' duplicate detection at scale: 10,000 registrations, then a match (Docker).
+players-perf:
+    cd services/players && PLAYERS_PERF=1 sbt "testOnly io.eitheror.casino.players.it.DuplicatesScaleSuite"
+
 # players, locally on 9003 as brand goldvibe (`sbt schema && docker compose up -d` in services/players
 # first: Postgres on 5435 and the brand's Keycloak on 8080). The services it calls are the fakes
 # (`sbt "Test/runMain io.eitheror.casino.players.it.fakes"` in services/players): responsible-gambling

@@ -55,6 +55,7 @@ class OperatorSuite extends munit.FunSuite:
     val again = kit.signIn(email)
     assertEquals((again.status, again.str("error")), (403, "account_restricted"))
     assertEquals(op("PATCH", s"/players/$id/suspend", "reason" -> "again").status, 200)
+    assertEquals(player(id).suspension.map(_.reason), Some("again"))
     Thread.sleep(300)
     assertEquals(kit.facts(CasinoPlayers).count { case f: PlayerSuspended => f.playerId == id; case _ => false }, 1)
   }

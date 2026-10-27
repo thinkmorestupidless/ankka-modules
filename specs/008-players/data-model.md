@@ -51,7 +51,7 @@ once a journal holds them.
 `GameSessionEnded`, `SessionLimitSet`, `ProfileEdited` (the fields changed, with their new `Personal`
 values), `DateOfBirthCorrected` (operator, reason), `EmailAdded`, `EmailAddressVerified`,
 `EmailPromoted`, `EmailRemoved`, `EmailChanged`, `ConsentChanged`, `CookieDecisionRecorded`,
-`FavouriteAdded`, `FavouriteRemoved`, `Suspended`, `Reinstated`, `SelfExcluded`, `ExclusionLifted`,
+`FavouriteAdded`, `FavouriteRemoved`, `Suspended`, `SuspensionUpdated` (reason, actor; an audit record, no fact), `Reinstated`, `SelfExcluded`, `ExclusionLifted`,
 `Closed` (actor, reason), `Reopened`, `VipTierChanged` (previous, new), `PotVipSet`,
 `DuplicateFlagged` (caseId, linked, signals), `DuplicateCleared`, `KycVerified`, `KycWithdrawn`,
 `WithdrawalOpened`, `WithdrawalSettled`, `ErasureFiled` (correlationId, holdUntil), `Erased`. There
@@ -74,7 +74,7 @@ to `trail`.
 | `CorrectDateOfBirth(value, reason, operator)` | `reason_required`; `date_of_birth_required`; `invalid_date_of_birth`; `underage`; `kyc_locked` (verified by `kyc`, until withdrawn) |
 | `AddEmail`, `PromoteEmail`, `RemoveEmail`, `ChangeEmail` | `invalid_address`; `address_already_in_list`; `address_not_found`; `not_verified`; `already_primary`; `cannot_remove_primary` |
 | `ChangeConsent`, `RecordCookieDecision` | `no_fields_provided`; `invalid_cookie_consent_body`; `missing_device_id` |
-| `Suspend(reason, actor)` | none; already suspended: reason and time updated, no event |
+| `Suspend(reason, actor)` | none; already suspended with another reason: `SuspensionUpdated`, the reason and time moved, no fact; with the same reason: no event |
 | `Reinstate(actor)` | `not_suspended` |
 | `SetSelfExcluded(at)` / `LiftExclusion` (RG's commands) | `not_excluded` |
 | `Close(actor, reason)` | `already_closed` (idempotent) |

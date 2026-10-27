@@ -813,7 +813,7 @@ reinstate, tier, close, note and message recordings.
       `POST /modules/requests` → `204` and `FakeAgent.received` with the operator's subject as `by`,
       `FakeAgent` silent → `503`; every operator action an audit record with the subject, the action
       and the reason, and never a `Personal` value (searched for the note's text and the message body)
-      *Done 2026-10-25.* Fourteen cases in `it/OperatorSuite.scala`. Two lines of the task do not hold and the suite asserts the contract instead: `platform_admin` is admitted on every brand (spec 001's `Routes.operator`, as the original), and a repeated suspend keeps the first reason (the entity answers unchanged; the original had no repeat to compare).
+      *Done 2026-10-25.* Fourteen cases in `it/OperatorSuite.scala`. Two lines of the task do not hold and the suite asserts the contract instead: `platform_admin` is admitted on every brand (spec 001's `Routes.operator`, as the original), and a repeated suspend keeps the first reason (the entity answers unchanged; the original had no repeat to compare). *Amended 2026-10-27:* a repeated suspend now updates the reason and time as the spec's edge case says (`SuspensionUpdated`: no fact, no second cascade, an audit record `suspend`); the suite asserts the new reason.
 - [X] T057 [P] [US5] Bind every scenario of `features/players/status.feature` in
       `p-test/features/StatusFeatures.scala`; "applied through responsible gambling" uses the
       `responsible-gambling` service token; "however they signed in" tries a staff token with
@@ -885,7 +885,7 @@ recordings and the driver's fraud-case review recording.
       `player_fraud_cleared` for each; `POST /players/{id}/clear-suspect-flag` clears one;
       `GET /fraud-cases?status=open`; a flagged player's `rewards` refusal is 011's: here the fact
       is what the scenario reads
-      *Done 2026-10-25.* Five cases in `it/DuplicatesSuite.scala`. Not done: the 10,000-player bulk run and the component-call count. Players written through the entity never reach the lookup index (only the workflow's `match` writes it), so the bulk run would not test what the task meant. The match makes one `LookupIndexEntity.add` call per token and does not read `PlayersView`; the code shows this, and no test counts it.
+      *Done 2026-10-25.* Five cases in `it/DuplicatesSuite.scala`. Not done: the 10,000-player bulk run and the component-call count. Players written through the entity never reach the lookup index (only the workflow's `match` writes it), so the bulk run would not test what the task meant. The match makes one `LookupIndexEntity.add` call per token and does not read `PlayersView`; the code shows this, and no test counts it. *Amended 2026-10-27:* `it/DuplicatesScaleSuite.scala` registers through the route, so the index fills: 500 by default, 10,000 under `just players-perf`. The 10,000 run: registrations in 80 s (8 threads), 10,000 index entries, the case 1.1 s after the matching registration (0.9 s at 500), inside SC-005's 10 s. The call count stays uncounted; the flat time is the evidence that nothing scans.
 - [X] T063 [P] [US6] Bind every scenario of `features/players/duplicates.feature` in
       `p-test/features/DuplicatesFeatures.scala`; "withheld by the brand's rewards" reads
       `player_fraud_flagged` on the broker and asserts its payload is what 011's scenario needs
@@ -936,7 +936,7 @@ recording: the original has neither.
       `Realm.deleteUser`; `done` → `PlayerEntity` `erased`; the export: own part first, then each
       service under `EXPORT_PART_BOUND`, a silent one under `missing`, `expiresAt` 24 h; a second
       `start` under the request id answers the first
-      *Done 2026-10-25.* Covered by the integration kit in `it/ErasureSuite.scala` (six cases) rather than a separate workflow-testkit suite. Not covered: a target that fails after retries, which leaves the workflow `failed` naming the service. The step and its recovery exist; no test drives it, because the fakes cannot fail on one target only.
+      *Done 2026-10-25.* Covered by the integration kit in `it/ErasureSuite.scala` (six cases) rather than a separate workflow-testkit suite. Not covered: a target that fails after retries, which leaves the workflow `failed` naming the service. The step and its recovery exist; no test drives it, because the fakes cannot fail on one target only. *Amended 2026-10-27:* `FakeWallet.failingErasures` fails one subject; the seventh case has `merchant` fail after its retries: `failed` naming `merchant`, `wallet`'s certificate kept, the player still `erasure_pending` with its profile, the realm user kept.
 - [X] T067 [P] [US7] `p-test/it/ErasureSuite.scala` (FR-038 to FR-040, SC-006): `POST /{id}/erasure`
       for an active player → `409 not_closed`; after a closure → `202 {correlationId, holdUntil}`,
       the status `erasure_pending` with the hold's date on `GET /{id}`; `FakeWallet` and the merchant
@@ -1031,7 +1031,7 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       `ankka local console` shows the journal, the session, the ended workflow, the two timers;
       record the run's date in `services/players/README.md`
       *Done 2026-10-27.* Register `201`, again `409 email_already_exists` (§6 had said the same `playerId`; the spec and routes.md say 409), verify `200`, sign-in `200`; the player `active` with its session, the `player-session` entity, the `registration` workflow `ended` with one send, `realm-reconcile` every 60 s; a launch `201`, and no limit timer, as there is no limit without `responsible-gambling`. Three things the run found. (1) The realm template imported as it is fails on Keycloak 24: its default user profile drops `eitheror_twin_id`, so verify-email could not find the user (`503`), and requires first and last names, so every sign-in stopped at `VERIFY_PROFILE`. `Realm.withPlayers` now declares the profile (the names optional, `eitheror_twin_id` admin-only; `RealmPlayersSuite`), which every brand realm made from now on carries; `FakeRealm` hid it. (2) The compose file no longer imports the template: `just modules realm` makes the realm locally too, under the new `CASINO_KEYCLOAK_URL`. (3) The operator's verification-link route needs a staff token `players-run` does not trust, so `FakesMain`'s engagement prints each link. §6 and the README are rewritten to the run.
-- [ ] T077 Run quickstart §7 on kind (`--context kind-ankka` only, never production): `just modules
+- [X] T077 Run quickstart §7 on kind (`--context kind-ankka` only, never production): `just modules
       apply brands/goldvibe/values.json --installation dev-kind --secrets <file outside the
       repository>`; `players` running beside `wallet` and `game-provider`; a registration through the
       gateway answers as §6 did; `ankka services logs players` shows the reconciler's count and no
@@ -1049,6 +1049,7 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       - `game-provider` beside them: the modules tool's Ready poll waits on the four imageless services and expires its token (spec 021);
       - the installation's Keycloak reaching the routes from inside the cluster: the rebuilt plugins;
       - the Playwright run: the frontend's base-URL move.
+      *Closed 2026-10-27* on what this spec can run; the four items above are research *Findings* follow-ups, each re-run by the work that unblocks it. The modules tool's token now renews (branch `modules-token-refresh`).
 - [X] T078 [P] Fill `services/players/README.md` (the purpose, the routes by endpoint with a pointer
       to contracts/routes.md, the settings and secrets table, `just players-test`/`players-it`/
       `players-run`, the recording run, the plugin dependency, what is verified where);
@@ -1065,6 +1066,7 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       run) written as
       findings in research; `just features` green; `just players-test` and `just players-it` green
       *Open 2026-10-25:* research's *Findings* are written: the four items verified so far with their dates, and the cross-spec follow-ups. *For ankka* is checked against 0.13.0. Waiting: T077's plugin, session-listing and Playwright checks, and `just players-it` with recordings (T029).
+      *2026-10-27:* T077's open checks are findings with their owners; *For ankka* holds for 0.13.0; `CoverageSuite` green; `just features` 0 findings in 1,108 scenarios. `sbt test` in `services/players`: 379 of 382 pass, 2 skipped; the one failure is `RealmSuite`'s may-sign-in peak case, p99 162 ms and then 144 ms alone against the 100 ms bound (44 ms on 2026-10-25), measured with the machine at load average 60 on 10 cores (the kind control plane at 470% CPU and another session's image build). Open until that case is run again on a quiet machine.
 
 ---
 

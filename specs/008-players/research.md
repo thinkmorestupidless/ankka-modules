@@ -493,6 +493,16 @@ Follow-ups owned by other specs or repositories:
   `https://players-<slug>.<PLAYER_SITE_BASE>`, by psp-gateway's pattern; T077 confirms it.
 - `KycFactsConsumer`'s families come from spec 009, and the consumer is written against what 009
   publishes.
+- Duplicate detection at scale (SC-005, 2026-10-27, `just players-perf`): 10,000 players registered
+  through the route, then a match; the case 1.1 s after the matching registration, 0.9 s at 500. The
+  match reads the index by token, so the brand's size does not enter.
+- `GET /players/{id}/sessions/{sessionId}/bets` answers `501` (contracts/routes.md): a bet fact names
+  no player session. It waits on `game-provider` (003) carrying the session on its bet facts.
+- The rest of T077 waits on other work, each named above: a sign-in on kind on `responsible-gambling`
+  (010); `game-provider` beside `players` on the modules tool refreshing its token in the Ready poll
+  (021); the installation's Keycloak reaching the realm routes on the rebuilt plugins; the Playwright
+  run on the frontend's base-URL move. T077 is closed on what this spec can run; each item is
+  re-run by the spec or change that unblocks it.
 - The shared payments' `ingest` address is the installation's `INGEST_URL`, rendered as the derived key
   `ingest-url`; gke's overlay names none yet, so a brand there answers a deposit `503` naming `ingest`.
 
