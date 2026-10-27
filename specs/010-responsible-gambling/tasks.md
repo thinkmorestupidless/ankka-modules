@@ -37,20 +37,20 @@ Paths: `S` = `services/responsible-gambling/src/main/scala/io/eitheror/casino/rg
       every command and refusal of data-model.md's table in its order; stale timer fires change nothing;
       `Erase` blanks every `Personal` and keeps values, types, times and statuses; the history entry each
       change appends
-- [ ] T009 [P] `S/settings/BrandSettingsEntity.scala` (key value, defaults 60 and 42) with its kit
-- [ ] T010 [P] `S/usage/Windows.scala`, `S/usage/UsageEntity.scala` (exact deposits for 30 days, loss minute
+- [X] T009 [P] `S/settings/BrandSettingsEntity.scala` (key value, defaults 60 and 42) with its kit
+- [X] T010 [P] `S/usage/Windows.scala`, `S/usage/UsageEntity.scala` (exact deposits for 30 days, loss minute
       and hour buckets, seen ids) and `T/usage/UsageSuite.scala`: the three windows; more than 100 deposits in
       a window summed exactly (SC-007); a repeat transaction a no-op; state bounded
-- [ ] T011 [P] `S/usage/SessionDayEntity.scala` and its kit: minutes used with an open session counted to
+- [X] T011 [P] `S/usage/SessionDayEntity.scala` and its kit: minutes used with an open session counted to
       now; a session started yesterday not counted today; whole minutes
-- [ ] T012 `S/usage/UsageConsumer.scala` (`money.transactions`) and `S/usage/SessionMinutesConsumer.scala`
+- [X] T012 `S/usage/UsageConsumer.scala` (`money.transactions`) and `S/usage/SessionMinutesConsumer.scala`
       (`casino.sessions`) with `ConsumerTestKit` suites; an unreadable message ignored and logged without
       its payload
-- [ ] T013 `S/facts/RgPublisher.scala` and `S/facts/AuditPublisher.scala` (contracts/facts.md) with
+- [X] T013 `S/facts/RgPublisher.scala` and `S/facts/AuditPublisher.scala` (contracts/facts.md) with
       `T/facts/PublishersSuite.scala`: every event to its family or none; `causedBy` set / lowered / applied
       / removed; `permanent` on a self-exclusion; an operator event to one audit record with the note named,
       never its text
-- [ ] T014 `S/clients/Players.scala` (trait + HTTP: `PUT`/`DELETE /v1/casino/brands/<slug>/players/{id}/exclusion`)
+- [X] T014 `S/clients/Players.scala` (trait + HTTP: `PUT`/`DELETE /v1/casino/brands/<slug>/players/{id}/exclusion`)
       and `S/timers/` (`PendingTimer`, `BreakTimer`, `ReturnTimer`, `SyncTimer` as timed actions, the names
       of data-model.md *Timers*)
 - [ ] T015 `S/RgService.scala` (registration), `S/api/Answers.scala` (refusal bodies), and the integration
