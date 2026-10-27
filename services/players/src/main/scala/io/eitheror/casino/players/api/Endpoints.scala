@@ -116,7 +116,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   post(s"$P/clear-suspect-flag") { (id: String) => status.clearSuspectFlag(principal, id) }
   get("/fraud-cases") { () => FraudRoutes(ctx).cases(query.raw("status")) }
   patch("/fraud-cases/{caseId}/review") { (id: String) => FraudRoutes(ctx).review(principal, id) }
-  patch("/fraud-cases/{caseId}/dismiss") { (id: String) => FraudRoutes(ctx).dismiss(principal, id) }
+  patchBody("/fraud-cases/{caseId}/dismiss") { (id: String, text: String) => FraudRoutes(ctx).dismiss(principal, id, text) }
   post(s"$P/activity-export") { (id: String) => ErasureRoutes(ctx).startExport(id, principal.subject) }
   get("/exports/{exportId}") { (exportId: String) => ErasureRoutes(ctx).read(None, exportId) }
   post(s"$P/erasure") { (id: String) => ErasureRoutes(ctx).file(id) }

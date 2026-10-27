@@ -60,6 +60,8 @@ class PlayersCodecsSuite extends munit.FunSuite:
     roundTrip(NoteState("p-1", Personal("text"), "op-1", Some(at), pinned = true), NoteEntity.stateSerializer)
     roundTrip(FraudCaseState(Set("p-1"), Set("identity"), "open", Some(at)), FraudCaseEntity.stateSerializer)
     roundTrip(FraudCaseEvent.Dismissed("op-1", at), FraudCaseEntity.eventSerializer)
+    roundTrip(FraudCaseEvent.Dismissed("op-1", at, Personal("notes")), FraudCaseEntity.eventSerializer)
+    roundTrip(FraudCaseEvent.NotesErased(at), FraudCaseEntity.eventSerializer)
     roundTrip(LookupIndexState(Set("p-1", "p-2")), LookupIndexEntity.stateSerializer)
     roundTrip(BrandConfig("Gold", features = Map("x" -> true), retentionDays = Some(30)), BrandConfigEntity.stateSerializer)
     roundTrip(CurrencyConfig(Vector("EUR"), Some("EUR")), CurrencyConfigEntity.stateSerializer)

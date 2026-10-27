@@ -565,7 +565,9 @@ store and `payments` for a personal field; fetch the response.
 - **FR-037**: A fraud case MUST be reviewed or dismissed by an operator with the brand's role;
   dismissal MUST clear the flag on every linked player and produce `player_fraud_cleared`; an operator
   MUST also clear one player's flag directly. `player_fraud_flagged` MUST be produced on a flag so
-  `rewards` withholds bonuses from the fact.
+  `rewards` withholds bonuses from the fact. A dismissal MUST keep the operator's notes and answer them
+  as `reviewNotes`, as the original (recorded at T029); the notes are personal data and MUST be blanked
+  when any player the case links is erased (FR-039).
 
 **Erasure and the data-subject response**
 

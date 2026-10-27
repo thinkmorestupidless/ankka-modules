@@ -890,11 +890,11 @@ recordings and the driver's fraud-case review recording.
       `p-test/features/DuplicatesFeatures.scala`; "withheld by the brand's rewards" reads
       `player_fraud_flagged` on the broker and asserts its payload is what 011's scenario needs
       *Done 2026-10-25.* All seven scenarios bound; the rewards scenario reads `player_fraud_flagged` and its case and signal, which is what spec 011 consumes.
-- [ ] T064 [US6] Confirm `ParitySuite` lists the four Scenario 18 recordings (two registrations
+- [X] T064 [US6] Confirm `ParitySuite` lists the four Scenario 18 recordings (two registrations
       each) and the driver's fraud-case review recording as failing; name the divergences (the
       `observe:` twin reads not compared; the `409 SUSPECTED_DUPLICATE` of the bonus grant is 011's
       and the step is `observe:`). Needs T029
-      *Open 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. The one failure: the dismissal recording's `reviewNotes`. The original keeps the operator's notes on the case and answers them; this service keeps none. Storing them puts free text about two players on the case, which erasure does not reach today, so it waits on a decision: notes as `Personal` on `Dismissed`, blanked when a linked player is erased (recommended), or a named divergence.
+      *Done 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. The dismissal's `reviewNotes`, decided 2026-10-27: the notes are kept `Personal` on `Dismissed` and answered as the original; the erasure of either linked player blanks them (`NotesErased`, FR-037), tested in `ErasureSuite`. All 60 pass.
 
 ### Implementation for User Story 6
 

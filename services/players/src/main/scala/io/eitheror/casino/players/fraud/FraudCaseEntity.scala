@@ -2,13 +2,15 @@ package io.eitheror.casino.players.fraud
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, Serializer}
 import com.thinkmorestupidless.ankka.sdk.*
+import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.players.PlayersCodecs
 
 import java.time.Instant
 
 /**
  * A suspected duplicate (FR-036): the players a registration matched and on what (`identity`,
- * `device`). Stored lower-case; the wire carries the original's upper-case statuses.
+ * `device`). Stored lower-case; the wire carries the original's upper-case statuses. A dismissal's
+ * notes are free text about the players it links, so `Personal`, and blanked when one is erased.
  */
 final case class FraudCaseState(
     playerIds: Set[String] = Set.empty,
@@ -16,7 +18,8 @@ final case class FraudCaseState(
     status: String = "",
     openedAt: Option[Instant] = None,
     reviewedBy: Option[String] = None,
-    reviewedAt: Option[Instant] = None
+    reviewedAt: Option[Instant] = None,
+    reviewNotes: Personal[String] = Personal("")
 ):
   def exists: Boolean = status.nonEmpty
 
@@ -32,10 +35,12 @@ sealed trait FraudCaseEvent
 object FraudCaseEvent:
   final case class Opened(playerIds: Set[String], signals: Set[String], at: Instant) extends FraudCaseEvent
   final case class Reviewed(operatorId: String, at: Instant)                         extends FraudCaseEvent
-  final case class Dismissed(operatorId: String, at: Instant)                        extends FraudCaseEvent
+  final case class Dismissed(operatorId: String, at: Instant, notes: Personal[String] = Personal("")) extends FraudCaseEvent
+  final case class NotesErased(at: Instant)                                         extends FraudCaseEvent
 
 final case class OpenCase(playerIds: Set[String], signals: Set[String], at: Instant)
-final case class DecideCase(operatorId: String, at: Instant)
+final case class DecideCase(operatorId: String, at: Instant, notes: String = "")
+final case class EraseNotes(at: Instant)
 
 /** Whether the call changed the case, a refusal, and the case as it then stands. */
 final case class CaseAnswer(changed: Boolean, state: FraudCaseState, refusal: Option[String] = None)
@@ -48,7 +53,9 @@ final class FraudCaseEntity(@scala.annotation.unused context: EventSourcedEntity
   def applyEvent(event: FraudCaseEvent): FraudCaseState = event match
     case e: Opened    => FraudCaseState(e.playerIds, e.signals, FraudCaseStatus.Open, Some(e.at))
     case e: Reviewed  => currentState.copy(status = FraudCaseStatus.Reviewed, reviewedBy = Some(e.operatorId), reviewedAt = Some(e.at))
-    case e: Dismissed => currentState.copy(status = FraudCaseStatus.Dismissed, reviewedBy = Some(e.operatorId), reviewedAt = Some(e.at))
+    case e: Dismissed => currentState.copy(status = FraudCaseStatus.Dismissed, reviewedBy = Some(e.operatorId), reviewedAt = Some(e.at),
+      reviewNotes = e.notes)
+    case _: NotesErased => currentState.copy(reviewNotes = Personal(""))
 
   private def answer(refusal: Option[String] = None) = effects.reply(CaseAnswer(false, currentState, refusal))
 
@@ -64,12 +71,17 @@ final class FraudCaseEntity(@scala.annotation.unused context: EventSourcedEntity
       case FraudCaseStatus.Reviewed => answer()
       case _                      => answer(Some("case_closed"))
 
-  /** Dismisses the case; the caller clears the flag on every player it names. */
+  /** Dismisses the case with the operator's notes; the caller clears the flag on every player it names. */
   def dismiss(c: DecideCase): Effect[CaseAnswer] =
     currentState.status match
       case ""                        => answer(Some("case_not_found"))
       case FraudCaseStatus.Dismissed => answer()
-      case _                         => effects.persist(Dismissed(c.operatorId, c.at)).thenReply(CaseAnswer(true, _))
+      case _                         => effects.persist(Dismissed(c.operatorId, c.at, Personal(c.notes))).thenReply(CaseAnswer(true, _))
+
+  /** Blanks the notes: the erasure of a player the case links (FR-038). */
+  def eraseNotes(c: EraseNotes): Effect[CaseAnswer] =
+    if currentState.reviewNotes.reveal.isEmpty then answer()
+    else effects.persist(NotesErased(c.at)).thenReply(CaseAnswer(true, _))
 
   def get: ReadOnlyEffect[FraudCaseState] = effects.reply(currentState)
 
@@ -83,11 +95,13 @@ object FraudCaseEntity
   given Serializer[FraudCaseState] = PlayersCodecs.serializer[FraudCaseState]("fraud-case-reply")
   given Serializer[OpenCase]       = PlayersCodecs.serializer[OpenCase]("open-case")
   given Serializer[DecideCase]     = PlayersCodecs.serializer[DecideCase]("decide-case")
+  given Serializer[EraseNotes]     = PlayersCodecs.serializer[EraseNotes]("erase-notes")
   given Serializer[CaseAnswer]     = PlayersCodecs.serializer[CaseAnswer]("case-answer")
 
   def create(context: EventSourcedEntityContext) = new FraudCaseEntity(context)
 
-  val open    = command("open")(_.open)
-  val review  = command("review")(_.review)
-  val dismiss = command("dismiss")(_.dismiss)
-  val get     = query("get")(_.get)
+  val open       = command("open")(_.open)
+  val review     = command("review")(_.review)
+  val dismiss    = command("dismiss")(_.dismiss)
+  val eraseNotes = command("erase-notes")(_.eraseNotes)
+  val get        = query("get")(_.get)

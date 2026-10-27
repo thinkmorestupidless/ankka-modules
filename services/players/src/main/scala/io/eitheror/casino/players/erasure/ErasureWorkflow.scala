@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.players.{Json, Neighbours, PlayersCodecs, PlayersRuntime, Secrets}
 import io.eitheror.casino.players.clients.{Neighbour, Raced, Target}
 import io.eitheror.casino.players.config.BrandConfigEntity
+import io.eitheror.casino.players.fraud.{EraseNotes, FraudCaseEntity, FraudCasesView}
 import io.eitheror.casino.players.inbox.{MessageAt, MessageEntity, MessagesView, NoteEntity, NotesView}
 import io.eitheror.casino.players.player.*
 import io.eitheror.casino.players.realm.RealmRefusal
@@ -66,8 +67,8 @@ final case class ErasureTarget(name: String, target: Target, subject: String => 
  * from the closure: `retentionDays`, else [[ErasureWorkflow.DefaultRetentionDays]]. `hold` looks again
  * every `ERASURE_HOLD_POLL` until the hold has passed and no withdrawal is open. `apply` asks one target
  * a time and keeps its certificate, so a target that does not answer is retried and then named in
- * `failed`, never skipped; this service's own part is last (notes, messages, the lookup entries, then
- * the entity's `Erase`). `realm` removes the user; `done` ends.
+ * `failed`, never skipped; this service's own part is last (notes, messages, the notes of the fraud cases
+ * that link the player, the lookup entries, then the entity's `Erase`). `realm` removes the user; `done` ends.
  */
 final class ErasureWorkflow(context: WorkflowContext) extends Workflow[ErasureFlow]:
   import ErasureFlow.*
@@ -203,12 +204,18 @@ object ErasureWorkflow
         p.profile.get("dateOfBirth").getOrElse("")).toVector ++ p.registration.deviceFingerprint.flatMap(f => LookupTokens.device(key, f.reveal))
     }
 
-  /** This service's part: the notes' and messages' text, the lookup entries, then the entity's `Erase`. */
+  /**
+   * This service's part: the notes' and messages' text, the dismissal notes of every case linking the
+   * player (they may name the other player too, and are blanked whole), the lookup entries, then the
+   * entity's `Erase`.
+   */
   def eraseOwn(components: ComponentClient, s: ErasureFlow, at: Instant): Unit =
     NotesView.ofPlayer(PlayersRuntime.views(), s.playerId).foreach(n =>
       components.forKeyValueEntity(EntityId(n.noteId)).call(NoteEntity.erase).invoke(): Unit)
     MessagesView.ofPlayer(PlayersRuntime.views(), s.playerId, 0, 100_000, includeDeleted = true).foreach(m =>
       components.forEventSourcedEntity(EntityId(m.messageId)).call(MessageEntity.erase).invoke(MessageAt(at)): Unit)
+    FraudCasesView.ofPlayer(PlayersRuntime.views(), s.playerId).foreach(c =>
+      components.forEventSourcedEntity(EntityId(c.caseId)).call(FraudCaseEntity.eraseNotes).invoke(EraseNotes(at)): Unit)
     s.tokens.foreach(t => components.forKeyValueEntity(EntityId(t)).call(LookupIndexEntity.remove).invoke(LookupPlayer(s.playerId)): Unit)
     components.forEventSourcedEntity(PlayerEntity.id(s.playerId)).call(PlayerEntity.erase).invoke(At(at)): Unit
 

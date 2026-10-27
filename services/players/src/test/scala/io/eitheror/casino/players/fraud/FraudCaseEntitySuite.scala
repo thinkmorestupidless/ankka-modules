@@ -40,3 +40,12 @@ class FraudCaseEntitySuite extends munit.FunSuite:
     val unknown = EventSourcedTestKit.of(FraudCaseEntity, "c-x")
     assertEquals(unknown.call(FraudCaseEntity.dismiss)(DecideCase("op-1", at)).replyValue.refusal, Some("case_not_found"))
   }
+
+  test("a dismissal keeps the operator's notes as Personal; erasing them blanks them once") {
+    val kit = opened
+    assertEquals(kit.call(FraudCaseEntity.dismiss)(DecideCase("op-1", at, "siblings sharing a laptop")).replyValue.state.reviewNotes.reveal,
+      "siblings sharing a laptop")
+    assert(kit.call(FraudCaseEntity.eraseNotes)(EraseNotes(at.plusSeconds(1))).persisted)
+    assertEquals((kit.currentState.reviewNotes.reveal, kit.currentState.status), ("", FraudCaseStatus.Dismissed))
+    assert(!kit.call(FraudCaseEntity.eraseNotes)(EraseNotes(at.plusSeconds(2))).persisted)
+  }

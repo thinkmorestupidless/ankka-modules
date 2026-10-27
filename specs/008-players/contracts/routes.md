@@ -95,7 +95,7 @@ logged (001 FR-023).
 | `GET /players/{playerId}/messages`, `POST /players/{playerId}/messages` | `MessagesView`; `MessageEntity.Created` (origin `operator`), merge tags rendered | 200; 201; 422 `unknown_merge_tag` + `tag`; 422 `category_required`; 422 `marketing_suppressed`; 422 `account_closed`; 404 `player_not_found` |
 | `GET /merge-tags`, `POST /messages/preview` | the merge tags; a render | 200; 422; 404 |
 | `POST /players/{playerId}/clear-suspect-flag` | `ClearDuplicate` | 200 |
-| `GET /fraud-cases?status`, `PATCH /fraud-cases/{caseId}/review`, `PATCH /fraud-cases/{caseId}/dismiss` | `FraudCasesView`; `FraudCaseEntity` | 200 `{status, reviewedBy}`; 404 `case_not_found` |
+| `GET /fraud-cases?status`, `PATCH /fraud-cases/{caseId}/review`, `PATCH /fraud-cases/{caseId}/dismiss` `{notes}` | `FraudCasesView`; `FraudCaseEntity` | 200 `{status, reviewedBy}`, and `reviewNotes` on dismiss; 404 `case_not_found` |
 | `POST /players/{playerId}/activity-export`, `GET /exports/{exportId}` | `ExportWorkflow` for the player | 202 `{exportId}`; 200; 409; 404; 410 |
 | `POST /players/{playerId}/erasure` | `ErasureWorkflow` | 202; 409 `not_closed` |
 | `GET /players/{playerId}/erasure` | the erasure's state: `correlationId`, `holdUntil`, `status` (`held` \| `applying` \| `erased`), each service's certificate | 200; 404 `erasure_not_found` |
@@ -133,8 +133,9 @@ logged (001 FR-023).
   `allow-list` is `{countries}` at `/allow-list`, without the original's per-country `POST`/`DELETE`. A
   `PUT` sets the fields it names over what is held.
 - `GET /fraud-cases` answers the original's `{cases}` with `playerIds` (every player the case links)
-  where the original had `playerRef` and `linkedPlayerRef`; review and dismiss answer `{caseId, status,
-  reviewedBy, reviewedAt}`. Dismissing clears the flag on every linked player (FR-037); the original left
+  where the original had `playerRef` and `linkedPlayerRef`, and each case's `reviewNotes`; review and
+  dismiss answer `{caseId, status, reviewedBy, reviewedAt}`, dismiss with `reviewNotes` (the body's
+  `notes`, `null` when none or after a linked player's erasure blanked them). Dismissing clears the flag on every linked player (FR-037); the original left
   the flags set. `clear-suspect-flag` dismisses the player's open cases, as the original, and so clears
   the flags of the players those cases link. A second decision on a dismissed case is `409 case_closed`.
 - Erasure and the export (T070–T071), which the original had neither of: the player's `GET /{playerId}`

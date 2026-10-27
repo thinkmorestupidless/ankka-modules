@@ -99,8 +99,8 @@ class DuplicatesSuite extends munit.FunSuite:
     assertEquals((r.status, r.str("status"), r.str("reviewedBy")), (200, "REVIEWED", "op-4"))
     assert(r.str("reviewedAt").nonEmpty)
     assertEquals(op("PATCH", "/fraud-cases/nope/review").status, 404)
-    val d = op("PATCH", s"/fraud-cases/$caseId/dismiss")
-    assertEquals((d.status, d.str("status")), (200, "DISMISSED"))
+    val d = kit.request("PATCH", kit.operatorPath(s"/fraud-cases/$caseId/dismiss"), Some("""{"notes":"siblings"}"""), kit.asOperator(subject = "op-4"))
+    assertEquals((d.status, d.str("status"), d.str("reviewNotes")), (200, "DISMISSED", "siblings"))
     assertEquals((player(a).fraud, player(b).fraud), (None, None))
     Seq(a, b).foreach(id => kit.eventually(s"player_fraud_cleared for $id")(kit.facts(CasinoPlayers).collectFirst {
       case f: PlayerFraudCleared if f.playerId == id && f.fraudCaseId == caseId => f

@@ -5,6 +5,7 @@ import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.erasure.{ErasureFlow, ErasureWorkflow}
+import io.eitheror.casino.players.fraud.{FraudCaseEntity, FraudCasesView, FraudCaseStatus}
 import io.eitheror.casino.players.player.{PlayerEntity, PlayerState, Status}
 
 import java.time.Duration
@@ -71,6 +72,26 @@ class ErasureSuite extends munit.FunSuite:
     val again = kit.register("email" -> email)
     assertEquals(again.status, 201, again.text)
     assertNotEquals(again.str("playerId"), id)
+  }
+
+  test("past the hold: the dismissal notes of a case linking the player are blanked; the case stays dismissed") {
+    val names = Seq[(String, Any)]("firstName" -> s"Fe${java.util.UUID.randomUUID().toString.take(8)}", "lastName" -> "Lin", "dateOfBirth" -> "1985-03-04")
+    kit.activePlayer(names*): Unit
+    val (_, id, _) = closed(names*)
+    val caseId = kit.eventually("the case", 10.seconds)(FraudCasesView.ofPlayer(kit.views, id).headOption).caseId
+    val d = kit.request("PATCH", kit.operatorPath(s"/fraud-cases/$caseId/dismiss"), Some("""{"notes":"siblings sharing a flat"}"""),
+      kit.asOperator(subject = "op-6"))
+    assertEquals((d.status, d.str("reviewNotes")), (200, "siblings sharing a flat"))
+    assertEquals(op("POST", s"/players/$id/erasure").status, 202)
+    past()
+    kit.eventually("erased", 20.seconds)(Option.when(flow(id).step == ErasureFlow.Erased)(()))
+    val s = kit.components.forEventSourcedEntity(EntityId(caseId)).call(FraudCaseEntity.get).invoke()
+    assertEquals((s.reviewNotes.reveal, s.status), ("", FraudCaseStatus.Dismissed))
+    val row = kit.eventually("the dismissed case listed", 10.seconds) {
+      val listed = op("GET", "/fraud-cases?status=DISMISSED").json.get("cases")
+      (0 until listed.size).map(listed.get).find(_.get("caseId").asText == caseId)
+    }
+    assert(row.get("reviewNotes").isNull, row.toString)
   }
 
   test("an open withdrawal holds the erasure past its date until it settles, saying so") {

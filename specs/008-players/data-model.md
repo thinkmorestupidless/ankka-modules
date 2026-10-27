@@ -125,8 +125,11 @@ written as (`Personal`; added at T033, an absent one reads `""`). Events `Create
 
 `playerIds`, `signals` (`identity`, `device`), `status` (`open` \| `reviewed` \| `dismissed`, stored
 lower-case; the wire carries the original's `OPEN` \| `REVIEWED` \| `DISMISSED`, `contracts/wire.md`),
-`openedAt`, `reviewedBy`, `reviewedAt`. Events `Opened`, `Reviewed`, `Dismissed`. Dismissal commands
-`ClearDuplicate` on every player.
+`openedAt`, `reviewedBy`, `reviewedAt`, `reviewNotes` (`Personal`: the dismissal's free text may name
+either player). Events `Opened`, `Reviewed`, `Dismissed` (with the notes; an event without them reads
+as none), `NotesErased`. Dismissal commands `ClearDuplicate` on every player. The erasure of any linked
+player commands `eraseNotes` on each case `FraudCasesView` lists for them, which blanks the notes whole
+and leaves the status and reviewer.
 
 ## LookupIndexEntity (key value, id = token)
 
