@@ -188,7 +188,7 @@ In-project callers by certificate; no route here is granted to a shared project.
 
 ### The two routes every brand service serves to `players`
 
-`POST /erasure/players/{playerId}` (served today by `wallet` and `merchant`) and
+`POST /erasure/players/{playerId}` (served today by `wallet`, `responsible-gambling` and `merchant`) and
 `GET /exports/players/{playerId}` (new; specs 002 and 004 gain it) under `Routes.service` admitting
 `players` of the brand; `merchant`'s under the brand's erasure grant (`grants.md`). The erasure
 answers `{service, playerId, appliedAt, certificate}`; the export answers `{service, playerId, part}`

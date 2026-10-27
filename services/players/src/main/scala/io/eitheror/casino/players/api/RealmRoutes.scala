@@ -68,15 +68,21 @@ final class RealmRoutes(ctx: Ctx):
 
   // ── POST /gamstop-refusal ──────────────────────────────────────────────────────────────────────
 
-  /** The GAMSTOP authenticator's refusal, passed to responsible gambling (spec 010 FR-022), best effort. */
+  /**
+   * The GAMSTOP authenticator's refusal, passed to responsible gambling by player (spec 010 FR-022, R12), best
+   * effort. The address is resolved here; one with no player is dropped with a log line naming no address.
+   */
   def gamstopRefusal(text: String, header: String => Option[String]): Reply =
     secured(header) {
       val body = Json.parse(text).getOrElse(Json.obj())
       (body.text("email"), body.text("result")) match
         case (Some(email), Some(result)) =>
-          ctx.neighbours.rg.gamstopRefusal(email, result, ctx.settings.sessionEndBound) match
-            case Raced.Answered(_) => ()
-            case _                 => RealmRoutes.log.warn("gamstop-refusal: responsible-gambling did not take it")
+          playerOf(email) match
+            case None => RealmRoutes.log.info("gamstop-refusal: the address belongs to no player of the brand; dropped")
+            case Some(playerId) =>
+              ctx.neighbours.rg.gamstopRefusal(playerId, result, ctx.settings.sessionEndBound) match
+                case Raced.Answered(_) => ()
+                case _                 => RealmRoutes.log.warn("gamstop-refusal: responsible-gambling did not take it")
           ok(Json.obj("ok" -> true))
         case _ => refusal(400, "missing_fields", "email and result are required", "fields" -> Json.arr("email", "result"))
     }

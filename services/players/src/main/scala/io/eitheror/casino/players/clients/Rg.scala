@@ -30,8 +30,11 @@ final case class DepositSums(last24h: Long, last7d: Long, last30d: Long)
 trait Rg:
   def mayLogIn(playerId: String, bound: Duration): Raced[LogIn]
   def mayDeposit(playerId: String, currency: String, amount: Long, sums: DepositSums, bound: Duration): Raced[DepositDecision]
-  /** The GAMSTOP authenticator's refusal, passed on (spec 010 FR-022): `excluded`, `api_error` or `timeout`. */
-  def gamstopRefusal(email: String, result: String, bound: Duration): Raced[Unit]
+  /**
+   * The GAMSTOP authenticator's refusal, passed on by player (spec 010 FR-022, R12): `excluded`, `api_error`
+   * or `timeout`. The address stays here; responsible gambling holds none.
+   */
+  def gamstopRefusal(playerId: String, result: String, bound: Duration): Raced[Unit]
 
 object Rg:
   val Service = "responsible-gambling"
@@ -68,6 +71,6 @@ private final class HttpRg(services: ServiceClients, target: Target) extends Rg:
       "last24h" -> sums.last24h, "last7d" -> sums.last7d, "last30d" -> sums.last30d)
     bounded(target.name, bound)(call(services, target, "POST", "/may-deposit", Some(body)))(Rg.deposit)
 
-  def gamstopRefusal(email: String, result: String, bound: Duration): Raced[Unit] =
-    bounded(target.name, bound)(call(services, target, "POST", "/gamstop-refusal", Some(Json.obj("email" -> email, "result" -> result))))(r =>
+  def gamstopRefusal(playerId: String, result: String, bound: Duration): Raced[Unit] =
+    bounded(target.name, bound)(call(services, target, "POST", "/gamstop-refusal", Some(Json.obj("playerId" -> playerId, "result" -> result))))(r =>
       if r.ok then Right(()) else Left(s"status ${r.status}"))

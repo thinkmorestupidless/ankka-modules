@@ -46,7 +46,11 @@ final class FakeRg(brand: String, bind: Int = 0) extends KnobbedServer(bind):
       val player = r.json.flatMap(_.text("playerId")).getOrElse("")
       Answer.ok(Option(logIn.get(player)).getOrElse(Json.obj("decision" -> "allowed")))
     case "/may-deposit"      => Answer.ok(deposit)
-    case "/gamstop-refusal"  => Answer.ok(Json.obj())
+    case "/gamstop-refusal"  => Answer(204, "")
+    case p if p.startsWith("/erasure/players/") =>
+      Answer.ok(Json.obj("service" -> "responsible-gambling", "playerId" -> p.split('/').last, "erased" -> Json.arr("caseNotes")))
+    case p if p.startsWith("/exports/players/") =>
+      Answer.ok(Json.obj("service" -> "responsible-gambling", "playerId" -> p.split('/').last, "records" -> Json.obj()))
     case _                   => Answer(404, """{"error":"unknown route"}""")
 
 /** `kyc`'s deposit check: allowed unless a refusal `(code, message)` is scripted for the player. */

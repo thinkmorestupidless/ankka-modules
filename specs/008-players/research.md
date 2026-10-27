@@ -142,7 +142,8 @@ way, bound 80 ms on the RG call so the whole answer is under 100 ms at p99 (SC-0
 refusal, and the plugin fails closed on a non-200 (today it fails closed on a non-200 from the
 substrate, `RgStatusAuthenticator.java:35-128`, so only its URL and header change). The GAMSTOP
 authenticator's refusal is reported on `POST /internal/realm/<slug>/gamstop-refusal` and passed to
-RG (spec 010 FR-022). The plugin changes are in the original's `bundle/keycloak-plugins/` and the
+RG by player (spec 010 FR-022, R12): `players` resolves the address and sends `{playerId, result}`, an address with
+no player dropped with a log line, so the address never leaves this service. The plugin changes are in the original's `bundle/keycloak-plugins/` and the
 installation's Keycloak image: a task of this spec that lives in two other places (plan, "What the
 next command needs to know").
 
@@ -259,8 +260,8 @@ request (refused `not_closed` unless the status is `closed`, FR-038): step `file
 `retentionDays`, default the licence profile's; an open withdrawal is a hold too, read from
 `casino.withdrawals` facts into the player's state); step `hold` pauses on a single timer named by
 the request; step `apply` calls `POST /erasure/players/{playerId}` on every brand service the module
-manifest lists that serves it (today: `wallet`, and `merchant` in `payments` under the brand's
-erasure grant, `grants.md`; `kyc`, `responsible-gambling`, `rewards`, `engagement`, `payouts` and
+manifest lists that serves it (today: `wallet`, `responsible-gambling` (spec 010 R15), and `merchant` in `payments` under the brand's
+erasure grant, `grants.md`; `kyc`, `rewards`, `engagement`, `payouts` and
 `attribution` as their specs build the route) and `PlayerEntity.Erase` on itself, retrying each
 until it answers, and keeps each answer as that service's certificate; step `realm` removes the user;
 step `done` sets `erased`. `ExportWorkflow`, id = `export/<playerId>/<requestId>`: step `own`

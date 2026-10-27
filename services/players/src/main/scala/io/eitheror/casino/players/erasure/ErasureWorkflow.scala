@@ -180,12 +180,13 @@ object ErasureWorkflow
   val Own = "players"
 
   /**
-   * Every part of the erasure but this service's own, in order (R10): the brand's `wallet`, and `merchant`
-   * in `payments` under the brand's erasure grant, which knows the player as `<brand>:<player>`. A later
-   * service is one entry.
+   * Every part of the erasure but this service's own, in order (R10): the brand's `wallet` and
+   * `responsible-gambling` (spec 010 R15), and `merchant` in `payments` under the brand's erasure grant,
+   * which knows the player as `<brand>:<player>`. A later service is one entry.
    */
   def targets(brand: String): Vector[ErasureTarget] = Vector(
     ErasureTarget("wallet", Target("wallet", s"/v1/casino/brands/$brand"), identity),
+    ErasureTarget("responsible-gambling", Target("responsible-gambling", s"/v1/casino/brands/$brand/rg"), identity),
     ErasureTarget("merchant", Target("merchant", "", Some("payments")), p => s"$brand:$p")
   )
 

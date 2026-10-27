@@ -3,6 +3,7 @@ package io.eitheror.casino.players.it
 import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.facts.{CasinoSessions, PlayerSessionEnded}
 import io.eitheror.casino.players.Json
+import io.eitheror.casino.players.Json.*
 import io.eitheror.casino.players.player.{PlayerEntity, Suspend}
 import io.eitheror.casino.players.sessions.{PlayerSessionEntity, SessionStatus}
 
@@ -95,11 +96,21 @@ class RealmSuite extends munit.FunSuite:
     assert(p99 < 100.0, f"p99 $p99%.1f ms")
   }
 
-  test("gamstop-refusal: 200 and passed to responsible gambling") {
-    val r = kit.json("POST", kit.realmPath("/gamstop-refusal"), Json.obj("email" -> "g@example.test", "result" -> "excluded"),
+  test("gamstop-refusal: 200 and passed to responsible gambling by player, the address kept here (010 R12)") {
+    val (email, id) = kit.activePlayer()
+    val r = kit.json("POST", kit.realmPath("/gamstop-refusal"), Json.obj("email" -> email, "result" -> "excluded"),
       kit.asVisitor :+ realmSecret)
     assertEquals(r.status, 200, r.text)
-    assertEquals(kit.rg.asked("gamstop-refusal").size, 1)
+    val asked = kit.rg.asked("gamstop-refusal")
+    assertEquals(asked.map(b => (b.text("playerId"), b.text("result"))), Vector((Some(id), Some("excluded"))))
+    assert(!asked.exists(b => Json.render(b).contains(email)), "no address leaves players")
+  }
+
+  test("gamstop-refusal: an address with no player is dropped, still 200") {
+    val r = kit.json("POST", kit.realmPath("/gamstop-refusal"), Json.obj("email" -> "nobody@example.test", "result" -> "excluded"),
+      kit.asVisitor :+ realmSecret)
+    assertEquals(r.status, 200, r.text)
+    assertEquals(kit.rg.asked("gamstop-refusal"), Vector.empty)
   }
 
   test("the reconciler: a session the realm no longer holds ends expired within two intervals; a silent realm for a tick does not stop it") {

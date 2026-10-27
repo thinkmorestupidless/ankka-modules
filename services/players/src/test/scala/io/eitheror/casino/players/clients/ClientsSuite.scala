@@ -63,8 +63,10 @@ class ClientsSuite extends munit.FunSuite:
 
   test("gamstop refusal passed on; kyc's deposit check allowed or refused with code and message") {
     val rg = scripted(Rg.Service)(_ => json(200, "{}"))
-    assertEquals(answered(Rg.http(rg, "goldvibe").gamstopRefusal("a@example.test", "excluded", bound)), ())
+    assertEquals(answered(Rg.http(rg, "goldvibe").gamstopRefusal("p-1", "excluded", bound)), ())
     assertEquals(rg.requests.head.path, "/v1/casino/brands/goldvibe/rg/gamstop-refusal")
+    val sent = Json.parse(String(rg.requests.head.body, UTF_8)).get
+    assertEquals((sent.text("playerId"), sent.text("result"), sent.text("email")), (Some("p-1"), Some("excluded"), None))
     def kyc(body: String) = Kyc.http(scripted(Kyc.Service)(_ => json(200, body)), "goldvibe")
     assertEquals(answered(kyc("""{"allowed":true}""").depositCheck("p-1", 100, bound)), KycDecision.Allowed)
     assertEquals(answered(kyc("""{"allowed":false,"code":"DEPOSIT_BLOCKED_KYC","message":"Verify first"}""").depositCheck("p-1", 100, bound)),
