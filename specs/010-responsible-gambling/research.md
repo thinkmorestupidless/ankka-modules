@@ -132,8 +132,8 @@ called: fail closed.
 **Consequence**: until spec 002 keeps loss sums (as `recentDeposits`, from settled losses) and spec 003's
 bet workflow reads and carries them, a player with a loss limit cannot bet. That is the spec's rule (a limit
 that never applies is a liability, Clarifications 2026-10-25), and the plan names the two changes under
-*Elsewhere*. **Open for the user**: whether to ship 010 failing closed for loss-limited players until 002
-and 003 carry the sums, or to make the two changes first.
+*Elsewhere*. **Decided 2026-10-27 (Trevor)**: 010 ships failing closed for loss-limited players; 002 and 003
+carry the sums afterwards.
 
 ## R7. Usage for display: a consumer of `money.transactions` into minute and hour buckets
 

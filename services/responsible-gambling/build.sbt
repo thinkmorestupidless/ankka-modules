@@ -46,7 +46,9 @@ lazy val root = project
       "io.eitheror"             %% "casino-contract" % contractVersion,
       "com.thinkmorestupidless" %% "ankka-testkit" % ankkaVersion % Test,
       "org.scalameta"           %% "munit"         % "1.3.6"      % Test,
-      "org.scalameta"           %% "munit-scalacheck" % "1.2.0"   % Test
+      "org.scalameta"           %% "munit-scalacheck" % "1.2.0"   % Test,
+      // The integration kit reads the timers table, and LeakSuite every table, directly.
+      "org.postgresql"           % "postgresql"       % "42.7.4"  % Test
     ),
     // Suites read the living features and the recordings from the repository root.
     Test / javaOptions += s"-Dcasino.root=${(baseDirectory.value / ".." / "..").getCanonicalPath}",
