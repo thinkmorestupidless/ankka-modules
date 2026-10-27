@@ -241,6 +241,19 @@ Read from the code (`contracts/surface.md` has every element and its disposition
 
 *Written at task time.*
 
+- **Loss is net** (T010): `money.transactions` carries no loss amount (`round_settled_as_loss` has none), so
+  the displayed loss is stakes less wins and rollbacks, per bucket, and a net gain is shown as no loss.
+- **A money limit's currency** (T018): ISO 4217 when named; with none named, the one currency the player's
+  limits already use, otherwise `invalid_currency`. FR-006's check against the player's wallets needs the
+  wallets' currencies, which this service does not hold; it waits for a view of the wallet's facts.
+- **Timers from a consumer** (T014): `ProfileTimers` reads the profile's events and keeps a timer for each
+  pending change, break and return and starts the sync, so a timer is set whatever path made the change.
+- **The lift** (T030): `POST /{player}/cooling-off/lift` with `reason` in the body; 0.13 has no `DELETE`
+  with a body, and a free-text reason must not travel in a query string.
+- **may-play's path** (T025): game-provider now calls `/v1/casino/brands/<slug>/rg/{player}/may-play`,
+  the service endpoint's one prefix.
+- **Breaks moved by an operator** keep their case; `rg_case_opened` is published once per break.
+
 ## For ankka (checked against 0.13.0)
 
 - Timers by name with replace (032): in 0.13.
