@@ -631,10 +631,9 @@ shape, the full-aggregate usage) are reproduced as parity tests.
 
 ## Out of scope
 
-- Loss-limit enforcement at bet, stake limits, affordability checks, proactive monitoring and
-  "approaching limit" notices: none exists in the original; the first is a marked question.
+- Stake limits, affordability checks, proactive monitoring and "approaching limit" notices: none
+  exists in the original. (Loss limits are enforced at bet, FR-010; settled 2026-10-25.)
 - Jurisdiction-specific exclusion registers other than GAMSTOP; a second is a second authenticator.
-- A player's return after a period exclusion beyond an operator's reinstatement (marked question).
 - The game page's reality-check timer and modal (frontend; it reads the interval and records the
   acknowledgement as today).
 - Account closure by the player: `players`' (spec 008).
