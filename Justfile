@@ -118,6 +118,21 @@ ingest-run:
       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs \
       sbt -Dankka.local-services.merchant=http://127.0.0.1:9000 run
 
+# responsible-gambling's suites (spec 010; Docker for the integration kit). The contract is published first.
+rg-test:
+    sbt contract/publishLocal
+    cd services/responsible-gambling && sbt test
+
+# responsible-gambling's integration, parity and feature suites only (Docker).
+rg-it:
+    cd services/responsible-gambling && sbt "testOnly io.eitheror.casino.rg.it.* io.eitheror.casino.rg.port.* io.eitheror.casino.rg.features.*"
+
+# responsible-gambling, locally on 9006 as brand goldvibe (`sbt schema && docker compose up -d` first, in
+# services/responsible-gambling); players at 9005 for the exclusion sync.
+rg-run brand="goldvibe":
+    cd services/responsible-gambling && CASINO_BRAND={{brand}} ANKKA_HTTP_PORT=9006 ANKKA_DB_PORT=5436 \
+      sbt -Dankka.local-services.players=http://127.0.0.1:9005 run
+
 # The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
 psp-stub gateway="http://localhost:9001":
     cd tests && go build -o stubs/bin/ ./stubs/psp-stub

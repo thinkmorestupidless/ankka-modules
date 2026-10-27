@@ -111,7 +111,7 @@ final case class PlayerSofCleared(playerId: String, actorId: String, occurredAt:
 
 @named("rg_case_opened")
 final case class RgCaseOpened(playerId: String, rgCaseId: String, caseType: String, trigger: String,
-    closesAt: Option[Instant], occurredAt: Instant) extends CasinoPlayersFact
+    closesAt: Option[Instant], occurredAt: Instant, permanent: Option[Boolean] = None) extends CasinoPlayersFact
 
 @named("rg_case_closed")
 final case class RgCaseClosed(playerId: String, rgCaseId: String, caseType: String, closure: String, occurredAt: Instant)
@@ -119,7 +119,7 @@ final case class RgCaseClosed(playerId: String, rgCaseId: String, caseType: Stri
 
 @named("rg_limit_applied")
 final case class RgLimitApplied(playerId: String, limitType: String, period: Option[String], value: Option[Long],
-    causedBy: String, occurredAt: Instant) extends CasinoPlayersFact
+    causedBy: String, occurredAt: Instant, currency: Option[String] = None) extends CasinoPlayersFact
 
 object CasinoPlayersFact:
   given JsonValueCodec[CasinoPlayersFact] = FactCodecs.make

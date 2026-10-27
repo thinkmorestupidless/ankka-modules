@@ -11,29 +11,29 @@ Paths: `S` = `services/responsible-gambling/src/main/scala/io/eitheror/casino/rg
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `currency: Option[String] = None` to `RgLimitApplied` and `permanent: Option[Boolean] = None` to
+- [X] T001 Add `currency: Option[String] = None` to `RgLimitApplied` and `permanent: Option[Boolean] = None` to
       `RgCaseOpened` in `contract/src/main/scala/io/eitheror/casino/contract/facts/CasinoPlayers.scala`
       (contracts/facts.md); `just schemas`; the schema diff shows two optional fields only; `sbt contract/test`
       green
-- [ ] T002 `ankka init` the service at `services/responsible-gambling/` in the shape of `services/players/`:
+- [X] T002 `ankka init` the service at `services/responsible-gambling/` in the shape of `services/players/`:
       `build.sbt` on `casino-contract` and ankka 0.13.0, `service.json`, `docker-compose.yml` (Postgres),
       `src/main/resources/application.conf`
-- [ ] T003 [P] `S/Settings.scala` (brand, project, issuers from the env the core module renders) and
+- [X] T003 [P] `S/Settings.scala` (brand, project, issuers from the env the core module renders) and
       `S/RgCodecs.scala` (the stored-type serializer helper as `PlayersCodecs`)
-- [ ] T004 [P] `justfile`: `rg-test`, `rg-it`, `rg-run`; `.github/workflows/ci.yml`: the service's filter,
+- [X] T004 [P] `justfile`: `rg-test`, `rg-it`, `rg-run`; `.github/workflows/ci.yml`: the service's filter,
       output and job
 
 ## Phase 2: Foundational
 
-- [ ] T005 [P] `S/profile/Limits.scala` (the limit types, `isMoreRestrictive` as the original's
+- [X] T005 [P] `S/profile/Limits.scala` (the limit types, `isMoreRestrictive` as the original's
       `CS/RgRoutes.scala:35-48`, the staging decision) and `T/profile/LimitsSuite.scala`: the original's truth
       table (`RgRoutesSpec:376-405`) plus each staging row of data-model.md
-- [ ] T006 [P] `S/profile/Model.scala`: state, `RgCase`, `HistoryEntry`, `Actor`, events, commands, `Done`
+- [X] T006 [P] `S/profile/Model.scala`: state, `RgCase`, `HistoryEntry`, `Actor`, events, commands, `Done`
       with refusals (data-model.md), `Personal` notes and reasons
-- [ ] T007 [P] `S/profile/Checks.scala` (pure; data-model.md *Checks*, the four orders) and
+- [X] T007 [P] `S/profile/Checks.scala` (pure; data-model.md *Checks*, the four orders) and
       `T/profile/ChecksSuite.scala`: every row, exactly-at-remainder allowed, a minor unit over refused, the
       first of daily/weekly/monthly named, excluded over break, loss limit with no sums `unavailable`
-- [ ] T008 `S/profile/ProfileEntity.scala` and `T/profile/ProfileEntitySuite.scala` (`EventSourcedTestKit`):
+- [X] T008 `S/profile/ProfileEntity.scala` and `T/profile/ProfileEntitySuite.scala` (`EventSourcedTestKit`):
       every command and refusal of data-model.md's table in its order; stale timer fires change nothing;
       `Erase` blanks every `Personal` and keeps values, types, times and statuses; the history entry each
       change appends
