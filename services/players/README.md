@@ -78,12 +78,17 @@ that exists is left as it is.
 ## Run it locally
 
 ```bash
-cd services/players && sbt schema && docker compose up -d     # Postgres on 5435, Keycloak on 8080
-sbt "Test/runMain io.eitheror.casino.players.it.fakes"        # the neighbours, on 9010–9017
-just players-run                                              # on 9003 as goldvibe
+cd services/players && sbt schema && docker compose up -d     # Postgres on 5435, an empty Keycloak on 8080
+CASINO_KEYCLOAK_URL=http://127.0.0.1:8080 CASINO_KEYCLOAK_ADMIN_USERNAME=admin CASINO_KEYCLOAK_ADMIN_PASSWORD=admin \
+  just modules realm goldvibe --secrets <file>                # the brand realm, as on an installation
+sbt "Test/runMain io.eitheror.casino.players.it.fakes"        # the neighbours, on 9010–9017; prints each link
+just players-run                                              # on 9003 as goldvibe, the six PLAYERS_* set
 ```
 
-`specs/008-players/quickstart.md` §6 has the register, verify and sign-in sequence.
+`specs/008-players/quickstart.md` §6 has the register, verify and sign-in sequence; last run
+2026-10-27, as §6 says. The realm must come from the tool: the template imported as it is has no
+`players-admin`, and Keycloak 24's default user profile drops `eitheror_twin_id` and holds every
+sign-in at `VERIFY_PROFILE` for the names a registration need not give.
 
 ## Test it
 

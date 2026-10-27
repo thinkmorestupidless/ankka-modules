@@ -12,7 +12,7 @@ package io.eitheror.casino.players.it
     "realm"                -> FakeRealm(brand, 9010),
     "responsible-gambling" -> FakeRg(brand, 9011),
     "kyc"                  -> FakeKyc(brand, 9012),
-    "engagement"           -> FakeEngagement(brand, 9013),
+    "engagement"           -> FakeEngagement(brand, 9013, echo = true),
     "ingest"               -> FakeIngest(9014),
     "wallet"               -> FakeWallet(brand, 9015),
     "geo"                  -> FakeGeo(9016),

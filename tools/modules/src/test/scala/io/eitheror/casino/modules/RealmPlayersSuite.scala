@@ -43,3 +43,20 @@ class RealmPlayersSuite extends munit.FunSuite:
     assertEquals(admins(Realm.withPlayers(json, None, Map.empty)).size, 1)
     assert(!mapper.readTree(Realm.withPlayers(rendered, None, Map.empty)).path("attributes").has("players_realm_secret"))
   }
+
+  test("the user profile keeps eitheror_twin_id (admins only) and asks no names; a second pass adds no second profile") {
+    assert(!mapper.readTree(rendered).path("components").has(Realm.UserProfileProvider))
+    val json = Realm.withPlayers(rendered, None, Map.empty)
+    def profiles(j: String) = mapper.readTree(j).path("components").path(Realm.UserProfileProvider)
+    assertEquals(profiles(Realm.withPlayers(json, None, Map.empty)).size, 1)
+    val p = profiles(json).get(0)
+    assertEquals(p.path("providerId").asText(), "declarative-user-profile")
+    val attributes = mapper.readTree(p.path("config").path("kc.user.profile.config").get(0).asText()).path("attributes").elements().asScala
+      .map(a => a.path("name").asText() -> a).toMap
+    assertEquals(attributes.keySet, Set("username", "email", "firstName", "lastName", "eitheror_twin_id"))
+    assert(Seq("firstName", "lastName", "eitheror_twin_id").forall(n => !attributes(n).has("required")))
+    val twin = attributes("eitheror_twin_id").path("permissions")
+    assertEquals((twin.path("view").elements().asScala.map(_.asText()).toVector, twin.path("edit").elements().asScala.map(_.asText()).toVector),
+      (Vector("admin"), Vector("admin")))
+    assertEquals(attributes("username").path("displayName").asText(), "${username}")
+  }

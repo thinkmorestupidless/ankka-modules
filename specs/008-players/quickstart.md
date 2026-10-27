@@ -95,27 +95,40 @@ Expected, by suite:
 
 ## 6. Locally, beside a Keycloak
 
+In `services/players`: `sbt schema && docker compose up -d` (Postgres on 5435, an empty Keycloak 24 on
+8080). Then the brand realm, made by the modules tool as on an installation, from the repository root:
+
 ```bash
-just players-run    # CASINO_BRAND=goldvibe; ANKKA_HTTP_PORT=9003; the local-services for responsible-gambling, kyc, engagement, ingest, wallet
+CASINO_KEYCLOAK_URL=http://127.0.0.1:8080 CASINO_KEYCLOAK_ADMIN_USERNAME=admin CASINO_KEYCLOAK_ADMIN_PASSWORD=admin \
+  just modules realm goldvibe --secrets <a file outside the repository>
 ```
 
-`sbt schema && docker compose up -d` in `services/players` first; the compose file brings a Keycloak
-24 with `brands/_realm/casino-template.json` imported as `casino-goldvibe` and the three secrets set
-as realm attributes. Without the other services, `sbt "Test/runMain io.eitheror.casino.players.it.fakes"`
-in `services/players` stands them in.
+The file's `goldvibe-players/<KEY>` lines (§7) give `players-admin` its secret and the realm its two
+shared secrets; the tool also declares the user profile `players` needs (`eitheror_twin_id`, no
+required names) and makes the operators' realm `eitheror`. Without the other services,
+`sbt "Test/runMain io.eitheror.casino.players.it.fakes"` in `services/players` stands them in on
+9010–9017 and prints each link `engagement` is asked to send. Then, with the same six values in the
+environment as `PLAYERS_REALM_ADMIN` … `PLAYERS_MERCHANT_KEY`:
 
 ```bash
+just players-run    # CASINO_BRAND=goldvibe; ANKKA_HTTP_PORT=9003; the local-services at the fakes
 curl -s -X POST localhost:9003/v1/casino/players/goldvibe/register -H 'Content-Type: application/json' \
   -d '{"email":"p1@example.test","password":"Correct-horse-1","currency":"EUR","country":"GB","dateOfBirth":"1990-01-01"}'
 ```
 
-Expected: `201` with `playerId` and `status: pending_email_verification`; the same command again: the
-same `playerId`; `GET /v1/casino/backoffice/goldvibe/players/{id}/verification-link` with a staff
-token (the brand is not real-money locally): the link; following it: `200`; then `POST …/login` with
-the address and password: `200` with `token`, `playerId`, `currency`. Inspect with `ankka local
-console`: the `PlayerEntity` journal (`Registered`, `EmailVerified`, `SignedIn`, `SessionOpened`), one
-`PlayerSessionEntity`, the `RegistrationWorkflow` ended, a `game-session-limit/*` timer after a launch
-through `game-provider`, and the `realm-reconcile` timer firing every 60 s.
+Expected (run 2026-10-27): `201` with `playerId` and `status: pending_email_verification`; the same
+command again: `409 email_already_exists`; the printed link's `token` posted to `POST …/verify-email`:
+`200 {"status":"verified"}`; then `POST …/login` with the address and password: `200` with `token`,
+`refreshToken`, `brandId`, `playerId`, `currency`, `country`. The operator route
+`GET /v1/casino/backoffice/goldvibe/players/{id}/verification-link` needs a staff token and
+`players-run` trusts only the player issuer, so locally the printed link stands in for it. Inspect
+(`ankka local console`, or the MCP tools `describe_local_service` and `query_local_entity`): the
+player `active` with one sign-in session in `openPlayerSessions`, the `player-session` entity
+`active`, the `registration` workflow (id: the SHA-256 of `goldvibe:<address>`) at `ended` with one
+send, and the `realm-reconcile` timer firing every 60 s. A launch through
+`POST /v1/casino/brands/goldvibe/players/{id}/game-sessions` answers `201 {sessionId}`; a
+`game-session-limit/<sessionId>` timer is scheduled only for a player with a session limit, which
+comes from `responsible-gambling`'s facts.
 
 ## 7. An installation (kind)
 

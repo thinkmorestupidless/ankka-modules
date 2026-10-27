@@ -70,7 +70,8 @@ final case class Sent(key: String, playerId: String, trigger: String, to: String
  * `engagement`'s send route: every send recorded with its link so a test follows it, a repeat of a key
  * sending nothing and answering the first outcome; `outcome` is what it answers (`accepted` by default).
  */
-final class FakeEngagement(brand: String, bind: Int = 0) extends KnobbedServer(bind):
+/** `echo` prints each accepted send's link, for a local run (`FakesMain`). */
+final class FakeEngagement(brand: String, bind: Int = 0, echo: Boolean = false) extends KnobbedServer(bind):
   private val byKey             = ConcurrentHashMap[String, Sent]()
   private val log               = java.util.concurrent.ConcurrentLinkedQueue[Sent]()
   @volatile var outcome: String = "accepted"
@@ -88,7 +89,9 @@ final class FakeEngagement(brand: String, bind: Int = 0) extends KnobbedServer(b
     else
       val b = r.json.getOrElse(Json.obj())
       val s = Sent(b.textOr("key", ""), b.textOr("playerId", ""), b.textOr("trigger", ""), b.textOr("to", ""), b.textOr("link", ""))
-      if outcome == "accepted" && byKey.putIfAbsent(s.key, s) == null then log.add(s)
+      if outcome == "accepted" && byKey.putIfAbsent(s.key, s) == null then
+        log.add(s): Unit
+        if echo then println(s"engagement: ${s.trigger} to player ${s.playerId}: ${s.link}")
       Answer.ok(Json.obj("status" -> outcome))
 
 /**

@@ -5,10 +5,11 @@
 # ankka-runtime artifact — run that first. Postgres applies an init directory only when its data
 # volume is empty, so after an ankka upgrade: `docker compose down -v`, `sbt schema`, `docker compose up -d`.
 #
-# Keycloak: the installation's version (installation/base/keycloak/), importing the brand realm
-# template as `casino-goldvibe` (`${brandId}` and `${frontendBaseUrl}` are filled from this file's
-# environment by Keycloak's import). The realm's admin is the master admin here; on an installation
-# `players` holds the realm-scoped credential `players-realm-admin` (contracts/realm.md).
+# Keycloak: the installation's version (installation/base/keycloak/), empty. The brand realm is made
+# by the modules tool as on an installation, with what players needs of it (`players-admin`, the
+# attributes, the user profile): `CASINO_KEYCLOAK_URL=http://127.0.0.1:8080
+# CASINO_KEYCLOAK_ADMIN_USERNAME=admin CASINO_KEYCLOAK_ADMIN_PASSWORD=admin just modules realm goldvibe
+# --secrets <file>` (quickstart §6). The template imported as it is would lack all three.
 services:
   postgres:
     image: postgres:17-alpine
@@ -29,16 +30,12 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:24.0.5
-    command: ["start-dev", "--import-realm"]
+    command: ["start-dev"]
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      brandId: goldvibe
-      frontendBaseUrl: http://localhost:3000
     ports:
       - "8080:8080"
-    volumes:
-      - ../../brands/_realm/casino-template.json:/opt/keycloak/data/import/casino-goldvibe.json:ro
 
 volumes:
   pgdata:
