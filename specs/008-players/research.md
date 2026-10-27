@@ -463,7 +463,14 @@ The plan's *verify at task time* items, with what was found:
 - A sign-in on kind (T077): refused `403 account_restricted` `rg_unavailable` until
   `responsible-gambling` runs; registration (`201`, then `409`) and verification (`200`) answer as
   locally. The verification link was minted from the installation's own `players-email-token`, since
-  `engagement` (014) is not deployed and the operator route needs a staff token.
+  `engagement` (014) is not deployed. The operator route then answered with a staff token: an operator
+  `ops-goldvibe@eitheror.test` in the `eitheror` realm, realm role `brand_goldvibe`, signed in through
+  `casino-backoffice` (audience `eitheror-casino`); `GET /v1/casino/backoffice/goldvibe/players/{id}/verification-link`
+  answered `200` with the link, and `401` without a token.
+- `players` at the default size (`small`, 512Mi) was OOM-killed on kind: the JVM, the views and one
+  Kafka consumer per topic source do not fit. The core module gives it `medium` (1Gi);
+  `RenderSuite` lists that as a difference from spec 001. Goldvibe's `wallet` was paused to make the
+  CPU room for the rolling update.
 - The modules tool on kind (T077, 2026-10-27):
   - `secrets` needs the project, so `apply` runs first and holds the core module for the missing keys;
     then `secrets`, then `apply` again.

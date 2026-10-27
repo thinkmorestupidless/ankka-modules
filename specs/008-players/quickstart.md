@@ -162,6 +162,9 @@ Run 2026-10-27 on `kind-ankka` (never production). Results:
   `checked`.
 - A registration through the gateway: `201`, then `409`.
 - Verification: `200`.
+- The operator's verification link, with a `brand_goldvibe` operator's token from the `eitheror`
+  realm: `200`; without a token, `401`.
+- `players` needs `medium` (1Gi): at `small` it was OOM-killed. The core module sets it.
 - The realm routes by hand, with the secrets: `may-sign-in` and the webhook answer as
   `contracts/realm.md` says (research *Findings*).
 - No address, password or token in the pod's log.

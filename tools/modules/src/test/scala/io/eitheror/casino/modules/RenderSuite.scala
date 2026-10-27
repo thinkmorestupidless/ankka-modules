@@ -46,6 +46,9 @@ class RenderSuite extends munit.FunSuite:
     "support-agent" -> Set("MODEL_PROVIDER_KEY")
   )
 
+  /** Sizes spec 001 did not set: players outgrows `small`'s 512Mi on kind (spec 008 T077, OOM-killed). */
+  private val NewSizes = Map("players" -> "medium")
+
   private def plan(named: Vector[String], v: Values = values) =
     BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)
 
@@ -57,7 +60,11 @@ class RenderSuite extends munit.FunSuite:
     val byName = spec001.map(d => d.name -> d).toMap
     rendered.foreach { d =>
       val before = byName.getOrElse(d.name, fail(s"${d.name} is not a service spec 001 rendered"))
-      val now    = comparable(d, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
+      val resized = NewSizes.get(d.name).fold(d) { size =>
+        assertEquals(d.service.resources.instanceType, size, d.name)
+        d.copy(service = d.service.copy(resources = before.service.resources))
+      }
+      val now = comparable(resized, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
       assertEquals(now, comparable(before, Set("SUPPORT_AGENT_ENABLED")), d.name)
       assertEquals(d.service.env.map(_.name).filter(NewIdentity), Vector("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE"), d.name)
     }
