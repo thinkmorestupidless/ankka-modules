@@ -277,6 +277,8 @@ final class OperatorStatusRoutes(ctx: Ctx):
         val o = ProfileRoutes.message(r, m)
         o.put("origin", r.origin)
         o.put("deliveredAt", null: String)
+        o.put("subjectTemplate", m.subjectTemplate.reveal)
+        o.put("bodyTemplate", m.bodyTemplate.reveal)
         o
       }
       ok(Json.obj("items" -> Json.arr(items*), "total" -> all.size, "page" -> n, "pageSize" -> size))
@@ -309,14 +311,14 @@ final class OperatorStatusRoutes(ctx: Ctx):
                 case (_, Left(MergeTags.Refused.UnknownTag(t))) => unknownTag(t)
                 case (Right(sub), Right(rendered)) =>
                   val m = ref.call(MessageEntity.write)
-                    .invoke(CreateMessage(playerId, category, MessageOrigin.Operator, sub, rendered, Some(p.subject), now())).state
+                    .invoke(CreateMessage(playerId, category, MessageOrigin.Operator, sub, rendered, Some(p.subject), now(), subject, text)).state
                   json(201, sent(id, m))
           }
 
   private def unknownTag(t: String): Reply = refusal(422, "unknown_merge_tag", s"unknown merge tag $t", "tag" -> t)
 
   private def sent(id: String, m: MessageState): ObjectNode =
-    Json.obj("notificationId" -> id, "state" -> (if m.readAt.nonEmpty then "read" else "unread"),
+    Json.obj("notificationId" -> id, "state" -> (if m.readAt.nonEmpty then "read" else if m.delivered then "delivered" else "sent"),
       "createdAt" -> m.createdAt.map(_.toString).orNull, "subject" -> m.subject.reveal, "body" -> m.body.reveal)
 
   def mergeTags: Reply =

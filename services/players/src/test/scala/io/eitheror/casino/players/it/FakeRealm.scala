@@ -53,12 +53,12 @@ final class FakeRealm(val slug: String, bind: Int = 0) extends FakeServer(bind):
 
   private def tokenFor(u: User, s: Session): String =
     val claims = Json.obj("sub" -> u.id, "iss" -> s"https://auth.example/realms/$realm", "eitheror_twin_id" -> u.playerId,
-      "session_state" -> s.id, "email" -> u.email, "exp" -> (System.currentTimeMillis / 1000 + 300))
+      "session_state" -> s.id, "email" -> u.email, "exp" -> (System.currentTimeMillis / 1000 + FakeRealm.Lifespan))
     if withoutSession then claims.remove("session_state"): Unit
     FakeRealm.jwt(claims)
 
   private def tokens(u: User, s: Session) =
-    Answer.ok(Json.obj("access_token" -> tokenFor(u, s), "refresh_token" -> s.refresh, "expires_in" -> 300L, "token_type" -> "Bearer"))
+    Answer.ok(Json.obj("access_token" -> tokenFor(u, s), "refresh_token" -> s.refresh, "expires_in" -> FakeRealm.Lifespan, "token_type" -> "Bearer"))
 
   private def grantError(status: Int, description: String) =
     Answer.json(status, Json.obj("error" -> "invalid_grant", "error_description" -> description))
@@ -162,6 +162,9 @@ final class FakeRealm(val slug: String, bind: Int = 0) extends FakeServer(bind):
 
 object FakeRealm:
   val SigningKey = "fake-realm-signing-key"
+
+  /** The access token's lifetime in seconds: the casino realm template's `accessTokenLifespan`. */
+  val Lifespan = 3600L
 
   private def b64(bytes: Array[Byte]) = Base64.getUrlEncoder.withoutPadding.encodeToString(bytes)
 

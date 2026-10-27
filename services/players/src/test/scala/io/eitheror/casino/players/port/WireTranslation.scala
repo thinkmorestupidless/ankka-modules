@@ -95,6 +95,10 @@ object WireTranslation:
         out
       case (_, o) => o
 
-  /** A recorded answer that was the original's plain-text `400` naming the three fields (a listed divergence). */
+  /**
+   * A recorded answer that was the original's `400` naming the three fields in one sentence (a listed
+   * divergence): plain text, or as recorded at T029, that sentence as its `error`.
+   */
   def plainMissingFields(recorded: Option[JsonNode]): Boolean =
-    recorded.exists(n => n.isTextual && n.asText().contains("email, password, and currency are required"))
+    val sentence = "email, password, and currency are required"
+    recorded.exists(n => (n.isTextual && n.asText().contains(sentence)) || Option(n.get("error")).exists(_.asText().contains(sentence)))

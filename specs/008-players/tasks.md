@@ -490,11 +490,11 @@ registration recordings.
       `p-test/features/RegistrationFeatures.scala`, each step over the kit's helpers; "the fact
       carries no tag" reads the broker; "nothing is created" reads `FakeRealm` and `PlayersView`
       *Done 2026-10-25. All 10 pickles bound; "nothing is created" reads `FakeRealm` and the workflow's outcome.*
-- [ ] T033 [US1] Confirm `ParitySuite` lists the driver's registration recordings and the four
+- [X] T033 [US1] Confirm `ParitySuite` lists the driver's registration recordings and the four
       Scenario 18 registrations as failing; name in `p-test/port/Parity.scala` the divergences that
       hold on them (`playerId` presence-only; `400 missing_fields` for the plain-text `400`;
       `trackingContext.btag` translated). Needs T029
-      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet. *Earlier:* The divergences to name: the minted `playerId` (the original derives it from the address) compared for presence, and `missing_fields` for the original's `{"error": "email, password, and currency are required"}`.*
+      *Done 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. Registration: missing fields, the weak password and the twin-shaped `GET /{playerId}` marked.
 
 ### Implementation for User Story 1
 
@@ -579,10 +579,10 @@ it.
       `p-test/features/SessionsFeatures.scala`; "the realm asking" posts to `/may-sign-in`; "has
       gone idle" removes the session from `FakeRealm` and waits two intervals
       *Done 2026-10-25.* Fifteen pickles bound; the game-session scenarios stay pending for T045. The outline's `blocked` and `closed` rows are skipped: no command of this service sets those statuses (only the migration, spec 019).
-- [ ] T040 [US2] Confirm `ParitySuite` lists the driver's sign-in, refresh, sign-out and webhook
+- [X] T040 [US2] Confirm `ParitySuite` lists the driver's sign-in, refresh, sign-out and webhook
       recordings as failing; name the divergences in `Parity.scala` (the token values `vary`; the
       webhook path translated; `401 unauthenticated` for the rejection page). Needs T029
-      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
+      *Done 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. Sign-in and sessions: the closed sign-in, rotation, the revoked/ended/suspended refresh, the game sessions ended with the sign-in, the second address and `blocked` (only the migration's) marked.
 
 ### Implementation for User Story 2
 
@@ -651,11 +651,11 @@ scenarios; the driver's launch and end recordings.
       `p-test/features/SessionsFeatures.scala`; "the timer fires" steps the clock; "one session at a
       time" sets `brand-config`
       *Done 2026-10-25.* All nine game pickles bound; `closed` now runs in both outlines (`Close` exists), `blocked` stays skipped (migration only).
-- [ ] T046 [US3] Confirm `ParitySuite` lists the driver's launch and session recordings as failing;
+- [X] T046 [US3] Confirm `ParitySuite` lists the driver's launch and session recordings as failing;
       name the divergences (`/launch` recorded on the original's sessions route replays through
       `ServiceEndpoint`'s `POST /{playerId}/game-sessions` with a service token, the translation
       named; `?playerId=` translated). Needs T029
-      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
+      *Done 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. Game sessions: a launch replays through `game-sessions` as `game-provider`; a closed or `blocked` launch marked.
 
 ### Implementation for User Story 3
 
@@ -726,10 +726,10 @@ email, consent and cookie recordings.
       `p-test/features/ProfileFeatures.scala`; "marketing email stops from that fact" reads the
       broker for `player_consent_changed`
       *Done 2026-10-25.* All twelve scenarios bound.
-- [ ] T051 [US4] Confirm `ParitySuite` lists the driver's profile, email, password, consent and
+- [X] T051 [US4] Confirm `ParitySuite` lists the driver's profile, email, password, consent and
       cookie recordings as failing; name the divergences (`/me/` and `/emails` paths translated;
       `{email}` placeholders). Needs T029
-      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
+      *Done 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. Profile: message `state` is the original's `sent`/`delivered`/`read`; `consentSource` (who last set it) marked.
 
 ### Implementation for User Story 4
 
@@ -819,10 +819,10 @@ reinstate, tier, close, note and message recordings.
       `responsible-gambling` service token; "however they signed in" tries a staff token with
       another brand's role and one with `platform_admin`
       *Done 2026-10-25.* All eleven scenarios bound. "However they signed in" is another brand's role, another brand's role with `support_agent`, and a player token. The attribution step asserts `player_closed` on `casino.players`; attribution's own fact is spec 012's to test.
-- [ ] T058 [US5] Confirm `ParitySuite` lists the driver's suspend, reinstate, tier, close, note,
+- [X] T058 [US5] Confirm `ParitySuite` lists the driver's suspend, reinstate, tier, close, note,
       message and merge-tag recordings as failing; name the divergences (the operator block's paths
       translated to `/backoffice/`). Needs T029
-      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
+      *Done 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. Operator: the backoffice profile's `activeSessions` are the open game sessions and unset fields `""`; operator messages keep their templates; the export answers `statusUrl`; the profile's other services' parts, the export's shape and the outsider's `403` marked.
 
 ### Implementation for User Story 5
 
@@ -894,7 +894,7 @@ recordings and the driver's fraud-case review recording.
       each) and the driver's fraud-case review recording as failing; name the divergences (the
       `observe:` twin reads not compared; the `409 SUSPECTED_DUPLICATE` of the bonus grant is 011's
       and the step is `observe:`). Needs T029
-      *Open 2026-10-26:* the recordings exist (T029) and `ParitySuite` replays all 60; none passes yet. The gaps, common to every story: the replayed verification link carries the original's token, which the kit's secret refuses, so sign-in after registration is `401 email_not_verified`; the launch is `405` at the recorded path; `GET /players/{id}` is the original's twin property bag and the backoffice profile carries `wallet`, `rg` and `lifetimeStats`, neither of which the port answers; and no divergence is marked in `Parity.divergences` yet.
+      *Open 2026-10-27:* `ParitySuite` replays all 60 recordings through `Parity.Replaying`, which fills the driver's placeholders, redacted passwords and refresh tokens and `Authorization` capture names with the replay's own and makes the steps of other services through the routes they call here (contracts/wire.md, amended); a read is asked again while its view catches up. 59 pass; every difference left is one of the 13 rows `Parity.divergences` names (plan.md's *Divergences* gains six). `FakeRealm` answers the realm template's `accessTokenLifespan`, 3600. The one failure: the dismissal recording's `reviewNotes`. The original keeps the operator's notes on the case and answers them; this service keeps none. Storing them puts free text about two players on the case, which erasure does not reach today, so it waits on a decision: notes as `Personal` on `Dismissed`, blanked when a linked player is erased (recommended), or a named divergence.
 
 ### Implementation for User Story 6
 

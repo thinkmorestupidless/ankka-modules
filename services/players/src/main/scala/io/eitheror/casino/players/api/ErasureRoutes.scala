@@ -36,15 +36,17 @@ final class ErasureRoutes(ctx: Ctx):
         "certificates" -> Json.arr(s.certificates.map(c => Json.obj("service" -> c.service, "appliedAt" -> c.appliedAt.toString,
           "certificate" -> Json.parse(c.certificate).orNull))*)))
 
-  def startExport(playerId: String, by: String): Reply =
+  /** Starts the export; `statusUrl` is where the caller reads it, as the original answered. */
+  def startExport(playerId: String, by: String, statusUrl: String => String = id => s"/v1/casino/backoffice/${ctx.slug}/exports/$id"): Reply =
     val exists = components.forEventSourcedEntity(PlayerEntity.id(playerId)).call(PlayerEntity.get).invoke().exists
     if !exists then refusal(404, "player_not_found", "No such player")
     else
       val id = UUID.randomUUID().toString
       components.forWorkflow(EntityId(id)).call(ExportWorkflow.start).invoke(StartExport(playerId, by, PlayersRuntime.now())): Unit
-      json(202, Json.obj("exportId" -> id))
+      json(202, Json.obj("exportId" -> id, "statusUrl" -> statusUrl(id)))
 
-  def startMine(p: Principal, playerId: String): Reply = PlayerCaller.matching(p, playerId)(_ => startExport(playerId, playerId))
+  def startMine(p: Principal, playerId: String): Reply =
+    PlayerCaller.matching(p, playerId)(_ => startExport(playerId, playerId, id => s"/v1/casino/players/${ctx.slug}/$playerId/exports/$id"))
 
   /** The export once assembled; `409` before, `410` after its retention, `404` for another player's. */
   def read(playerId: Option[String], exportId: String): Reply =

@@ -51,6 +51,12 @@ statuses are the original's where it had the route.
   the realm's own page, which confirms the reset.
 - The operator's `GET /players/{id}/profile` has no `rg` or `lifetimeStats` (specs 010 and 015 answer
   those); `GET /players/{id}/crm` has no `lifecycleState` or `campaignSendHistory` (spec 014's).
+- *Amended at T033 (2026-10-27)*, from the recordings: the operator's profile carries the original's
+  `activeSessions` (the open game sessions, `{sessionId, gameName, provider, startedAt}`; `provider` is
+  `""`, no session here carrying a game type), and its `player` answers each unset profile field and no
+  tier as `""`. A message's `state` is the original's `sent` | `delivered` | `read`, not `unread`; the
+  operator's list carries the `subjectTemplate` and `bodyTemplate` the operator wrote (`Personal`, erased
+  with the message). An export's `202` carries the original's `statusUrl`.
 - The links this service emails go through `engagement` with the triggers `EmailAddressVerification`
   (an added address), `EmailChangeVerification` and `PasswordChangeVerification`.
 

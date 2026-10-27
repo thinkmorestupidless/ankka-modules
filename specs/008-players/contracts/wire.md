@@ -28,7 +28,7 @@ here is the plan's reading of the Scala; the driver's recordings confirm or corr
 | `login` answer: `token`, `refreshToken`, `brandId`, `playerId`, `currency`, `country`, `pendingBonusCode` | unchanged; the token values are `vary` |
 | a refusal `{"error": "x"}` | `{"error": "x", "message": "…"}`; the comparison is on the recorded fields |
 | a refusal `{"error": "account_restricted", "reason": "suspended"}` | unchanged |
-| `400 "email, password, and currency are required"` (plain text) | `400 {"error": "missing_fields", "fields": ["email", "password", "currency"]}` — a listed divergence |
+| `400 {"error": "email, password, and currency are required"}` (recorded at T029; the plan read it as plain text) | `400 {"error": "missing_fields", "fields": ["email", "password", "currency"]}` — a listed divergence |
 | Akka's rejection page for a missing or invalid token | `401 {"error": "unauthenticated"}` — a listed divergence |
 | `500 refresh_failed`, `500 refresh_error` | `503 service_unavailable` — a listed divergence |
 | `403 player_id_missing` on the message routes | `401 missing_token` (001 FR-020) — a listed divergence |
@@ -41,6 +41,43 @@ here is the plan's reading of the Scala; the driver's recordings confirm or corr
 scenario minted, redacted to a placeholder by `merge`), `{session}` (from the login's realm session,
 read back from the sessions route), `{game}`, `{message}`, `{case}`, `{export}`, `{note}`. Passwords,
 tokens and refresh tokens are redacted by `merge` and compared for presence only.
+
+*Amended at T033 (2026-10-27)*, from the recordings themselves: `merge` wrote the driver's own
+placeholders (`{email}`, `{otherEmail}`, `{secondEmail}`, `{link}`, `{otherLink}`, `{secondLink}`,
+`{changeToken}`, `{device}`, `{surname}`, `{youngDate}`, `{caseId}`) and the tokens' capture names in
+`Authorization` (`{token}`, `{otherToken}`, `{operatorToken}`, `{outsiderToken}`), and redacted every
+`password` and `refreshToken`. The replay (`Parity.Replaying`) fills them with its own:
+
+| Recorded | Replayed |
+|---|---|
+| an address, `{device}`, `{surname}` | minted once per replay (the entities outlive a test); the answer carries the placeholder back |
+| `{link}`, `{otherLink}`, `{secondLink}`, `{changeToken}` | the token of the last link `engagement` was asked to send to the matching address |
+| `{youngDate}` | today less seventeen years |
+| `{caseId}`, or a case id of the original's own suite | the case of `FraudCasesView` that links one of the replay's players |
+| `password: <redacted>` | the driver's: `Players-Driver-1!`; `a` in a step named for a weak password; `Players-Driver-2!` in one named for the new password |
+| `refreshToken: <redacted>` | the first sign-in's refresh token |
+| `Bearer {token}` and the other players' | the token this service answered under that capture name |
+| `Bearer {operatorToken}` | an operator of the brand, as the realm user the recordings' operator was (`reviewedBy` names it) |
+| `Bearer {outsiderToken}` | an operator with no role at the brand |
+| no `Authorization` on a backoffice path of the original's own suite (`TestScenario…`) | the operator: that suite was recorded without its headers |
+| an answer's `<redacted>` field, the replay's slug | `<redacted>` where present; the recorded brand |
+
+A read (`GET`) that differs is asked again for up to five seconds: the reads here are views, a moment
+behind the write, where the original read its twin at once. Where a divergence holds, the read is asked
+again until the difference shows, since that is what it settles to.
+
+## Steps of other services
+
+A recorded step on another service's route that changes a player here is made through the route that
+service calls on this one, and answered as recorded except where this service's part shows:
+
+| Recorded | Replayed |
+|---|---|
+| `POST /v1/casino/sessions/{brand}/launch` (`game-provider`, spec 003) | `POST /v1/casino/brands/{brand}/players/{player}/game-sessions` as `game-provider`, with the player session of the step's token; answered `200 {sessionId}` with the recorded `gameUrl` and `launchToken` (`game-provider`'s), or this service's refusal |
+| `POST /v1/casino/{brand}/players/{player}/self-exclude` (`responsible-gambling`, spec 010) | `PUT /v1/casino/brands/{brand}/players/{player}/exclusion` as `responsible-gambling`; answered as recorded |
+| `setup:` `POST /twins/casino-{brand}/{player}` `{"account_status": "self_excluded"}` | the same exclusion |
+| `setup:` the twin write of `blocked` | nothing: only the migration sets `blocked` (FR-031), a listed divergence |
+| `/v1/casino/bonus/…` (`rewards`, spec 011), the realm's and the twins' own routes | answered as recorded |
 
 ## Refusal messages (the plan's reading; the recordings confirm)
 

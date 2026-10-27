@@ -389,6 +389,6 @@ object ProfileRoutes:
 
   def message(r: MessageRow, m: io.eitheror.casino.players.inbox.MessageState): ObjectNode =
     Json.obj("notificationId" -> r.messageId, "subject" -> m.subject.reveal, "body" -> m.body.reveal,
-      "state" -> (if r.readAt.nonEmpty then "read" else "unread"), "category" -> r.category,
+      "state" -> (if r.readAt.nonEmpty then "read" else if m.delivered then "delivered" else "sent"), "category" -> r.category,
       "createdAt" -> Instant.ofEpochMilli(r.createdAt).toString, "readAt" -> r.readAt.map(Instant.ofEpochMilli(_).toString).orNull,
       "originName" -> (if r.origin == MessageOrigin.Crm then "CRM" else "Operator"))

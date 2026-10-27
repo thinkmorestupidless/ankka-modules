@@ -22,7 +22,9 @@ final case class MessageState(
     createdBy: Option[String] = None,
     readAt: Option[Instant] = None,
     deletedByPlayerAt: Option[Instant] = None,
-    delivered: Boolean = false
+    delivered: Boolean = false,
+    subjectTemplate: Personal[String] = Personal(""), // what an operator wrote, before the merge tags
+    bodyTemplate: Personal[String] = Personal("")
 ):
   def exists: Boolean = playerId.nonEmpty
 
@@ -33,14 +35,15 @@ object MessageOrigin:
 sealed trait MessageEvent
 object MessageEvent:
   final case class Created(playerId: String, category: String, origin: String, subject: Personal[String], body: Personal[String],
-      createdBy: Option[String], at: Instant) extends MessageEvent
+      createdBy: Option[String], at: Instant, subjectTemplate: Personal[String] = Personal(""),
+      bodyTemplate: Personal[String] = Personal("")) extends MessageEvent
   final case class Read(at: Instant, playerId: String = "")    extends MessageEvent
   final case class Deleted(at: Instant, playerId: String = "") extends MessageEvent
   final case class Delivered(at: Instant) extends MessageEvent
   final case class Erased(at: Instant)  extends MessageEvent
 
 final case class CreateMessage(playerId: String, category: String, origin: String, subject: String, body: String,
-    createdBy: Option[String], at: Instant)
+    createdBy: Option[String], at: Instant, subjectTemplate: String = "", bodyTemplate: String = "")
 final case class MessageAt(at: Instant)
 
 /** Whether the call changed the message, and the message as it then stands. */
@@ -52,11 +55,12 @@ final class MessageEntity(@scala.annotation.unused context: EventSourcedEntityCo
   def emptyState: MessageState = MessageState()
 
   def applyEvent(event: MessageEvent): MessageState = event match
-    case e: Created   => MessageState(e.playerId, e.category, e.origin, e.subject, e.body, Some(e.at), e.createdBy)
+    case e: Created   => MessageState(e.playerId, e.category, e.origin, e.subject, e.body, Some(e.at), e.createdBy,
+                           subjectTemplate = e.subjectTemplate, bodyTemplate = e.bodyTemplate)
     case e: Read      => currentState.copy(readAt = Some(e.at))
     case e: Deleted   => currentState.copy(deletedByPlayerAt = Some(e.at))
     case _: Delivered => currentState.copy(delivered = true)
-    case _: Erased    => currentState.copy(subject = Personal(""), body = Personal(""))
+    case _: Erased    => currentState.copy(subject = Personal(""), body = Personal(""), subjectTemplate = Personal(""), bodyTemplate = Personal(""))
 
   private def unchanged = effects.reply(MessageAnswer(false, currentState))
 
@@ -64,7 +68,8 @@ final class MessageEntity(@scala.annotation.unused context: EventSourcedEntityCo
   def create(c: CreateMessage): Effect[MessageAnswer] =
     if currentState.exists then unchanged
     else
-      effects.persist(Created(c.playerId, c.category, c.origin, Personal(c.subject), Personal(c.body), c.createdBy, c.at))
+      effects.persist(Created(c.playerId, c.category, c.origin, Personal(c.subject), Personal(c.body), c.createdBy, c.at,
+        Personal(c.subjectTemplate), Personal(c.bodyTemplate)))
         .thenReply(MessageAnswer(true, _))
 
   def read(c: MessageAt): Effect[MessageAnswer] =
@@ -80,7 +85,8 @@ final class MessageEntity(@scala.annotation.unused context: EventSourcedEntityCo
     else effects.persist(Delivered(c.at)).thenReply(MessageAnswer(true, _))
 
   def erase(c: MessageAt): Effect[MessageAnswer] =
-    if !currentState.exists || currentState.body.reveal.isEmpty && currentState.subject.reveal.isEmpty then unchanged
+    val s = currentState
+    if !s.exists || Seq(s.body, s.subject, s.subjectTemplate, s.bodyTemplate).forall(_.reveal.isEmpty) then unchanged
     else effects.persist(Erased(c.at)).thenReply(MessageAnswer(true, _))
 
   def get: ReadOnlyEffect[MessageState] = effects.reply(currentState)

@@ -43,8 +43,10 @@ final class OperatorProfileRoutes(ctx: Ctx):
     known(playerId) { s =>
       val wallet = WalletSummaryView.ofPlayer(views, playerId).headOption.map(w =>
         Json.obj("realBalance" -> w.realBalanceAfter, "bonusBalance" -> w.restrictedBalanceAfter, "currency" -> w.currency)).orNull
-      val active = SessionsView.ofPlayer(views, playerId, SessionRow.Player, 0, 100).filter(_.open).map(r =>
-        Json.obj("sessionId" -> r.sessionId, "startedAt" -> Instant.ofEpochMilli(r.startedAt).toString))
+      // the original's open game sessions; `provider` was its game type, which no session here carries
+      val active = SessionsView.ofPlayer(views, playerId, SessionRow.Game, 0, 100).filter(_.open).map(r =>
+        Json.obj("sessionId" -> r.sessionId, "gameName" -> r.gameId.getOrElse(""), "provider" -> "",
+          "startedAt" -> Instant.ofEpochMilli(r.startedAt).toString))
       val pinned = NotesView.ofPlayer(views, playerId).filter(_.pinned).map { n =>
         val note = components.forKeyValueEntity(EntityId(n.noteId)).call(NoteEntity.get).invoke()
         Json.obj("noteId" -> n.noteId, "text" -> note.text.reveal, "author" -> n.author, "createdAt" -> Instant.ofEpochMilli(n.createdAt).toString)
@@ -133,6 +135,8 @@ final class OperatorProfileRoutes(ctx: Ctx):
 
   private def playerOf(s: PlayerState): ObjectNode =
     val o = ProfileRoutes.profileOf(s)
+    // the original's backoffice answers an unset field and no tier as "" (recorded 2026-10-26)
+    (OperatorProfileRoutes.Blank :+ "vipTier").foreach(f => if !o.hasNonNull(f) then o.put(f, ""))
     o.put("lastLoginAt", s.lastSignInAt.map(_.toString).orNull)
     o.put("registrationDate", s.registeredAt.map(_.toString).orNull)
     o.put("kycStatus", if s.kycVerified then "verified" else "unverified")
@@ -148,3 +152,6 @@ final class OperatorProfileRoutes(ctx: Ctx):
 object OperatorProfileRoutes:
   /** What an operator may edit (the original's backoffice list); `language` and `currency` are not the entity's to edit. */
   val OperatorFields: Set[String] = Set("firstName", "lastName", "country", "addressLine1", "city", "stateProv", "postalCode", "phone")
+
+  /** The profile fields the backoffice's `player` always carries, `""` when unset. */
+  val Blank: Vector[String] = Vector("firstName", "lastName", "dateOfBirth", "phone", "addressLine1", "city", "stateProv", "postalCode")

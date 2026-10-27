@@ -257,7 +257,7 @@ Research R18's table, with what demonstrates each.
 |---|---|---|
 | The player id is minted; `playerId` in every answer is `vary` | Clarifications; FR-001 | every registration recording, the id compared for presence |
 | A realm user whose player could not be written is removed | FR-002, *Changes* | `RegistrationSuite`: `FakeRealm` records the delete; no recording (the original cannot be made to fail there) |
-| `400 missing_fields` naming the fields (the original: a plain-text `400`) | FR-001 | the driver's missing-field recording, marked |
+| `400 missing_fields` naming the fields (the original: `400` with the sentence "email, password, and currency are required" as its `error`) | FR-001 | the driver's three missing-field recordings, marked |
 | A missing or invalid token is `401 unauthenticated` (the original: Akka's rejection page); `player_id_missing` is `401 missing_token` | 001 FR-020 | the driver's no-token recordings, marked |
 | `500 refresh_failed` / `refresh_error` are `503 service_unavailable` | FR-010 | `SessionsSuite` with `FakeRealm` silent; no recording differs |
 | The realm's authenticator asks `players`, fails closed | FR-013, *Changes* | `RealmSuite`; `FakeRg` silent → `allowed: false`; no recording (the plugin reads the twin today) |
@@ -279,6 +279,12 @@ Research R18's table, with what demonstrates each.
 | Sign-out, a suspension and a revoke end the realm's session, awaited; the refresh after is `refresh_expired` (the original's revoke is fire-and-forget and does not take) | FR-014, FR-032 | the driver's sign-out, `[revoked]` and suspension recordings, marked |
 | A verified second address made the sign-in address is the one the realm signs in (the original keeps the old) | FR-026 | the driver's recording, marked |
 | An operator with no standing at the brand is `403` (the original: `401`, the token invalid to it) | 001 FR-020 | the driver's outsider recording, marked |
+| `blocked` is set only by the migration: the replay cannot arrange it (the original set it by a twin write) | FR-031 | the driver's two `[blocked]` recordings, marked; `PlayerEntitySuite` refuses a migrated `blocked` player sign-in and play |
+| Sign-out, a suspension and a closure end the game sessions under the sign-in (the original leaves them `active`) | FR-014, FR-032, FR-032a | the driver's sign-out, suspension and closure recordings, marked |
+| `GET /{playerId}` answers a built profile, not the original's twin property map (which carried its tokens) | FR-023; routes.md (T052–T055) | every recording that reads the player's profile, marked |
+| The operator's profile has no `wallet`, `rg` or `lifetimeStats`, nor the kyc fields and `isTestAccount` (specs 002/011, 010, 015, 009 answer those) | FR-034; routes.md (T052–T055) | every recording where an operator reads the profile, marked |
+| The export is assembled across the brand's services and read once it is (`409 export_not_ready` before), in this service's shape | FR-040; routes.md (T070–T071) | the driver's export recording, marked |
+| `consentSource` is who last set the consent: a withdrawal reads `player` (the original keeps `registration` for ever) | FR-028 | the driver's withdrawn-consent recording, marked |
 
 ## What the next command needs to know
 

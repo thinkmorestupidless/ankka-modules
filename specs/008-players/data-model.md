@@ -113,8 +113,9 @@ Events `Opened`, `GameSessionAdded`, `Ended(reason)`. Commands `Open`, `AddGameS
 
 `playerId`, `category`, `origin` (`operator` \| `crm`), `subject` and `body` (`Personal`, rendered with
 the merge tags at write), `createdAt`, `createdBy`, `readAt`, `deletedByPlayerAt`, `delivered`
-(from `push_delivered`). Events `Created`, `Read`, `Deleted`, `Delivered`. `Created` for an existing
-id returns the first answer.
+(from `push_delivered`), and for an operator's message the `subjectTemplate` and `bodyTemplate` it was
+written as (`Personal`; added at T033, an absent one reads `""`). Events `Created`, `Read`, `Deleted`,
+`Delivered`, `Erased` (blanks the four texts). `Created` for an existing id returns the first answer.
 
 ## NoteEntity (key value, id = note id)
 
