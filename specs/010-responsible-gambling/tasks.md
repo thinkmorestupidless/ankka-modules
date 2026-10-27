@@ -160,7 +160,7 @@ Paths: `S` = `services/responsible-gambling/src/main/scala/io/eitheror/casino/rg
 
 - [X] T043 [P] `services/responsible-gambling/README.md` (purpose, routes by endpoint with a pointer to
       contracts/routes.md, settings, the `just` recipes, what is verified where)
-- [ ] T044 [P] On 008's branch (`008-players`): the GAMSTOP report resolves the address to the player and
+- [X] T044 [P] On 008's branch (`008-players`): the GAMSTOP report resolves the address to the player and
       sends `playerId` (R12); `ErasureWorkflow.targets` gains `responsible-gambling` (R15); its suites green
 - [ ] T045 Quickstart §6: the service run locally, the four checks answered by `curl`
 - [ ] T046 Quickstart §7 on `kind-ankka` (never production): the image built and loaded, `just modules apply
