@@ -142,6 +142,19 @@ object Routes:
     val matchers: Vector[CallerMatcher] = Callers.anyInProject +: granted.map((project, name) => Callers.service(project, name))
     Acl.allowCallers(matchers.head, matchers.tail*)
 
+  /**
+   * Named services of this project, by their identity and with no token: a service route served to
+   * its callers and no other (spec 008, contracts/routes.md's service endpoint).
+   */
+  def serviceOf(name: String, more: String*): Acl =
+    Acl.allowCallers(Callers.service(name), more.map(Callers.service)*)
+
+  /**
+   * `players` of this brand project: the erasure and export routes every brand service serves it
+   * (spec 008 FR-038, FR-040). Layout's erasure grant names the same principal.
+   */
+  val playersOnly: Acl = serviceOf("players")
+
   /** The routes a brand grants, each with the ACL that admits exactly its grantees. */
   def granted(service: String): Vector[(GrantTarget.Route, Acl)] =
     Layout.BrandGrantsMade.collect { case Layout.Grant(_, r @ GrantTarget.Route(`service`, _, _)) => r }.distinct

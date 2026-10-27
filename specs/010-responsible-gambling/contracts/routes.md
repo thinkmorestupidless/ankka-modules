@@ -37,7 +37,7 @@ activeRestrictions: ["COOLING_OFF"|"SELF_EXCLUDED"], realityCheckIntervalMinutes
 | `PUT /{player}/limits/{type}` | `value`, `currency?` | 200 the status | 400 as the player's, no minimum |
 | `DELETE /{player}/limits/{type}` | — | 200 the status | 404 `no_limit` |
 | `PUT /{player}/cooling-off` | `until` | 200 the status | as the player's, no `break_active` (an operator may replace) |
-| `DELETE /{player}/cooling-off` | `reason` | 200 the status | 400 `reason_required`; 404 `no_break` |
+| `POST /{player}/cooling-off/lift` | `reason` | 200 the status | 400 `reason_required`; 404 `no_break` |
 | `POST /{player}/self-exclude` | `period` (`permanent`, `P183D`, `183d`) | 200 `{"status": "self_excluded"}` | 400 `invalid_period`, `period_too_short` (`minimumDays: 183`, `providedDays`); 409 `already_excluded` |
 | `POST /{player}/return` | — | 202 `{"reinstatesAt"}` (the request recorded for the player) | as the player's |
 | `POST /{player}/cases` | `caseType`, `note` | 201 the case | 400 `invalid_case_type` |
