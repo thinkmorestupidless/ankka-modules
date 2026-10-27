@@ -35,7 +35,9 @@ found before the first call, one line each.
 ## Where it connects
 
 - **ankka**: as the `ankka` CLI does: `ANKKA_URL`, `ANKKA_TOKEN`, `ANKKA_CA`, else `~/.ankka/config.json`
-  (so `ankka login` serves both). `--organization` (or `ANKKA_ORGANIZATION`) names the organisation a
+  (so `ankka login` serves both). The login's token is read again before each call and renewed with
+  `ankka whoami` within 30 s of expiring or on a `401`, so a long `apply` outlives it; a token given in
+  `ANKKA_TOKEN` is used as it is. `--organization` (or `ANKKA_ORGANIZATION`) names the organisation a
   new project is created in locally, and the vendor's tenant otherwise.
 - **ankka-vendor**: through its plugin, `ankka vendor …` (or the command `CASINO_VENDOR_COMMAND` names):
   `modules get` for a channel's versions, `tenants values set` for `values push`, `modules schema` for
