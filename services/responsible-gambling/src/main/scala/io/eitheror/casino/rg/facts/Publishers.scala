@@ -6,6 +6,7 @@ import io.eitheror.casino.contract.audit.{AuditCompanion, AuditConsumer}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.rg.RgRuntime
 import io.eitheror.casino.rg.profile.{ProfileEntity, ProfileEvent}
+import io.eitheror.casino.rg.settings.{BrandSettingsEntity, SettingsChanged}
 
 /** `rg_limit_applied`, `rg_case_opened` and `rg_case_closed` on `casino.players`, keyed by the player (FR-030). */
 final class RgPublisher extends Consumer[ProfileEvent, CasinoPlayersFact]:
@@ -27,3 +28,12 @@ final class AuditPublisher extends AuditConsumer[ProfileEvent]:
 
 object AuditPublisher extends AuditCompanion[AuditPublisher, ProfileEvent]("rg-audit-publisher", ChangeSource.eventsOf(ProfileEntity)):
   def create(ctx: ConsumerContext) = new AuditPublisher
+
+/** An operator's changes to the brand's settings on `platform.audit` (FR-028, FR-029). */
+final class SettingsAuditPublisher extends AuditConsumer[SettingsChanged]:
+  protected def audit(change: SettingsChanged): Option[AuditRecord] =
+    Some(Facts.settingsAudit(messageContext.subject, messageContext.sequenceNumber, change).fact)
+
+object SettingsAuditPublisher
+    extends AuditCompanion[SettingsAuditPublisher, SettingsChanged]("rg-settings-audit-publisher", ChangeSource.eventsOf(BrandSettingsEntity)):
+  def create(ctx: ConsumerContext) = new SettingsAuditPublisher

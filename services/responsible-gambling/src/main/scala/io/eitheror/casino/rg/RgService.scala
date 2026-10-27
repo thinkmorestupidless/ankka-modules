@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import io.eitheror.casino.rg.api.*
-import io.eitheror.casino.rg.facts.{AuditPublisher, RgPublisher}
+import io.eitheror.casino.rg.facts.{AuditPublisher, RgPublisher, SettingsAuditPublisher}
 import io.eitheror.casino.rg.profile.ProfileEntity
 import io.eitheror.casino.rg.settings.BrandSettingsEntity
 import io.eitheror.casino.rg.timers.*
@@ -23,6 +23,7 @@ object RgService:
     SessionMinutesConsumer.descriptor,
     RgPublisher.descriptor,
     AuditPublisher.descriptor,
+    SettingsAuditPublisher.descriptor,
     ProfileTimers.descriptor,
     PendingTimer.descriptor,
     BreakTimer.descriptor,

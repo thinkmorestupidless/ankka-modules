@@ -55,10 +55,10 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
     body(text) { b =>
       def int(f: String): Either[String, Option[Int]] =
         if b.text(f).isEmpty then Right(None) else b.long(f).filter(_.isValidInt).map(v => Some(v.toInt)).toRight(f)
-      (for m <- int("minSessionMinutes"); d <- int("maxBreakDays") yield ChangeSettings(m, d)) match
+      (for m <- int("minSessionMinutes"); d <- int("maxBreakDays") yield ChangeSettings(m, d, principal.subject, ctx.now())) match
         case Left(field) => refusal(400, "invalid_setting", s"$field is not a whole number", "field" -> field)
         case Right(c) =>
-          val a = ctx.clients.componentClient.forKeyValueEntity(EntityId(ctx.slug)).call(BrandSettingsEntity.change).invoke(c)
+          val a = ctx.clients.componentClient.forEventSourcedEntity(EntityId(ctx.slug)).call(BrandSettingsEntity.change).invoke(c)
           a.refusal.fold(ok(settingsBody(a.settings)))(code => refusal(400, code, s"${a.field.getOrElse("")} is out of range", "field" -> a.field))
     }
   }

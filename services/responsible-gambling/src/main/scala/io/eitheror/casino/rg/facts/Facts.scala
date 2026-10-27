@@ -4,6 +4,7 @@ import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.rg.profile.{Actor, LimitKey, RgCase}
 import io.eitheror.casino.rg.profile.ProfileEvent
 import io.eitheror.casino.rg.profile.ProfileEvent.*
+import io.eitheror.casino.rg.settings.SettingsChanged
 
 import java.time.Instant
 
@@ -43,6 +44,17 @@ object Facts:
   private def named(field: String) = f.AuditChange(field, None, None)
 
   private def limitField(key: LimitKey) = key.currency.fold(key.limitType)(c => s"${key.limitType}/$c")
+
+  /** A change to the brand's settings (FR-028, FR-029): the brand is its subject, each changed field its before and after. */
+  def settingsAudit(brand: String, sequence: Long, event: SettingsChanged): Published[f.AuditRecord] =
+    val id = eventId("audit/settings", brand, sequence)
+    val changes = Vector(
+      ("minSessionMinutes", event.before.minSessionMinutes, event.after.minSessionMinutes),
+      ("maxBreakDays", event.before.maxBreakDays, event.after.maxBreakDays)
+    ).collect { case (field, b, a) if b != a => change(field, Some(b.toString), Some(a.toString)) }
+    Published(f.AuditRecord(recordId = id, brand = brand, service = "responsible-gambling", action = "settings-change", actorKind = "operator",
+      actorId = event.operatorId, approverId = None, subjectKind = "brand", subjectId = brand, outcome = "accepted", reasonCode = None,
+      changes = changes, correlationId = id, causationId = id, recordClass = "operator", occurredAt = event.at), id)
 
   /** One record per operator change (FR-028); a player's or the system's changes are not audited here. */
   def audit(brand: String, playerId: String, sequence: Long, event: ProfileEvent): Option[Published[f.AuditRecord]] =

@@ -1,11 +1,11 @@
 package io.eitheror.casino.rg.facts
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.rg.profile.*
 import io.eitheror.casino.rg.profile.ProfileEvent.*
-import io.eitheror.casino.rg.settings.{BrandSettings, BrandSettingsEntity, ChangeSettings}
+import io.eitheror.casino.rg.settings.{BrandSettings, BrandSettingsEntity, ChangeSettings, SettingsChanged}
 
 import java.time.Instant
 
@@ -70,8 +70,19 @@ class PublishersSuite extends munit.FunSuite:
     }
 
   test("the brand's settings: defaults 60 and 42, a field changed alone, a bad value refused naming it"):
-    val kit = KeyValueEntityTestKit.of(BrandSettingsEntity, "goldvibe")
-    assertEquals(kit.call(BrandSettingsEntity.get).replyValue, BrandSettings(60, 42))
-    assertEquals(kit.call(BrandSettingsEntity.change)(ChangeSettings(minSessionMinutes = Some(30))).replyValue.settings, BrandSettings(30, 42))
-    val bad = kit.call(BrandSettingsEntity.change)(ChangeSettings(maxBreakDays = Some(0))).replyValue
-    assertEquals((bad.refusal, bad.field, bad.settings), (Some("invalid_setting"), Some("maxBreakDays"), BrandSettings(30, 42)))
+    val kit = EventSourcedTestKit.of(BrandSettingsEntity, "goldvibe")
+    assertEquals(kit.currentState, BrandSettings(60, 42))
+    val at      = Instant.parse("2026-10-27T12:00:00Z")
+    val changed = kit.call(BrandSettingsEntity.change)(ChangeSettings(minSessionMinutes = Some(30), operatorId = "op-1", at = at))
+    assertEquals(changed.replyValue.settings, BrandSettings(30, 42))
+    assertEquals(changed.events, Vector(SettingsChanged(BrandSettings(60, 42), BrandSettings(30, 42), "op-1", at)))
+    val bad = kit.call(BrandSettingsEntity.change)(ChangeSettings(maxBreakDays = Some(0)))
+    assertEquals((bad.replyValue.refusal, bad.replyValue.field, bad.replyValue.settings), (Some("invalid_setting"), Some("maxBreakDays"), BrandSettings(30, 42)))
+    assertEquals(bad.events, Vector.empty)
+    assertEquals(kit.call(BrandSettingsEntity.change)(ChangeSettings(minSessionMinutes = Some(30))).events, Vector.empty, "no change, nothing to audit")
+
+  test("a settings change is audited against the brand with each changed field's before and after"):
+    val at = Instant.parse("2026-10-27T12:00:00Z")
+    val r  = Facts.settingsAudit("goldvibe", 3, SettingsChanged(BrandSettings(60, 42), BrandSettings(45, 42), "op-1", at)).fact
+    assertEquals((r.action, r.actorId, r.subjectKind, r.subjectId, r.changes),
+      ("settings-change", "op-1", "brand", "goldvibe", Vector(f.AuditChange("minSessionMinutes", Some("60"), Some("45")))))

@@ -77,7 +77,7 @@ final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
   def profile(playerId: String) = clients.componentClient.forEventSourcedEntity(EntityId(playerId))
   def state(playerId: String): ProfileState = profile(playerId).call(ProfileEntity.get).invoke()
   def brandSettings: BrandSettings =
-    clients.componentClient.forKeyValueEntity(EntityId(slug)).call(BrandSettingsEntity.get).invoke()
+    clients.componentClient.forEventSourcedEntity(EntityId(slug)).call(BrandSettingsEntity.get).invoke()
   def usage(playerId: String, currency: String): UsageSums =
     clients.componentClient.forKeyValueEntity(EntityId(UsageEntity.id(playerId, currency))).call(UsageEntity.sums).invoke(UsageAt(now()))
 
