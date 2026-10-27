@@ -148,6 +148,33 @@ class RgItSuite extends munit.FunSuite:
     val ret = kit.request("POST", kit.playerPath(s"/$p/return"), None, kit.asPlayer(p))
     assertEquals((ret.status, ret.str("error")), (409, "exclusion_permanent"))
 
+  test("with players silent past the client's timeout the exclusion still refuses every check, and the sync retries until it answers"):
+    val p = player()
+    kit.players.silent = true
+    assertEquals(kit.request("PUT", kit.playerPath(s"/$p/permanent-exclusion"), None, kit.asPlayer(p)).status, 200)
+    assertEquals((mayLogIn(p).str("decision"), mayDeposit(p, 1).str("decision")), ("excluded", "excluded"))
+    kit.eventually("two attempts", 60.seconds)(Option.when(kit.players.callsFor(p).size >= 2)(()))
+    kit.players.silent = false
+    val told = kit.players.callsFor(p).size
+    kit.eventually("an answered attempt", 60.seconds)(Option.when(kit.players.callsFor(p).size > told)(()))
+    kit.eventually("the sync settled")(Option.when(kit.components.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId(p))
+      .call(io.eitheror.casino.rg.profile.ProfileEntity.get).invoke().playersTold.isEmpty)(()))
+
+  test("a lifted break's timer, firing later, changes nothing"):
+    val p     = player()
+    val until = kit.now().plus(Duration.ofDays(2))
+    kit.json("PUT", kit.playerPath(s"/$p/cooling-off"), Json.obj("until" -> until.toString), kit.asPlayer(p)): Unit
+    kit.eventually("the break timer")(Option.when(kit.timerExists(TimerNames.break(p)))(()))
+    assertEquals(kit.json("POST", kit.operatorPath(s"/$p/cooling-off/lift"), Json.obj("reason" -> "agreed"), kit.asOperator()).status, 200)
+    val closedBefore = kit.eventually("the case closed lifted")(kit.facts(CasinoPlayers).collectFirst { case f: RgCaseClosed if f.playerId == p => f })
+    // The lift may or may not delete the timer; if it is still there, it fires on a profile with no break.
+    if kit.timerExists(TimerNames.break(p)) then
+      kit.advance(Duration.ofDays(2).plusSeconds(1))
+      kit.fireTimer(TimerNames.break(p))
+      kit.eventually("the timer gone")(Option.when(!kit.timerExists(TimerNames.break(p)))(()))
+    assertEquals(kit.facts(CasinoPlayers).collect { case f: RgCaseClosed if f.playerId == p => f }, Vector(closedBefore))
+    assertEquals(mayLogIn(p).str("decision"), "allowed")
+
   test("an operator's period exclusion: returned from only after it ends, reinstated 24 h after the request, players told DELETE"):
     val p = player()
     assertEquals(kit.json("POST", kit.operatorPath(s"/$p/self-exclude"), Json.obj("period" -> "P30D"), kit.asOperator()).str("error"), "period_too_short")

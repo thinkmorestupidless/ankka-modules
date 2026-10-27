@@ -253,6 +253,17 @@ Read from the code (`contracts/surface.md` has every element and its disposition
 - **may-play's path** (T025): game-provider now calls `/v1/casino/brands/<slug>/rg/{player}/may-play`,
   the service endpoint's one prefix.
 - **Breaks moved by an operator** keep their case; `rg_case_opened` is published once per break.
+- **The brand's settings are event sourced** (T036, 2026-10-27): FR-028 audits every operator change, and a
+  consumer of a key value entity may skip intermediate values. `SettingsChanged` carries the operator and
+  the before and after; `SettingsAuditPublisher` writes `settings-change` with the brand as its subject.
+- **Erasure and the journal** (T040, 2026-10-27): after `Erase` a note or reason is in no state, fact, audit
+  record, log line or answer, but stays in the event journal until 042's `Personal`. `LeakSuite` scans every
+  table and allows the journal alone, by name.
+- **The callers' decoders** (T023, T026, 2026-10-27): copied into `it/Callers.scala` (the wallet's `read`,
+  game-provider's `ResponsibleGamblingClient`, players' `Rg.logIn` and `Rg.deposit` from `008-players`).
+  game-provider and the wallet read `spending_limit` and `unavailable` as unavailable and refuse: R6's
+  fail-closed, held by `CallersSuite`.
+- **SC-004** (T027, 2026-10-27): 1,000 asks of each check over HTTP in the integration kit, p99 at most 2 ms.
 
 ## For ankka (checked against 0.13.0)
 
