@@ -132,23 +132,45 @@ comes from `responsible-gambling`'s facts.
 
 ## 7. An installation (kind)
 
+The images first, as the modules name them (`europe-west1-docker.pkg.dev/eitheror/casino/<service>:0.0.0`),
+built in each service with `DOCKER_REPOSITORY=europe-west1-docker.pkg.dev/eitheror/casino
+SERVICE_VERSION=0.0.0 sbt Docker/publishLocal` and loaded with `kind load docker-image <image> --name
+ankka`. Then, with `CASINO_KEYCLOAK_ADMIN_USERNAME`/`_PASSWORD` (dev-kind: `admin`/`admin`) and
+`CASINO_KEYCLOAK_CA=~/.ankka/local-ca.crt`:
+
 ```bash
 just modules render goldvibe
-just modules apply goldvibe --installation dev-kind --secrets <a file outside the repository>
-ankka services list --project goldvibe
+just modules apply goldvibe --installation dev-kind --modules core --secrets <a file outside the repository>
+just modules secrets goldvibe --installation dev-kind --secrets <the same file>
+just modules apply goldvibe --installation dev-kind --modules core --secrets <the same file>
 ```
 
 The secrets file holds `<secret>/<KEY>=<value>` lines: `goldvibe-kyc/API_KEY`, `goldvibe-st8/API_KEY`, and
 `goldvibe-players/` `REALM_ADMIN`, `WEBHOOK_SECRET`, `REALM_SECRET`, `EMAIL_TOKEN`, `LOOKUP_KEY`,
-`MERCHANT_KEY` (`contract/keys.md`). `apply` writes the brand's six into `tenant-values` only through
-`just modules secrets goldvibe --installation dev-kind --secrets <file>`, so run that first; `apply`'s
-own `--secrets` gives the realm it creates the `players-admin` secret and the two shared ones. A realm
-that already exists is not changed: add the client and the attributes by hand, or delete the realm
-first. The installation's `INGEST_URL` (`installation/overlays/dev-kind/settings.env`) is where a
-deposit opens its cashier.
+`MERCHANT_KEY` (`contract/keys.md`). The first `apply` creates the project and the realm (the
+`players-admin` secret, the two shared ones and the user profile from the file) and holds the core
+module for its missing keys; `secrets` needs the project, so it comes second; the second `apply`
+creates the services. A realm that already exists is not changed: delete it first. A service without
+an image takes CPU it cannot use; pause it (`ankka services pause <name> --project goldvibe`) so the
+others schedule. The installation's `INGEST_URL` (`installation/overlays/dev-kind/settings.env`) is
+where a deposit opens its cashier.
 
-The current kubeconfig context must be `kind-ankka` (never production). Expected: `players` running
-beside `wallet` and `game-provider`, exposed at `players-goldvibe.<base domain>`; the installation's
-Keycloak reaches `/internal/realm/goldvibe/webhook` and `/may-sign-in` inside the cluster (the
-plugins' `PLAYERS_URL`, `contracts/realm.md`); a registration through the gateway answers as §6 did
-and `ankka services logs players` shows the reconciler's count and no address, name or token.
+Run 2026-10-27 on `kind-ankka` (never production). Results:
+
+- `wallet` and `players` Ready.
+- `players` exposed at `https://players-goldvibe.127.0.0.1.sslip.io:8443`, and every topic check
+  `checked`.
+- A registration through the gateway: `201`, then `409`.
+- Verification: `200`.
+- The realm routes by hand, with the secrets: `may-sign-in` and the webhook answer as
+  `contracts/realm.md` says (research *Findings*).
+- No address, password or token in the pod's log.
+
+Not reached on that run:
+
+- `game-provider`: the casino module was not applied (research *Findings*).
+- A sign-in: refused `rg_unavailable` until `responsible-gambling` (010) runs, since sign-in fails
+  closed (FR-011).
+- The reconciler: it logs only when it ends expired sessions or the realm does not answer.
+- Whether the installation's Keycloak reaches the realm routes from inside the cluster: waits for the
+  rebuilt plugins.

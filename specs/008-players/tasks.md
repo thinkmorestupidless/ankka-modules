@@ -1044,13 +1044,19 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       and sign-in specs) run against the kind brand with only base URLs changed (SC-001), or, if the
       frontend's base-URL move has not happened, the run is recorded as waiting on it in research
       *Findings*. Needs T075; a kind cluster
-- [ ] T078 [P] Fill `services/players/README.md` (the purpose, the routes by endpoint with a pointer
+      *Open 2026-10-27:* run on `kind-ankka`; quickstart §7 and research *Findings* have the detail. Done: `wallet` and `players` Ready; `players` exposed with every topic check `checked`; a registration through the gateway `201`, then `409`; verify-email `200` in the realm the tool created (the user profile fix holds); `may-sign-in` and the webhook by hand with the secrets, as `contracts/realm.md` says; no address, password or token in the log. Waiting:
+      - a sign-in and `player_logged_in` on the topic: refused `rg_unavailable` until `responsible-gambling` (010) runs;
+      - `game-provider` beside them: the modules tool's Ready poll waits on the four imageless services and expires its token (spec 021);
+      - the installation's Keycloak reaching the routes from inside the cluster: the rebuilt plugins;
+      - the Playwright run: the frontend's base-URL move.
+- [X] T078 [P] Fill `services/players/README.md` (the purpose, the routes by endpoint with a pointer
       to contracts/routes.md, the settings and secrets table, `just players-test`/`players-it`/
       `players-run`, the recording run, the plugin dependency, what is verified where);
       `tests/README.md` and `tests/original/README.md` name the `players-driver`;
       `specs/008-players/quickstart.md` re-read against what T076 and T077 did and corrected where the
       commands drifted
       *Open 2026-10-25:* the README, `tests/README.md` and `tests/original/README.md` (*Recording the players*) are written, and quickstart §7's apply command and secrets file are corrected to the module tool. Re-reading §6 and §7 against an actual run waits on T076 and T077.
+      *Done 2026-10-27:* §6 rewritten to the local run (the realm from the tool, the printed link, `409` on a repeat), §7 to the kind run (the images, apply–secrets–apply, pausing imageless services, what was and was not reached); the README's local run and the compose file match.
 - [ ] T079 Close research: the verify-at-task-time items written with their result and date (T001's
       fields, T016's multi-source view, T030's workflow kit, T075's mapper, T077's plugin and
       Playwright checks); *For ankka* checked against the pinned runtime; plan.md's *Divergences* checked against

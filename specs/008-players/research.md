@@ -441,9 +441,41 @@ The plan's *verify at task time* items, with what was found:
   the template lacks (the `players-admin` client and its service account, and the three realm attributes)
   is added by the modules tool when it creates the realm (`Realm.withPlayers`). A realm that exists is
   not changed, so on an installation whose brand realm predates this, they are added by hand.
-- The realm's `user-sessions` listing naming the webhook's session ids, and the plugins' reads on kind
-  (T077): not yet verified; they need the installation's Keycloak.
-- The Playwright run against the kind brand (T077, SC-001): not yet run.
+- The brand realm's user profile (T076, 2026-10-27): the template sets none, so Keycloak 24's default
+  applies. It drops `eitheror_twin_id`, the attribute `players` writes on the user it creates and finds
+  the user by, so verify-email answered `503`. It also requires first and last names a registration
+  need not give, so every direct grant stopped at `VERIFY_PROFILE` (`resolve_required_actions`).
+  `FakeRealm` hid both. `Realm.withPlayers` now declares the profile: Keycloak 24's attributes with the
+  names optional, and `eitheror_twin_id` admin-only (`RealmPlayersSuite`). On kind (T077) the realm the
+  tool created found its user by the attribute (verify-email `200`).
+- The plugins' routes on kind (T077, 2026-10-27), by hand through the gateway at the realm's
+  `players_url`, `https://players-goldvibe.127.0.0.1.sslip.io:8443`:
+  - `may-sign-in` without the secret, or with a wrong one: `401`.
+  - With the secret: an unknown address `{"allowed":false,"reason":"player_not_found"}`; an active
+    player `{"allowed":false,"reason":"rg_unavailable"}`, failing closed as FR-011 says, because
+    `responsible-gambling` (spec 010) has no image yet.
+  - The webhook: `401` on a wrong secret; an event it cannot act on `200 {"ok":true}`.
+
+  Not verified:
+  - That the installation's Keycloak reaches that address from inside the cluster: the plugins are not
+    rebuilt.
+  - The `user-sessions` listing against the webhook's session ids.
+- A sign-in on kind (T077): refused `403 account_restricted` `rg_unavailable` until
+  `responsible-gambling` runs; registration (`201`, then `409`) and verification (`200`) answer as
+  locally. The verification link was minted from the installation's own `players-email-token`, since
+  `engagement` (014) is not deployed and the operator route needs a staff token.
+- The modules tool on kind (T077, 2026-10-27):
+  - `secrets` needs the project, so `apply` runs first and holds the core module for the missing keys;
+    then `secrets`, then `apply` again.
+  - `apply` creates every service of a module before waiting on any. The four without an image
+    (`kyc`, `responsible-gambling`, `payouts`, `attribution`) took the node's CPU, and `wallet` and
+    `players` stayed Pending until those four were paused.
+  - The Ready poll waits on paused services and does not refresh the control plane's five-minute token.
+    It ends in a `401` stack trace, so the casino module, and with it `game-provider`, was not applied.
+
+  Spec 021's to fix.
+- The Playwright run against the kind brand (T077, SC-001): not run. Sign-in needs
+  `responsible-gambling`, and the frontend's base-URL move is not made.
 
 Follow-ups owned by other specs or repositories:
 
