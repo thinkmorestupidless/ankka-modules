@@ -1,5 +1,7 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `internal/funding/pools_guests_test.go` (spec 025 T018, T024): every resolver that
  * moves real balance splits the movement across the pools, and refuses `POOLS_INVARIANT` rather
@@ -21,7 +23,7 @@ package io.eitheror.casino.wallet.funding
  *    here; their arithmetic is `Pools.restored` and `Pools.debit`, asserted below, and their events
  *    in `PoolsFeatures`.
  */
-class PoolsGuestsSuite extends munit.FunSuite:
+class PoolsGuestsSuite extends munit.FunSuite with LogCapturing:
 
   private def stamped(real: Long, dep: Long, conv: Long, restricted: Long = 0L): Wallet =
     Wallet(realBalance = real, restrictedBalance = restricted, pools = Some(Pools(dep, conv)))

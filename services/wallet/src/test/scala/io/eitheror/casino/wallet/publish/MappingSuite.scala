@@ -1,6 +1,6 @@
 package io.eitheror.casino.wallet.publish
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.wallet.entity.*
@@ -10,7 +10,7 @@ import io.eitheror.casino.wallet.funding.{CapDraw, Forfeit, Leg, Parts, RecordUp
 import java.time.Instant
 
 /** contracts/facts.md, row by row: each event becomes the family it names, keyed by the wallet. */
-class MappingSuite extends munit.FunSuite:
+class MappingSuite extends munit.FunSuite with LogCapturing:
 
   private val t0     = Instant.parse("2026-10-09T10:00:00Z")
   private val wallet = "p1/EUR"

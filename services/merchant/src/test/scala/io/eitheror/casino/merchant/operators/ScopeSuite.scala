@@ -1,7 +1,9 @@
 package io.eitheror.casino.merchant.operators
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** Scope through the hierarchy, as the original's `TenantIsolationSpec` and `HierarchicalAccess` decide it. */
-class ScopeSuite extends munit.FunSuite:
+class ScopeSuite extends munit.FunSuite with LogCapturing:
 
   private val subBrandA = Target(Some("h-A"), Some("c-A"), Some("sb-A"))
   private val subBrandB = Target(Some("h-B"), Some("c-B"), Some("sb-B"))

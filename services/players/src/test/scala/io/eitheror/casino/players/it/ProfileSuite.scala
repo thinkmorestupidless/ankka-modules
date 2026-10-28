@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.players.Json
@@ -15,7 +16,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** US4: the profile, the addresses, the password, consents, cookies, favourites, the histories and the inbox (FR-023 to FR-030). */
-class ProfileSuite extends munit.FunSuite:
+class ProfileSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

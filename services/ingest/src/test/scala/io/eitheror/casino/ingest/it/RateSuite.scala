@@ -1,5 +1,6 @@
 package io.eitheror.casino.ingest.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.Json
 import io.eitheror.casino.ingest.requests.Outcome
 
@@ -9,7 +10,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.*
 
 /** T042 (US4; FR-015, SC-005): each sub-brand's minute is its own; the excess is 429 and never reaches merchant. */
-class RateSuite extends munit.FunSuite:
+class RateSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: scala.concurrent.duration.Duration = 5.minutes
   private lazy val kit = Kit()
   private val pool     = Executors.newFixedThreadPool(64)

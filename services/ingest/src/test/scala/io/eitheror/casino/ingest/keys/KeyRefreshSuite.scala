@@ -3,7 +3,7 @@ package io.eitheror.casino.ingest.keys
 import ch.qos.logback.classic.{Logger, LoggerContext}
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
-import com.thinkmorestupidless.ankka.testkit.ScriptedServices
+import com.thinkmorestupidless.ankka.testkit.{LogCapturing, ScriptedServices}
 import io.eitheror.casino.ingest.Recorded
 import io.eitheror.casino.ingest.keys.KeyCodecs.given
 import io.eitheror.casino.ingest.merchant.MerchantClient
@@ -13,7 +13,7 @@ import java.time.Instant
 import scala.jdk.CollectionConverters.*
 
 /** FR-004's "only at start", research R3: merchant's keys into the index; a failure logged without a digest. */
-class KeyRefreshSuite extends munit.FunSuite:
+class KeyRefreshSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-22T10:00:00Z")
 
   private def logged(f: => Unit): Vector[String] =

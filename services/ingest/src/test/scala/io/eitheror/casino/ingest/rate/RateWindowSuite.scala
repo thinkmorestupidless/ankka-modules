@@ -1,11 +1,10 @@
 package io.eitheror.casino.ingest.rate
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.Instant
 
 /** FR-015, research R4: a fixed one-minute window per sub-brand; the raise holds across minutes. */
-class RateWindowSuite extends munit.FunSuite:
+class RateWindowSuite extends munit.FunSuite with LogCapturing:
   private val noon = Instant.parse("2026-10-22T12:00:15Z")
 
   test("the first take is served with count 1 and the minute of now") {

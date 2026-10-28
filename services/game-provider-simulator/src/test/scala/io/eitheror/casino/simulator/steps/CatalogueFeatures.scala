@@ -1,7 +1,7 @@
 package io.eitheror.casino.simulator.steps
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.thinkmorestupidless.ankka.testkit.GherkinSuite
+import com.thinkmorestupidless.ankka.testkit.{GherkinSuite, LogCapturing}
 import io.eitheror.casino.simulator.SimulatorTestKit
 import io.eitheror.casino.simulator.SimulatorTestKit.Answer
 
@@ -9,7 +9,7 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** features/simulator/catalogue-and-free-rounds.feature (US3): the operator API and free rounds. */
-class CatalogueFeatures extends GherkinSuite(s"${sys.props("casino.root")}/features/simulator/catalogue-and-free-rounds.feature"):
+class CatalogueFeatures extends GherkinSuite(s"${sys.props("casino.root")}/features/simulator/catalogue-and-free-rounds.feature") with LogCapturing:
 
   override val munitTimeout = 3.minutes
 

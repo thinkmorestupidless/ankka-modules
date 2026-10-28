@@ -1,10 +1,9 @@
 package io.eitheror.casino.wallet.payments
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import java.time.Instant
 
-class PaymentEntitySuite extends munit.FunSuite:
+class PaymentEntitySuite extends munit.FunSuite with LogCapturing:
 
   private val t0 = Instant.parse("2026-10-09T10:00:00Z")
 

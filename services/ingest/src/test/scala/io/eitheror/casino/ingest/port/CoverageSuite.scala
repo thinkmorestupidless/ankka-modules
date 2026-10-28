@@ -1,5 +1,6 @@
 package io.eitheror.casino.ingest.port
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.port.Recording
 
 import java.nio.file.Files
@@ -9,7 +10,7 @@ import java.nio.file.Files
  * original, and every divergence `Parity` marks is a row of plan.md's *Divergences*. The driver's
  * recordings (contracts/recording.md's table; T026) are named as the feature names its scenarios.
  */
-class CoverageSuite extends munit.FunSuite:
+class CoverageSuite extends munit.FunSuite with LogCapturing:
   private val directory  = Parity.root.resolve("tests/port/ingest")
   private val paths      = Parity.recordings(directory)
   private lazy val recordings = paths.map(p => Recording.load(p).fold(e => throw AssertionError(e), identity))

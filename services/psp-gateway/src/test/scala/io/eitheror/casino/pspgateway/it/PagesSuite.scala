@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.deposits.Initiate
 import io.eitheror.casino.pspgateway.http.{Form, Pages}
 import io.eitheror.casino.pspgateway.sessions.*
@@ -8,7 +9,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** US6: the relay pages post the session's form to the provider; every return is the processing page and settles nothing. */
-class PagesSuite extends munit.FunSuite:
+class PagesSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = SharedKit.kit

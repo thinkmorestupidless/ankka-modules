@@ -1,7 +1,9 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** T030: the service starts, and each prefix admits its audience and no other (contracts/routes.md). */
-class SmokeSuite extends munit.FunSuite:
+class SmokeSuite extends munit.FunSuite with LogCapturing:
   private lazy val kit = SharedKit.kit
 
   // Start the shared kit outside the first test's timeout, as the other suites do: whichever suite runs first pays for it.

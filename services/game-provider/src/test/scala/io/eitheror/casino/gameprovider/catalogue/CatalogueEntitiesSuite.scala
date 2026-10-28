@@ -1,13 +1,13 @@
 package io.eitheror.casino.gameprovider.catalogue
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.gameprovider.catalogue.BrandCatalogueCodecs.given
 import io.eitheror.casino.gameprovider.catalogue.GameCodecs.given
 
 import java.time.Instant
 
 /** The game, the brand's curation, and the decision between them (FR-021, FR-022, FR-024). */
-class CatalogueEntitiesSuite extends munit.FunSuite:
+class CatalogueEntitiesSuite extends munit.FunSuite with LogCapturing:
 
   private val at     = Instant.parse("2026-10-09T03:00:00Z")
   private val fields = GameFields("Book", "studio-a", "Studio A", "slots", themes = Vector("egypt"), features = Vector("gamble"),

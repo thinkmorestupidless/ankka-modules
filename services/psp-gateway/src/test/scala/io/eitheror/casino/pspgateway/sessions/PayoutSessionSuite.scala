@@ -1,13 +1,13 @@
 package io.eitheror.casino.pspgateway.sessions
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.providers.PayoutAnswer
 
 import java.time.Instant
 
 /** FR-004, FR-009, FR-022 at the payout session; the deposit's delivery rules hold as they are. */
-class PayoutSessionSuite extends munit.FunSuite:
+class PayoutSessionSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-18T10:00:00Z")
   private val claim = PayoutClaim("goldvibe", "sb-1", Provider.UnityFinance, "term-1", "OPEN_BANKING", 5000,

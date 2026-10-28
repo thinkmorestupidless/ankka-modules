@@ -1,6 +1,6 @@
 package io.eitheror.casino.merchant.operators
 
-import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, KeyValueEntityTestKit}
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.merchant.hierarchy.Actor
 
@@ -8,7 +8,7 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 /** FR-027, FR-028 at the entities, with the original's `OperatorInvitationTokenStoreSpec` rules. */
-class OperatorEntitySuite extends munit.FunSuite:
+class OperatorEntitySuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-12T10:00:00Z")
   private val op = Actor.operator("op-1")

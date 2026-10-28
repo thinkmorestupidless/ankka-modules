@@ -1,6 +1,7 @@
 package io.eitheror.casino.pspgateway.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.sessions.*
@@ -13,7 +14,7 @@ import scala.concurrent.duration.*
  * database; the re-drive picks up after it; the reference index survives; a repeat initiate answers the
  * first answer. A service of its own (build.sbt), since it restarts it.
  */
-class DurabilitySuite extends munit.FunSuite:
+class DurabilitySuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = Kit.withStub(redriveInterval = java.time.Duration.ofSeconds(3))

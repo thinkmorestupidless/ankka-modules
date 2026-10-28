@@ -1,5 +1,7 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `internal/pools/pools_test.go` (spec 025 T004): `TestApplyTable` row for row, each
  * row driven through the `Pools` operation its movement type uses, and `TestMulDivNoOverflow`.
@@ -15,7 +17,7 @@ package io.eitheror.casino.wallet.funding
  *  - `TestBonusCreditIsExplicitNoOp`: a credit to a restricted funds record has no pool step; it is
  *    `PoolsGuestsSuite`'s `TestCreditPrimaryPools` restricted case.
  */
-class PoolsSuite extends munit.FunSuite:
+class PoolsSuite extends munit.FunSuite with LogCapturing:
 
   private def right[A](e: Either[Deny, A]): A = e.fold(d => fail(s"unexpected deny: $d"), identity)
 

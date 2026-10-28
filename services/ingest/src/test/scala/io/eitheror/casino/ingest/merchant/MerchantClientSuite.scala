@@ -1,6 +1,6 @@
 package io.eitheror.casino.ingest.merchant
 
-import com.thinkmorestupidless.ankka.testkit.ScriptedServices
+import com.thinkmorestupidless.ankka.testkit.{LogCapturing, ScriptedServices}
 import io.eitheror.casino.ingest.Json
 import io.eitheror.casino.ingest.Json.*
 
@@ -9,7 +9,7 @@ import scala.concurrent.duration.*
 import scala.util.Try
 
 /** contracts/merchant.md: each command's path and body; a refusal is an answer, a lost connection a failed call. */
-class MerchantClientSuite extends munit.FunSuite:
+class MerchantClientSuite extends munit.FunSuite with LogCapturing:
 
   private def scripted(status: Int = 200, body: String = "{}") =
     val s = ScriptedServices().answer("merchant")(_ => ScriptedServices.json(body, status))

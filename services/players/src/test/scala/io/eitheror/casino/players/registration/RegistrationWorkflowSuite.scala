@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.registration
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.it.{Reply, SharedKit}
 import io.eitheror.casino.players.player.{PlayerEntity, PlayerState, Status}
 
@@ -15,7 +16,7 @@ import scala.concurrent.duration.*
  * realm's refusals, the undo of a realm user whose player could not be written (FR-002), the
  * verification send left pending, and two registrations of one address joining.
  */
-class RegistrationWorkflowSuite extends munit.FunSuite:
+class RegistrationWorkflowSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

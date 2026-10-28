@@ -1,6 +1,6 @@
 package io.eitheror.casino.merchant.audit
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts.AuditRecord
 import io.eitheror.casino.merchant.hierarchy.*
 import io.eitheror.casino.merchant.payments.*
@@ -10,7 +10,7 @@ import io.eitheror.casino.merchant.terminals.{Capability, TerminalEvent}
 import java.time.Instant
 
 /** FR-034: an audit record per change, in the contract's shape, with no secret and no personal field. */
-class AuditFactsSuite extends munit.FunSuite:
+class AuditFactsSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-12T10:00:00Z")
   private val op = Actor.operator("op-7")

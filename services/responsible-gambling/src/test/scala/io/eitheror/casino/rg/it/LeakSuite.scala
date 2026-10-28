@@ -3,6 +3,7 @@ package io.eitheror.casino.rg.it
 import ch.qos.logback.classic.{Logger, LoggerContext}
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.rg.Json
 import io.eitheror.casino.rg.Json.*
@@ -23,7 +24,7 @@ import scala.jdk.CollectionConverters.*
  * The journal keeps them until ankka 042's `Personal` encrypts a field under the player's subject (the
  * contract's `Personal` says so): that is the one place allowed, named, so a new place fails here.
  */
-class LeakSuite extends munit.FunSuite:
+class LeakSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 3.minutes
 
   private lazy val kit = SharedKit.kit

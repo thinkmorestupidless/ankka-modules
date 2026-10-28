@@ -1,13 +1,13 @@
 package io.eitheror.casino.merchant.keys
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts.{MerchantKeyDeactivated, MerchantKeyIssued}
 import io.eitheror.casino.merchant.hierarchy.*
 
 import java.time.Instant
 
 /** FR-004, FR-005: the facts `ingest` verifies keys from, never carrying a raw key. */
-class KeysSuite extends munit.FunSuite:
+class KeysSuite extends munit.FunSuite with LogCapturing:
 
   private val at  = Instant.parse("2026-10-12T10:00:00Z")
   private val raw = RawKeys.mint()

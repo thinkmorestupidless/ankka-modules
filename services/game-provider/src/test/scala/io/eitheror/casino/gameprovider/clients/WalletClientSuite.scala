@@ -1,10 +1,11 @@
 package io.eitheror.casino.gameprovider.clients
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.gameprovider.Json.*
 import io.eitheror.casino.gameprovider.it.{DirectServices, FakeNeighbours, FakeWallet}
 
 /** research R7's mapping, row by row, against spec 002's routes as built (camelCase) as the fake wallet serves them. */
-class WalletClientSuite extends munit.FunSuite:
+class WalletClientSuite extends munit.FunSuite with LogCapturing:
 
   private val wallet     = FakeWallet()
   private val neighbours = FakeNeighbours("goldvibe")

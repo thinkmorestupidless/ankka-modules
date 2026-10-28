@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.http.Raw
@@ -9,7 +10,7 @@ import io.eitheror.casino.pspgateway.sessions.Outcome
 import java.time.Instant
 
 /** `t365/signature_test.go`, `handler/session_secrets_test.go`'s T365 case, and `adapter.go`/`webhook.go:410-548`. */
-class T365Suite extends munit.FunSuite:
+class T365Suite extends munit.FunSuite with LogCapturing:
 
   private val apiKey     = "t365-api-key"
   private val secretKey  = "t365-secret-key"

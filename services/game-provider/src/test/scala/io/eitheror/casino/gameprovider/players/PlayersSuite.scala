@@ -1,6 +1,6 @@
 package io.eitheror.casino.gameprovider.players
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.gameprovider.players.KnownPlayerCodecs.given
 import io.eitheror.casino.gameprovider.players.LaunchWindowCodecs.given
@@ -8,7 +8,7 @@ import io.eitheror.casino.gameprovider.players.LaunchWindowCodecs.given
 import java.time.Instant
 
 /** LaunchWindow (FR-007, research R9), KnownPlayer, and the bet-limits band (FR-018). */
-class PlayersSuite extends munit.FunSuite:
+class PlayersSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-09T10:00:00Z")
 

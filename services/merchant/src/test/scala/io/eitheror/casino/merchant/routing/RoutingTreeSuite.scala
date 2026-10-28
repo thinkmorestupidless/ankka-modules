@@ -1,13 +1,13 @@
 package io.eitheror.casino.merchant.routing
 
 import com.thinkmorestupidless.ankka.core.ErrorCode
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.merchant.hierarchy.Actor
 
 import java.time.Instant
 
 /** FR-010 at the entity, with the original's deploy, rollback and retire rules. */
-class RoutingTreeSuite extends munit.FunSuite:
+class RoutingTreeSuite extends munit.FunSuite with LogCapturing:
 
   private val at  = Instant.parse("2026-10-12T10:00:00Z")
   private val op  = Actor.operator("op-1")

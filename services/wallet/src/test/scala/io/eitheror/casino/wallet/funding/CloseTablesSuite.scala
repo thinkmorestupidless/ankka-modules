@@ -1,12 +1,14 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `internal/funding/close_test.go`, ported case for case (tasks.md T030):
  * ForfeitRecord, CancelRecord (with the clawback given, as the Go guest took it), ClosePendingCap
  * and AwardCheck. Each test is named `close_test.go/<Go test>`; expected values are the Go test's.
  * None names a grant reference: the Go guests had none (spec 002 adds it).
  */
-class CloseTablesSuite extends munit.FunSuite:
+class CloseTablesSuite extends munit.FunSuite with LogCapturing:
 
   private val file = "close_test.go"
   private val day1 = "2026-01-01T00:00:00Z"

@@ -1,12 +1,13 @@
 package io.eitheror.casino.merchant.gateway
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.merchant.cashier.CustomerFields
 import io.eitheror.casino.merchant.it.{DirectServices, FakeGateway}
 import io.eitheror.casino.merchant.Json.*
 import io.eitheror.casino.contract.personal.Personal
 
 /** contracts/gateway.md, row for row, against the fake the suites use, through the real client. */
-class GatewayClientSuite extends munit.FunSuite:
+class GatewayClientSuite extends munit.FunSuite with LogCapturing:
 
   private val gw     = FakeGateway()
   private val client = GatewayClient.http(DirectServices(Map("psp-gateway" -> gw.address)))

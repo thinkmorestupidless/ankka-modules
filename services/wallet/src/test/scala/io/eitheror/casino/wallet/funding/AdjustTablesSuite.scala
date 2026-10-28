@@ -1,5 +1,7 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `adjust_test.go`, case for case (research R2, tasks T058): `AdjustRestricted`
  * (admin-adjust.test.tl's restricted arm) and `CreditPrimary` (game-provider-credit.test.tl). Each
@@ -8,7 +10,7 @@ package io.eitheror.casino.wallet.funding
  * The Go wallet's `OpenRestrictedFundsRefs` pipe set has no counterpart: records are the wallet's
  * own state, so `TestAdjustRestricted_DebitToExactlyZero_ClosesForfeited` drops that field.
  */
-class AdjustTablesSuite extends munit.FunSuite:
+class AdjustTablesSuite extends munit.FunSuite with LogCapturing:
 
   private def activeRecord(id: String, balance: Long, releaseRequirement: Long, releasedProgress: Long, maxConvertible: Long,
       openRoundCount: Long): Record =

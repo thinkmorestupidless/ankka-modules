@@ -1,9 +1,10 @@
 package io.eitheror.casino.rg.profile
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.rg.profile.Limits.Decision
 
 /** The original's `isMoreRestrictive` truth table (`RgRoutesSpec`, the six cases) and the staging of data-model.md. */
-class LimitsSuite extends munit.FunSuite:
+class LimitsSuite extends munit.FunSuite with LogCapturing:
 
   test("the original's truth table"):
     assertEquals(Limits.isMoreRestrictive(Some(100), None), false, "a removal")

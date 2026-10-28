@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.sessions.*
 
 import java.util.{Base64, UUID}
@@ -10,7 +11,7 @@ import scala.concurrent.duration.*
  * with no restart, because it is read on every call and held by nothing. A service of its own (build.sbt),
  * since it rotates the credentials every other suite relies on.
  */
-class RotationSuite extends munit.FunSuite:
+class RotationSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = Kit.withStub()

@@ -1,11 +1,12 @@
 package io.eitheror.casino.wallet.port
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.port.{Recording, Replay}
 
 import java.nio.file.Paths
 
 /** The translation on a hand-written recording, and Replay's verdict on it, with no runtime. */
-class WireTranslationSuite extends munit.FunSuite:
+class WireTranslationSuite extends munit.FunSuite with LogCapturing:
 
   private def json(s: String) = Some(WireTranslation.parse(s))
 

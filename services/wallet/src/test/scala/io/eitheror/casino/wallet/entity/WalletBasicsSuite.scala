@@ -1,12 +1,12 @@
 package io.eitheror.casino.wallet.entity
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.funding.Pools
 
 import java.time.Instant
 
 /** The money path end to end on one wallet, through the entity's own serializers. */
-class WalletBasicsSuite extends munit.FunSuite:
+class WalletBasicsSuite extends munit.FunSuite with LogCapturing:
 
   private val t0 = Instant.parse("2026-10-09T10:00:00Z")
 

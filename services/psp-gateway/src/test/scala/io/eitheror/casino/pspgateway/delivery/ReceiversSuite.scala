@@ -1,10 +1,11 @@
 package io.eitheror.casino.pspgateway.delivery
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.{Json, Scripted}
 import io.eitheror.casino.pspgateway.sessions.{Outcome, Receiver, Variance}
 
 /** Contracts/merchant.md §3, contracts/payouts.md: where an outcome goes, what it carries, and its answers. */
-class ReceiversSuite extends munit.FunSuite:
+class ReceiversSuite extends munit.FunSuite with LogCapturing:
 
   private val variance = Variance(Variance.Underpayment, Some("0.0012"), Some("0.0010"), Some("80.00"), Some("EUR"))
 

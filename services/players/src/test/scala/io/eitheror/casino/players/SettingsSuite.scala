@@ -1,9 +1,11 @@
 package io.eitheror.casino.players
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.time.Duration
 
 /** Research R17: every setting's default, a value that cannot be read refused by its variable, and the secrets by name. */
-class SettingsSuite extends munit.FunSuite:
+class SettingsSuite extends munit.FunSuite with LogCapturing:
 
   private val brand = Map("CASINO_BRAND" -> "goldvibe")
 

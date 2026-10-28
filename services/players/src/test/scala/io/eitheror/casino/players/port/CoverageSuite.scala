@@ -1,5 +1,6 @@
 package io.eitheror.casino.players.port
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.port.Recording
 
 import java.nio.file.Files
@@ -9,7 +10,7 @@ import java.nio.file.Files
  * runs of the original; every row of the table is named in `Parity.divergences` and reached by at least
  * one recording, or reported ignored as unhit until its story names it; every named one is a row.
  */
-class CoverageSuite extends munit.FunSuite:
+class CoverageSuite extends munit.FunSuite with LogCapturing:
   private val paths           = Parity.recordings()
   private lazy val recordings = paths.map(p => Recording.load(p).fold(e => throw AssertionError(e), identity))
 

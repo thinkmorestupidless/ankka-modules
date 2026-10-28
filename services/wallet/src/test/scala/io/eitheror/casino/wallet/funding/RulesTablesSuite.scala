@@ -1,5 +1,7 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `internal/funding/rules_test.go`, ported case for case (tasks.md T030): the rate
  * lookup chain, scope membership, the binding max stake, and the rule-set scenarios through PlaceBet.
@@ -8,7 +10,7 @@ package io.eitheror.casino.wallet.funding
  * Go's `Record{}` has an empty status; `Rate` and `InScope` never read it, so those cases build a
  * record with status "" to stay literal.
  */
-class RulesTablesSuite extends munit.FunSuite:
+class RulesTablesSuite extends munit.FunSuite with LogCapturing:
 
   private val file = "rules_test.go"
 

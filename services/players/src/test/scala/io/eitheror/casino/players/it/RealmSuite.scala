@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.{CasinoSessions, PlayerSessionEnded}
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.Json.*
@@ -11,7 +12,7 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 /** The realm's listener, its authenticators and the reconciler (FR-008, FR-009, FR-013, SC-002, SC-004). */
-class RealmSuite extends munit.FunSuite:
+class RealmSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 240.seconds
   private lazy val kit = SharedKit.kit
 

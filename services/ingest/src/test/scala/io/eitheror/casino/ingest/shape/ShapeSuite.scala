@@ -1,10 +1,11 @@
 package io.eitheror.casino.ingest.shape
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.Json
 import io.eitheror.casino.ingest.Json.*
 
 /** The public create into 004's command (contracts/merchant.md §1): the key's sub-brand, the customer fields as sent. */
-class ShapeSuite extends munit.FunSuite:
+class ShapeSuite extends munit.FunSuite with LogCapturing:
   private val checked = Checked(5000, "EUR", "goldvibe:p1", "GB", "https://example.test/return", Some("t-1"))
   private val body = Json.parseObject("""{"amountCents":5000,"currency":"EUR","customerId":"goldvibe:p1","country":"GB",
     "redirectUrl":"https://example.test/return","transactionId":"t-1","subBrandId":"someone-else","customerEmail":"p@example.com",

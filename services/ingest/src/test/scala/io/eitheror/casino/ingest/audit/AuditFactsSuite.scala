@@ -1,13 +1,13 @@
 package io.eitheror.casino.ingest.audit
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts.AuditRecord
 import io.eitheror.casino.ingest.requests.*
 
 import java.time.Instant
 
 /** FR-019, research R9: a key or rate refusal is one audit record naming the sub-brand where known and never the key. */
-class AuditFactsSuite extends munit.FunSuite:
+class AuditFactsSuite extends munit.FunSuite with LogCapturing:
   private val at  = Instant.parse("2026-10-22T10:00:00Z")
   private val kit = ConsumerTestKit.of(RequestAudit)
 

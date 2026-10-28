@@ -1,12 +1,12 @@
 package io.eitheror.casino.pspgateway.sessions
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.contract.money.Currency
 
 import java.time.Instant
 
 /** FR-008, FR-016, FR-022, FR-024, SC-002 at the deposit session. */
-class DepositSessionSuite extends munit.FunSuite:
+class DepositSessionSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-18T10:00:00Z")
   private val claim = DepositClaim(Provider.Cozeni, "USDT", "sb-1", Some("term-1"), "acme:p1", 1500, Currency.unsafe("EUR"),

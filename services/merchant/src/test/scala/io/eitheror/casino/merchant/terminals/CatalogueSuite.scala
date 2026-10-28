@@ -1,9 +1,10 @@
 package io.eitheror.casino.merchant.terminals
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.merchant.terminals.catalogue.Catalogue
 
 /** FR-009 and research R9: the original's catalogue, secrets marked, and its masked preview. */
-class CatalogueSuite extends munit.FunSuite:
+class CatalogueSuite extends munit.FunSuite with LogCapturing:
 
   test("every gateway spec 005 keeps is listed, and ConnecX is not") {
     assertEquals(Catalogue.gateways.keySet, Set("DREAMZPAY", "UNITYFINANCE", "T365", "COZENI", "MORPHOSIS", "EUPAYMENTZ", "GIGADAT", "BOUNCEMONEY"))

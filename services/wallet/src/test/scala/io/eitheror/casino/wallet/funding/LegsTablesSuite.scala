@@ -1,7 +1,9 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** The original's `legs_test.go`, case for case: the breakdown and contribution lists. */
-class LegsTablesSuite extends munit.FunSuite:
+class LegsTablesSuite extends munit.FunSuite with LogCapturing:
 
   private val parseCases: Seq[(String, String, Option[Vector[Leg]])] = Seq(
     ("empty", "", Some(Vector.empty)),

@@ -1,12 +1,11 @@
 package io.eitheror.casino.merchant.hierarchy
 
 import com.thinkmorestupidless.ankka.core.ErrorCode
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import java.time.Instant
 
 /** FR-001 to FR-006 at the entities: the hierarchy, merchant keys and credential records. */
-class HierarchySuite extends munit.FunSuite:
+class HierarchySuite extends munit.FunSuite with LogCapturing:
 
   private val at    = Instant.parse("2026-10-12T10:00:00Z")
   private val op    = Actor.operator("op-1")

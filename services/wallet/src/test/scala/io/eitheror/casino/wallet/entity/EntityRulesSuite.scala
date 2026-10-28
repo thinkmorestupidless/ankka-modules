@@ -1,13 +1,13 @@
 package io.eitheror.casino.wallet.entity
 
 import com.thinkmorestupidless.ankka.core.Codecs
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
 
 import java.time.{Duration, Instant}
 
 /** The entity's rules that the fixtures and the features do not name one by one. */
-class EntityRulesSuite extends munit.FunSuite:
+class EntityRulesSuite extends munit.FunSuite with LogCapturing:
 
   private val t0 = Instant.parse("2026-10-09T10:00:00Z")
   private def deposit(key: String, amount: Long, at: Instant, multiplier: Long = 0) =

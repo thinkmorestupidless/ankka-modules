@@ -1,9 +1,12 @@
 package io.eitheror.casino.simulator.core
 
+
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.nio.file.{Files, Paths}
 
 /** Scenarios are data (FR-019): every shipped file validates against the spec's schema and cites its source (FR-018). */
-class ScenarioSuite extends munit.FunSuite:
+class ScenarioSuite extends munit.FunSuite with LogCapturing:
 
   private val dir = Paths.get("src/main/resources/scenarios")
 

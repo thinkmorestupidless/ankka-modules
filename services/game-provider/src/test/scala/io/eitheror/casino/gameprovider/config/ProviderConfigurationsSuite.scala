@@ -1,12 +1,13 @@
 package io.eitheror.casino.gameprovider.config
 
 import com.thinkmorestupidless.ankka.sdk.SecretStore
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.gameprovider.TestKeys
 
 import java.time.{Duration, Instant}
 import scala.collection.mutable
 
-class ProviderConfigurationsSuite extends munit.FunSuite:
+class ProviderConfigurationsSuite extends munit.FunSuite with LogCapturing:
 
   /** A secret store that counts its reads, as 038's read records would. */
   final class FakeSecrets extends SecretStore:

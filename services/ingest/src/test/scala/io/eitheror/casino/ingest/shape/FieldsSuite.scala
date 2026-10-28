@@ -1,9 +1,10 @@
 package io.eitheror.casino.ingest.shape
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.Json
 
 /** FR-007, contracts/routes.md's table: the first field that fails is named; nothing is defaulted. */
-class FieldsSuite extends munit.FunSuite:
+class FieldsSuite extends munit.FunSuite with LogCapturing:
   private val valid: Map[String, Any] = Map("amountCents" -> 5000L, "currency" -> "EUR", "customerId" -> "goldvibe:p1", "country" -> "GB",
     "redirectUrl" -> "https://example.test/return", "transactionId" -> "t-1")
 

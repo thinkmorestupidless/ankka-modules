@@ -1,11 +1,13 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * SC-004: the original's #662. A win's allocation multiplies minor units by minor units
  * (win × stake leg), which overflowed 32 bits in production and credited a negative amount. Every
  * product here is beyond `Int.MaxValue` and must be carried exactly in `Long`.
  */
-class OverflowSuite extends munit.FunSuite:
+class OverflowSuite extends munit.FunSuite with LogCapturing:
 
   private def win(w: Wallet, recs: Seq[Record], legs: Legs, amount: Long): WinPlan =
     Resolver.creditWin(w, recs.toVector, legs, amount).fold(d => fail(s"unexpected deny: $d"), identity)

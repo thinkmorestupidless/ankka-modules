@@ -1,7 +1,9 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** The original's `loss_test.go`, case for case. */
-class LossTablesSuite extends munit.FunSuite:
+class LossTablesSuite extends munit.FunSuite with LogCapturing:
 
   private def activeRecord(id: String, balance: Long, releaseRequirement: Long, releasedProgress: Long,
       maxConvertible: Long, openRoundCount: Long): Record =

@@ -1,9 +1,10 @@
 package io.eitheror.casino.players.inbox
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.inbox.MergeTags.Refused
 
 /** FR-030: the original's merge tags, rendered in one pass. */
-class MergeTagsSuite extends munit.FunSuite:
+class MergeTagsSuite extends munit.FunSuite with LogCapturing:
 
   test("every tag renders its value") {
     MergeTags.tags.foreach { tag =>

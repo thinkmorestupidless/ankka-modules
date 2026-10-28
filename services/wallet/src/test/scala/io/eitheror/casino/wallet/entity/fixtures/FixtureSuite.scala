@@ -1,7 +1,7 @@
 package io.eitheror.casino.wallet.entity.fixtures
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.entity.fixtures.FixtureRunner.*
 import io.eitheror.casino.wallet.funding.{Leg, Parts, Resolver}
@@ -11,7 +11,7 @@ import io.eitheror.casino.wallet.funding.{Leg, Parts, Resolver}
  * or is reported ignored with the reason the rebuild does not have that behaviour. A case is never
  * dropped: the first test checks that every ignored name is a real case of the file.
  */
-abstract class FixtureSuite(handler: String) extends munit.FunSuite:
+abstract class FixtureSuite(handler: String) extends munit.FunSuite with LogCapturing:
 
   /** Case name → why the rebuild does not do it (a dropped behaviour, never a failure). */
   protected def ignored: Map[String, String] = Map.empty

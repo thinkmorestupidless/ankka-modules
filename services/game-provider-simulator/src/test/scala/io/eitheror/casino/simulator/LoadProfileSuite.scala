@@ -1,13 +1,14 @@
 package io.eitheror.casino.simulator
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.simulator.SimulatorTestKit.staff
 
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** A load profile's mechanics with a small profile (US5): sessions checked, rounds at the rate, the report, the refusals. */
-class LoadProfileSuite extends munit.FunSuite:
+class LoadProfileSuite extends munit.FunSuite with LogCapturing:
 
   override val munitTimeout = 3.minutes
 

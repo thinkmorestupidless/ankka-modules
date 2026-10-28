@@ -1,6 +1,6 @@
 package io.eitheror.casino.merchant.deposits
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.merchant.payments.*
 import io.eitheror.casino.merchant.wallet.*
 
@@ -8,7 +8,7 @@ import java.time.Instant
 import scala.collection.mutable
 
 /** FR-022: the initiated outcome reaches the brand from the payment's events; a brandless payment reports nothing. */
-class OutcomeReporterSuite extends munit.FunSuite:
+class OutcomeReporterSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-12T10:00:00Z")
   private def opened(brand: Option[String]) = Opened("sb-1", brand, "acme:p1", "p1", 5000, "EUR", "DREAMZPAY", "VISA", "main", "tx",

@@ -1,6 +1,6 @@
 package io.eitheror.casino.wallet.entity
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.WalletEvent.CommandRefused
 
 import java.time.Instant
@@ -16,7 +16,7 @@ import scala.deriving.Mirror
  * The cases are keyed by the command's class name and checked against `MoneyCommand`'s subtypes,
  * so a command added later without a case here fails this suite.
  */
-class EveryCommandIdempotentSuite extends munit.FunSuite:
+class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
 
   private val t0 = Instant.parse("2026-10-09T10:00:00Z")
   private type Kit = EventSourcedTestKit[WalletEntity, WalletState, WalletEvent]

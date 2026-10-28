@@ -1,7 +1,9 @@
 package io.eitheror.casino.pspgateway.http
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** FR-012: forms over the raw body as Go's `url.Values` reads and writes them, and DreamzPay's sniffing. */
-class FormSuite extends munit.FunSuite:
+class FormSuite extends munit.FunSuite with LogCapturing:
 
   test("a repeated key keeps every value in order; get is the first") {
     val f = Form.decode("a=1&b=2&a=3")

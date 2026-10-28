@@ -1,14 +1,14 @@
 package io.eitheror.casino.simulator.steps
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.thinkmorestupidless.ankka.testkit.GherkinSuite
+import com.thinkmorestupidless.ankka.testkit.{GherkinSuite, LogCapturing}
 import io.eitheror.casino.simulator.SimulatorTestKit
 import io.eitheror.casino.simulator.SimulatorTestKit.Answer
 
 import scala.concurrent.duration.*
 
 /** features/simulator/rounds.feature against the simulator and a fake brand (US1). */
-class RoundsFeatures extends GherkinSuite(s"${sys.props("casino.root")}/features/simulator/rounds.feature"):
+class RoundsFeatures extends GherkinSuite(s"${sys.props("casino.root")}/features/simulator/rounds.feature") with LogCapturing:
 
   override val munitTimeout = 3.minutes
 

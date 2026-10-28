@@ -1,7 +1,9 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** The original's `rollback_test.go`, case for case. */
-class RollbackTablesSuite extends munit.FunSuite:
+class RollbackTablesSuite extends munit.FunSuite with LogCapturing:
 
   private def activeRecord(id: String, balance: Long, releaseRequirement: Long, releasedProgress: Long,
       maxConvertible: Long, openRoundCount: Long): Record =

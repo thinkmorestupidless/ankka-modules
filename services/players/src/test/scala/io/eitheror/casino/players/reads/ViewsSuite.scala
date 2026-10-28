@@ -1,6 +1,6 @@
 package io.eitheror.casino.players.reads
 
-import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, KeyedViewTestKit}
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, KeyedViewTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.contract.personal.Personal
@@ -10,7 +10,7 @@ import io.eitheror.casino.players.sessions.*
 import java.time.Instant
 
 /** The keyed views' folds and the players view's, on the kit (T016); a row per view over Postgres is T027's. */
-class ViewsSuite extends munit.FunSuite:
+class ViewsSuite extends munit.FunSuite with LogCapturing:
 
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private val eur = Currency.unsafe("EUR")

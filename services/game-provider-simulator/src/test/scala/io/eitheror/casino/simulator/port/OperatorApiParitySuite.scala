@@ -1,6 +1,7 @@
 package io.eitheror.casino.simulator.port
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.port.{Recording, Replay}
 import io.eitheror.casino.simulator.SimulatorTestKit
 
@@ -14,7 +15,7 @@ import scala.util.Try
  * recording under `tests/port/simulator/`, made against `fake-st8` run from source, replayed against
  * the simulator's operator API. A difference fails naming the recording and the first JSON path.
  */
-class OperatorApiParitySuite extends munit.FunSuite:
+class OperatorApiParitySuite extends munit.FunSuite with LogCapturing:
 
   override val munitTimeout = 3.minutes
 

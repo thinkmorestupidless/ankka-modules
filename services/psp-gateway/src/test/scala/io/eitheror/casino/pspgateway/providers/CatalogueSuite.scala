@@ -1,12 +1,13 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.sessions.Provider
 
 import java.time.Duration
 
 /** FR-006, FR-009a, R10: what the gateway knows of a provider without asking it. */
-class CatalogueSuite extends munit.FunSuite:
+class CatalogueSuite extends munit.FunSuite with LogCapturing:
 
   private def c(code: String) = Currency.unsafe(code)
 

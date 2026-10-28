@@ -1,6 +1,7 @@
 package io.eitheror.casino.simulator
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.simulator.SimulatorTestKit.staff
 import io.eitheror.casino.simulator.brands.{BrandTable, Sender}
 import io.eitheror.casino.simulator.core.Scenario
@@ -9,7 +10,7 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** The spec's edge cases, the operator routes' refusals (FR-027), determinism (SC-003) and an unreachable brand. */
-class EdgeCasesSuite extends munit.FunSuite:
+class EdgeCasesSuite extends munit.FunSuite with LogCapturing:
 
   override val munitTimeout = 3.minutes
 

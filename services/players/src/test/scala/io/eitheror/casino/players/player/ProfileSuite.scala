@@ -1,11 +1,12 @@
 package io.eitheror.casino.players.player
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.personal.Personal
 
 import java.time.LocalDate
 
 /** FR-024: the lock-once and clearable fields, what an edit changed, and the 18+ gate. */
-class ProfileSuite extends munit.FunSuite:
+class ProfileSuite extends munit.FunSuite with LogCapturing:
 
   private def profile(fields: (String, String)*) = Profile(fields.map((k, v) => k -> Personal(v)).toMap)
 

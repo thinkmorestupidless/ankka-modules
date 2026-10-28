@@ -1,10 +1,11 @@
 package io.eitheror.casino.gameprovider.provider
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.gameprovider.Json
 import io.eitheror.casino.gameprovider.provider.st8.*
 
 /** contracts/callbacks.md's protocol rules, row by row. */
-class St8ProtocolSuite extends munit.FunSuite:
+class St8ProtocolSuite extends munit.FunSuite with LogCapturing:
 
   private def body(c: Callback, json: String) = CallbackBody(c, Json.parseObject(json).get)
 

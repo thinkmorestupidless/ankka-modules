@@ -1,6 +1,6 @@
 package io.eitheror.casino.gameprovider.facts
 
-import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, TestTransport}
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing, TestTransport}
 import io.eitheror.casino.gameprovider.catalogue.{CountRound, GameRounds, RoundCounter}
 import io.eitheror.casino.gameprovider.catalogue.GameRoundsCodecs.given
 import com.thinkmorestupidless.ankka.core.Serializers.given
@@ -10,7 +10,7 @@ import java.time.Instant
 import scala.collection.mutable
 
 /** Popularity counts rounds played (FR-023, Clarifications 2026-10-09), one per round opened with a game. */
-class RoundCounterSuite extends munit.FunSuite:
+class RoundCounterSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-09T10:00:00Z")
 

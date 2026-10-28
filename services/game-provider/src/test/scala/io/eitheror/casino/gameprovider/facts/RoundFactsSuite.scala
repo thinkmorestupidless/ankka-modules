@@ -1,13 +1,13 @@
 package io.eitheror.casino.gameprovider.facts
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts.{CasinoRounds, RoundSettled}
 import io.eitheror.casino.gameprovider.rounds.*
 
 import java.time.Instant
 
 /** contracts/round-settled.md, through the consumer alone (FR-019). */
-class RoundFactsSuite extends munit.FunSuite:
+class RoundFactsSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-09T10:00:00Z")
   private val summary = SettlementSummary("st8", "r-1", "p-1", "EUR", Some("book-of-ra"), Some("gs-1"), stake = 300, win = 500,

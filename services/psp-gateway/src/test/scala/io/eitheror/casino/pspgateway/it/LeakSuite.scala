@@ -3,6 +3,7 @@ package io.eitheror.casino.pspgateway.it
 import ch.qos.logback.classic.{Logger, LoggerContext}
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.sessions.*
 import org.slf4j.LoggerFactory
 
@@ -20,7 +21,7 @@ import scala.jdk.CollectionConverters.*
  * A service of its own (build.sbt), so its database holds this suite's sessions alone. Spans are not
  * scanned: the integration kit exposes none; the log lines carry their trace and span ids only.
  */
-class LeakSuite extends munit.FunSuite:
+class LeakSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 10.minutes
 
   private lazy val kit = Kit.withStub()

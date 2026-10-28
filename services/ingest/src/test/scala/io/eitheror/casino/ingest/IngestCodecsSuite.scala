@@ -1,6 +1,7 @@
 package io.eitheror.casino.ingest
 
 import com.thinkmorestupidless.ankka.core.Serializer
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.keys.{KeyCodecs, KeyState}
 import io.eitheror.casino.ingest.keys.KeyCodecs.given
 import io.eitheror.casino.ingest.rate.RateCodecs.given
@@ -13,7 +14,7 @@ import io.eitheror.casino.ingest.requests.RequestCodecs.given
 import java.time.Instant
 
 /** Every stored type round-trips; an answer's body is kept as `merchant` sent it. */
-class IngestCodecsSuite extends munit.FunSuite:
+class IngestCodecsSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-22T12:00:15.123Z")
 
   private def roundTrip[A](a: A)(using s: Serializer[A]): Unit = assertEquals(s.fromBytes(s.toBytes(a)), a)

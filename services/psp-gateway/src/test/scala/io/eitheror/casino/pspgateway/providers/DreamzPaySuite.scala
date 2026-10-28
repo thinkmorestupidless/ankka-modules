@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.http.{Form, Raw}
@@ -9,7 +10,7 @@ import io.eitheror.casino.pspgateway.sessions.Outcome
 import java.time.Instant
 
 /** `dreamzpay/signature_test.go`, `handler/failure_paths_test.go` and `handler/session_secrets_test.go`'s DreamzPay cases. */
-class DreamzPaySuite extends munit.FunSuite:
+class DreamzPaySuite extends munit.FunSuite with LogCapturing:
 
   private val secureKey = "sk-test"
   private val credential = Credential(Map("memberId" -> "member-1", "totype" -> "sale", "secureKey" -> secureKey,

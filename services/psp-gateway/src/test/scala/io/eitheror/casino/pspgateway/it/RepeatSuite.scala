@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.sessions.*
 
 import java.util.UUID
@@ -8,7 +9,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.*
 
 /** SC-002: the same success webhook five times at once, and again, is one settlement and one capture. */
-class RepeatSuite extends munit.FunSuite:
+class RepeatSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 10.minutes
 
   private lazy val kit = SharedKit.kit

@@ -1,5 +1,6 @@
 package io.eitheror.casino.ingest.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.keys.KeyIndex
 import io.eitheror.casino.ingest.requests.{Outcome, RecordState, RequestRecord, RequestsView, Route}
 import io.eitheror.casino.ingest.shape.Digests
@@ -9,7 +10,7 @@ import java.time.Instant
 import java.util.UUID
 
 /** T022: the service starts and refreshes its keys, and each prefix admits its audience and no other (contracts/routes.md). */
-class SmokeSuite extends munit.FunSuite:
+class SmokeSuite extends munit.FunSuite with LogCapturing:
   private val raw = Vector("mk_smoke_one", "mk_smoke_two")
   private lazy val kit = Kit(keys = raw.zipWithIndex.map((k, i) => (Digests.ofKey(k), s"k-smoke-$i", "sb-smoke")))
 

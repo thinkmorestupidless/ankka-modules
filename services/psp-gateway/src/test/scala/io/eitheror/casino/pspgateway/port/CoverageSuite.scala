@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.port
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.port.Recording
 import io.eitheror.casino.pspgateway.it.Kit
 import io.eitheror.casino.pspgateway.sessions.Provider
@@ -9,7 +10,7 @@ import io.eitheror.casino.pspgateway.sessions.Provider
  * payout through each of the four, every one made on two runs of the original and every one among those
  * `ParitySuite` replays. A provider with none is named.
  */
-class CoverageSuite extends munit.FunSuite:
+class CoverageSuite extends munit.FunSuite with LogCapturing:
   private val directory = Parity.root.resolve("tests/port/psp-gateway")
   private val paths     = Parity.recordings(directory)
   private lazy val recordings = paths.map(p => Recording.load(p).fold(e => throw AssertionError(e), identity))

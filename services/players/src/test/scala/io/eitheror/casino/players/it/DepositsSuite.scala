@@ -1,12 +1,13 @@
 package io.eitheror.casino.players.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.Json.*
 
 import scala.concurrent.duration.*
 
 /** The player's deposit start (FR-043, research R15): the checks in order, each bounded, then the cashier. */
-class DepositsSuite extends munit.FunSuite:
+class DepositsSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

@@ -1,9 +1,8 @@
 package io.eitheror.casino.ingest.requests
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 /** FR-009, research R7: who a ticket and a payment belong to. */
-class OwnershipSuite extends munit.FunSuite:
+class OwnershipSuite extends munit.FunSuite with LogCapturing:
 
   test("a ticket's ownership records the sub-brand, request id, record id and ticket; a later set adds the payment and keeps the rest") {
     val kit = KeyValueEntityTestKit.of(Ownership, "ticket/tok")

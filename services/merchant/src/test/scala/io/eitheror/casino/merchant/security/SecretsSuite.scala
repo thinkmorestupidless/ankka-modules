@@ -1,12 +1,13 @@
 package io.eitheror.casino.merchant.security
 
 import com.thinkmorestupidless.ankka.sdk.SecretStore
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
 import java.time.{Duration, Instant}
 import scala.collection.mutable
 
 /** Research R9: the cache, its invalidation, and an unreadable store told apart from an absent secret. */
-class SecretsSuite extends munit.FunSuite:
+class SecretsSuite extends munit.FunSuite with LogCapturing:
 
   final class CountingStore extends SecretStore:
     val values = mutable.Map.empty[String, String]

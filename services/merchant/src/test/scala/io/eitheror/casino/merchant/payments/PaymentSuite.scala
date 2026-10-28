@@ -1,11 +1,10 @@
 package io.eitheror.casino.merchant.payments
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import java.time.Instant
 
 /** FR-016, FR-017, FR-019, FR-025, FR-026 at the payment. */
-class PaymentSuite extends munit.FunSuite:
+class PaymentSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-12T10:00:00Z")
   private val opened = Opened("sb-1", Some("acme"), "acme:p1", "p1", 10000, "EUR", "DREAMZPAY", "VISA", "main", "tx-1", "psp-1",

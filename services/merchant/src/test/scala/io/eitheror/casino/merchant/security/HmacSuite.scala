@@ -1,11 +1,12 @@
 package io.eitheror.casino.merchant.security
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.merchant.security.Hmac.Outcome
 
 import java.time.Instant
 
 /** FR-018, case for case of the original's `CashierCaptureAuthSpec` HMAC cases. */
-class HmacSuite extends munit.FunSuite:
+class HmacSuite extends munit.FunSuite with LogCapturing:
 
   private val now    = Instant.parse("2026-10-12T10:00:00Z")
   private val secret = Some("whsec-test")

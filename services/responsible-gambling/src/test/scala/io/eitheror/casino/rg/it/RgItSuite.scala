@@ -1,5 +1,6 @@
 package io.eitheror.casino.rg.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.rg.Json
@@ -13,7 +14,7 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** The service over Postgres: the stories end to end through the three endpoints (T020, T031, T032, T037). */
-class RgItSuite extends munit.FunSuite:
+class RgItSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 3.minutes
 
   private lazy val kit = SharedKit.kit

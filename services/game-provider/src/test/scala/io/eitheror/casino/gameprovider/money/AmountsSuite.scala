@@ -1,9 +1,10 @@
 package io.eitheror.casino.gameprovider.money
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.gameprovider.Json
 
-class AmountsSuite extends munit.FunSuite:
+class AmountsSuite extends munit.FunSuite with LogCapturing:
 
   private val EUR = Currency.unsafe("EUR")
   private val JPY = Currency.unsafe("JPY")

@@ -1,5 +1,6 @@
 package io.eitheror.casino.ingest.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.requests.{LostAnswer, Outcome, Ownership, RequestsView}
 import io.eitheror.casino.ingest.Json
 
@@ -7,7 +8,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /** T034 (US2; FR-013, FR-014): merchant unanswered at the bound is "try again"; what it made late is a lost answer. */
-class UnansweredSuite extends munit.FunSuite:
+class UnansweredSuite extends munit.FunSuite with LogCapturing:
   private lazy val kit = Kit()
 
   override def afterAll(): Unit = kit.stop()

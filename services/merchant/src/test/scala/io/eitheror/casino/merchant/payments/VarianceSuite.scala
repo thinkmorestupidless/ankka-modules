@@ -1,9 +1,10 @@
 package io.eitheror.casino.merchant.payments
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 
 /** FR-026, case for case of the original's `CashierSettlementVarianceSpec`. */
-class VarianceSuite extends munit.FunSuite:
+class VarianceSuite extends munit.FunSuite with LogCapturing:
 
   private val EUR     = Currency.unsafe("EUR")
   private val invoice = 10000L // 100.00

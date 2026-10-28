@@ -1,12 +1,13 @@
 package io.eitheror.casino.players.clients
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.Background.given
 
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration.*
 
 /** A caller's bound on another service, which never cancels the call (as ingest's). */
-class BoundSuite extends munit.FunSuite:
+class BoundSuite extends munit.FunSuite with LogCapturing:
 
   private def after[A](millis: Long, a: => A): Future[A] = Future { Thread.sleep(millis); a }
 

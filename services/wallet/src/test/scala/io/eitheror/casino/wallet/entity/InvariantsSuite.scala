@@ -1,6 +1,6 @@
 package io.eitheror.casino.wallet.entity
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.funding.Status
 import munit.ScalaCheckSuite
 import org.scalacheck.{Gen, Prop}
@@ -14,7 +14,7 @@ import java.time.Instant
  * never falls below zero, real balance never goes below zero without a correction debit, and a key,
  * once seen, is kept while fewer than `RecentKeys` later keys have been seen (every sequence here is far shorter).
  */
-class InvariantsSuite extends ScalaCheckSuite:
+class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
 
   override def scalaCheckTestParameters = super.scalaCheckTestParameters.withMinSuccessfulTests(200)
 
@@ -131,17 +131,20 @@ class InvariantsSuite extends ScalaCheckSuite:
   /**
    * Spec 025 FR-001, FR-012: the two pools sum to real balance and the deposit pool is never
    * negative, after every event; and no command was refused for a drifted pair, which would mean the
-   * wallet wrote one.
+   * wallet wrote one. `negativeDebit` admits the one other refusal: a bet funded proportionally on a
+   * negative real balance has a negative real leg, which the original's `debit` refuses as well.
    */
-  private def checkPools(s: WalletState, where: String): Unit =
+  private def checkPools(s: WalletState, where: String, negativeDebit: Boolean = false): Unit =
     assertEquals(s.depositPool + s.convertedPool, s.realBalance, s"deposit + converted == real balance $where: ${s.pools}")
     assert(s.depositPool >= 0, s"deposit pool below zero $where: ${s.pools}")
-    val drifted = s.seen.seen.values.map(_.outcome).filter(_.code.contains(io.eitheror.casino.wallet.funding.Codes.PoolsInvariant))
+    val drifted = s.seen.seen.values.map(_.outcome)
+      .filter(_.code.contains(io.eitheror.casino.wallet.funding.Codes.PoolsInvariant))
+      .filterNot(o => negativeDebit && o.message.exists(_.endsWith("negative debit")))
     assert(drifted.isEmpty, s"a command was refused POOLS_INVARIANT $where: $drifted")
 
   /** With correction debits, real balance and the converted pool may go negative; the pools still hold. */
   private def checkWithCorrections(s: WalletState, seenBefore: Set[String], where: String): Unit =
-    checkPools(s, where)
+    checkPools(s, where, negativeDebit = sawCorrection)
     assert(s.convertedPool >= 0 || sawCorrection, s"converted pool negative with no correction debit $where")
     assert(seenBefore.subsetOf(s.seen.seen.keySet), s"a seen key was forgotten $where")
 
@@ -178,6 +181,22 @@ class InvariantsSuite extends ScalaCheckSuite:
 
   test("the correction sequences reached a negative converted pool") {
     assert(negativeConverted > 0, "no sequence took the converted pool negative: the property tested nothing new")
+  }
+
+  // Found by the correction property on 2026-10-28: real -4000 after a correction debit, a
+  // proportional record of 5471, a bet of 1000. The original's fundProportional gives a real leg of
+  // 1000 * -4000 / 1471 = -2719, and its pools `debit` refuses a negative amount; so does the rebuild.
+  test("a proportional bet on a negative real balance is refused POOLS_INVARIANT, as the original's debit refuses it") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "inv/EUR")
+    kit.call(WalletEntity.deposit)(Deposit("seed", 5000, "psp", "t1", "psp", "card", TurnoverTerms(0, "gross_wagered"), t0))
+    sawCorrection = false
+    run(kit, List(CorrectionS(9000, 1), AwardS(5471, 1, "", "proportional")), checkWithCorrections)
+    val before = kit.currentState.pools
+    assertEquals(kit.currentState.realBalance, -4000L)
+    val r = kit.call(WalletEntity.placeBet)(PlaceBet("neg-bet", "r2", "slot", "s1", "prov", "slots", 1000, allowNegative = false, BetSwitches(), t0))
+    assertEquals(r.replyValue.code, Some(io.eitheror.casino.wallet.funding.Codes.PoolsInvariant))
+    assertEquals(r.replyValue.message, Some("real-money pools: negative debit"))
+    assertEquals(kit.currentState.pools, before)
   }
 
   test("the sequences exercised the money path: most commands were accepted, some refused") {

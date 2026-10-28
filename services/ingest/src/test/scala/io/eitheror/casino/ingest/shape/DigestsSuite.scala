@@ -1,9 +1,10 @@
 package io.eitheror.casino.ingest.shape
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.Json
 
 /** Research R3 and R5: the key's digest as the original hashes it; a body's digest blind to key order only. */
-class DigestsSuite extends munit.FunSuite:
+class DigestsSuite extends munit.FunSuite with LogCapturing:
 
   test("a key's digest is lower-case hex SHA-256, as merchant and the original's validateKey make it") {
     assertEquals(Digests.ofKey("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")

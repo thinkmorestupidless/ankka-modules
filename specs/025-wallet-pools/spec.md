@@ -377,6 +377,10 @@ Found in implementation (2026-10-28):
   difference to deposit, as the original does for a legacy request.
 - The pool step refuses a pair that would not sum as `POOLS_INVARIANT` instead of throwing; the
   entity's fold never throws.
+- A bet funded proportionally while real balance is negative (after a correction debit) has a
+  negative real leg (spec 002's `fundProportional`, as the original's), and the pools refuse it,
+  `POOLS_INVARIANT` "negative debit", as the original's `debit` does. Found by the invariants
+  property on 2026-10-28 and kept as a fixed test; before the pools such a bet raised real balance.
 - The fixtures whose wallet twin carries no pools (the original's unstamped cases) open all
   deposit, so their turnover and payout outcomes read as the original's on a stamped wallet; the
   migration's rule for a wallet without pools stays all converted (FR-011).

@@ -1,11 +1,12 @@
 package io.eitheror.casino.pspgateway.delivery
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.delivery.Backoff.Reading
 
 import java.time.Duration
 
 /** FR-015: the original's `handler/outcome_retry_internal_test.go`, its schedule and classification. */
-class BackoffSuite extends munit.FunSuite:
+class BackoffSuite extends munit.FunSuite with LogCapturing:
 
   test("the schedule is the original's: 4 attempts, 250 ms doubling, a 15 s budget (webhook.go:576-578)") {
     assertEquals(Backoff.Attempts, 4)
