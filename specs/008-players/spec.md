@@ -731,3 +731,11 @@ spec 001 FR-033), not recorded.
   Customer.io webhook (014); the partner read API (016); the backoffice frontend.
 - Changing the realm's authentication flow beyond where its authenticators read from.
 - The Spinvibe migration of players, sessions and the account trail (019).
+
+## Open Questions
+
+Raised by spec 012 on 2026-10-25; each is one line, and [spec 012 research](../012-affiliate-protocol/research.md), *Findings for other specs* has the reasoning.
+
+- FR-003: the tag grammar is 012 R2's; `players` drops a tag over 1,024 characters or outside `[A-Za-z0-9_.-]` and verifies nothing (012 finding 2).
+- FR-032a: `player_reopened` is in neither 001 FR-011 nor the contract; `attribution` emits nothing for it (012 finding 6).
+- FR-041: the reporting zone is the core key `reporting-zone`, rendered to every core service (012 finding 8).

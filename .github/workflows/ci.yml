@@ -31,6 +31,7 @@ jobs:
       psp-gateway: ${{ steps.filter.outputs.psp-gateway }}
       ingest: ${{ steps.filter.outputs.ingest }}
       players: ${{ steps.filter.outputs.players }}
+      attribution: ${{ steps.filter.outputs.attribution }}
       game-provider: ${{ steps.filter.outputs.game-provider }}
       simulator: ${{ steps.filter.outputs.simulator }}
       responsible-gambling: ${{ steps.filter.outputs.responsible-gambling }}
@@ -74,6 +75,12 @@ jobs:
               - features/players/**
               - tests/port/players/**
               - tests/original/players-driver/**
+            attribution:
+              - *build
+              - services/attribution/**
+              - features/attribution/**
+              - tests/port/attribution/**
+              - tests/original/attribution-driver/**
             game-provider:
               - *build
               - services/game-provider/**
@@ -248,6 +255,31 @@ jobs:
       - name: players' suites
         working-directory: services/players
         run: sbt test
+
+  # attribution (spec 012), a core service of every brand: its own sbt build against the contract
+  # published from this commit. `sbt test` runs the unit suites; the integration, parity and feature
+  # suites start Postgres in Docker and run with -Dit=true. The driver's offline checks run in the check
+  # job's `go test ./...`.
+  attribution:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.attribution == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: attribution's unit suites
+        working-directory: services/attribution
+        run: sbt test
+      - name: attribution's integration, parity and feature suites
+        working-directory: services/attribution
+        run: sbt -Dit=true "testOnly io.eitheror.casino.attribution.it.* io.eitheror.casino.attribution.port.* io.eitheror.casino.attribution.features.*"
 
   # The game provider simulator (spec 020): its own sbt build against the contract published from this
   # commit; its suites start Postgres in Docker and run the features of features/simulator.

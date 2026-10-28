@@ -444,17 +444,50 @@ spec 019 imports); the link index (the programme's legacy tag document); `ipHash
 >    and let the programme decide.
 > 2. **Converted bonus money counts in affiliate GGR.** Once a bonus converts to real money, bets from it
 >    count like any real money. The original excluded "converted" money. The other way needs the wallet
->    to mark each bet with where its money came from.
+>    to mark each bet with where its money came from. Recorded on the original (2026-10-28): a lost 10.00
+>    bet of converted money earns the affiliate 0 there and 10.00 here; a lost 15.00 bet whose 10.00 real
+>    part was half converted in the same bet earns 5.00 there and 10.00 here.
 > 3. **The bonus code window is 30 days**, the same as the attribution window.
 > 4. **A refund is reported as a chargeback**, with a reference that says it was a refund, so the
 >    programme can treat it differently for fraud flags.
 
 ## For ankka (not blocking, drafted 2026-10-25)
 
-- A consumer of a topic the project does not declare: refused at start, or waiting? The docs do not
-  say (R7, finding 4).
+*Filed 2026-10-28* in thinkmorestupidless/ankka: #197 (keys port 7629), #198 (machine issuer), #199
+(`ce-id`), #200 (`ce-subject`), #201 (a pause's clock), #202 (a grant scoped to a path parameter).
+
+- A consumer of a topic the project does not declare: refused at start, or waiting? *Answered
+  2026-10-28*: it waits and reads the topic once declared; `ankka services get` lists it (ankka
+  `docs/build/topics.md`). No issue needed.
 - A topic consumer's message metadata (`ce-id`): the consumers doc shows `messageContext.subject` and
   `sequenceNumber`; whether the broker message's `ce-id` is readable decides the wallet cursor's dedupe
   (fallback: family + transaction id + award id, data-model.md).
 - `Callers.granted` for machines on a route with a path parameter the handler must compare against the
   machine (R14): admitted by the ACL, narrowed by the handler; a grant per network would be cleaner.
+- *Found on kind, 2026-10-28* (T073, platform 0.14.2), each leaving every machine route refused:
+  the control plane's keys port 7629 is started only when `ankka.http.tls.enabled` is set
+  (`ControlPlane.scala` ~413), which no deployment sets since TLS comes from the certificate directory,
+  so services cannot fetch the keys; and `MachineSettings` derives the issuer from
+  `ankka.controlplane.deploy.base-domain` while `reference.conf` holds it under `kubernetes`, so tokens
+  and a registration's `tokenUrl` name `http://localhost:9000`. Both worked around on kind by setting the
+  flag and `ANKKA_MACHINE_ISSUER` on the control plane. Also: a 0.13 service's log carries ~1,400 lines a
+  minute from a lag-reading Kafka client opened every 15 s per consumer.
+
+## Changed at implementation (2026-10-25)
+
+- **R10**: a consumer cannot read `ce-id`; the dedupe ids are the fallback, and `WalletCursor` answers a
+  repeated id with the delta it gave the first time (T057).
+- **R3**: the minute's refresh fetches a document that expires within two minutes, not only one that has
+  expired. Fetching only after expiry left a gap in which a registration, which never fetches, refused a
+  valid tag `key_unreachable` for good (found by ScaleSuite, T070). `NetworkDocuments.put` ignores a copy
+  fetched before the one held, since the refresh and a click's fetch can finish out of order.
+- **R13, R14**: a published fact's `ce-subject` is its key. ankka's default subject is the source entity's
+  id, which put the player id on every player fact (found by LeakSuite, T067).
+- **R14**: a webhook retry waits on a service timer (`DeliveryRetry`), since a workflow's pause is timed by
+  the wall clock and a test clock cannot move it (T051).
+- **Local runs**: with no `ANKKA_KAFKA_BOOTSTRAP_SERVERS` the service reads and publishes in memory, as
+  ingest does; ankka refuses to start a topic consumer with no subscriber (T072).
+- **For ankka**, added: a workflow's `thenPause` reads the wall clock, not the service's clock; and
+  `ce-subject` defaulting to the source entity's id is a quiet way to publish an internal id on a topic
+  meant for another party, so its documentation should say so.
+

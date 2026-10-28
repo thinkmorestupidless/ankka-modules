@@ -235,7 +235,10 @@ object BrandRender:
   ): Either[String, BrandPlan] =
     ordered(named, manifests).map { order =>
       val project = Values.tenantProject(values.slug, organization)
-      val known   = Values.all(values, project, installation)
+      // The modules the brand runs, core among them so the value is never empty (the platform refuses an empty entry),
+      // for a core service that reads a module's topic (spec 012 R7), unless the brand wrote them.
+      val modules = "casino-modules" -> order.map(_.name).mkString(",")
+      val known   = Values.all(values, project, installation) ++ Option.unless(values.values.contains("casino-modules"))(modules)
       val planned = order.map(module(_, values, keys, known, versions.get, installation))
       // A module held for a key holds every module that depends on it: the agent resolves dependencies first.
       val held = planned.foldLeft(Vector.empty[ModulePlan]) { (held, m) =>

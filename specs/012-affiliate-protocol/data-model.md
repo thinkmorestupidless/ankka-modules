@@ -211,7 +211,7 @@ empty>` (research *For ankka*).
 |---|---|---|
 | `CASINO_BRAND`, `CASINO_PROJECT`, `CASINO_REAL_MONEY` | as every core service | required |
 | `CASINO_REPORTING_ZONE` | the reporting zone (IANA), configuration key `reporting-zone` | `UTC` |
-| `CASINO_MODULES` | the brand's modules, comma-separated; `casino` registers `RewardsFacts` | empty |
+| `CASINO_MODULES` | the brand's modules, comma-separated, `core` among them; `casino` registers `RewardsFacts` | empty (the tool renders at least `core`) |
 | `COUNTRY_HEADER` | the header carrying the visitor's country | `CF-IPCountry` |
 | `DOCUMENT_TIMEOUT` | per-request bound on a document fetch | `10s` |
 | `CLOSE_GRACE` | how long after midnight a day closes | `15m` |
@@ -226,3 +226,13 @@ Service secrets: `network/<id>/pseudonym-key`, `signing-key/<kid>`, `webhook/<id
 sign and verify, key generation), `Jcs` (canonical JSON), `RealMoney` (the counted delta per family),
 `Days` (the zone's day of an instant, the next close), `FactIds`, `Facts` (record and tally events into
 contract facts), `Backoff` (the webhook schedule), `Pages` (cursor encoding, page assembly and signing).
+
+## Changed at implementation (2026-10-25)
+
+- `Delivery`'s retry is a `retry` command a timed action (`DeliveryRetry`, timer `delivery-retry/<id>`) calls;
+  the workflow keeps the attempt rules of `DeliveryRules`.
+- `WalletCursor.recent` keeps each recent id with its delta, so a repeat answers `Seen(delta)`.
+- `NetworkDocuments` is refreshed ahead (`DocumentRefresh.Ahead` is two minutes), and its `put` ignores a copy
+  fetched before the one held.
+- Every fact on `affiliates.attribution` carries `ce-subject` equal to its key.
+

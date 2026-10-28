@@ -24,6 +24,8 @@ object Routes:
     val ScopeViolation  = "scope_violation"
     /** A staff token with no role of the payments backoffice's privilege table (spec 004 FR-033). */
     val NotPaymentsOperator = "not_payments_operator"
+    /** A caller admitted by a grant that is not a registered machine, on a machine's route (spec 012 FR-020). */
+    val NotMachine      = "not_machine"
 
   /** The issuer names the brands tool renders into `ANKKA_AUTH_ISSUERS`. */
   val PlayerIssuer = "player"
@@ -159,6 +161,25 @@ object Routes:
   def granted(service: String): Vector[(GrantTarget.Route, Acl)] =
     Layout.BrandGrantsMade.collect { case Layout.Grant(_, r @ GrantTarget.Route(`service`, _, _)) => r }.distinct
       .map(r => r -> Routes.service(Some(r)))
+
+  /**
+   * A machine registered on an organization (ankka 040) that a grant names on this route: the
+   * seventh route class (spec 012 FR-020, research R14). Built from `Callers.granted`, because a
+   * route is grantable only when its ACL names it and ankka checks grants only there. A service of
+   * another project holding a grant would pass this too, so the handler holds the caller to a
+   * machine with `machineCaller`; which machine a route serves is the handler's to check as well.
+   */
+  val machine: Acl = Acl.allowCallers(Callers.granted)
+
+  /**
+   * The machine behind a request `machine` admitted: `Some((organization, name))` for a machine,
+   * `None` for a local run (no certificate, no token, every caller admitted), and a 403
+   * `not_machine` for anything else.
+   */
+  def machineCaller(caller: Caller): Either[HttpProblem, Option[(String, String)]] = caller match
+    case Caller.Machine(organization, name) => Right(Some(organization -> name))
+    case Caller.Local                       => Right(None)
+    case _                                  => Left(HttpProblem.forbidden(s"${Refusal.NotMachine}: only a registered machine reads this route"))
 
   /** A route's `{brand}` must be this project's (FR-005): a 404 naming the brand it serves. */
   def brandSegment(slug: String, segment: String): Either[HttpProblem, String] =

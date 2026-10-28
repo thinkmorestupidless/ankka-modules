@@ -1,0 +1,39 @@
+{
+  "scenario": "a landing with a valid tag records one click per browser session and emits a click fact [without a tag]",
+  "requirement": "012/FR-001",
+  "recorded_at": "2026-10-28T07:31:38.878857Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "attribution",
+  "steps": [
+    {
+      "name": "land with no tag",
+      "request": {
+        "method": "POST",
+        "path": "/v1/track/click",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "clickId": "{clickId}",
+          "deviceType": "mobile",
+          "ip": "203.0.113.7",
+          "userAgent": "Mozilla/5.0 (attribution-driver)",
+          "utmCampaign": "autumn",
+          "utmContent": "banner-1",
+          "utmMedium": "affiliate",
+          "utmSource": "network"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "btag is required"
+        }
+      }
+    }
+  ]
+}

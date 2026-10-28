@@ -1,14 +1,19 @@
 # Recording the original's affiliate behaviour, and replaying it
 
-Research R19. The method is `tests/original/README.md`; nothing in `tests/port/` is the affiliate's today
-(the KinD stack spec 003 recorded on ran no affiliate service, so scenario 17 and the scenario-15 GGR
-tests skipped themselves). This file says what `tests/port/attribution/` will hold and how a recording
-of an internal notification is held against a service that has no such route.
+Research R19. The method is `tests/original/README.md`. The KinD stack spec 003 recorded on ran no
+affiliate service, so scenario 17 and the scenario-15 GGR tests skipped themselves; T035 recorded them on
+2026-10-28 with it running (`tests/port/attribution/README.md`). This file says what
+`tests/port/attribution/` holds and how a recording of an internal notification is held against a
+service that has no such route.
 
 ## The suite's scenarios, recorded with the affiliate service running
 
 Run on the original's KinD stack with `affiliate-service` installed and `affiliate_notify_ggr` on
-(`values.yaml:337-343`), twice, on fresh ids:
+(`values.yaml:337-343`), twice, on fresh ids. The original hard-skips all four (`t.Skip("blocked:
+affiliate-service NodePort 30093 has no KinD extraPortMappings entry ...")`), so the run removes the skips
+in its local checkout, and corrects scenario 17's seed namespaces (`affiliate-plans/<brand>` and
+`affiliates/<brand>`, which the service never reads, for `affiliate-plans-<brand>` and `affiliates-<brand>`).
+`tests/port/attribution/README.md` has the steps:
 
 | Recording | Steps the recorder sees | Requirement |
 |---|---|---|
@@ -20,7 +25,7 @@ Run on the original's KinD stack with `affiliate-service` installed and `affilia
 ## `tests/original/attribution-driver/`: what the suite never reaches
 
 A Go test package after `tests/original/ingest-driver/`, run with `-tags e2e` against the original's
-`affiliate-service` (`localhost:8082`) and `casino-service` on the KinD stack. One scenario per feature
+`affiliate-service` (`localhost:8093`, its NodePort) and the substrate on the KinD stack. One scenario per feature
 scenario the original can show, named as the feature names it; each seeds its own affiliate and link
 twins as `setup:` steps.
 
@@ -35,6 +40,14 @@ twins as `setup:` steps.
 | what happens to an attributed player's money … (bonus-cost row) | `notify/bonus-cost` as casino-service sends it (`claimId`) | **marked**: the original answers `400` and records nothing; the port emits `bonus-cost` from the wallet's award |
 | what happens to an attributed player's money … (chargeback row) | `notify/chargeback` | **marked**: nothing in the original calls it; the port emits from a dispute or a refund |
 | closing … emits one player-closed fact | none: the original has no closure notification | no recording; `ClosureSuite` |
+
+The third deposit in a later month cannot be driven: the original takes the period from its own clock.
+The first-deposit recording holds two deposits in one month, and `MoneySuite` holds the rule for a later
+one. The driver's `NotDriven` and `NotDrivenFeatures` name every other feature scenario it does not
+record, with the reason, and its offline test fails when a feature scenario is neither driven nor named.
+The affiliate service answers on KinD's host port 8093 (its NodePort 30093; host 8082 is
+`substrate-graphql`), and `go run ./original/preflight -affiliate http://localhost:8093` checks it answers
+first. *Recorded 2026-10-28*: `tests/port/attribution/README.md` says how, and where the run differed.
 
 ## The translation (`ParitySuite`'s `Translate`)
 

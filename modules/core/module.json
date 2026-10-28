@@ -382,6 +382,9 @@
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/attribution:0.0.0",
         "expose": true,
         "runtime": "0.13.0",
+        "resources": {
+          "instanceType": "medium"
+        },
         "env": [
           {
             "name": "CASINO_PROJECT",
@@ -438,6 +441,30 @@
           {
             "name": "KEYCLOAK_JWKS_BASE",
             "key": "keycloak-jwks-base"
+          },
+          {
+            "name": "CASINO_REPORTING_ZONE",
+            "key": "reporting-zone"
+          },
+          {
+            "name": "CASINO_MODULES",
+            "key": "casino-modules"
+          },
+          {
+            "name": "COUNTRY_HEADER",
+            "value": "CF-IPCountry"
+          },
+          {
+            "name": "DOCUMENT_TIMEOUT",
+            "value": "10s"
+          },
+          {
+            "name": "CLOSE_GRACE",
+            "value": "15m"
+          },
+          {
+            "name": "WEBHOOK_TIMEOUT",
+            "value": "10s"
           }
         ]
       }
@@ -600,6 +627,16 @@
     {
       "key": "keycloak-jwks-base",
       "type": "url",
+      "secret": false
+    },
+    {
+      "key": "reporting-zone",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-modules",
+      "type": "string",
       "secret": false
     },
     {

@@ -775,3 +775,10 @@ each service spec lists it under *Changes from the original*, and spec 019's run
 - Hosted ankka (ankka-cloud) — the installation is eitheror's own.
 - Two installations, or a brand in a second cloud account: a brand licensed in another jurisdiction is
   a second installation (ankka 044).
+
+## Open Questions
+
+Raised by spec 012 on 2026-10-25; each is one line, and [spec 012 research](../012-affiliate-protocol/research.md), *Findings for other specs* has the reasoning.
+
+- FR-024: a click's address digest under a brand-held salt is not personal; the list should say so (012 finding 1).
+- FR-020: a seventh route class, the machine (`Routes.machine`), is in the contract for 012's feed (012 finding 10).

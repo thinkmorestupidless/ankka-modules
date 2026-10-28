@@ -172,3 +172,18 @@ class FactsSuite extends munit.FunSuite:
   test("the merchants' key facts never carry a raw key") {
     PaymentsMerchants.families.foreach(f => assert(!f.fields.exists(_._1 == "key"), f.name))
   }
+
+  test("ggr-daily carries before_binding when a day closed before the binding, and reads as absent otherwise (spec 012 FR-016)") {
+    import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
+    val base = GgrDaily(1, "ggr-daily/p/EUR/2026-11-01", java.time.Instant.parse("2026-11-02T00:15:00Z"), "goldvibe", "programme",
+      "aff-1", "lnk-1", None, Vector.empty, None, "p", Currency.unsafe("EUR"), "2026-11-01",
+      MinorUnits.unsafe(600), MinorUnits.unsafe(400), SignedMinorUnits(200), "EUR/2026-11-01")
+    val absent = mapper.readTree(AffiliatesAttribution.encode(base))
+    assert(!absent.has("before_binding"), absent.toString)
+    assertEquals(readFromString[AttributionFact](absent.toString)(using AffiliatesAttribution.codec), base)
+    val marked = base.copy(beforeBinding = Some(true))
+    val json   = mapper.readTree(AffiliatesAttribution.encode(marked))
+    assertEquals(json.get("before_binding").asBoolean(), true)
+    assertEquals(readFromString[AttributionFact](json.toString)(using AffiliatesAttribution.codec), marked)
+    assert(AffiliatesAttribution.families.find(_.name == "ggr-daily").get.fields.exists((n, t) => n == "before_binding" && t.optional))
+  }

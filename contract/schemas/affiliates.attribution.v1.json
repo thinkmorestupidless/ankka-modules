@@ -231,6 +231,9 @@
         "affiliate": {
           "type": "string"
         },
+        "before_binding": {
+          "type": "boolean"
+        },
         "brand": {
           "type": "string"
         },

@@ -1,0 +1,269 @@
+{
+  "scenario": "TestScenario17_AffiliateGate3_CPAPipeline",
+  "requirement": "012/FR-015",
+  "recorded_at": "2026-10-28T07:32:54.295982Z",
+  "original": {
+    "brand": "",
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "substrate",
+  "steps": [
+    {
+      "name": "POST /twins/affiliate-plans-spinvibe/ca57104c-79b2-336a-b99b-75709f4e5c49",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-plans-spinvibe/ca57104c-79b2-336a-b99b-75709f4e5c49",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "spinvibe",
+          "cpaAmount": "50.00",
+          "planName": "Gold CPA-3661b511",
+          "planType": "CPA",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-plans-spinvibe/ca57104c-79b2-336a-b99b-75709f4e5c49"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/affiliates-spinvibe/45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliates-spinvibe/45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+          "brandId": "spinvibe",
+          "createdAt": "2026-10-28T07:32:54Z",
+          "email": "aff-3661b511@example.com",
+          "planId": "ca57104c-79b2-336a-b99b-75709f4e5c49",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliates-spinvibe/45ae804e-bcbf-4152-a624-8ff4b60b79b1"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/affiliate-links/c2c1104a-569f-4ea7-a786-630f7775f82a",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links/c2c1104a-569f-4ea7-a786-630f7775f82a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+          "brandId": "spinvibe",
+          "btag": "c2c1104a-569f-4ea7-a786-630f7775f82a",
+          "createdAt": "2026-10-28T07:32:54Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links/c2c1104a-569f-4ea7-a786-630f7775f82a"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /internal/v1/affiliates/spinvibe/notify/registration",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/spinvibe/notify/registration",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "c2c1104a-569f-4ea7-a786-630f7775f82a",
+          "playerId": "1198b7c1-6753-4ab0-953f-caaf384cdf96",
+          "registeredAt": "2026-10-28T07:32:54Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+          "ok": true
+        }
+      },
+      "capture": {
+        "c0": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /internal/v1/affiliates/spinvibe/notify/deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/spinvibe/notify/deposit",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "GBP",
+          "playerId": "1198b7c1-6753-4ab0-953f-caaf384cdf96",
+          "transactionId": "8c888f12-6ec2-4035-8d14-473b47d587be"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+          "ok": true
+        }
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/affiliate-revenue-45ae804e-bcbf-4152-a624-8ff4b60b79b1-spinvibe/99e11cf5-f158-3c7a-81c7-092d662ce4d7",
+      "request": {
+        "method": "GET",
+        "path": "/twins/affiliate-revenue-{c0}-spinvibe/99e11cf5-f158-3c7a-81c7-092d662ce4d7",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+          "bonusCosts": "0.00",
+          "brandId": "spinvibe",
+          "chargebacks": "0.00",
+          "cpaCommission": "50.00",
+          "depositCount": "1",
+          "excludedGgr": "0.00",
+          "ftdCount": "1",
+          "ggr": "0.00",
+          "ngr": "0.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "2026-10",
+          "providerFees": "0.00",
+          "registrationCount": 1,
+          "revShareCommission": "0.00",
+          "totalCommission": "50.00",
+          "totalDepositAmount": "50.00"
+        }
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /internal/v1/affiliates/spinvibe/notify/registration",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/spinvibe/notify/registration",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "c2c1104a-569f-4ea7-a786-630f7775f82a",
+          "playerId": "1198b7c1-6753-4ab0-953f-caaf384cdf96",
+          "registeredAt": "2026-10-28T07:32:54Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "duplicate": true,
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "POST /internal/v1/affiliates/spinvibe/notify/deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/spinvibe/notify/deposit",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "GBP",
+          "playerId": "1198b7c1-6753-4ab0-953f-caaf384cdf96",
+          "transactionId": "8c888f12-6ec2-4035-8d14-473b47d587be"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "duplicate": true,
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "GET /twins/affiliate-revenue-45ae804e-bcbf-4152-a624-8ff4b60b79b1-spinvibe/99e11cf5-f158-3c7a-81c7-092d662ce4d7",
+      "request": {
+        "method": "GET",
+        "path": "/twins/affiliate-revenue-{c0}-spinvibe/99e11cf5-f158-3c7a-81c7-092d662ce4d7",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "45ae804e-bcbf-4152-a624-8ff4b60b79b1",
+          "bonusCosts": "0.00",
+          "brandId": "spinvibe",
+          "chargebacks": "0.00",
+          "cpaCommission": "50.00",
+          "depositCount": "1",
+          "excludedGgr": "0.00",
+          "ftdCount": "1",
+          "ggr": "0.00",
+          "ngr": "0.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "2026-10",
+          "providerFees": "0.00",
+          "registrationCount": 1,
+          "revShareCommission": "0.00",
+          "totalCommission": "50.00",
+          "totalDepositAmount": "50.00"
+        }
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

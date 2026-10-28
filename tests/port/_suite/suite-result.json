@@ -23,6 +23,10 @@
     "pass",
     "pass"
   ],
+  "TestAttribution": [
+    "pass",
+    "pass"
+  ],
   "TestCashier": [
     "fail",
     "fail"
@@ -44,6 +48,10 @@
     "pass"
   ],
   "TestEveryScenarioRecordsNoCredentialAndNamesEveryTokenItCarries": [
+    "pass",
+    "pass"
+  ],
+  "TestEveryScenarioRunsAgainstTheStubAndNoRecordingCarriesTheSecret": [
     "pass",
     "pass"
   ],
@@ -231,11 +239,23 @@
     "pass",
     "pass"
   ],
+  "TestTheBonusCostIsSentAsCasinoServiceSendsItAndRefused": [
+    "pass",
+    "pass"
+  ],
   "TestTheBounceMoneyKeysArePKCS8Ed25519AndDiffer": [
     "pass",
     "pass"
   ],
+  "TestTheClickVariesOnTheOriginalsClickIdAndCarriesTheTagAndTheCampaign": [
+    "pass",
+    "pass"
+  ],
   "TestTheDepositScenariosRunForEveryProviderTheFeatureHolds": [
+    "pass",
+    "pass"
+  ],
+  "TestTheFirstDepositIsReadFromThisMonthsRevenueTwin": [
     "pass",
     "pass"
   ],
@@ -244,6 +264,10 @@
     "pass"
   ],
   "TestTheReceiverKeepsNoSecretHeader": [
+    "pass",
+    "pass"
+  ],
+  "TestTheSeedIsSetupStepsUnderTheOriginalsNamespacesWithTheTagAsALegacyUUID": [
     "pass",
     "pass"
   ],

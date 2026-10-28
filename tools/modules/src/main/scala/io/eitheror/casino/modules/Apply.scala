@@ -16,6 +16,9 @@ final case class ApplyResult(changes: Vector[String], notes: Vector[String], fai
  */
 object Apply:
 
+  /** The history kinds whose generation recorded a descriptor. */
+  val Recorded: Set[String] = Set("applied", "rolled-back")
+
   final case class Options(
       organization: String,
       secretValues: Map[String, Map[String, String]] = Map.empty,
@@ -75,10 +78,12 @@ object Apply:
               cp.apply(plan.projectId, wanted)
               changes += s"service ${wanted.name} applied at ${wanted.service.image}"
             case Some(status) =>
-              val current = cp.descriptor(plan.projectId, wanted.name, status.generation)
+              // The newest generation that recorded a descriptor: the history is newest first, and a restart, a
+              // pause or a resume records none (asked for, the platform answers 409; found on kind, 2026-10-28).
+              val recorded = cp.history(plan.projectId, wanted.name).find(e => Apply.Recorded(e.kind))
+              val current  = recorded.flatMap(e => cp.descriptor(plan.projectId, wanted.name, e.generation))
               if !current.contains(wanted) then
-                val rolledBack = cp.history(plan.projectId, wanted.name).lastOption.filter(_.kind == "rolled-back")
-                rolledBack match
+                recorded.filter(_.kind == "rolled-back") match
                   case Some(entry) =>
                     notes += s"service ${wanted.name}: manifest behind cluster: an operator rolled it back to generation ${entry.rolledBackTo.getOrElse(0L)}; change the manifest to match, then apply"
                   case None =>

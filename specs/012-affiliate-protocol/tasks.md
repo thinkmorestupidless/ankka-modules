@@ -48,7 +48,7 @@ documents; US7 (closure) is the last consumer path.
 **Purpose**: the service's build, the two contract additions, the manifest and key map, the recipes and
 CI job, and the recording driver (which needs only Go and the original's checkout, not this service).
 
-- [ ] T001 Create `services/attribution/` on `services/wallet/`'s template: `build.sbt` on Scala 3.9 with
+- [X] T001 Create `services/attribution/` on `services/wallet/`'s template: `build.sbt` on Scala 3.9 with
       ankka 0.13.0 (`ankka-sdk`, `ankka-runtime`, `ankka-http`, `ankka-auth-oidc`, `ankka-telemetry-otlp`,
       `ankka-testkit`), `io.eitheror:casino-contract` from the local publish, munit, the Postgres driver as
       a test dependency (for `LeakSuite`); `project/plugins.sbt`; `service.json` for the local run
@@ -61,7 +61,7 @@ CI job, and the recording driver (which needs only Go and the original's checkou
       `record/`, `money/`, `facts/`, `inputs/`, `carriers/`, `views/`, `api/`) and `a-test/` (the same
       plus `it/`, `port/`, `features/`); `services/attribution/README.md` naming the service's purpose
       in two lines (filled by T071)
-- [ ] T002 [P] Add to `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`
+- [X] T002 [P] Add to `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`
       `machine(authenticate: => Acl = Oidc.authenticate()): Acl`
       (research R14, R18): `Acl.Authenticate` admitting `Caller.Machine(organization, name)` on a route
       a grant names (`Callers.granted`), with the principal `machine:<organization>/<name>` (which
@@ -75,7 +75,7 @@ CI job, and the recording driver (which needs only Go and the original's checkou
       caller admitted with its principal, a service caller refused, a gateway caller with no token
       refused) and the existing facts suite gaining a `ggr-daily` round-trip with `beforeBinding` true
       and absent; `sbt contract/test contract/publishLocal` green
-- [ ] T003 [P] Extend `modules/core/module.json`'s `attribution` entry with `env`: `CASINO_REPORTING_ZONE`
+- [X] T003 [P] Extend `modules/core/module.json`'s `attribution` entry with `env`: `CASINO_REPORTING_ZONE`
       from the new configuration key `reporting-zone` (`string`, not secret), `CASINO_MODULES` from a new
       key `modules` (`string`, not secret, the brand's modules comma-separated), `COUNTRY_HEADER`
       `CF-IPCountry`, `DOCUMENT_TIMEOUT` `10s`, `CLOSE_GRACE` `15m`, `WEBHOOK_TIMEOUT` `10s`; add
@@ -85,7 +85,7 @@ CI job, and the recording driver (which needs only Go and the original's checkou
       to `brands/goldvibe/values.json`; have `tools/modules` derive both defaults
       (`tools/modules/src/main/scala/io/eitheror/casino/modules/Values.scala`, beside `keycloak-jwks-base`) with
       a test in its `RenderSuite`; `just modules validate --all` and `just test` green
-- [ ] T004 [P] Add to `justfile` the recipes `attribution-test` (`sbt contract/publishLocal` then `sbt
+- [X] T004 [P] Add to `justfile` the recipes `attribution-test` (`sbt contract/publishLocal` then `sbt
       test` in `services/attribution`, as `wallet-test`), `attribution-it` (`testOnly
       io.eitheror.casino.attribution.it.* io.eitheror.casino.attribution.port.*
       io.eitheror.casino.attribution.features.*`), `attribution-run` (`ANKKA_HTTP_PORT=9003`,
@@ -94,7 +94,7 @@ CI job, and the recording driver (which needs only Go and the original's checkou
       `sbt run`); add an `attribution` filter (`services/attribution/**`, `features/attribution/**`,
       `tests/port/attribution/**`, `tests/original/attribution-driver/**`, `*build`) and job to
       `.github/workflows/ci.yml` after the `ingest` job's pattern
-- [ ] T005 [P] Write `tests/original/attribution-driver/` (Go, as `tests/original/ingest-driver/`: `doc.go`,
+- [X] T005 [P] Write `tests/original/attribution-driver/` (Go, as `tests/original/ingest-driver/`: `doc.go`,
       `driver.go`, `scenarios.go`, `record_test.go` for the `e2e` run, `driver_test.go` offline), driving
       the original's `affiliate-service` (`-affiliate-url`, KinD `localhost:8082`) and `casino-service`
       (`-casino-url`): one scenario per row of contracts/recording.md's driver table, named as the
@@ -110,7 +110,7 @@ CI job, and the recording driver (which needs only Go and the original's checkou
       (the recorder's `kept()` list); extend `tests/original/preflight` with `-affiliate` checking the
       affiliate service answers `/health`; `go test ./original/attribution-driver/...` green offline
       (the names against `features/attribution/*.feature`, the recorded shape against a stub)
-- [ ] T006 [P] Add `tests/port/attribution/README.md` naming what the directory will hold
+- [X] T006 [P] Add `tests/port/attribution/README.md` naming what the directory will hold
       (contracts/recording.md: the suite's four affiliate scenarios recorded with the affiliate service
       installed and `affiliate_notify_ggr` on, the driver's eight), how the suite's four are run (the
       original's `just test-st8` and scenario 17 with `EITHEROR_AFFILIATE_URL` set, twice, on fresh ids,
@@ -132,7 +132,7 @@ task and can run the moment T005 and the original's stack are up.
 
 ### Pure packages (tests beside each)
 
-- [ ] T007 [P] Implement `a/Settings.scala` (data-model.md *Settings*: `CASINO_REPORTING_ZONE` `UTC`,
+- [X] T007 [P] Implement `a/Settings.scala` (data-model.md *Settings*: `CASINO_REPORTING_ZONE` `UTC`,
       `CASINO_MODULES` empty, `COUNTRY_HEADER` `CF-IPCountry`, `DOCUMENT_TIMEOUT` `10s`, `CLOSE_GRACE`
       `15m`, `WEBHOOK_TIMEOUT` `10s`; `fromEnvironment` refusing a value it cannot read by the
       variable's name, a zone `ZoneId.of` refuses named; `Routes.brandFromEnvironment` for the brand)
@@ -141,14 +141,14 @@ task and can run the moment T005 and the original's stack are up.
       `Long` minor units as a JSON number, `Instant` as ISO-8601, after `WalletCodecs`); tests
       `a-test/SettingsSuite.scala` and `a-test/AttributionCodecsSuite.scala` (every type round-trips;
       a `Binding` with no campaign and five sub-ids survives)
-- [ ] T008 [P] Implement `a/tag/Signing.scala` (Ed25519 through `java.security`: `generate(): (publicKey
+- [X] T008 [P] Implement `a/tag/Signing.scala` (Ed25519 through `java.security`: `generate(): (publicKey
       base64url, privateKey base64url)`, `sign(privateKey, bytes)`, `verify(publicKey, bytes, signature)`,
       `publicKeyFromX(x)` for a key document's `x`) and `a/tag/Jcs.scala` (RFC 8785 canonical form of a
       `JsonNode`: sorted members, no whitespace, numbers and strings as the RFC says); tests
       `a-test/tag/SigningSuite.scala` (a generated pair signs and verifies; a flipped byte fails; a key
       from `x` verifies what its private half signed) and `a-test/tag/JcsSuite.scala` (the RFC's
       examples; member order does not change the output; a nested array of facts)
-- [ ] T009 [P] Implement `a/tag/Tag.scala` (contracts/protocol.md and research R2, R6): `parse(value):
+- [X] T009 [P] Implement `a/tag/Tag.scala` (contracts/protocol.md and research R2, R6): `parse(value):
       Either[malformed, Parsed(header kid, payload fields, signingInput, signature)]` enforcing the 1,024
       bound, the character set, three segments, `alg` `EdDSA`, `typ` `eo-tag`, `v` 1, the field
       lengths, at most five sub-ids; `isLegacy(value)` the UUID pattern; `verify(parsed, keys: Map[kid,
@@ -160,12 +160,12 @@ task and can run the moment T005 and the original's stack are up.
       a token with a `+`, a header naming `HS256`, six sub-ids, a campaign of 65 characters, a UUID in
       upper case recognised as legacy, a valid token's fields read back exactly, a tag at the window's
       edge (issued exactly 30 days before registration binds; one second older is `stale`)
-- [ ] T010 [P] Implement `a/tag/Pseudonyms.scala` (`derive(key: Array[Byte], playerId): String`,
+- [X] T010 [P] Implement `a/tag/Pseudonyms.scala` (`derive(key: Array[Byte], playerId): String`,
       HMAC-SHA256, base64url no padding; `newKey(): String` 32 random bytes base64; `secretName(network)`
       `network/<id>/pseudonym-key`); tests `a-test/tag/PseudonymsSuite.scala`: a fixed key and
       `player-1` give the digest written into the test as the documented vector; two networks' keys
       give different pseudonyms for one player; 43 characters; the same twice
-- [ ] T011 [P] Implement `a/networks/Documents.scala` (parse the four documents of contracts/protocol.md
+- [X] T011 [P] Implement `a/networks/Documents.scala` (parse the four documents of contracts/protocol.md
       into `KeyDocument(keys: Map[kid, publicKey], cacheSeconds, transition: Option)`,
       `RevocationList(links, affiliates, refreshSeconds, asOf)`, `LegacyTagDocument(tags, version,
       cacheSeconds)`, `CodeDocument(brand, version, at, codes: Map[lowercased code, (offer, tag)],
@@ -175,7 +175,7 @@ task and can run the moment T005 and the original's stack are up.
       after `services/psp-gateway/.../http/ProviderHttp.scala`: 5 s connect, the timeout per request, no
       redirects, https or http, the body read to at most 1 MiB); tests `a-test/networks/DocumentsSuite.scala`
       (each document's example from protocol.md parses; each refusal; codes matched regardless of case)
-- [ ] T012 [P] Implement `a/money/RealMoney.scala` (`counted(fact: MoneyTransactionsFact, delta: Long):
+- [X] T012 [P] Implement `a/money/RealMoney.scala` (`counted(fact: MoneyTransactionsFact, delta: Long):
       Option[Leg(kind, roundId, dedupeId)]`: `bet_placed` → `stake` with `−delta`, `win_credited` and a
       `provider_credited` landing on `real` → `win` with `delta`, `bet_rolled_back` → `rollback` with
       `delta`, `round_settled_as_loss` → `loss` with 0, every other family `None`; `bonusCost(fact):
@@ -189,7 +189,7 @@ task and can run the moment T005 and the original's stack are up.
       award's cost) and `a-test/money/DaysSuite.scala` (23:30 in `Africa/Johannesburg` is that day and
       21:30 UTC is the next; a day closes 15 minutes after its midnight and not before; 12 months from
       `2026-11-01` is `2027-11-01`; 90 days after the last legacy day; the earlier of the two wins)
-- [ ] T013 [P] Implement `a/facts/FactIds.scala` (research R13's forms, one function per kind) and
+- [X] T013 [P] Implement `a/facts/FactIds.scala` (research R13's forms, one function per kind) and
       `a/facts/Facts.scala` (`Facts.fromRecord(brand, state, event): Vector[Published(fact, factId, key)]`
       and `Facts.fromTally(brand, binding, event, roundStream): Vector[Published]` and
       `Facts.click(brand, click)`: the contract's families filled as contracts/facts.md says, `occurredAt`
@@ -200,7 +200,7 @@ task and can run the moment T005 and the original's stack are up.
       event twice gives equal facts and ids, a `Bound` event with pending events emits each at or
       after `boundAt` and none before, a `Closed` tally with no movement emits nothing, a settling leg
       with `roundStream` off emits nothing and with it on emits the deltas since the last emission
-- [ ] T014 [P] Implement `a/carriers/Backoff.scala` (research R15's schedule: `next(attempts): Duration`
+- [X] T014 [P] Implement `a/carriers/Backoff.scala` (research R15's schedule: `next(attempts): Duration`
       1, 5, 15, 60 minutes then hourly; `exhausted(firstAttemptAt, now): Boolean` at 24 hours) and
       `a/carriers/Pages.scala` (`Cursor.encode(network, seq)`, `decode(text): Either[invalid, (network,
       seq)]`, the empty cursor as `(network, 0)`; `Pages.assemble(facts, network, lastSeq, kid,
@@ -212,22 +212,22 @@ task and can run the moment T005 and the original's stack are up.
 
 ### The entities and the workflow (tests first)
 
-- [ ] T015 [P] `a-test/settings/SettingsEntitySuite.scala` (`KeyValueEntityTestKit`): every command of
+- [X] T015 [P] `a-test/settings/SettingsEntitySuite.scala` (`KeyValueEntityTestKit`): every command of
       data-model.md's `Settings` (`setWindows` refuses 0 and 366 days; `start` sets `firstDay` once;
       `legacySeen` counts per day and sets `lastLegacyDay`; `endTransition` once; `addSigningKey`,
       `retireSigningKey` refusing the last live key; `get`), then implement
       `a/settings/SettingsEntity.scala` (key value, `ComponentId("settings")`, id `brand`, after
       `w/config/BrandConfigEntity.scala`) until green
-- [ ] T016 [P] `a-test/networks/NetworkSuite.scala` and `a-test/networks/NetworkDocumentsSuite.scala`
+- [X] T016 [P] `a-test/networks/NetworkSuite.scala` and `a-test/networks/NetworkDocumentsSuite.scala`
       (`add` refused on an existing live network, allowed after `remove`; `update`, `setRoundStream`,
       `setMachine`, `pseudonymKeyMade`, `remove` keeps everything; a network id of 65 characters or
       with a capital refused; `NetworkDocuments.put(kind, parsed, fetchedAt, expiresAt)`, `failed(kind,
       error, at)` keeps the old body, `fresh(kind, now)`), then implement `a/networks/Network.scala`
       and `a/networks/NetworkDocuments.scala` (key value, ids the network id) until green
-- [ ] T017 [P] `a-test/clicks/ClickSuite.scala` (`record` sets every field; a second `record` under
+- [X] T017 [P] `a-test/clicks/ClickSuite.scala` (`record` sets every field; a second `record` under
       the id changes nothing and replies the first; `refused` kept; `expireAfter` 60 days declared),
       then implement `a/clicks/Click.scala` (key value, `ComponentId("click")`) until green
-- [ ] T018 [P] `a-test/record/AttributionRecordSuite.scala` (`EventSourcedEntityTestKit`): every row of
+- [X] T018 [P] `a-test/record/AttributionRecordSuite.scala` (`EventSourcedEntityTestKit`): every row of
       data-model.md's `AttributionRecord` command table: `registered` with a valid tag emits `Registered`
       and `Bound` with touch `tag`; with a refused tag `TagRefused` and the player organic; with a tag
       and a code, `Bound` by the tag and `TouchRecorded` for the code; a second `registered` a no-op;
@@ -238,7 +238,7 @@ task and can run the moment T005 and the original's stack are up.
       with the same reference a no-op; `close` once; `erase` emits `Erased` and `Closed(closed)` when
       none was; `get`; then implement `a/record/AttributionRecord.scala` (events, state, commands,
       `ComponentId("attribution-record")`, snapshots every 100 events) and `a/record/Touches.scala` until green
-- [ ] T019 [P] `a-test/money/WalletCursorSuite.scala`, `a-test/money/RoundIndexSuite.scala`,
+- [X] T019 [P] `a-test/money/WalletCursorSuite.scala`, `a-test/money/RoundIndexSuite.scala`,
       `a-test/money/DayTallySuite.scala` (`advance` from 0: a deposit of 5000 → `Delta(5000)`; a bet →
       `Delta(−1000)`; the same dedupe id → `Seen`; `recent` bounded at 200; `remember` the first day
       wins, `expireAfter` 7 days declared; `leg(stake)` adds, `leg(win)` adds, `leg(rollback)` reduces
@@ -247,12 +247,12 @@ task and can run the moment T005 and the original's stack are up.
       leg's event carries the round's unemitted totals and marks them emitted), then implement
       `a/money/WalletCursor.scala`, `a/money/RoundIndex.scala` (key value) and `a/money/DayTally.scala`
       (event sourced, `ComponentId("day-tally")`) until green
-- [ ] T020 [P] `a-test/carriers/NetworkFeedSuite.scala` (`append` → `Appended(1, fact)`, `Appended(2,
+- [X] T020 [P] `a-test/carriers/NetworkFeedSuite.scala` (`append` → `Appended(1, fact)`, `Appended(2,
       …)`; the same fact id → `Seen`; `recent` bounded at 10,000) and
       `a-test/carriers/WebhookSubscriptionSuite.scala` (`create` with an `http://` address refused;
       `update`; `delete`; `get` never holds a secret), then implement `a/carriers/NetworkFeed.scala`
       (event sourced) and `a/carriers/WebhookSubscription.scala` (key value) until green
-- [ ] T021 [P] `a-test/carriers/DeliverySuite.scala` (`WorkflowTestKit` with a stubbed `WebhookHttp`):
+- [X] T021 [P] `a-test/carriers/DeliverySuite.scala` (`WorkflowTestKit` with a stubbed `WebhookHttp`):
       `start` posts the fact signed under the kit's secret with the four headers of
       contracts/protocol.md and ends `delivered` on `200`; a `503` pauses 1 minute, then 5, 15, 60,
       60; after 24 hours from the first attempt it ends `undelivered` with the last status; `resend`
@@ -263,10 +263,13 @@ task and can run the moment T005 and the original's stack are up.
       after `w/deposits/DepositWorkflow.scala`'s shape) and `a/carriers/WebhookHttp.scala` (a trait
       `post(address, body, headers): Either[error, status]` with an `HttpClient` implementation,
       `WEBHOOK_TIMEOUT`, no redirects) until green
+      *Done note*: ankka 0.13 has no Scala `WorkflowTestKit` (build/workflows.md: a Scala workflow is tested through
+      the integration kit), so the decisions live in a pure `DeliveryRules` that `DeliverySuite` holds, and the
+      workflow's run over a stub post is in the integration suite (T030 onward).
 
 ### The views, the consumers' shells, the timers
 
-- [ ] T022 [P] Implement `a/views/Records.scala` (over `eventsOf(AttributionRecord)`: one row per
+- [X] T022 [P] Implement `a/views/Records.scala` (over `eventsOf(AttributionRecord)`: one row per
       player with `playerId`, `network`, `affiliate`, `bound`, `touches`, `firstDepositAt`, `closed`,
       `erased`; declared queries `byPlayer(id)` and `countsByNetwork`), `a/money/OpenDays.scala` (over
       `eventsOf(DayTally)`: one row per open tally with `player`, `currency`, `day`, deleted on
@@ -276,7 +279,12 @@ task and can run the moment T005 and the original's stack are up.
       (over `stateOf(Delivery)`: `undelivered(network)`); tests `a-test/views/ViewsSuite.scala` on
       `AnkkaTestKit` (each query after the events that fill it; `page` returns 1,000 at most and in
       order; a closed day leaves `openBefore`)
-- [ ] T023 [P] `a-test/inputs/InputsSuite.scala` (`ConsumerTestKit` with an `InMemorySecretStore` holding
+      *Done note*: Scala views run only on the integration kit, so the suite is `a-test/it/ViewsSuite.scala` (own
+      JVM). `FeedRows` is a keyed view, one row per fact keyed `<network>/<seq>`, since a plain view keeps one
+      row per source id; `OpenDays` keeps closed rows marked rather than deleted, for `closedFor`; a declared
+      query answers rows, so `countsByNetwork` counts through the view client. The pure delivery rules are
+      `DeliveryRules`, the view `Deliveries`.
+- [X] T023 [P] `a-test/inputs/InputsSuite.scala` (`ConsumerTestKit` with an `InMemorySecretStore` holding
       `network/programme/pseudonym-key` and stubbed clients): the shells of the five input consumers
       answer `ignore` for every family they do not handle and call nothing; then implement the shells
       `a/inputs/PlayersFacts.scala`, `a/inputs/RewardsFacts.scala`, `a/inputs/PaymentsFacts.scala`,
@@ -285,7 +293,7 @@ task and can run the moment T005 and the original's stack are up.
       TopicOptions(Some(<Topic>.contract), None, false))` as `g/` consumes `casino.players`;
       `RewardsFacts` registered only when `CASINO_MODULES` names `casino`) with the handled families
       left as `???`-free `ignore` stubs the stories fill
-- [ ] T024 [P] `a-test/facts/PublishersSuite.scala` (`ConsumerTestKit`): `ClickFacts` over a `Click`
+- [X] T024 [P] `a-test/facts/PublishersSuite.scala` (`ConsumerTestKit`): `ClickFacts` over a `Click`
       state with no `refused` publishes one `click` keyed by the link with `ce-id` `click/<id>`, and
       nothing for a refused click; `RecordFacts` over a `Bound` event publishes `registration` keyed by
       the pseudonym, `ce-id` `registration/<pseudonym>`, the same twice; `TallyFacts` over a `Closed`
@@ -294,14 +302,14 @@ task and can run the moment T005 and the original's stack are up.
       `a/facts/TallyFacts.scala` (after `w/publish/Publishers.scala`: `outputSerializer`
       `AffiliatesAttribution.serializer`, `produceTo`, `produces` with the contract, `withKey`,
       `Metadata` `ce-id`) until green
-- [ ] T025 [P] `a-test/carriers/CarrierConsumersSuite.scala` (`ConsumerTestKit`): `FeedAppender` on an
+- [X] T025 [P] `a-test/carriers/CarrierConsumersSuite.scala` (`ConsumerTestKit`): `FeedAppender` on an
       `affiliates.attribution` fact calls `NetworkFeed(fact.network).append`; `WebhookFanout` on an
       `Appended` event starts one `Delivery` per active subscription of the network and none for an
       inactive one; then implement `a/carriers/FeedAppender.scala` (a consumer of the brand's own
       topic, `StartFrom.Earliest`, with the contract) and `a/carriers/WebhookFanout.scala` (over
       `eventsOf(NetworkFeed)`, the subscriptions read through a `Subscriptions` view added to
       `a/carriers/WebhookSubscription.scala`'s file: `activeFor(network)`) until green
-- [ ] T026 [P] `a-test/money/DayCloserSuite.scala` and `a-test/networks/DocumentRefreshSuite.scala`
+- [X] T026 [P] `a-test/money/DayCloserSuite.scala` and `a-test/networks/DocumentRefreshSuite.scala`
       (the timed actions called directly with stubbed clients and a `FakeFetch`): `DayCloser.run` closes
       every row `openBefore` returns whose day is due by `Days.closeDue`, leaves the rest, ends the
       transition when `Days.endOfTransition` says, prunes `legacyDaily`, and is `done` with nothing to
@@ -309,24 +317,27 @@ task and can run the moment T005 and the original's stack are up.
       failure and keeps the old body; then implement `a/money/DayCloser.scala` and
       `a/networks/DocumentRefresh.scala` (`TimedAction`s with `handler("close-days")` and
       `handler("refresh-documents")`, `effects.done()` always, the clock from the context) until green
+      *Done note*: the runs are `DayClosing` and `DocumentRefresher`, which the suites call with a recording client;
+      the timed actions wrap them. The refresh lists networks from a `Networks` view (`a/networks/Network.scala`),
+      read through `Wiring`, as consumers and timed actions have no view client.
 
 ### The fakes, the kit, the suites that list their tests, the shells
 
-- [ ] T027 [P] Write `a-test/it/FakeNetwork.scala`: an in-process HTTP server (as
+- [X] T027 [P] Write `a-test/it/FakeNetwork.scala`: an in-process HTTP server (as
       `services/game-provider/src/test/.../it/St8Stub.scala` is built) serving `/keys`,
       `/revocations`, `/legacy`, `/codes/{brand}` from mutable documents the test sets, `/tag?aff=&lnk=&cmp=&sub=&iat=&kid=`
       minting a token under one of its keys, a request log, a `fail(kind)` switch, and `rotate()` that
       adds a key and withdraws the oldest; and `a-test/it/WebhookReceiver.scala`: a server recording
       every post with its headers and body, answering what the test scripted (`200`, `503`, no answer),
       and verifying each signature under the secret the test gave it
-- [ ] T028 Implement `a/AttributionService.scala` after `w/WalletService.scala`: `descriptors(settings)`
+- [X] T028 Implement `a/AttributionService.scala` after `w/WalletService.scala`: `descriptors(settings)`
       registering every entity, the workflow, the views, the consumers (`RewardsFacts` conditionally),
       the publishers, the carrier consumers and the two timed actions; `endpoints(settings)` the four
       of contracts/routes.md; `@main def run()` with `ProjectionRuntime.fromEnv()`, `TimerRuntime`, and
       at start `Settings(brand).start(today)`, the recurring timers `close-days` (every 5 minutes) and
       `refresh-documents` (every minute) set each start, and `click-salt` made in the store when absent
       (from the endpoint's store, in a start hook as `g/GameProviderService.scala` wires its refresh)
-- [ ] T029 Implement the endpoint shells `a/api/TrackEndpoint.scala` (`HttpEndpoint("/v1/track")`,
+- [X] T029 Implement the endpoint shells `a/api/TrackEndpoint.scala` (`HttpEndpoint("/v1/track")`,
       `Routes.public`), `a/api/AttributionEndpoint.scala` (`/v1/casino/brands/<brand>/attribution`,
       `withAcl` per group: `public` for `/keys`, `Routes.machine()` for the feed, `Routes.service()`
       for the erasure), `a/api/BackofficeEndpoint.scala` and `a/api/WebhooksEndpoint.scala`
@@ -334,7 +345,7 @@ task and can run the moment T005 and the original's stack are up.
       not_built` with its name, and `a/api/Wire.scala` (refusals as `HttpProblem` with a code and
       `field`; the request and answer shapes of routes.md as case classes with codecs); `a-test/api/WireSuite.scala`
       (every shape round-trips; a refusal's body has `code` and `message`)
-- [ ] T030 Write `a-test/it/Kit.scala` after `services/game-provider/src/test/.../it/Kit.scala`:
+- [X] T030 Write `a-test/it/Kit.scala` after `services/game-provider/src/test/.../it/Kit.scala`:
       `AnkkaTestKit.start(AttributionService.descriptors(settings), Seq(ProjectionRuntime.withBroker(broker,
       broker), timers, HttpServer.at("127.0.0.1", 0)(AttributionService.endpoints(settings)*)))` with
       `InMemoryBroker` carrying the six topics, `TimerRuntime(200.millis, clock = MovableClock)`,
@@ -344,7 +355,7 @@ task and can run the moment T005 and the original's stack are up.
       `Caller.Machine`; helpers `publish(topic, fact)` on the broker, `factsOn(network)` reading the
       brand's topic, `addNetwork`, `makePseudonymKey`, `bindPlayer(tag)`, `moveClock(to)`,
       `request(method, path, body, headers)`, `asOperator`, `asMachine(org, name)`, `reset()`
-- [ ] T031 [P] Write `a-test/port/Translate.scala` (contracts/recording.md's translation: a recorded
+- [X] T031 [P] Write `a-test/port/Translate.scala` (contracts/recording.md's translation: a recorded
       step to one of `Replay(request)`, `Publish(topic fact)`, `Expect(kind, pseudonymOf(playerId),
       amount, reference)`, `Seed(legacy tag, affiliate, link)`; major-unit strings to minor units by the
       currency's exponent, exactly; the daily expectation summed from recorded `ggr` strings by the
@@ -357,25 +368,43 @@ task and can run the moment T005 and the original's stack are up.
       `a-test/port/CoverageSuite.scala` after `i-test/port/CoverageSuite.scala` checking every marked
       divergence is a row of plan.md's *Divergences*. The suite lists its tests from the directory and
       fails for each until T035 lands
-- [ ] T032 [P] Write `a-test/features/GherkinSuite.scala` after `i-test/features/` binding the six
+- [X] T032 [P] Write `a-test/features/GherkinSuite.scala` after `i-test/features/` binding the six
       `features/attribution/*.feature` through the kit's helpers, every step `pending` until its story
       binds it; the suite fails naming the unbound steps
-- [ ] T033 `a-test/it/StartSuite.scala`: the kit starts; `Settings` `brand` has today's `firstDay`;
+- [X] T033 `a-test/it/StartSuite.scala`: the kit starts; `Settings` `brand` has today's `firstDay`;
       both recurring timers exist (`TimerProbe`); `click-salt` is in the store and in no table; every
       route of routes.md answers `501` or its ACL's refusal (a public route without a token `501`, an
       operator route without a token `401`, the feed under a service caller `403`, the erasure under
       an operator `403`); `CASINO_MODULES` empty leaves `RewardsFacts` unregistered (a second kit)
-- [ ] T034 `a-test/it/LeakSuite.scala` listing its checks (filled by T067): the markers it will send
+- [X] T034 `a-test/it/LeakSuite.scala` listing its checks (filled by T067): the markers it will send
       (a name, an email, a raw address, a fingerprint, a date of birth), the places it will search
       (every table, every fact on the broker, every feed page, every webhook body, every operator
       answer, the captured log), each `pending`
-- [ ] T035 Make the recordings (needs the original's KinD stack with `affiliate-service` installed and
+- [X] T035 Make the recordings (needs the original's KinD stack with `affiliate-service` installed and
       `affiliate_notify_ggr` on; T005; Docker): `tests/original/README.md`'s steps with the
       `preflight -affiliate` check; the four suite scenarios of contracts/recording.md run twice on fresh
       ids with `EITHEROR_AFFILIATE_URL` set; the driver's run twice; `go run ./original/merge … -out
       port`; `just modules recordings check` 0 problems; every file `pass` on the original both runs;
       `tests/port/attribution/README.md` records the date, the commit and the stack. Then T031's
       `ParitySuite` lists twelve failing tests, no more and no fewer. Never against a shared original
+      *Done 2026-10-28:* on the original's KinD stack at `a78decf1` (spec 008's recording worktree), the
+      four suite scenarios and the driver's eight each `pass` on both runs; `recordings check` 239, 0
+      problems; `tests/port/attribution/README.md` has the run. Scenario 17 also read its revenue twin under
+      a namespace the service never writes (`affiliate-revenue/<a>/<b>` for `affiliate-revenue-<a>-<b>`),
+      corrected in the local checkout. The affiliate service answers on KinD's host port 8093; the driver's
+      `doc.go`, quickstart §5 and contracts/recording.md said a forward to 8082, which is
+      `substrate-graphql`, and now say 8093. The recordings came after the implementation, so the replay
+      did not fail first as this task expected: it found three faults of the harness, not of the port. A
+      placeholder filled as `name-<run>` made the bare-UUID tag `malformed` (now a fresh UUID); a capture
+      never reached a later step, as the whole recording was translated before the replay (now step by
+      step, the port's answer captured); the kit's clock, behind the recorded registration, dated the
+      replayed deposit before the binding (the replay now moves it past the recording's latest instant).
+      Scenario 17's link seed in the brandless tag index is now a seed too. Scenario 15's three then
+      replayed green while asserting nothing: the original's GGR notification is internal to its cluster,
+      so no `notify/ggr` was recorded. The translation now takes the settled round twin as the wallet's real
+      legs and the affiliate facts read as the day's expected GGR (or none), and closes the day; recorded
+      answers' run-1 ids map to this replay's through the captures; each replay's instants move onto a
+      day of its own. `ParitySuite` 13 of 13, `TranslateSuite` 11 (one new) and `CoverageSuite` pass
 
 ---
 
@@ -390,7 +419,7 @@ bound; the driver's click and registration recordings.
 
 ### Tests for User Story 1
 
-- [ ] T036 [P] [US1] `a-test/it/LandingSuite.scala` on the kit: a `POST /v1/track/click` with a tag
+- [X] T036 [P] [US1] `a-test/it/LandingSuite.scala` on the kit: a `POST /v1/track/click` with a tag
       `FakeNetwork` minted, `clickId` `c-1`, `deviceType` `mobile`, `country` `ZA`, the five `utm_*`
       and `X-Forwarded-For` → `200 {"ok":true,"clickId":"c-1"}`, `Click` `c-1` holding every field,
       `addressDigest` set and not equal to the address, and one `click` fact on the topic keyed by the
@@ -400,7 +429,7 @@ bound; the driver's click and registration recordings.
       `deviceType` absent with an iPhone user agent → `mobile`; `country` absent and the
       `CF-IPCountry` header `GB` → `GB`; neither → absent; no answer carries `Set-Cookie`, and a
       request with no consent header or cookie is recorded like any other (FR-006)
-- [ ] T037 [P] [US1] `a-test/it/BindingSuite.scala` (tag cases): a `player_registered` with a tag
+- [X] T037 [P] [US1] `a-test/it/BindingSuite.scala` (tag cases): a `player_registered` with a tag
       minted 1 day ago binds: `Records.byPlayer` bound to the network, affiliate, link, campaign,
       sub-ids and `clickId`, and one `registration` fact keyed by the pseudonym with `ce-id`
       `registration/<pseudonym>`, `country` the fact's; the same fact delivered again → no second
@@ -412,16 +441,20 @@ bound; the driver's click and registration recordings.
       registration never fetches); with nothing cached → `key_unreachable`, the log unchanged; a bound player's second `player_registered` with
       another tag → nothing; a tag for a bound player sent as a `bonus_code_entered`'s sibling touch
       path is US2's; the pseudonym differs under a second network's key for the same player
-- [ ] T038 [P] [US1] Bind `landing.feature`'s six scenarios (the outline's three rows) in
+- [X] T038 [P] [US1] Bind `landing.feature`'s six scenarios (the outline's three rows) in
       `a-test/features/LandingFeatures.scala` over the kit's helpers: "one click per browser session"
       reads the `Click` entity and the topic; "later touch" reads `Records.byPlayer`'s touches
-- [ ] T039 [US1] Confirm `ParitySuite` lists the driver's two click recordings and the registration
+- [X] T039 [US1] Confirm `ParitySuite` lists the driver's two click recordings and the registration
       and later-tag recordings as failing; name in `a-test/port/Parity.scala` the divergence that
       holds on the click (the port answers the `clickId` sent; the original a minted UUID). Needs T035
+      *Done 2026-10-28:* the four replay green. The click's divergence is named, but not `observable`: the
+      original's click id varied between its two runs, so the recording holds it for presence only, and
+      the port's own id passes. The refused-tag divergence is reached by every click and shows nowhere, as
+      the driver's tags are valid
 
 ### Implementation for User Story 1
 
-- [ ] T040 [US1] Fill `a/api/TrackEndpoint.scala`'s `POST /click` (research R5): the body parsed
+- [X] T040 [US1] Fill `a/api/TrackEndpoint.scala`'s `POST /click` (research R5): the body parsed
       (`btag` required → `400 {"error":"btag is required"}`), the click id from the body or minted, the
       country from the body or `COUNTRY_HEADER`, the device type from the body or the user agent, the
       digest from the first `X-Forwarded-For` entry under `click-salt` read from the endpoint's store
@@ -429,13 +462,17 @@ bound; the driver's click and registration recordings.
       on-demand key document fetch through `DocumentFetch` when the `kid` is unknown, written to the
       cache), `Click(id).record(...)`, the answer of routes.md; nothing logged but the click id and
       the outcome
-- [ ] T041 [US1] Fill `a/inputs/PlayersFacts.scala`'s `player_registered` (research R6): `Tag.parse`,
+- [X] T041 [US1] Fill `a/inputs/PlayersFacts.scala`'s `player_registered` (research R6): `Tag.parse`,
       the legacy rule through the programme's cached legacy document (`Settings.legacySeen` on a legacy
       tag), `Tag.verify` with the window from `Settings`, the pseudonym derived under the network's key
       from the store (cached per process), `AttributionRecord(playerId).registered(...)`; a bonus code
       beside the tag recorded as a touch (its resolution is US2's: pass the raw code as a `code` touch
       with outcome `unresolved` here, replaced by T047); `RecordFacts`'s `Bound` → `registration`
       already publishes (T024); T036–T038 green; T039's recordings replay with only the named divergence
+      *Done:* the tag's verdict is shared by the click and the registration (`a/tag/TagCheck.scala`);
+      the registration is `a/inputs/Registrar.scala`. A repeat `player_registered` carrying a tag the
+      record has not seen records it as a later touch (FR-009, landing.feature's later-touch scenario); a
+      redelivered fact still records nothing. T039's replay waits on T035.
 
 **Checkpoint**: a click is recorded once per id and emitted; a tag within the window binds once and
 emits `registration` with the pseudonym; every refusal of R6 leaves the player organic with its reason;
@@ -454,7 +491,7 @@ a bound player is a touch and changes nothing.
 
 ### Tests for User Story 2
 
-- [ ] T042 [P] [US2] `a-test/it/BindingSuite.scala` (code cases): `FakeNetwork`'s code document for
+- [X] T042 [P] [US2] `a-test/it/BindingSuite.scala` (code cases): `FakeNetwork`'s code document for
       `goldvibe` lists `SUMMER50` with a tag; a `player_registered` with `bonusCode` `summer50` and no
       tag → bound with touch `registration_code`, no click id, one `registration` fact; with a tag and
       the code → bound by the tag, the code a touch; a code the document does not list → organic with
@@ -462,26 +499,30 @@ a bound player is a touch and changes nothing.
       with touch `later_code`, `registration` dated to the entry; 31 days after → a touch, organic;
       a `bonus_code_entered` for a bound player → a touch and no change; with `CASINO_MODULES` empty
       (a second kit) the `bonus_code_entered` is never read
-- [ ] T043 [P] [US2] Bind `bonus-codes.feature`'s three scenarios in
+- [X] T043 [P] [US2] Bind `bonus-codes.feature`'s three scenarios in
       `a-test/features/BonusCodesFeatures.scala`; "the code's reward applies as the brand's reward rules
       say" is the kit asserting nothing of `rewards` and the binding unchanged
-- [ ] T044 [P] [US2] `a-test/settings/WindowsSuite.scala` on the kit: `PUT …/attribution/settings` with
+- [X] T044 [P] [US2] `a-test/settings/WindowsSuite.scala` on the kit: `PUT …/attribution/settings` with
       `bonusCodeWindowDays` 7 then a code entered 8 days after registration → a touch; the defaults
       read back as 30 and 30; 0 and 366 refused `400 INVALID_REQUEST` naming the field
 
 ### Implementation for User Story 2
 
-- [ ] T045 [US2] Implement `a/networks/Codes.scala`: `resolve(code, networks: Vector[(Network,
+- [X] T045 [US2] Implement `a/networks/Codes.scala`: `resolve(code, networks: Vector[(Network,
       NetworkDocuments)]): Option[(network, tag)]` over every known network's fresh code document,
       lower-cased; tests `a-test/networks/CodesSuite.scala` (found in the second network; two networks
       listing one code → the first added wins and a warning line; stale document → not found)
-- [ ] T046 [US2] Fill `a/inputs/RewardsFacts.scala`'s `bonus_code_entered` (research R7): `Codes.resolve`,
+- [X] T046 [US2] Fill `a/inputs/RewardsFacts.scala`'s `bonus_code_entered` (research R7): `Codes.resolve`,
       `Tag.verify` of the code's tag without the window, the pseudonym, `AttributionRecord.bind` when
       the record is unbound and `registeredAt` is within `Settings.bonusCodeWindow`, else `touch`
-- [ ] T047 [US2] Complete T041's code path in `a/inputs/PlayersFacts.scala` with `Codes.resolve` (a
+- [X] T047 [US2] Complete T041's code path in `a/inputs/PlayersFacts.scala` with `Codes.resolve` (a
       resolved code binds with touch `registration_code` when no valid tag; a code beside a valid tag
       is a touch with outcome `later`); fill `BackofficeEndpoint`'s `GET`/`PUT …/settings`
       (`SettingsEntity.setWindows`); T042–T044 green
+      *Done:* WindowsSuite is `a-test/it/WindowsSuite.scala` (it needs the kit, so it sits with the
+      suites the unit run leaves out); the check that a brand without the casino module never reads a
+      `bonus_code_entered` is in StartSuite's second kit, since a suite starting its own service runs in
+      a JVM of its own. Consumers judge documents fresh against `Wiring.clock`.
 
 **Checkpoint**: a code binds at registration or within its window and never twice; the window is the
 operator's to set; `bonus-codes.feature` passes.
@@ -498,7 +539,7 @@ network's; a webhook posts each fact signed, retries for a day, and keeps the re
 
 ### Tests for User Story 3
 
-- [ ] T048 [P] [US3] `a-test/it/CarriersSuite.scala`: after a binding and a deposit (the deposit path
+- [X] T048 [P] [US3] `a-test/it/CarriersSuite.scala`: after a binding and a deposit (the deposit path
       is US4's; publish a `payment.captured` and accept that the `deposit` fact appears only once T055
       lands, so this suite's deposit cases are `pending` until then), every fact on the broker carries
       `ce-id` the fact id, `ce-type` the contract, the body's `type` and `protocolVersion`; the feed
@@ -512,7 +553,7 @@ network's; a webhook posts each fact signed, retries for a day, and keeps the re
       minutes as the clock moves, then `undelivered` after 24 hours, listed under
       `GET …/attribution-webhooks/undelivered?network=`; `resend` → posted and `delivered`; `discard`
       → gone from the list; a fact delivered twice by the broker (the kit redelivers) → one post
-- [ ] T049 [P] [US3] Bind `carriers.feature`'s seven scenarios in `a-test/features/CarriersFeatures.scala`;
+- [X] T049 [P] [US3] Bind `carriers.feature`'s seven scenarios in `a-test/features/CarriersFeatures.scala`;
       "the programme reads it within a minute" is the broker's delivery under 60 s on the kit's clock;
       "a network registered as a machine reads … with its own reader" is the broker's topic read under
       the machine's group with every other topic refused (the kit's broker refuses a group it does not
@@ -520,17 +561,24 @@ network's; a webhook posts each fact signed, retries for a day, and keeps the re
 
 ### Implementation for User Story 3
 
-- [ ] T050 [US3] Fill `a/api/AttributionEndpoint.scala`'s `GET /keys` (the brand's key document from
+- [X] T050 [US3] Fill `a/api/AttributionEndpoint.scala`'s `GET /keys` (the brand's key document from
       `Settings.signingKeys` with `cacheSeconds` 3600 and `transition` of research R16) and the feed
       route (`Routes.machine()` admitted; the caller's `organization/name` against `Network.machine`,
       else `404`; `Cursor.decode`; `FeedRows.page`; `Pages.assemble` under the newest live key read
       from the store); fill `BackofficeEndpoint`'s `GET`/`POST …/signing-keys` and `DELETE
       …/signing-keys/{kid}` (`Signing.generate`, the private key to `signing-key/<kid>`, the public to
       `Settings.addSigningKey`)
-- [ ] T051 [US3] Fill `a/api/WebhooksEndpoint.scala`: create (the secret to `webhook/<id>/secret` and
+- [X] T051 [US3] Fill `a/api/WebhooksEndpoint.scala`: create (the secret to `webhook/<id>/secret` and
       `WebhookSubscription.create`), read, update, delete (the secret deleted), `undelivered`, `resend`,
       `discard`; `FeedAppender`, `WebhookFanout` and `Delivery` are already wired (T025, T021); T048
       (bar its deposit cases) and T049 green
+      *Done:* two changes the tests forced. A retry waits on a named service timer (`delivery-retry/<id>`,
+      the timed action `DeliveryRetry` calling `Delivery.retry`), not on `thenPause(after, …)`: ankka
+      0.13 times a pause by the wall clock, so the service's clock, the one that decides the 24 hours,
+      would not move it. `WEBHOOK_PLAIN_HTTP` (`Settings.webhookPlainHttp`, default false) admits an http
+      address for a local run and the kit; every other webhook is https. The broker has no topic ACL in the
+      kit, so "refused every other fact" checks the machine's other routes; the topic grant is T073's.
+      `CarriersSuite` and `CarriersFeatures` run in JVMs of their own (they move the clock a day).
 
 **Checkpoint**: the three carriers hold the same facts with the same ids; a page verifies under the
 brand's published key and a cursor is stable; a failing receiver gets a day of retries and the
@@ -549,7 +597,7 @@ the driver's deposit, withdrawal, bonus-cost and chargeback recordings.
 
 ### Tests for User Story 4
 
-- [ ] T052 [P] [US4] `a-test/it/MoneySuite.scala`: for a bound player, a `payment.captured` of 5000 EUR →
+- [X] T052 [P] [US4] `a-test/it/MoneySuite.scala`: for a bound player, a `payment.captured` of 5000 EUR →
       `first-deposit` and `deposit`, each with `amount` 5000, `currency` EUR, `reference` the payment id,
       `ce-id` `deposit/<pseudonym>/<paymentId>` and `first-deposit/<pseudonym>`; a second → `deposit`
       only; the first delivered again → nothing more; a `payment.dispute.opened` → `chargeback` with the
@@ -562,7 +610,7 @@ the driver's deposit, withdrawal, bonus-cost and chargeback recordings.
       bound 3 days after an organic registration with a deposit in between → no `deposit` for it
       (research R8); an unbound player's deposits → no fact and `firstDepositAt` set; SC-002: the
       US2 code-bound player's deposit, withdrawal and day all attributed
-- [ ] T053 [P] [US4] `a-test/it/GgrSuite.scala` (the zone `Africa/Johannesburg`, the clock moved): a
+- [X] T053 [P] [US4] `a-test/it/GgrSuite.scala` (the zone `Africa/Johannesburg`, the clock moved): a
       bound player's `bet_placed` 1000 at 23:30 local with `realBalanceAfter` down 600 (a split bet),
       `win_credited` 400 at 00:10 next day with real up 400 → after the first day's close (`CLOSE_GRACE`
       past midnight) one `ggr-daily` for the first day with `stake` 600, `win` 400, `ggr` 200,
@@ -577,29 +625,44 @@ the driver's deposit, withdrawal, bonus-cost and chargeback recordings.
       the round id, plus the daily fact; a network without → no `ggr-round`; the same `money.transactions`
       fact delivered twice → counted once; `OpenDays` empty after the close; `DayCloser` run twice →
       one fact
-- [ ] T054 [P] [US4] Bind `facts.feature`'s seven scenarios and the outline's six rows in
+- [X] T054 [P] [US4] Bind `facts.feature`'s seven scenarios and the outline's six rows in
       `a-test/features/FactsFeatures.scala`; "no fact carries a personal field" reads every fact
       emitted so far against the kit's markers
-- [ ] T055 [US4] Confirm `ParitySuite` lists the suite's four recordings and the driver's deposit,
+- [X] T055 [US4] Confirm `ParitySuite` lists the suite's four recordings and the driver's deposit,
       withdrawal, bonus-cost and chargeback recordings as failing; name in `a-test/port/Parity.scala`
       the divergences that hold on them (the third deposit's FTD, the withdrawal at the hold, the bonus
       cost that the original refused, the chargeback nothing called, the converted-money round the port
       counts). Needs T035
+      *Done 2026-10-28:* the eight replay green with the five divergences named. Converted money is
+      `observable`, and on two recordings, not one: the converted round (the original 0, the port 1000)
+      and the split round (500, 1000: half its 10.00 real stake was converted in the same bet; plan.md's
+      row corrected). The restricted-only round makes no fact on either. The withdrawal, bonus-cost and
+      chargeback differences are in the `notify/*` answers, which the translation turns into facts rather
+      than replays, and no recording reaches a third deposit, so those four are not observable
 
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Fill `a/inputs/PaymentsFacts.scala` and `a/inputs/WithdrawalsFacts.scala` (research
+- [X] T056 [US4] Fill `a/inputs/PaymentsFacts.scala` and `a/inputs/WithdrawalsFacts.scala` (research
       R9: `AttributionRecord.money` with the `MoneyEvent` of contracts/facts.md, the dedupe id the
       message's `ce-id`); fill `RecordFacts`'s money events (T024's shell) and the pending events at
       `Bound`; `PaymentsFacts` on `payment.captured` sets `firstDepositAt` through `money` whether or
       not bound
-- [ ] T057 [US4] Fill `a/inputs/MoneyFacts.scala` (research R10): `WalletCursor.advance` on every
+- [X] T057 [US4] Fill `a/inputs/MoneyFacts.scala` (research R10): `WalletCursor.advance` on every
       family; `RealMoney.counted` → `RoundIndex.remember` on a stake, the day from the index or the
       leg's own time, `DayTally(player/currency/day).leg`; `RealMoney.bonusCost` →
       `AttributionRecord.money(bonus-cost)`; fill `TallyFacts` (T024's shell) for `Closed`, `Adjusted`
       and settling legs with the network's `roundStream` read from `Network`; fill `RecordFacts`'s
       before-binding days at `Bound` from `OpenDays.closedFor`; `DayCloser` already closes (T026);
       T052–T054 green; T055's recordings replay with only the named divergences
+      *Done:* ankka 0.13 hands a consumer no message `ce-id` (its `ChangeContext` has the subject only), so
+      every dedupe id is the data model's fallback: `<family>/<paymentId>`, `<family>/<payoutId>`, and
+      `RealMoney.dedupeId(fact, None)`. `WalletCursor` answers a repeated id `Seen(delta)` with the delta it
+      gave the first time, so a delivery cut short after the cursor is finished by the next (every write
+      after it is idempotent by the id). SC-002's day is in `GgrSuite` (a kit of its own); its deposit and
+      withdrawal in `MoneySuite`. `GgrSuite` and `FactsFeatures` run in JVMs of their own, through the
+      kit's `DayClock`, which closes a day only once the wallet's legs are in its tallies and the
+      `OpenDays` view. T048's deposit case and the bonus-codes feature's "later facts" step now check the
+      `deposit` fact itself.
 
 **Checkpoint**: every money kind of FR-011 is emitted from the brand's own facts with exact amounts and
 references; GGR is per day, real money only, adjusted when late, per round only on request; the suite's
@@ -618,7 +681,7 @@ SC-007 (a token minted by `FakeNetwork` with a key the kit never saw verifies af
 
 ### Tests for User Story 5
 
-- [ ] T058 [P] [US5] `a-test/it/NetworksSuite.scala` (trust cases): a network added through `POST
+- [X] T058 [P] [US5] `a-test/it/NetworksSuite.scala` (trust cases): a network added through `POST
       …/networks` with `FakeNetwork`'s addresses and no documents cached; a click with a tag under its
       key → `FakeNetwork` served `/keys` once and the click is recorded (SC-007); `rotate()` → a tag
       under the old key still verifies until `cacheSeconds` pass on the clock, then `withdrawn_key`
@@ -632,12 +695,12 @@ SC-007 (a token minted by `FakeNetwork` with a key the kit never saw verifies af
       document's `transition.endedBy` `12_months`; a second kit with no legacy tag for 90 days →
       `90_days_without_legacy`; `DELETE …/networks/{id}` → its tag `unknown_network`, the facts
       already on the topic unchanged, `GET …/networks/{id}` showing `removed`
-- [ ] T059 [P] [US5] Bind `networks.feature`'s first six scenarios (the outline's two rows) in
+- [X] T059 [P] [US5] Bind `networks.feature`'s first six scenarios (the outline's two rows) in
       `a-test/features/NetworksFeatures.scala`
 
 ### Implementation for User Story 5
 
-- [ ] T060 [US5] Fill `BackofficeEndpoint`'s network routes (`GET`/`POST …/networks`, `GET`/`PUT`/`DELETE
+- [X] T060 [US5] Fill `BackofficeEndpoint`'s network routes (`GET`/`POST …/networks`, `GET`/`PUT`/`DELETE
       …/networks/{id}`, `POST …/networks/{id}/pseudonym-key` writing `Pseudonyms.newKey()` to the store
       and `Network.pseudonymKeyMade`, `409` when made) and `GET …/status` (networks with their
       documents' freshness and last error, `Records.countsByNetwork`, the transition,
@@ -645,6 +708,12 @@ SC-007 (a token minted by `FakeNetwork` with a key the kit never saw verifies af
       `a/networks/Cache.scala` (`keysFor(network, kid, fetch: Boolean)`: the cache, else one fetch when
       `fetch` is true, which only the click route passes; the registration path of T041 reads the
       cache and never fetches, FR-023); `DocumentRefresh` already refreshes (T026); T058 and T059 green
+      *Done:* `networks/Cache.scala` holds the rule rather than a `keysFor` call: `Cache.keys(docs, now)` is
+      the key document's keys while it has not expired and none after (so an unreachable document's tags
+      verify for the time it said, then `key_unreachable`), and `Cache.fetchFor` is the click's on-demand
+      fetch, also taken when the held document has expired. `TagCheck.Sources` gained `now` (the wired
+      clock). `GET …/status` adds `legacyPerDay` for SC-008's count per day. `NetworksSuite` and
+      `NetworksFeatures` run in JVMs of their own (a year on the clock; a second brand for the 90 days).
 
 **Checkpoint**: trust comes only from cached documents; rotation and withdrawal follow the document's
 cache time; the transition ends by either rule and is published; `networks.feature`'s trust scenarios pass.
@@ -660,22 +729,25 @@ emitted; nothing else a network sends reaches a binding, a fact or an amount.
 
 ### Tests for User Story 6
 
-- [ ] T061 [P] [US6] `a-test/it/NetworksSuite.scala` (revocation cases): a revocation list naming a link
+- [X] T061 [P] [US6] `a-test/it/NetworksSuite.scala` (revocation cases): a revocation list naming a link
       → after the refresh a tag for it is `revoked_link` and a player bound to it earlier still has
       their deposit emitted; a list naming an affiliate → every tag naming them `revoked_affiliate`;
       a `POST` or `PUT` from `FakeNetwork` to any route of the service under no token → `401`/`404`,
       and under a machine token to anything but the feed → `403`/`404` (FR-024); the operator's
       `GET …/records/{player}` shows the binding unchanged after both revocations
-- [ ] T062 [P] [US6] Bind `networks.feature`'s last three scenarios in
+- [X] T062 [P] [US6] Bind `networks.feature`'s last three scenarios in
       `a-test/features/NetworksFeatures.scala`; "anything but signing keys and revocations" is the
       route sweep of T061
 
 ### Implementation for User Story 6
 
-- [ ] T063 [US6] Fill `BackofficeEndpoint`'s `GET …/records/{player}` (`AttributionRecord.get`, rendered
+- [X] T063 [US6] Fill `BackofficeEndpoint`'s `GET …/records/{player}` (`AttributionRecord.get`, rendered
       as routes.md says, no secret and no personal field); confirm `Tag.verify`'s revocation step reads
       `NetworkDocuments`'s fresh revocation list through `Cache` (T060) in both the click and the
       registration paths; T061 and T062 green
+      *Done:* the revocation list is read as its last good copy in both paths (a stale list can only
+      refuse more); the route sweep's writes under no token or a machine's answer `401`, `403`, `404` or
+      `405` and change no record.
 
 **Checkpoint**: the reverse channel is the two documents and nothing more; `networks.feature` passes whole.
 
@@ -690,7 +762,7 @@ permanently self-excluded or erased; the record keeps its binding and the facts 
 
 ### Tests for User Story 7
 
-- [ ] T064 [P] [US7] `a-test/it/ClosureSuite.scala`: `player_closed` for a bound player → one
+- [X] T064 [P] [US7] `a-test/it/ClosureSuite.scala`: `player_closed` for a bound player → one
       `player-closed` `closed`, `ce-id` `player-closed/<pseudonym>`, no `reason`; a second `player_closed`
       → nothing; `player_self_excluded` with `until` absent → `self-excluded`; with `until` set →
       nothing; `POST /v1/casino/brands/goldvibe/attribution/players/{player}/erasure` under the kit's
@@ -698,15 +770,18 @@ permanently self-excluded or erased; the record keeps its binding and the facts 
       `closed` when none was emitted, nothing when one was; under an operator token → `403`; the record
       after erasure keeps network, affiliate, link, sub-ids, click id, pseudonym and dates; the facts on
       the topic unchanged (compared before and after); an unbound player's closure → nothing
-- [ ] T065 [P] [US7] Bind `closure.feature`'s two scenarios and the outline's three rows in
+- [X] T065 [P] [US7] Bind `closure.feature`'s two scenarios and the outline's three rows in
       `a-test/features/ClosureFeatures.scala`
 
 ### Implementation for User Story 7
 
-- [ ] T066 [US7] Fill `PlayersFacts`'s `player_closed` and `player_self_excluded` (research R11) and
+- [X] T066 [US7] Fill `PlayersFacts`'s `player_closed` and `player_self_excluded` (research R11) and
       `AttributionEndpoint`'s erasure route (`Routes.service()` as `services/merchant/.../api/ErasureEndpoint.scala`
       admits `players`; `AttributionRecord.erase`); `RecordFacts`'s `Closed` → `player-closed` (T024's
       shell); T064 and T065 green
+      *Done:* `closure.feature`'s erased-record step reads the record through the backoffice's
+      `GET …/records/{player}`; the record holds no personal field to erase, so "every personal field reads as
+      erased" checks that none is held and the erasure answer names none.
 
 **Checkpoint**: closure is reported once with its category; erasure changes no fact; `closure.feature` passes.
 
@@ -717,36 +792,57 @@ permanently self-excluded or erased; the record keeps its binding and the facts 
 **Purpose**: the leak check whole, durability over a restart, the operator suite, a local run and a kind
 run, the README and quickstart proven, research closed, findings and questions raised where they belong.
 
-- [ ] T067 [P] Fill `a-test/it/LeakSuite.scala` (T034): a click with a marker user agent and address, a
+- [X] T067 [P] Fill `a-test/it/LeakSuite.scala` (T034): a click with a marker user agent and address, a
       registration whose `player_registered` is published beside a marker `Personal` sibling fact on
       `casino.players` (a `player_profile_changed` with a name and email), a deposit, a withdrawal, a
       day's play, a closure, an erasure; every table of the service's database, every fact on the
       broker, every feed page, every `WebhookReceiver` body, every operator answer and the captured log
       searched for every marker and for the player id on the topic, the feed and the webhooks: none
       found; the address digest present on the click row and nowhere else; SC-006 holds
-- [ ] T068 [P] Add `a-test/it/DurabilitySuite.scala` on a kit of its own: a binding, a deposit, an open
+      *Done:* the contract has no email-bearing player fact, so the sibling is a `player_profile_updated`
+      with a name, a date of birth and a street; the email rides a click's `From` header and a closure's
+      reason. The suite found the player id in every player fact's `ce-subject` (ankka's default subject is
+      the source entity's id); `Publish.of` now sets the subject to the fact's key, contracts/facts.md says so.
+- [X] T068 [P] Add `a-test/it/DurabilitySuite.scala` on a kit of its own: a binding, a deposit, an open
       day, an undelivered delivery, a cached key document; the runtime restarted over the same
       database; the record still bound, the day closes after the restart and the clock, the delivery
       is still listed and resends, the key document is still cached, the recurring timers exist once
       (`TimerProbe`), `firstDay` unchanged, and `click-salt` not remade
-- [ ] T069 [P] Add `a-test/it/OperatorSuite.scala`: a staff token with `brand_goldvibe` reads and changes
+      *Done:* the undelivered delivery is made by one failed post and the clock moved 25 hours; the
+      timers are counted in `ankka_timers`; the day closes by its own timer after the restart.
+- [X] T069 [P] Add `a-test/it/OperatorSuite.scala`: a staff token with `brand_goldvibe` reads and changes
       every operator route of contracts/routes.md; one with `brand_other` → `403 brand_not_in_roles`;
       a player token → `403 wrong_issuer`; the pseudonym key route's answer and every network read hold
       no key; the webhook read holds no secret; `GET …/status` has every section with the counts the
       suite's state implies
-- [ ] T070 [P] Add `a-test/it/ScaleSuite.scala` (SC-004, FR-016): 2,000 bound players with a day's bets
+      *Done:* the kit's Keycloak stand-in reads `player|<id>` as a player token. A removed network stays
+      on the status, never reachable: FR-025 changes nothing else about it.
+- [X] T070 [P] Add `a-test/it/ScaleSuite.scala` (SC-004, FR-016): 2,000 bound players with a day's bets
       and wins published; the clock moved past the close; every `ggr-daily` on the topic within 60 s
       of the close on the kit's clock, and on the feed within the same; one `DayCloser` run closing
       2,000 tallies under the 5-minute period
-- [ ] T071 [P] Write `services/attribution/README.md` after `services/ingest/README.md`: the components
+      *Done:* the run found a defect: the minute's refresh fetched only expired documents, so a
+      registration between a key document's expiry and the next run was refused `key_unreachable` and
+      the player stayed organic. `DocumentRefresher` now fetches a document expiring within two minutes
+      (`DocumentRefresh.Ahead`); a NetworksSuite test holds it. Measured 2026-10-25: the closing run 789 ms,
+      all 2,000 `ggr-daily` on the topic at 2.9 s and in the feed at 5.3 s after the close.
+- [X] T071 [P] Write `services/attribution/README.md` after `services/ingest/README.md`: the components
       by package, the suites and how to run them (`just attribution-test`, `attribution-it`), the local
       run of quickstart §6 with the fake network (`a-test/it/FakesMain.scala`: `FakeNetwork` on 9103),
       the secrets the service keeps and what never leaves it, the three verify-at-task-time items of
       plan.md and what was found at T057 (`ce-id`), T033 (`casino.rewards`) and T073 (the country
       header)
-- [ ] T072 Run quickstart §6 locally: `just attribution-run` with `FakesMain`; the three `curl`s answer as
+- [X] T072 Run quickstart §6 locally: `just attribution-run` with `FakesMain`; the three `curl`s answer as
       §6 says; `ankka local console` shows `Click` `c-1`, `NetworkDocuments` `programme`, `Settings`
       `brand`; record the run's date in `services/attribution/README.md`
+      *Partly done, 2026-10-25:* the service runs locally (it needed an in-memory broker when
+      `ANKKA_KAFKA_BOOTSTRAP_SERVERS` is unset, as ingest has, and `ANKKA_SECRET_KEY`; quickstart §6 and the
+      recipe now say so). The malformed and unknown-network clicks, the `401`, `/keys` and the local
+      entity reads are recorded in the README. Open: the network's add, the pseudonym key and a bound
+      click, which need a staff token from dev-kind's Keycloak; the user mints it.
+      *Done 2026-10-28*, the open half on kind instead (the same routes, under a real staff token from the
+      `eitheror` realm): the network added, its pseudonym key made, a bound click answered twice the same
+      (T073's note).
 - [ ] T073 Run quickstart §7 on kind (`--context kind-ankka` only, never production): `just modules apply
       brands/goldvibe --installation dev-kind`; `attribution` running and exposed; a network added, a
       pseudonym key made, a click through the gateway with a tag `FakesMain` minted; a machine registered
@@ -757,11 +853,31 @@ run, the README and quickstart proven, research closed, findings and questions r
       header the gateway sets for the country checked and `COUNTRY_HEADER`'s default corrected in
       `modules/core/module.json` if it is not `CF-IPCountry`; `ankka services logs attribution` shows
       no tag value, no key and no address; record the run in the README
-- [ ] T074 Close research: mark the three verify-at-task-time items of plan.md's Phase 0 with what was
+      *Not run, 2026-10-25:* the image builds and goldvibe's values validate against dev-kind. The apply
+      was held back: kind-ankka had 81% of its CPU requested before goldvibe's seven core services, and the
+      checks after it need a staff token and a machine's client credentials, which the user mints.
+      *Run 2026-10-28* on a rebuilt kind-ankka (platform 0.14.2, services on 0.13.0), all but the topic
+      read; the record is in the service's README. Through the gateway: an empty click `400`, an unknown tag
+      `200 malformed`, a minted tag `200 ok` twice and one fact, `country` from `CF-IPCountry` (the gateway
+      sets none and passes it through, so the default stands); the operator routes `401` without a token;
+      under a staff token the network, its pseudonym key and a signing key made; under machine tokens the
+      granted machine read a signed page, an ungranted one `403`, the granted one on another network `404`;
+      the log held no tag, key, token or address. Fixed from the run: `casino-modules` never empty (the
+      platform refuses an empty entry), attribution on `medium` (OOM-killed twice at 512 MiB), the
+      network's `machine` taking the CLI's `machine:` form, and the modules tool comparing with the newest
+      generation that recorded a descriptor (restarts record none; history is newest first). Raised for
+      ankka (research *For ankka*): the keys port 7629 never started, the machine issuer derived as
+      `http://localhost:9000`; both worked around on kind's control plane by hand. Open: the topic read
+      under the machine's group and `casino.players` refused, which need the broker's external listener;
+      dev-kind has none (the grant reports `broker not exposed`).
+- [X] T074 Close research: mark the three verify-at-task-time items of plan.md's Phase 0 with what was
       found (`research.md` *For ankka*, plan.md Phase 0); add a *Changed at implementation* note to
       data-model.md and research.md for anything T040–T073 changed; confirm plan.md's *Divergences* and
       `a-test/port/Parity.scala` agree (`CoverageSuite` green); update `specs/012-affiliate-protocol/spec.md`'s
       *Status* to implemented with the date
+      *Done:* plan.md Phase 0 records what was found for the three items; research.md and data-model.md have
+      *Changed at implementation*; the status reads implemented but for T073 (T035 recorded 2026-10-28).
+      `CoverageSuite` passes, its recording checks among them.
 - [ ] T075 Raise what belongs elsewhere: research *Findings* 1 to 11 as comments on the plan doc's
       threads or notes in `specs/001-brands-and-projects/spec.md`, `specs/008-players/spec.md`,
       `specs/013-affiliate-programme/spec.md`, `specs/019-spinvibe-migration/spec.md` and
@@ -769,6 +885,18 @@ run, the README and quickstart proven, research closed, findings and questions r
       another spec); send research's *The message for Sheldon*; file the three *For ankka* items in
       `~/Documents/projects/thinkmorestupidless/ankka` as issues or spec notes; `just features` 0
       findings; `git status` clean but for this branch's work
+      *Partly done, 2026-10-25:* the one-line pointers are in the *Open Questions* of specs 001, 008, 013, 019
+      and 021 (finding 5 is the contract's own; 11 asks nothing); `just features` reports 0 findings in 1,106
+      scenarios. Open, each for the user to send: the comments on the plan doc's threads, the message for
+      Sheldon, and the *For ankka* items in the ankka repository.
+      *2026-10-28:* the *For ankka* items checked against ankka's source (main, v0.14.2): the undeclared
+      topic is answered by its docs (it waits; plan.md and research.md say so); the other two and the two
+      added at implementation are written as four issues, which the session was not allowed to file. The
+      plan doc could not be read from this account. The message for Sheldon gained the recorded GGR numbers.
+      Still for the user: file the four issues, post to the plan doc, send the message.
+      *Later 2026-10-28:* six issues filed in thinkmorestupidless/ankka, #197 to #202 (the four, and two
+      from the kind run). The plan doc is still refused to this account (as an artifact and as a doc); the
+      message for Sheldon was handed to Trevor to send.
 
 ---
 

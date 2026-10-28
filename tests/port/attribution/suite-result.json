@@ -1,0 +1,50 @@
+{
+  "TestScenario15_St8Wallet_ConvertedMoneyRoundEarnsNoAffiliateGGR": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_RestrictedOnlyRoundEarnsNoAffiliateGGR": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario15_St8Wallet_SplitRoundEarnsRealGGROnly": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario17_AffiliateGate3_CPAPipeline": [
+    "pass",
+    "pass"
+  ],
+  "a landing with a valid tag records one click per browser session and emits a click fact": [
+    "",
+    ""
+  ],
+  "a landing with a valid tag records one click per browser session and emits a click fact [without a tag]": [
+    "",
+    ""
+  ],
+  "a later tag does not change a binding and is recorded as a later touch": [
+    "",
+    ""
+  ],
+  "a player's first captured deposit emits a first-deposit fact and a deposit fact, the first once in the player's life": [
+    "",
+    ""
+  ],
+  "a visitor who registers within the attribution window is bound once and for good": [
+    "",
+    ""
+  ],
+  "what happens to an attributed player's money is emitted as the matching fact with its amount and reference [a deposit is charged back]": [
+    "",
+    ""
+  ],
+  "what happens to an attributed player's money is emitted as the matching fact with its amount and reference [a withdrawal is requested]": [
+    "",
+    ""
+  ],
+  "what happens to an attributed player's money is emitted as the matching fact with its amount and reference [restricted funds are awarded]": [
+    "",
+    ""
+  ]
+}

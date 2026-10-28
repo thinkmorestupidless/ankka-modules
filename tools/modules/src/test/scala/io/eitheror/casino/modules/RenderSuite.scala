@@ -43,11 +43,16 @@ class RenderSuite extends munit.FunSuite:
     "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL") ++ PlayersSecrets),
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
     "engagement"    -> Set("PUSH_PROVIDER_KEY"),
-    "support-agent" -> Set("MODEL_PROVIDER_KEY")
+    "support-agent" -> Set("MODEL_PROVIDER_KEY"),
+    // spec 012 plan research R12, R7, R5, R3, R10, R15: attribution's own settings.
+    "attribution"   -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "COUNTRY_HEADER", "DOCUMENT_TIMEOUT", "CLOSE_GRACE", "WEBHOOK_TIMEOUT")
   )
 
-  /** Sizes spec 001 did not set: players outgrows `small`'s 512Mi on kind (spec 008 T077, OOM-killed). */
-  private val NewSizes = Map("players" -> "medium")
+  /**
+   * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
+   * spec 012 T073; both OOM-killed).
+   */
+  private val NewSizes = Map("players" -> "medium", "attribution" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
     BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)
@@ -101,6 +106,19 @@ class RenderSuite extends munit.FunSuite:
       val key = n.stripPrefix("PLAYERS_").toLowerCase.replace('_', '-')
       assertEquals(env.find(_.name == n), Some(EnvVar(n, secretKeyRef = Some(SecretKeyRef("tenant-values", s"players-$key")))), n)
     }
+  }
+
+  test("attribution reads the brand's reporting zone and the modules it runs, which default to UTC and the modules applied (spec 012)") {
+    def env(p: BrandPlan, name: String) = p.services.find(_.name == "attribution").get.service.env.find(_.name == name).flatMap(_.value)
+    val withCasino = plan(Vector("casino"))
+    assertEquals(env(withCasino, "CASINO_REPORTING_ZONE"), Some("Africa/Johannesburg"))
+    assertEquals(env(withCasino, "CASINO_MODULES"), Some("core,casino"))
+    assertEquals(env(withCasino, "COUNTRY_HEADER"), Some("CF-IPCountry"))
+    val coreOnly = plan(Vector.empty, values.copy(values = values.values - "reporting-zone"))
+    assertEquals(env(coreOnly, "CASINO_REPORTING_ZONE"), Some("UTC"))
+    assertEquals(env(coreOnly, "CASINO_MODULES"), Some("core"), "never empty: the platform refuses an empty entry")
+    val written = plan(Vector("casino"), values.copy(values = values.values + ("casino-modules" -> "casino,engagement")))
+    assertEquals(env(written, "CASINO_MODULES"), Some("casino,engagement"), "a brand's own value wins")
   }
 
   test("the topics are spec 001's for core and casino, less engagement's push, plus platform.modules") {

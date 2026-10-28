@@ -65,6 +65,27 @@ class ApplySuite extends munit.FunSuite:
     assert(result.notes.exists(_.contains("manifest behind cluster")), result.notes.mkString("; "))
   }
 
+  test("a restarted service is compared with the generation that recorded its descriptor, and left alone") {
+    val cp = InMemoryControlPlane()
+    Apply.run(plan(), cp, options)
+    cp.restart("goldvibe", "wallet")
+    val result = Apply.run(plan(), cp, options)
+    assertEquals(result.failure, None)
+    assertEquals(result.changes, Vector.empty)
+  }
+
+  test("an operator's rollback is seen however long the history before it") {
+    val cp = InMemoryControlPlane()
+    Apply.run(plan(), cp, options)
+    val moved = brand.copy(services = brand.services.map(s => if s.name == "wallet" then s.copy(image = s.image.replace("0.1.0", "0.2.0")) else s))
+    Apply.run(plan(moved), cp, options)
+    cp.rollback("goldvibe", "wallet", 1)
+    cp.restart("goldvibe", "wallet")
+    val result = Apply.run(plan(moved), cp, options)
+    assertEquals(result.changes, Vector.empty)
+    assert(result.notes.exists(_.contains("manifest behind cluster")), result.notes.mkString("; "))
+  }
+
   test("without ankka 040 the grants wait and the status says why") {
     val result = Apply.run(plan(), InMemoryControlPlane(hasGrants = false), options)
     assert(result.notes.exists(_.startsWith("grants: platform lacks 040")))

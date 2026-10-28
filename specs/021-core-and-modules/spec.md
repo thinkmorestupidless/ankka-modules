@@ -301,3 +301,10 @@ operator's page changes and no player data was readable from the console.
 - The spoke template and eitheror's own cluster values: eitheror's deployments repository.
 - The pool (spec 024) and the prediction market's services (spec 023).
 - Billing terms: ankka-vendor's.
+
+## Open Questions
+
+Raised by spec 012 on 2026-10-25; each is one line, and [spec 012 research](../012-affiliate-protocol/research.md), *Findings for other specs* has the reasoning.
+
+- A core service consuming a product module's topic: `attribution` registers its `casino.rewards` consumer only when `CASINO_MODULES` names `casino`; the tool should render that variable from the brand's modules (012 finding 4).
+- A grant to a network's machine is made by an owner at runtime; a module manifest cannot declare it (012 finding 9).

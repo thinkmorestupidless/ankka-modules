@@ -84,30 +84,37 @@ Expected, by suite:
 ## 5. The recordings (needs the original's KinD stack with the affiliate service; [contracts/recording.md](contracts/recording.md))
 
 ```bash
-cd tests/original/attribution-driver && go test -tags e2e -affiliate-url http://localhost:8082 -casino-url http://localhost:8081 ./...
+cd tests && go run ./original/preflight -affiliate http://localhost:8093
+cd tests && go test -tags e2e ./original/attribution-driver/... -count=1 -args \
+    -affiliate-url http://localhost:8093 -substrate-url http://localhost:9000   # twice, EITHEROR_RECORD_TO per run
 # and the suite's four affiliate scenarios, twice, as tests/original/README.md says
 just modules recordings check
 ```
 
 Expected: one recording per driver scenario and the four suite scenarios, every one `pass` on the
-original both runs; the check reports every file well formed. A task of its own; the parity tests fail
-until it lands.
+original both runs; the check reports every file well formed. Done 2026-10-28 (T035):
+`tests/port/attribution/README.md` says how, and `ParitySuite` replays all twelve.
 
 ## 6. Locally
 
 ```bash
-just attribution-run   # ANKKA_HTTP_PORT=9003, CASINO_BRAND=goldvibe, CASINO_REPORTING_ZONE=Africa/Johannesburg
+just attribution-run   # ANKKA_HTTP_PORT=9007, CASINO_BRAND=goldvibe, CASINO_REPORTING_ZONE=Africa/Johannesburg
 ```
 
-`sbt schema && docker compose up -d` in `services/attribution` first. A local run has no broker, so the
-topic consumers read nothing: the click route and the operator routes are what a local run shows.
+`sbt schema && docker compose up -d` in `services/attribution` first, and `ANKKA_SECRET_KEY` exported
+(`openssl rand -base64 32`, kept: the secret store is encrypted under it). With no
+`ANKKA_KAFKA_BOOTSTRAP_SERVERS` the facts are read and published in memory (ankka refuses to start a topic
+consumer with no subscriber), so the click route and the operator routes are what a local run shows. The
+operator's `curl`s take a token from dev-kind's casino Keycloak through a port-forward on 18180
+(`Authorization: Bearer $STAFF_TOKEN`); the `staff|…` token is the integration kit's stand-in and is
+refused by a running service.
 With `sbt "Test/runMain io.eitheror.casino.attribution.it.fakes"` serving a `FakeNetwork` on 9103:
 
 ```bash
-TOKEN=$(curl -s -X POST localhost:9003/v1/casino/backoffice/goldvibe/attribution/networks -H "Authorization: Bearer staff|op-1|brand_goldvibe" \
+TOKEN=$(curl -s -X POST localhost:9007/v1/casino/backoffice/goldvibe/attribution/networks -H "Authorization: Bearer staff|op-1|brand_goldvibe" \
   -H 'Content-Type: application/json' -d '{"id":"programme","keyDocument":"http://127.0.0.1:9103/keys","revocationList":"http://127.0.0.1:9103/revocations"}')
-curl -s -X POST localhost:9003/v1/casino/backoffice/goldvibe/attribution/networks/programme/pseudonym-key -H "Authorization: Bearer staff|op-1|brand_goldvibe"
-curl -s -X POST localhost:9003/v1/track/click -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9007/v1/casino/backoffice/goldvibe/attribution/networks/programme/pseudonym-key -H "Authorization: Bearer staff|op-1|brand_goldvibe"
+curl -s -X POST localhost:9007/v1/track/click -H 'Content-Type: application/json' \
   -d "{\"btag\":\"$(curl -s 127.0.0.1:9103/tag?aff=aff-1\&lnk=lnk-1)\",\"clickId\":\"c-1\",\"deviceType\":\"desktop\"}"
 ```
 

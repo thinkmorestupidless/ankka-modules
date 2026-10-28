@@ -1,0 +1,18 @@
+{
+  "name": "attribution",
+  "service": {
+    "image": "attribution:latest",
+    "runtime": "0.13.0",
+    "env": {
+      "ANKKA_HTTP_PORT": "9007",
+      "CASINO_BRAND": "goldvibe",
+      "CASINO_PROJECT": "goldvibe",
+      "CASINO_REAL_MONEY": "false",
+      "CASINO_REPORTING_ZONE": "Africa/Johannesburg",
+      "COUNTRY_HEADER": "CF-IPCountry",
+      "DOCUMENT_TIMEOUT": "10s",
+      "CLOSE_GRACE": "15m",
+      "WEBHOOK_TIMEOUT": "10s"
+    }
+  }
+}

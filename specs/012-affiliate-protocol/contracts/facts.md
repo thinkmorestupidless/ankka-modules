@@ -2,7 +2,8 @@
 
 Research R9, R10, R11, R13. The input is a family on a brand topic (spec 001 FR-011; the contract's
 `contract.facts`); the output a family on `affiliates.attribution` (`AffiliatesAttribution.scala`), keyed
-by the pseudonym (`click` by the link), `ce-id` the fact id. Common fields on every fact: `protocolVersion`
+by the pseudonym (`click` by the link), `ce-id` the fact id, `ce-subject` the key as well (ankka's default
+subject is the source entity's id, the player id for a record or a tally; found at T067). Common fields on every fact: `protocolVersion`
 1, `factId`, `occurredAt` (the input's `occurredAt`), `brand`, and the binding's `network`, `affiliate`,
 `link`, `campaign`, `subIds`, `clickId`, `pseudonym`.
 

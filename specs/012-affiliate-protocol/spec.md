@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-08
 
-**Status**: Draft
+**Status**: Implemented 2026-10-25; recorded against the original and replayed 2026-10-28 (T035); but for the kind run (T073)
 
 **Input**: User description: "A brand records attribution and emits facts; it never computes
 commission. A standardised protocol for tags and integration between our casinos and our

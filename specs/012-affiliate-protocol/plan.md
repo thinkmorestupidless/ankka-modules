@@ -209,6 +209,16 @@ with a fallback:
 - what header the installation's gateway sets for the visitor's country: fallback, `country` absent on
   clicks (R5).
 
+Found at implementation (2026-10-25):
+
+- `casino.rewards`: the fallback is built and tested (StartSuite: `CASINO_MODULES` empty leaves
+  `RewardsFacts` unregistered). ankka does not refuse an undeclared topic's consumer: it waits and reads
+  the topic once it is declared, and `ankka services get` lists it as an undeclared topic (ankka
+  `docs/build/topics.md`, checked in its source 2026-10-28). A missing broker is what is refused at start.
+- `ce-id`: not readable. ankka 0.13's `ChangeContext` has the subject and the sequence number only, so
+  every dedupe id is the fallback (T057).
+- The country header: open until the kind run (T073); `COUNTRY_HEADER` keeps `CF-IPCountry`.
+
 The research also records 6 spec corrections (applied), 11 findings for other specs and 4 questions for
 Sheldon.
 
@@ -242,7 +252,7 @@ nothing holds a balance, a key leaves no store, and no fact carries a person.
 | `withdrawal-requested` at the hold and `withdrawal-completed` at completion (the original notified once, at the operator's approval); approved and cancelled emit nothing | FR-030, spec 007 FR-026 | the driver's withdrawal recording, marked |
 | `bonus-cost` at the wallet's award, never negative (the original's call always failed `400`) | FR-030, spec 011 FR-028; correction 1 | the driver's bonus-cost recording, marked; `MoneySuite` |
 | `chargeback` from a dispute opened or a refund (the original's route was never called) | FR-030; correction 5 | the driver's chargeback recording, marked; `MoneySuite` |
-| GGR per player per reporting day, with adjustments, from the wallet's real movements; money converted from restricted funds counts (the original: per round, deposit-origin only, switched off) | FR-016, correction 5, R10 | the suite's three GGR recordings: two unmarked, `ConvertedMoneyRound…` marked; `GgrSuite` |
+| GGR per player per reporting day, with adjustments, from the wallet's real movements; money converted from restricted funds counts (the original: per round, deposit-origin only, switched off) | FR-016, correction 5, R10 | the suite's three GGR recordings: `ConvertedMoneyRound…` (the original 0, the port 1000) and `SplitRound…` (500, 1000: half its real stake was converted in the same bet) marked and observable, `RestrictedOnlyRound…` unmarked (neither makes a fact); `GgrSuite` |
 | `ggr-round` only for a network that opted in | FR-016 | `GgrSuite`; the feature's two scenarios |
 | Facts carry a pseudonym and no player id; commission, plans and the postback leave the brand | FR-012, FR-013, FR-021 | `LeakSuite`; `CarriersSuite` |
 | Signed webhooks with a day of retries and an undelivered list, replacing the one-shot postback and its macros | FR-021 | `CarriersSuite` |

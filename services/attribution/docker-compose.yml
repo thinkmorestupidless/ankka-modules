@@ -1,0 +1,26 @@
+# Postgres for running attribution locally: the event journal, snapshots, durable state,
+# view tables, timers, projection offsets and the secret store all live here.
+#
+# The schema comes from target/ddl, which `sbt schema` fills from the ankka-runtime artifact —
+# run that first. Postgres applies an init directory only when its data volume is empty, so after
+# an ankka upgrade: `docker compose down -v`, `sbt schema`, `docker compose up -d`.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ankka
+      POSTGRES_PASSWORD: ankka
+      POSTGRES_DB: ankka
+    ports:
+      - "5437:5432"
+    volumes:
+      - ./target/ddl:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ankka -d ankka"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata:
