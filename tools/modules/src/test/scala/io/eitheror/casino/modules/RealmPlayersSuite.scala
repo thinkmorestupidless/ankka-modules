@@ -60,3 +60,14 @@ class RealmPlayersSuite extends munit.FunSuite:
       (Vector("admin"), Vector("admin")))
     assertEquals(attributes("username").path("displayName").asText(), "${username}")
   }
+
+  test("casino-frontend's access tokens name the realm as their audience, the auth-player-audience the services verify; a second pass adds no second mapper") {
+    def audiences(j: String) = mapper.readTree(j).path("clients").elements().asScala.find(_.path("clientId").asText() == Realm.PlayerClient).get
+      .path("protocolMappers").elements().asScala.filter(_.path("protocolMapper").asText() == "oidc-audience-mapper").toVector
+    assertEquals(audiences(rendered), Vector.empty)
+    val json = Realm.withPlayers(rendered, None, Map.empty)
+    val m    = audiences(json)
+    assertEquals(m.map(a => (a.path("config").path("included.custom.audience").asText(), a.path("config").path("access.token.claim").asText())),
+      Vector(("casino-goldvibe", "true")))
+    assertEquals(audiences(Realm.withPlayers(json, None, Map.empty)).size, 1)
+  }
