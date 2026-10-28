@@ -15,7 +15,7 @@ object NeighbourPaths:
   def recentlyPlayed(brand: String, player: String) = s"/v1/casino/brands/${Http.segment(brand)}/players/${Http.segment(player)}/recently-played"
   def profile(brand: String, player: String)        = s"/v1/casino/brands/${Http.segment(brand)}/players/${Http.segment(player)}/profile"
   def playCheck(brand: String, player: String)      = s"/v1/casino/brands/${Http.segment(brand)}/kyc/${Http.segment(player)}/play-check"
-  def mayPlay(brand: String, player: String)        = s"/v1/casino/brands/${Http.segment(brand)}/responsible-gambling/${Http.segment(player)}/may-play"
+  def mayPlay(brand: String, player: String)        = s"/v1/casino/brands/${Http.segment(brand)}/rg/${Http.segment(player)}/may-play"
   /** The bet-time check, the path spec 002 used before it moved here (contracts/neighbours.md, research R18). */
   def mayBet(brand: String)                         = s"/v1/casino/brands/${Http.segment(brand)}/rg/may-bet"
   def eligibleGrant(brand: String, player: String, provider: String, gameCode: String) =

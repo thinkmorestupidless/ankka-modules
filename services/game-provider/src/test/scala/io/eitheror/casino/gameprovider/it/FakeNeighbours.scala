@@ -41,7 +41,7 @@ final class FakeNeighbours(brand: String) extends FakeServer:
 
   private val Players = """/v1/casino/brands/[^/]+/players/([^/]+)/([a-z-]+)""".r
   private val Kyc     = """/v1/casino/brands/[^/]+/kyc/([^/]+)/play-check""".r
-  private val Rg      = """/v1/casino/brands/[^/]+/responsible-gambling/([^/]+)/may-play""".r
+  private val Rg      = """/v1/casino/brands/[^/]+/rg/([^/]+)/may-play""".r
   private val MayBet  = """/v1/casino/brands/[^/]+/rg/may-bet""".r
   private val Rewards = """/v1/casino/brands/[^/]+/rewards/([^/]+)/free-rounds/eligible""".r
 

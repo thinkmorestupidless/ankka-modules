@@ -32,6 +32,7 @@ jobs:
       ingest: ${{ steps.filter.outputs.ingest }}
       game-provider: ${{ steps.filter.outputs.game-provider }}
       simulator: ${{ steps.filter.outputs.simulator }}
+      responsible-gambling: ${{ steps.filter.outputs.responsible-gambling }}
     steps:
       - uses: dorny/paths-filter@v3
         if: github.event_name == 'pull_request'
@@ -76,6 +77,11 @@ jobs:
               - services/game-provider-simulator/**
               - features/simulator/**
               - tests/port/simulator/**
+            responsible-gambling:
+              - *build
+              - services/responsible-gambling/**
+              - features/responsible-gambling/**
+              - tests/port/responsible-gambling/**
 
   check:
     runs-on: ubuntu-latest
@@ -233,6 +239,26 @@ jobs:
         run: sbt contract/publishLocal
       - name: The simulator's suites
         working-directory: services/game-provider-simulator
+        run: sbt test
+
+  # responsible-gambling (spec 010): its own sbt build against the contract published from this commit;
+  # its integration suites start Postgres in Docker.
+  responsible-gambling:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.responsible-gambling == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: responsible-gambling's suites
+        working-directory: services/responsible-gambling
         run: sbt test
 
   # The integration suites, on a kind installation of ankka. Manual only: it takes the time a full

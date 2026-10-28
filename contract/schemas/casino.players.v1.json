@@ -651,6 +651,9 @@
           "format": "date-time",
           "type": "string"
         },
+        "permanent": {
+          "type": "boolean"
+        },
         "player_id": {
           "type": "string"
         },
@@ -699,6 +702,9 @@
       "additionalProperties": true,
       "properties": {
         "caused_by": {
+          "type": "string"
+        },
+        "currency": {
           "type": "string"
         },
         "limit_type": {
