@@ -192,8 +192,8 @@
       "error" : null
     }
   }, {
-    "name" : "second grant — restricted_balance sums both open records, result describes the awarded record",
-    "line" : 99,
+    "name" : "second grant — restricted_balance stays the primary's balance; the new grant is queued",
+    "line" : 101,
     "given" : [ {
       "id" : "wallet/test3",
       "concepts" : [ "Wallet" ],
@@ -255,7 +255,7 @@
         "op" : "set_properties",
         "target" : "wallet/test3",
         "properties" : {
-          "restricted_balance" : 3000
+          "restricted_balance" : 2000
         }
       }, {
         "index" : 1,
@@ -292,7 +292,7 @@
         } ]
       } ],
       "result" : {
-        "restricted_balance" : 3000,
+        "restricted_balance" : 2000,
         "bonus_status" : "ACTIVE",
         "wagering_requirement" : 5000,
         "wagered_amount" : 0,
@@ -303,7 +303,7 @@
     }
   }, {
     "name" : "record_ref names a missing record — RESTRICTED_FUNDS_UNAVAILABLE, nothing written",
-    "line" : 155,
+    "line" : 157,
     "given" : [ {
       "id" : "wallet/test4",
       "concepts" : [ "Wallet" ],
@@ -339,7 +339,7 @@
     }
   }, {
     "name" : "record_ref names a CLOSED record — RESTRICTED_FUNDS_UNAVAILABLE, nothing written",
-    "line" : 174,
+    "line" : 176,
     "given" : [ {
       "id" : "wallet/test5",
       "concepts" : [ "Wallet" ],

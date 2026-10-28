@@ -11,6 +11,10 @@ import io.eitheror.casino.wallet.funding.Status
  */
 class DepositFixturesSuite extends FixtureSuite("deposit"):
 
+  override protected def ignored: Map[String, String] = Map(
+    "unstamped wallet — deposit writes no pool properties" -> NoUnstampedWallet
+  )
+
   protected def check(c: Case): Unit =
     given Case = c
     val kit    = FixtureRunner.kit(c, opening(c, c.recordTwins.map(record)))
@@ -46,6 +50,11 @@ class DepositFixturesSuite extends FixtureSuite("deposit"):
 /** `admin-adjust.test.tl` (FR-026): real or the primary active record, with a reason and an actor, never a deposit. */
 class AdminAdjustFixturesSuite extends FixtureSuite("admin-adjust"):
 
+  override protected def ignored: Map[String, String] = Map(
+    "two open records — the credit lands on the primary record and the cache is the primary's balance" -> Since002.TwoRecords,
+    "real debit to exactly zero closes the open cap record"                                           -> Since002.CapCloseAtZero
+  )
+
   protected def check(c: Case): Unit =
     given Case = c
     val kit    = FixtureRunner.kit(c, opening(c, c.recordTwins.map(record)))
@@ -61,6 +70,7 @@ class AdminAdjustFixturesSuite extends FixtureSuite("admin-adjust"):
         accepted(o)
         val state = kit.currentState
         assertWalletAndRecords(state)
+        result.events.collectFirst { case e: WalletEvent.AdminAdjusted => e }.foreach(a => assertParts("from", a.parts))
         assertResultBalances(o)
         c.transactions("admin_adjustment").foreach { t =>
           sameText("adjustment wallet_type", text(t, "wallet_type"), if target == "real" then "real" else "bonus")
@@ -76,6 +86,10 @@ class AdminAdjustFixturesSuite extends FixtureSuite("admin-adjust"):
 
 /** `game-provider-credit.test.tl` (FR-027): onto the primary active record, else real. */
 class GameProviderCreditFixturesSuite extends FixtureSuite("game-provider-credit"):
+
+  override protected def ignored: Map[String, String] = Map(
+    "two open records — the credit lands on the primary record and the cache is the primary's balance" -> Since002.TwoRecords
+  )
 
   protected def check(c: Case): Unit =
     given Case = c

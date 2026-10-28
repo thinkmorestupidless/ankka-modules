@@ -3169,13 +3169,13 @@
       "error" : null
     }
   }, {
-    "name" : "two records — stake drawn across both in priority order, breakdowns name each record",
+    "name" : "two records — only the primary funds; queued record untouched",
     "line" : 1304,
     "given" : [ {
       "id" : "wallet/rule-h",
       "concepts" : [ "Wallet" ],
       "real_balance" : 0.00,
-      "restricted_balance" : 60.00,
+      "restricted_balance" : 5.00,
       "deposit_turnover_pending" : 0.00,
       "player_id" : "rh",
       "brand_id" : "testbrand",
@@ -3187,7 +3187,7 @@
       "status" : "ACTIVE",
       "priority" : 1,
       "granted_at" : "2026-06-02T00:00:00Z",
-      "balance" : 30.00,
+      "balance" : 20.00,
       "release_requirement" : 500.00,
       "released_progress" : 0.00,
       "max_convertible_amount" : 100.00,
@@ -3202,7 +3202,7 @@
       "status" : "ACTIVE",
       "priority" : 0,
       "granted_at" : "2026-06-01T00:00:00Z",
-      "balance" : 30.00,
+      "balance" : 5.00,
       "release_requirement" : 500.00,
       "released_progress" : 0.00,
       "max_convertible_amount" : 100.00,
@@ -3215,7 +3215,7 @@
       "command" : "PlaceBet",
       "params" : {
         "round_id" : "rh",
-        "amount" : 50.00,
+        "amount" : 4.00,
         "currency" : "GBP",
         "session_id" : "sh",
         "created_at" : "2026-06-15T10:00:00Z",
@@ -3232,9 +3232,9 @@
         "target" : "restricted-funds/rule-h-a",
         "properties" : {
           "status" : "ACTIVE",
-          "balance" : 0.00,
+          "balance" : 1.00,
           "release_requirement" : 500.00,
-          "released_progress" : 30.00,
+          "released_progress" : 4.00,
           "max_convertible_amount" : 100.00,
           "remaining_allowance" : 0,
           "deposits_since_release" : 0,
@@ -3244,52 +3244,37 @@
       }, {
         "index" : 1,
         "op" : "set_properties",
-        "target" : "restricted-funds/rule-h-b",
-        "properties" : {
-          "status" : "ACTIVE",
-          "balance" : 10.00,
-          "release_requirement" : 500.00,
-          "released_progress" : 20.00,
-          "max_convertible_amount" : 100.00,
-          "remaining_allowance" : 0,
-          "deposits_since_release" : 0,
-          "open_round_count" : 1,
-          "updated_at" : "2026-06-15T10:00:00Z"
-        }
-      }, {
-        "index" : 2,
-        "op" : "set_properties",
         "target" : "wallet/rule-h",
         "properties" : {
           "real_balance" : 0.00,
-          "restricted_balance" : 10.00,
+          "restricted_balance" : 1.00,
           "deposit_turnover_pending" : 0.00
         }
       }, {
-        "index" : 3,
+        "index" : 2,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
           "type" : "bet",
           "wallet_type" : "bonus",
-          "balance_before" : 30.00,
-          "balance_after" : 0.00,
-          "wagering_contribution" : 50.00,
+          "balance_before" : 5.00,
+          "balance_after" : 1.00,
+          "wagering_contribution" : 4.00,
           "funded_real_amount" : 0.00,
-          "funded_restricted_amount" : 50.00,
-          "funded_breakdown" : "restricted-funds/rule-h-a:30|restricted-funds/rule-h-b:20|",
-          "contribution_breakdown" : "restricted-funds/rule-h-a:30|restricted-funds/rule-h-b:20|",
-          "grant_refs" : "|bonus-claims/rh-a|bonus-claims/rh-b|"
+          "funded_restricted_amount" : 4.00,
+          "funded_breakdown" : "restricted-funds/rule-h-a:4|",
+          "contribution_breakdown" : "restricted-funds/rule-h-a:4|",
+          "grant_refs" : "|bonus-claims/rh-a|"
         }
       }, {
-        "index" : 4,
+        "index" : 3,
         "op" : "add_concept",
         "target" : "transaction.new-id",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 5,
+        "index" : 4,
         "op" : "add_edge",
         "target" : "wallet/rule-h",
         "args" : [ "HAS_TRANSACTION", {
@@ -3298,18 +3283,274 @@
       } ],
       "result" : {
         "real_balance" : 0.00,
-        "restricted_balance" : 10.00,
+        "restricted_balance" : 1.00,
         "currency" : "GBP",
         "wallet_type" : "bonus",
         "bonus_converted" : "false",
-        "restricted_funds_refs" : "|restricted-funds/rule-h-a|restricted-funds/rule-h-b|",
-        "funded_breakdown" : "restricted-funds/rule-h-a:30|restricted-funds/rule-h-b:20|"
+        "restricted_funds_refs" : "|restricted-funds/rule-h-a|",
+        "funded_breakdown" : "restricted-funds/rule-h-a:4|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "two records — stake above the primary is INSUFFICIENT_FUNDS although the queued record could cover it",
+    "line" : 1362,
+    "given" : [ {
+      "id" : "wallet/rule-h2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 5.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rh2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-h2-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 20.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/rh2-b"
+    }, {
+      "id" : "restricted-funds/rule-h2-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 5.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/rh2-a"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rh2",
+        "amount" : 10.00,
+        "currency" : "GBP",
+        "session_id" : "sh2",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "INSUFFICIENT_FUNDS",
+        "message" : "Insufficient funds in real and bonus wallets"
+      }
+    }
+  }, {
+    "name" : "two records — primary at 0 with a round open refuses even though the queued record has funds",
+    "line" : 1413,
+    "given" : [ {
+      "id" : "wallet/rule-h3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 0.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rh3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-h3-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 20.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/rh3-b"
+    }, {
+      "id" : "restricted-funds/rule-h3-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1,
+      "grant_ref" : "bonus-claims/rh3-a"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rh3",
+        "amount" : 1.00,
+        "currency" : "GBP",
+        "session_id" : "sh3",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "INSUFFICIENT_FUNDS",
+        "message" : "Insufficient funds in real and bonus wallets"
+      }
+    }
+  }, {
+    "name" : "two records — queued record's max_stake does not bind",
+    "line" : 1464,
+    "given" : [ {
+      "id" : "wallet/rule-h4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0.00,
+      "restricted_balance" : 20.00,
+      "deposit_turnover_pending" : 0.00,
+      "player_id" : "rh4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/rule-h4-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 20.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "max_stake" : 1.00,
+      "max_stake_enforcement" : "block",
+      "grant_ref" : "bonus-claims/rh4-b"
+    }, {
+      "id" : "restricted-funds/rule-h4-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 20.00,
+      "release_requirement" : 500.00,
+      "released_progress" : 0.00,
+      "max_convertible_amount" : 100.00,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/rh4-a"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "rh4",
+        "amount" : 5.00,
+        "currency" : "GBP",
+        "session_id" : "sh4",
+        "created_at" : "2026-06-15T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : true,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/rule-h4-a",
+        "properties" : {
+          "status" : "ACTIVE",
+          "balance" : 15.00,
+          "release_requirement" : 500.00,
+          "released_progress" : 5.00,
+          "max_convertible_amount" : 100.00,
+          "remaining_allowance" : 0,
+          "deposits_since_release" : 0,
+          "open_round_count" : 1,
+          "updated_at" : "2026-06-15T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/rule-h4",
+        "properties" : {
+          "real_balance" : 0.00,
+          "restricted_balance" : 15.00,
+          "deposit_turnover_pending" : 0.00
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "wallet_type" : "bonus",
+          "balance_before" : 20.00,
+          "balance_after" : 15.00,
+          "wagering_contribution" : 5.00,
+          "funded_real_amount" : 0.00,
+          "funded_restricted_amount" : 5.00,
+          "funded_breakdown" : "restricted-funds/rule-h4-a:5|",
+          "contribution_breakdown" : "restricted-funds/rule-h4-a:5|",
+          "grant_refs" : "|bonus-claims/rh4-a|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/rule-h4",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "real_balance" : 0.00,
+        "restricted_balance" : 15.00,
+        "currency" : "GBP",
+        "wallet_type" : "bonus",
+        "bonus_converted" : "false",
+        "restricted_funds_refs" : "|restricted-funds/rule-h4-a|",
+        "funded_breakdown" : "restricted-funds/rule-h4-a:5|"
       },
       "error" : null
     }
   }, {
     "name" : "unmigrated guard — a stray restricted_balance with no record refuses even a real-funded stake",
-    "line" : 1361,
+    "line" : 1522,
     "given" : [ {
       "id" : "wallet/rule-i",
       "concepts" : [ "Wallet" ],
@@ -3344,7 +3585,7 @@
     }
   }, {
     "name" : "restricted funds ref — record reachable only via open_restricted_funds_refs, not traversal",
-    "line" : 1384,
+    "line" : 1545,
     "given" : [ {
       "id" : "wallet/f219-a",
       "concepts" : [ "Wallet" ],
@@ -3455,7 +3696,7 @@
     }
   }, {
     "name" : "restricted funds ref — stale ref is skipped, falls back to traversal, real-funded proceeds",
-    "line" : 1427,
+    "line" : 1588,
     "given" : [ {
       "id" : "wallet/f219-b",
       "concepts" : [ "Wallet" ],
@@ -3538,7 +3779,7 @@
     }
   }, {
     "name" : "identity — wallet with no player_ref/brand_ref still stamps bare refs on the bet transaction",
-    "line" : 1453,
+    "line" : 1614,
     "given" : [ {
       "id" : "wallet/legacy-bet",
       "concepts" : [ "Wallet" ],
@@ -3579,6 +3820,661 @@
         "currency" : "GBP",
         "wallet_type" : "real"
       },
+      "error" : null
+    }
+  }, {
+    "name" : "cap closes — bet empties real while a cap record is open",
+    "line" : 1635,
+    "given" : [ {
+      "id" : "wallet/f251-pb1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 30,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/f251-cap1|restricted-funds/f251-cap2|",
+      "player_id" : "p251a",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/f251-cap1",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f251-1"
+    }, {
+      "id" : "restricted-funds/f251-cap2",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 2,
+      "granted_at" : "2026-06-02T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 50,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f251-2"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r251a",
+        "amount" : 30,
+        "currency" : "GBP",
+        "session_id" : "s251a",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f251-cap1",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "release_requirement" : 0,
+          "released_progress" : 0,
+          "max_convertible_amount" : 0,
+          "remaining_allowance" : 100,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "closed_at" : "2026-10-14T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f251-cap2",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "release_requirement" : 0,
+          "released_progress" : 0,
+          "max_convertible_amount" : 0,
+          "remaining_allowance" : 50,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "closed_at" : "2026-10-14T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/f251-pb1",
+        "properties" : {
+          "real_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      } ],
+      "result" : {
+        "real_balance" : 0,
+        "wallet_type" : "real",
+        "closed_records" : "|restricted-funds/f251-cap1|restricted-funds/f251-cap2|"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "cap stays open — bet leaves real above zero",
+    "line" : 1690,
+    "given" : [ {
+      "id" : "wallet/f251-pb2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 30,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/f251-cap3|",
+      "player_id" : "p251b",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/f251-cap3",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f251-3"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r251b",
+        "amount" : 10,
+        "currency" : "GBP",
+        "session_id" : "s251b",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/f251-pb2",
+        "properties" : {
+          "real_balance" : 20
+        }
+      } ],
+      "result" : {
+        "real_balance" : 20,
+        "wallet_type" : "real"
+      },
+      "error" : null,
+      "mutation_count" : 4
+    }
+  }, {
+    "name" : "pools — converted-first: real leg 1000 on 5000/5000 writes 5000/4000, split 0/1000",
+    "line" : 1731,
+    "given" : [ {
+      "id" : "wallet/pool1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "deposit_pool_balance" : 5000,
+      "converted_pool_balance" : 5000,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r1",
+        "amount" : 1000,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool1",
+        "properties" : {
+          "real_balance" : 9000,
+          "deposit_pool_balance" : 5000,
+          "converted_pool_balance" : 4000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "balance_before" : 10000,
+          "balance_after" : 9000,
+          "funded_real_amount" : 1000,
+          "funded_deposit_amount" : 0,
+          "funded_converted_amount" : 1000
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "pools — stake spills to deposit: 6000 on 5000/5000 writes 4000/0, split 1000/5000",
+    "line" : 1752,
+    "given" : [ {
+      "id" : "wallet/pool2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "deposit_pool_balance" : 5000,
+      "converted_pool_balance" : 5000,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r2",
+        "amount" : 6000,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool2",
+        "properties" : {
+          "real_balance" : 4000,
+          "deposit_pool_balance" : 4000,
+          "converted_pool_balance" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "balance_before" : 10000,
+          "balance_after" : 4000,
+          "funded_real_amount" : 6000,
+          "funded_deposit_amount" : 1000,
+          "funded_converted_amount" : 5000
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "pools — allow_negative correction debit overdraws: 800 on 300/200 writes 0/-300, split 300/500",
+    "line" : 1773,
+    "given" : [ {
+      "id" : "wallet/pool3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 500,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "deposit_pool_balance" : 300,
+      "converted_pool_balance" : 200,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r3",
+        "amount" : 800,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : true
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool3",
+        "properties" : {
+          "real_balance" : -300,
+          "deposit_pool_balance" : 0,
+          "converted_pool_balance" : -300
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "balance_before" : 500,
+          "balance_after" : -300,
+          "funded_real_amount" : 800,
+          "funded_deposit_amount" : 300,
+          "funded_converted_amount" : 500
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "pools — unstamped wallet writes no pool properties",
+    "line" : 1794,
+    "given" : [ {
+      "id" : "wallet/pool4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r4",
+        "amount" : 1000,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool4",
+        "properties" : {
+          "real_balance" : 9000,
+          "deposit_turnover_pending" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "balance_before" : 10000,
+          "balance_after" : 9000,
+          "funded_real_amount" : 1000,
+          "funded_restricted_amount" : 0
+        }
+      } ],
+      "result" : {
+        "real_balance" : 9000,
+        "restricted_balance" : 0,
+        "currency" : "GBP",
+        "wallet_type" : "real",
+        "bonus_converted" : "false",
+        "converting_records" : "",
+        "restricted_funds_refs" : "",
+        "funded_breakdown" : ""
+      },
+      "error" : null,
+      "mutation_count" : 4
+    }
+  }, {
+    "name" : "deposit turnover — stake attributed to the oldest pending record",
+    "line" : 1821,
+    "given" : [ {
+      "id" : "wallet/dt-bet-a",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 20000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 50000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-a2|deposit-record/dt-a1|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "deposit-record/dt-a1",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 10000,
+      "turnover_required_amount" : 40000,
+      "wagered_toward_turnover" : 10000,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-01T00:00:00Z"
+    }, {
+      "id" : "deposit-record/dt-a2",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 5000,
+      "turnover_required_amount" : 20000,
+      "wagered_toward_turnover" : 0,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-02T00:00:00Z"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r-dt-a",
+        "amount" : 5000,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-a1",
+        "properties" : {
+          "wagered_toward_turnover" : 15000,
+          "turnover_status" : "PENDING",
+          "updated_at" : "2026-10-24T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/dt-bet-a",
+        "properties" : {
+          "real_balance" : 15000,
+          "deposit_turnover_pending" : 45000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "bet",
+          "funded_real_amount" : 5000,
+          "deposit_turnover_breakdown" : "deposit-record/dt-a1:5000|"
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — stake clears the oldest record and spills to the next",
+    "line" : 1859,
+    "given" : [ {
+      "id" : "wallet/dt-bet-b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 20000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 21000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-b2|deposit-record/dt-b1|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "deposit-record/dt-b1",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 10000,
+      "turnover_required_amount" : 40000,
+      "wagered_toward_turnover" : 39000,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-01T00:00:00Z"
+    }, {
+      "id" : "deposit-record/dt-b2",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 5000,
+      "turnover_required_amount" : 20000,
+      "wagered_toward_turnover" : 0,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-02T00:00:00Z"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r-dt-b",
+        "amount" : 3000,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-b1",
+        "properties" : {
+          "wagered_toward_turnover" : 40000,
+          "turnover_status" : "CLEARED",
+          "cleared_at" : "2026-10-24T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-b2",
+        "properties" : {
+          "wagered_toward_turnover" : 2000,
+          "turnover_status" : "PENDING"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/dt-bet-b",
+        "properties" : {
+          "deposit_turnover_pending" : 18000,
+          "pending_deposit_record_refs" : "|deposit-record/dt-b2|"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "deposit_turnover_breakdown" : "deposit-record/dt-b1:1000|deposit-record/dt-b2:2000|"
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — stamped wallet: only the deposit-pool share of the stake counts",
+    "line" : 1898,
+    "given" : [ {
+      "id" : "wallet/dt-bet-c",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "deposit_pool_balance" : 5000,
+      "converted_pool_balance" : 5000,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "deposit_turnover_pending" : 20000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-c|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "deposit-record/dt-c",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 5000,
+      "turnover_required_amount" : 20000,
+      "wagered_toward_turnover" : 0,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-01T00:00:00Z"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r-dt-c",
+        "amount" : 6000,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-c",
+        "properties" : {
+          "wagered_toward_turnover" : 1000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/dt-bet-c",
+        "properties" : {
+          "deposit_pool_balance" : 4000,
+          "converted_pool_balance" : 0,
+          "deposit_turnover_pending" : 19000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "funded_deposit_amount" : 1000,
+          "funded_converted_amount" : 5000,
+          "deposit_turnover_breakdown" : "deposit-record/dt-c:1000|"
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — stale ref is pruned and the pre-ledger rule applies",
+    "line" : 1930,
+    "given" : [ {
+      "id" : "wallet/dt-bet-d",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 20000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 10000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-gone|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "PlaceBet",
+      "params" : {
+        "round_id" : "r-dt-d",
+        "amount" : 4000,
+        "currency" : "GBP",
+        "session_id" : "s1",
+        "game_contribution_rate" : 100,
+        "bonus_wagering_counts" : false,
+        "partial_splits_enabled" : false,
+        "allow_negative" : false,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/dt-bet-d",
+        "properties" : {
+          "real_balance" : 16000,
+          "deposit_turnover_pending" : 6000,
+          "pending_deposit_record_refs" : ""
+        }
+      } ],
+      "result" : null,
       "error" : null
     }
   } ]

@@ -1,6 +1,7 @@
 package io.eitheror.casino.wallet.entity
 
 import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import io.eitheror.casino.wallet.funding.Pools
 
 import java.time.Instant
 
@@ -60,4 +61,40 @@ class WalletBasicsSuite extends munit.FunSuite:
   test("a bet on a wallet never created is WALLET_NOT_FOUND") {
     val kit = EventSourcedTestKit.of(WalletEntity, "p5/EUR")
     assertEquals(kit.call(WalletEntity.placeBet)(bet("tx-1", "r1", 0)).replyValue.code, Some("WALLET_NOT_FOUND"))
+  }
+
+  // ── spec 025: the pools a wallet opens with ─────────────────────────────
+
+  private def opening(key: String, real: Long, pools: Option[(Long, Long)]) =
+    OpenMigrated(key, real, 0L, Vector.empty, 0L, 0, 0L, t0, depositPool = pools.map(_._1), convertedPool = pools.map(_._2))
+
+  test("open-migrated with pools opens with them, and its repeat answers the same pools") {
+    val kit   = EventSourcedTestKit.of(WalletEntity, "m1/EUR")
+    val first = kit.call(WalletEntity.openMigrated)(opening("open", 10000, Some((6000L, 4000L))))
+    assertEquals((first.replyValue.depositPool, first.replyValue.convertedPool), (Some(6000L), Some(4000L)))
+    assertEquals(kit.currentState.pools, Pools(6000, 4000))
+    val again = kit.call(WalletEntity.openMigrated)(opening("open", 10000, Some((6000L, 4000L))))
+    assertEquals(again.replyValue, first.replyValue)
+    assert(!again.persisted)
+  }
+
+  test("open-migrated without pools opens the whole real balance converted") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "m2/EUR")
+    kit.call(WalletEntity.openMigrated)(opening("open", 10000, None)): Unit
+    assertEquals(kit.currentState.pools, Pools(0, 10000))
+  }
+
+  test("open-migrated carries a negative converted pool as it is") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "m3/EUR")
+    kit.call(WalletEntity.openMigrated)(opening("open", -100, Some((200L, -300L)))): Unit
+    assertEquals((kit.currentState.realBalance, kit.currentState.pools), (-100L, Pools(200, -300)))
+  }
+
+  test("open-migrated with pools that do not sum to real balance is POOLS_INVARIANT and opens nothing") {
+    val kit     = EventSourcedTestKit.of(WalletEntity, "m4/EUR")
+    val refused = kit.call(WalletEntity.openMigrated)(opening("open", 10000, Some((6000L, 3000L))))
+    assertEquals(refused.replyValue.code, Some("POOLS_INVARIANT"))
+    assert(!kit.currentState.created)
+    val half = kit.call(WalletEntity.openMigrated)(OpenMigrated("open-2", 10000, 0L, Vector.empty, 0L, 0, 0L, t0, depositPool = Some(10000L)))
+    assertEquals(half.replyValue.code, Some("POOLS_INVARIANT"))
   }

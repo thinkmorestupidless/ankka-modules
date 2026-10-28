@@ -26,6 +26,9 @@ class AdjustTablesSuite extends munit.FunSuite:
   private def adjust(w: Wallet, recs: Vector[Record], amount: Long): AdjustPlan =
     Resolver.adjustRestricted(w, recs, amount).fold(d => fail(s"unexpected deny: $d"), identity)
 
+  private def creditPrimary(w: Wallet, recs: Vector[Record], amount: Long): CreditPlan =
+    Resolver.creditPrimary(w, recs, amount).fold(d => fail(s"unexpected deny: $d"), identity)
+
   private def refused(w: Wallet, recs: Vector[Record], amount: Long): Deny =
     Resolver.adjustRestricted(w, recs, amount).fold(identity, p => fail(s"expected a deny, got $p"))
 
@@ -109,19 +112,19 @@ class AdjustTablesSuite extends munit.FunSuite:
   // ── CreditPrimary: game-provider-credit.test.tl ──────────────────────────
 
   test("adjust_test.go/TestCreditPrimary_NoActiveBonus_CreditsReal") {
-    val p = Resolver.creditPrimary(Wallet(realBalance = 5000), Vector.empty, 2500)
+    val p = creditPrimary(Wallet(realBalance = 5000), Vector.empty, 2500)
     assertEquals((p.target, p.newRealBalance), ("real", 7500L))
   }
 
   test("adjust_test.go/TestCreditPrimary_ConvertedBonus_CreditsReal") {
     val converted = Record(id = "restricted-funds/1", status = Status.ConvertedPendingCap, balance = 0)
-    val p         = Resolver.creditPrimary(Wallet(realBalance = 1000), Vector(converted), 900)
+    val p         = creditPrimary(Wallet(realBalance = 1000), Vector(converted), 900)
     assertEquals((p.target, p.newRealBalance), ("real", 1900L))
   }
 
   test("adjust_test.go/TestCreditPrimary_ActiveBonus_CreditsRecord") {
     val rec = activeRecord("restricted-funds/1", 500, 25000, 2000, 0, 0)
-    val p   = Resolver.creditPrimary(Wallet(realBalance = 0, restrictedBalance = 500), Vector(rec), 9033)
+    val p   = creditPrimary(Wallet(realBalance = 0, restrictedBalance = 500), Vector(rec), 9033)
     assertEquals((p.target, p.balanceBefore, p.balanceAfter), ("restricted", 500L, 9533L))
     val upd = findUpdate(p.recordUpdates, rec.id)
     assertEquals((upd.releasedProgress, upd.releaseRequirement), (2000L, 25000L))
@@ -130,7 +133,7 @@ class AdjustTablesSuite extends munit.FunSuite:
   test("adjust_test.go/TestCreditPrimary_TwoRecords_TargetsPrimaryOnly") {
     val a = priRecord("a", 1, "2026-01-01T00:00:00Z", 100, 0, 0, 0, 0)
     val b = priRecord("b", 2, "2026-01-01T00:00:00Z", 200, 0, 0, 0, 0)
-    val p = Resolver.creditPrimary(Wallet(realBalance = 0, restrictedBalance = 300), Vector(a, b), 50)
+    val p = creditPrimary(Wallet(realBalance = 0, restrictedBalance = 300), Vector(a, b), 50)
     assertEquals((p.target, p.recordId, p.balanceAfter), ("restricted", "a", 150L))
     assertEquals(p.projection.restrictedBalance, 350L)
   }

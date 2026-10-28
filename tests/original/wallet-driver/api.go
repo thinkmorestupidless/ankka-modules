@@ -3,6 +3,8 @@ package walletdriver
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 // The original's wallet API, one helper per route the scenarios use. Amounts are given in minor
@@ -43,6 +45,11 @@ func (s *Session) NewWallet(w WalletSetup) {
 		"brand_ref":                brand,
 		"player_ref":               s.Player,
 		"processed_payment_refs":   "||",
+		// spec 025: casino-service's createWalletTwin stamps a new wallet's pools at 0 / 0
+		// (SubstrateTwinClient.scala), so every wallet the driver makes is stamped
+		"deposit_pool_balance":   0,
+		"converted_pool_balance": 0,
+		"pools_stamped_at":       "2026-01-01T00:00:00Z",
 	}
 	s.Setup("wallet twin", http.MethodPost, "/twins/wallet/"+s.ids["walletTwin"], props)
 	s.Setup("wallet concept", http.MethodPost, "/twins/wallet/"+s.ids["walletTwin"]+"/concept", map[string]any{"conceptId": "wallet"})
@@ -251,6 +258,104 @@ func (s *Session) TransactionSum(query string) Response {
 // `observe:` step; the rebuild's parity test reads the same figure from the entity.
 func (s *Session) ObserveWallet() Response {
 	return s.call("observe: wallet twin", "substrate", http.MethodGet, s.cfg.SubstrateURL, "/twins/wallet/"+s.ids["walletTwin"], nil, false)
+}
+
+// Spec 025's pools. The original serves them on the balance route as major strings
+// (`depositPoolBalance`, `convertedPoolBalance`), a bet's deposit part as `fundedDepositAmount` and a
+// win's as `wonDepositAmount`. A transaction's parts (`funded_*`, `won_*`, `from_*`, `to_*`) are on
+// its twin only: the transactions route does not serve them.
+
+// Minor reads a field the original wrote in major units ("50.00") as minor units; ok is false
+// when the field is absent or not a number.
+func (r Response) Minor(field string) (int64, bool) {
+	text := r.Str(field)
+	if text == "" {
+		return 0, false
+	}
+	negative := strings.HasPrefix(text, "-")
+	whole, frac, _ := strings.Cut(strings.TrimPrefix(text, "-"), ".")
+	w, err := strconv.ParseInt(whole, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	f, err := strconv.ParseInt((frac + "00")[:2], 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	if negative {
+		return -(w*100 + f), true
+	}
+	return w*100 + f, true
+}
+
+// Pools reads the balance and returns the pools, checking that both are present and that they
+// sum to the real balance (features/wallet/pools.feature: "the two pools always sum to the real
+// balance", asserted on every read).
+func (s *Session) Pools() (deposit, converted int64) {
+	s.t.Helper()
+	r := s.Balance()
+	s.Want(r, 200)
+	d, okD := r.Minor("depositPoolBalance")
+	c, okC := r.Minor("convertedPoolBalance")
+	balance, _ := r.Minor("realBalance")
+	if !okD || !okC {
+		s.t.Errorf("the balance carries no pools: %s", r.Raw)
+	} else if d+c != balance {
+		s.t.Errorf("the pools %d + %d do not sum to the real balance %d", d, c, balance)
+	}
+	return d, c
+}
+
+// PoolsAre reads the balance and checks the pools.
+func (s *Session) PoolsAre(deposit, converted int64) {
+	s.t.Helper()
+	if d, c := s.Pools(); d != deposit || c != converted {
+		s.t.Errorf("pools: deposit %d, converted %d; the feature says %d and %d", d, c, deposit, converted)
+	}
+}
+
+// PoolsRose reads the balance and checks that each pool rose by its amount since `before`.
+func (s *Session) PoolsRose(beforeDeposit, beforeConverted, deposit, converted int64) {
+	s.t.Helper()
+	s.PoolsAre(beforeDeposit+deposit, beforeConverted+converted)
+}
+
+// DepositPart checks a bet's `fundedDepositAmount` or a win's `wonDepositAmount`.
+func (s *Session) DepositPart(r Response, field string, want int64) {
+	s.t.Helper()
+	if got, ok := r.Minor(field); !ok || got != want {
+		s.t.Errorf("%s: %q; the feature says %d", field, r.Str(field), want)
+	}
+}
+
+// ConvertedPool puts `amount` in the converted pool by the original's own rule: an award of
+// `amount` + 100 with no wagering requirement converts on the first bet it funds (100 from the
+// record, real balance 0), the rest joining the converted pool; its pending cap is then closed and
+// the round settled, so nothing of it is left to touch a later step. Call it before any deposit.
+func (s *Session) ConvertedPool(amount int64) {
+	s.t.Helper()
+	if amount <= 0 {
+		return
+	}
+	s.Want(s.AwardBonus("converted", Award{Amount: amount + 100, WageringMultiplier: 0, MaxWin: amount + 100}), 200)
+	s.Want(s.Bet("converted-round", 100, BetOptions{}), 200)
+	s.Want(s.SettleLoss("converted-round"), 200)
+	s.Want(s.ClosePendingCap(), 200)
+}
+
+// StartingPools makes the feature's starting pools: the converted pool by ConvertedPool, then the
+// deposit pool by a deposit.
+func (s *Session) StartingPools(deposit, converted int64) {
+	s.t.Helper()
+	s.ConvertedPool(converted)
+	s.Funded(deposit)
+	s.PoolsAre(deposit, converted)
+}
+
+// Shortfall is a correction debit allowed to take real balance negative: the original's
+// allow-negative bet.
+func (s *Session) Shortfall(round string, amount int64) Response {
+	return s.Bet(round, amount, BetOptions{AllowNegative: true})
 }
 
 func ptr[T any](v T) *T { return &v }

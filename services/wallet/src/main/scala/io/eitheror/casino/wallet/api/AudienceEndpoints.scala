@@ -16,11 +16,12 @@ import io.eitheror.casino.wallet.wire.*
 import java.time.Instant
 
 /** The player site's and backoffice's amounts: major units with two decimals (FR-003). */
-final case class MajorBalance(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary])
+final case class MajorBalance(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary],
+    depositPoolBalance: String, convertedPoolBalance: String)
 final case class MajorPrimary(grantRef: String, status: String, wageringRequirement: String, wagered: String, progressPercent: Long)
 final case class MajorTransaction(transactionId: String, `type`: String, walletType: String, amount: String, balanceBefore: String,
     balanceAfter: String, status: String, roundId: Option[String], awardRef: Option[String], paymentReference: Option[String],
-    createdAt: String)
+    createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String)
 final case class MajorTransactions(transactions: Vector[MajorTransaction], page: Int, pageSize: Int, total: Long)
 final case class MajorLifetime(totalDeposited: String, totalWagered: String, totalWon: String)
 final case class OperatorAdjustRequest(key: Option[String], walletType: String = "real", amount: String, reason: String = "", category: String = "other")
@@ -37,11 +38,13 @@ private[api] object Major:
 
   def balance(b: Balance): MajorBalance =
     MajorBalance(Wire.major(b.realBalance), Wire.major(b.restrictedBalance), b.currency,
-      b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement), Wire.major(p.wagered), p.progressPercent)))
+      b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement), Wire.major(p.wagered), p.progressPercent)),
+      Wire.major(b.depositPoolBalance), Wire.major(b.convertedPoolBalance))
 
   def transactions(p: TransactionsPage): MajorTransactions =
     MajorTransactions(p.transactions.map(r => MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount),
-      Wire.major(r.balanceBefore), Wire.major(r.balanceAfter), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt)),
+      Wire.major(r.balanceBefore), Wire.major(r.balanceAfter), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
+      Wire.major(r.depositPart), Wire.major(r.convertedPart), Wire.major(r.depositPoolAfter), Wire.major(r.convertedPoolAfter))),
       p.page, p.pageSize, p.total)
 
   /** "10.00" → 1000: at most two decimals; anything else names the amount (spec 001 FR-026). */

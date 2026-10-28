@@ -50,6 +50,16 @@ class WireTranslationSuite extends munit.FunSuite:
     assertEquals(differences, Vector.empty)
   }
 
+  test("spec 025: the pools and the deposit parts are read back as the original's decimals, and a wrong pool is a difference") {
+    val request  = Recording.Request("POST", "/v1/wallet/spinvibe/p1/EUR/bet", Map.empty, json("""{"roundId":"r1","gameId":"g","amount":"10.00"}"""))
+    val expected = Recording.Response(200, json("""{"realBalance":"90.00","depositPoolBalance":"60.00","convertedPoolBalance":"30.00","fundedDepositAmount":"4.00"}"""))
+    val t        = WireTranslation.request("s", 0, request, "goldvibe")
+    val observed = Recording.Response(200, json("""{"realBalance":9000,"depositPoolBalance":6000,"convertedPoolBalance":3000,"fundedDepositAmount":400,"realLeg":1000}"""))
+    assertEquals(WireTranslation.answer(t, expected, observed).body, expected.body)
+    val drifted = Recording.Response(200, json("""{"realBalance":9000,"depositPoolBalance":5000,"convertedPoolBalance":4000,"fundedDepositAmount":400}"""))
+    assertEquals(WireTranslation.answer(t, expected, drifted).body.get.get("depositPoolBalance").asText(), "50.00")
+  }
+
   test("a real difference survives the translation and is named by its path") {
     val wrong = Recording.Response(200, json("""{"realBalance":9100,"bonusBalance":0,"walletType":"real"}"""))
     val t     = WireTranslation.request("s", 1, recording.steps(1).request, "goldvibe")

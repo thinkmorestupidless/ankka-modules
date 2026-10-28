@@ -3,7 +3,7 @@ package io.eitheror.casino.wallet.entity.fixtures
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
 import io.eitheror.casino.wallet.entity.*
-import io.eitheror.casino.wallet.funding.{Clawback, Leg, Record, Resolver, Status}
+import io.eitheror.casino.wallet.funding.{Clawback, Leg, Parts, Record, Resolver, Status}
 
 import java.time.Instant
 import scala.jdk.CollectionConverters.*
@@ -24,6 +24,23 @@ import scala.jdk.CollectionConverters.*
  */
 object FixtureRunner:
 
+  /**
+   * Why a case the original's fixtures gained after spec 002's conversion (2026-10-09) is not run
+   * (spec 025 research R6): the original moved on in four areas, which a later amendment of spec 002
+   * takes up; the pools are built on spec 002's model, not the original's current one.
+   */
+  object Since002:
+    private val prefix = "original feature after spec 002's conversion; a later amendment of spec 002"
+    val TwoRecords: String =
+      s"$prefix: with two open records only the primary funds, is credited and is projected (queued records, `open_restricted_funds_refs`)"
+    val CapCloseAtZero: String = s"$prefix: a pending-cap record closes when real balance reaches zero (the original's spec 251)"
+    val WithdrawalPlans: String =
+      s"$prefix: withdrawal plans (cap draws planned at the request and applied at completion, refunds of `requested_amount`, legacy voids, the request twin's own lifecycle)"
+    val TurnoverLedger: String = s"$prefix: deposit turnover as a ledger per deposit record (869ev4rgz)"
+
+  /** Why the original's unstamped-wallet cases are not run (spec 025 clarification 2026-10-28). */
+  val NoUnstampedWallet: String = "no unstamped wallet (spec 025 clarification 2026-10-28): every wallet has its pools"
+
   final case class Mutation(index: Int, op: String, target: String, properties: JsonNode)
 
   final case class Case(handler: String, name: String, line: Int, twins: Vector[JsonNode], command: String, params: JsonNode,
@@ -39,6 +56,11 @@ object FixtureRunner:
     /** The new transactions the case asserts, of one type. */
     def transactions(kind: String): Vector[JsonNode] =
       mutations.filter(m => m.op == "set_properties" && m.target.startsWith("transaction.new-id") && text(m.properties, "type").contains(kind))
+        .map(_.properties)
+
+    /** The new transactions that assert a movement's parts under `prefix` (`funded`, `won`, `from`), of any type (spec 025). */
+    def partsTransactions(prefix: String): Vector[JsonNode] =
+      mutations.filter(m => m.op == "set_properties" && m.target.startsWith("transaction.new-id") && m.properties.has(s"${prefix}_deposit_amount"))
         .map(_.properties)
 
     def at: Instant =
@@ -150,17 +172,41 @@ object FixtureRunner:
     }
     val betKey = text(p, "bet_tx_id").getOrElse("bet")
     Bet(betKey, text(p, "round_id").get, s"tx-$betKey", realLeg + legTotal, realLeg, recordLegs, contributions,
-      Resolver.fundingWalletType(realLeg, recordLegs), BetStatus.Open, "s", "g", DefaultAt.minusSeconds(60))
+      Resolver.fundingWalletType(realLeg, recordLegs), BetStatus.Open, "s", "g", DefaultAt.minusSeconds(60),
+      parts = betParts(long(p, "funded_deposit_amount"), long(p, "funded_converted_amount"), realLeg))
 
-  /** The `open-migrated` command that puts a fixture's wallet in its starting state. */
+  /**
+   * The parts a fixture's open bet recorded (spec 025), as the original's `RealSplitFromParams` reads
+   * them: no real leg is (0, 0); neither part given is none recorded; otherwise the deposit part,
+   * clamped to the leg, and the rest converted.
+   */
+  def betParts(deposit: Option[Long], converted: Option[Long], realLeg: Long): Option[Parts] =
+    if realLeg <= 0 then Some(Parts.zero)
+    else if deposit.forall(_ <= 0) && converted.forall(_ <= 0) then None
+    else
+      val d = math.min(math.max(deposit.getOrElse(0L), 0L), realLeg)
+      Some(Parts(d, realLeg - d))
+
+  /**
+   * The `open-migrated` command that puts a fixture's wallet in its starting state. A stamped twin
+   * (`deposit_pool_balance` and `converted_pool_balance`) opens with its pools; an unstamped one opens
+   * all deposit (a negative real balance all converted), because the original's unstamped wallet
+   * treats its whole real balance as deposit-origin (`AttributableStake`, `AttributableCash`) and the
+   * fixtures written before the pools rely on that. The migration's own rule for an unstamped
+   * wallet is the opposite, all converted (spec 025 FR-007); that one is tested in `PoolsFeatures`.
+   */
   def opening(c: Case, records: Vector[AwardedRecord], openBets: Vector[Bet] = Vector.empty,
       withdrawals: Vector[WithdrawalRequest] = Vector.empty): OpenMigrated =
     val w          = c.wallet
     val restricted = long(w, "restricted_balance").orElse(long(w, "bonus_balance")).getOrElse(0L)
     val anyOpen    = records.exists(a => Status.isOpen(a.status))
+    val real       = long(w, "real_balance").getOrElse(0L)
+    val (deposit, converted) = (long(w, "deposit_pool_balance"), long(w, "converted_pool_balance")) match
+      case (Some(d), Some(c)) => (d, c)
+      case _                  => if real >= 0 then (real, 0L) else (0L, real)
     OpenMigrated(
       key = "fixture-opening",
-      realBalance = long(w, "real_balance").getOrElse(0L),
+      realBalance = real,
       depositTurnoverPending = long(w, "deposit_turnover_pending").getOrElse(0L),
       records = records,
       totalDeposits = 0L,
@@ -169,7 +215,9 @@ object FixtureRunner:
       at = DefaultAt.minusSeconds(3600),
       openBets = openBets,
       withdrawals = withdrawals,
-      pendingRequestId = text(w, "pending_withdrawal_request_ref")
+      pendingRequestId = text(w, "pending_withdrawal_request_ref"),
+      depositPool = Some(deposit),
+      convertedPool = Some(converted)
     )
 
   /** A baseline that makes the wallet's own formula (FR-015a) yield `clawback` with no deposits since award. */

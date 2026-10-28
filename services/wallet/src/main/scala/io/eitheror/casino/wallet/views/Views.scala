@@ -7,6 +7,7 @@ import io.eitheror.casino.contract.personal.Personal.given
 import io.eitheror.casino.wallet.Ids
 import io.eitheror.casino.wallet.entity.{WalletEntity, WalletEvent}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
+import io.eitheror.casino.wallet.funding.Parts
 
 import java.time.{Instant, ZoneOffset}
 
@@ -35,7 +36,15 @@ final case class TransactionRow(
     createdAt: String,
     createdAtMillis: Long,
     /** For a bet: its key, so a win or rollback can find its row. */
-    betKey: Option[String] = None
+    betKey: Option[String] = None,
+    /**
+     * Spec 025: the movement's parts (0 where it moves no real balance) and both pools after it, as
+     * the original's transaction carries `funded_*`, `won_*`, `from_*` and `to_*`.
+     */
+    depositPart: Long = 0L,
+    convertedPart: Long = 0L,
+    depositPoolAfter: Long = 0L,
+    convertedPoolAfter: Long = 0L
 )
 
 /** The original's transaction types. */
@@ -64,6 +73,37 @@ object TransactionRows:
       TransactionRow(txId, walletId, playerId, currency, kind, walletType, amount, before, after, status,
         createdAt = at.toString, createdAtMillis = at.toEpochMilli)
 
+    // Spec 025: the pools after the event, and each row's parts.
+    def pooled(rows: Vector[TransactionRow], depositAfter: Long, convertedAfter: Long, parts: Parts*): Vector[TransactionRow] =
+      rows.zipWithIndex.map { (r, i) =>
+        val p = parts.lift(i).getOrElse(Parts.zero)
+        r.copy(depositPart = p.deposit, convertedPart = p.converted, depositPoolAfter = depositAfter, convertedPoolAfter = convertedAfter)
+      }
+
+    event match
+      case e: DepositConfirmed  => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: BetPlaced         => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.bet.parts.getOrElse(Parts.zero))
+      case e: WinCredited       => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: BetRolledBack     => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: RoundSettledAsLoss => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter)
+      case e: RestrictedFundsAwarded   => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter)
+      case e: RestrictedFundsForfeited => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter)
+      case e: RestrictedFundsCancelled => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: HoldPlaced =>
+        // The withdrawal row is the paid amount's; the void row, when there is one, the void's.
+        val rows = plain(walletId, e, row)
+        if e.voided > 0 then pooled(rows, e.depositAfter, e.convertedAfter, e.paidParts, e.voidedParts)
+        else pooled(rows, e.depositAfter, e.convertedAfter, e.paidParts)
+      case e: HoldReleased       => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: WithdrawalReversed => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: AdminAdjusted      => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: ProviderCredited   => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case _                     => Vector.empty
+
+  private type Row = (String, String, String, Long, Long, Long, String, Instant) => TransactionRow
+
+  /** The rows as the original writes them, before the pools. */
+  private def plain(walletId: String, event: WalletEvent, row: Row): Vector[TransactionRow] =
     event match
       case e: DepositConfirmed =>
         Vector(row(e.transactionId, TransactionType.Deposit, "real", e.amount, e.realAfter - e.amount, e.realAfter, "completed", e.at)

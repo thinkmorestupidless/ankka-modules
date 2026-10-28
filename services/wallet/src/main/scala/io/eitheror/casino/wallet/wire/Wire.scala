@@ -89,7 +89,12 @@ final case class MoneyReply(
     depositSums: Option[DepositSums] = None,
     closedRecordId: Option[String] = None,
     balanceBefore: Option[Long] = None,
-    balanceAfter: Option[Long] = None
+    balanceAfter: Option[Long] = None,
+    /** Spec 025: both pools after the command, and the deposit part of a bet's real leg or a win's real share. */
+    depositPoolBalance: Option[Long] = None,
+    convertedPoolBalance: Option[Long] = None,
+    fundedDepositAmount: Option[Long] = None,
+    wonDepositAmount: Option[Long] = None
 )
 
 /** A refusal: the original's `error` code, the message, and the amounts it names. */
@@ -126,7 +131,10 @@ object Wire:
           confirmationRequired = o.confirmationRequired, voidedAmount = o.voided, paidAmount = o.paid,
           cancelGrants = o.cancelGrants, landedOn = o.landedOn, depositOrdinal = o.depositOrdinal,
           turnoverRequired = o.turnoverRequired, depositSums = o.depositSums, closedRecordId = o.closedRecordId,
-          balanceBefore = o.balanceBefore, balanceAfter = o.balanceAfter
+          balanceBefore = o.balanceBefore, balanceAfter = o.balanceAfter,
+          depositPoolBalance = o.depositPool, convertedPoolBalance = o.convertedPool,
+          fundedDepositAmount = o.parts.filter(_ => o.commandType == "place-bet").map(_.deposit),
+          wonDepositAmount = o.parts.filter(_ => o.commandType == "credit-win").map(_.deposit)
         ))
 
   /** The boundary refusal for an amount that is not whole minor units (spec 001 FR-026). */

@@ -37,6 +37,7 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           records = e.records, totalDeposits = e.totalDeposits, depositOrdinal = e.depositOrdinal,
           restrictedWithoutRecords = e.restrictedWithoutRecords, openBets = e.openBets,
           withdrawals = e.withdrawals.map(w => w.requestId -> w).toMap, pendingRequestId = e.pendingRequestId)
+          .withPools(e.depositPool, e.convertedPool)
           .remember(e.key, e.digest, e.outcome)
 
       case e: DepositConfirmed =>
@@ -49,6 +50,7 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         s.copy(created = true, realBalance = e.realAfter, depositTurnoverPending = s.depositTurnoverPending + e.requiredTurnover,
           records = capped, totalDeposits = s.totalDeposits + e.amount, depositOrdinal = e.depositOrdinal)
           .withDeposit(DepositRecord(e.key, e.amount, e.terms, e.requiredTurnover, if cleared then "CLEARED" else "PENDING", e.at))
+          .withPools(e.depositAfter, e.convertedAfter)
           .remember(e.key, e.digest, e.outcome)
 
       case e: BetPlaced =>
@@ -56,16 +58,20 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         val deposits = if pending == 0 then s.recentDeposits.map(_.copy(status = "CLEARED")) else s.recentDeposits
         s.withUpdates(e.recordUpdates)
           .copy(realBalance = e.realAfter, depositTurnoverPending = pending, recentDeposits = deposits, openBets = s.openBets :+ e.bet)
+          .withPools(e.depositAfter, e.convertedAfter)
           .remember(e.key, e.digest, e.outcome)
 
       case e: WinCredited =>
-        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).settle(e.settledBets, BetStatus.Settled).remember(e.key, e.digest, e.outcome)
+        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).settle(e.settledBets, BetStatus.Settled)
+          .withPools(e.depositAfter, e.convertedAfter).closingTurnover(e.turnoverClosed).remember(e.key, e.digest, e.outcome)
 
       case e: BetRolledBack =>
-        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).settle(e.voidedBets, BetStatus.Voided).remember(e.key, e.digest, e.outcome)
+        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).settle(e.voidedBets, BetStatus.Voided)
+          .withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
 
       case e: RoundSettledAsLoss =>
-        s.withUpdates(e.recordUpdates).settle(e.lostBets, BetStatus.Loss).remember(e.key, e.digest, e.outcome)
+        s.withUpdates(e.recordUpdates).settle(e.lostBets, BetStatus.Loss).closingTurnover(e.turnoverClosed)
+          .remember(e.key, e.digest, e.outcome)
 
       case e: RestrictedFundsAwarded =>
         s.copy(created = true, records = s.records :+ e.awarded).remember(e.key, e.digest, e.outcome)
@@ -74,7 +80,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).remember(e.key, e.digest, e.outcome)
 
       case e: RestrictedFundsCancelled =>
-        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).remember(e.key, e.digest, e.outcome)
+        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter)
+          .remember(e.key, e.digest, e.outcome)
 
       case e: PendingCapClosed =>
         s.withUpdates(e.recordUpdates).remember(e.key, e.digest, e.outcome)
@@ -86,14 +93,16 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       case e: HoldPlaced =>
         val request = WithdrawalRequest(e.requestId, e.transactionId, e.amount, RequestStatus.Pending, e.at,
           forfeited = e.forfeits.map(_.recordId), clawbackApplied = e.clawback, voided = e.voided,
-          confirmationRequired = e.confirmationRequired)
+          confirmationRequired = e.confirmationRequired, paidParts = e.paidParts, voidedParts = e.voidedParts)
         s.withUpdates(e.recordUpdates)
           .copy(realBalance = e.realAfter, withdrawals = s.withdrawals.updated(e.requestId, request), pendingRequestId = Some(e.requestId))
+          .withPools(e.depositAfter, e.convertedAfter)
           .remember(e.key, e.digest, e.outcome)
 
       case e: HoldReleased =>
         s.copy(realBalance = e.realAfter, pendingRequestId = None,
           withdrawals = s.withdrawals.updatedWith(e.requestId)(_.map(_.copy(status = RequestStatus.Released, closedAt = Some(e.at)))))
+          .withPools(e.depositAfter, e.convertedAfter)
           .remember(e.key, e.digest, e.outcome)
 
       case e: HoldConfirmed =>
@@ -104,13 +113,16 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       case e: WithdrawalReversed =>
         s.copy(realBalance = e.realAfter,
           withdrawals = s.withdrawals.updatedWith(e.requestId)(_.map(_.copy(status = RequestStatus.Reversed))))
+          .withPools(e.depositAfter, e.convertedAfter)
           .remember(e.key, e.digest, e.outcome)
 
       case e: AdminAdjusted =>
-        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).remember(e.key, e.digest, e.outcome)
+        s.withUpdates(e.recordUpdates).copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter)
+          .closingTurnover(e.turnoverClosed).remember(e.key, e.digest, e.outcome)
 
       case e: ProviderCredited =>
-        s.withUpdates(e.recordUpdates).copy(created = true, realBalance = e.realAfter).remember(e.key, e.digest, e.outcome)
+        s.withUpdates(e.recordUpdates).copy(created = true, realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter)
+          .remember(e.key, e.digest, e.outcome)
 
       case e: TurnoverOverrideSet =>
         s.copy(turnoverOverride = e.terms)
@@ -168,18 +180,36 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
     shares.headOption.filter(_ => walletType == "bonus").flatMap(l => s.record(l.recordId).map(a => (a.record.balance,
       updates.find(_.id == l.recordId).fold(a.record.balance)(_.balance)))).getOrElse((s.realBalance, realAfter))
 
+  /** An accepted outcome, with the pools as they stand; a command that moves them answers its own with `pooled`. */
   private def accepted(wireName: String, command: MoneyCommand, txId: Option[String], real: Long, restricted: Long): Outcome =
-    Outcome(commandType = wireName, amount = amountOf(command), transactionId = txId, realBalance = real, restrictedBalance = restricted)
+    val s = currentState
+    Outcome(commandType = wireName, amount = amountOf(command), transactionId = txId, realBalance = real, restrictedBalance = restricted,
+      depositPool = Some(s.depositPool), convertedPool = Some(s.convertedPool))
+
+  private def pooled(outcome: Outcome, pools: Pools): Outcome =
+    outcome.copy(depositPool = Some(pools.deposit), convertedPool = Some(pools.converted))
+
+  /** The pools a plan left, or the wallet's when the plan moved none. */
+  private def poolsAfter(plan: Option[Pools]): Pools = plan.getOrElse(currentState.pools)
 
   // ── migration ─────────────────────────────────────────────────────────────
 
   def openMigrated(c: OpenMigrated): Effect[Outcome] = keyed(c, "open-migrated") { digest =>
     if currentState.created then refuse(c, "open-migrated", digest, Refusals.WalletAlreadyOpen, Refusals.walletAlreadyOpen)
     else
-      val after   = WalletState(walletId, created = true, realBalance = c.realBalance, records = c.records, restrictedWithoutRecords = c.restrictedWithoutRecords)
-      val outcome = accepted("open-migrated", c, None, c.realBalance, after.restrictedBalance)
-      effects.persist(WalletOpenedFromMigration(c.key, digest, c.realBalance, c.depositTurnoverPending, c.records, c.totalDeposits,
-        c.depositOrdinal, c.restrictedWithoutRecords, c.at, outcome, c.openBets, c.withdrawals, c.pendingRequestId)).thenReply(_ => outcome)
+      // The original's pools for a wallet it stamped; one it never stamped opens all converted (spec 025 FR-011).
+      val opening = (c.depositPool, c.convertedPool) match
+        case (None, None)                => Right(Pools.allConverted(c.realBalance))
+        case (Some(deposit), Some(conv)) => Pools.consistent(Pools(deposit, conv), c.realBalance)
+        case _                           => Left(Deny(Codes.PoolsInvariant, "real-money pools: the opening names both pools or neither"))
+      opening match
+        case Left(deny) => refuseDeny(c, "open-migrated", digest, deny)
+        case Right(pools) =>
+          val after   = WalletState(walletId, created = true, realBalance = c.realBalance, records = c.records, restrictedWithoutRecords = c.restrictedWithoutRecords)
+          val outcome = pooled(accepted("open-migrated", c, None, c.realBalance, after.restrictedBalance), pools)
+          effects.persist(WalletOpenedFromMigration(c.key, digest, c.realBalance, c.depositTurnoverPending, c.records, c.totalDeposits,
+            c.depositOrdinal, c.restrictedWithoutRecords, c.at, outcome, c.openBets, c.withdrawals, c.pendingRequestId,
+            pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
 
   // ── deposits (FR-022) ─────────────────────────────────────────────────────
@@ -192,11 +222,16 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
     val txId     = transactionId(c.key)
     val real     = Math.addExact(s.realBalance, c.amount)
     val sums     = s.withDeposit(DepositRecord(c.key, c.amount, terms, required, "", c.at)).depositSums(c.at)
-    val outcome = accepted("deposit", c, Some(txId), real, s.restrictedBalance)
-      .copy(depositOrdinal = Some(ordinal), turnoverRequired = Some(required), depositSums = Some(sums),
-        balanceBefore = Some(s.realBalance), balanceAfter = Some(real))
-    effects.persist(DepositConfirmed(c.key, digest, txId, c.amount, c.paymentProvider, c.terminal, c.psp, c.scheme, terms, required,
-      ordinal, real, s.restrictedBalance, c.at, outcome)).thenReply(_ => outcome)
+    // The pools (spec 025 FR-007): a deposit joins the deposit pool.
+    val parts = Parts.ofDeposit(c.amount)
+    Pools.consistent(s.pools, s.realBalance).flatMap(Pools.credit(_, parts)) match
+      case Left(deny) => refuseDeny(c, "deposit", digest, deny)
+      case Right((pools, _)) =>
+        val outcome = pooled(accepted("deposit", c, Some(txId), real, s.restrictedBalance), pools)
+          .copy(depositOrdinal = Some(ordinal), turnoverRequired = Some(required), depositSums = Some(sums),
+            balanceBefore = Some(s.realBalance), balanceAfter = Some(real))
+        effects.persist(DepositConfirmed(c.key, digest, txId, c.amount, c.paymentProvider, c.terminal, c.psp, c.scheme, terms, required,
+          ordinal, real, s.restrictedBalance, c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
 
   // ── bets (FR-005 to FR-014) ───────────────────────────────────────────────
@@ -211,16 +246,19 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         case Left(deny) => refuseDeny(c, "place-bet", digest, deny)
         case Right(plan) =>
           val txId        = transactionId(c.key)
-          val reduced     = math.max(0L, math.min(plan.realLeg, s.depositTurnoverPending))
+          // Only the deposit part of the real leg counts toward deposit turnover (spec 025 FR-003a).
+          val reduced     = math.max(0L, math.min(plan.parts.deposit, s.depositTurnoverPending))
           val conversions = plan.converting.map(id => Leg(id, open.find(_.id == id).fold(0L)(_.balance) - Resolver.legAmount(plan.recordLegs, id)))
           val restricted  = s.withUpdates(plan.recordUpdates).restrictedBalance
+          val pools       = poolsAfter(plan.newPools)
           val bet = Bet(c.key, c.roundId, txId, c.amount, plan.realLeg, plan.recordLegs, plan.contributions, plan.walletType,
-            BetStatus.Open, c.sessionId, c.gameId, c.at)
-          val outcome = accepted("place-bet", c, Some(txId), plan.newRealBalance, restricted).copy(
+            BetStatus.Open, c.sessionId, c.gameId, c.at, Some(plan.parts))
+          val outcome = pooled(accepted("place-bet", c, Some(txId), plan.newRealBalance, restricted), pools).copy(
             walletType = Some(plan.walletType), realLeg = Some(plan.realLeg), recordLegs = plan.recordLegs,
-            conversions = plan.converting, balanceBefore = Some(plan.balanceBefore), balanceAfter = Some(plan.balanceAfter))
+            conversions = plan.converting, balanceBefore = Some(plan.balanceBefore), balanceAfter = Some(plan.balanceAfter),
+            parts = Some(plan.parts))
           effects.persist(BetPlaced(c.key, digest, bet, c.provider, conversions, plan.recordUpdates, reduced, plan.balanceBefore,
-            plan.balanceAfter, plan.newRealBalance, restricted, c.at, outcome)).thenReply(_ => outcome)
+            plan.balanceAfter, plan.newRealBalance, restricted, c.at, outcome, pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
 
   def creditWin(c: CreditWin): Effect[Outcome] = keyed(c, "credit-win") { digest =>
@@ -236,11 +274,13 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           val restricted = s.withUpdates(updates).restrictedBalance
           val txId       = transactionId(c.key)
           val (before, after) = transactionBalances(s, updates, plan.walletType, plan.recordShares, plan.newRealBalance)
-          val outcome = accepted("credit-win", c, Some(txId), plan.newRealBalance, restricted)
+          val pools           = poolsAfter(plan.newPools)
+          val outcome = pooled(accepted("credit-win", c, Some(txId), plan.newRealBalance, restricted), pools)
             .copy(walletType = Some(plan.walletType), recordLegs = plan.recordShares, realLeg = Some(plan.realShare),
-              balanceBefore = Some(before), balanceAfter = Some(after))
+              balanceBefore = Some(before), balanceAfter = Some(after), parts = Some(plan.parts))
           effects.persist(WinCredited(c.key, digest, txId, c.roundId, bets.head.gameId, c.amount, plan.realShare, plan.recordShares,
-            plan.walletType, bets.map(_.key), updates, plan.newRealBalance, restricted, c.at, outcome)).thenReply(_ => outcome)
+            plan.walletType, bets.map(_.key), updates, plan.newRealBalance, restricted, c.at, outcome, plan.parts, pools.deposit,
+            pools.converted, s.closesTurnover(pools.deposit, s.openBets.size - bets.size))).thenReply(_ => outcome)
   }
 
   def rollbackBet(c: RollbackBet): Effect[Outcome] = keyed(c, "rollback-bet") { digest =>
@@ -257,31 +297,33 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
     if targets.isEmpty then refuse(c, "rollback-bet", digest, Refusals.RoundNotFound, Refusals.roundNotFound(c.roundId))
     else
       // Each bet is restored in turn against the records as the previous one left them.
-      val start: Either[Deny, (Wallet, Vector[Record], Long, Vector[Leg], Set[String])] =
-        Right((s.fundingWallet, s.openRecords, 0L, Vector.empty, Set.empty))
+      val start: Either[Deny, (Wallet, Vector[Record], Long, Vector[Leg], Set[String], Parts)] =
+        Right((s.fundingWallet, s.openRecords, 0L, Vector.empty, Set.empty, Parts.zero))
       targets.foldLeft(start) { (acc, bet) =>
-        acc.flatMap { (w, recs, realRestored, restored, touched) =>
-          Resolver.rollbackBet(w, recs, Legs(bet.realLeg, bet.recordLegs), bet.contributions).map { plan =>
+        acc.flatMap { (w, recs, realRestored, restored, touched, parts) =>
+          Resolver.rollbackBet(w, recs, Legs(bet.realLeg, bet.recordLegs, bet.parts), bet.contributions).map { plan =>
             // A late rollback's round was already closed on its records: its count must not fall again.
             val updates = if late then plan.recordUpdates.map(u => restoreCount(u, recs, bet)) else plan.recordUpdates
             val next    = recs.map(r => updates.find(_.id == r.id).fold(r)(_.applyTo(r)))
-            (w.copy(realBalance = plan.newRealBalance), next, realRestored + plan.realRestored, restored ++ plan.recordRestored, touched ++ updates.map(_.id))
+            (w.copy(realBalance = plan.newRealBalance, pools = plan.newPools.orElse(w.pools)), next, realRestored + plan.realRestored,
+              restored ++ plan.recordRestored, touched ++ updates.map(_.id), parts + plan.parts)
           }
         }
       } match
         case Left(deny) => refuseDeny(c, "rollback-bet", digest, deny)
-        case Right((w, recs, realRestored, restored, touched)) =>
+        case Right((w, recs, realRestored, restored, touched, parts)) =>
+          val pools = w.pools.getOrElse(s.pools)
           val updates    = recs.filter(r => touched(r.id)).map(RecordUpdate.from(_, closedNow = false))
           val restricted = s.withUpdates(updates).restrictedBalance
           val txId       = transactionId(c.key)
           val amount     = targets.map(_.amount).sum
           val walletType      = Resolver.fundingWalletType(targets.map(_.realLeg).sum, targets.flatMap(_.recordLegs))
           val (before, after) = transactionBalances(s, updates, walletType, restored, w.realBalance)
-          val outcome = accepted("rollback-bet", c, Some(txId), w.realBalance, restricted).copy(amount = Some(amount),
+          val outcome = pooled(accepted("rollback-bet", c, Some(txId), w.realBalance, restricted), pools).copy(amount = Some(amount),
             realLeg = Some(realRestored), recordLegs = restored, walletType = Some(walletType),
             balanceBefore = Some(before), balanceAfter = Some(after))
           effects.persist(BetRolledBack(c.key, digest, txId, c.roundId, amount, realRestored, restored, targets.map(_.key), updates,
-            w.realBalance, restricted, c.at, outcome)).thenReply(_ => outcome)
+            w.realBalance, restricted, c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
 
   def settleLoss(c: SettleLoss): Effect[Outcome] = keyed(c, "settle-loss") { digest =>
@@ -309,7 +351,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           val outcome    = accepted("settle-loss", c, Some(txId), s.realBalance, restricted)
             .copy(forfeited = forfeitedIds, walletType = Some(walletType))
           effects.persist(RoundSettledAsLoss(c.key, digest, txId, c.roundId, bets.map(_.key), forfeits, updates, s.realBalance,
-            restricted, c.at, outcome)).thenReply(_ => outcome)
+            restricted, c.at, outcome, s.depositPool, s.convertedPool, s.closesTurnover(s.depositPool, s.openBets.size - bets.size)))
+            .thenReply(_ => outcome)
   }
 
   private def replayLosses(s: WalletState, bets: Vector[Bet]): Vector[RecordUpdate] =
@@ -324,15 +367,19 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
     val s = currentState
     if !s.created then refuse(c, "provider-credit", digest, Refusals.WalletNotFound, Refusals.walletNotFound)
     else
-      val plan       = Resolver.creditPrimary(s.fundingWallet, s.openRecords, c.amount)
-      val real       = if plan.target == "real" then plan.newRealBalance else s.realBalance
-      val restricted = s.withUpdates(plan.recordUpdates).restrictedBalance
-      val txId       = transactionId(c.key)
-      val (before, after) = if plan.target == "real" then (s.realBalance, real) else (plan.balanceBefore, plan.balanceAfter)
-      val outcome = accepted("provider-credit", c, Some(txId), real, restricted).copy(landedOn = Some(plan.target),
-        recordId = Option(plan.recordId).filter(_.nonEmpty), balanceBefore = Some(before), balanceAfter = Some(after))
-      effects.persist(ProviderCredited(c.key, digest, txId, c.amount, c.providerRef, c.reason, c.actorId, plan.target,
-        Option(plan.recordId).filter(_.nonEmpty), plan.recordUpdates, real, restricted, c.at, outcome)).thenReply(_ => outcome)
+      Resolver.creditPrimary(s.fundingWallet, s.openRecords, c.amount) match
+        case Left(deny) => refuseDeny(c, "provider-credit", digest, deny)
+        case Right(plan) =>
+          val real       = if plan.target == "real" then plan.newRealBalance else s.realBalance
+          val restricted = s.withUpdates(plan.recordUpdates).restrictedBalance
+          val txId       = transactionId(c.key)
+          val pools      = poolsAfter(plan.newPools)
+          val (before, after) = if plan.target == "real" then (s.realBalance, real) else (plan.balanceBefore, plan.balanceAfter)
+          val outcome = pooled(accepted("provider-credit", c, Some(txId), real, restricted), pools).copy(landedOn = Some(plan.target),
+            recordId = Option(plan.recordId).filter(_.nonEmpty), balanceBefore = Some(before), balanceAfter = Some(after))
+          effects.persist(ProviderCredited(c.key, digest, txId, c.amount, c.providerRef, c.reason, c.actorId, plan.target,
+            Option(plan.recordId).filter(_.nonEmpty), plan.recordUpdates, real, restricted, c.at, outcome, plan.parts,
+            pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
 
   // ── restricted funds (FR-015 to FR-021) ───────────────────────────────────
@@ -358,7 +405,7 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       val restricted = s.restrictedBalance + c.amount
       val outcome = accepted("award", c, Some(txId), s.realBalance, restricted)
         .copy(recordId = Some(txId), wageringRequirement = Some(record.releaseRequirement))
-      effects.persist(RestrictedFundsAwarded(c.key, digest, txId, awarded, s.realBalance, restricted, c.at, outcome)).thenReply(_ => outcome)
+      effects.persist(RestrictedFundsAwarded(c.key, digest, txId, awarded, s.realBalance, restricted, c.at, outcome, s.depositPool, s.convertedPool)).thenReply(_ => outcome)
   }
 
   def forfeitAward(c: ForfeitAward): Effect[Outcome] = keyed(c, "forfeit") { digest =>
@@ -371,7 +418,7 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         val forfeits   = plan.closedRecords.map(id => Forfeit(id, plan.forfeitedAmount, "", cancelGrant = false))
         val outcome    = accepted("forfeit", c, Some(txId), s.realBalance, restricted).copy(forfeited = plan.closedRecords)
         effects.persist(RestrictedFundsForfeited(c.key, digest, txId, forfeits, "forfeit", plan.recordUpdates, s.realBalance,
-          restricted, c.at, outcome)).thenReply(_ => outcome)
+          restricted, c.at, outcome, s.depositPool, s.convertedPool)).thenReply(_ => outcome)
   }
 
   def cancelAward(c: CancelAward): Effect[Outcome] = keyed(c, "cancel") { digest =>
@@ -387,10 +434,12 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         val restricted = s.withUpdates(plan.recordUpdates).restrictedBalance
         val txId       = transactionId(c.key)
         val forfeits = plan.closedRecords.map(id => Forfeit(id, s.openRecords.find(_.id == id).fold(0L)(_.balance), "", cancelGrant = false))
-        val outcome = accepted("cancel", c, Some(txId), plan.newRealBalance, restricted)
+        val pools = poolsAfter(plan.newPools)
+        val outcome = pooled(accepted("cancel", c, Some(txId), plan.newRealBalance, restricted), pools)
           .copy(forfeited = plan.closedRecords, clawbackApplied = Some(plan.clawbackApplied), balanceBefore = Some(plan.bonusBalanceBefore))
         effects.persist(RestrictedFundsCancelled(c.key, digest, txId, forfeits, plan.clawbackApplied, plan.bonusBalanceBefore,
-          plan.recordUpdates, plan.newRealBalance, restricted, c.at, outcome)).thenReply(_ => outcome)
+          plan.recordUpdates, plan.newRealBalance, restricted, c.at, outcome, plan.parts, pools.deposit, pools.converted))
+          .thenReply(_ => outcome)
   }
 
   def closePendingCap(c: ClosePendingCap): Effect[Outcome] = keyed(c, "close-pending-cap") { digest =>
@@ -445,14 +494,16 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       case Right(plan) =>
         val txId       = transactionId(c.key)
         val restricted = s.withUpdates(plan.recordUpdates).restrictedBalance
-        val outcome = accepted("hold", c, Some(txId), plan.newReal, restricted).copy(
+        val pools      = poolsAfter(plan.newPools)
+        val outcome = pooled(accepted("hold", c, Some(txId), plan.newReal, restricted), pools).copy(
           balanceBefore = Some(s.realBalance - plan.clawback), balanceAfter = Some(plan.newReal),
           confirmationRequired = Some(plan.requiresConfirmation), forfeited = plan.forfeits.map(_.recordId),
           clawbackApplied = Some(plan.clawback), voided = Some(plan.voided), paid = Some(plan.paid), cancelGrants = plan.cancelGrants,
           // An award a cancel_promotion policy forfeits is reported for cancellation with reason "withdrawal" (FR-023).
           details = if plan.cancelGrants.nonEmpty then Map("cancelReason" -> "withdrawal") else Map.empty)
         effects.persist(HoldPlaced(c.key, digest, txId, c.key, c.amount, plan.forfeits, plan.clawback, plan.capDraws, plan.voided,
-          plan.paid, plan.cancelGrants, plan.requiresConfirmation, plan.recordUpdates, plan.newReal, restricted, c.at, outcome))
+          plan.paid, plan.cancelGrants, plan.requiresConfirmation, plan.recordUpdates, plan.newReal, restricted, c.at, outcome,
+          plan.clawbackParts, plan.voidedParts, plan.paidParts, pools.deposit, pools.converted))
           .thenReply(_ => outcome)
   }
 
@@ -466,7 +517,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           forfeited.map(_.balance).sum, math.max(0L, s.realBalance - holdClawback(s)), Vector.empty))
       case Right(plan) =>
         effects.reply(HoldPreview(None, None, plan.requiresConfirmation, bonus, plan.clawback, plan.forfeits.map(_.amount).sum,
-          math.max(0L, s.realBalance - plan.clawback), plan.forfeits))
+          math.max(0L, s.realBalance - plan.clawback), plan.forfeits, Some(plan.clawbackParts.deposit),
+          Some(plan.voidedParts.deposit), Some(plan.paidParts.deposit)))
 
   def release(c: Release): Effect[Outcome] = keyed(c, "release") { digest =>
     val s = currentState
@@ -476,13 +528,22 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         refuse(c, "release", digest, Refusals.RequestNotCancellable, Refusals.requestNotCancellable(c.requestId))
       case None => refuse(c, "release", digest, Refusals.RequestNotPending, Refusals.requestNotPending(c.requestId))
       case Some(request) =>
-        val txId    = transactionId(c.key)
-        val real    = Math.addExact(s.realBalance, request.amount)
-        val outcome = accepted("release", c, Some(txId), real, s.restrictedBalance)
-          .copy(amount = Some(request.amount), balanceBefore = Some(s.realBalance), balanceAfter = Some(real))
-        effects.persist(HoldReleased(c.key, digest, txId, c.requestId, request.amount, c.releasedAs, real, s.restrictedBalance, c.at, outcome))
-          .thenReply(_ => outcome)
+        val txId = transactionId(c.key)
+        val real = Math.addExact(s.realBalance, request.amount)
+        // The pools (spec 025 FR-008): the release credits the whole hold, so the paid and voided parts return.
+        returned(s, request.paidParts + request.voidedParts, request.amount) match
+          case Left(deny) => refuseDeny(c, "release", digest, deny)
+          case Right((pools, parts)) =>
+            val outcome = pooled(accepted("release", c, Some(txId), real, s.restrictedBalance), pools)
+              .copy(amount = Some(request.amount), balanceBefore = Some(s.realBalance), balanceAfter = Some(real))
+            effects.persist(HoldReleased(c.key, digest, txId, c.requestId, request.amount, c.releasedAs, real, s.restrictedBalance, c.at,
+              outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
+
+  /** Money a hold took, returned: its recorded parts when they are the amount, else all deposit (`Pools.restored`). */
+  private def returned(s: WalletState, recorded: Parts, amount: Long): Either[Deny, (Pools, Parts)] =
+    val parts = Pools.restored(recorded, amount)
+    Pools.consistent(s.pools, s.realBalance).flatMap(Pools.credit(_, parts))
 
   def confirm(c: Confirm): Effect[Outcome] = keyed(c, "confirm") { digest =>
     val s = currentState
@@ -504,12 +565,17 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         refuse(c, "reverse", digest, Refusals.WithdrawalNotCompleted, Refusals.withdrawalNotCompleted(c.requestId))
       case None => refuse(c, "reverse", digest, Refusals.WithdrawalNotCompleted, Refusals.withdrawalNotCompleted(c.requestId))
       case Some(request) =>
-        val txId    = transactionId(c.key)
-        val real    = Math.addExact(s.realBalance, request.amount)
-        val outcome = accepted("reverse", c, Some(txId), real, s.restrictedBalance)
-          .copy(amount = Some(request.amount), balanceBefore = Some(s.realBalance), balanceAfter = Some(real))
-        effects.persist(WithdrawalReversed(c.key, digest, txId, c.requestId, request.amount, real, s.restrictedBalance, c.at, outcome))
-          .thenReply(_ => outcome)
+        val txId = transactionId(c.key)
+        val real = Math.addExact(s.realBalance, request.amount)
+        // The pools (spec 025 FR-008): a reversal returns the paid parts; a hold that also voided is
+        // credited whole here (research R11), so its parts are not the amount and it returns to deposit.
+        returned(s, request.paidParts, request.amount) match
+          case Left(deny) => refuseDeny(c, "reverse", digest, deny)
+          case Right((pools, parts)) =>
+            val outcome = pooled(accepted("reverse", c, Some(txId), real, s.restrictedBalance), pools)
+              .copy(amount = Some(request.amount), balanceBefore = Some(s.realBalance), balanceAfter = Some(real))
+            effects.persist(WithdrawalReversed(c.key, digest, txId, c.requestId, request.amount, real, s.restrictedBalance, c.at,
+              outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
 
   // ── adjustments (FR-026) ──────────────────────────────────────────────────
@@ -521,12 +587,12 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
     else
       val txId = transactionId(c.key)
       def persistAdjusted(real: Long, recordId: Option[String], forfeited: Option[Forfeit], updates: Vector[RecordUpdate],
-          before: Long, after: Long) =
+          before: Long, after: Long, pools: Pools = s.pools, parts: Parts = Parts.zero, closes: Boolean = false) =
         val restricted = s.withUpdates(updates).restrictedBalance
-        val outcome = accepted("adjust", c, Some(txId), real, restricted).copy(recordId = recordId,
+        val outcome = pooled(accepted("adjust", c, Some(txId), real, restricted), pools).copy(recordId = recordId,
           forfeited = forfeited.map(_.recordId).toVector, balanceBefore = Some(before), balanceAfter = Some(after))
         effects.persist(AdminAdjusted(c.key, digest, txId, c.target, c.amount, Personal(c.reason), c.category, c.actorId, recordId,
-          forfeited, updates, real, restricted, c.at, outcome)).thenReply(_ => outcome)
+          forfeited, updates, real, restricted, c.at, outcome, parts, pools.deposit, pools.converted, closes)).thenReply(_ => outcome)
       c.target match
         case "restricted" =>
           Resolver.adjustRestricted(s.fundingWallet, s.openRecords, c.amount) match
@@ -543,7 +609,15 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
               Map("requestedAmount" -> (-c.amount).toString, "currentBalance" -> s.realBalance.toString))
           else
             val real = Math.addExact(s.realBalance, c.amount)
-            persistAdjusted(real, None, None, Vector.empty, s.realBalance, real)
+            // The pools (spec 025 FR-010): a credit joins deposit, a debit leaves deposit first.
+            val step = Pools.consistent(s.pools, s.realBalance).flatMap { p =>
+              if c.amount > 0 then Pools.credit(p, Parts.ofDeposit(c.amount)) else Pools.debit(p, -c.amount, convertedFirst = false)
+            }
+            step match
+              case Left(deny) => refuseDeny(c, "adjust", digest, deny)
+              case Right((pools, parts)) =>
+                persistAdjusted(real, None, None, Vector.empty, s.realBalance, real, pools, parts,
+                  closes = s.closesTurnover(pools.deposit, s.openBets.size))
   }
 
   def setTurnoverOverride(c: SetTurnoverOverride): Effect[Done] =
@@ -557,7 +631,7 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       val percent = if r.releaseRequirement == 0 then 100L else math.min(100L, r.releasedProgress * 100 / r.releaseRequirement)
       PrimaryStatus(r.id, r.grantRef, r.status, r.releaseRequirement, r.releasedProgress, percent)
     }
-    effects.reply(Balance(s.realBalance, s.restrictedBalance, s.currency, primary))
+    effects.reply(Balance(s.realBalance, s.restrictedBalance, s.currency, primary, s.depositPool, s.convertedPool))
 
   def restrictedFundsStatus: ReadOnlyEffect[RestrictedFundsStatus] =
     val s = currentState
@@ -660,7 +734,9 @@ object WalletEntity
         case -1 => acc :+ l
         case i  => acc.updated(i, Leg(l.recordId, acc(i).amount + l.amount))
     }
-    Legs(bets.map(_.realLeg).sum, records)
+    // The round's real legs' parts summed; a bet recorded before the pools leaves them unknown.
+    val parts = bets.foldLeft(Option(Parts.zero))((acc, b) => acc.flatMap(a => b.parts.map(a + _)))
+    Legs(bets.map(_.realLeg).sum, records, parts)
 
   /**
    * Each bet opened a round on every record it drew from; one win closes them all. The resolver

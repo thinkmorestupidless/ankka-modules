@@ -37,6 +37,8 @@ class InvariantsSuite extends ScalaCheckSuite:
   private final case class AdjustS(target: String, amount: Long) extends Step
   private final case class CreditS(amount: Long) extends Step
   private final case class RepeatS(back: Int) extends Step
+  /** A provider's correction debit: a bet that may take real balance negative (spec 025 FR-003). */
+  private final case class CorrectionS(amount: Long, round: Int) extends Step
 
   private val step: Gen[Step] = Gen.frequency(
     4 -> Gen.zip(Gen.choose(0L, 5000L), Gen.oneOf(0L, 0L, 1L)).map(DepositS.apply),
@@ -58,7 +60,8 @@ class InvariantsSuite extends ScalaCheckSuite:
     2 -> Gen.choose(1, 5).map(RepeatS.apply)
   )
 
-  private def run(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], steps: List[Step]): Unit =
+  private def run(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], steps: List[Step],
+      checkStep: (WalletState, Set[String], String) => Unit = check(_, _, _)): Unit =
     var sent = Vector.empty[MoneyCommand]
     steps.zipWithIndex.foreach { (s, i) =>
       val at  = t0.plusSeconds(i.toLong * 60)
@@ -69,6 +72,7 @@ class InvariantsSuite extends ScalaCheckSuite:
       val command: MoneyCommand = s match
         case DepositS(a, m)   => Deposit(key, a, "psp", "t1", "psp", "card", TurnoverTerms(m, "gross_wagered"), at)
         case BetS(a, r)       => PlaceBet(key, s"r$r", "slot", "s1", "prov", "slots", a, allowNegative = false, BetSwitches(), at)
+        case CorrectionS(a, r) => PlaceBet(key, s"r$r", "slot", "s1", "prov", "slots", a, allowNegative = true, BetSwitches(), at)
         case WinS(a, r)       => CreditWin(key, s"r$r", a, at)
         case RollbackS(r)     => RollbackBet(key, s"r$r", None, at)
         case LossS(r)         => SettleLoss(key, s"r$r", at)
@@ -86,7 +90,8 @@ class InvariantsSuite extends ScalaCheckSuite:
       val seenBefore = kit.currentState.seen.seen.keySet
       call(kit, command)
       sent :+= command
-      check(kit.currentState, seenBefore, s"after step $i: $s")
+      if s.isInstanceOf[CorrectionS] then sawCorrection = true
+      checkStep(kit.currentState, seenBefore, s"after step $i: $s")
     }
 
   private def call(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], c: MoneyCommand): Unit = c match
@@ -120,6 +125,27 @@ class InvariantsSuite extends ScalaCheckSuite:
     assert(s.depositTurnoverPending >= 0, s"deposit turnover pending below zero $where")
     assert(s.realBalance >= 0, s"real balance below zero with no correction debit $where: ${s.realBalance}")
     assert(seenBefore.subsetOf(s.seen.seen.keySet), s"a seen key was forgotten $where")
+    checkPools(s, where)
+    assert(s.convertedPool >= 0, s"converted pool below zero with no correction debit $where: ${s.pools}")
+
+  /**
+   * Spec 025 FR-001, FR-012: the two pools sum to real balance and the deposit pool is never
+   * negative, after every event; and no command was refused for a drifted pair, which would mean the
+   * wallet wrote one.
+   */
+  private def checkPools(s: WalletState, where: String): Unit =
+    assertEquals(s.depositPool + s.convertedPool, s.realBalance, s"deposit + converted == real balance $where: ${s.pools}")
+    assert(s.depositPool >= 0, s"deposit pool below zero $where: ${s.pools}")
+    val drifted = s.seen.seen.values.map(_.outcome).filter(_.code.contains(io.eitheror.casino.wallet.funding.Codes.PoolsInvariant))
+    assert(drifted.isEmpty, s"a command was refused POOLS_INVARIANT $where: $drifted")
+
+  /** With correction debits, real balance and the converted pool may go negative; the pools still hold. */
+  private def checkWithCorrections(s: WalletState, seenBefore: Set[String], where: String): Unit =
+    checkPools(s, where)
+    assert(s.convertedPool >= 0 || sawCorrection, s"converted pool negative with no correction debit $where")
+    assert(seenBefore.subsetOf(s.seen.seen.keySet), s"a seen key was forgotten $where")
+
+  private var sawCorrection = false
 
   private var accepted = 0L
   private var refused  = 0L
@@ -136,6 +162,24 @@ class InvariantsSuite extends ScalaCheckSuite:
     }
   }
 
+  property("the pools hold after every step when correction debits take real balance negative") {
+    val withCorrections = Gen.frequency(9 -> step, 2 -> Gen.zip(Gen.choose(1L, 9000L), Gen.choose(1, 4)).map(CorrectionS.apply))
+    Prop.forAll(Gen.choose(5, 60).flatMap(n => Gen.listOfN(n, withCorrections))) { steps =>
+      val kit = EventSourcedTestKit.of(WalletEntity, "inv/EUR")
+      kit.call(WalletEntity.deposit)(Deposit("seed", 5000, "psp", "t1", "psp", "card", TurnoverTerms(0, "gross_wagered"), t0))
+      sawCorrection = false
+      run(kit, steps, checkWithCorrections)
+      if kit.currentState.convertedPool < 0 then negativeConverted += 1
+      true
+    }
+  }
+
+  private var negativeConverted = 0
+
+  test("the correction sequences reached a negative converted pool") {
+    assert(negativeConverted > 0, "no sequence took the converted pool negative: the property tested nothing new")
+  }
+
   test("the sequences exercised the money path: most commands were accepted, some refused") {
     // A generator that only produced refusals would pass every invariant while testing nothing.
     assert(accepted > refused && refused > 0, s"accepted $accepted, refused $refused")
@@ -147,4 +191,6 @@ class InvariantsSuite extends ScalaCheckSuite:
     intercept[AssertionError](check(WalletState("x/EUR", records = Vector(record), openBets = Vector(bet)), Set.empty, "planted"))
     intercept[AssertionError](check(WalletState("x/EUR", realBalance = -1), Set.empty, "planted"))
     intercept[AssertionError](check(WalletState("x/EUR"), Set("k-1"), "planted"))
+    intercept[AssertionError](check(WalletState("x/EUR", realBalance = 100, depositPool = 60, convertedPool = 30), Set.empty, "planted"))
+    intercept[AssertionError](check(WalletState("x/EUR", realBalance = 100, depositPool = -10, convertedPool = 110), Set.empty, "planted"))
   }

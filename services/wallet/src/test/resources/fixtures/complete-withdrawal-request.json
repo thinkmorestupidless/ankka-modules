@@ -2,46 +2,435 @@
   "handler" : "complete-withdrawal-request",
   "source" : "eitheror-platform/starter-packs/wallet/handlers/complete-withdrawal-request.test.tl",
   "cases" : [ {
-    "name" : "happy path — completes an approved withdrawal request and clears pending ref",
-    "line" : 1,
+    "name" : "exhausting draw — closes the record, prunes the wallet refs, reports closed_records",
+    "line" : 11,
     "given" : [ {
-      "id" : "wallet/test1",
-      "real_balance" : 400.00,
-      "bonus_balance" : 0.00,
-      "pending_withdrawal_request_ref" : "withdrawal-request.test-123",
-      "player_id" : "p1",
+      "id" : "wallet/c1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/c1|",
+      "pending_withdrawal_request_ref" : "withdrawal-request.c1",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pc1",
       "brand_id" : "testbrand",
       "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/c1",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gc1",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 5000,
+      "deposits_since_release" : 30000,
+      "open_round_count" : 0
+    }, {
+      "id" : "withdrawal-request.c1",
+      "concepts" : [ "WithdrawalRequest" ],
+      "requested_amount" : 35000,
+      "amount" : 30000,
+      "voided_amount" : 5000,
+      "cap_draws" : "|restricted-funds/c1:30000:5000:1|",
+      "currency" : "GBP",
+      "status" : "APPROVED"
     } ],
     "when" : {
       "command" : "CompleteWithdrawalRequest",
       "params" : {
-        "request_id" : "withdrawal-request.test-123",
-        "resolved_at" : "2026-06-15T12:00:00Z"
+        "request_id" : "withdrawal-request.c1",
+        "resolved_at" : "2026-10-14T12:00:00Z"
       }
     },
     "then" : {
       "mutations" : [ {
         "index" : 0,
         "op" : "set_properties",
-        "target" : "withdrawal-request.test-123",
+        "target" : "restricted-funds/c1",
         "properties" : {
-          "status" : "COMPLETED",
-          "resolved_at" : "2026-06-15T12:00:00Z"
+          "status" : "CLOSED",
+          "deposits_since_release" : 0,
+          "remaining_allowance" : 0,
+          "closed_at" : "2026-10-14T12:00:00Z",
+          "updated_at" : "2026-10-14T12:00:00Z"
         }
       }, {
         "index" : 1,
         "op" : "set_properties",
-        "target" : "wallet/test1",
+        "target" : "withdrawal-request.c1",
+        "properties" : {
+          "status" : "COMPLETED",
+          "resolved_at" : "2026-10-14T12:00:00Z",
+          "applied_cap_draws" : "|restricted-funds/c1:30000:5000:1|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/c1",
+        "properties" : {
+          "pending_withdrawal_request_ref" : null,
+          "open_restricted_funds_refs" : ""
+        }
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request.c1",
+        "status" : "COMPLETED",
+        "closed_records" : "|restricted-funds/c1|"
+      },
+      "error" : null,
+      "mutation_count" : 3
+    }
+  }, {
+    "name" : "partial draw — record stays open with reduced deposits and allowance; refs untouched",
+    "line" : 62,
+    "given" : [ {
+      "id" : "wallet/c2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/c2|",
+      "pending_withdrawal_request_ref" : "withdrawal-request.c2",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pc2",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/c2",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gc2",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 5000,
+      "deposits_since_release" : 30000,
+      "open_round_count" : 0
+    }, {
+      "id" : "withdrawal-request.c2",
+      "concepts" : [ "WithdrawalRequest" ],
+      "requested_amount" : 12000,
+      "amount" : 12000,
+      "voided_amount" : 0,
+      "cap_draws" : "|restricted-funds/c2:10000:2000:0|",
+      "currency" : "GBP",
+      "status" : "AWAITING_MANUAL_PAYOUT"
+    } ],
+    "when" : {
+      "command" : "CompleteWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.c2",
+        "resolved_at" : "2026-10-14T12:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/c2",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "deposits_since_release" : 20000,
+          "remaining_allowance" : 3000,
+          "updated_at" : "2026-10-14T12:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.c2",
+        "properties" : {
+          "status" : "COMPLETED",
+          "resolved_at" : "2026-10-14T12:00:00Z",
+          "applied_cap_draws" : "|restricted-funds/c2:10000:2000:0|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/c2",
         "properties" : {
           "pending_withdrawal_request_ref" : null
         }
       } ],
       "result" : {
-        "requestId" : "withdrawal-request.test-123",
-        "status" : "COMPLETED"
+        "requestId" : "withdrawal-request.c2",
+        "status" : "COMPLETED",
+        "closed_records" : ""
+      },
+      "error" : null,
+      "mutation_count" : 3
+    }
+  }, {
+    "name" : "deposits made while pending are preserved — the draw subtracts from current values",
+    "line" : 113,
+    "given" : [ {
+      "id" : "wallet/c3",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/c3|",
+      "pending_withdrawal_request_ref" : "withdrawal-request.c3",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pc3",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/c3",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/gc3",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 5000,
+      "deposits_since_release" : 45000,
+      "open_round_count" : 0
+    }, {
+      "id" : "withdrawal-request.c3",
+      "concepts" : [ "WithdrawalRequest" ],
+      "requested_amount" : 35000,
+      "amount" : 30000,
+      "voided_amount" : 5000,
+      "cap_draws" : "|restricted-funds/c3:30000:5000:1|",
+      "currency" : "GBP",
+      "status" : "APPROVED"
+    } ],
+    "when" : {
+      "command" : "CompleteWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.c3",
+        "resolved_at" : "2026-10-14T12:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/c3",
+        "properties" : {
+          "status" : "CLOSED",
+          "deposits_since_release" : 15000,
+          "remaining_allowance" : 0,
+          "closed_at" : "2026-10-14T12:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.c3",
+        "properties" : {
+          "status" : "COMPLETED",
+          "resolved_at" : "2026-10-14T12:00:00Z",
+          "applied_cap_draws" : "|restricted-funds/c3:30000:5000:1|"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/c3",
+        "properties" : {
+          "pending_withdrawal_request_ref" : null,
+          "open_restricted_funds_refs" : ""
+        }
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request.c3",
+        "status" : "COMPLETED",
+        "closed_records" : "|restricted-funds/c3|"
       },
       "error" : null
+    }
+  }, {
+    "name" : "legacy request (no cap_draws) — writes only status and the pending ref",
+    "line" : 163,
+    "given" : [ {
+      "id" : "wallet/c4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "pending_withdrawal_request_ref" : "withdrawal-request.c4",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pc4",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "withdrawal-request.c4",
+      "concepts" : [ "WithdrawalRequest" ],
+      "amount" : 30000,
+      "currency" : "GBP",
+      "status" : "APPROVED"
+    } ],
+    "when" : {
+      "command" : "CompleteWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.c4",
+        "resolved_at" : "2026-10-14T12:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.c4",
+        "properties" : {
+          "status" : "COMPLETED",
+          "resolved_at" : "2026-10-14T12:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/c4",
+        "properties" : {
+          "pending_withdrawal_request_ref" : null
+        }
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request.c4",
+        "status" : "COMPLETED",
+        "closed_records" : ""
+      },
+      "error" : null,
+      "mutation_count" : 2
+    }
+  }, {
+    "name" : "no-cap request (empty cap_draws) — completes with no record reads or writes",
+    "line" : 194,
+    "given" : [ {
+      "id" : "wallet/c5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/other|",
+      "pending_withdrawal_request_ref" : "withdrawal-request.c5",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pc5",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "withdrawal-request.c5",
+      "concepts" : [ "WithdrawalRequest" ],
+      "requested_amount" : 10000,
+      "amount" : 10000,
+      "voided_amount" : 0,
+      "cap_draws" : "",
+      "currency" : "GBP",
+      "status" : "APPROVED"
+    } ],
+    "when" : {
+      "command" : "CompleteWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.c5",
+        "resolved_at" : "2026-10-14T12:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.c5",
+        "properties" : {
+          "status" : "COMPLETED",
+          "resolved_at" : "2026-10-14T12:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/c5",
+        "properties" : {
+          "pending_withdrawal_request_ref" : null
+        }
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request.c5",
+        "status" : "COMPLETED",
+        "closed_records" : ""
+      },
+      "error" : null,
+      "mutation_count" : 2
+    }
+  }, {
+    "name" : "error — PENDING_REVIEW is WITHDRAWAL_NOT_COMPLETABLE",
+    "line" : 229,
+    "given" : [ {
+      "id" : "wallet/c6",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "pending_withdrawal_request_ref" : "withdrawal-request.c6",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pc6",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "withdrawal-request.c6",
+      "concepts" : [ "WithdrawalRequest" ],
+      "requested_amount" : 10000,
+      "amount" : 10000,
+      "voided_amount" : 0,
+      "cap_draws" : "",
+      "currency" : "GBP",
+      "status" : "PENDING_REVIEW"
+    } ],
+    "when" : {
+      "command" : "CompleteWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.c6",
+        "resolved_at" : "2026-10-14T12:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : null,
+      "error" : {
+        "code" : "WITHDRAWAL_NOT_COMPLETABLE",
+        "message" : "withdrawal request withdrawal-request.c6 is PENDING_REVIEW and cannot be completed"
+      }
+    }
+  }, {
+    "name" : "idempotent — a COMPLETED request returns idempotent with zero mutations",
+    "line" : 260,
+    "given" : [ {
+      "id" : "wallet/c7",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/c7|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "pc7",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "withdrawal-request.c7",
+      "concepts" : [ "WithdrawalRequest" ],
+      "requested_amount" : 35000,
+      "amount" : 30000,
+      "voided_amount" : 5000,
+      "cap_draws" : "|restricted-funds/c7:30000:5000:1|",
+      "currency" : "GBP",
+      "status" : "COMPLETED"
+    } ],
+    "when" : {
+      "command" : "CompleteWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request.c7",
+        "resolved_at" : "2026-10-14T12:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ ],
+      "result" : {
+        "requestId" : "withdrawal-request.c7",
+        "status" : "COMPLETED",
+        "idempotent" : "true"
+      },
+      "error" : null,
+      "mutation_count" : 0
     }
   } ]
 }

@@ -18,6 +18,12 @@ import scala.jdk.CollectionConverters.*
  *  - a key the original minted is the step's own (`<scenario>#<step>`), so two identical requests are
  *    two commands, as they were in the original;
  *  - the answer keeps only the fields the original answered: the rebuild may say more, never less.
+ *
+ * Spec 025's pools (`depositPoolBalance`, `convertedPoolBalance`) and deposit parts
+ * (`fundedDepositAmount`, `wonDepositAmount`) carry the original's names, so the decimal rule above
+ * is their whole translation. The parts of a transaction row are not on the original's
+ * transactions route (its rows carry no `funded_*`, `won_*`, `from_*` or `to_*`); a recording sees
+ * them only on the twin, in `observe:` steps, which replay skips.
  */
 object WireTranslation:
 

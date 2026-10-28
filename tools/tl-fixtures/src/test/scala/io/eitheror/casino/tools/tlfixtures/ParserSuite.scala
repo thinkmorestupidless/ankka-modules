@@ -99,3 +99,26 @@ class ParserSuite extends munit.FunSuite:
     val e   = intercept[Parser.ParseError](Parser.parse("x", src))
     assert(e.getMessage.contains("unknown statement 'expect'"), e.getMessage)
   }
+
+  // Spec 025: the original's pool cases carry the pools on the wallet twin and the parts on the
+  // transaction; they are ordinary properties, read as any other.
+  test("a pool case keeps the twin's pools and the transaction's parts") {
+    val src =
+      """test "pools — converted-first: real leg 1000 on 5000/5000 writes 5000/4000, split 0/1000" {
+        |  given twin { id: "wallet/pool1", concepts: ["Wallet"], real_balance: 10000, deposit_pool_balance: 5000, converted_pool_balance: 5000, pools_stamped_at: "2026-10-14T09:00:00Z" }
+        |  when PlaceBet { round_id: "r1", amount: 1000, allow_negative: false }
+        |  then {
+        |    mutation 0: set_properties("wallet/pool1", { real_balance: 9000, deposit_pool_balance: 5000, converted_pool_balance: 4000 })
+        |    mutation 1: set_properties("transaction.new-id", { type: "bet", funded_deposit_amount: 0, funded_converted_amount: 1000 })
+        |  }
+        |}
+        |""".stripMargin
+    val c      = Parser.parse("place-bet.test.tl", src).head
+    val twin   = c.json.get("given").get(0)
+    assertEquals((twin.get("deposit_pool_balance").asLong, twin.get("converted_pool_balance").asLong), (5000L, 5000L))
+    assertEquals(twin.get("pools_stamped_at").asText, "2026-10-14T09:00:00Z")
+    val muts = c.json.get("then").get("mutations")
+    assertEquals(muts.get(0).get("properties").get("converted_pool_balance").asLong, 4000L)
+    val tx = muts.get(1).get("properties")
+    assertEquals((tx.get("funded_deposit_amount").asLong, tx.get("funded_converted_amount").asLong), (0L, 1000L))
+  }

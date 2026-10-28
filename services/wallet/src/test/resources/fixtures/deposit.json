@@ -642,5 +642,101 @@
       },
       "error" : null
     }
+  }, {
+    "name" : "stamped wallet — deposit credits the deposit pool",
+    "line" : 340,
+    "given" : [ {
+      "id" : "wallet/pools-stamped",
+      "real_balance" : 100,
+      "deposit_pool_balance" : 60,
+      "converted_pool_balance" : 40,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "restricted_balance" : 0,
+      "player_id" : "p-pools",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-pools-001",
+        "amount" : 50,
+        "currency" : "GBP",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pools-stamped",
+        "properties" : {
+          "real_balance" : 150
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/pools-stamped",
+        "properties" : {
+          "deposit_pool_balance" : 110
+        }
+      } ],
+      "result" : {
+        "real_balance" : 150
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "unstamped wallet — deposit writes no pool properties",
+    "line" : 372,
+    "given" : [ {
+      "id" : "wallet/pools-unstamped",
+      "real_balance" : 100,
+      "restricted_balance" : 0,
+      "player_id" : "p-nopools",
+      "brand_id" : "testbrand",
+      "currency" : "GBP",
+      "deposit_turnover_pending" : 0
+    } ],
+    "when" : {
+      "command" : "Deposit",
+      "params" : {
+        "payment_ref" : "psp-pools-002",
+        "amount" : 50,
+        "currency" : "GBP",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "turnover_multiplier" : 0,
+        "turnover_definition" : "gross_wagered"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pools-unstamped",
+        "properties" : {
+          "real_balance" : 150
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "deposit",
+          "amount" : 50
+        }
+      } ],
+      "result" : {
+        "real_balance" : 150
+      },
+      "error" : null
+    }
   } ]
 }

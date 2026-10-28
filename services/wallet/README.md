@@ -8,7 +8,7 @@ balance of its own (constitution II). An ankka 0.13 service in Scala, one sbt bu
 
 | Component | Kind | What it holds or does |
 |---|---|---|
-| `WalletEntity` | event sourced, id `<player>/<currency>` | real balance, restricted-funds records with their rule snapshots and clawback baselines, open bets and the last 1,000 settled, holds, the last 30 days of deposits, the last 1,000 keys it has answered |
+| `WalletEntity` | event sourced, id `<player>/<currency>` | real balance as two pools (deposit and converted, spec 025), restricted-funds records with their rule snapshots and clawback baselines, open bets and the last 1,000 settled, holds, the last 30 days of deposits, the last 1,000 keys it has answered |
 | `wallet.funding` | pure Scala | the original's Go resolver ported line for line: funding, wins, rollbacks, losses, forfeits, cancels, holds, adjustments |
 | `BrandConfigEntity` | key value, id `brand` | the brand's bet switches (from `rewards`) and turnover terms (from an operator) |
 | `PaymentEntity` | event sourced, id = payment id | the outcomes `merchant` reports |
@@ -23,6 +23,34 @@ answers the first outcome and moves nothing, and another command under a recent 
 that key (`DepositWorkflow` here; `game-provider`'s bet workflow for bets), which answers older repeats
 itself. Deposits ask `responsible-gambling` first, from the workflow's step, and fail closed; bets ask
 nothing here (spec 003 asks `may-bet`).
+
+## The two pools (spec 025)
+
+Real balance is a deposit pool and a converted pool that always sum to it, so affiliate GGR counts
+deposited money only: converted bonus money never counts as deposited money. Each event that moves
+real balance records its parts (deposit, converted), and the pools after it are on its fact.
+
+| Event | Parts |
+|---|---|
+| `DepositConfirmed` | all deposit |
+| `BetPlaced` | the real leg, converted pool first (after any conversion the bet completes joins the converted pool); an allow-negative shortfall goes to converted |
+| `WinCredited` | the bet's ratio, deposit part rounded down; a share whose record is no longer active, or a bet with no parts, all converted |
+| `BetRolledBack` | the parts the bet recorded; a cancel's clawback converted first |
+| `RestrictedFundsConverted`, a provider credit to real | all converted |
+| `HoldPlaced` | the clawback and the cap void converted first, then the paid amount deposit first (`paidParts`, `voidedParts`) |
+| `HoldReleased`, `WithdrawalReversed` | the hold's parts back where they came from |
+| `AdminAdjusted` (real) | a credit all deposit; a debit deposit first |
+| an award's cancel | its clawback converted first |
+| `RoundSettledAsLoss`, restricted movements | none |
+
+Deposit turnover pending falls by the deposit part of a stake only (FR-003a). `open-migrated` takes
+the original's pools; a wallet the original never stamped opens all converted.
+
+The routes answer the pools: `depositPoolBalance` and `convertedPoolBalance` on the balance read
+(every audience; major units on the operator's and the player's) and on every accepted money reply,
+`fundedDepositAmount` on a bet, `wonDepositAmount` on a win, and `paidDepositAmount`,
+`voidedDepositAmount`, `clawbackDepositAmount` on the hold preview. The transactions view's rows
+carry `depositPart`, `convertedPart`, `depositPoolAfter` and `convertedPoolAfter`.
 
 ## Run it locally
 
@@ -53,8 +81,8 @@ thread, and waits `ankka.service-client.timeout` (500 ms, `application.conf`); a
 
 | Command | What it runs |
 |---|---|
-| `sbt "testOnly io.eitheror.casino.wallet.funding.*"` | the original's Go table tests, 204 cases |
-| `sbt "testOnly io.eitheror.casino.wallet.entity.*"` | the 174 TL fixtures, the rules, SC-006 for every command, invariants over random sequences |
+| `sbt "testOnly io.eitheror.casino.wallet.funding.*"` | the original's Go table tests, with the pools' (`PoolsSuite`, `PoolsGuestsSuite`) |
+| `sbt "testOnly io.eitheror.casino.wallet.entity.*"` | the TL fixtures (230 cases, 44 ignored: below), the rules, SC-006 for every command, invariants over random sequences, the pools' included |
 | `sbt "testOnly io.eitheror.casino.wallet.features.*"` | every `features/wallet` scenario |
 | `sbt "testOnly io.eitheror.casino.wallet.it.*"` | the service over HTTP against Postgres in Docker: facts, views, audiences, 200 concurrent bets, restarts |
 | `sbt "testOnly io.eitheror.casino.wallet.it.ResponsibleGamblingItSuite"` | the deposit flow asking a scripted `responsible-gambling` through ankka's service client: the sums sent, the 500 ms bound, the re-check after `RG_UNAVAILABLE`, a limit refusal staying final |
@@ -64,17 +92,29 @@ thread, and waits `ankka.service-client.timeout` (500 ms, `application.conf`); a
 
 `just wallet-test` from the root runs all of it after publishing the contract.
 
+The fixtures were converted again for spec 025, from the original as it is now. The cases the
+original added for features it built after spec 002's conversion are ignored, each with its reason
+(`FixtureRunner.Since002`), as the input to a later amendment of spec 002: two open records where
+only the primary funds and is credited, a pending-cap record closing at zero real balance, withdrawal
+plans, and deposit turnover as a ledger per deposit. The original's unstamped-wallet cases are
+ignored too: every wallet here has its pools.
+
 ## Where it came from
 
 The resolver and its tests are `starter-packs/wallet/handlers-go/internal/funding` in the original;
 the fixtures are its `starter-packs/wallet/handlers/*.test.tl`, converted once by `tools/tl-fixtures`
 into `src/test/resources/fixtures/`. The original's routes are recorded by
-`tests/original/wallet-driver` (see `tests/original/README.md`).
+`tests/original/wallet-driver` (see `tests/original/README.md`); its `pools_test.go` drives
+`features/wallet/pools.feature` scenario for scenario, the starting pools made by the original's own
+rules. The original's transactions route does not serve a transaction's parts (only its twin has
+them), so replay holds the pools and the bet's and win's deposit parts to the original, and the
+fixtures and the Go tables hold the rest.
 
 ## The migration's opening command
 
 `open-migrated` (FR-001, spec 019) opens a wallet with what the original holds: real balance, deposit
 turnover pending, records with their rule snapshots and, where the original kept one, their clawback
-baseline, open bets, holds, deposits so far, and any restricted balance with no record (which refuses
-the bet path, FR-014). It is a money command under a key, accepted once; a second is
+baseline, open bets, holds, deposits so far, the pools (`depositPool`, `convertedPool`; none → all
+converted; a pair that does not sum to real balance is refused as `POOLS_INVARIANT`), and any
+restricted balance with no record (which refuses the bet path, FR-014). It is a money command under a key, accepted once; a second is
 `WALLET_ALREADY_OPEN`.

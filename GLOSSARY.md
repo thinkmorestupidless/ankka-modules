@@ -108,7 +108,7 @@ The description of one change to the system, naming the scenarios in the living 
 One player's ledger in one currency: real balance, restricted funds, open rounds, deposit turnover, the pending withdrawal request, and every transaction. A player with two currencies has two wallets. Created by its first deposit or award and never deleted.
 
 ### real balance
-The money in a wallet that is the player's own: deposited, won on real-funded bets, or converted from restricted funds. Only real balance can be withdrawn.
+The money in a wallet that is the player's own: deposited, won on real-funded bets, or converted from restricted funds. Only real balance can be withdrawn. Held as two pools, the deposit pool and the converted pool, which always sum to it.
 
 Avoid: cash balance, real wallet
 
@@ -167,6 +167,21 @@ What funded a bet, as the original names it: real, bonus, split, or empty for a 
 
 ### conversion
 What happens when a restricted funds record's release progress meets its wagering requirement: its balance is credited to real balance and the record awaits its cap.
+
+### deposit pool
+*Proposed.* The part of a wallet's real balance that is the player's deposited money, operator credits, and the winnings earned by staking that money; never below zero. The only money affiliate GGR counts.
+
+Avoid: deposit-origin balance, cash pool, real pool
+
+### converted pool
+*Proposed.* The part of a wallet's real balance that came from conversions, from bonus-side credits (a provider credit to real balance, a win's share whose record is gone), and from the winnings earned by staking that money; below zero only by a correction debit's shortfall. Earns an affiliate nothing.
+
+Avoid: bonus pool, conversion pool
+
+### parts
+*Proposed.* Of one movement of real balance: how much of it was deposit pool money and how much converted pool money, summing to the amount moved; recorded on the transaction and carried on its fact.
+
+Avoid: origin amounts, pool split
 
 ### pending cap
 The state of a converted restricted funds record that stays open so a later withdrawal can cap what the player takes out; closed by closing the pending cap or when its remaining allowance is exhausted.

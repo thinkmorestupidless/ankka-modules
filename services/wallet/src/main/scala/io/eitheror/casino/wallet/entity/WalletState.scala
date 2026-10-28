@@ -1,7 +1,7 @@
 package io.eitheror.casino.wallet.entity
 
 import io.eitheror.casino.contract.money.{Key, KeyedOutcomes}
-import io.eitheror.casino.wallet.funding.{Record, RecordUpdate, Resolver, Status, Wallet}
+import io.eitheror.casino.wallet.funding.{Pools, Record, RecordUpdate, Resolver, Status, Wallet}
 
 import java.time.{Duration, Instant}
 
@@ -33,7 +33,14 @@ final case class WalletState(
     depositOrdinal: Int = 0,
     seen: KeyedOutcomes[Outcome] = KeyedOutcomes(),
     /** The keys of `seen`, oldest first: what `remember` evicts past `RecentKeys`. */
-    keyOrder: Vector[String] = Vector.empty
+    keyOrder: Vector[String] = Vector.empty,
+    /**
+     * Real balance as two pools (spec 025 FR-001), set from each event's `after` values, never
+     * computed by the fold. They sum to `realBalance`: every pool step checks that before and after
+     * it moves anything, and refuses (`POOLS_INVARIANT`) rather than write a drifted pair.
+     */
+    depositPool: Long = 0L,
+    convertedPool: Long = 0L
 ):
   def playerId: String = walletId.takeWhile(_ != '/')
   def currency: String = walletId.drop(walletId.indexOf('/') + 1)
@@ -45,7 +52,26 @@ final case class WalletState(
   /** Σ open records' balances, never stored (FR-021), plus any migrated balance without a record. */
   def restrictedBalance: Long = openRecords.foldLeft(restrictedWithoutRecords)(_ + _.balance)
 
-  def fundingWallet: Wallet = Wallet(realBalance, depositTurnoverPending, restrictedBalance)
+  def pools: Pools = Pools(depositPool, convertedPool)
+
+  def fundingWallet: Wallet = Wallet(realBalance, depositTurnoverPending, restrictedBalance, Some(pools))
+
+  /**
+   * Deposit turnover closed because no deposit-origin money is left and no round is open (spec 025
+   * FR-003b; the original's `PlanCloseTurnover` with `AttributableCash`): nothing pending, every
+   * pending deposit closed.
+   */
+  private[entity] def closingTurnover(closed: Boolean): WalletState =
+    if !closed then this
+    else copy(depositTurnoverPending = 0L, recentDeposits = recentDeposits.map(d => if d.status == "PENDING" then d.copy(status = "CLOSED") else d))
+
+  /** Whether a settlement or adjustment leaving `depositAfter` and `openBetsAfter` closes deposit turnover (FR-003b). */
+  def closesTurnover(depositAfter: Long, openBetsAfter: Int): Boolean =
+    depositTurnoverPending > 0 && depositAfter == 0 && openBetsAfter == 0
+
+  /** The fold's one rule for the pools: the event's `after` values. */
+  private[entity] def withPools(depositAfter: Long, convertedAfter: Long): WalletState =
+    copy(depositPool = depositAfter, convertedPool = convertedAfter)
 
   def record(id: String): Option[AwardedRecord] = records.find(_.id == id)
 
