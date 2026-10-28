@@ -303,7 +303,7 @@ findings, and the last one has none open.
 
   | Successor | From the original | What the opening event carries |
   |---|---|---|
-  | `wallet` (002) | `wallet` twins (`player_id`, `brand_id`, currency, `real_balance`, deposit records, `RestrictedFunds` records, open bets index), transactions | real balance; deposit turnover pending with its records; every restricted-funds record with status, balance, requirement, progress, cap fields, counters, clock and rule snapshot; no open bets (FR-012); the seen-key set empty |
+  | `wallet` (002) | `wallet` twins (`player_id`, `brand_id`, currency, `real_balance`, `deposit_pool_balance`, `converted_pool_balance`, `pools_stamped_at`, deposit records, `RestrictedFunds` records, open bets index), transactions | real balance with its two pools (spec 025 FR-011: a stamped wallet's pools; an unstamped one all converted); deposit turnover pending with its records; every restricted-funds record with status, balance, requirement, progress, cap fields, counters, clock and rule snapshot; no open bets (FR-012); the seen-key set empty |
   | `wallet` transactions view | `transaction` twins and `HAS_TRANSACTION` edges | imported as transaction facts in order, so history lists, sums and lifetime totals read as before; the balance-before and balance-after of each are checked to chain to the opening balance |
   | `payouts` (007) | `withdrawal-request` twins, `payout-destination` twins | each open request with status, payout status, amount, destination, provider reference, decisions, times; completed and failed requests of the last 24 months as history; destinations with status |
   | `players` (008) | `player` twins, `player-session` and `game-session` twins, operator notes, fraud flags, consents, favourites, VIP tier, `twin_pii_lookup` | the player with status, profile fields as `Personal`, consents, favourites, tier, flags and links, the account trail; no sessions (every session is ended at freeze); lookup tokens recomputed under spec 042 |
@@ -335,6 +335,13 @@ findings, and the last one has none open.
 - **FR-011**: The export MUST be taken at one recorded freeze point from a read-only copy of the
   `substrate` database restored from the final backup, never from the running original, so the
   export is repeatable and the original is untouched.
+- **FR-011a**: Before the final backup, the original's `pools-backfill` (its spec 253) MUST be run
+  and every wallet stamped (`pools_stamped_at`), so a wallet opening all converted (spec 025
+  FR-011) is the exception; the export MUST count the wallets still unstamped, and the runbook
+  MUST NOT continue while any is unstamped without a decision recorded for it. The export passes
+  `deposit_pool_balance` and `converted_pool_balance` to `open-migrated` as `depositPool` and
+  `convertedPool`; a pair that does not sum to the real balance is refused (`POOLS_INVARIANT`) and
+  stops that player's import, as any refused opening does (spec 025 research R8).
 
 **Draining**
 

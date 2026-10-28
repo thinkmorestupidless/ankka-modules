@@ -1,7 +1,7 @@
 package io.eitheror.casino.pspgateway.delivery
 
 import com.thinkmorestupidless.ankka.core.effect.ConsumerEffect
-import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, ScriptedServices, TestTransport}
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing, ScriptedServices, TestTransport}
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.Json.*
@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import scala.jdk.CollectionConverters.*
 
 /** FR-015, R13, data-model.md's deliverer: what reaches the receiver, and what is recorded of it. */
-class OutcomeDelivererSuite extends munit.FunSuite:
+class OutcomeDelivererSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-18T12:00:00Z")
 

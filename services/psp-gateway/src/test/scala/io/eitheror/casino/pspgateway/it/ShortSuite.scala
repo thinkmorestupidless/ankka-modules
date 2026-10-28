@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.sessions.*
 
@@ -7,7 +8,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** SC-005: a crypto payment one unit short of its quote is never captured as credited in full. */
-class ShortSuite extends munit.FunSuite:
+class ShortSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = SharedKit.kit

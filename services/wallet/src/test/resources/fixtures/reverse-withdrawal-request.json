@@ -2,14 +2,22 @@
   "handler" : "reverse-withdrawal-request",
   "source" : "eitheror-platform/starter-packs/wallet/handlers/reverse-withdrawal-request.test.tl",
   "cases" : [ {
-    "name" : "happy path — reverses a completed withdrawal and credits wallet",
-    "line" : 1,
+    "name" : "no cap — reverses a completed withdrawal and credits the wallet",
+    "line" : 10,
     "given" : [ {
       "id" : "wallet/test1",
-      "real_balance" : 200.00,
-      "bonus_balance" : 0.00,
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 20000,
       "player_id" : "p1",
       "brand_id" : "testbrand",
+      "currency" : "EUR"
+    }, {
+      "id" : "withdrawal-request/wr1",
+      "concepts" : [ "WithdrawalRequest" ],
+      "status" : "COMPLETED",
+      "amount" : 15000,
+      "requested_amount" : 15000,
+      "voided_amount" : 0,
       "currency" : "EUR"
     } ],
     "when" : {
@@ -18,7 +26,7 @@
         "request_id" : "withdrawal-request/wr1",
         "current_request_status" : "COMPLETED",
         "reversed_at" : "2026-07-31T14:00:00Z",
-        "amount" : 150.00,
+        "amount" : 15000,
         "currency" : "EUR"
       }
     },
@@ -29,14 +37,15 @@
         "target" : "withdrawal-request/wr1",
         "properties" : {
           "status" : "REVERSED",
-          "reversed_at" : "2026-07-31T14:00:00Z"
+          "reversed_at" : "2026-07-31T14:00:00Z",
+          "balance_after_return" : 35000
         }
       }, {
         "index" : 1,
         "op" : "set_properties",
         "target" : "wallet/test1",
         "properties" : {
-          "real_balance" : 350.00
+          "real_balance" : 35000
         }
       }, {
         "index" : 2,
@@ -45,9 +54,9 @@
         "properties" : {
           "type" : "withdrawal_reversal",
           "wallet_type" : "real",
-          "amount" : 150.00,
-          "balance_before" : 200.00,
-          "balance_after" : 350.00,
+          "amount" : 15000,
+          "balance_before" : 20000,
+          "balance_after" : 35000,
           "currency" : "EUR",
           "status" : "settled",
           "player_ref" : "p1",
@@ -56,6 +65,13 @@
         }
       }, {
         "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
         "op" : "add_edge",
         "target" : "wallet/test1",
         "args" : [ "HAS_TRANSACTION", {
@@ -65,19 +81,235 @@
       "result" : {
         "requestId" : "withdrawal-request/wr1",
         "status" : "REVERSED",
-        "reversedAt" : "2026-07-31T14:00:00Z"
+        "reversedAt" : "2026-07-31T14:00:00Z",
+        "restored_records" : ""
       },
-      "error" : null
+      "error" : null,
+      "mutation_count" : 5
+    }
+  }, {
+    "name" : "open cap record — the payout's draw is given back",
+    "line" : 40,
+    "given" : [ {
+      "id" : "wallet/test4",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/r4|",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p4",
+      "brand_id" : "testbrand",
+      "currency" : "EUR"
+    }, {
+      "id" : "restricted-funds/r4",
+      "concepts" : [ "RestrictedFunds" ],
+      "grant_ref" : "reward-grant/g4",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 0,
+      "granted_at" : "2026-08-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 3000,
+      "deposits_since_release" : 20000,
+      "open_round_count" : 0
+    }, {
+      "id" : "withdrawal-request/wr4",
+      "concepts" : [ "WithdrawalRequest" ],
+      "status" : "COMPLETED",
+      "amount" : 12000,
+      "requested_amount" : 12000,
+      "voided_amount" : 0,
+      "cap_draws" : "|restricted-funds/r4:10000:2000:0|",
+      "applied_cap_draws" : "|restricted-funds/r4:10000:2000:0|",
+      "currency" : "EUR"
+    } ],
+    "when" : {
+      "command" : "ReverseWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request/wr4",
+        "current_request_status" : "COMPLETED",
+        "reversed_at" : "2026-10-14T12:00:00Z",
+        "amount" : 12000,
+        "currency" : "EUR"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "withdrawal-request/wr4",
+        "properties" : {
+          "status" : "REVERSED",
+          "reversed_at" : "2026-10-14T12:00:00Z",
+          "balance_after_return" : 12000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test4",
+        "properties" : {
+          "real_balance" : 12000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal_reversal",
+          "wallet_type" : "real",
+          "amount" : 12000,
+          "balance_before" : 0,
+          "balance_after" : 12000,
+          "currency" : "EUR",
+          "status" : "settled",
+          "player_ref" : "p4",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-10-14T12:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test4",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 5,
+        "op" : "set_properties",
+        "target" : "restricted-funds/r4",
+        "properties" : {
+          "status" : "CONVERTED_PENDING_CAP",
+          "deposits_since_release" : 30000,
+          "remaining_allowance" : 5000,
+          "updated_at" : "2026-10-14T12:00:00Z"
+        }
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request/wr4",
+        "status" : "REVERSED",
+        "reversedAt" : "2026-10-14T12:00:00Z",
+        "restored_records" : "|restricted-funds/r4|"
+      },
+      "error" : null,
+      "mutation_count" : 6
+    }
+  }, {
+    "name" : "record closed by the payout stays closed — only the cash comes back",
+    "line" : 91,
+    "given" : [ {
+      "id" : "wallet/test5",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "",
+      "deposit_turnover_pending" : 0,
+      "player_id" : "p5",
+      "brand_id" : "testbrand",
+      "currency" : "EUR"
+    }, {
+      "id" : "withdrawal-request/wr5",
+      "concepts" : [ "WithdrawalRequest" ],
+      "status" : "COMPLETED",
+      "amount" : 30000,
+      "requested_amount" : 35000,
+      "voided_amount" : 5000,
+      "cap_draws" : "|restricted-funds/r5:30000:5000:1|",
+      "applied_cap_draws" : "|restricted-funds/r5:30000:5000:1|",
+      "currency" : "EUR"
+    } ],
+    "when" : {
+      "command" : "ReverseWithdrawalRequest",
+      "params" : {
+        "request_id" : "withdrawal-request/wr5",
+        "current_request_status" : "COMPLETED",
+        "reversed_at" : "2026-10-14T12:00:00Z",
+        "amount" : 30000,
+        "currency" : "EUR"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "withdrawal-request/wr5",
+        "properties" : {
+          "status" : "REVERSED",
+          "reversed_at" : "2026-10-14T12:00:00Z",
+          "balance_after_return" : 30000
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/test5",
+        "properties" : {
+          "real_balance" : 30000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal_reversal",
+          "wallet_type" : "real",
+          "amount" : 30000,
+          "balance_before" : 0,
+          "balance_after" : 30000,
+          "currency" : "EUR",
+          "status" : "settled",
+          "player_ref" : "p5",
+          "brand_ref" : "testbrand",
+          "created_at" : "2026-10-14T12:00:00Z"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_edge",
+        "target" : "wallet/test5",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "requestId" : "withdrawal-request/wr5",
+        "status" : "REVERSED",
+        "reversedAt" : "2026-10-14T12:00:00Z",
+        "restored_records" : ""
+      },
+      "error" : null,
+      "mutation_count" : 5
     }
   }, {
     "name" : "error — cannot reverse a withdrawal not in COMPLETED state",
-    "line" : 26,
+    "line" : 126,
     "given" : [ {
       "id" : "wallet/test2",
-      "real_balance" : 500.00,
-      "bonus_balance" : 0.00,
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 50000,
       "player_id" : "p2",
       "brand_id" : "testbrand",
+      "currency" : "EUR"
+    }, {
+      "id" : "withdrawal-request/wr2",
+      "concepts" : [ "WithdrawalRequest" ],
+      "status" : "APPROVED",
+      "amount" : 10000,
+      "requested_amount" : 10000,
+      "voided_amount" : 0,
       "currency" : "EUR"
     } ],
     "when" : {
@@ -86,7 +318,7 @@
         "request_id" : "withdrawal-request/wr2",
         "current_request_status" : "INITIATED",
         "reversed_at" : "2026-07-31T14:00:00Z",
-        "amount" : 100.00,
+        "amount" : 10000,
         "currency" : "EUR"
       }
     },
@@ -99,13 +331,21 @@
     }
   }, {
     "name" : "idempotency — reversing an already-reversed withdrawal returns success without mutation",
-    "line" : 45,
+    "line" : 148,
     "given" : [ {
       "id" : "wallet/test3",
-      "real_balance" : 350.00,
-      "bonus_balance" : 0.00,
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 35000,
       "player_id" : "p3",
       "brand_id" : "testbrand",
+      "currency" : "EUR"
+    }, {
+      "id" : "withdrawal-request/wr3",
+      "concepts" : [ "WithdrawalRequest" ],
+      "status" : "REVERSED",
+      "amount" : 15000,
+      "requested_amount" : 15000,
+      "voided_amount" : 0,
       "currency" : "EUR"
     } ],
     "when" : {
@@ -114,7 +354,7 @@
         "request_id" : "withdrawal-request/wr3",
         "current_request_status" : "REVERSED",
         "reversed_at" : "2026-07-31T14:00:00Z",
-        "amount" : 150.00,
+        "amount" : 15000,
         "currency" : "EUR"
       }
     },
@@ -123,9 +363,10 @@
       "result" : {
         "requestId" : "withdrawal-request/wr3",
         "status" : "REVERSED",
-        "idempotent" : true
+        "idempotent" : "true"
       },
-      "error" : null
+      "error" : null,
+      "mutation_count" : 0
     }
   } ]
 }

@@ -4,7 +4,7 @@ import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.wallet.entity.WalletEvent
 import io.eitheror.casino.wallet.entity.WalletEvent.*
-import io.eitheror.casino.wallet.funding.{Forfeit, RecordUpdate}
+import io.eitheror.casino.wallet.funding.{Forfeit, Parts, RecordUpdate}
 import io.eitheror.casino.wallet.payments.{PaymentEvent, PaymentOutcome}
 
 /**
@@ -30,16 +30,25 @@ object Facts:
     def real(v: Long)  = SignedMinorUnits(v)
     def one(fact: f.MoneyTransactionsFact, id: String) = Vector(Published(fact, id))
 
-    def forfeited(txId: String, forfeits: Vector[Forfeit], cause: String, clawback: Long, updates: Vector[RecordUpdate],
-        realAfter: Long, restrictedAfter: Long, at: java.time.Instant): Vector[Published[f.MoneyTransactionsFact]] =
+    // Spec 025: every fact carries both pools after it; each that moves real balance its parts.
+    def dep(v: Long)   = Some(real(v))
+    def part(v: Long)  = Some(units(v))
+
+    def forfeited(txId: String, forfeits: Vector[Forfeit], cause: String, clawback: Long, clawbackParts: Parts,
+        updates: Vector[RecordUpdate], realAfter: Long, restrictedAfter: Long, depositAfter: Long, convertedAfter: Long,
+        at: java.time.Instant): Vector[Published[f.MoneyTransactionsFact]] =
       if forfeits.isEmpty && clawback > 0 then
         // A cancel with no open record still claws back (FR-017): the movement is on the topic.
-        one(f.RestrictedFundsForfeited(playerId, currency, txId, "", units(0), cause, units(clawback), real(realAfter), units(restrictedAfter), at), txId)
+        one(f.RestrictedFundsForfeited(playerId, currency, txId, "", units(0), cause, units(clawback), real(realAfter),
+          units(restrictedAfter), at, dep(depositAfter), dep(convertedAfter), part(clawbackParts.deposit),
+          part(clawbackParts.converted)), txId)
       else
         forfeits.zipWithIndex.map { (x, i) =>
+          val parts = if i == 0 then clawbackParts else Parts.zero
           Published(
             f.RestrictedFundsForfeited(playerId, currency, txId, grantOf(updates, x.recordId), units(x.amount), cause,
-              units(if i == 0 then clawback else 0L), real(realAfter), units(restrictedAfter), at),
+              units(if i == 0 then clawback else 0L), real(realAfter), units(restrictedAfter), at, dep(depositAfter),
+              dep(convertedAfter), part(parts.deposit), part(parts.converted)),
             s"$txId/${x.recordId}"
           )
         }
@@ -47,62 +56,80 @@ object Facts:
     event match
       case e: DepositConfirmed =>
         one(f.DepositConfirmed(playerId, currency, e.transactionId, units(e.amount), e.key, e.depositOrdinal, real(e.realAfter),
-          units(e.restrictedAfter), e.at), e.transactionId)
+          units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId)
 
       case e: BetPlaced =>
+        val parts = e.bet.parts.getOrElse(Parts.zero)
         val bet = one(f.BetPlaced(playerId, currency, e.bet.transactionId, e.bet.roundKey, e.bet.gameId, units(e.bet.amount),
-          e.bet.walletType, real(e.realAfter), units(e.restrictedAfter), e.at), e.bet.transactionId)
+          e.bet.walletType, real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
+          part(parts.deposit), part(parts.converted)), e.bet.transactionId)
         bet ++ e.conversions.map { c =>
           Published(f.RestrictedFundsConverted(playerId, currency, e.bet.transactionId, grantOf(e.recordUpdates, c.recordId),
-            units(c.amount), real(e.realAfter), units(e.restrictedAfter), e.at), s"${e.bet.transactionId}/${c.recordId}")
+            units(c.amount), real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
+            part(0L), part(c.amount)), s"${e.bet.transactionId}/${c.recordId}")
         }
 
       case e: WinCredited =>
         one(f.WinCredited(playerId, currency, e.transactionId, e.roundKey, e.gameId, units(e.amount), e.walletType,
-          real(e.realAfter), units(e.restrictedAfter), e.at), e.transactionId)
+          real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId)
 
       case e: BetRolledBack =>
         one(f.BetRolledBack(playerId, currency, e.transactionId, e.roundKey, units(e.amount), real(e.realAfter),
-          units(e.restrictedAfter), e.at), e.transactionId)
+          units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId)
 
       case e: RoundSettledAsLoss =>
-        one(f.RoundSettledAsLoss(playerId, currency, e.transactionId, e.roundKey, real(e.realAfter), units(e.restrictedAfter), e.at),
-          e.transactionId) ++ forfeited(e.transactionId, e.forfeited, "loss", 0L, e.recordUpdates, e.realAfter, e.restrictedAfter, e.at)
+        one(f.RoundSettledAsLoss(playerId, currency, e.transactionId, e.roundKey, real(e.realAfter), units(e.restrictedAfter), e.at,
+          dep(e.depositAfter), dep(e.convertedAfter)), e.transactionId) ++
+          forfeited(e.transactionId, e.forfeited, "loss", 0L, Parts.zero, e.recordUpdates, e.realAfter, e.restrictedAfter,
+            e.depositAfter, e.convertedAfter, e.at)
 
       case e: RestrictedFundsAwarded =>
         one(f.RestrictedFundsAwarded(playerId, currency, e.transactionId, e.awarded.grantRef, units(e.awarded.record.balance),
-          units(e.awarded.record.releaseRequirement), real(e.realAfter), units(e.restrictedAfter), e.at), e.transactionId)
+          units(e.awarded.record.releaseRequirement), real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter),
+          dep(e.convertedAfter)), e.transactionId)
 
       case e: RestrictedFundsForfeited =>
-        forfeited(e.transactionId, e.forfeits, e.cause, 0L, e.recordUpdates, e.realAfter, e.restrictedAfter, e.at)
+        forfeited(e.transactionId, e.forfeits, e.cause, 0L, Parts.zero, e.recordUpdates, e.realAfter, e.restrictedAfter,
+          e.depositAfter, e.convertedAfter, e.at)
 
       case e: RestrictedFundsCancelled =>
-        forfeited(e.transactionId, e.forfeits, "cancel", e.clawback, e.recordUpdates, e.realAfter, e.restrictedAfter, e.at)
+        forfeited(e.transactionId, e.forfeits, "cancel", e.clawback, e.parts, e.recordUpdates, e.realAfter, e.restrictedAfter,
+          e.depositAfter, e.convertedAfter, e.at)
 
       case e: HoldPlaced =>
+        // The hold's amount is paid + voided; its parts are those two together, the voided pair apart.
+        val held = e.paidParts + e.voidedParts
         one(f.HoldPlaced(playerId, currency, e.transactionId, e.requestId, units(e.amount), units(e.voided), real(e.realAfter),
-          units(e.restrictedAfter), e.at), e.transactionId) ++
-          forfeited(e.transactionId, e.forfeits, "hold", e.clawback, e.recordUpdates, e.realAfter, e.restrictedAfter, e.at)
+          units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(held.deposit), part(held.converted),
+          part(e.voidedParts.deposit), part(e.voidedParts.converted)), e.transactionId) ++
+          forfeited(e.transactionId, e.forfeits, "hold", e.clawback, e.clawbackParts, e.recordUpdates, e.realAfter,
+            e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at)
 
       case e: HoldReleased =>
         one(f.HoldReleased(playerId, currency, e.transactionId, e.requestId, units(e.amount), real(e.realAfter),
-          units(e.restrictedAfter), e.at), e.transactionId)
+          units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId)
 
       case e: WithdrawalReversed =>
         one(f.WalletWithdrawalReversed(playerId, currency, e.transactionId, e.requestId, units(e.amount), real(e.realAfter),
-          units(e.restrictedAfter), e.at), e.transactionId)
+          units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId)
 
       case e: AdminAdjusted =>
         // The reason on the fact is the adjustment's category, never the operator's text (FR-033, contracts/facts.md).
         one(f.AdminAdjusted(playerId, currency, e.transactionId, SignedMinorUnits(e.amount), e.target, e.category, e.actorId,
-          real(e.realAfter), units(e.restrictedAfter), e.at), e.transactionId) ++
-          forfeited(e.transactionId, e.forfeited.toVector, "adjustment", 0L, e.recordUpdates, e.realAfter, e.restrictedAfter, e.at)
+          real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId) ++
+          forfeited(e.transactionId, e.forfeited.toVector, "adjustment", 0L, Parts.zero, e.recordUpdates, e.realAfter,
+            e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at)
 
       case e: ProviderCredited =>
         one(f.ProviderCredited(playerId, currency, e.transactionId, e.providerRef, units(e.amount), e.landedOn,
-          e.recordId.map(grantOf(e.recordUpdates, _)).filter(_.nonEmpty), real(e.realAfter), units(e.restrictedAfter), e.at),
-          e.transactionId)
-
+          e.recordId.map(grantOf(e.recordUpdates, _)).filter(_.nonEmpty), real(e.realAfter), units(e.restrictedAfter), e.at,
+          dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
       case _: WalletOpenedFromMigration | _: PendingCapClosed | _: PrimarySwitched | _: HoldConfirmed | _: TurnoverOverrideSet |
           _: CommandRefused =>
         Vector.empty

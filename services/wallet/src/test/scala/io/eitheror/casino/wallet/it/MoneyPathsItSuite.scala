@@ -112,3 +112,69 @@ class MoneyPathsItSuite extends Harness:
 
   private def bet(player: String, key: String, round: String, amount: Long) =
     send("POST", s"${wallet(player)}/bets", Some(s"""{"key":"$key","roundId":"$round","gameId":"slot-a","amount":$amount}"""))
+
+  // ── spec 025: the pools on every reply, the preview, the rows and the audiences ──
+
+  /** Every accepted money reply carries both pools, and they sum to its real balance. */
+  private def pools(reply: String): (Long, Long) =
+    val (d, c, r) = (field(reply, "depositPoolBalance"), field(reply, "convertedPoolBalance"), field(reply, "realBalance"))
+    assert(d.isDefined && c.isDefined, s"no pools on $reply")
+    assertEquals(d.get.toLong + c.get.toLong, r.get.toLong, reply)
+    (d.get.toLong, c.get.toLong)
+
+  test("spec 025 US1: a bet, a win and a rollback answer the pools, and the bet and win their deposit parts") {
+    assertEquals(pools(deposit("pb", "pay-1", 1000)._2), (1000L, 0L))
+    send("POST", s"${wallet("pb")}/awards", Some("""{"key":"grant-1","bonusRef":"welcome","amount":2000,"wageringMultiplier":1,"maxWin":5000}"""), as = rewards)
+    // 1000 real + 1500 from the record completes the requirement: the record's 500 left converts first, so
+    // the 1000 real leg is 500 converted and 500 deposit.
+    val (_, placed) = bet("pb", "b-1", "r1", 2500)
+    assertEquals((field(placed, "fundedDepositAmount"), pools(placed)), (Some("500"), (500L, 0L)))
+    val (_, won) = send("POST", s"${wallet("pb")}/wins", Some("""{"key":"w-1","roundId":"r1","amount":1000}"""))
+    assert(field(won, "wonDepositAmount").isDefined, won)
+    val (wd, wc) = pools(won)
+    assertEquals(wd - 500L, field(won, "wonDepositAmount").get.toLong)
+    bet("pb", "b-2", "r2", 100)
+    val (_, rolled) = send("POST", s"${wallet("pb")}/rollbacks", Some("""{"key":"rb-1","roundId":"r2"}"""))
+    assertEquals(pools(rolled), (wd, wc))
+    val money = eventually(facts("money.transactions", "pb/EUR"))(_.exists(_.contains("bet_rolled_back")))
+    assert(money.forall(_.contains("\"deposit_pool_after\"")), money.mkString("\n"))
+    assert(money.exists(f => f.contains("\"bet_placed\"") && f.contains("\"deposit_part_cents\":500")), money.mkString("\n"))
+  }
+
+  test("spec 025 US2: every other movement answers the pools, and the preview the deposit part of each movement") {
+    assertEquals(sendWithToken("PUT", s"/v1/casino/backoffice/$brand/wallet-config/turnover", TestTokens.operator("op-1"),
+      Some("""{"multiplier":0}"""))._1, 200)
+    assertEquals(pools(deposit("pm", "pay-1", 5000)._2), (5000L, 0L))
+    val (_, preview) = send("GET", s"${wallet("pm")}/holds/preview?amount=2000", as = payouts)
+    assertEquals((field(preview, "paidDepositAmount"), field(preview, "voidedDepositAmount"), field(preview, "clawbackDepositAmount")),
+      (Some("2000"), Some("0"), Some("0")))
+    assertEquals(field(send("GET", s"${wallet("pm")}/balance")._2, "depositPoolBalance"), Some("5000"))
+    assertEquals(pools(send("POST", s"${wallet("pm")}/holds", Some("""{"key":"w-1","amount":2000,"playerConfirmed":true}"""), as = payouts)._2), (3000L, 0L))
+    assertEquals(pools(send("POST", s"${wallet("pm")}/holds/release", Some("""{"key":"rl-1","requestId":"w-1","outcome":"cancelled"}"""), as = payouts)._2), (5000L, 0L))
+    send("POST", s"${wallet("pm")}/holds", Some("""{"key":"w-2","amount":1500}"""), as = payouts)
+    send("POST", s"${wallet("pm")}/holds/confirm", Some("""{"key":"cf-1","requestId":"w-2"}"""), as = payouts)
+    assertEquals(pools(send("POST", s"${wallet("pm")}/holds/reverse", Some("""{"key":"rv-1","requestId":"w-2"}"""), as = payouts)._2), (5000L, 0L))
+    val adjust = s"/v1/casino/backoffice/$brand/wallets/pm/EUR/adjustments"
+    val (_, credited) = sendWithToken("POST", adjust, TestTokens.operator("op-1"), Some("""{"key":"a-1","amount":"5.00","reason":"goodwill","category":"goodwill"}"""))
+    assertEquals(field(credited, "realBalance"), Some("55.00"))
+    sendWithToken("POST", adjust, TestTokens.operator("op-1"), Some("""{"key":"a-2","amount":"-1.00","reason":"fix","category":"correction"}""")): Unit
+    assertEquals(pools(send("GET", s"${wallet("pm")}/balance")._2), (5400L, 0L))
+    val (_, credit) = send("POST", s"${wallet("pm")}/provider-credits",
+      Some("""{"key":"pc-1","amount":700,"providerRef":"fs-1","reason":"free spins","actor":"st8"}"""))
+    assertEquals(pools(credit), (5400L, 700L))
+    val money = eventually(facts("money.transactions", "pm/EUR"))(_.exists(_.contains("provider_credited")))
+    assert(money.forall(_.contains("\"deposit_pool_after\"")), money.mkString("\n"))
+  }
+
+  test("spec 025 US3: the transactions view's rows carry the parts and the pools, and both audiences read the pools in major units") {
+    deposit("pr", "pay-1", 3000)
+    bet("pr", "b-1", "r1", 1000)
+    val rows = eventually(send("GET", s"${wallet("pr")}/transactions")._2)(field(_, "total").contains("2"))
+    assert(rows.contains("\"depositPart\":1000") && rows.contains("\"depositPoolAfter\":2000"), rows)
+    val (_, operator) = sendWithToken("GET", s"/v1/casino/backoffice/$brand/wallets/pr/EUR/balance", TestTokens.operator("op-1"))
+    assertEquals((field(operator, "depositPoolBalance"), field(operator, "convertedPoolBalance")), (Some("20.00"), Some("0.00")))
+    val (_, player) = sendWithToken("GET", s"/v1/casino/players/$brand/wallets/EUR/balance", TestTokens.player("pr"))
+    assertEquals((field(player, "depositPoolBalance"), field(player, "convertedPoolBalance")), (Some("20.00"), Some("0.00")))
+    val listed = eventually(sendWithToken("GET", s"/v1/casino/players/$brand/wallets/EUR/transactions", TestTokens.player("pr"))._2)(_.contains("\"bet\""))
+    assert(listed.contains("\"depositPart\":\"10.00\""), listed)
+  }

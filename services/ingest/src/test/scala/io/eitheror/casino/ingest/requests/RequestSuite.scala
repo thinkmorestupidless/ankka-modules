@@ -1,12 +1,12 @@
 package io.eitheror.casino.ingest.requests
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.ingest.{IngestRuntime, Settings}
 
 import java.time.{Duration, Instant}
 
 /** data-model.md's command table for `Request`, row by row (FR-010, FR-013, FR-014; research R5). */
-class RequestSuite extends munit.FunSuite:
+class RequestSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-22T10:00:00Z")
   private val a  = Answer(200, """{"session_token":"a"}""")
   private val b  = Answer(200, """{"session_token":"b"}""")

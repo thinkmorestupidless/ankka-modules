@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.http.{Form, Raw}
@@ -10,7 +11,7 @@ import java.security.SecureRandom
 import java.time.Instant
 
 /** `cozeni/adapter_test.go` and `handler/callback_auth_test.go`'s Cozeni cases, with spec correction 2's three `03` cases. */
-class CozeniSuite extends munit.FunSuite:
+class CozeniSuite extends munit.FunSuite with LogCapturing:
 
   // `callback_auth_test.go:35-39`.
   val merchantId = "9876543210123"

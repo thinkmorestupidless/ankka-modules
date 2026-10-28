@@ -1,12 +1,13 @@
 package io.eitheror.casino.ingest.merchant
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.Background.given
 
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration.*
 
 /** Research R6: the caller's bound on merchant, which never cancels the call. */
-class BoundSuite extends munit.FunSuite:
+class BoundSuite extends munit.FunSuite with LogCapturing:
 
   private def after[A](millis: Long, a: => A): Future[A] = Future { Thread.sleep(millis); a }
 

@@ -1,10 +1,11 @@
 package io.eitheror.casino.players.port
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.port.WireTranslation.Context
 
 /** contracts/wire.md: one test per row, and a path the tables do not name passes through. */
-class WireTranslationSuite extends munit.FunSuite:
+class WireTranslationSuite extends munit.FunSuite with LogCapturing:
 
   private val mapper = ObjectMapper()
   private def json(s: String): JsonNode = mapper.readTree(s)

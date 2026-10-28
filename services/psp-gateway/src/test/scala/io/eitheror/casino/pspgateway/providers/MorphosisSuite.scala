@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.http.{Form, Raw}
 import io.eitheror.casino.pspgateway.providers.morphosis.Morphosis
@@ -12,7 +13,7 @@ import java.time.Instant
  * `morphosis/adapter_test.go` and `handler/webhook_morphosis_test.go` (24). Every webhook case asserts
  * the plain-text `OK` reply: QVEI retries anything else every 60 s, twenty times.
  */
-class MorphosisSuite extends munit.FunSuite:
+class MorphosisSuite extends munit.FunSuite with LogCapturing:
 
   // `webhook_morphosis_test.go:34-38`.
   val depositToken = "3f2b8c1e-6d4a-4e9b-8a7c-1d2e3f4a5b6c"

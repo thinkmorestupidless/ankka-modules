@@ -2,14 +2,14 @@ package io.eitheror.casino.wallet.features
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.thinkmorestupidless.ankka.http.Caller
-import com.thinkmorestupidless.ankka.testkit.GherkinSuite
+import com.thinkmorestupidless.ankka.testkit.{GherkinSuite, LogCapturing}
 import io.eitheror.casino.wallet.entity.WalletEntity
 import io.eitheror.casino.wallet.it.{Harness, TestTokens}
 
 import scala.jdk.CollectionConverters.*
 
 /** Features whose scenarios are about the routes, the views or the topics: the whole service, over HTTP. */
-abstract class RouteFeatures(file: String) extends GherkinSuite(s"../../features/wallet/$file") with Harness:
+abstract class RouteFeatures(file: String) extends GherkinSuite(s"../../features/wallet/$file") with LogCapturing with Harness:
 
   protected val json                 = ObjectMapper()
   protected var player               = ""

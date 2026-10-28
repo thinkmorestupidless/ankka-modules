@@ -1,11 +1,11 @@
 package io.eitheror.casino.simulator.core
 
 import com.thinkmorestupidless.ankka.core.Done
-import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, KeyValueEntityTestKit}
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.simulator.st8.{Bonus, BonusBook, Instance}
 
 /** The entities with no runtime (research R5): their rules, their idempotency, their folds. */
-class EntitySuite extends munit.FunSuite:
+class EntitySuite extends munit.FunSuite with LogCapturing:
 
   private val launch = SessionEntity.Launch("goldvibe", "p1", "EUR", "book-of-ra", "default", "L1", 42L, 1000L)
 

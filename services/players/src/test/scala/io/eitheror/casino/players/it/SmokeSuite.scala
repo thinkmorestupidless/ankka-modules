@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.{CasinoPlayers, CasinoRounds, PlayerRegistered, RoundSettled}
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.players.reads.{ActivityView, RecentlyPlayedView}
@@ -12,7 +13,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** T025: the service starts with every component, each prefix answers its audience, and the read and fact paths run. */
-class SmokeSuite extends munit.FunSuite:
+class SmokeSuite extends munit.FunSuite with LogCapturing:
   private lazy val kit = SharedKit.kit
 
   override def beforeAll(): Unit = kit.reset()

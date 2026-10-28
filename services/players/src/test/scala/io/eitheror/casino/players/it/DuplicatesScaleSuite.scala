@@ -1,5 +1,6 @@
 package io.eitheror.casino.players.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.fraud.FraudCasesView
 
 import java.util.UUID
@@ -13,7 +14,7 @@ import scala.concurrent.duration.*
  *
  * 500 players by default; 10,000 with `PLAYERS_PERF=1` (`just players-perf`). The figures are printed.
  */
-class DuplicatesScaleSuite extends munit.FunSuite:
+class DuplicatesScaleSuite extends munit.FunSuite with LogCapturing:
   private val perf = sys.env.get("PLAYERS_PERF").contains("1")
   private val size = if perf then 10_000 else 500
   override val munitTimeout = (if perf then 30 else 3).minutes

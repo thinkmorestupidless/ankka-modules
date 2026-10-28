@@ -1,11 +1,10 @@
 package io.eitheror.casino.players.fraud
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import java.time.Instant
 
 /** The fraud case entity (T013). */
-class FraudCaseEntitySuite extends munit.FunSuite:
+class FraudCaseEntitySuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-25T10:00:00Z")
 

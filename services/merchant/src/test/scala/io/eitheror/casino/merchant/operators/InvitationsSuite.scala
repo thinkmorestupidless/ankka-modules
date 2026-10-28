@@ -1,10 +1,11 @@
 package io.eitheror.casino.merchant.operators
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.merchant.Json.*
 import io.eitheror.casino.merchant.it.{Answer, FakeServer, Received}
 
 /** The original's `OperatorInviteEmailServiceSpec`: the transactional send, its link and its template. */
-class InvitationsSuite extends munit.FunSuite:
+class InvitationsSuite extends munit.FunSuite with LogCapturing:
 
   private val cio = new FakeServer:
     protected def route(r: Received): Answer = Answer(200, """{"delivery_id":"d-1"}""")

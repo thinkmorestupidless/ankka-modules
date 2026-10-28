@@ -1,6 +1,7 @@
 package io.eitheror.casino.pspgateway.http
 
 import com.sun.net.httpserver.HttpServer
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.providers.{CallFailure, Outbound}
 import io.eitheror.casino.pspgateway.sessions.Provider
 
@@ -10,7 +11,7 @@ import java.time.Duration
 import java.util.concurrent.atomic.AtomicInteger
 
 /** FR-023, R11: a provider call is bounded, and each provider's window says how it has been answering. */
-class ProviderHttpSuite extends munit.FunSuite:
+class ProviderHttpSuite extends munit.FunSuite with LogCapturing:
 
   private val status = AtomicInteger(200)
   private val server = FunFixture[(HttpServer, Int)](

@@ -1,12 +1,12 @@
 package io.eitheror.casino.rg.profile
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.rg.profile.ProfileEvent.*
 
 import java.time.{Duration, Instant}
 
 /** data-model.md's command table for `ProfileEntity`, row by row and in its order (T008). */
-class ProfileEntitySuite extends munit.FunSuite:
+class ProfileEntitySuite extends munit.FunSuite with LogCapturing:
 
   private val at              = Instant.parse("2026-10-27T10:00:00Z")
   private def hours(h: Long)  = at.plus(Duration.ofHours(h))

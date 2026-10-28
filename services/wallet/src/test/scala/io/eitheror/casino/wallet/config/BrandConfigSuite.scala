@@ -1,11 +1,11 @@
 package io.eitheror.casino.wallet.config
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.{BetSwitches, TurnoverTerms}
 
 import java.time.Instant
 
-class BrandConfigSuite extends munit.FunSuite:
+class BrandConfigSuite extends munit.FunSuite with LogCapturing:
 
   private val t0 = Instant.parse("2026-10-09T10:00:00Z")
 

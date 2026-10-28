@@ -2,7 +2,7 @@ package io.eitheror.casino.players.facts
 
 import com.thinkmorestupidless.ankka.sdk.DeferredCall
 import com.thinkmorestupidless.ankka.sdk.TimerScheduler
-import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, TestTransport}
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing, TestTransport}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits}
 import io.eitheror.casino.players.{PlayersRuntime, Settings}
@@ -15,7 +15,7 @@ import scala.collection.mutable
 import scala.concurrent.duration.FiniteDuration
 
 /** What the service does with other services' facts (T018). */
-class ConsumersSuite extends munit.FunSuite:
+class ConsumersSuite extends munit.FunSuite with LogCapturing:
 
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private val eur = Currency.unsafe("EUR")

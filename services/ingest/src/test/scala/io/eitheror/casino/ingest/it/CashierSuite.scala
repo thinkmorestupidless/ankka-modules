@@ -1,5 +1,6 @@
 package io.eitheror.casino.ingest.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.Json
 import io.eitheror.casino.ingest.Json.*
 import io.eitheror.casino.ingest.requests.{Outcome, Ownership, Route}
@@ -8,7 +9,7 @@ import io.eitheror.casino.ingest.requests.{Outcome, Ownership, Route}
  * T027, T038 (US1, US3): the create admitted by the cashier key and shaped for `merchant`; the submit, the
  * abandon and the read admitted by the ticket or the creating sub-brand's key; every request one record.
  */
-class CashierSuite extends munit.FunSuite:
+class CashierSuite extends munit.FunSuite with LogCapturing:
   private lazy val kit = SharedKit.kit
 
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

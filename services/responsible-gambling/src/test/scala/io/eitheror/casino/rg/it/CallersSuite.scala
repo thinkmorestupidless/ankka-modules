@@ -1,5 +1,6 @@
 package io.eitheror.casino.rg.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.rg.Json
 import io.eitheror.casino.rg.it.Callers.Read
 import io.eitheror.casino.rg.it.Callers.Read.*
@@ -13,7 +14,7 @@ import scala.concurrent.duration.*
  * shape here that a caller would misread fails here rather than in that caller's suite. Where a caller reads
  * an answer as unavailable on purpose, the test says so (R6: the loss limit's refusal and `unavailable`).
  */
-class CallersSuite extends munit.FunSuite:
+class CallersSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 3.minutes
 
   private lazy val kit = SharedKit.kit

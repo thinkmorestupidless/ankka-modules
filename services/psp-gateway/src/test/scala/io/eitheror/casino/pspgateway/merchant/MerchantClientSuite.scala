@@ -1,11 +1,12 @@
 package io.eitheror.casino.pspgateway.merchant
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.Scripted
 import io.eitheror.casino.pspgateway.providers.Credential
 import io.eitheror.casino.pspgateway.sessions.Provider
 
 /** Research R7, contracts/merchant.md §4: what the gateway reads from `merchant`, and how each answer is read. */
-class MerchantClientSuite extends munit.FunSuite:
+class MerchantClientSuite extends munit.FunSuite with LogCapturing:
 
   private def client(status: Int, body: String) =
     val s = Scripted(_ => Some(status -> body))

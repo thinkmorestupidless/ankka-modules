@@ -1,9 +1,10 @@
 package io.eitheror.casino.gameprovider.rounds
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.gameprovider.rounds.WalletCall.*
 
 /** FR-014's decision, taken from the requirement rather than from the code. */
-class SettlementSuite extends munit.FunSuite:
+class SettlementSuite extends munit.FunSuite with LogCapturing:
 
   private val b1 = OpenBet("t-1", "t-1", 100, "t-1")
   private val b2 = OpenBet("t-2", "t-2", 200, "t-2")

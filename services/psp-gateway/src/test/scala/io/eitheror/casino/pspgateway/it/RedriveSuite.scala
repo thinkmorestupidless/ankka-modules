@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.Json.text
 import io.eitheror.casino.pspgateway.sessions.*
 
@@ -13,7 +14,7 @@ import scala.jdk.CollectionConverters.*
  * is listed apart, left by the timer, and delivered by an operator's re-drive. A service of its own (its
  * own JVM, build.sbt), since the timer runs every 3 s here and the suite stops a receiver.
  */
-class RedriveSuite extends munit.FunSuite:
+class RedriveSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private val Every = java.time.Duration.ofSeconds(3)

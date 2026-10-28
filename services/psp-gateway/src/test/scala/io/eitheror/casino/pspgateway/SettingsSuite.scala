@@ -1,12 +1,13 @@
 package io.eitheror.casino.pspgateway
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.providers.{Credential, Operation}
 import io.eitheror.casino.pspgateway.sessions.Provider
 
 import java.time.Duration
 
 /** Data-model.md *Settings*, FR-020: nothing reaches a provider the installation did not name. */
-class SettingsSuite extends munit.FunSuite:
+class SettingsSuite extends munit.FunSuite with LogCapturing:
 
   private val base = Map("PUBLIC_URL" -> "https://pay.example")
 

@@ -1,12 +1,13 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.sessions.Provider
 
 import java.util.UUID
 import scala.concurrent.duration.*
 
 /** contracts/merchant.md §2: what `merchant` reads of a session, and who may read it. */
-class SessionReadSuite extends munit.FunSuite:
+class SessionReadSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = SharedKit.kit

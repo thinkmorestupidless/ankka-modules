@@ -973,12 +973,12 @@
     }
   }, {
     "name" : "two-record legs — each record gets its leg back and its own contribution reversed, in resolver order",
-    "line" : 418,
+    "line" : 419,
     "given" : [ {
       "id" : "wallet/two1",
       "concepts" : [ "Wallet" ],
       "real_balance" : 10000,
-      "restricted_balance" : 1500,
+      "restricted_balance" : 1000,
       "player_id" : "two1",
       "brand_id" : "testbrand",
       "currency" : "GBP"
@@ -1056,7 +1056,7 @@
         "target" : "wallet/two1",
         "properties" : {
           "real_balance" : 10000,
-          "restricted_balance" : 2500
+          "restricted_balance" : 1600
         }
       }, {
         "index" : 3,
@@ -1093,7 +1093,7 @@
         } ]
       } ],
       "result" : {
-        "restricted_balance" : 2500,
+        "restricted_balance" : 1600,
         "wallet_type" : "bonus",
         "restricted_funds_refs" : "|restricted-funds/rf-a|restricted-funds/rf-b|"
       },
@@ -1101,7 +1101,7 @@
     }
   }, {
     "name" : "guard — a stray restricted_balance with no RestrictedFunds record is refused RESTRICTED_FUNDS_UNMIGRATED",
-    "line" : 480,
+    "line" : 481,
     "given" : [ {
       "id" : "wallet/guard1",
       "concepts" : [ "Wallet" ],
@@ -1139,7 +1139,7 @@
     }
   }, {
     "name" : "open_rounds — real-funded rollback prunes the settled bet tx",
-    "line" : 503,
+    "line" : 504,
     "given" : [ {
       "id" : "wallet/or1",
       "concepts" : [ "Wallet" ],
@@ -1194,7 +1194,7 @@
     }
   }, {
     "name" : "open_rounds — real-funded rollback with active bonus prunes the settled bet tx",
-    "line" : 527,
+    "line" : 528,
     "given" : [ {
       "id" : "wallet/or2",
       "concepts" : [ "Wallet" ],
@@ -1263,7 +1263,7 @@
     }
   }, {
     "name" : "open_rounds — bonus-funded rollback prunes down to empty",
-    "line" : 566,
+    "line" : 567,
     "given" : [ {
       "id" : "wallet/or3",
       "concepts" : [ "Wallet" ],
@@ -1333,7 +1333,7 @@
     }
   }, {
     "name" : "open_rounds — split rollback prunes, no-op tolerant when token already gone",
-    "line" : 605,
+    "line" : 606,
     "given" : [ {
       "id" : "wallet/or4",
       "concepts" : [ "Wallet" ],
@@ -1399,6 +1399,191 @@
         "currency" : "GBP",
         "wallet_type" : "split"
       },
+      "error" : null
+    }
+  }, {
+    "name" : "pools — rollback restores the bet's recorded split: 1000/5000 onto 4000/0 writes 5000/5000",
+    "line" : 647,
+    "given" : [ {
+      "id" : "wallet/pool1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 4000,
+      "restricted_balance" : 0,
+      "deposit_pool_balance" : 4000,
+      "converted_pool_balance" : 0,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-001",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r1",
+        "bet_tx_id" : "transaction/bet-001",
+        "settled_bet_tx_id" : "transaction/bet-001",
+        "bet_amount" : 6000,
+        "bet_amount_str" : "60.00",
+        "wagering_contribution" : 0,
+        "created_at" : "2026-10-14T10:00:00Z",
+        "funded_breakdown" : "",
+        "contribution_breakdown" : "",
+        "funded_real_amount" : 6000,
+        "funded_deposit_amount" : 1000,
+        "funded_converted_amount" : 5000
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool1",
+        "properties" : {
+          "real_balance" : 10000,
+          "deposit_pool_balance" : 5000,
+          "converted_pool_balance" : 5000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "rollback",
+          "balance_before" : 4000,
+          "balance_after" : 10000,
+          "funded_real_amount" : 6000,
+          "funded_deposit_amount" : 1000,
+          "funded_converted_amount" : 5000
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — rollback reopens the record the bet cleared",
+    "line" : 677,
+    "given" : [ {
+      "id" : "wallet/dt-rb-a",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "pending_deposit_record_refs" : "",
+      "open_rounds" : "transaction/bet-dt-rb-a|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "deposit-record/dt-rb-a",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 10000,
+      "turnover_required_amount" : 40000,
+      "wagered_toward_turnover" : 40000,
+      "turnover_status" : "CLEARED",
+      "cleared_at" : "2026-10-24T09:00:00Z",
+      "created_at" : "2026-10-01T00:00:00Z"
+    }, {
+      "id" : "transaction/bet-dt-rb-a",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r-dt-rb-a",
+        "bet_tx_id" : "transaction/bet-dt-rb-a",
+        "settled_bet_tx_id" : "transaction/bet-dt-rb-a",
+        "bet_amount" : 3000,
+        "bet_amount_str" : "30.00",
+        "wagering_contribution" : 0,
+        "funded_breakdown" : "",
+        "contribution_breakdown" : "",
+        "funded_real_amount" : 3000,
+        "deposit_turnover_breakdown" : "deposit-record/dt-rb-a:3000|",
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-rb-a",
+        "properties" : {
+          "wagered_toward_turnover" : 37000,
+          "turnover_status" : "PENDING",
+          "updated_at" : "2026-10-24T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/dt-rb-a",
+        "properties" : {
+          "real_balance" : 3000,
+          "open_rounds" : "",
+          "deposit_turnover_pending" : 3000,
+          "pending_deposit_record_refs" : "|deposit-record/dt-rb-a|"
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — rollback leaves a CLOSED record and the requirement alone",
+    "line" : 712,
+    "given" : [ {
+      "id" : "wallet/dt-rb-b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "open_rounds" : "transaction/bet-dt-rb-b|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "deposit-record/dt-rb-b",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 10000,
+      "turnover_required_amount" : 40000,
+      "wagered_toward_turnover" : 10000,
+      "turnover_status" : "CLOSED",
+      "created_at" : "2026-10-01T00:00:00Z"
+    }, {
+      "id" : "transaction/bet-dt-rb-b",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "RollbackBet",
+      "params" : {
+        "round_id" : "r-dt-rb-b",
+        "bet_tx_id" : "transaction/bet-dt-rb-b",
+        "settled_bet_tx_id" : "transaction/bet-dt-rb-b",
+        "bet_amount" : 3000,
+        "bet_amount_str" : "30.00",
+        "wagering_contribution" : 0,
+        "funded_breakdown" : "",
+        "contribution_breakdown" : "",
+        "funded_real_amount" : 3000,
+        "deposit_turnover_breakdown" : "deposit-record/dt-rb-b:3000|",
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/dt-rb-b",
+        "properties" : {
+          "real_balance" : 3000,
+          "open_rounds" : ""
+        }
+      } ],
+      "result" : null,
       "error" : null
     }
   } ]

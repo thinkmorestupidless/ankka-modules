@@ -1,9 +1,12 @@
 package io.eitheror.casino.simulator.core
 
+
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import scala.concurrent.duration.*
 
 /** The core's pure parts: durations, the seeded generator (FR-004, SC-003) and the schedule (FR-005). */
-class CoreSuite extends munit.FunSuite:
+class CoreSuite extends munit.FunSuite with LogCapturing:
 
   test("durations read as scenario data writes them") {
     assertEquals(Durations.parse("250ms"), Right(250.millis))

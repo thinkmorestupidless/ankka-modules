@@ -1,12 +1,13 @@
 package io.eitheror.casino.simulator.st8
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.simulator.core.{Call, RoundRole}
 
 /**
  * Byte fidelity (plan, "What the next command needs to know"): every body and answer of
  * contracts/st8-wire.md asserted against a literal, never computed.
  */
-class WireSuite extends munit.FunSuite:
+class WireSuite extends munit.FunSuite with LogCapturing:
 
   private def call(kind: String, amount: Option[String] = Some("1.50"), providerKind: Option[String] = None) =
     Call(kind, Some("w1"), Some("t1"), Some("r1"), Some("EUR"), amount, providerKind, Some("book-of-ra"), Some("c1"), Some("p1"), Some("goldvibe"))

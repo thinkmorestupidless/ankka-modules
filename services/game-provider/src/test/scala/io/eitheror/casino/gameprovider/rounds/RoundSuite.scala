@@ -1,6 +1,6 @@
 package io.eitheror.casino.gameprovider.rounds
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import com.thinkmorestupidless.ankka.core.Serializers.given
 import io.eitheror.casino.contract.facts.RoundSettled.Outcome
 import io.eitheror.casino.gameprovider.rounds.RoundCodecs.given
@@ -9,7 +9,7 @@ import io.eitheror.casino.gameprovider.rounds.RoundEvent.*
 import java.time.Instant
 
 /** The round's rules (FR-011, FR-013 to FR-015, FR-019, FR-020) through the entity alone. */
-class RoundSuite extends munit.FunSuite:
+class RoundSuite extends munit.FunSuite with LogCapturing:
 
   private val at      = Instant.parse("2026-10-09T10:00:00Z")
   private val opening = RoundOpening("st8", "r-1", "p-1", "EUR", Some("book-of-ra"), Some("gs-1"), at)

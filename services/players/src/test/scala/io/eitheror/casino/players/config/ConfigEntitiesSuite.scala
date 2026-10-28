@@ -1,9 +1,8 @@
 package io.eitheror.casino.players.config
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 /** The three configuration entities (T014). */
-class ConfigEntitiesSuite extends munit.FunSuite:
+class ConfigEntitiesSuite extends munit.FunSuite with LogCapturing:
 
   test("an empty BrandConfig has data-model.md's defaults") {
     val c = KeyValueEntityTestKit.of(BrandConfigEntity, "goldvibe").call(BrandConfigEntity.get).replyValue

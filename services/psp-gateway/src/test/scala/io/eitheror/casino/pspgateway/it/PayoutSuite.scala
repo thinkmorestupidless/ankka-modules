@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.sessions.*
 
@@ -8,7 +9,7 @@ import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
 /** US3, FR-004, FR-009, FR-009a, contracts/payouts.md: a brand's payout through four providers. */
-class PayoutSuite extends munit.FunSuite:
+class PayoutSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = SharedKit.kit

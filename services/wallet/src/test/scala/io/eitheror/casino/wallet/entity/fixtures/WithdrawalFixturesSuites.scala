@@ -12,6 +12,14 @@ import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
  */
 class CreateWithdrawalRequestFixturesSuite extends FixtureSuite("create-withdrawal-request"):
 
+  override protected def ignored: Map[String, String] = Map(
+    "withdrawal cap — worked example: deposits drawn first, cap exhausted; plan recorded, record untouched"           -> Since002.WithdrawalPlans,
+    "withdrawal cap — closure trigger: real_balance reaching zero flags closes 1 in the plan, record still open"      -> Since002.WithdrawalPlans,
+    "two-cap draw-down — 45.00 plans 30.00 then 15.00 in priority order, first flagged closes, none voided"           -> Since002.WithdrawalPlans,
+    "two-cap draw-down — 60.00 pays 50.00, voids 10.00 as bonus_cap_void, both flagged closes"                        -> Since002.WithdrawalPlans,
+    "ACTIVE + cap together — the ACTIVE record forfeits, the cap draws down and voids the excess"                     -> Since002.WithdrawalPlans
+  )
+
   protected def check(c: Case): Unit =
     given Case = c
     val real     = long(c.wallet, "real_balance").getOrElse(0L)
@@ -28,6 +36,7 @@ class CreateWithdrawalRequestFixturesSuite extends FixtureSuite("create-withdraw
         val state  = kit.currentState
         val placed = result.events.collectFirst { case e: WalletEvent.HoldPlaced => e }.getOrElse(fail("no hold placed"))
         assertWalletAndRecords(state)
+        assertParts("from", placed.paidParts)
         val closed = placed.forfeits.map(_.recordId) ++ placed.capDraws.filter(_.closes).map(_.recordId)
         c.transactions("withdrawal").foreach { t =>
           same("withdrawal amount", long(t, "amount"), o.paid.get)
@@ -105,16 +114,38 @@ abstract class ReleaseFixturesSuite(handler: String, releasedAs: String) extends
 
 class CancelWithdrawalRequestFixturesSuite extends ReleaseFixturesSuite("cancel-withdrawal-request", "cancelled"):
   override protected def ignored: Map[String, String] = Map(
-    "error — WITHDRAWAL_REQUEST_NOT_CANCELLABLE when request is already APPROVED" ->
-      "approval is payouts' (spec 007): the wallet's hold stays pending until released or confirmed, so payouts refuses this cancel"
+    "error — WITHDRAWAL_REQUEST_NOT_CANCELLABLE when request is APPROVED" ->
+      "approval is payouts' (spec 007): the wallet's hold stays pending until released or confirmed, so payouts refuses this cancel",
+    "plan request — refunds requested_amount"                         -> Since002.WithdrawalPlans,
+    "idempotent — already CANCELLED writes nothing"                   -> Since002.WithdrawalPlans,
+    "legacy — refunds amount plus the bonus_cap_void transaction"     -> Since002.WithdrawalPlans
   )
 
-class RejectWithdrawalRequestFixturesSuite extends ReleaseFixturesSuite("reject-withdrawal-request", "rejected")
+class RejectWithdrawalRequestFixturesSuite extends ReleaseFixturesSuite("reject-withdrawal-request", "rejected"):
+  override protected def ignored: Map[String, String] = Map(
+    "planned request — refunds requested_amount, stamps resolved_by / failure_reason / tx reason"     -> Since002.WithdrawalPlans,
+    "error — WITHDRAWAL_REQUEST_NOT_FOUND when the request twin is missing"                           -> Since002.WithdrawalPlans,
+    "idempotent — an already REJECTED request refunds nothing (pending ref already cleared)"          -> Since002.WithdrawalPlans,
+    "legacy request with a bonus_cap_void transaction — refunds amount + the void"                    -> Since002.WithdrawalPlans
+  )
 
-class FailWithdrawalRequestFixturesSuite extends ReleaseFixturesSuite("fail-withdrawal-request", "failed")
+class FailWithdrawalRequestFixturesSuite extends ReleaseFixturesSuite("fail-withdrawal-request", "failed"):
+  override protected def ignored: Map[String, String] = Map(
+    "plan refund from APPROVED — full requested_amount returns, reason on the tx"  -> Since002.WithdrawalPlans,
+    "error — COMPLETED request is WITHDRAWAL_NOT_RETURNABLE"                        -> Since002.WithdrawalPlans,
+    "idempotent — already FAILED credits nothing and mutates nothing"               -> Since002.WithdrawalPlans,
+    "legacy with a bonus_cap_void tx — refund is amount plus the void"              -> Since002.WithdrawalPlans
+  )
 
 /** A confirmation (FR-024): the pending request cleared, no money moved. */
 class CompleteWithdrawalRequestFixturesSuite extends FixtureSuite("complete-withdrawal-request"):
+
+  override protected def ignored: Map[String, String] = Map(
+    "exhausting draw — closes the record, prunes the wallet refs, reports closed_records"         -> Since002.WithdrawalPlans,
+    "partial draw — record stays open with reduced deposits and allowance; refs untouched"        -> Since002.WithdrawalPlans,
+    "deposits made while pending are preserved — the draw subtracts from current values"          -> Since002.WithdrawalPlans,
+    "idempotent — a COMPLETED request returns idempotent with zero mutations"                     -> Since002.WithdrawalPlans
+  )
 
   protected def check(c: Case): Unit =
     given Case = c
@@ -131,6 +162,10 @@ class CompleteWithdrawalRequestFixturesSuite extends FixtureSuite("complete-with
 
 /** A reversal (FR-025): a confirmed withdrawal back to real; a reversed one answered as done, moving nothing. */
 class ReverseWithdrawalRequestFixturesSuite extends FixtureSuite("reverse-withdrawal-request"):
+
+  override protected def ignored: Map[String, String] = Map(
+    "open cap record — the payout's draw is given back" -> Since002.WithdrawalPlans
+  )
 
   protected def check(c: Case): Unit =
     given Case = c

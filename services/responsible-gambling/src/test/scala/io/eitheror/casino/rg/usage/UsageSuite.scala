@@ -1,12 +1,12 @@
 package io.eitheror.casino.rg.usage
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.rg.profile.Sums
 
 import java.time.{Duration, Instant}
 
 /** The usage buckets (T010) and the session day (T011). */
-class UsageSuite extends munit.FunSuite:
+class UsageSuite extends munit.FunSuite with LogCapturing:
   private val now = Instant.parse("2026-10-27T12:00:00Z")
   private def ago(d: Duration) = now.minus(d)
 

@@ -391,13 +391,13 @@
       "error" : null
     }
   }, {
-    "name" : "cancel bonus — two open records: closes only the primary, restricted_balance sums the rest, refs drop only the closed id",
+    "name" : "cancel bonus — two open records: closes only the primary, restricted_balance is the next primary's, refs drop only the closed id",
     "line" : 162,
     "given" : [ {
       "id" : "wallet/test5",
       "concepts" : [ "Wallet" ],
       "real_balance" : 10000,
-      "restricted_balance" : 5000,
+      "restricted_balance" : 2000,
       "open_restricted_funds_refs" : "restricted-funds/rf5-a|restricted-funds/rf5-b|",
       "player_id" : "p5",
       "brand_id" : "testbrand",
@@ -517,7 +517,7 @@
       "id" : "wallet/test6",
       "concepts" : [ "Wallet" ],
       "real_balance" : 10000,
-      "restricted_balance" : 5000,
+      "restricted_balance" : 2000,
       "open_restricted_funds_refs" : "restricted-funds/rf6-a|restricted-funds/rf6-b|",
       "player_id" : "p6",
       "brand_id" : "testbrand",
@@ -675,6 +675,98 @@
         "code" : "GRANT_NOT_OPEN",
         "message" : "No open bonus for grant_ref"
       }
+    }
+  }, {
+    "name" : "cancel bonus — clawback to zero closes a second, cap record",
+    "line" : 313,
+    "given" : [ {
+      "id" : "wallet/f251-cb1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1500,
+      "restricted_balance" : 2000,
+      "open_restricted_funds_refs" : "restricted-funds/f251-cb1-act|restricted-funds/f251-cb1-cap|",
+      "player_id" : "p251e",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/f251-cb1-act",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 10000,
+      "released_progress" : 4000,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f251-cb1-act"
+    }, {
+      "id" : "restricted-funds/f251-cb1-cap",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f251-cb1-cap"
+    } ],
+    "when" : {
+      "command" : "CancelBonus",
+      "params" : {
+        "clawback_amount" : 1500,
+        "bonus_balance_str" : "20.00",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "grant_ref" : "bonus-claims/f251-cb1-act"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f251-cb1-act",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f251-cb1-cap",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "release_requirement" : 0,
+          "released_progress" : 0,
+          "max_convertible_amount" : 0,
+          "remaining_allowance" : 100,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "closed_at" : "2026-10-14T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/f251-cb1",
+        "properties" : {
+          "real_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      } ],
+      "result" : {
+        "real_balance" : 0,
+        "clawback_applied" : 1500,
+        "closed_records" : "|restricted-funds/f251-cb1-act|restricted-funds/f251-cb1-cap|"
+      },
+      "error" : null
     }
   } ]
 }

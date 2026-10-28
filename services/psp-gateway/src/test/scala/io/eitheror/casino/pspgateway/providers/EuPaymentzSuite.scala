@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.http.{Form, Raw}
@@ -9,7 +10,7 @@ import io.eitheror.casino.pspgateway.sessions.Outcome
 import java.time.Instant
 
 /** `eupaymentz/signature_test.go`, `adapter_test.go` and `handler/webhook_eupaymentz_test.go`, with `adapter.go`'s rules. */
-class EuPaymentzSuite extends munit.FunSuite:
+class EuPaymentzSuite extends munit.FunSuite with LogCapturing:
 
   private val passphrase = "sk-test"
   private val credential = Credential(Map("accountId" -> "sec1_spinvibecasino_ftd", "password" -> "pw-secret",

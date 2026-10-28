@@ -1,5 +1,7 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `internal/funding/placebet_test.go`, ported case for case (tasks.md T030). Each
  * test is named `placebet_test.go/<Go test>[/<sub-case>]`; expected values are the Go test's.
@@ -7,7 +9,7 @@ package io.eitheror.casino.wallet.funding
  * Go's zero `Flags` has partial splits and bonus wagering off and a zero default rate; the Scala
  * defaults differ, so every case states its flags through `flags`, which mirrors Go's zero values.
  */
-class PlaceBetTablesSuite extends munit.FunSuite:
+class PlaceBetTablesSuite extends munit.FunSuite with LogCapturing:
 
   private val file = "placebet_test.go"
 

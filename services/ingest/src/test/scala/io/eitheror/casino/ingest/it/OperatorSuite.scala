@@ -1,6 +1,7 @@
 package io.eitheror.casino.ingest.it
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.Json
 import io.eitheror.casino.ingest.requests.{Outcome, RecordState}
 
@@ -9,7 +10,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 
 /** T045 (US5; FR-014, FR-017, SC-007): payments operators read what a sub-brand sent, and the lost answers. */
-class OperatorSuite extends munit.FunSuite:
+class OperatorSuite extends munit.FunSuite with LogCapturing:
   private lazy val kit = Kit()
 
   override def afterAll(): Unit = kit.stop()

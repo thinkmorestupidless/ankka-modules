@@ -2,7 +2,7 @@ package io.eitheror.casino.simulator.steps
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
-import com.thinkmorestupidless.ankka.testkit.GherkinSuite
+import com.thinkmorestupidless.ankka.testkit.{GherkinSuite, LogCapturing}
 import io.eitheror.casino.simulator.SimulatorTestKit
 import io.eitheror.casino.simulator.SimulatorTestKit.staff
 import io.eitheror.casino.simulator.core.Scenario
@@ -15,7 +15,7 @@ import scala.jdk.CollectionConverters.*
  * waits made fast (data, as a tester would put it, FR-019), selected for a fresh session before
  * launch; the fake brand is set to misbehave, then the game page loads and the scenario runs.
  */
-class ScenariosFeatures extends GherkinSuite(s"${sys.props("casino.root")}/features/simulator/scenarios.feature"):
+class ScenariosFeatures extends GherkinSuite(s"${sys.props("casino.root")}/features/simulator/scenarios.feature") with LogCapturing:
 
   override val munitTimeout = 3.minutes
 

@@ -1,7 +1,9 @@
 package io.eitheror.casino.pspgateway.crypto
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** FR-006, SC-005: the original's `morphosis/adapter_test.go` `TestUnderpaid`, case for case. */
-class UnderpaidSuite extends munit.FunSuite:
+class UnderpaidSuite extends munit.FunSuite with LogCapturing:
 
   // (expected, received, underpaid, unreadable)
   private val cases = Vector(

@@ -1,11 +1,13 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `internal/funding/multi_test.go`, ported case for case (tasks.md T030): the
  * resolver proven over N ∈ {2, 3} open records. Each test is named `multi_test.go/<Go test>[/<case>]`;
  * expected values are the Go test's. Flags mirror Go's zero values through `flags`.
  */
-class MultiTablesSuite extends munit.FunSuite:
+class MultiTablesSuite extends munit.FunSuite with LogCapturing:
 
   private val file = "multi_test.go"
 

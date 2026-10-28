@@ -1,11 +1,12 @@
 package io.eitheror.casino.wallet.port
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.port.{Recording, Replay}
 
 import java.nio.file.Paths
 
 /** The translation on a hand-written recording, and Replay's verdict on it, with no runtime. */
-class WireTranslationSuite extends munit.FunSuite:
+class WireTranslationSuite extends munit.FunSuite with LogCapturing:
 
   private def json(s: String) = Some(WireTranslation.parse(s))
 
@@ -48,6 +49,16 @@ class WireTranslationSuite extends munit.FunSuite:
       answer
     })
     assertEquals(differences, Vector.empty)
+  }
+
+  test("spec 025: the pools and the deposit parts are read back as the original's decimals, and a wrong pool is a difference") {
+    val request  = Recording.Request("POST", "/v1/wallet/spinvibe/p1/EUR/bet", Map.empty, json("""{"roundId":"r1","gameId":"g","amount":"10.00"}"""))
+    val expected = Recording.Response(200, json("""{"realBalance":"90.00","depositPoolBalance":"60.00","convertedPoolBalance":"30.00","fundedDepositAmount":"4.00"}"""))
+    val t        = WireTranslation.request("s", 0, request, "goldvibe")
+    val observed = Recording.Response(200, json("""{"realBalance":9000,"depositPoolBalance":6000,"convertedPoolBalance":3000,"fundedDepositAmount":400,"realLeg":1000}"""))
+    assertEquals(WireTranslation.answer(t, expected, observed).body, expected.body)
+    val drifted = Recording.Response(200, json("""{"realBalance":9000,"depositPoolBalance":5000,"convertedPoolBalance":4000,"fundedDepositAmount":400}"""))
+    assertEquals(WireTranslation.answer(t, expected, drifted).body.get.get("depositPoolBalance").asText(), "50.00")
   }
 
   test("a real difference survives the translation and is named by its path") {

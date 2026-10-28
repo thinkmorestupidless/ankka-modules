@@ -2,7 +2,7 @@ package io.eitheror.casino.wallet.it
 
 import com.thinkmorestupidless.ankka.http.Caller
 import io.eitheror.casino.wallet.api.RgAnswer
-import io.eitheror.casino.wallet.entity.WalletEntity
+import io.eitheror.casino.wallet.entity.{OpenMigrated, WalletEntity}
 
 import java.util.concurrent.{Executors, TimeUnit}
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -110,4 +110,28 @@ class WalletItSuite extends Harness:
     val (status, body) = send("POST", s"/v1/casino/brands/$brand/erasure/players/p1", as = Caller.Service("local", "players"))
     assertEquals((status, field(body, "confirmed")), (200, Some("true")))
     assertEquals(send("POST", s"/v1/casino/brands/$brand/erasure/players/p1")._1, 403)
+  }
+
+  // ── spec 025: the pools a migrated wallet opens with (T035) ─────────────
+  // spec 019 names the migration's route; until it exists the migration calls the entity, as here.
+
+  private def migrate(player: String, real: Long, pools: Option[(Long, Long)]) =
+    testKit.componentClient.forEventSourcedEntity(WalletEntity.id(player, "EUR")).call(WalletEntity.openMigrated)
+      .invoke(OpenMigrated("migrate", real, 0L, Vector.empty, 0L, 0, 0L, java.time.Instant.now(),
+        depositPool = pools.map(_._1), convertedPool = pools.map(_._2)))
+
+  test("spec 025: a migrated wallet opens with the original's pools, and the first balance read shows them") {
+    assert(migrate("mg1", 8000, Some((5000L, 3000L))).accepted)
+    val balance = send("GET", s"${wallet("mg1")}/balance")._2
+    assertEquals((field(balance, "depositPoolBalance"), field(balance, "convertedPoolBalance")), (Some("5000"), Some("3000")))
+    assert(migrate("mg2", -100, Some((200L, -300L))).accepted)
+    assertEquals(field(send("GET", s"${wallet("mg2")}/balance")._2, "convertedPoolBalance"), Some("-300"))
+  }
+
+  test("spec 025: a migrated wallet the original never stamped opens all converted; a pair that does not sum opens nothing") {
+    assert(migrate("mg3", 8000, None).accepted)
+    assertEquals(field(send("GET", s"${wallet("mg3")}/balance")._2, "convertedPoolBalance"), Some("8000"))
+    assertEquals(migrate("mg4", 8000, Some((5000L, 1000L))).code, Some("POOLS_INVARIANT"))
+    assertEquals(field(send("POST", s"${wallet("mg4")}/bets", Some("""{"key":"b-1","roundId":"r1","gameId":"slot-a","amount":0}"""))._2, "error"),
+      Some("WALLET_NOT_FOUND"))
   }

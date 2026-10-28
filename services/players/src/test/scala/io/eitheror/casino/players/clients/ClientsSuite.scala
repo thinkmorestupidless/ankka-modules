@@ -1,7 +1,7 @@
 package io.eitheror.casino.players.clients
 
 import com.thinkmorestupidless.ankka.sdk.ServiceResponse
-import com.thinkmorestupidless.ankka.testkit.ScriptedServices
+import com.thinkmorestupidless.ankka.testkit.{LogCapturing, ScriptedServices}
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.Json.*
 import io.eitheror.casino.players.it.{Answer, FakeServer, Received}
@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.{Duration, Instant}
 
 /** T021: each client's answers mapped; a silent neighbour is `Unanswered` at its bound. */
-class ClientsSuite extends munit.FunSuite:
+class ClientsSuite extends munit.FunSuite with LogCapturing:
 
   private val bound = Duration.ofMillis(300)
   private val quick = Duration.ofMillis(50)

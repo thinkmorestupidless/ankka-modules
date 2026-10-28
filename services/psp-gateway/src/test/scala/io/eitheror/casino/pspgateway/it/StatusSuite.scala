@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.sessions.Provider
 
 import java.util.UUID
@@ -10,7 +11,7 @@ import scala.concurrent.duration.*
  * service of its own (build.sbt): T365 is pointed at a port nobody listens on, so its calls go
  * unanswered, which the window counts as a provider's silence, and Gigadat is given no base URL.
  */
-class StatusSuite extends munit.FunSuite:
+class StatusSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit =

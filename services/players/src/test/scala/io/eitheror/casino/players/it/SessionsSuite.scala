@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.config.{BrandConfig, BrandConfigEntity}
@@ -11,7 +12,7 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 /** US2's sign-in cases through the routes (FR-010 to FR-015, SC-003, SC-007). */
-class SessionsSuite extends munit.FunSuite:
+class SessionsSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 
@@ -55,7 +56,7 @@ class SessionsSuite extends munit.FunSuite:
     kit.realm.clearReceived()
     val r = login(email)
     assertEquals((r.status, r.str("error"), r.str("reason")), (403, "account_restricted", "suspended"))
-    assertEquals(kit.realm.received.flatMap(FakeRealm.callOf).filterNot(_ == "admin-token"), Vector("grant", "revoke"))
+    assertEquals(kit.realm.received.flatMap(FakeRealm.callOf).filterNot(Set("admin-token", "liveSessions")), Vector("grant", "revoke"))
     assert(player(id).lastRefusedSignInAt.isDefined)
   }
 

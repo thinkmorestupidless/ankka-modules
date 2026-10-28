@@ -1,16 +1,16 @@
 package io.eitheror.casino.wallet.publish
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.entity.WalletEvent.*
-import io.eitheror.casino.wallet.funding.{CapDraw, Forfeit, Leg, RecordUpdate}
+import io.eitheror.casino.wallet.funding.{CapDraw, Forfeit, Leg, Parts, RecordUpdate}
 
 import java.time.Instant
 
 /** contracts/facts.md, row by row: each event becomes the family it names, keyed by the wallet. */
-class MappingSuite extends munit.FunSuite:
+class MappingSuite extends munit.FunSuite with LogCapturing:
 
   private val t0     = Instant.parse("2026-10-09T10:00:00Z")
   private val wallet = "p1/EUR"
@@ -91,4 +91,61 @@ class MappingSuite extends munit.FunSuite:
     val failed = PaymentEvent.PaymentOutcomeRecorded("pay-1", PaymentOutcome("failed", "p1", "dreamzpay", code = Some("DECLINED"), reason = Some("card"), at = t0))
     val fact   = Facts.payments(failed).get.fact.asInstanceOf[f.PaymentFailed]
     assertEquals((fact.key, fact.code, fact.paymentProvider), ("pay-1", "DECLINED", "dreamzpay"))
+  }
+
+  // ── spec 025: the pools after and the parts on every fact ───────────────
+
+  private def field(fact: Product, name: String): Option[Any] =
+    fact.productElementNames.zip(fact.productIterator).collectFirst { case (`name`, v) => v }
+
+  private def poolsAndParts(fact: Product): (Any, Any, Option[Any], Option[Any]) =
+    (field(fact, "depositPoolAfter").get, field(fact, "convertedPoolAfter").get, field(fact, "depositPartCents"), field(fact, "convertedPartCents"))
+
+  private val p = Parts(300, 700)
+
+  test("every money fact carries both pools after it, and its parts where it moves real balance (spec 025 FR-013)") {
+    val withParts: Vector[WalletEvent] = Vector(
+      DepositConfirmed("pay-1", "d", "t-dep", 1000, "dreamzpay", "t1", "dreamzpay", "card", TurnoverTerms.Default, 0, 1, 1000, 0, t0, ok,
+        parts = p, depositAfter = 6000, convertedAfter = 4000),
+      BetPlaced("tx-1", "d", bet.copy(parts = Some(p)), "pragmatic", Vector.empty, Vector.empty, 0, 0, 0, 10000, 0, t0, ok, 6000, 4000),
+      WinCredited("w-1", "d", "t-w", "r1", "slot-a", 1000, 1000, Vector.empty, "real", Vector("tx-1"), Vector.empty, 10000, 0, t0, ok,
+        parts = p, depositAfter = 6000, convertedAfter = 4000),
+      BetRolledBack("rb-1", "d", "t-rb", "r1", 1000, 1000, Vector.empty, Vector("tx-1"), Vector.empty, 10000, 0, t0, ok,
+        parts = p, depositAfter = 6000, convertedAfter = 4000),
+      HoldReleased("rl-1", "d", "t-rl", "w-1", 1000, "cancelled", 10000, 0, t0, ok, parts = p, depositAfter = 6000, convertedAfter = 4000),
+      WithdrawalReversed("rv-1", "d", "t-rv", "w-1", 1000, 10000, 0, t0, ok, parts = p, depositAfter = 6000, convertedAfter = 4000),
+      AdminAdjusted("a-1", "d", "t-a", "real", -1000, Personal("x"), "correction", "op-7", None, None, Vector.empty, 10000, 0, t0, ok,
+        parts = p, depositAfter = 6000, convertedAfter = 4000),
+      ProviderCredited("pc-1", "d", "t-p", 1000, "fs-9", "free spins", "st8", "real", None, Vector.empty, 10000, 0, t0, ok,
+        parts = p, depositAfter = 6000, convertedAfter = 4000)
+    )
+    withParts.foreach { e =>
+      val fact = Facts.moneyTransactions(wallet, e).head.fact.asInstanceOf[Product]
+      assertEquals(poolsAndParts(fact), (Some(6000L), Some(4000L), Some(Some(300L)), Some(Some(700L))), e.toString)
+    }
+  }
+
+  test("a fact whose movement leaves real balance alone carries the pools after it and no parts") {
+    val loss = RoundSettledAsLoss("l-1", "d", "t-l", "r1", Vector("tx-1"), Vector.empty, Vector.empty, 10000, 0, t0, ok, 6000, 4000)
+    val fact = Facts.moneyTransactions(wallet, loss).head.fact.asInstanceOf[Product]
+    assertEquals(poolsAndParts(fact), (Some(6000L), Some(4000L), None, None))
+  }
+
+  test("a hold's fact carries paid and voided together as its parts and the voided pair apart; the clawback is on the forfeit") {
+    val e = HoldPlaced("w-1", "d", "t-h", "w-1", 3000, Vector(Forfeit("rf-1", 100, "funds_and_winnings", false)), 400, Vector.empty, 1000, 2000,
+      Vector.empty, true, Vector(update("rf-1", "g1", "FORFEITED")), 6000, 0, t0, ok,
+      clawbackParts = Parts(100, 300), voidedParts = Parts(0, 1000), paidParts = Parts(2000, 0), depositAfter = 3900, convertedAfter = 2100)
+    val facts = Facts.moneyTransactions(wallet, e).map(_.fact)
+    val hold  = facts.head.asInstanceOf[f.HoldPlaced]
+    assertEquals((hold.depositPartCents.map(_.value), hold.convertedPartCents.map(_.value)), (Some(2000L), Some(1000L)))
+    assertEquals((hold.voidedDepositCents.map(_.value), hold.voidedConvertedCents.map(_.value)), (Some(0L), Some(1000L)))
+    val forfeit = facts(1).asInstanceOf[f.RestrictedFundsForfeited]
+    assertEquals((forfeit.depositPartCents.map(_.value), forfeit.convertedPartCents.map(_.value)), (Some(100L), Some(300L)))
+  }
+
+  test("a conversion's fact is all converted") {
+    val e    = BetPlaced("tx-1", "d", bet.copy(parts = Some(p)), "pragmatic", Vector(Leg("rf-1", 500)),
+      Vector(update("rf-1", "grant-1", "CONVERTED_PENDING_CAP")), 0, 0, 0, 10500, 0, t0, ok, 6000, 4500)
+    val conv = Facts.moneyTransactions(wallet, e)(1).fact.asInstanceOf[f.RestrictedFundsConverted]
+    assertEquals((conv.depositPartCents.map(_.value), conv.convertedPartCents.map(_.value)), (Some(0L), Some(500L)))
   }

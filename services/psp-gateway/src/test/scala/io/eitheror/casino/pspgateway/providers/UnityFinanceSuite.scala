@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.http.{Form, Raw}
 import io.eitheror.casino.pspgateway.providers.unityfinance.UnityFinance
@@ -12,7 +13,7 @@ import java.time.Instant
  * `sessions_test.go` (whose in-memory store is the session's `providerData` here), with the webhook
  * cases of `handler/webhook.go` and `handler/withdrawal_webhook.go`.
  */
-class UnityFinanceSuite extends munit.FunSuite:
+class UnityFinanceSuite extends munit.FunSuite with LogCapturing:
   private val EUR = Currency.unsafe("EUR")
   private val now = Instant.parse("2026-10-18T12:00:00Z")
 

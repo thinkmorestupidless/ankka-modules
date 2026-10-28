@@ -1,9 +1,12 @@
 package io.eitheror.casino.simulator.brands
 
+
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import scala.concurrent.duration.*
 
 /** The brand table (FR-025; contracts/brand-config.md): a malformed entry refuses the start, naming the field. */
-class BrandTableSuite extends munit.FunSuite:
+class BrandTableSuite extends munit.FunSuite with LogCapturing:
 
   private def parse(brands: String, env: Map[String, String] = Map.empty) = BrandTable.parse(brands, "http://localhost:9100/", None, None, env)
 

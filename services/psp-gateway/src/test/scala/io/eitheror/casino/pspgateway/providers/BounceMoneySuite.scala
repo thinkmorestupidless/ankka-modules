@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.http.Raw
@@ -13,7 +14,7 @@ import java.util.Base64
 import scala.collection.mutable
 
 /** `bouncemoney/adapter_test.go`, `signature_test.go` and `handler/webhook_bouncemoney_test.go`, ported. */
-class BounceMoneySuite extends munit.FunSuite:
+class BounceMoneySuite extends munit.FunSuite with LogCapturing:
   private val aud  = Currency.unsafe("AUD")
   private val usd  = Currency.unsafe("USD")
   private val base = "https://bm.test/api/v1"

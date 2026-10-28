@@ -3,7 +3,7 @@
   "source" : "eitheror-platform/starter-packs/wallet/handlers/create-withdrawal-request.test.tl",
   "cases" : [ {
     "name" : "happy path — creates withdrawal request and deducts balance",
-    "line" : 32,
+    "line" : 41,
     "given" : [ {
       "id" : "wallet/test1",
       "concepts" : [ "Wallet" ],
@@ -46,6 +46,9 @@
           "player_ref" : "p1",
           "brand_ref" : "testbrand",
           "amount" : 100,
+          "requested_amount" : 100,
+          "voided_amount" : 0,
+          "cap_draws" : "",
           "currency" : "GBP",
           "terminal_id" : "t1",
           "psp_id" : "dreamzpay",
@@ -118,7 +121,7 @@
     }
   }, {
     "name" : "error — INSUFFICIENT_FUNDS when balance < amount",
-    "line" : 66,
+    "line" : 75,
     "given" : [ {
       "id" : "wallet/test2",
       "concepts" : [ "Wallet" ],
@@ -152,7 +155,7 @@
     }
   }, {
     "name" : "error — WITHDRAWAL_REQUEST_ALREADY_PENDING when existing request",
-    "line" : 92,
+    "line" : 101,
     "given" : [ {
       "id" : "wallet/test3",
       "concepts" : [ "Wallet" ],
@@ -187,7 +190,7 @@
     }
   }, {
     "name" : "error — WITHDRAWAL_BLOCKED_TURNOVER when pending turnover exists",
-    "line" : 119,
+    "line" : 128,
     "given" : [ {
       "id" : "wallet/test4",
       "concepts" : [ "Wallet" ],
@@ -220,8 +223,8 @@
       }
     }
   }, {
-    "name" : "withdrawal cap — worked example: deposits drawn first, cap exhausted, record closes",
-    "line" : 151,
+    "name" : "withdrawal cap — worked example: deposits drawn first, cap exhausted; plan recorded, record untouched",
+    "line" : 160,
     "given" : [ {
       "id" : "wallet/cap1",
       "concepts" : [ "Wallet" ],
@@ -264,49 +267,39 @@
       "mutations" : [ {
         "index" : 0,
         "op" : "set_properties",
-        "target" : "restricted-funds/cap1",
-        "properties" : {
-          "status" : "CLOSED",
-          "balance" : 0,
-          "remaining_allowance" : 0,
-          "deposits_since_release" : 0,
-          "open_round_count" : 0,
-          "closed_at" : "2026-08-23T10:00:00Z",
-          "updated_at" : "2026-08-23T10:00:00Z"
-        }
-      }, {
-        "index" : 1,
-        "op" : "set_properties",
         "target" : "wallet/cap1",
         "properties" : {
           "real_balance" : 0,
           "restricted_balance" : 0,
-          "open_restricted_funds_refs" : ""
+          "open_restricted_funds_refs" : "restricted-funds/cap1|"
         }
       }, {
-        "index" : 2,
+        "index" : 1,
         "op" : "set_properties",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "amount" : 300,
+          "requested_amount" : 350,
+          "voided_amount" : 50,
+          "cap_draws" : "|restricted-funds/cap1:200:100:1|",
           "status" : "PENDING_REVIEW"
         }
       }, {
-        "index" : 3,
+        "index" : 2,
         "op" : "add_concept",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "concept" : "withdrawal-request"
         }
       }, {
-        "index" : 4,
+        "index" : 3,
         "op" : "add_edge",
         "target" : "wallet/cap1",
         "args" : [ "HAS_WITHDRAWAL_REQUEST", {
           "$any" : true
         } ]
       }, {
-        "index" : 5,
+        "index" : 4,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
@@ -318,21 +311,21 @@
           "status" : "settled"
         }
       }, {
-        "index" : 6,
+        "index" : 5,
         "op" : "add_concept",
         "target" : "transaction.new-id",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 7,
+        "index" : 6,
         "op" : "add_edge",
         "target" : "wallet/cap1",
         "args" : [ "HAS_TRANSACTION", {
           "$any" : true
         } ]
       }, {
-        "index" : 8,
+        "index" : 7,
         "op" : "set_properties",
         "target" : "transaction.new-id-2",
         "properties" : {
@@ -348,14 +341,14 @@
           "created_at" : "2026-08-23T10:00:00Z"
         }
       }, {
-        "index" : 9,
+        "index" : 8,
         "op" : "add_concept",
         "target" : "transaction.new-id-2",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 10,
+        "index" : 9,
         "op" : "add_edge",
         "target" : "wallet/cap1",
         "args" : [ "HAS_TRANSACTION", {
@@ -367,17 +360,17 @@
         "amount" : 300,
         "voidedAmount" : 50,
         "currency" : "GBP",
-        "bonus_closed" : "true",
-        "closed_records" : "|restricted-funds/cap1|",
+        "bonus_closed" : "false",
+        "closed_records" : "",
         "forfeited_records" : "",
         "restricted_balance" : 0
       },
       "error" : null,
-      "mutation_count" : 11
+      "mutation_count" : 10
     }
   }, {
-    "name" : "withdrawal cap — request within the cap pays out in full, record stays open",
-    "line" : 205,
+    "name" : "withdrawal cap — request within the cap pays out in full; draw recorded, closes 0",
+    "line" : 213,
     "given" : [ {
       "id" : "wallet/cap2",
       "concepts" : [ "Wallet" ],
@@ -420,17 +413,6 @@
       "mutations" : [ {
         "index" : 0,
         "op" : "set_properties",
-        "target" : "restricted-funds/cap2",
-        "properties" : {
-          "status" : "CONVERTED_PENDING_CAP",
-          "balance" : 0,
-          "remaining_allowance" : 100,
-          "deposits_since_release" : 50,
-          "updated_at" : "2026-08-23T10:00:00Z"
-        }
-      }, {
-        "index" : 1,
-        "op" : "set_properties",
         "target" : "wallet/cap2",
         "properties" : {
           "real_balance" : 200,
@@ -438,29 +420,32 @@
           "open_restricted_funds_refs" : "restricted-funds/cap2|"
         }
       }, {
-        "index" : 2,
+        "index" : 1,
         "op" : "set_properties",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "amount" : 150,
+          "requested_amount" : 150,
+          "voided_amount" : 0,
+          "cap_draws" : "|restricted-funds/cap2:150:0:0|",
           "status" : "PENDING_REVIEW"
         }
       }, {
-        "index" : 3,
+        "index" : 2,
         "op" : "add_concept",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "concept" : "withdrawal-request"
         }
       }, {
-        "index" : 4,
+        "index" : 3,
         "op" : "add_edge",
         "target" : "wallet/cap2",
         "args" : [ "HAS_WITHDRAWAL_REQUEST", {
           "$any" : true
         } ]
       }, {
-        "index" : 5,
+        "index" : 4,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
@@ -470,14 +455,14 @@
           "balance_after" : 200
         }
       }, {
-        "index" : 6,
+        "index" : 5,
         "op" : "add_concept",
         "target" : "transaction.new-id",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 7,
+        "index" : 6,
         "op" : "add_edge",
         "target" : "wallet/cap2",
         "args" : [ "HAS_TRANSACTION", {
@@ -493,11 +478,11 @@
         "closed_records" : ""
       },
       "error" : null,
-      "mutation_count" : 8
+      "mutation_count" : 7
     }
   }, {
-    "name" : "withdrawal cap — request beyond deposits draws down remaining_allowance partially, no closure",
-    "line" : 256,
+    "name" : "withdrawal cap — request beyond deposits plans a partial allowance draw, closes 0",
+    "line" : 263,
     "given" : [ {
       "id" : "wallet/cap3",
       "concepts" : [ "Wallet" ],
@@ -540,16 +525,6 @@
       "mutations" : [ {
         "index" : 0,
         "op" : "set_properties",
-        "target" : "restricted-funds/cap3",
-        "properties" : {
-          "status" : "CONVERTED_PENDING_CAP",
-          "remaining_allowance" : 50,
-          "deposits_since_release" : 0,
-          "updated_at" : "2026-08-23T10:00:00Z"
-        }
-      }, {
-        "index" : 1,
-        "op" : "set_properties",
         "target" : "wallet/cap3",
         "properties" : {
           "real_balance" : 100,
@@ -557,22 +532,32 @@
           "open_restricted_funds_refs" : "restricted-funds/cap3|"
         }
       }, {
-        "index" : 2,
+        "index" : 1,
         "op" : "set_properties",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "amount" : 250,
+          "requested_amount" : 250,
+          "voided_amount" : 0,
+          "cap_draws" : "|restricted-funds/cap3:200:50:0|",
           "status" : "PENDING_REVIEW"
         }
       }, {
-        "index" : 3,
+        "index" : 2,
         "op" : "add_concept",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "concept" : "withdrawal-request"
         }
       }, {
-        "index" : 5,
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/cap3",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
@@ -587,14 +572,15 @@
         "amount" : 250,
         "voidedAmount" : 0,
         "currency" : "GBP",
-        "bonus_closed" : "false"
+        "bonus_closed" : "false",
+        "closed_records" : ""
       },
       "error" : null,
-      "mutation_count" : 8
+      "mutation_count" : 7
     }
   }, {
-    "name" : "withdrawal cap — closure trigger: real_balance reaching zero closes the record even with allowance left",
-    "line" : 304,
+    "name" : "withdrawal cap — closure trigger: real_balance reaching zero flags closes 1 in the plan, record still open",
+    "line" : 311,
     "given" : [ {
       "id" : "wallet/cap4",
       "concepts" : [ "Wallet" ],
@@ -637,25 +623,39 @@
       "mutations" : [ {
         "index" : 0,
         "op" : "set_properties",
-        "target" : "restricted-funds/cap4",
-        "properties" : {
-          "status" : "CLOSED",
-          "remaining_allowance" : 400,
-          "deposits_since_release" : 0,
-          "closed_at" : "2026-08-23T10:00:00Z",
-          "updated_at" : "2026-08-23T10:00:00Z"
-        }
-      }, {
-        "index" : 1,
-        "op" : "set_properties",
         "target" : "wallet/cap4",
         "properties" : {
           "real_balance" : 0,
           "restricted_balance" : 0,
-          "open_restricted_funds_refs" : ""
+          "open_restricted_funds_refs" : "restricted-funds/cap4|"
         }
       }, {
-        "index" : 5,
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "amount" : 100,
+          "requested_amount" : 100,
+          "voided_amount" : 0,
+          "cap_draws" : "|restricted-funds/cap4:0:100:1|",
+          "status" : "PENDING_REVIEW"
+        }
+      }, {
+        "index" : 2,
+        "op" : "add_concept",
+        "target" : "withdrawal-request.new-id",
+        "properties" : {
+          "concept" : "withdrawal-request"
+        }
+      }, {
+        "index" : 3,
+        "op" : "add_edge",
+        "target" : "wallet/cap4",
+        "args" : [ "HAS_WITHDRAWAL_REQUEST", {
+          "$any" : true
+        } ]
+      }, {
+        "index" : 4,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
@@ -670,15 +670,15 @@
         "amount" : 100,
         "voidedAmount" : 0,
         "currency" : "GBP",
-        "bonus_closed" : "true",
-        "closed_records" : "|restricted-funds/cap4|"
+        "bonus_closed" : "false",
+        "closed_records" : ""
       },
       "error" : null,
-      "mutation_count" : 8
+      "mutation_count" : 7
     }
   }, {
     "name" : "ACTIVE bonus — forfeits the record in full and marks it FORFEITED",
-    "line" : 354,
+    "line" : 363,
     "given" : [ {
       "id" : "wallet/test6",
       "concepts" : [ "Wallet" ],
@@ -857,7 +857,7 @@
     }
   }, {
     "name" : "ACTIVE bonus with clawback — forfeits the record AND claws back winnings from real_balance",
-    "line" : 414,
+    "line" : 423,
     "given" : [ {
       "id" : "wallet/test7",
       "concepts" : [ "Wallet" ],
@@ -922,7 +922,11 @@
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "amount" : 50,
-          "status" : "PENDING_REVIEW"
+          "status" : "PENDING_REVIEW",
+          "balance_before" : 1000,
+          "clawback_amount" : 900,
+          "balance_after_reservation" : 50,
+          "forfeited_amount" : 100
         }
       }, {
         "index" : 3,
@@ -1013,7 +1017,7 @@
     }
   }, {
     "name" : "error — WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT when clawback leaves too little to withdraw",
-    "line" : 482,
+    "line" : 491,
     "given" : [ {
       "id" : "wallet/test8",
       "concepts" : [ "Wallet" ],
@@ -1063,7 +1067,7 @@
     }
   }, {
     "name" : "happy path — destination_id stored on withdrawal-request twin",
-    "line" : 525,
+    "line" : 534,
     "given" : [ {
       "id" : "wallet/test5",
       "concepts" : [ "Wallet" ],
@@ -1168,7 +1172,7 @@
     }
   }, {
     "name" : "forfeit_on_withdrawal none — withdrawal proceeds, the record is untouched and still ACTIVE",
-    "line" : 564,
+    "line" : 573,
     "given" : [ {
       "id" : "wallet/pol-none",
       "concepts" : [ "Wallet" ],
@@ -1283,7 +1287,7 @@
     }
   }, {
     "name" : "forfeit_on_withdrawal funds — the record is forfeited, nothing is clawed back from real",
-    "line" : 619,
+    "line" : 628,
     "given" : [ {
       "id" : "wallet/pol-funds",
       "concepts" : [ "Wallet" ],
@@ -1437,7 +1441,7 @@
     }
   }, {
     "name" : "forfeit_on_withdrawal funds_and_winnings — forfeited and the clawback applies, as unset",
-    "line" : 677,
+    "line" : 686,
     "given" : [ {
       "id" : "wallet/pol-faw",
       "concepts" : [ "Wallet" ],
@@ -1535,7 +1539,7 @@
     }
   }, {
     "name" : "forfeit_on_withdrawal cancel_promotion — forfeited with clawback and cancel_grants names the grant",
-    "line" : 728,
+    "line" : 737,
     "given" : [ {
       "id" : "wallet/pol-cp",
       "concepts" : [ "Wallet" ],
@@ -1634,7 +1638,7 @@
     }
   }, {
     "name" : "error — WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT when the clawback exceeds real entirely",
-    "line" : 779,
+    "line" : 788,
     "given" : [ {
       "id" : "wallet/test9",
       "concepts" : [ "Wallet" ],
@@ -1683,8 +1687,8 @@
       }
     }
   }, {
-    "name" : "two-cap draw-down — 45.00 draws 30.00 then 15.00 in priority order, first closes, none voided",
-    "line" : 827,
+    "name" : "two-cap draw-down — 45.00 plans 30.00 then 15.00 in priority order, first flagged closes, none voided",
+    "line" : 836,
     "given" : [ {
       "id" : "wallet/twocap1",
       "concepts" : [ "Wallet" ],
@@ -1741,59 +1745,39 @@
       "mutations" : [ {
         "index" : 0,
         "op" : "set_properties",
-        "target" : "restricted-funds/cap-a",
-        "properties" : {
-          "status" : "CLOSED",
-          "balance" : 0,
-          "remaining_allowance" : 0,
-          "deposits_since_release" : 0,
-          "closed_at" : "2026-09-01T10:00:00Z",
-          "updated_at" : "2026-09-01T10:00:00Z"
-        }
-      }, {
-        "index" : 1,
-        "op" : "set_properties",
-        "target" : "restricted-funds/cap-b",
-        "properties" : {
-          "status" : "CONVERTED_PENDING_CAP",
-          "balance" : 0,
-          "remaining_allowance" : 500,
-          "deposits_since_release" : 0,
-          "updated_at" : "2026-09-01T10:00:00Z"
-        }
-      }, {
-        "index" : 2,
-        "op" : "set_properties",
         "target" : "wallet/twocap1",
         "properties" : {
           "real_balance" : 5500,
           "restricted_balance" : 0,
-          "open_restricted_funds_refs" : "restricted-funds/cap-b|"
+          "open_restricted_funds_refs" : "restricted-funds/cap-a|restricted-funds/cap-b|"
         }
       }, {
-        "index" : 3,
+        "index" : 1,
         "op" : "set_properties",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "amount" : 4500,
+          "requested_amount" : 4500,
+          "voided_amount" : 0,
+          "cap_draws" : "|restricted-funds/cap-a:0:3000:1|restricted-funds/cap-b:0:1500:0|",
           "status" : "PENDING_REVIEW"
         }
       }, {
-        "index" : 4,
+        "index" : 2,
         "op" : "add_concept",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "concept" : "withdrawal-request"
         }
       }, {
-        "index" : 5,
+        "index" : 3,
         "op" : "add_edge",
         "target" : "wallet/twocap1",
         "args" : [ "HAS_WITHDRAWAL_REQUEST", {
           "$any" : true
         } ]
       }, {
-        "index" : 6,
+        "index" : 4,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
@@ -1805,14 +1789,14 @@
           "status" : "settled"
         }
       }, {
-        "index" : 7,
+        "index" : 5,
         "op" : "add_concept",
         "target" : "transaction.new-id",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 8,
+        "index" : 6,
         "op" : "add_edge",
         "target" : "wallet/twocap1",
         "args" : [ "HAS_TRANSACTION", {
@@ -1823,17 +1807,17 @@
         "status" : "PENDING_REVIEW",
         "amount" : 4500,
         "voidedAmount" : 0,
-        "bonus_closed" : "true",
-        "closed_records" : "|restricted-funds/cap-a|",
+        "bonus_closed" : "false",
+        "closed_records" : "",
         "forfeited_records" : "",
         "restricted_balance" : 0
       },
       "error" : null,
-      "mutation_count" : 9
+      "mutation_count" : 7
     }
   }, {
-    "name" : "two-cap draw-down — 60.00 pays 50.00, voids 10.00 as bonus_cap_void, both close",
-    "line" : 896,
+    "name" : "two-cap draw-down — 60.00 pays 50.00, voids 10.00 as bonus_cap_void, both flagged closes",
+    "line" : 903,
     "given" : [ {
       "id" : "wallet/twocap2",
       "concepts" : [ "Wallet" ],
@@ -1890,56 +1874,39 @@
       "mutations" : [ {
         "index" : 0,
         "op" : "set_properties",
-        "target" : "restricted-funds/cap-a",
-        "properties" : {
-          "status" : "CLOSED",
-          "remaining_allowance" : 0,
-          "deposits_since_release" : 0,
-          "closed_at" : "2026-09-01T10:00:00Z"
-        }
-      }, {
-        "index" : 1,
-        "op" : "set_properties",
-        "target" : "restricted-funds/cap-b",
-        "properties" : {
-          "status" : "CLOSED",
-          "remaining_allowance" : 0,
-          "deposits_since_release" : 0,
-          "closed_at" : "2026-09-01T10:00:00Z"
-        }
-      }, {
-        "index" : 2,
-        "op" : "set_properties",
         "target" : "wallet/twocap2",
         "properties" : {
           "real_balance" : 4000,
           "restricted_balance" : 0,
-          "open_restricted_funds_refs" : ""
+          "open_restricted_funds_refs" : "restricted-funds/cap-a|restricted-funds/cap-b|"
         }
       }, {
-        "index" : 3,
+        "index" : 1,
         "op" : "set_properties",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "amount" : 5000,
+          "requested_amount" : 6000,
+          "voided_amount" : 1000,
+          "cap_draws" : "|restricted-funds/cap-a:0:3000:1|restricted-funds/cap-b:0:2000:1|",
           "status" : "PENDING_REVIEW"
         }
       }, {
-        "index" : 4,
+        "index" : 2,
         "op" : "add_concept",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "concept" : "withdrawal-request"
         }
       }, {
-        "index" : 5,
+        "index" : 3,
         "op" : "add_edge",
         "target" : "wallet/twocap2",
         "args" : [ "HAS_WITHDRAWAL_REQUEST", {
           "$any" : true
         } ]
       }, {
-        "index" : 6,
+        "index" : 4,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
@@ -1951,21 +1918,21 @@
           "status" : "settled"
         }
       }, {
-        "index" : 7,
+        "index" : 5,
         "op" : "add_concept",
         "target" : "transaction.new-id",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 8,
+        "index" : 6,
         "op" : "add_edge",
         "target" : "wallet/twocap2",
         "args" : [ "HAS_TRANSACTION", {
           "$any" : true
         } ]
       }, {
-        "index" : 9,
+        "index" : 7,
         "op" : "set_properties",
         "target" : "transaction.new-id-2",
         "properties" : {
@@ -1977,14 +1944,14 @@
           "status" : "voided"
         }
       }, {
-        "index" : 10,
+        "index" : 8,
         "op" : "add_concept",
         "target" : "transaction.new-id-2",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 11,
+        "index" : 9,
         "op" : "add_edge",
         "target" : "wallet/twocap2",
         "args" : [ "HAS_TRANSACTION", {
@@ -1995,17 +1962,17 @@
         "status" : "PENDING_REVIEW",
         "amount" : 5000,
         "voidedAmount" : 1000,
-        "bonus_closed" : "true",
-        "closed_records" : "|restricted-funds/cap-a|restricted-funds/cap-b|",
+        "bonus_closed" : "false",
+        "closed_records" : "",
         "forfeited_records" : "",
         "restricted_balance" : 0
       },
       "error" : null,
-      "mutation_count" : 12
+      "mutation_count" : 10
     }
   }, {
     "name" : "ACTIVE + cap together — the ACTIVE record forfeits, the cap draws down and voids the excess",
-    "line" : 971,
+    "line" : 977,
     "given" : [ {
       "id" : "wallet/mixed1",
       "concepts" : [ "Wallet" ],
@@ -2073,47 +2040,39 @@
       }, {
         "index" : 1,
         "op" : "set_properties",
-        "target" : "restricted-funds/cap",
-        "properties" : {
-          "status" : "CLOSED",
-          "remaining_allowance" : 0,
-          "deposits_since_release" : 0,
-          "closed_at" : "2026-09-01T10:00:00Z",
-          "updated_at" : "2026-09-01T10:00:00Z"
-        }
-      }, {
-        "index" : 2,
-        "op" : "set_properties",
         "target" : "wallet/mixed1",
         "properties" : {
           "real_balance" : 6000,
           "restricted_balance" : 0,
-          "open_restricted_funds_refs" : ""
+          "open_restricted_funds_refs" : "restricted-funds/cap|"
         }
       }, {
-        "index" : 3,
+        "index" : 2,
         "op" : "set_properties",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "amount" : 3000,
+          "requested_amount" : 4000,
+          "voided_amount" : 1000,
+          "cap_draws" : "|restricted-funds/cap:0:3000:1|",
           "status" : "PENDING_REVIEW"
         }
       }, {
-        "index" : 4,
+        "index" : 3,
         "op" : "add_concept",
         "target" : "withdrawal-request.new-id",
         "properties" : {
           "concept" : "withdrawal-request"
         }
       }, {
-        "index" : 5,
+        "index" : 4,
         "op" : "add_edge",
         "target" : "wallet/mixed1",
         "args" : [ "HAS_WITHDRAWAL_REQUEST", {
           "$any" : true
         } ]
       }, {
-        "index" : 6,
+        "index" : 5,
         "op" : "set_properties",
         "target" : "transaction.new-id",
         "properties" : {
@@ -2123,21 +2082,21 @@
           "balance_after" : 6000
         }
       }, {
-        "index" : 7,
+        "index" : 6,
         "op" : "add_concept",
         "target" : "transaction.new-id",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 8,
+        "index" : 7,
         "op" : "add_edge",
         "target" : "wallet/mixed1",
         "args" : [ "HAS_TRANSACTION", {
           "$any" : true
         } ]
       }, {
-        "index" : 9,
+        "index" : 8,
         "op" : "set_properties",
         "target" : "transaction.new-id-2",
         "properties" : {
@@ -2148,21 +2107,21 @@
           "status" : "voided"
         }
       }, {
-        "index" : 10,
+        "index" : 9,
         "op" : "add_concept",
         "target" : "transaction.new-id-2",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 11,
+        "index" : 10,
         "op" : "add_edge",
         "target" : "wallet/mixed1",
         "args" : [ "HAS_TRANSACTION", {
           "$any" : true
         } ]
       }, {
-        "index" : 12,
+        "index" : 11,
         "op" : "set_properties",
         "target" : "transaction.new-id-3",
         "properties" : {
@@ -2176,14 +2135,14 @@
           "status" : "voided"
         }
       }, {
-        "index" : 13,
+        "index" : 12,
         "op" : "add_concept",
         "target" : "transaction.new-id-3",
         "properties" : {
           "concept" : "ent.wallet.transaction_v1"
         }
       }, {
-        "index" : 14,
+        "index" : 13,
         "op" : "add_edge",
         "target" : "wallet/mixed1",
         "args" : [ "HAS_TRANSACTION", {
@@ -2199,12 +2158,67 @@
         "clawbackAmount" : 0,
         "bonus_closed" : "true",
         "forfeited_records" : "|restricted-funds/act|",
-        "closed_records" : "|restricted-funds/act|restricted-funds/cap|",
+        "closed_records" : "|restricted-funds/act|",
         "cancel_grants" : "",
         "restricted_balance" : 0
       },
       "error" : null,
-      "mutation_count" : 15
+      "mutation_count" : 14
+    }
+  }, {
+    "name" : "pools — deposit-first payout: 6000 on 5000/5000 writes 0/4000, paid split 5000/1000",
+    "line" : 1052,
+    "given" : [ {
+      "id" : "wallet/pool1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 0,
+      "deposit_pool_balance" : 5000,
+      "converted_pool_balance" : 5000,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    } ],
+    "when" : {
+      "command" : "CreateWithdrawalRequest",
+      "params" : {
+        "amount" : 6000,
+        "currency" : "GBP",
+        "terminal_id" : "t1",
+        "psp_id" : "dreamzpay",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "wallet_ref" : "wallet/pool1",
+        "player_ref" : "p1",
+        "brand_ref" : "testbrand"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool1",
+        "properties" : {
+          "real_balance" : 4000,
+          "deposit_pool_balance" : 0,
+          "converted_pool_balance" : 4000
+        }
+      }, {
+        "index" : 4,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "withdrawal",
+          "amount" : 6000,
+          "balance_before" : 10000,
+          "balance_after" : 4000,
+          "from_deposit_amount" : 5000,
+          "from_converted_amount" : 1000
+        }
+      } ],
+      "result" : null,
+      "error" : null
     }
   } ]
 }

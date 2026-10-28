@@ -171,7 +171,7 @@
     }
   }, {
     "name" : "bonus-funded round settled as loss — forfeiture triggered when the record's balance is zero and no open rounds remain",
-    "line" : 82,
+    "line" : 86,
     "given" : [ {
       "id" : "wallet/test2",
       "concepts" : [ "Wallet" ],
@@ -232,7 +232,8 @@
         "op" : "set_properties",
         "target" : "wallet/test2",
         "properties" : {
-          "restricted_balance" : 0
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
         }
       }, {
         "index" : 2,
@@ -276,13 +277,14 @@
         "real_balance" : 10000,
         "restricted_balance" : 0,
         "currency" : "GBP",
-        "restricted_funds_refs" : "|restricted-funds/rf2|"
+        "restricted_funds_refs" : "|restricted-funds/rf2|",
+        "closed_records" : "|restricted-funds/rf2|"
       },
       "error" : null
     }
   }, {
     "name" : "legacy bet with no funded_breakdown — whole amount treated as real, LEGACY_BET_NO_LEGS recorded (F14: legacy funding-input synthesis retired, research.md Q9 D3)",
-    "line" : 126,
+    "line" : 130,
     "given" : [ {
       "id" : "wallet/test3",
       "concepts" : [ "Wallet" ],
@@ -361,7 +363,7 @@
     }
   }, {
     "name" : "restricted funds ref — record reachable only via open_restricted_funds_refs, records_source refs",
-    "line" : 170,
+    "line" : 174,
     "given" : [ {
       "id" : "wallet/f219-loss",
       "concepts" : [ "Wallet" ],
@@ -449,7 +451,7 @@
     }
   }, {
     "name" : "bonus-funded round settled as loss — explicit funded_breakdown produces the same mutations as the legacy synthesis",
-    "line" : 210,
+    "line" : 214,
     "given" : [ {
       "id" : "wallet/test3b",
       "concepts" : [ "Wallet" ],
@@ -535,7 +537,7 @@
     }
   }, {
     "name" : "wagering bonus lifecycle — forfeiture when all bonus spent on single bet and round lost",
-    "line" : 250,
+    "line" : 254,
     "given" : [ {
       "id" : "wallet/test4",
       "concepts" : [ "Wallet" ],
@@ -592,7 +594,8 @@
         "op" : "set_properties",
         "target" : "wallet/test4",
         "properties" : {
-          "restricted_balance" : 0
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
         }
       }, {
         "index" : 2,
@@ -605,13 +608,14 @@
       "result" : {
         "real_balance" : 20000,
         "restricted_balance" : 0,
-        "currency" : "GBP"
+        "currency" : "GBP",
+        "closed_records" : "|restricted-funds/rf4|"
       },
       "error" : null
     }
   }, {
     "name" : "split loss decrements the funding record's open_round_count (research Q10.5)",
-    "line" : 295,
+    "line" : 299,
     "given" : [ {
       "id" : "wallet/split1",
       "concepts" : [ "Wallet" ],
@@ -694,7 +698,7 @@
     }
   }, {
     "name" : "split loss recovers the real leg by subtraction — wallet_type and funded_real_amount are not bonus/0",
-    "line" : 339,
+    "line" : 343,
     "given" : [ {
       "id" : "wallet/split3",
       "concepts" : [ "Wallet" ],
@@ -756,7 +760,7 @@
     }
   }, {
     "name" : "split loss on an exhausted record with no other open round auto-forfeits it (research Q10.5)",
-    "line" : 378,
+    "line" : 382,
     "given" : [ {
       "id" : "wallet/split2",
       "concepts" : [ "Wallet" ],
@@ -813,19 +817,21 @@
         "op" : "set_properties",
         "target" : "wallet/split2",
         "properties" : {
-          "restricted_balance" : 0
+          "restricted_balance" : 0,
+          "open_restricted_funds_refs" : ""
         }
       } ],
       "result" : {
         "real_balance" : 500,
         "restricted_balance" : 0,
-        "currency" : "GBP"
+        "currency" : "GBP",
+        "closed_records" : "|restricted-funds/rf-split2|"
       },
       "error" : null
     }
   }, {
     "name" : "two-record legs — the exhausted record forfeits, the other keeps its balance and becomes the projection's primary",
-    "line" : 417,
+    "line" : 422,
     "given" : [ {
       "id" : "wallet/two1",
       "concepts" : [ "Wallet" ],
@@ -944,13 +950,131 @@
       } ],
       "result" : {
         "restricted_balance" : 500,
-        "restricted_funds_refs" : "|restricted-funds/rf-a|restricted-funds/rf-b|"
+        "restricted_funds_refs" : "|restricted-funds/rf-a|restricted-funds/rf-b|",
+        "closed_records" : "|restricted-funds/rf-a|"
       },
       "error" : null
     }
   }, {
+    "name" : "two records — loss empties the primary; it forfeits and the queued record becomes primary",
+    "line" : 485,
+    "given" : [ {
+      "id" : "wallet/lp1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 10000,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/lp1-a|restricted-funds/lp1-b|",
+      "player_id" : "lp1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "restricted-funds/lp1-b",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/lp1-gb",
+      "status" : "ACTIVE",
+      "priority" : 1,
+      "granted_at" : "2026-09-02T00:00:00Z",
+      "balance" : 2000,
+      "release_requirement" : 5000,
+      "released_progress" : 0,
+      "max_convertible_amount" : 5000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0
+    }, {
+      "id" : "restricted-funds/lp1-a",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "grant_ref" : "reward-grant/lp1-ga",
+      "status" : "ACTIVE",
+      "priority" : 0,
+      "granted_at" : "2026-09-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 10000,
+      "released_progress" : 500,
+      "max_convertible_amount" : 10000,
+      "remaining_allowance" : 0,
+      "deposits_since_release" : 0,
+      "open_round_count" : 1
+    }, {
+      "id" : "transaction/bet-lp1",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "SettleRoundAsLoss",
+      "params" : {
+        "round_id" : "r-lp1",
+        "bet_tx_id" : "transaction/bet-lp1",
+        "settled_bet_tx_id" : "transaction/bet-lp1",
+        "bet_amount" : 500,
+        "bet_amount_str" : "5.00",
+        "created_at" : "2026-09-22T10:00:00Z",
+        "funded_breakdown" : "restricted-funds/lp1-a:500|"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/lp1-a",
+        "properties" : {
+          "status" : "FORFEITED",
+          "balance" : 0,
+          "open_round_count" : 0,
+          "closed_at" : "2026-09-22T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/lp1",
+        "properties" : {
+          "restricted_balance" : 2000
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction/bet-lp1",
+        "properties" : {
+          "status" : "loss"
+        }
+      }, {
+        "index" : 3,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "loss",
+          "wallet_type" : "bonus",
+          "funded_restricted_amount" : 500,
+          "funded_breakdown" : "restricted-funds/lp1-a:500|",
+          "grant_refs" : "|reward-grant/lp1-ga|"
+        }
+      }, {
+        "index" : 4,
+        "op" : "add_concept",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "concept" : "ent.wallet.transaction_v1"
+        }
+      }, {
+        "index" : 5,
+        "op" : "add_edge",
+        "target" : "wallet/lp1",
+        "args" : [ "HAS_TRANSACTION", {
+          "$any" : true
+        } ]
+      } ],
+      "result" : {
+        "restricted_balance" : 2000,
+        "restricted_funds_refs" : "|restricted-funds/lp1-a|"
+      },
+      "error" : null,
+      "mutation_count" : 6
+    }
+  }, {
     "name" : "guard — a stray restricted_balance with no RestrictedFunds record is refused RESTRICTED_FUNDS_UNMIGRATED",
-    "line" : 479,
+    "line" : 550,
     "given" : [ {
       "id" : "wallet/guard1",
       "concepts" : [ "Wallet" ],
@@ -986,7 +1110,7 @@
     }
   }, {
     "name" : "open_rounds — real-funded loss prunes the settled bet tx",
-    "line" : 502,
+    "line" : 573,
     "given" : [ {
       "id" : "wallet/or1",
       "concepts" : [ "Wallet" ],
@@ -1037,7 +1161,7 @@
     }
   }, {
     "name" : "open_rounds — real-funded loss is a no-op when the settled bet tx is absent",
-    "line" : 526,
+    "line" : 597,
     "given" : [ {
       "id" : "wallet/or2",
       "concepts" : [ "Wallet" ],
@@ -1081,7 +1205,7 @@
     }
   }, {
     "name" : "open_rounds — bonus-funded loss with forfeiture prunes down to empty",
-    "line" : 549,
+    "line" : 620,
     "given" : [ {
       "id" : "wallet/or3",
       "concepts" : [ "Wallet" ],
@@ -1138,17 +1262,19 @@
         "op" : "set_properties",
         "target" : "wallet/or3",
         "properties" : {
-          "open_rounds" : ""
+          "open_rounds" : "",
+          "open_restricted_funds_refs" : ""
         }
       } ],
       "result" : {
-        "currency" : "GBP"
+        "currency" : "GBP",
+        "closed_records" : "|restricted-funds/rf-or3|"
       },
       "error" : null
     }
   }, {
     "name" : "open_rounds — bonus-funded loss without forfeiture prunes the settled bet tx",
-    "line" : 589,
+    "line" : 660,
     "given" : [ {
       "id" : "wallet/or4",
       "concepts" : [ "Wallet" ],
@@ -1204,6 +1330,248 @@
         "target" : "wallet/or4",
         "properties" : {
           "open_rounds" : "transaction/bet-E|"
+        }
+      } ],
+      "result" : {
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — loss with cash left leaves deposit records alone",
+    "line" : 705,
+    "given" : [ {
+      "id" : "wallet/dt-loss-a",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 5000,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 35000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-a|",
+      "open_rounds" : "transaction/bet-dt-a|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-dt-a",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "SettleRoundAsLoss",
+      "params" : {
+        "round_id" : "r-dt-a",
+        "bet_tx_id" : "transaction/bet-dt-a",
+        "settled_bet_tx_id" : "transaction/bet-dt-a",
+        "bet_amount" : 5000,
+        "bet_amount_str" : "50.00",
+        "funded_breakdown" : "",
+        "funded_real_amount" : 5000,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/dt-loss-a",
+        "properties" : {
+          "open_rounds" : ""
+        }
+      } ],
+      "result" : {
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — last loss with no cash left closes every pending record, oldest first",
+    "line" : 730,
+    "given" : [ {
+      "id" : "wallet/dt-loss-b",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 50000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-b2|deposit-record/dt-b1|",
+      "open_rounds" : "transaction/bet-dt-b|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "deposit-record/dt-b1",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 10000,
+      "turnover_required_amount" : 40000,
+      "wagered_toward_turnover" : 10000,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-01T00:00:00Z"
+    }, {
+      "id" : "deposit-record/dt-b2",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 5000,
+      "turnover_required_amount" : 20000,
+      "wagered_toward_turnover" : 0,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-02T00:00:00Z"
+    }, {
+      "id" : "transaction/bet-dt-b",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "SettleRoundAsLoss",
+      "params" : {
+        "round_id" : "r-dt-b",
+        "bet_tx_id" : "transaction/bet-dt-b",
+        "settled_bet_tx_id" : "transaction/bet-dt-b",
+        "bet_amount" : 5000,
+        "bet_amount_str" : "50.00",
+        "funded_breakdown" : "",
+        "funded_real_amount" : 5000,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-b1",
+        "properties" : {
+          "wagered_toward_turnover" : 10000,
+          "turnover_status" : "CLOSED",
+          "closed_at" : "2026-10-24T10:00:00Z",
+          "updated_at" : "2026-10-24T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-b2",
+        "properties" : {
+          "wagered_toward_turnover" : 0,
+          "turnover_status" : "CLOSED",
+          "closed_at" : "2026-10-24T10:00:00Z"
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "wallet/dt-loss-b",
+        "properties" : {
+          "open_rounds" : "",
+          "deposit_turnover_pending" : 0,
+          "pending_deposit_record_refs" : ""
+        }
+      } ],
+      "result" : {
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — no cash left but another round still open: nothing closes yet",
+    "line" : 775,
+    "given" : [ {
+      "id" : "wallet/dt-loss-c",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "deposit_turnover_pending" : 30000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-c|",
+      "open_rounds" : "transaction/bet-dt-c|transaction/bet-dt-c2|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "transaction/bet-dt-c",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "SettleRoundAsLoss",
+      "params" : {
+        "round_id" : "r-dt-c",
+        "bet_tx_id" : "transaction/bet-dt-c",
+        "settled_bet_tx_id" : "transaction/bet-dt-c",
+        "bet_amount" : 5000,
+        "bet_amount_str" : "50.00",
+        "funded_breakdown" : "",
+        "funded_real_amount" : 5000,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/dt-loss-c",
+        "properties" : {
+          "open_rounds" : "transaction/bet-dt-c2|"
+        }
+      } ],
+      "result" : {
+        "currency" : "GBP"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "deposit turnover — stamped wallet: deposit pool empty closes even with converted cash left",
+    "line" : 800,
+    "given" : [ {
+      "id" : "wallet/dt-loss-d",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 3000,
+      "restricted_balance" : 0,
+      "deposit_pool_balance" : 0,
+      "converted_pool_balance" : 3000,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "deposit_turnover_pending" : 20000,
+      "pending_deposit_record_refs" : "|deposit-record/dt-d|",
+      "open_rounds" : "transaction/bet-dt-d|",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "GBP"
+    }, {
+      "id" : "deposit-record/dt-d",
+      "concepts" : [ "DepositRecord" ],
+      "amount" : 5000,
+      "turnover_required_amount" : 20000,
+      "wagered_toward_turnover" : 5000,
+      "turnover_status" : "PENDING",
+      "created_at" : "2026-10-01T00:00:00Z"
+    }, {
+      "id" : "transaction/bet-dt-d",
+      "concepts" : [ "Transaction" ],
+      "status" : "open"
+    } ],
+    "when" : {
+      "command" : "SettleRoundAsLoss",
+      "params" : {
+        "round_id" : "r-dt-d",
+        "bet_tx_id" : "transaction/bet-dt-d",
+        "settled_bet_tx_id" : "transaction/bet-dt-d",
+        "bet_amount" : 5000,
+        "bet_amount_str" : "50.00",
+        "funded_breakdown" : "",
+        "funded_real_amount" : 5000,
+        "funded_deposit_amount" : 5000,
+        "funded_converted_amount" : 0,
+        "created_at" : "2026-10-24T10:00:00Z"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "deposit-record/dt-d",
+        "properties" : {
+          "turnover_status" : "CLOSED"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/dt-loss-d",
+        "properties" : {
+          "deposit_turnover_pending" : 0,
+          "pending_deposit_record_refs" : ""
         }
       } ],
       "result" : {

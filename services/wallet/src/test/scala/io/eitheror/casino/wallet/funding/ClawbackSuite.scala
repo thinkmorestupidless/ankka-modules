@@ -1,6 +1,7 @@
 package io.eitheror.casino.wallet.funding
 
 import Clawback.Baseline
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
 /**
  * The clawback of spec 002 FR-015a (tasks T009): deposits since award = max(0, deposits now −
@@ -8,7 +9,7 @@ import Clawback.Baseline
  * to real balance where applied. Expected values are worked from that formula and from the
  * features' figures, never read off the code.
  */
-class ClawbackSuite extends munit.FunSuite:
+class ClawbackSuite extends munit.FunSuite with LogCapturing:
 
   test("FR-015a: winnings since the award less deposits since the award") {
     // real 1000 → 3000, deposits 5000 → 6000: 3000 − 1000 − 1000

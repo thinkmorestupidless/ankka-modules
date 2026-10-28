@@ -1,10 +1,12 @@
 package io.eitheror.casino.wallet.funding
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /**
  * The original's `withdraw_test.go`, case for case (research R2, tasks T049). Each test is named
  * `withdraw_test.go/<Go test name>`; expected values are the Go test's.
  */
-class WithdrawTablesSuite extends munit.FunSuite:
+class WithdrawTablesSuite extends munit.FunSuite with LogCapturing:
 
   private def activeRecord(id: String, balance: Long, releaseRequirement: Long, releasedProgress: Long, maxConvertible: Long,
       openRoundCount: Long): Record =

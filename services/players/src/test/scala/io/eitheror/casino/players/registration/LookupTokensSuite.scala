@@ -1,7 +1,9 @@
 package io.eitheror.casino.players.registration
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** FR-036, research R9: what two registrations share, as a keyed digest. */
-class LookupTokensSuite extends munit.FunSuite:
+class LookupTokensSuite extends munit.FunSuite with LogCapturing:
 
   test("names and a date of birth differing only in case and space share a token") {
     assertEquals(LookupTokens.identity("k", " Ann ", "SMITH", "1990-01-01"), LookupTokens.identity("k", "ann", "smith", "1990-01-01"))

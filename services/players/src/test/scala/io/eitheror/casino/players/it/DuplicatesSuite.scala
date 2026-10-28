@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.config.{BrandConfig, BrandConfigEntity}
@@ -12,7 +13,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** T062: duplicate detection at registration and the operator's review (FR-036, FR-037, SC-005). */
-class DuplicatesSuite extends munit.FunSuite:
+class DuplicatesSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

@@ -3,6 +3,7 @@ package io.eitheror.casino.ingest.it
 import ch.qos.logback.classic.{Logger, LoggerContext}
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.ingest.requests.Outcome
 import io.eitheror.casino.ingest.shape.Digests
 import org.slf4j.LoggerFactory
@@ -21,7 +22,7 @@ import scala.jdk.CollectionConverters.*
  * the key's digest is in no log line (it is the index's id, so it is in the store by design). A service of
  * its own (build.sbt), so its database holds this suite's requests alone.
  */
-class LeakSuite extends munit.FunSuite:
+class LeakSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = Kit()

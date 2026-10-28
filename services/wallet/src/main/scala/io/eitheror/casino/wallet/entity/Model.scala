@@ -1,6 +1,6 @@
 package io.eitheror.casino.wallet.entity
 
-import io.eitheror.casino.wallet.funding.{Clawback, Forfeit, Leg, Record}
+import io.eitheror.casino.wallet.funding.{Clawback, Forfeit, Leg, Parts, Record}
 
 import java.time.Instant
 
@@ -34,7 +34,9 @@ final case class Bet(
     status: String,
     sessionId: String,
     gameId: String,
-    placedAt: Instant
+    placedAt: Instant,
+    /** The real leg's parts (spec 025 FR-003); `None` only on a bet recorded before the pools. */
+    parts: Option[Parts] = None
 )
 
 object BetStatus:
@@ -54,7 +56,10 @@ final case class WithdrawalRequest(
     forfeited: Vector[String] = Vector.empty,
     clawbackApplied: Long = 0L,
     voided: Long = 0L,
-    confirmationRequired: Boolean = false
+    confirmationRequired: Boolean = false,
+    /** Where the hold's paid and voided amounts came from (spec 025 FR-008): a release returns both, a reversal the paid. */
+    paidParts: Parts = Parts.zero,
+    voidedParts: Parts = Parts.zero
 )
 
 object RequestStatus:
@@ -140,7 +145,12 @@ final case class Outcome(
     depositSums: Option[DepositSums] = None,
     closedRecordId: Option[String] = None,
     balanceBefore: Option[Long] = None,
-    balanceAfter: Option[Long] = None
+    balanceAfter: Option[Long] = None,
+    /** The pools after an accepted command (spec 025 FR-013). */
+    depositPool: Option[Long] = None,
+    convertedPool: Option[Long] = None,
+    /** A bet's real-leg parts or a win's real-share parts: `fundedDepositAmount`, `wonDepositAmount`. */
+    parts: Option[Parts] = None
 ):
   def accepted: Boolean = code.isEmpty
 
@@ -148,7 +158,9 @@ final case class Outcome(
 final case class PrimaryStatus(recordId: String, grantRef: String, status: String, requirement: Long, wagered: Long, progressPercent: Long)
 
 /** The balance read (FR-028). */
-final case class Balance(realBalance: Long, restrictedBalance: Long, currency: String, primary: Option[PrimaryStatus])
+final case class Balance(realBalance: Long, restrictedBalance: Long, currency: String, primary: Option[PrimaryStatus],
+    /** No defaults: the reply's codec leaves a default out, and a reader must see a pool of 0 (spec 025). */
+    depositPoolBalance: Long, convertedPoolBalance: Long)
 
 /** One open record as the restricted-funds status lists it (FR-028, User Story 6 scenario 2). */
 final case class RecordStatus(
@@ -181,5 +193,9 @@ final case class HoldPreview(
     clawback: Long,
     totalForfeit: Long,
     mostWithdrawable: Long,
-    forfeits: Vector[Forfeit]
+    forfeits: Vector[Forfeit],
+    /** The deposit part of each movement the hold would record (spec 025 FR-008; names assumed). */
+    clawbackDepositAmount: Option[Long] = None,
+    voidedDepositAmount: Option[Long] = None,
+    paidDepositAmount: Option[Long] = None
 )

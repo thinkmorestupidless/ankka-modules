@@ -1,6 +1,6 @@
 package io.eitheror.casino.wallet.features
 
-import com.thinkmorestupidless.ankka.testkit.{CommandResult, EventSourcedTestKit, GherkinSuite}
+import com.thinkmorestupidless.ankka.testkit.{CommandResult, EventSourcedTestKit, GherkinSuite, LogCapturing}
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.funding.{Clawback, Record, Status}
 import io.eitheror.casino.wallet.views.TransactionRows
@@ -17,7 +17,7 @@ final case class Result(outcome: Outcome, events: Vector[WalletEvent])
  * was described (a real balance, records in any status, open bets, a pending request), and every
  * further Given or When is a real command. Expected values come from the scenario's words.
  */
-abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../features/wallet/$file"):
+abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../features/wallet/$file") with LogCapturing:
 
   /** The refusals as the features name them. */
   protected val refusals: Map[String, String] = Map(
@@ -52,8 +52,14 @@ abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../feature
       bets: Vector[Bet] = Vector.empty,
       restrictedWithoutRecords: Long = 0L,
       withdrawals: Vector[WithdrawalRequest] = Vector.empty,
-      pendingRequestId: Option[String] = None
-  )
+      pendingRequestId: Option[String] = None,
+      /**
+       * The wallet's pools at opening (spec 025). Absent, a seeded real balance is deposit-origin (a
+       * negative one converted): the features before the pools describe deposited money.
+       */
+      pools: Option[(Long, Long)] = None
+  ):
+    def openingPools: (Long, Long) = pools.getOrElse(if real >= 0 then (real, 0L) else (0L, real))
 
   protected var currency                         = "EUR"
   protected var seed                             = Seed()
@@ -93,7 +99,8 @@ abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../feature
         clawbacks.get(a.id).fold(a)(c => a.copy(baseline = Some(Clawback.Baseline(seed.real - c, 0L))))
       }
       val opening = kit.call(WalletEntity.openMigrated)(OpenMigrated("open", seed.real, seed.pending, records, 0L, 0,
-        seed.restrictedWithoutRecords, clock, seed.bets, seed.withdrawals, seed.pendingRequestId))
+        seed.restrictedWithoutRecords, clock, seed.bets, seed.withdrawals, seed.pendingRequestId,
+        depositPool = Some(seed.openingPools._1), convertedPool = Some(seed.openingPools._2)))
       assert(opening.replyValue.accepted, opening.replyValue.toString)
     kit
 

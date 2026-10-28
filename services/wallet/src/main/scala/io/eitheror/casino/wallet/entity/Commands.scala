@@ -30,11 +30,16 @@ object MoneyCommand:
  * The migration's opening command (FR-001, spec 019): a wallet as the original holds it — balances,
  * records with their rule snapshots (baselines `None` when the original kept none), open rounds,
  * deposits so far — accepted once.
+ *
+ * `depositPool` and `convertedPool` are the original's pools for a wallet it stamped; both absent is
+ * a wallet it never stamped, which opens all converted (spec 025 FR-011). A pair that does not sum
+ * to `realBalance`, or only one of the two, is `POOLS_INVARIANT`.
  */
 final case class OpenMigrated(key: String, realBalance: Long, depositTurnoverPending: Long, records: Vector[AwardedRecord],
     totalDeposits: Long, depositOrdinal: Int, restrictedWithoutRecords: Long, at: Instant,
     openBets: Vector[Bet] = Vector.empty, withdrawals: Vector[WithdrawalRequest] = Vector.empty,
-    pendingRequestId: Option[String] = None) extends MoneyCommand
+    pendingRequestId: Option[String] = None, depositPool: Option[Long] = None, convertedPool: Option[Long] = None)
+    extends MoneyCommand
 
 final case class Deposit(key: String, amount: Long, paymentProvider: String, terminal: String, psp: String, scheme: String,
     brandTerms: TurnoverTerms, at: Instant) extends MoneyCommand

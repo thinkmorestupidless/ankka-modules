@@ -1,10 +1,11 @@
 package io.eitheror.casino.players.realm
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.it.FakeRealm
 
 /** contracts/realm.md's first table against Keycloak's answers (T020). */
-class KeycloakRealmSuite extends munit.FunSuite:
+class KeycloakRealmSuite extends munit.FunSuite with LogCapturing:
 
   private val fake = FakeRealm("goldvibe")
   private def realm(admin: Option[KeycloakRealm.AdminClient] = Some(KeycloakRealm.AdminClient(fake.adminClient, fake.adminSecret))) =

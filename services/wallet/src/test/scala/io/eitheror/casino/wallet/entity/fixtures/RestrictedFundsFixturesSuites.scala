@@ -16,7 +16,8 @@ class AwardBonusFixturesSuite extends FixtureSuite("award-bonus"):
 
   override protected def ignored: Map[String, String] = Map(
     "record_ref names a missing record — RESTRICTED_FUNDS_UNAVAILABLE, nothing written" -> recordFirst,
-    "record_ref names a CLOSED record — RESTRICTED_FUNDS_UNAVAILABLE, nothing written"  -> recordFirst
+    "record_ref names a CLOSED record — RESTRICTED_FUNDS_UNAVAILABLE, nothing written"  -> recordFirst,
+    "second grant — restricted_balance stays the primary's balance; the new grant is queued" -> Since002.TwoRecords
   )
 
   protected def check(c: Case): Unit =
@@ -53,6 +54,10 @@ class AwardBonusFixturesSuite extends FixtureSuite("award-bonus"):
  * record at all, a closed earlier award carries it ("the award's baseline", restricted-funds.feature).
  */
 class CancelBonusFixturesSuite extends FixtureSuite("cancel-bonus"):
+
+  override protected def ignored: Map[String, String] = Map(
+    "cancel bonus — clawback to zero closes a second, cap record" -> Since002.CapCloseAtZero
+  )
 
   protected def check(c: Case): Unit =
     given Case = c
@@ -107,6 +112,11 @@ class ForfeitBonusFixturesSuite extends FixtureSuite("forfeit-bonus"):
 
 /** `close-pending-cap-bonus.test.tl` (FR-018): the first record awaiting its cap closes; nothing moves. */
 class ClosePendingCapBonusFixturesSuite extends FixtureSuite("close-pending-cap-bonus"):
+
+  override protected def ignored: Map[String, String] = Map(
+    "grant_ref names the second of two caps — only that one closes"          -> Since002.TwoRecords,
+    "grant_ref names no pending-cap record — NOT_PENDING_CAP, nothing closed" -> Since002.TwoRecords
+  )
 
   protected def check(c: Case): Unit =
     given Case = c

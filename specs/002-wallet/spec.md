@@ -765,6 +765,49 @@ create-withdrawal-request and the withdrawal lifecycle), and the resolver's Go t
 (`placebet_test.go`, `multi_test.go`, `creditwin_test.go`, `rollback_test.go`, `loss_test.go`,
 `close_test.go`, `withdraw_test.go`, `adjust_test.go`, `rules_test.go`, `legs_test.go`).
 
+## Notes for a later amendment (found by spec 025)
+
+Spec 025 converted the handler fixtures again on 2026-10-28 (174 cases on 2026-10-09, 230 now;
+spec 025 research R6). The original grew in four areas since this spec's port, none of them
+built here. Their new cases are ignored in the fixture suites with the reason
+`FixtureRunner.Since002`, named below, and are the input to an amendment of this spec:
+
+- **Two open records** (`TwoRecords`): only the primary record funds a bet, is credited a win and
+  is the cached restricted balance; a second grant is queued (`open_restricted_funds_refs`).
+  Cases: place-bet "two records — only the primary funds; queued record untouched", "… stake
+  above the primary is INSUFFICIENT_FUNDS although the queued record could cover it", "… primary
+  at 0 with a round open refuses even though the queued record has funds", "… queued record's
+  max_stake does not bind"; credit-win "two-record legs — each record is credited its
+  proportional share, …", "two records — zero win on an emptied primary forfeits it; …", "two
+  records — a win on the emptied primary keeps it ACTIVE and primary"; rollback-bet "two-record
+  legs — each record gets its leg back …"; award-bonus "second grant — restricted_balance stays
+  the primary's balance; …"; close-pending-cap-bonus "grant_ref names the second of two caps — …",
+  "grant_ref names no pending-cap record — NOT_PENDING_CAP, …"; deposit and game-provider-credit
+  "two open records — the credit lands on the primary record …".
+- **A pending-cap record closes at zero real balance** (`CapCloseAtZero`, the original's spec
+  251): place-bet "cap closes — bet empties real while a cap record is open"; admin-adjust "real
+  debit to exactly zero closes the open cap record"; cancel-bonus "cancel bonus — clawback to zero
+  closes a second, cap record".
+- **Withdrawal plans** (`WithdrawalPlans`): cap draws planned at the request and applied at
+  completion, refunds of `requested_amount`, legacy voids, the request twin's own lifecycle. Cases:
+  create-withdrawal-request "withdrawal cap — worked example: …", "withdrawal cap — closure
+  trigger: …", "two-cap draw-down — 45.00 plans …", "two-cap draw-down — 60.00 pays …", "ACTIVE +
+  cap together — …"; cancel-, reject- and fail-withdrawal-request's "plan request …", "planned
+  request …", "plan refund from APPROVED …", "idempotent — …", "legacy … bonus_cap_void …" and
+  "error — WITHDRAWAL_REQUEST_NOT_FOUND …" / "error — COMPLETED request is
+  WITHDRAWAL_NOT_RETURNABLE"; complete-withdrawal-request "exhausting draw — …", "partial draw —
+  …", "deposits made while pending are preserved — …", "idempotent — a COMPLETED request …";
+  reverse-withdrawal-request "open cap record — the payout's draw is given back".
+- **Deposit turnover as a ledger per deposit record** (`TurnoverLedger`, the original's
+  869ev4rgz): rollback-bet "deposit turnover — rollback reopens the record the bet cleared".
+
+The exact names are in `services/wallet/src/test/scala/…/entity/fixtures/*FixturesSuites.scala`'s
+`ignored` maps. For the recording run (T074): check whether the original's reversal credits the
+hold's whole amount or its paid amount only. The rebuild's `reverse` credits `request.amount`
+(paid + voided); the original's `ReverseWithdrawal` credits `in.Amount`, which its request twin
+keeps apart from `requested_amount` (spec 025 research R11). If the original credits the paid
+amount only, that is a divergence of this spec to raise.
+
 ## Assumptions
 
 - The clawback a hold or cancel applies is the wallet's to compute from the baseline it records at

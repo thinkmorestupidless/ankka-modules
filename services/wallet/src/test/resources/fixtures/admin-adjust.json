@@ -801,13 +801,13 @@
       }
     }
   }, {
-    "name" : "two open records — the credit lands on the primary record and the cache is the sum",
+    "name" : "two open records — the credit lands on the primary record and the cache is the primary's balance",
     "line" : 452,
     "given" : [ {
       "id" : "wallet/two1",
       "concepts" : [ "Wallet" ],
       "real_balance" : 5000,
-      "restricted_balance" : 3000,
+      "restricted_balance" : 1000,
       "open_restricted_funds_refs" : "restricted-funds/rf-a|restricted-funds/rf-b|",
       "player_id" : "two1",
       "brand_id" : "testbrand",
@@ -872,7 +872,7 @@
         "op" : "set_properties",
         "target" : "wallet/two1",
         "properties" : {
-          "restricted_balance" : 3500
+          "restricted_balance" : 1500
         }
       }, {
         "index" : 2,
@@ -911,11 +911,265 @@
       } ],
       "result" : {
         "real_balance" : 5000,
-        "restricted_balance" : 3500,
+        "restricted_balance" : 1500,
         "currency" : "EUR"
       },
       "error" : null,
       "mutation_count" : 6
+    }
+  }, {
+    "name" : "real debit to exactly zero closes the open cap record",
+    "line" : 521,
+    "given" : [ {
+      "id" : "wallet/f251-aa1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1485,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/f251-aa1-cap|",
+      "processed_payment_refs" : "||",
+      "player_id" : "p251c",
+      "brand_id" : "testbrand",
+      "currency" : "EUR",
+      "deposit_turnover_pending" : 0
+    }, {
+      "id" : "restricted-funds/f251-aa1-cap",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f251-aa1"
+    } ],
+    "when" : {
+      "command" : "AdminAdjust",
+      "params" : {
+        "payment_ref" : "admin-adj-f251-1",
+        "amount" : -1485,
+        "amount_str" : "-14.85",
+        "currency" : "EUR",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "reason" : "clear balance",
+        "actor" : "sre@eitheror.io",
+        "wallet_type" : "real"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "restricted-funds/f251-aa1-cap",
+        "properties" : {
+          "status" : "CLOSED",
+          "balance" : 0,
+          "release_requirement" : 0,
+          "released_progress" : 0,
+          "max_convertible_amount" : 0,
+          "remaining_allowance" : 100,
+          "deposits_since_release" : 0,
+          "open_round_count" : 0,
+          "closed_at" : "2026-10-14T10:00:00Z"
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "wallet/f251-aa1",
+        "properties" : {
+          "real_balance" : 0,
+          "open_restricted_funds_refs" : ""
+        }
+      }, {
+        "index" : 2,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "admin_adjustment",
+          "amount" : -1485,
+          "balance_before" : 1485,
+          "balance_after" : 0,
+          "status" : "settled"
+        }
+      } ],
+      "result" : {
+        "real_balance" : 0,
+        "closed_records" : "|restricted-funds/f251-aa1-cap|",
+        "closed_reason" : "real_balance_zero"
+      },
+      "error" : null
+    }
+  }, {
+    "name" : "partial real debit leaves the cap record open",
+    "line" : 569,
+    "given" : [ {
+      "id" : "wallet/f251-aa2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 1485,
+      "restricted_balance" : 0,
+      "open_restricted_funds_refs" : "restricted-funds/f251-aa2-cap|",
+      "processed_payment_refs" : "||",
+      "player_id" : "p251d",
+      "brand_id" : "testbrand",
+      "currency" : "EUR",
+      "deposit_turnover_pending" : 0
+    }, {
+      "id" : "restricted-funds/f251-aa2-cap",
+      "concepts" : [ "RestrictedFunds" ],
+      "edge_from_invoked" : "HAS_RESTRICTED_FUNDS",
+      "status" : "CONVERTED_PENDING_CAP",
+      "priority" : 1,
+      "granted_at" : "2026-06-01T00:00:00Z",
+      "balance" : 0,
+      "release_requirement" : 0,
+      "released_progress" : 0,
+      "max_convertible_amount" : 0,
+      "remaining_allowance" : 100,
+      "deposits_since_release" : 0,
+      "open_round_count" : 0,
+      "grant_ref" : "bonus-claims/f251-aa2"
+    } ],
+    "when" : {
+      "command" : "AdminAdjust",
+      "params" : {
+        "payment_ref" : "admin-adj-f251-2",
+        "amount" : -485,
+        "amount_str" : "-4.85",
+        "currency" : "EUR",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "reason" : "partial",
+        "actor" : "sre@eitheror.io",
+        "wallet_type" : "real"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/f251-aa2",
+        "properties" : {
+          "real_balance" : 1000
+        }
+      } ],
+      "result" : {
+        "real_balance" : 1000
+      },
+      "error" : null,
+      "mutation_count" : 5
+    }
+  }, {
+    "name" : "pools — negative adjustment comes off deposit first: -800 on 500/5000 writes 0/4700, split 500/300",
+    "line" : 617,
+    "given" : [ {
+      "id" : "wallet/pool1",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 5500,
+      "restricted_balance" : 0,
+      "processed_payment_refs" : "||",
+      "deposit_pool_balance" : 500,
+      "converted_pool_balance" : 5000,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "EUR",
+      "deposit_turnover_pending" : 0
+    } ],
+    "when" : {
+      "command" : "AdminAdjust",
+      "params" : {
+        "payment_ref" : "admin-adj-33333333-3333-3333-3333-333333333333",
+        "amount" : -800,
+        "amount_str" : "-8.00",
+        "currency" : "EUR",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "reason" : "pools debit",
+        "actor" : "ops@eitheror.io",
+        "wallet_type" : "real"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool1",
+        "properties" : {
+          "real_balance" : 4700,
+          "deposit_pool_balance" : 0,
+          "converted_pool_balance" : 4700
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "admin_adjustment",
+          "amount" : -800,
+          "balance_before" : 5500,
+          "balance_after" : 4700,
+          "from_deposit_amount" : 500,
+          "from_converted_amount" : 300
+        }
+      } ],
+      "result" : null,
+      "error" : null
+    }
+  }, {
+    "name" : "pools — positive adjustment lands in deposit: +250 on 0/0 writes 250/0",
+    "line" : 648,
+    "given" : [ {
+      "id" : "wallet/pool2",
+      "concepts" : [ "Wallet" ],
+      "real_balance" : 0,
+      "restricted_balance" : 0,
+      "processed_payment_refs" : "||",
+      "deposit_pool_balance" : 0,
+      "converted_pool_balance" : 0,
+      "pools_stamped_at" : "2026-10-14T09:00:00Z",
+      "player_id" : "p1",
+      "brand_id" : "testbrand",
+      "currency" : "EUR",
+      "deposit_turnover_pending" : 0
+    } ],
+    "when" : {
+      "command" : "AdminAdjust",
+      "params" : {
+        "payment_ref" : "admin-adj-44444444-4444-4444-4444-444444444444",
+        "amount" : 250,
+        "amount_str" : "2.50",
+        "currency" : "EUR",
+        "created_at" : "2026-10-14T10:00:00Z",
+        "reason" : "pools credit",
+        "actor" : "ops@eitheror.io",
+        "wallet_type" : "real"
+      }
+    },
+    "then" : {
+      "mutations" : [ {
+        "index" : 0,
+        "op" : "set_properties",
+        "target" : "wallet/pool2",
+        "properties" : {
+          "real_balance" : 250,
+          "deposit_pool_balance" : 250,
+          "converted_pool_balance" : 0
+        }
+      }, {
+        "index" : 1,
+        "op" : "set_properties",
+        "target" : "transaction.new-id",
+        "properties" : {
+          "type" : "admin_adjustment",
+          "amount" : 250,
+          "balance_before" : 0,
+          "balance_after" : 250
+        }
+      } ],
+      "result" : null,
+      "error" : null
     }
   } ]
 }

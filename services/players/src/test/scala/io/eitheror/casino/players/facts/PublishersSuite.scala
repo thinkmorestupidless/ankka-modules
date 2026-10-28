@@ -1,6 +1,6 @@
 package io.eitheror.casino.players.facts
 
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts.{Registration as _, VipTierChanged as VipTierFact, GameSessionEnded as GameSessionEndedFact, *}
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.players.{PlayersRuntime, Settings}
@@ -13,7 +13,7 @@ import io.eitheror.casino.players.sessions.{GameSessionEvent, PlayerSessionEvent
 import java.time.Instant
 
 /** contracts/facts.md's three tables, event in and fact out (T017). */
-class PublishersSuite extends munit.FunSuite:
+class PublishersSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-25T10:00:00Z")
 

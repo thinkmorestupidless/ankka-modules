@@ -1,5 +1,8 @@
 package io.eitheror.casino.simulator.core
 
+
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.*
 
@@ -8,7 +11,7 @@ import scala.jdk.CollectionConverters.*
  * word, and imports nothing from an adapter. A second real provider is then a second adapter and
  * no change here.
  */
-class SeamSuite extends munit.FunSuite:
+class SeamSuite extends munit.FunSuite with LogCapturing:
 
   private val core = Paths.get("src/main/scala/io/eitheror/casino/simulator/core")
 

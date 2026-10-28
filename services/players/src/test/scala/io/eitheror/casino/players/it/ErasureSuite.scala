@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.players.Json
@@ -12,7 +13,7 @@ import java.time.Duration
 import scala.concurrent.duration.*
 
 /** T066 and T067: erasure and the export through the routes and the workflows (FR-038 to FR-040, SC-006). */
-class ErasureSuite extends munit.FunSuite:
+class ErasureSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 180.seconds
   private lazy val kit = SharedKit.kit
 

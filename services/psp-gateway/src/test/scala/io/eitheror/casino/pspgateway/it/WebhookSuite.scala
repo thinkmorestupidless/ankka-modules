@@ -1,12 +1,13 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.sessions.*
 
 import java.util.UUID
 import scala.concurrent.duration.*
 
 /** US1, FR-010 to FR-014, R8: each provider's webhook from psp-stub, verified, settled once and delivered. */
-class WebhookSuite extends munit.FunSuite:
+class WebhookSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = SharedKit.kit

@@ -65,6 +65,23 @@ object Resolver:
 
   private def anyOpen(recs: Seq[Record]): Boolean = recs.exists(r => Status.isOpen(r.status))
 
+  // ── poolstep.go ───────────────────────────────────────────────────────────
+
+  /**
+   * The pool step every movement of real balance runs (spec 025): from the wallet's pools, checked
+   * to sum to its real balance, to the new pools, checked to sum to `newReal`; `none` on a wallet
+   * without pools (only the tables that predate them). A pair that does not sum is `POOLS_INVARIANT`.
+   */
+  private def poolStep[A](w: Wallet, newReal: Long, none: A)(step: Pools => Either[Deny, (Pools, A)]): Either[Deny, (A, Option[Pools])] =
+    w.pools match
+      case None => Right((none, None))
+      case Some(p) =>
+        for
+          start          <- Pools.consistent(p, w.realBalance)
+          (moved, parts) <- step(start)
+          end            <- Pools.checked(moved, newReal)
+        yield (parts, Some(end))
+
   // ── rules.go ──────────────────────────────────────────────────────────────
 
   def rate(r: Record, g: Game, defaultRate: Long): Long =
@@ -172,20 +189,24 @@ object Resolver:
     contributions.foreach(touched += _.recordId)
     converted.foreach(touched += _)
 
-    Right(
+    // Step 9 — the pools (spec 025 FR-003): conversions join converted, then the leg converted first.
+    val newReal = w.realBalance - realLeg + convertedTotal
+    poolStep(w, newReal, Parts.zero)(Pools.bet(_, realLeg, convertedTotal, f.allowNegative)).map { (parts, pools) =>
       Plan(
         realLeg = realLeg,
         recordLegs = recordLegs,
         contributions = contributions,
         converting = converted,
         recordUpdates = updatesFor(working.toVector, touched),
-        newRealBalance = w.realBalance - realLeg + convertedTotal,
+        newRealBalance = newReal,
         balanceBefore = balanceBefore,
         balanceAfter = balanceAfter,
         walletType = fundingWalletType(realLeg, recordLegs),
-        projection = project(working.toVector, "")
+        projection = project(working.toVector, ""),
+        parts = parts,
+        newPools = pools
       )
-    )
+    }
 
   private def fundingOrder(recs: Seq[Record]): String =
     val i = firstActiveIndex(recs)
@@ -262,8 +283,9 @@ object Resolver:
             realShare += sh.amount
             orphaned += sh
       }
-      val touched = decrementRounds(working, idx, legs)
-      val keptV   = kept.result()
+      val touched   = decrementRounds(working, idx, legs)
+      val keptV     = kept.result()
+      val orphanedV = orphaned.result()
       WinPlan(
         realShare = realShare,
         recordShares = keptV,
@@ -272,9 +294,13 @@ object Resolver:
         walletType = fundingWalletType(legs.real, legs.records),
         splitRealAmount = realShare,
         splitBonusAmount = legTotal(keptV),
-        orphanedToReal = orphaned.result(),
+        orphanedToReal = orphanedV,
         projection = project(working.toVector, "")
       )
+    }.flatMap { plan =>
+      // The pools (spec 025 FR-004): orphaned shares converted, the rest in the bet's ratio.
+      val parts = Pools.winSplit(plan.realShare, legTotal(plan.orphanedToReal), legs.realParts.getOrElse(Parts.zero))
+      poolStep(w, plan.newRealBalance, Parts.zero)(Pools.credit(_, parts)).map((p, pools) => plan.copy(parts = p, newPools = pools))
     }
 
   /** open_round_count − 1 (floored) on every funding record still present; the ids touched. */
@@ -349,6 +375,11 @@ object Resolver:
         walletType = fundingWalletType(legs.real, legs.records),
         projection = project(working.toVector, "")
       )
+    }.flatMap { plan =>
+      // The pools (spec 025 FR-005): the bet's recorded parts, and a gone record's leg to converted.
+      val stake = legs.realParts.filter(_.total == legs.real).getOrElse(Parts.ofConverted(legs.real))
+      val parts = stake + Parts.ofConverted(plan.realRestored - legs.real)
+      poolStep(w, plan.newRealBalance, Parts.zero)(Pools.credit(_, parts)).map((p, pools) => plan.copy(parts = p, newPools = pools))
     }
 
   // ── loss.go ───────────────────────────────────────────────────────────────
@@ -398,7 +429,7 @@ object Resolver:
     val before  = sumActiveBalances(recs)
     val applied = math.max(0L, math.min(clawback, w.realBalance))
     val newReal = w.realBalance - applied
-    grantRef match
+    val plan = grantRef match
       case Some(g) if !recs.exists(r => r.grantRef == g && r.status == Status.Active) =>
         Left(Deny(Codes.GrantNotOpen, s"Grant $g is not open"))
       case _ =>
@@ -407,6 +438,8 @@ object Resolver:
         else
           val working = recs.updated(i, recs(i).copy(balance = 0, status = Status.Forfeited))
           Right(CancelPlan(Vector(recs(i).id), Vector(RecordUpdate.from(working(i), closedNow = true)), project(working, Status.Forfeited), before, applied, newReal))
+    // The pools (spec 025 FR-009): the clawback converted first.
+    plan.flatMap(p => poolStep(w, newReal, Parts.zero)(Pools.debit(_, applied, convertedFirst = true)).map((parts, pools) => p.copy(parts = parts, newPools = pools)))
 
   def closePendingCap(@annotation.unused w: Wallet, recs: Vector[Record]): Either[Deny, ClosePlan] =
     val i = recs.indexWhere(_.status == Status.ConvertedPendingCap)
@@ -442,10 +475,17 @@ object Resolver:
       )
     )
 
-  def creditPrimary(w: Wallet, recs: Vector[Record], amount: Long): CreditPlan =
+  /** A provider credit: to the primary record, else to real balance, which is converted money (spec 025 FR-010). */
+  def creditPrimary(w: Wallet, recs: Vector[Record], amount: Long): Either[Deny, CreditPlan] =
     val i = firstActiveIndex(recs)
-    if i < 0 then CreditPlan("real", newRealBalance = w.realBalance + amount, projection = project(recs, ""))
-    else
+    if i < 0 then
+      val newReal = w.realBalance + amount
+      poolStep(w, newReal, Parts.zero)(Pools.credit(_, Parts.ofConverted(amount))).map { (parts, pools) =>
+        CreditPlan("real", newRealBalance = newReal, projection = project(recs, ""), parts = parts, newPools = pools)
+      }
+    else Right(creditRecord(recs, i, amount))
+
+  private def creditRecord(recs: Vector[Record], i: Int, amount: Long): CreditPlan =
       val before  = recs(i).balance
       val updated = recs(i).copy(balance = before + amount)
       val working = recs.updated(i, updated)
@@ -511,21 +551,34 @@ object Resolver:
     if capDraws.nonEmpty && realAfter - paid <= 0 then capDraws = capDraws.map(_.copy(closes = true))
     capDraws.filter(_.closes).foreach(cd => working(idx(cd.recordId)) = working(idx(cd.recordId)).copy(status = Status.Closed))
 
-    val after = working.toVector
-    Right(
+    val after   = working.toVector
+    val newReal = realAfter - in.amount
+    // The pools (spec 025 FR-008): clawback and void converted first, then the payout deposit first.
+    val none = (Parts.zero, Parts.zero, Parts.zero)
+    poolStep(w, newReal, none) { p0 =>
+      for
+        (p1, clawbackParts) <- Pools.debit(p0, clawback, convertedFirst = true)
+        (p2, voidedParts)   <- Pools.debit(p1, voided, convertedFirst = true)
+        (p3, paidParts)     <- Pools.debit(p2, paid, convertedFirst = false)
+      yield (p3, (clawbackParts, voidedParts, paidParts))
+    }.map { case ((clawbackParts, voidedParts, paidParts), pools) =>
       WithdrawPlan(
         forfeits = forfeits.result(),
         clawback = clawback,
         capDraws = capDraws,
         paid = paid,
         voided = voided,
-        newReal = realAfter - in.amount,
+        newReal = newReal,
         restrictedBalance = sumBalances(after.filter(r => Status.isOpen(r.status))),
         recordUpdates = updatesFor(after, touched, id => after.find(_.id == id).exists(r => r.status == Status.Forfeited || r.status == Status.Closed)),
         cancelGrants = cancelGrants.result(),
-        requiresConfirmation = requiresConfirmation
+        requiresConfirmation = requiresConfirmation,
+        clawbackParts = clawbackParts,
+        voidedParts = voidedParts,
+        paidParts = paidParts,
+        newPools = pools
       )
-    )
+    }
 
   // ── legs.go ───────────────────────────────────────────────────────────────
 

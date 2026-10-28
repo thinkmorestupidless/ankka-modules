@@ -1,6 +1,7 @@
 package io.eitheror.casino.pspgateway
 
 import com.thinkmorestupidless.ankka.core.Serializer
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.providers.PayoutAnswer
 import io.eitheror.casino.pspgateway.sessions.*
@@ -9,7 +10,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 
 /** Data-model.md: every stored type round-trips, minor units as JSON numbers and instants as ISO-8601. */
-class GatewayCodecsSuite extends munit.FunSuite:
+class GatewayCodecsSuite extends munit.FunSuite with LogCapturing:
   import DepositCodecs.given
   import PayoutCodecs.given
 

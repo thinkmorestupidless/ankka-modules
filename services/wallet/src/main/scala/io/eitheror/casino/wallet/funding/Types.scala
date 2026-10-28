@@ -19,8 +19,14 @@ object Status:
   /** Open means ACTIVE or CONVERTED_PENDING_CAP (spec 002 FR-020). */
   def isOpen(status: String): Boolean = status == Active || status == ConvertedPendingCap
 
-/** The funding-relevant slice of the wallet (types.go `Wallet`). */
-final case class Wallet(realBalance: Long, depositTurnoverPending: Long = 0L, restrictedBalance: Long = 0L)
+/**
+ * The funding-relevant slice of the wallet (types.go `Wallet`). `pools` is the wallet's deposit and
+ * converted pools (spec 025): the entity always passes them; `None` is the original's unstamped
+ * wallet and exists only so the resolver's tables that predate the pools run unchanged, as the
+ * original's do (`TestPlaceBetPools_UnstampedUnchanged`): no pool step, no parts.
+ */
+final case class Wallet(realBalance: Long, depositTurnoverPending: Long = 0L, restrictedBalance: Long = 0L,
+    pools: Option[Pools] = None)
 
 /**
  * One restricted-funds record with its rule snapshot (types.go `Record`). Records reach the resolver
@@ -88,6 +94,8 @@ object Codes:
   val NotPendingCap              = "NOT_PENDING_CAP"
   val DebitExceedsBalance        = "DEBIT_EXCEEDS_BALANCE"
   val GrantNotOpen               = "GRANT_NOT_OPEN"
+  /** A pool step whose pools would not sum to real balance (spec 025; poolstep.go `CodePoolsInvariant`). */
+  val PoolsInvariant             = "POOLS_INVARIANT"
 
   val WithdrawalRequestAlreadyPending         = "WITHDRAWAL_REQUEST_ALREADY_PENDING"
   val WithdrawalBlockedTurnover               = "WITHDRAWAL_BLOCKED_TURNOVER"
@@ -106,8 +114,12 @@ object Messages:
 /** One funding line against a record. The real leg travels separately. */
 final case class Leg(recordId: String, amount: Long)
 
-/** A bet's funding split: the real leg and the record legs. */
-final case class Legs(real: Long = 0L, records: Vector[Leg] = Vector.empty)
+/**
+ * A bet's funding split: the real leg and the record legs, and the parts of the real leg the bet
+ * recorded (spec 025; types.go `Legs.RealSplit`). `None` is a bet with no recorded parts: its win
+ * and its rollback go to the converted pool.
+ */
+final case class Legs(real: Long = 0L, records: Vector[Leg] = Vector.empty, realParts: Option[Parts] = None)
 
 /** One touched record's absolute values after a plan (types.go `RecordUpdate`). */
 final case class RecordUpdate(
@@ -154,7 +166,10 @@ final case class Plan(
     balanceBefore: Long,
     balanceAfter: Long,
     walletType: String,
-    projection: Projection
+    projection: Projection,
+    /** The real leg's parts (spec 025 FR-003); zero on an unstamped wallet. */
+    parts: Parts = Parts.zero,
+    newPools: Option[Pools] = None
 )
 
 final case class WinPlan(
@@ -166,7 +181,10 @@ final case class WinPlan(
     splitRealAmount: Long,
     splitBonusAmount: Long,
     orphanedToReal: Vector[Leg],
-    projection: Projection
+    projection: Projection,
+    /** The real share's parts (spec 025 FR-004). */
+    parts: Parts = Parts.zero,
+    newPools: Option[Pools] = None
 )
 
 final case class RollbackPlan(
@@ -176,7 +194,10 @@ final case class RollbackPlan(
     newRealBalance: Long,
     recordUpdates: Vector[RecordUpdate],
     walletType: String,
-    projection: Projection
+    projection: Projection,
+    /** The parts restored (spec 025 FR-005). */
+    parts: Parts = Parts.zero,
+    newPools: Option[Pools] = None
 )
 
 final case class LossPlan(
@@ -199,7 +220,10 @@ final case class CancelPlan(
     projection: Projection,
     bonusBalanceBefore: Long,
     clawbackApplied: Long,
-    newRealBalance: Long
+    newRealBalance: Long,
+    /** The clawback's parts, converted first (spec 025 FR-009). */
+    parts: Parts = Parts.zero,
+    newPools: Option[Pools] = None
 )
 
 final case class AdjustPlan(
@@ -219,7 +243,10 @@ final case class CreditPlan(
     balanceAfter: Long = 0L,
     recordUpdates: Vector[RecordUpdate] = Vector.empty,
     newRealBalance: Long = 0L,
-    projection: Projection = Projection()
+    projection: Projection = Projection(),
+    /** On real: all converted (spec 025 FR-010). */
+    parts: Parts = Parts.zero,
+    newPools: Option[Pools] = None
 )
 
 object Policy:
@@ -250,5 +277,10 @@ final case class WithdrawPlan(
     restrictedBalance: Long,
     recordUpdates: Vector[RecordUpdate],
     cancelGrants: Vector[String],
-    requiresConfirmation: Boolean
+    requiresConfirmation: Boolean,
+    /** The three movements' parts, applied in this order (spec 025 FR-008; withdraw.go `stepPoolsSeq`). */
+    clawbackParts: Parts = Parts.zero,
+    voidedParts: Parts = Parts.zero,
+    paidParts: Parts = Parts.zero,
+    newPools: Option[Pools] = None
 )

@@ -1,11 +1,12 @@
 package io.eitheror.casino.players.realm
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.realm.Tokens.{Claims, Purpose, Refused}
 
 import java.time.Instant
 
 /** FR-005: the signed link, verified with nothing stored, in the original's form. */
-class TokensSuite extends munit.FunSuite:
+class TokensSuite extends munit.FunSuite with LogCapturing:
 
   private val secret = "s3cret"
   private val now    = Instant.parse("2026-10-25T10:00:00Z")

@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.providers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.http.Raw
@@ -11,7 +12,7 @@ import java.util.Base64
 import scala.collection.mutable
 
 /** `digitarium/adapter_test.go` and `handler/webhook_digitarium_test.go`, ported. */
-class DigitariumSuite extends munit.FunSuite:
+class DigitariumSuite extends munit.FunSuite with LogCapturing:
   private val eur  = Currency.unsafe("EUR")
   private val base = "https://engine-sandbox.g2pay.test"
   private val now  = Instant.parse("2026-10-13T10:00:00Z")

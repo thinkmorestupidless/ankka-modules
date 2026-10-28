@@ -1,7 +1,7 @@
 package io.eitheror.casino.ingest.keys
 
 import com.thinkmorestupidless.ankka.core.effect.ConsumerEffect
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts.{MerchantKeyDeactivated, MerchantKeyIssued, PaymentsMerchants}
 import io.eitheror.casino.ingest.Recorded
 import io.eitheror.casino.ingest.keys.KeyCodecs.given
@@ -9,7 +9,7 @@ import io.eitheror.casino.ingest.keys.KeyCodecs.given
 import java.time.Instant
 
 /** FR-004, research R3: the key index from merchant's facts, at least once, never throwing on what it cannot read. */
-class KeyFactsSuite extends munit.FunSuite:
+class KeyFactsSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-22T10:00:00Z")
 
   private def kit(r: Recorded) = ConsumerTestKit.of(KeyFacts, r.client)
@@ -50,7 +50,7 @@ class KeyFactsSuite extends munit.FunSuite:
   extension [A](xs: Vector[A]) private def loneElement: A = { assertEquals(xs.size, 1, xs.toString); xs.head }
 
 /** What `Key` decided is written under the digest; a key with no digest yet is not. */
-class KeyIndexWriteSuite extends munit.FunSuite:
+class KeyIndexWriteSuite extends munit.FunSuite with LogCapturing:
   import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, KeyValueEntityTestKit}
   import io.eitheror.casino.contract.facts.MerchantKeyIssued
   import io.eitheror.casino.ingest.Recorded

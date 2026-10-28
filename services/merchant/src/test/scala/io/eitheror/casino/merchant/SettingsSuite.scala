@@ -1,9 +1,12 @@
 package io.eitheror.casino.merchant
 
+
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.time.Duration
 
 /** Research R19: the settings' defaults, and a malformed one refused naming its variable. */
-class SettingsSuite extends munit.FunSuite:
+class SettingsSuite extends munit.FunSuite with LogCapturing:
 
   test("the defaults are the original's and the plan's") {
     val s = Settings.fromEnvironment(Map.empty).toOption.get

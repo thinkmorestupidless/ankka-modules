@@ -1,7 +1,9 @@
 package io.eitheror.casino.merchant.payments
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** The original's `PaymentStatus`: the stored words and the frontend's. */
-class StatusSuite extends munit.FunSuite:
+class StatusSuite extends munit.FunSuite with LogCapturing:
 
   test("the terminal statuses read as the frontend's words; anything else passes through") {
     assertEquals(Status.toApi("captured"), "COMPLETED")

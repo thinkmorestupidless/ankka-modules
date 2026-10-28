@@ -1,12 +1,11 @@
 package io.eitheror.casino.ingest.requests
 
 import com.thinkmorestupidless.ankka.core.ErrorCode
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.Instant
 
 /** FR-016 to FR-018: one record per request, written once; a lost answer on an unanswered one; nothing personal. */
-class RequestRecordSuite extends munit.FunSuite:
+class RequestRecordSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-22T10:00:00Z")
   private val record = RecordState("ignored", Some("sb-1"), Route.Create, Some(at), Some("t-1"), Some(5000), Some("EUR"), Some("GB"),
     Outcome.Unanswered, None, None, None, Some(1))

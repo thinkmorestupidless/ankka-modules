@@ -1,6 +1,6 @@
 package io.eitheror.casino.rg.facts
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.rg.profile.*
@@ -10,7 +10,7 @@ import io.eitheror.casino.rg.settings.{BrandSettings, BrandSettingsEntity, Chang
 import java.time.Instant
 
 /** Every event to its family or none (contracts/facts.md), and the audit's records (T013); the brand's settings (T009). */
-class PublishersSuite extends munit.FunSuite:
+class PublishersSuite extends munit.FunSuite with LogCapturing:
   private val at  = Instant.parse("2026-10-27T12:00:00Z")
   private val eur = LimitKey("DEPOSIT_DAILY", Some("EUR"))
   private val op  = Actor.operator("op-1")

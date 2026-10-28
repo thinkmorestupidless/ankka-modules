@@ -1,7 +1,9 @@
 package io.eitheror.casino.merchant.operators
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** The original's `PrivilegeCheck`: who may give which role at which level (FR-027). */
-class PrivilegeSuite extends munit.FunSuite:
+class PrivilegeSuite extends munit.FunSuite with LogCapturing:
 
   test("an operator holds the highest level of their roles") {
     assertEquals(Privilege.level(Set("resource_viewer", "resource_admin", "brand_goldvibe")), 40)

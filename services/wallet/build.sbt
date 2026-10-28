@@ -7,7 +7,7 @@ val ankkaVersion = "0.13.0"
 
 // The casino's contract (facts, money, route classes, personal markers, the recording replayer),
 // published from the repository root with `sbt contract/publishLocal`.
-val contractVersion = "0.2.0-SNAPSHOT"
+val contractVersion = sys.env.getOrElse("CASINO_VERSION", "0.2.0-SNAPSHOT")
 
 // The service name is also the image name, the descriptor's name, and — once exposed — the first
 // label of the hostname, so it has to be one Kubernetes and DNS accept. Checked here so that a

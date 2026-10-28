@@ -1,7 +1,9 @@
 package io.eitheror.casino.merchant.routing
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** The walk of FR-012, case for case of the original's `RoutingTreeEvaluator`. */
-class EvaluatorSuite extends munit.FunSuite:
+class EvaluatorSuite extends munit.FunSuite with LogCapturing:
 
   private val ctx = RoutingContext("EUR", 5000, "GB", "goldvibe:p1", 0)
 

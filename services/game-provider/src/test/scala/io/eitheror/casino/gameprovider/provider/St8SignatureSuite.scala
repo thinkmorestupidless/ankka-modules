@@ -1,9 +1,10 @@
 package io.eitheror.casino.gameprovider.provider
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.gameprovider.TestKeys
 import io.eitheror.casino.gameprovider.provider.st8.St8Signature
 
-class St8SignatureSuite extends munit.FunSuite:
+class St8SignatureSuite extends munit.FunSuite with LogCapturing:
 
   private val body = """{"token":"abc","transaction_id":"t-1","amount":"1.00"}"""
 

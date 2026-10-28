@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.sessions.*
 
@@ -7,7 +8,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** US2, FR-005: Cozeni and Morphosis quote a destination; what arrives is captured, or failed when short. */
-class CryptoSuite extends munit.FunSuite:
+class CryptoSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 5.minutes
 
   private lazy val kit = SharedKit.kit

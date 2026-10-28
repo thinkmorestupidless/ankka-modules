@@ -1,17 +1,17 @@
 package io.eitheror.casino.wallet.entity.fixtures
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.entity.fixtures.FixtureRunner.*
-import io.eitheror.casino.wallet.funding.{Leg, Resolver}
+import io.eitheror.casino.wallet.funding.{Leg, Parts, Resolver}
 
 /**
  * One handler's fixtures: every case of the original's file is a test named `<handler>/<case>`,
  * or is reported ignored with the reason the rebuild does not have that behaviour. A case is never
  * dropped: the first test checks that every ignored name is a real case of the file.
  */
-abstract class FixtureSuite(handler: String) extends munit.FunSuite:
+abstract class FixtureSuite(handler: String) extends munit.FunSuite with LogCapturing:
 
   /** Case name → why the rebuild does not do it (a dropped behaviour, never a failure). */
   protected def ignored: Map[String, String] = Map.empty
@@ -52,6 +52,8 @@ abstract class FixtureSuite(handler: String) extends munit.FunSuite:
         same("wallet real_balance", long(m, "real_balance"), state.realBalance)
         same("wallet restricted_balance", long(m, "restricted_balance"), state.restrictedBalance)
         same("wallet deposit_turnover_pending", long(m, "deposit_turnover_pending"), state.depositTurnoverPending)
+        same("wallet deposit_pool_balance", long(m, "deposit_pool_balance"), state.depositPool)
+        same("wallet converted_pool_balance", long(m, "converted_pool_balance"), state.convertedPool)
       }
     }
     c.mutations.filter(m => m.op == "set_properties" && m.target.startsWith("restricted-funds/")).foreach { m =>
@@ -65,6 +67,16 @@ abstract class FixtureSuite(handler: String) extends munit.FunSuite:
       same(s"${m.target} remaining_allowance", long(p, "remaining_allowance"), r.remainingAllowance)
       same(s"${m.target} deposits_since_release", long(p, "deposits_since_release"), r.depositsSinceRelease)
       same(s"${m.target} open_round_count", long(p, "open_round_count"), r.openRoundCount)
+    }
+
+  /**
+   * Spec 025: every new transaction asserting a movement's parts under `prefix` (`funded_deposit_amount`,
+   * `won_converted_amount`, `from_deposit_amount`, …) against the parts the wallet recorded.
+   */
+  protected def assertParts(prefix: String, actual: Parts)(using c: Case): Unit =
+    c.partsTransactions(prefix).foreach { t =>
+      same(s"${prefix}_deposit_amount", long(t, s"${prefix}_deposit_amount"), actual.deposit)
+      same(s"${prefix}_converted_amount", long(t, s"${prefix}_converted_amount"), actual.converted)
     }
 
   /** The result's balances against the reply. */

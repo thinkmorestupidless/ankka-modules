@@ -1,9 +1,12 @@
 package io.eitheror.casino.ingest
 
+
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.time.Duration
 
 /** Research R13: every setting's default, and a value that cannot be read refused by the variable's name. */
-class SettingsSuite extends munit.FunSuite:
+class SettingsSuite extends munit.FunSuite with LogCapturing:
 
   test("every default is research R13's") {
     val s = Settings.fromEnvironment(Map.empty).toOption.get

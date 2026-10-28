@@ -1,10 +1,11 @@
 package io.eitheror.casino.pspgateway.money
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.Json
 
 /** FR-006, research R9: each provider's form of the same minor units, never through a float. */
-class RenderSuite extends munit.FunSuite:
+class RenderSuite extends munit.FunSuite with LogCapturing:
 
   private val EUR = Currency.unsafe("EUR")
   private val JPY = Currency.unsafe("JPY")

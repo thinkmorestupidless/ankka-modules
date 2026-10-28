@@ -1,5 +1,6 @@
 package io.eitheror.casino.rg.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.rg.Json
 
 import java.time.Duration
@@ -11,7 +12,7 @@ import scala.concurrent.duration.*
  * out (`FakePlayers` receives nothing). Asked over HTTP one at a time, as a caller's step asks, against a
  * profile with a limit and a break so every check reads a profile with something in it.
  */
-class ChecksLatencySuite extends munit.FunSuite:
+class ChecksLatencySuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 5.minutes
 
   private lazy val kit = SharedKit.kit

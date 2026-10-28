@@ -1,5 +1,7 @@
 package io.eitheror.casino.pspgateway.delivery
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.MessageDigest
 import java.time.Instant
@@ -11,7 +13,7 @@ import scala.util.Try
  * Research R13: what the gateway signs, `merchant` verifies. `verify` is 004's `security/Hmac.verify`,
  * copied (the two services share no code but the contract), and the cases are `HmacSuite`'s.
  */
-class SignatureSuite extends munit.FunSuite:
+class SignatureSuite extends munit.FunSuite with LogCapturing:
 
   private val now    = Instant.parse("2026-10-12T10:00:00Z")
   private val secret = "whsec-test"

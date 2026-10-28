@@ -2,6 +2,7 @@ package io.eitheror.casino.players
 
 import com.github.plokhotnyuk.jsoniter_scala.core.writeToString
 import com.thinkmorestupidless.ankka.core.Serializer
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.players.config.*
 import io.eitheror.casino.players.fraud.*
@@ -13,7 +14,7 @@ import io.eitheror.casino.players.sessions.*
 import java.time.Instant
 
 /** Every stored type round-trips under its manifest; a `Personal` field is written by the marker's codec (T006). */
-class PlayersCodecsSuite extends munit.FunSuite:
+class PlayersCodecsSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-25T10:00:15.123Z")
 

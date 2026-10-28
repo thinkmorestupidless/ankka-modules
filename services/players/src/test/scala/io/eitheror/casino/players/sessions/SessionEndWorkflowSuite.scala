@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.sessions
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.players.it.SharedKit
 import io.eitheror.casino.players.player.{PlayerEntity, SessionId}
 
@@ -8,7 +9,7 @@ import java.util.UUID
 import scala.concurrent.duration.*
 
 /** `SessionEndWorkflow` on the integration kit (research R6): games, then the session, then the player. */
-class SessionEndWorkflowSuite extends munit.FunSuite:
+class SessionEndWorkflowSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = 120.seconds
   private lazy val kit = SharedKit.kit
 

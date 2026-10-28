@@ -1,9 +1,11 @@
 package io.eitheror.casino.rg.profile
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.time.{Duration, Instant}
 
 /** Every row of data-model.md's *Checks*, in its order. */
-class ChecksSuite extends munit.FunSuite:
+class ChecksSuite extends munit.FunSuite with LogCapturing:
   private val now = Instant.parse("2026-10-27T12:00:00Z")
 
   private def withLimit(p: ProfileState, t: LimitType, value: Long, currency: Option[String] = Some("EUR")): ProfileState =

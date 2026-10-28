@@ -1,12 +1,12 @@
 package io.eitheror.casino.players.inbox
 
-import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, KeyValueEntityTestKit}
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.contract.personal.Personal
 
 import java.time.Instant
 
 /** The message and note entities (T013). */
-class InboxEntitiesSuite extends munit.FunSuite:
+class InboxEntitiesSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-25T10:00:00Z")
 

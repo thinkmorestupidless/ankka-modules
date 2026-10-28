@@ -1,13 +1,13 @@
 package io.eitheror.casino.gameprovider.tickets
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.gameprovider.tickets.TicketCodecs.given
 import com.thinkmorestupidless.ankka.core.Serializers.given
 
 import java.time.Instant
 
 /** FR-010 and research R5, through the entity alone. */
-class TicketSuite extends munit.FunSuite:
+class TicketSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-09T10:00:00Z")
 

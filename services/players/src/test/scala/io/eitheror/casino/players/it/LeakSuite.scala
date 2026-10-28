@@ -1,6 +1,7 @@
 package io.eitheror.casino.players.it
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.personal.PersonalFields
 import io.eitheror.casino.players.Json
@@ -15,7 +16,7 @@ import scala.jdk.CollectionConverters.*
  * case (T027); T069 adds the erasure (every table, view row, fact, operator answer and the export after
  * it) and T072 the deposit's customer fields.
  */
-class LeakSuite extends munit.FunSuite:
+class LeakSuite extends munit.FunSuite with LogCapturing:
   private lazy val kit = SharedKit.kit
 
   override def beforeEach(context: BeforeEach): Unit = kit.reset()

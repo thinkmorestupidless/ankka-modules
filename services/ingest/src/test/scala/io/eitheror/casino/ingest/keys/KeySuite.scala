@@ -1,11 +1,10 @@
 package io.eitheror.casino.ingest.keys
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.Instant
 
 /** FR-002, FR-004: the key index's entry, which a late issue cannot revive once deactivated. */
-class KeySuite extends munit.FunSuite:
+class KeySuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-22T10:00:00Z")
 
   test("an issue sets the digest, the sub-brand, active and since; a repeat changes nothing") {

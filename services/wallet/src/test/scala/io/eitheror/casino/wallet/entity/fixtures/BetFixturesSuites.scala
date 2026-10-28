@@ -11,6 +11,15 @@ import io.eitheror.casino.wallet.entity.fixtures.FixtureRunner.*
  */
 class PlaceBetFixturesSuite extends FixtureSuite("place-bet"):
 
+  override protected def ignored: Map[String, String] = Map(
+    "two records — only the primary funds; queued record untouched"                                       -> Since002.TwoRecords,
+    "two records — stake above the primary is INSUFFICIENT_FUNDS although the queued record could cover it" -> Since002.TwoRecords,
+    "two records — primary at 0 with a round open refuses even though the queued record has funds"          -> Since002.TwoRecords,
+    "two records — queued record's max_stake does not bind"                                                -> Since002.TwoRecords,
+    "cap closes — bet empties real while a cap record is open"                                             -> Since002.CapCloseAtZero,
+    "pools — unstamped wallet writes no pool properties"                                                   -> NoUnstampedWallet
+  )
+
   protected def check(c: Case): Unit =
     given Case = c
     val kit    = FixtureRunner.kit(c, opening(c, c.recordTwins.map(record)))
@@ -33,6 +42,7 @@ class PlaceBetFixturesSuite extends FixtureSuite("place-bet"):
         accepted(o)
         val placed = result.events.collectFirst { case e: WalletEvent.BetPlaced => e }.getOrElse(fail("no bet placed"))
         assertWalletAndRecords(kit.currentState)
+        assertParts("funded", placed.bet.parts.getOrElse(io.eitheror.casino.wallet.funding.Parts.zero))
         assertResultBalances(o)
         c.transactions("bet").foreach { t =>
           sameText("bet wallet_type", text(t, "wallet_type"), o.walletType.getOrElse(""))
@@ -62,6 +72,14 @@ class PlaceBetFixturesSuite extends FixtureSuite("place-bet"):
  */
 class CreditWinFixturesSuite extends FixtureSuite("credit-win"):
 
+  override protected def ignored: Map[String, String] = Map(
+    "two-record legs — each record is credited its proportional share, the last absorbs the rounding remainder" -> Since002.TwoRecords,
+    "two records — zero win on an emptied primary forfeits it; queued record becomes primary"                   -> Since002.TwoRecords,
+    "two records — a win on the emptied primary keeps it ACTIVE and primary"                                    -> Since002.TwoRecords,
+    "pools — bet with no recorded split settles by the pools' ratio: win 400 on 3000/1000 writes 3300/1100, won 300/100" ->
+      s"$NoUnstampedWallet; every bet records its parts, so a win is never split by the pools' ratio"
+  )
+
   protected def check(c: Case): Unit =
     given Case = c
     val records = c.recordTwins.map(record)
@@ -74,6 +92,7 @@ class CreditWinFixturesSuite extends FixtureSuite("credit-win"):
       case None =>
         accepted(o)
         assertWalletAndRecords(kit.currentState)
+        result.events.collectFirst { case e: WalletEvent.WinCredited => e }.foreach(w => assertParts("won", w.parts))
         assertResultBalances(o)
         c.transactions("win").foreach { t =>
           sameText("win wallet_type", text(t, "wallet_type"), o.walletType.getOrElse(""))
@@ -95,6 +114,11 @@ class CreditWinFixturesSuite extends FixtureSuite("credit-win"):
 /** `rollback-bet.test.tl` (FR-012): each leg to its source, a converted record's to real; contributions reversed. */
 class RollbackBetFixturesSuite extends FixtureSuite("rollback-bet"):
 
+  override protected def ignored: Map[String, String] = Map(
+    "two-record legs — each record gets its leg back and its own contribution reversed, in resolver order" -> Since002.TwoRecords,
+    "deposit turnover — rollback reopens the record the bet cleared"                                     -> Since002.TurnoverLedger
+  )
+
   protected def check(c: Case): Unit =
     given Case = c
     val records = c.recordTwins.map(record)
@@ -108,6 +132,7 @@ class RollbackBetFixturesSuite extends FixtureSuite("rollback-bet"):
       case None =>
         accepted(o)
         assertWalletAndRecords(kit.currentState)
+        result.events.collectFirst { case e: WalletEvent.BetRolledBack => e }.foreach(r => assertParts("funded", r.parts))
         assertResultBalances(o)
         c.transactions("rollback").foreach { t =>
           sameText("rollback wallet_type", text(t, "wallet_type"), o.walletType.getOrElse(""))

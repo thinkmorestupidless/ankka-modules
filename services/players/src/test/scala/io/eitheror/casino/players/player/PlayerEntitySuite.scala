@@ -1,13 +1,13 @@
 package io.eitheror.casino.players.player
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.players.player.PlayerEvent.*
 
 import java.time.{Duration, Instant}
 
 /** data-model.md's command table for `PlayerEntity`, row by row and in its order (T011). */
-class PlayerEntitySuite extends munit.FunSuite:
+class PlayerEntitySuite extends munit.FunSuite with LogCapturing:
 
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private def later(minutes: Long) = at.plusSeconds(minutes * 60)

@@ -1,9 +1,8 @@
 package io.eitheror.casino.players.registration
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 /** The lookup index (T014). */
-class LookupIndexEntitySuite extends munit.FunSuite:
+class LookupIndexEntitySuite extends munit.FunSuite with LogCapturing:
 
   test("Add answers the others already held; a repeat adds nothing; Remove takes one out") {
     val kit = KeyValueEntityTestKit.of(LookupIndexEntity, "token-1")

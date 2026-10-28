@@ -1,5 +1,6 @@
 package io.eitheror.casino.pspgateway.port
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.port.Recording
 import io.eitheror.casino.pspgateway.Json
 
@@ -11,7 +12,7 @@ import java.nio.file.Files
  * with the original's. A difference that is a declared divergence is named in the test's name, and must
  * still be there.
  */
-class ParitySuite extends munit.FunSuite:
+class ParitySuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private val found = Parity.recordings(Parity.root.resolve("tests/port/psp-gateway"))
@@ -35,7 +36,7 @@ class ParitySuite extends munit.FunSuite:
  * gateway driver writes them, so the parity suite is known to catch a difference: the outcome told is
  * compared, though the replayer leaves an observe's answer alone.
  */
-class ParityFixtureSuite extends munit.FunSuite:
+class ParityFixtureSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
   private val fixtures = Parity.recordings(Parity.root.resolve("tests/fixtures/port/psp-gateway"))

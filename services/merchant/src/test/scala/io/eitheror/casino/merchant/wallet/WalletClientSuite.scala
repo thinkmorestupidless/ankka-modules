@@ -1,9 +1,10 @@
 package io.eitheror.casino.merchant.wallet
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.merchant.it.{DirectServices, FakeWallet}
 
 /** contracts/wallet.md, row for row: which answers are credited, retried or final. */
-class WalletClientSuite extends munit.FunSuite:
+class WalletClientSuite extends munit.FunSuite with LogCapturing:
 
   private val w      = FakeWallet()
   private val client = WalletClient.http(DirectServices(Map("wallet" -> w.address)))

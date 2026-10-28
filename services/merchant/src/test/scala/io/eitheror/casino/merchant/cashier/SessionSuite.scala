@@ -1,13 +1,13 @@
 package io.eitheror.casino.merchant.cashier
 
 import com.thinkmorestupidless.ankka.core.ErrorCode
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.contract.personal.Personal
 
 import java.time.Instant
 
 /** FR-013 to FR-015 at the session: everything the submit needs, a deadline, and one payment per session. */
-class SessionSuite extends munit.FunSuite:
+class SessionSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-12T10:00:00Z")
   private def state = SessionState("t-1", "sb-1", Some("acme"), "tx-1", 5000, "EUR", "GB", "acme:p1", "https://r",
