@@ -19,6 +19,15 @@ class RoutesSuite extends munit.FunSuite:
       case other                        => fail(other.toString)
   }
 
+  test("a player's id is the token's eitheror_twin_id, its last segment; never the realm's sub") {
+    def principal(claims: (String, String)*) =
+      com.thinkmorestupidless.ankka.http.Principal("realm-user-uuid", claims = claims.toMap, issuer = Some(Routes.PlayerIssuer))
+    assertEquals(Routes.playerId(principal(Routes.PlayerIdClaim -> "p-1")), Some("p-1"))
+    assertEquals(Routes.playerId(principal(Routes.PlayerIdClaim -> "casino/player/p-1")), Some("p-1"))
+    assertEquals(Routes.playerId(principal()), None)
+    assertEquals(Routes.playerId(principal(Routes.PlayerIdClaim -> "")), None)
+  }
+
   test("a player route without a token asks for a sign-in") {
     assert(outcome(Routes.player("goldvibe", verified), Request()).isInstanceOf[Outcome.Refused])
     assertEquals(outcome(Routes.player("goldvibe", verified), Request()).asInstanceOf[Outcome.Refused].status, 401)

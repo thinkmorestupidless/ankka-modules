@@ -172,7 +172,7 @@ final class SessionsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/sess
   withAcl(Routes.player(ctx.brand, ctx.settings.authenticate())) {
     postBody("/{brand}/launch") { (segment: String, body: String) =>
       ctx.ownBrand(segment)
-      launch(body, principal.subject)
+      launch(body, Routes.playerId(principal))
     }
   }
 

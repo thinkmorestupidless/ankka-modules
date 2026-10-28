@@ -45,6 +45,17 @@ object Routes:
       else Some(s"${Refusal.WrongBrand}: this is brand $slug")
     }
 
+  /**
+   * The claim a player token carries the player's id in: `players` mints the id and writes it on the
+   * realm user (spec 008), and the realm maps it into the token. The token's `sub` is the realm's own
+   * user id, never the player's.
+   */
+  val PlayerIdClaim = "eitheror_twin_id"
+
+  /** The player a token admitted by [[player]] names, as the original reads it (`claims.twinId`, its last segment). */
+  def playerId(p: Principal): Option[String] =
+    p.claims.get(PlayerIdClaim).map(_.split('/').last).filter(_.nonEmpty)
+
   /** An operator whose realm roles name this brand, or a platform administrator. */
   def operator(slug: String, authenticate: => Acl = Oidc.authenticate()): Acl =
     refine(authenticate) { p =>

@@ -25,7 +25,7 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/rg/${ctx.
   private val profileRoutes = ProfileRoutes(ctx)
 
   private def mine(playerId: String)(f: => Reply): Reply =
-    if principal.subject != playerId then refusal(403, "player_id_mismatch", "Authenticated player does not match requested player ID")
+    if !Routes.playerId(principal).contains(playerId) then refusal(403, "player_id_mismatch", "Authenticated player does not match requested player ID")
     else f
 
   get("/{player}/limits") { (p: String) => mine(p)(profileRoutes.status(p, query.raw("currency"))) }
