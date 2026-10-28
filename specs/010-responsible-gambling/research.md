@@ -264,6 +264,21 @@ Read from the code (`contracts/surface.md` has every element and its disposition
   game-provider and the wallet read `spending_limit` and `unavailable` as unavailable and refuse: R6's
   fail-closed, held by `CallersSuite`.
 - **SC-004** (T027, 2026-10-27): 1,000 asks of each check over HTTP in the integration kit, p99 at most 2 ms.
+- **The local run** (T045, 2026-10-28): `rg-run` set no issuer and ankka will not start without one; it now
+  verifies the player and staff issuers against the kind installation's casino Keycloak. The four checks
+  answered a fresh player `allowed`; with a real token from `casino-goldvibe` a daily deposit limit was set,
+  tightened at once, loosened as a change pending 24 h, refused `may-deposit` above it, and another
+  player's path was `403 player_id_mismatch`.
+- **A player's id is `eitheror_twin_id`, not `sub`** (T045): `players` mints the id and the realm maps it into
+  the token; `sub` is Keycloak's own user id. This service, the wallet and game-provider read `sub`, so every
+  real player would have been refused; the kits had given players `sub` = their id. `Routes.playerId` (the
+  contract) reads the claim, as the original's `claims.twinId`; each kit now gives a player a different `sub`.
+- **A player token's audience** (T045): the template's `casino-frontend` sets `azp` only, so its tokens carried
+  `aud: account` and every player route answered 401; the original accepted `azp` or `aud`, ankka checks `aud`.
+  `Realm.withPlayers` now adds an audience mapper naming the realm (`auth-player-audience`).
+- **kind's goldvibe realm predates `withPlayers`** (T045): no `eitheror_twin_id` in its user profile (Keycloak
+  24 dropped the attribute), no audience mapper, no `players-admin`. The first two were added by hand for this
+  run; T046 recreates the realm through the modules tool rather than patching it further.
 
 ## For ankka (checked against 0.13.0)
 

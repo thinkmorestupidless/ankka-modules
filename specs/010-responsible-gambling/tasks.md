@@ -162,7 +162,8 @@ Paths: `S` = `services/responsible-gambling/src/main/scala/io/eitheror/casino/rg
       contracts/routes.md, settings, the `just` recipes, what is verified where)
 - [X] T044 [P] On 008's branch (`008-players`): the GAMSTOP report resolves the address to the player and
       sends `playerId` (R12); `ErasureWorkflow.targets` gains `responsible-gambling` (R15); its suites green
-- [ ] T045 Quickstart §6: the service run locally, the four checks answered by `curl`
+- [X] T045 Quickstart §6: the service run locally, the four checks answered by `curl` (2026-10-28; with a real
+      player token from kind; three findings in research.md)
 - [ ] T046 Quickstart §7 on `kind-ankka` (never production): the image built and loaded, `just modules apply
       goldvibe --installation dev-kind --modules core`; 008's sign-in re-run ends in `player_logged_in`; a
       break set here refuses the next sign-in `cooling_off`
