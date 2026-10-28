@@ -164,9 +164,9 @@ Paths: `S` = `services/responsible-gambling/src/main/scala/io/eitheror/casino/rg
       sends `playerId` (R12); `ErasureWorkflow.targets` gains `responsible-gambling` (R15); its suites green
 - [X] T045 Quickstart §6: the service run locally, the four checks answered by `curl` (2026-10-28; with a real
       player token from kind; three findings in research.md)
-- [ ] T046 Quickstart §7 on `kind-ankka` (never production): the image built and loaded, `just modules apply
+- [X] T046 Quickstart §7 on `kind-ankka` (never production): the image built and loaded, `just modules apply
       goldvibe --installation dev-kind --modules core`; 008's sign-in re-run ends in `player_logged_in`; a
-      break set here refuses the next sign-in `cooling_off`
+      break set here refuses the next sign-in `cooling_off` (2026-10-28, on a rebuilt kind-ankka; research)
 - [ ] T047 Close research: *Findings* with dates; R6's answer from the user recorded; the cross-spec
       follow-ups (002 loss sums, 003 carrying them, 014, 015) written; `just features` green; `just rg-test`
       and `just rg-it` green

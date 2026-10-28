@@ -279,6 +279,18 @@ Read from the code (`contracts/surface.md` has every element and its disposition
 - **kind's goldvibe realm predates `withPlayers`** (T045): no `eitheror_twin_id` in its user profile (Keycloak
   24 dropped the attribute), no audience mapper, no `players-admin`. The first two were added by hand for this
   run; T046 recreates the realm through the modules tool rather than patching it further.
+- **The kind run** (T046, 2026-10-28): `kind-ankka` rebuilt at ankka v0.14.2, goldvibe's core applied by the
+  modules tool from this branch (the realm made fresh: the twin-id profile, the audience mapper,
+  `players-admin`); `players`, `responsible-gambling` and `wallet` Ready, `kyc`, `payouts` and `attribution`
+  paused (no image). Through the gateway: registration `201`; sign-in `401 email_not_verified`; the
+  operator's verification link and `verify-email` `200`; sign-in `200`, `may-log-in` answered by this
+  service; with the token `players` handed out, the player's own status `200` and a 2 h break `200`; the next
+  sign-in `403 cooling_off` with its end. On `casino.players`: `player_registered`, `player_logged_in` and
+  `rg_case_opened`, no address in any; none in either service's log.
+- **The modules tool waits for a paused service** (T046): the second apply waited on the three imageless
+  services until the control plane's 300 s token lapsed (`401`), so it never reached grants or the brand's
+  hostnames. The services were created and exposed by then. A follow-up for the tool: skip a paused service,
+  or an `--allow-unbuilt` one, when waiting.
 
 ## For ankka (checked against 0.13.0)
 
