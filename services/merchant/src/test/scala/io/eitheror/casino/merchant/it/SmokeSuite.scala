@@ -1,7 +1,5 @@
 package io.eitheror.casino.merchant.it
 
-
-
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
 import scala.concurrent.duration.*

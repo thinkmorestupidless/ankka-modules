@@ -1,12 +1,11 @@
 package io.eitheror.casino.attribution.clicks
 
 import com.thinkmorestupidless.ankka.core.effect.Retention
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.Instant
 import scala.concurrent.duration.*
 
-class ClickSuite extends munit.FunSuite:
+class ClickSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-25T10:00:00Z")
   private val click = ClickRecord("c-1", Some("programme"), Some("aff-1"), Some("lnk-1"), Some("summer"), Vector("s1"), at,
     "mobile", Some("GB"), Some("digest"), Map("utm_source" -> "x"))

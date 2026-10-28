@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.facts
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.money.Tally
 import io.eitheror.casino.attribution.record.Record
 import io.eitheror.casino.attribution.{Binding, MoneyEvent, Named}
@@ -8,7 +9,7 @@ import io.eitheror.casino.contract.facts.*
 import java.time.Instant
 
 /** One test per row of contracts/facts.md's table that emits; the same event twice is the same fact. */
-class FactsSuite extends munit.FunSuite:
+class FactsSuite extends munit.FunSuite with LogCapturing:
   private val boundAt = Instant.parse("2026-10-25T10:00:00Z")
   private val later   = boundAt.plusSeconds(60)
   private val b       = Binding("programme", "aff-1", "lnk-1", Some("summer"), Vector("s1"), Some("c-1"), "PSEUDO", boundAt, Binding.Tag)

@@ -1,7 +1,7 @@
 package io.eitheror.casino.attribution.facts
 
 import com.thinkmorestupidless.ankka.core.effect.ConsumerEffect
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.attribution.{Binding, MoneyEvent, Recorded, Wiring}
 import io.eitheror.casino.attribution.clicks.{ClickFacts, ClickRecord, ClickState}
 import io.eitheror.casino.attribution.facts.Facts.ClosedDay
@@ -14,7 +14,7 @@ import io.eitheror.casino.contract.facts.*
 import java.time.Instant
 
 /** The three fact publishers (T024): what each event becomes on `affiliates.attribution`, keyed and identified. */
-class PublishersSuite extends munit.FunSuite:
+class PublishersSuite extends munit.FunSuite with LogCapturing:
   private val t0 = Instant.parse("2026-10-25T10:00:00Z")
   private def binding(touch: String = Binding.Tag, at: Instant = t0) =
     Binding("programme", "aff-1", "lnk-1", None, Vector.empty, Some("c-1"), "pseud", at, touch)

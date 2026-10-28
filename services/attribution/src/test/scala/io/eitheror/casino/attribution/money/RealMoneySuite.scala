@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.money
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.money.RealMoney.Leg
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
@@ -7,7 +8,7 @@ import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits
 import java.time.Instant
 
 /** Every family of `money.transactions` against contracts/facts.md's table. */
-class RealMoneySuite extends munit.FunSuite:
+class RealMoneySuite extends munit.FunSuite with LogCapturing:
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private val zar = Currency.unsafe("ZAR")
   private def m(v: Long) = MinorUnits.unsafe(v)

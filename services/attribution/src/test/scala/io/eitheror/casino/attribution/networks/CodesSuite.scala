@@ -1,11 +1,12 @@
 package io.eitheror.casino.attribution.networks
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.Json
 
 import java.time.Instant
 
 /** `Codes.resolve` over the cached code documents (research R6, R7). */
-class CodesSuite extends munit.FunSuite:
+class CodesSuite extends munit.FunSuite with LogCapturing:
   private val t0 = Instant.parse("2026-10-25T10:00:00Z")
 
   private def network(id: String, addedSeconds: Long, removed: Boolean = false) =

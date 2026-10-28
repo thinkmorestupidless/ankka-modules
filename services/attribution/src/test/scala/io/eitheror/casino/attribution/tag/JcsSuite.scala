@@ -1,8 +1,9 @@
 package io.eitheror.casino.attribution.tag
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.Json
 
-class JcsSuite extends munit.FunSuite:
+class JcsSuite extends munit.FunSuite with LogCapturing:
   private def jcs(text: String): String = Jcs.canonical(Json.parse(text).get)
 
   test("RFC 8785 §3.2.2: the example's numbers, literals and string escapes") {

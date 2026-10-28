@@ -1,6 +1,5 @@
 package io.eitheror.casino.ingest
 
-
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
 import java.time.Duration

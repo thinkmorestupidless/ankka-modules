@@ -1,10 +1,9 @@
 package io.eitheror.casino.attribution.networks
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.Instant
 
-class NetworkSuite extends munit.FunSuite:
+class NetworkSuite extends munit.FunSuite with LogCapturing:
   private val at   = Instant.parse("2026-10-25T10:00:00Z")
   private val addr = Addresses("https://n.example/keys", "https://n.example/revocations")
   private def kit(id: String = "programme") = KeyValueEntityTestKit.of(Network, id)

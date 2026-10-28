@@ -1,10 +1,11 @@
 package io.eitheror.casino.attribution.carriers
 
 import com.fasterxml.jackson.databind.node.ArrayNode
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.Json
 import io.eitheror.casino.attribution.tag.Signing
 
-class PagesSuite extends munit.FunSuite:
+class PagesSuite extends munit.FunSuite with LogCapturing:
   private val (x, priv) = Signing.generate()
   private val facts = Vector(
     Json.obj("type" -> "registration", "factId" -> "registration/P", "network" -> "programme"),

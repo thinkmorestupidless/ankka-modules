@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.money
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.{Recorded, Settings}
 import io.eitheror.casino.attribution.settings.{BrandSettings, EndTransition, SettingsCodecs, TransitionEnd}
 
@@ -8,7 +9,7 @@ import com.thinkmorestupidless.ankka.core.Serializers.given
 import java.time.{Duration, Instant, ZoneId}
 
 /** The day closer's run (T026), called directly over a client that records every call. */
-class DayCloserSuite extends munit.FunSuite:
+class DayCloserSuite extends munit.FunSuite with LogCapturing:
   private val zone     = ZoneId.of("Africa/Johannesburg")
   private val settings = Settings("goldvibe", zone, closeGrace = Duration.ofMinutes(15))
   private def at(local: String) = java.time.LocalDateTime.parse(local).atZone(zone).toInstant

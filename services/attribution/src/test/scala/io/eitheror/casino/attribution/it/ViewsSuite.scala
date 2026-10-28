@@ -2,7 +2,7 @@ package io.eitheror.casino.attribution.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime}
-import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
+import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, LogCapturing}
 import io.eitheror.casino.attribution.{Binding, MoneyEvent}
 import io.eitheror.casino.attribution.carriers.*
 import io.eitheror.casino.attribution.money.{DayTally, OpenDays, Tally}
@@ -18,7 +18,7 @@ import scala.concurrent.duration.*
  * The four views (T022): each query after the events that fill it. Scala views run only against a real
  * database, so this starts the entities, the workflow and the views on ankka's integration kit.
  */
-class ViewsSuite extends munit.FunSuite:
+class ViewsSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 300.seconds
 
   private val t0     = Instant.parse("2026-10-25T10:00:00Z")

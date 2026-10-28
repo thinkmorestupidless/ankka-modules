@@ -1,8 +1,7 @@
 package io.eitheror.casino.attribution.money
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
-class WalletCursorSuite extends munit.FunSuite:
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
+class WalletCursorSuite extends munit.FunSuite with LogCapturing:
   private def kit = KeyValueEntityTestKit.of(WalletCursor, WalletCursor.id("p-1", "EUR"))
 
   test("advance from 0: a deposit of 5000, then a bet of 1000") {

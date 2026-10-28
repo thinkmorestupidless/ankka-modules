@@ -1,7 +1,9 @@
 package io.eitheror.casino.attribution.facts
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 /** Research R13's forms; none carries a player id. */
-class FactIdsSuite extends munit.FunSuite:
+class FactIdsSuite extends munit.FunSuite with LogCapturing:
   private val player = "player-42"
 
   test("every id form") {

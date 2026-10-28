@@ -1,8 +1,10 @@
 package io.eitheror.casino.attribution.money
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.time.{Duration, Instant, LocalDate, ZoneId}
 
-class DaysSuite extends munit.FunSuite:
+class DaysSuite extends munit.FunSuite with LogCapturing:
   private val jhb   = ZoneId.of("Africa/Johannesburg") // UTC+2, no daylight saving
   private val grace = Duration.ofMinutes(15)
 

@@ -1,6 +1,8 @@
 package io.eitheror.casino.attribution.tag
 
-class PseudonymsSuite extends munit.FunSuite:
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
+class PseudonymsSuite extends munit.FunSuite with LogCapturing:
   /** The documented vector: the key is the bytes 0x00 to 0x1f, base64 as the store keeps it. */
   private val key = Pseudonyms.keyBytes("AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=")
 

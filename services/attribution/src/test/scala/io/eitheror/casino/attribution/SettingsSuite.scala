@@ -1,8 +1,10 @@
 package io.eitheror.casino.attribution
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
 import java.time.{Duration, ZoneId}
 
-class SettingsSuite extends munit.FunSuite:
+class SettingsSuite extends munit.FunSuite with LogCapturing:
   private val brand = Map("CASINO_BRAND" -> "goldvibe")
 
   test("the defaults: UTC, no modules, CF-IPCountry, 10 s documents, a 15 minute grace, 10 s webhooks") {

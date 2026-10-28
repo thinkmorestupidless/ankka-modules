@@ -1,12 +1,13 @@
 package io.eitheror.casino.attribution
 
 import com.thinkmorestupidless.ankka.core.Serializer
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.AttributionCodecs.given
 
 import java.time.Instant
 
 /** Every shared stored type round-trips; the entities' own types are checked in their suites. */
-class AttributionCodecsSuite extends munit.FunSuite:
+class AttributionCodecsSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-25T10:15:30.123Z")
 
   private def roundTrip[A](a: A)(using s: Serializer[A]): Unit = assertEquals(s.fromBytes(s.toBytes(a)), a)

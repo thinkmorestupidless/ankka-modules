@@ -1,10 +1,9 @@
 package io.eitheror.casino.attribution.carriers
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.Instant
 
-class WebhookSubscriptionSuite extends munit.FunSuite:
+class WebhookSubscriptionSuite extends munit.FunSuite with LogCapturing:
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private val id  = "0b7e2c56-1111-4222-8333-444455556666"
   private def kit = KeyValueEntityTestKit.of(WebhookSubscription, id)

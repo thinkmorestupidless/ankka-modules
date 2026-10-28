@@ -1,10 +1,9 @@
 package io.eitheror.casino.attribution.settings
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.{Instant, LocalDate}
 
-class SettingsEntitySuite extends munit.FunSuite:
+class SettingsEntitySuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-25T10:00:00Z")
   private def kit = KeyValueEntityTestKit.of(SettingsEntity, SettingsEntity.Id)
 

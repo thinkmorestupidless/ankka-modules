@@ -1,6 +1,5 @@
 package io.eitheror.casino.simulator.core
 
-
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
 import scala.concurrent.duration.*

@@ -1,13 +1,13 @@
 package io.eitheror.casino.attribution.record
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.attribution.{Binding, MoneyEvent, Reasons, TagOutcome, Touch}
 import io.eitheror.casino.attribution.record.Record.*
 
 import java.time.Instant
 
 /** Every row of data-model.md's `AttributionRecord` command table. */
-class AttributionRecordSuite extends munit.FunSuite:
+class AttributionRecordSuite extends munit.FunSuite with LogCapturing:
   private val t0 = Instant.parse("2026-10-25T10:00:00Z")
   private def at(s: Long) = t0.plusSeconds(s)
   private def binding(boundAt: Instant = t0, touch: String = Binding.Tag) =

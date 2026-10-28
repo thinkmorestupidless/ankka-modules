@@ -1,7 +1,7 @@
 package io.eitheror.casino.attribution.inputs
 
 import com.thinkmorestupidless.ankka.core.effect.ConsumerEffect
-import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, InMemorySecretStore}
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, InMemorySecretStore, LogCapturing}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits}
 
@@ -11,7 +11,7 @@ import java.time.Instant
  * The shells of the five input consumers (T023): a family a consumer does not handle, or a fact it cannot
  * read, is ignored and calls nothing. The kit's client refuses every call, so a call would fail the test.
  */
-class InputsSuite extends munit.FunSuite:
+class InputsSuite extends munit.FunSuite with LogCapturing:
   private val at  = Instant.parse("2026-10-25T10:00:00Z")
   private val eur = Currency.unsafe("EUR")
   private val ten = MinorUnits.unsafe(1000)

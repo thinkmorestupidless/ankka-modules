@@ -1,13 +1,13 @@
 package io.eitheror.casino.attribution.carriers
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.attribution.{Json, Named}
 import io.eitheror.casino.attribution.Json.text
 import io.eitheror.casino.attribution.facts.Facts
 
 import java.time.Instant
 
-class NetworkFeedSuite extends munit.FunSuite:
+class NetworkFeedSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-25T10:00:00Z")
   private def fact(click: String) =
     FeedFact.of(Facts.click("goldvibe", click, Named("programme", "aff-1", "lnk-1", None, Vector.empty), at, Some("GB"), Some("mobile")))

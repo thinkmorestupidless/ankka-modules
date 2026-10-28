@@ -2,14 +2,14 @@ package io.eitheror.casino.attribution.carriers
 
 import com.thinkmorestupidless.ankka.core.Serializer
 import com.thinkmorestupidless.ankka.core.effect.ConsumerEffect
-import com.thinkmorestupidless.ankka.testkit.ConsumerTestKit
+import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
 import io.eitheror.casino.attribution.{AttributionCodecs, Named, Recorded, Wiring}
 import io.eitheror.casino.attribution.facts.Facts
 
 import java.time.Instant
 
 /** The feed appender and the webhook fanout (T025), over a client that records every call. */
-class CarrierConsumersSuite extends munit.FunSuite:
+class CarrierConsumersSuite extends munit.FunSuite with LogCapturing:
   private val at   = Instant.parse("2026-10-25T10:00:00Z")
   private val fact = Facts.click("goldvibe", "c-1", Named("programme", "aff-1", "lnk-1", None, Vector.empty), at, None, None)
 

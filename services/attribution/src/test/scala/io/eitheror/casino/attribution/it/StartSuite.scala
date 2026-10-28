@@ -1,6 +1,7 @@
 package io.eitheror.casino.attribution.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.{AttributionService, Settings}
 import io.eitheror.casino.attribution.inputs.RewardsFacts
 import io.eitheror.casino.attribution.money.{DayCloser, Days}
@@ -14,7 +15,7 @@ import scala.concurrent.duration.*
  * The service starts (T033): the brand's first day, both recurring timers, the click salt in the store,
  * and every route of contracts/routes.md answering `501` or its ACL's refusal.
  */
-class StartSuite extends munit.FunSuite:
+class StartSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 300.seconds
 
   private var kit: Kit = scala.compiletime.uninitialized

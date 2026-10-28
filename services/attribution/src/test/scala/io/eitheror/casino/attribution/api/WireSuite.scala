@@ -1,13 +1,14 @@
 package io.eitheror.casino.attribution.api
 
 import com.github.plokhotnyuk.jsoniter_scala.core.{JsonValueCodec, readFromString, writeToString}
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.api.Wire.{*, given}
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 
 /** Every shape of contracts/routes.md round-trips, and a refusal's body names its code and message. */
-class WireSuite extends munit.FunSuite:
+class WireSuite extends munit.FunSuite with LogCapturing:
 
   private val at = Instant.parse("2026-10-25T12:00:00Z")
 

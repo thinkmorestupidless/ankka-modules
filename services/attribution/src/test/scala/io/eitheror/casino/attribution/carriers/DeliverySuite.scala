@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.carriers
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.carriers.DeliveryRules.Next
 
 import java.time.{Duration, Instant}
@@ -9,7 +10,7 @@ import scala.concurrent.duration.*
  * What a delivery decides and what it posts (research R15; contracts/protocol.md *A webhook post*). The
  * workflow over these runs in the integration suite: ankka 0.13 has no Scala workflow kit.
  */
-class DeliverySuite extends munit.FunSuite:
+class DeliverySuite extends munit.FunSuite with LogCapturing:
   private val t0    = Instant.parse("2026-10-25T10:00:00Z")
   private val fact  = FeedFact("deposit/pseud/pay-1", "deposit", """{"type":"deposit","amount":5000}""")
   private val begun = DeliveryState("sub-1", "programme", Some(fact), status = DeliveryRules.Delivering)

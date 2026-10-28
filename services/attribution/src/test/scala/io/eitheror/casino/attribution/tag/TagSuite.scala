@@ -1,11 +1,12 @@
 package io.eitheror.casino.attribution.tag
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.{Json, Named, Reasons, TagOutcome}
 
 import java.time.{Duration, Instant}
 import java.util.Base64
 
-class TagSuite extends munit.FunSuite:
+class TagSuite extends munit.FunSuite with LogCapturing:
   private val (x, priv)   = Signing.generate()
   private val iat         = Instant.parse("2026-10-01T00:00:00Z")
   private val fields      = Tag.Fields("programme", "aff-7f3c", "lnk-01", Some("summer"), Vector("s1", "s2"), iat)

@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.it
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.TagOutcome
 import io.eitheror.casino.attribution.carriers.{FeedFact, WebhookHttp}
 import io.eitheror.casino.attribution.networks.{DocumentFetch, Documents}
@@ -8,7 +9,7 @@ import io.eitheror.casino.attribution.tag.Tag
 import java.time.{Duration, Instant}
 
 /** The fakes speak the protocol: their documents parse with the service's parsers, their tokens verify. */
-class FakesSuite extends munit.FunSuite:
+class FakesSuite extends munit.FunSuite with LogCapturing:
   private val network  = FakeNetwork()
   private val receiver = WebhookReceiver()
   private val fetch    = DocumentFetch.http(Duration.ofSeconds(5))

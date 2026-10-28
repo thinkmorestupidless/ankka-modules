@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.networks
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.Recorded
 import io.eitheror.casino.attribution.networks.Documents.Kind
 import io.eitheror.casino.attribution.tag.Signing
@@ -8,7 +9,7 @@ import java.time.Instant
 import scala.collection.mutable
 
 /** The documents' refresh (T026), called directly with a scripted fetch and a recording client. */
-class DocumentRefreshSuite extends munit.FunSuite:
+class DocumentRefreshSuite extends munit.FunSuite with LogCapturing:
   private val t0     = Instant.parse("2026-10-25T10:00:00Z")
   private val (x, _) = Signing.generate()
   private val keys   = s"""{"keys":[{"kid":"k1","kty":"OKP","crv":"Ed25519","x":"$x"}],"cacheSeconds":3600}"""

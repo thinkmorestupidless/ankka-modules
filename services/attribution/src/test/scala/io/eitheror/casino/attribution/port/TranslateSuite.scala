@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.port
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.Json
 import io.eitheror.casino.attribution.port.Translate.*
 import io.eitheror.casino.contract.facts.*
@@ -9,7 +10,7 @@ import java.nio.file.Paths
 import java.time.{Instant, ZoneId}
 
 /** Each kind of recorded step from a hand-written fragment, and the exact money it carries. */
-class TranslateSuite extends munit.FunSuite:
+class TranslateSuite extends munit.FunSuite with LogCapturing:
 
   private val zone = ZoneId.of("Africa/Johannesburg")
   private val now  = Instant.parse("2026-10-25T08:00:00Z")

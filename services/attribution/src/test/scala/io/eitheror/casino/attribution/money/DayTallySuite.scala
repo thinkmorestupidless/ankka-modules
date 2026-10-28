@@ -1,12 +1,12 @@
 package io.eitheror.casino.attribution.money
 
-import com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit
+import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.attribution.money.RealMoney.Leg
 import io.eitheror.casino.attribution.money.Tally.*
 
 import java.time.Instant
 
-class DayTallySuite extends munit.FunSuite:
+class DayTallySuite extends munit.FunSuite with LogCapturing:
   private val t0  = Instant.parse("2026-10-25T10:00:00Z")
   private val day = "2026-10-25"
   private def kit = EventSourcedTestKit.of(DayTally, DayTally.id("p-1", "EUR", day))

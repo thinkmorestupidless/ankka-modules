@@ -1,6 +1,8 @@
 package io.eitheror.casino.attribution.tag
 
-class SigningSuite extends munit.FunSuite:
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+
+class SigningSuite extends munit.FunSuite with LogCapturing:
   private val message = "header.payload".getBytes("US-ASCII")
 
   test("a generated pair signs and verifies; the public key is 32 bytes of base64url") {

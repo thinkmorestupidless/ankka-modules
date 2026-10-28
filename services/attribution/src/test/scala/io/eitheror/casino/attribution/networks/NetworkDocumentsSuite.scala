@@ -1,12 +1,12 @@
 package io.eitheror.casino.attribution.networks
 
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import io.eitheror.casino.attribution.networks.Documents.Kind
 import io.eitheror.casino.attribution.tag.Signing
 
 import java.time.Instant
 
-class NetworkDocumentsSuite extends munit.FunSuite:
+class NetworkDocumentsSuite extends munit.FunSuite with LogCapturing:
   private val at        = Instant.parse("2026-10-25T10:00:00Z")
   private val (x, _)    = Signing.generate()
   private val keys      = s"""{"keys":[{"kid":"k1","kty":"OKP","crv":"Ed25519","x":"$x"}],"cacheSeconds":3600}"""

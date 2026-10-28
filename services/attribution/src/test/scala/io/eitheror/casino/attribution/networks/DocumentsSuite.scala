@@ -1,12 +1,13 @@
 package io.eitheror.casino.attribution.networks
 
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.networks.Documents.*
 import io.eitheror.casino.attribution.tag.Signing
 
 import java.time.Instant
 
 /** Each document's example from contracts/protocol.md parses; each refusal names why. */
-class DocumentsSuite extends munit.FunSuite:
+class DocumentsSuite extends munit.FunSuite with LogCapturing:
   private val (x, _) = Signing.generate()
 
   test("the key document, with the brand's transition") {

@@ -4,6 +4,7 @@ import ch.qos.logback.classic.{Logger, LoggerContext}
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.attribution.Json
 import io.eitheror.casino.attribution.clicks.Click
 import io.eitheror.casino.attribution.networks.Network
@@ -29,7 +30,7 @@ import scala.jdk.CollectionConverters.*
  * and the captured log are searched for each marker, and the topic, the feed and the webhooks for the player
  * id. A service of its own (build.sbt), so its database and log hold this suite's work alone.
  */
-class LeakSuite extends munit.FunSuite:
+class LeakSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 10.minutes
 
   private val appender = ListAppender[ILoggingEvent]()

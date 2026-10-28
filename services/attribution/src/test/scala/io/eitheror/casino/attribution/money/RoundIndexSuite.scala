@@ -1,12 +1,11 @@
 package io.eitheror.casino.attribution.money
 
 import com.thinkmorestupidless.ankka.core.effect.Retention
-import com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit
-
+import com.thinkmorestupidless.ankka.testkit.{KeyValueEntityTestKit, LogCapturing}
 import java.time.Instant
 import scala.concurrent.duration.*
 
-class RoundIndexSuite extends munit.FunSuite:
+class RoundIndexSuite extends munit.FunSuite with LogCapturing:
   private val at = Instant.parse("2026-10-25T23:59:00Z")
 
   test("remember: the first day wins, with a 7-day life") {
