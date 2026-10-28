@@ -60,8 +60,8 @@ object Main:
             |       ankka casino values push <slug> [--installation <name> | --organization <tenant>]
             |       ankka casino secrets <slug> --secrets <file> [--installation <name> | --organization <tenant>]
             |       ankka casino hostnames <slug> [--installation <name> | --organization <tenant>]
-            |       ankka casino realm <slug> [--installation <name>]
-            |       ankka casino apply <slug> --installation <name> [--modules a,b] [--version m=v,...]   (local mode only)
+            |       ankka casino realm <slug> [--installation <name>] [--secrets <file>]
+            |       ankka casino apply <slug> --installation <name> [--modules a,b] [--version m=v,...] [--secrets <file>]   (local mode only)
             |       ankka casino apply shared/<project>/manifest.json --installation <name> [--secrets <file>]
             |       ankka casino status <slug | shared project> [--installation <name>]
             |       ankka casino release render <tag> --out <dir>
@@ -138,17 +138,19 @@ object Main:
       vs   <- versions(args, order.map(_.name), vendor).left.map { e => out.err(e); 2 }
       organization = args.flags.get("--organization").orElse(env.get("ANKKA_ORGANIZATION")).getOrElse("eitheror")
       plan <- BrandRender.plan(v, Keys.load(root), ms, named, vs, Some(inst)).left.map { e => out.err(e); 2 }
-    yield (inst, v, plan, organization)
+      supplied <- args.flags.get("--secrets").fold(Right(Map.empty))(f => SecretsFile.load(root.resolve(f))).left.map { e => out.err(e); 2 }
+    yield (inst, v, plan, organization, supplied)
     prepared match
       case Left(code) => code
-      case Right((inst, v, plan, organization)) =>
+      case Right((inst, v, plan, organization, supplied)) =>
         val cp = controlPlane()
         val refusals = BrandCommands.realMoney(v, plan.project, Some(inst), BrandCommands.facts(Some(inst), Some(cp)))
         if refusals.nonEmpty then
           refusals.foreach(r => out.line(s"refused $r")); 1
         else
           val admin = realms.orElse(KeycloakAdmin.fromEnvironment(v.issuerBase).toOption)
-          val realm = admin.map(a => a -> (() => Realm.render(Realm.template(root), v.slug, BrandCommands.frontend(v, Some(inst)))))
+          val realm = admin.map(a => a -> (() => Realm.withPlayers(Realm.render(Realm.template(root), v.slug, BrandCommands.frontend(v, Some(inst))),
+            BrandCommands.playersUrl(v, Some(inst)), supplied.getOrElse(s"${v.slug}-players", Map.empty))))
           val result = LocalApply.run(plan, v, Some(inst), cp, LocalApply.Options(organization, realm, () => Some(Realm.operators(root))))
           result.changes.foreach(c => out.line(s"changed $c"))
           result.notes.foreach(n => out.line(s"note $n"))

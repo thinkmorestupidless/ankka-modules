@@ -16,7 +16,7 @@ What holds the rebuild to the original (spec 001, FR-029 to FR-032; `specs/001-b
   the gateway's eleven provider base URLs at it, and the patches to its `tests/e2e` that record and
   add the missing responsible-gambling and KYC scenarios; and the drivers that record what the suite
   never reaches, one per ported service (`wallet-driver`, `merchant-driver`, `gateway-driver`,
-  `ingest-driver`), with `merge` and `preflight` (`original/README.md`).
+  `ingest-driver`, `players-driver`), with `merge` and `preflight` (`original/README.md`).
 - `fixtures/` — manifests, installations and recordings the Scala suites read.
 
 The Go module is this directory: `go vet ./... && go test ./...` from here, or `just test`. The

@@ -1,0 +1,44 @@
+{
+  "scenario": "a registration carrying a tag that is not well formed succeeds with no tag on the fact",
+  "requirement": "008/FR-003",
+  "recorded_at": "2026-10-26T23:22:17.667772Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "register with a malformed tag",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "\u003cscript\u003enan\u003c/script\u003e",
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "cbe58d5d-352d-3b7d-a104-ad9462ddedb2",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

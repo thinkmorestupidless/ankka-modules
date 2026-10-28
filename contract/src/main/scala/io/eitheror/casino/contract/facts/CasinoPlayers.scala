@@ -47,6 +47,11 @@ final case class PlayerSelfExcluded(playerId: String, previousValue: String, new
 final case class PlayerClosed(playerId: String, previousValue: String, newValue: String, actor: String,
     actorId: Option[String], reason: Option[String], occurredAt: Instant) extends CasinoPlayersFact
 
+/** An operator reopening a closed account on the player's request, within the hold (spec 008 FR-032a). */
+@named("player_reopened")
+final case class PlayerReopened(playerId: String, previousValue: String, newValue: String, actor: String,
+    actorId: Option[String], reason: Option[String], occurredAt: Instant) extends CasinoPlayersFact
+
 @named("vip_tier_changed")
 final case class VipTierChanged(playerId: String, previousTier: Option[String], newTier: String, actorId: String,
     occurredAt: Instant) extends CasinoPlayersFact
@@ -133,6 +138,7 @@ object CasinoPlayers extends Topic[CasinoPlayersFact]("casino.players", Vector("
     FamilyDef.of[PlayerReinstated]("player_reinstated"),
     FamilyDef.of[PlayerSelfExcluded]("player_self_excluded"),
     FamilyDef.of[PlayerClosed]("player_closed"),
+    FamilyDef.of[PlayerReopened]("player_reopened"),
     FamilyDef.of[VipTierChanged]("vip_tier_changed"),
     FamilyDef.of[PlayerProfileUpdated]("player_profile_updated"),
     FamilyDef.of[PlayerConsentChanged]("player_consent_changed"),

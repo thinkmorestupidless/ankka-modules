@@ -1,0 +1,482 @@
+{
+  "scenario": "TestScenario18_MultiAccountDetection_FraudCaseReview",
+  "requirement": "008/FR-037",
+  "recorded_at": "2026-10-26T23:24:18.831766Z",
+  "original": {
+    "brand": "",
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "realm",
+  "steps": [
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice&grant_type=password&password=<redacted>&username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "<redacted>",
+          "scope": "email profile",
+          "session_state": "794aad94-46e7-40d1-89e1-a806e9b469f4",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "GBP",
+          "dateOfBirth": "1978-11-30",
+          "email": "s18-caro-f38c99c5@example.com",
+          "firstName": "Carolf38c99c5",
+          "lastName": "ReviewTest",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "cddb7291-f7d1-3584-9836-8ba4674916d7",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c0": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/casino-spinvibe/cddb7291-f7d1-3584-9836-8ba4674916d7",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{c0}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "GBP",
+          "dateOfBirth": "1978-11-30",
+          "email": "s18-caro-f38c99c5@example.com",
+          "firstName": "Carolf38c99c5",
+          "identity_hash": "20434da1-0011-390f-a0ce-48c3932df482",
+          "kyc_check_deadline_at": "2026-11-25T23:24:18.873413110Z",
+          "kyc_status": "unverified",
+          "lastName": "ReviewTest",
+          "marketing_consent": "false",
+          "registered_at": "2026-10-26T23:24:18.873413110Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "s18-caro-f38c99c5@example.com",
+          "walletBalance": "0",
+          "walletCurrency": "GBP"
+        }
+      },
+      "capture": {
+        "c1": "$.firstName"
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.firstName": "differs between two runs of the original",
+        "$.identity_hash": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "GBP",
+          "dateOfBirth": "1978-11-30",
+          "email": "s18-caro-f38c99c5b@example.com",
+          "firstName": "{c1}",
+          "lastName": "ReviewTest",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "4b229077-a641-341b-970a-b0acf09d3f93",
+          "status": "pending_email_verification"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/casino-fraud-cases-spinvibe",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-fraud-cases-spinvibe",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "total": 25,
+          "twins": [
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:13:33.909189904Z",
+                "linked_player_ref": "060bd579-b42f-3014-a2bb-28340000d3e2",
+                "player_ref": "50f89285-205c-327f-aac8-964cb1b3981d",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/e96cc06f-1ab1-331c-8806-df219d13a032"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:13:35.339707231Z",
+                "linked_player_ref": "d44ff895-0665-360e-9756-349237d7beec",
+                "player_ref": "8bf8b9d9-17f9-3cf2-aaef-47a3c1336cd9",
+                "reviewed_at": "2026-10-26T23:13:35.619377504Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "REVIEWED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/5f6e16fc-34c1-3050-9fa8-c933e57edaae"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:13:34.401945966Z",
+                "linked_player_ref": "c29f8856-0182-3d0e-af43-08be9237792d",
+                "player_ref": "5d926dc2-f4af-39f6-8a94-33afd168d62f",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/d15b4d2a-6b97-39bd-aa2b-af33e5ccede7"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:13:34.863899990Z",
+                "linked_player_ref": "2b3502e5-fa60-3bcf-9141-ee3fddc0bef1",
+                "player_ref": "b2154478-709c-3d3d-aa61-86bdba220578",
+                "review_notes": "siblings sharing a laptop",
+                "reviewed_at": "2026-10-26T23:13:35.125488434Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "DISMISSED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/4220784e-053b-3429-a2e7-9c0993f2b35c"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:14:10.379368620Z",
+                "linked_player_ref": "55c1ab8e-6e91-3a04-8424-8f7054725180",
+                "player_ref": "54d3ce38-5b1a-381b-be72-7543ac89b824",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/73475372-dba0-3f2e-9f96-a0d1ff9cd6d9"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:52.734824453Z",
+                "linked_player_ref": "55c1ab8e-6e91-3a04-8424-8f7054725180",
+                "player_ref": "3e366ac0-6ff4-3959-9f45-a2c8b44e10e7",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/4292963e-3eec-36f1-8d17-22b0d96f70d6"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:14:18.210701638Z",
+                "linked_player_ref": "09fe3d70-dd58-3501-8e03-b1b5548b76ac",
+                "player_ref": "4e761c36-c0eb-3d4b-8a3d-9023b6524088",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/3dc7d76a-c47f-38ec-a1a6-2d77606ece10"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:52.738476674Z",
+                "linked_player_ref": "68173d95-152e-3800-b786-b6a4677e08fb",
+                "player_ref": "3e366ac0-6ff4-3959-9f45-a2c8b44e10e7",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/64ab212d-dc92-3b3f-af29-badbbe80a49a"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:14:17.692277197Z",
+                "linked_player_ref": "42fb9223-a585-3597-81d9-ac22722d271b",
+                "player_ref": "d124cef9-4f9a-3ab3-bd57-05959bd62388",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/4dea33f1-0540-3e3b-9999-e4a51f23f756"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:14:18.714600982Z",
+                "linked_player_ref": "7063e130-3f22-368a-9df0-93ff9cb91459",
+                "player_ref": "62c2c40e-7cf4-3119-92a3-02f3742eac9e",
+                "review_notes": "siblings sharing a laptop",
+                "reviewed_at": "2026-10-26T23:14:18.979442573Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "DISMISSED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/51574c79-215b-3525-a652-388c5a1e1f41"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:14:19.282892462Z",
+                "linked_player_ref": "f6f9c850-6440-3acc-a169-dbdedcd9d678",
+                "player_ref": "50d54727-3512-3ce2-834d-a2a39f53035f",
+                "reviewed_at": "2026-10-26T23:14:19.551129367Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "REVIEWED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/1263b74c-54d1-3695-b695-78d6cac90707"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:38.211657407Z",
+                "linked_player_ref": "6d7414dc-c221-3c53-8e39-1542b0caabb3",
+                "player_ref": "5bd39e67-2a04-30f9-8229-3c7e6a16efe8",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/c07fd7df-cc11-33d4-8897-32136e8633c5"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:52.738359466Z",
+                "linked_player_ref": "54d3ce38-5b1a-381b-be72-7543ac89b824",
+                "player_ref": "3e366ac0-6ff4-3959-9f45-a2c8b44e10e7",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/f001862e-6ae1-3a23-8742-253720232217"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:28.386988480Z",
+                "linked_player_ref": "54d3ce38-5b1a-381b-be72-7543ac89b824",
+                "player_ref": "68173d95-152e-3800-b786-b6a4677e08fb",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/916173e2-53e5-3914-a0ae-7ee89f5fb71d"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:28.386915106Z",
+                "linked_player_ref": "55c1ab8e-6e91-3a04-8424-8f7054725180",
+                "player_ref": "68173d95-152e-3800-b786-b6a4677e08fb",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/02b144cb-5976-3c09-988e-3af6e4f422ca"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:37.558031765Z",
+                "linked_player_ref": "a8b59616-4d84-3acc-8a2e-142d84951b90",
+                "player_ref": "94b7b909-fd56-38f5-a9b5-c57c2ffa358e",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/ca863940-3f40-38db-8d07-25239e1bd34f"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:39.694225184Z",
+                "linked_player_ref": "6b9c058d-5590-3d1e-9aa2-b6267b85d212",
+                "player_ref": "144ce325-1313-3158-a84e-f0fcdd75e6c3",
+                "reviewed_at": "2026-10-26T23:22:39.964827344Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "REVIEWED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/20e52e23-87c1-3da7-be5a-2d1617f8a0f1"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:22:38.889635273Z",
+                "linked_player_ref": "2994ffa8-430b-3300-879b-d0572694b480",
+                "player_ref": "775ac020-1444-33cb-b085-44b42abe3cca",
+                "review_notes": "siblings sharing a laptop",
+                "reviewed_at": "2026-10-26T23:22:39.173340413Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "DISMISSED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/ec89d2fc-3836-30e9-bf12-f4370dbdfa71"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:24:17.801486427Z",
+                "linked_player_ref": "ab27e69f-bfa5-372a-9551-34920bde5e12",
+                "player_ref": "19e1681b-91bd-3c0e-9116-3c8d6333dc1d",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/1b89533c-c649-34b9-b513-f138ec4f457e"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:24:19.061366338Z",
+                "linked_player_ref": "cddb7291-f7d1-3584-9836-8ba4674916d7",
+                "player_ref": "4b229077-a641-341b-970a-b0acf09d3f93",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/f5a8c46b-ec0e-3270-b0be-74137d099bd2"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:23:03.218535633Z",
+                "linked_player_ref": "afff7f4a-c554-3c41-96e1-63454d8ce238",
+                "player_ref": "1fe0ae51-657b-360b-9c52-f7369f32937c",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/b34f819a-73e6-37ab-a5f1-0f145f4eec11"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:23:04.272583915Z",
+                "linked_player_ref": "919c7256-7b3d-35b6-8b29-7301e69e3174",
+                "player_ref": "30838018-15a8-3618-be3d-7bebfb8d36ab",
+                "review_notes": "siblings sharing a laptop",
+                "reviewed_at": "2026-10-26T23:23:04.606388619Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "DISMISSED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/c14c64c8-2e12-3f56-8a75-fa992ec6ba07"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:24:18.641817767Z",
+                "linked_player_ref": "88d7f77b-6029-3a21-abca-a66dd48a5651",
+                "player_ref": "f0194c0b-6d08-3479-806c-462903e11b1d",
+                "signals": "[\"identity_hash\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/ad2e537f-e8d2-364f-a38a-6dfa79d16450"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:23:03.749406494Z",
+                "linked_player_ref": "657afa61-26a7-3a96-a4ea-b6ca098dfbc1",
+                "player_ref": "91617514-e65f-33c1-9d6f-fe10693dc8b2",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "OPEN"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/df737c77-85f5-3da4-9365-1f0411dfc80f"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "detected_at": "2026-10-26T23:23:05.063787517Z",
+                "linked_player_ref": "b6881aba-ea67-3ce1-91d3-e316bc2ce2e1",
+                "player_ref": "ed4b4053-25c5-3096-996e-fc92a3d543cf",
+                "reviewed_at": "2026-10-26T23:23:05.328358808Z",
+                "reviewed_by": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+                "signals": "[\"device_fingerprint\"]",
+                "status": "REVIEWED"
+              },
+              "twinId": "casino-fraud-cases-spinvibe/f89cb687-4b01-3683-a339-84bf33baa55c"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.total": "differs between two runs of the original",
+        "$.twins": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PATCH /v1/casino/backoffice/spinvibe/fraud-cases/f5a8c46b-ec0e-3270-b0be-74137d099bd2/review",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/backoffice/spinvibe/fraud-cases/f5a8c46b-ec0e-3270-b0be-74137d099bd2/review",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "caseId": "f5a8c46b-ec0e-3270-b0be-74137d099bd2",
+          "reviewedBy": "04223bf1-887d-461c-a4cf-4911ca0a9d62",
+          "status": "REVIEWED"
+        }
+      },
+      "vary": {
+        "$.caseId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

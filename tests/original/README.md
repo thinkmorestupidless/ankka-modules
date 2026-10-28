@@ -14,6 +14,7 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `e2e-merchant.patch` | unskips `TestScenario12_OnboardingGate3_FullChain`; corrects scenario 12's and 13's routing-rules calls to the route as served (spec 004 research R6); registers scenarios 12 to 14's DreamzPay terminal as a gateway integration carrying its credentials, as the original has needed since `2add2353`; clears a new casino player's `VERIFY_EMAIL` in scenario 14; and corrects two stale assertions (`memberId`, the wallet's minor units). See `tests/port/README.md` |
 | `merchant-driver/` | drives the original's `merchant-service` cashier for the behaviours the suite never reaches (spec 004); see *Recording the cashier directly* |
 | `ingest-driver/` | drives the original's cashier edge, the routes spec 006's `ingest` takes over, for what the suite never sends; see *Recording the cashier edge* |
+| `players-driver/` | drives the original's `casino-service` player, session and backoffice routes and its Keycloak for what spec 008's `players` takes over; see *Recording the players* |
 | `gateway-driver/` | drives the original's `psp-gateway` against `psp-stub`, with a receiver standing in for merchant-service and casino-service (spec 005); see *Recording the gateway directly* |
 | `recorder/` | the transport `record_test.go` installs |
 | `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies |
@@ -222,3 +223,34 @@ Each stub's README says what it does not reproduce. The ones that change a recor
 - **Hosted pages** redirect to `PSP_GATEWAY_BASE_URL`, which inside compose is the gateway's service name.
 - **Outbound calls** are in each stub's `GET /__received`; the recorder does not yet attach them to a
   scenario's `outbound` list.
+
+## Recording the players
+
+`players-driver/` drives the original's `casino-service` as the player site, the backoffice and the
+game provider do (spec 008; `specs/008-players/research.md` R1): registration, sign-in and sessions,
+the profile, the status actions, duplicates. One scenario per scenario of `features/players/*.feature`
+the original can show; `NotDriven` says why the rest are not, and `go test ./original/players-driver/...`
+checks every name against the features offline.
+
+Its passwords come from the environment, never flags: `EITHEROR_KEYCLOAK_ADMIN_PASSWORD`,
+`EITHEROR_OPERATOR_PASSWORD`, `EITHEROR_OUTSIDER_PASSWORD`. Creating the operator and outsider users
+in the original's `eitheror` realm, and fetching their tokens, is done by hand.
+
+```bash
+cd tests
+go run ./original/preflight -original <the original's checkout> -register http://localhost:8091 -brand spinvibe
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/players-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -json ./original/players-driver/... \
+      -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -substrate-url http://localhost:9000 \
+      -brand spinvibe -operator-client casino-backoffice -operator-user dev-operator \
+      -outsider-user <an operator of no brand> > /tmp/players-$run.json
+done
+go run ./original/merge -run1 /tmp/players-1 -run2 /tmp/players-2 -results1 /tmp/players-1.json -results2 /tmp/players-2.json -out port
+```
+
+The ports are the original's KinD stack's: casino-service's node port is 8091, Keycloak's 8180 (8080 is
+hugin), and the substrate's twin API is reached through
+`kubectl --context kind-eitheror-dev port-forward -n eitheror svc/eitheror-bundle-substrate 9000:9000`.
+`dev-operator`'s password is the one the realm-sync job logs. The run of 2026-10-26 (T029) and how it
+differed from these steps are in `tests/port/players/README.md`.

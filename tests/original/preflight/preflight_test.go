@@ -110,3 +110,23 @@ func TestEveryAdapterOfTheOriginalHasAStubKnown(t *testing.T) {
 		}
 	}
 }
+
+func TestTheRegistrationRouteMustRefuseAnEmptyRegistration(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/v1/casino/players/spinvibe/register" {
+			w.WriteHeader(400)
+			return
+		}
+		w.WriteHeader(404)
+	}))
+	defer up.Close()
+	if why := RegisterAnswers(up.URL, "spinvibe", up.Client()); why != "" {
+		t.Fatalf("an answering route: %s", why)
+	}
+	if why := RegisterAnswers(up.URL, "goldvibe", up.Client()); !strings.HasPrefix(why, Register) {
+		t.Fatalf("a brand the original does not serve: %q", why)
+	}
+	if why := RegisterAnswers("http://127.0.0.1:1", "spinvibe", http.DefaultClient); !strings.HasPrefix(why, Register) {
+		t.Fatalf("a silent casino-service: %q", why)
+	}
+}

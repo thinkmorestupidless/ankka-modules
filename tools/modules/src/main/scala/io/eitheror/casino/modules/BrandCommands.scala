@@ -132,15 +132,27 @@ object BrandCommands:
     (for
       inst <- loadInstallation(args, root, out)
       v    <- Main.values(root, slug, out)
-    yield (inst, v)) match
+      supplied <- args.flags.get("--secrets").fold(Right(Map.empty))(f => SecretsFile.load(root.resolve(f))).left.map { e => out.err(e); 2 }
+    yield (inst, v, supplied)) match
       case Left(code) => code
-      case Right((inst, v)) =>
+      case Right((inst, v, supplied)) =>
         realms.orElse(KeycloakAdmin.fromEnvironment(v.issuerBase).toOption) match
           case None => out.err("realm needs CASINO_KEYCLOAK_ADMIN_USERNAME and CASINO_KEYCLOAK_ADMIN_PASSWORD"); 2
           case Some(admin) =>
-            Realm.ensure(admin, v.slug, Realm.render(Realm.template(root), v.slug, frontend(v, inst)), Some(Realm.operators(root)))
-              .foreach(c => out.line(s"changed $c"))
+            val own  = supplied.getOrElse(s"${v.slug}-players", Map.empty)
+            val json = Realm.withPlayers(Realm.render(Realm.template(root), v.slug, frontend(v, inst)), playersUrl(v, inst), own)
+            Realm.ensure(admin, v.slug, json, Some(Realm.operators(root))).foreach(c => out.line(s"changed $c"))
+            Seq("REALM_ADMIN", "REALM_SECRET", "WEBHOOK_SECRET").filterNot(own.contains)
+              .foreach(k => out.line(s"note ${v.slug}-players/$k is not in the secrets file: a realm created now lacks it"))
             0
+
+  /**
+   * Where the realm's plugins reach the brand's `players`: the installation's gateway name for it,
+   * `players-<project>.<base>` as psp-gateway's is (`PSP_GATEWAY_PUBLIC_URL`), the base being the
+   * installation's `PLAYER_SITE_BASE`.
+   */
+  def playersUrl(v: Values, inst: Option[Installation]): Option[String] =
+    inst.flatMap(_.get("PLAYER_SITE_BASE")).map(b => s"https://players-${v.slug}.$b")
 
   /** The player site the realm redirects to: the brand's `player-site-base`, else the installation's base. */
   def frontend(v: Values, inst: Option[Installation]): String =

@@ -1,0 +1,150 @@
+{
+  "scenario": "an operator's activity export of a player is prepared and read",
+  "requirement": "008/FR-040",
+  "recorded_at": "2026-10-26T23:22:41.487374Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "c8822616-fd18-33d1-838f-49e94e9452b5",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "c8822616-fd18-33d1-838f-49e94e9452b5",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "prepare an activity export",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/activity-export",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 202,
+        "body": {
+          "exportId": "d378c911-8cd8-4b78-9324-dbc8cfedab26",
+          "statusUrl": "/v1/casino/backoffice/spinvibe/exports/d378c911-8cd8-4b78-9324-dbc8cfedab26"
+        }
+      },
+      "capture": {
+        "exportId": "$.exportId"
+      },
+      "vary": {
+        "$.exportId": "differs between two runs of the original",
+        "$.statusUrl": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the export",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/exports/{exportId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "createdAt": "2026-10-26T23:22:41.854672287Z",
+          "downloadUrl": "/v1/casino/backoffice/spinvibe/exports/d378c911-8cd8-4b78-9324-dbc8cfedab26/download",
+          "expiresAt": "2026-10-27T23:22:41.854672287Z",
+          "exportId": "d378c911-8cd8-4b78-9324-dbc8cfedab26",
+          "status": "ready"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.downloadUrl": "differs between two runs of the original",
+        "$.expiresAt": "differs between two runs of the original",
+        "$.exportId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

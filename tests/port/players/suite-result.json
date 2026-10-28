@@ -1,0 +1,242 @@
+{
+  "TestScenario18_MultiAccountDetection_BonusBlock": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario18_MultiAccountDetection_FraudCaseReview": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario18_MultiAccountDetection_IdentityMatch": [
+    "pass",
+    "pass"
+  ],
+  "a brand with the default configuration lets two devices hold two player sessions": [
+    "pass",
+    "pass"
+  ],
+  "a closed player's sign-in is refused and their wallet balances are untouched": [
+    "fail",
+    "fail"
+  ],
+  "a closure ends everything, disables the realm user and is produced with actor and reason": [
+    "pass",
+    "pass"
+  ],
+  "a cookie decision recorded with every field is kept per device and visible to an operator": [
+    "pass",
+    "pass"
+  ],
+  "a cookie decision with a field missing is refused rather than defaulted": [
+    "pass",
+    "pass"
+  ],
+  "a country the brand does not allow is refused and nothing changes": [
+    "pass",
+    "pass"
+  ],
+  "a game session asked for a restricted or closed player is refused naming the status [blocked]": [
+    "pass",
+    "pass"
+  ],
+  "a game session asked for a restricted or closed player is refused naming the status [closed]": [
+    "fail",
+    "fail"
+  ],
+  "a game session asked for a restricted or closed player is refused naming the status [self-excluded]": [
+    "pass",
+    "pass"
+  ],
+  "a game session asked for a restricted or closed player is refused naming the status [suspended]": [
+    "pass",
+    "pass"
+  ],
+  "a game session opened at launch for an active verified player is recorded under the player session": [
+    "pass",
+    "pass"
+  ],
+  "a locked date of birth is unchanged by an edit, the other fields apply, and the fact names only what changed": [
+    "pass",
+    "pass"
+  ],
+  "a password change with a wrong current password is refused": [
+    "pass",
+    "pass"
+  ],
+  "a password change with the current password sends a confirmation email and changes the password only when its link is followed": [
+    "pass",
+    "pass"
+  ],
+  "a pinned note is personal data under the player, first in the operator's view and invisible to the player": [
+    "pass",
+    "pass"
+  ],
+  "a player ending a game session records its end time and duration, and ending it again changes nothing": [
+    "pass",
+    "pass"
+  ],
+  "a player reading their sessions sees their own and nobody else's": [
+    "pass",
+    "pass"
+  ],
+  "a player reads their profile with every personal field readable to them and to no other player": [
+    "pass",
+    "pass"
+  ],
+  "a player's request about another player's id is refused as a mismatch": [
+    "pass",
+    "pass"
+  ],
+  "a refresh of the sign-in issues a new one": [
+    "pass",
+    "pass"
+  ],
+  "a refresh that is expired, reused or revoked is answered refresh expired [reused]": [
+    "fail",
+    "fail"
+  ],
+  "a refresh that is expired, reused or revoked is answered refresh expired [revoked]": [
+    "fail",
+    "fail"
+  ],
+  "a registration carrying a tag that is not well formed succeeds with no tag on the fact": [
+    "pass",
+    "pass"
+  ],
+  "a registration keeps the network address and its country as personal data without overwriting the player's own country": [
+    "pass",
+    "pass"
+  ],
+  "a registration missing a required field is refused naming the three required fields [the currency]": [
+    "pass",
+    "pass"
+  ],
+  "a registration missing a required field is refused naming the three required fields [the email address]": [
+    "pass",
+    "pass"
+  ],
+  "a registration missing a required field is refused naming the three required fields [the password]": [
+    "pass",
+    "pass"
+  ],
+  "a registration with a new email address, an acceptable password and an offered currency creates a player pending email verification": [
+    "pass",
+    "pass"
+  ],
+  "a registration with a password below the realm's policy is refused and nothing is created": [
+    "fail",
+    "fail"
+  ],
+  "a registration with an email address already registered is refused and nothing is created": [
+    "pass",
+    "pass"
+  ],
+  "a registration with marketing consents given records them with their time and source": [
+    "pass",
+    "pass"
+  ],
+  "a registration with the same device fingerprint as a player flags both and opens a fraud case with the device signal": [
+    "pass",
+    "pass"
+  ],
+  "a registration with the same name and date of birth as a player flags both as suspected duplicates and opens a fraud case with the identity signal": [
+    "pass",
+    "pass"
+  ],
+  "a registration without names, date of birth or device fingerprint compares nothing": [
+    "pass",
+    "pass"
+  ],
+  "a reinstatement makes a suspended player active": [
+    "pass",
+    "pass"
+  ],
+  "a second email address added and verified is verified and not the sign-in address": [
+    "pass",
+    "pass"
+  ],
+  "a sign-in by a player whose email address is not verified is refused and no session opens": [
+    "pass",
+    "pass"
+  ],
+  "a sign-in by a restricted player is refused naming the status and the attempt is kept [blocked]": [
+    "pass",
+    "pass"
+  ],
+  "a sign-in by a restricted player is refused naming the status and the attempt is kept [self-excluded]": [
+    "pass",
+    "pass"
+  ],
+  "a sign-in by a restricted player is refused naming the status and the attempt is kept [suspended]": [
+    "pass",
+    "pass"
+  ],
+  "a sign-in with the right password opens a player session and answers the player's details": [
+    "pass",
+    "pass"
+  ],
+  "a sign-out ends the player session and every game session under it and revokes the realm's session": [
+    "fail",
+    "fail"
+  ],
+  "a suspension with a reason ends every session, revokes the realm's sessions and carries the previous and new status": [
+    "fail",
+    "fail"
+  ],
+  "a tier set on a player at no tier carries an empty previous tier and names the operator in the audit record": [
+    "pass",
+    "pass"
+  ],
+  "a withdrawn email marketing consent reads as withdrawn with its time, and marketing email stops from that fact": [
+    "pass",
+    "pass"
+  ],
+  "an exclusion applied through responsible gambling sets the status, keeps the exclusion time and ends every session": [
+    "pass",
+    "pass"
+  ],
+  "an operator ending a game session by force ends it with reason forced and is named in the audit record": [
+    "pass",
+    "pass"
+  ],
+  "an operator without the brand's role is refused any action on its player however they signed in": [
+    "fail",
+    "fail"
+  ],
+  "an operator's activity export of a player is prepared and read": [
+    "pass",
+    "pass"
+  ],
+  "an operator's correction of a date of birth that would make the player younger than eighteen is refused": [
+    "pass",
+    "pass"
+  ],
+  "an operator's correction of a date of birth to eighteen or over is applied and audited with the reason": [
+    "pass",
+    "pass"
+  ],
+  "an operator's message naming a merge tag the brand does not know is refused": [
+    "pass",
+    "pass"
+  ],
+  "an operator's message to a player reaches the player's inbox": [
+    "pass",
+    "pass"
+  ],
+  "dismissing a fraud case clears the flag of every player it links": [
+    "pass",
+    "pass"
+  ],
+  "following the verification link within a day verifies the address and makes the player active, and following it again changes nothing": [
+    "pass",
+    "pass"
+  ],
+  "making a verified second email address the sign-in address makes the realm sign them in with it": [
+    "fail",
+    "fail"
+  ],
+  "reviewing a fraud case marks it reviewed with the operator and the time": [
+    "pass",
+    "pass"
+  ]
+}

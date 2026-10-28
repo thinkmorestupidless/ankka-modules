@@ -1,0 +1,142 @@
+{
+  "scenario": "a withdrawn email marketing consent reads as withdrawn with its time, and marketing email stops from that fact",
+  "requirement": "008/FR-028",
+  "recorded_at": "2026-10-26T23:22:31.521456Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "emailMarketingConsent": true,
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "a74a571c-acb5-3d0b-8000-707ca00fbf9e",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "a74a571c-acb5-3d0b-8000-707ca00fbf9e",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "withdraw email marketing consent",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/players/spinvibe/{playerId}/consent",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailMarketingConsent": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "updated": true
+        }
+      }
+    },
+    {
+      "name": "read the consents",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/spinvibe/{playerId}/consent",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "consentSource": "registration",
+          "emailConsentAt": "2026-10-26T23:22:31.604404589Z",
+          "emailMarketingConsent": false,
+          "smsConsentAt": null,
+          "smsMarketingConsent": false
+        }
+      },
+      "vary": {
+        "$.emailConsentAt": "differs between two runs of the original"
+      }
+    }
+  ]
+}

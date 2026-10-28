@@ -73,7 +73,10 @@ object Values:
       "auth-player-jwks-url" -> s"$keys/realms/$realm/protocol/openid-connect/certs",
       "auth-player-audience" -> realm,
       "auth-staff-issuer"    -> s"$issuer/realms/eitheror",
-      "auth-staff-jwks-url"  -> s"$keys/realms/eitheror/protocol/openid-connect/certs"
+      "auth-staff-jwks-url"  -> s"$keys/realms/eitheror/protocol/openid-connect/certs",
+      // the shared payments' cashier edge as the installation names it; empty where it names none, and
+      // players then answers a deposit 503 naming ingest (spec 008 R15)
+      "ingest-url"           -> installation.flatMap(_.get("INGEST_URL")).getOrElse("")
     )
 
   /** Every non-secret value a module may read: the brand's own and the derived. */

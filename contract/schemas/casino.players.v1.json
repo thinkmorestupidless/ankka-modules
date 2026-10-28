@@ -231,6 +231,39 @@
     {
       "additionalProperties": true,
       "properties": {
+        "actor": {
+          "type": "string"
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "new_value": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "previous_value": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_reopened"
+        }
+      },
+      "required": ["type", "player_id", "previous_value", "new_value", "actor", "occurred_at"],
+      "title": "player_reopened",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
         "actor_id": {
           "type": "string"
         },

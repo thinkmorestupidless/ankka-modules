@@ -1,0 +1,14 @@
+<configuration>
+  <!-- As every service here: without this logback falls back to everything at DEBUG, the whole r2dbc
+       wire protocol on stdout. players never logs a body, a header or a path parameter (an address can
+       be in a path), so a line carries ids, routes, outcomes and statuses only (SC-006). -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} %-5level %logger{30} - %msg%replace( trace_id=%X{trace_id} span_id=%X{span_id}){' trace_id= span_id=$', ''}%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
+</configuration>

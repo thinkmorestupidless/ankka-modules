@@ -30,6 +30,7 @@ Named by every brand service of every module, so each module's manifest lists th
 | auth-player-audience | core | string | no | | `casino-<slug>` | `ANKKA_AUTH_PLAYER_AUDIENCE` |
 | auth-staff-issuer | core | url | no | | `<issuerBase>/realms/eitheror` | `ANKKA_AUTH_STAFF_ISSUER` |
 | auth-staff-jwks-url | core | url | no | | `<jwksBase>/realms/eitheror/protocol/openid-connect/certs` | `ANKKA_AUTH_STAFF_JWKS_URL` |
+| ingest-url | core | url | no | | the overlay's `INGEST_URL`, else empty | `INGEST_URL` |
 
 `player-site-base`, `keycloak-issuer-base` and `keycloak-jwks-base` are rendered as
 `PLAYER_SITE_BASE`, `KEYCLOAK_ISSUER_BASE` and `KEYCLOAK_JWKS_BASE` beside the six auth keys
@@ -44,6 +45,12 @@ same for every brand and are literals in the descriptors, not keys.
 | Key | Module | Type | Secret | Read from | Derived from | Env |
 |---|---|---|---|---|---|---|
 | kyc-provider-key | core | string | yes | `<slug>-kyc/API_KEY` | | `KYC_PROVIDER_KEY` |
+| players-realm-admin | core | string | yes | `<slug>-players/REALM_ADMIN` | | `PLAYERS_REALM_ADMIN` |
+| players-webhook-secret | core | string | yes | `<slug>-players/WEBHOOK_SECRET` | | `PLAYERS_WEBHOOK_SECRET` |
+| players-realm-secret | core | string | yes | `<slug>-players/REALM_SECRET` | | `PLAYERS_REALM_SECRET` |
+| players-email-token | core | string | yes | `<slug>-players/EMAIL_TOKEN` | | `PLAYERS_EMAIL_TOKEN` |
+| players-lookup-key | core | string | yes | `<slug>-players/LOOKUP_KEY` | | `PLAYERS_LOOKUP_KEY` |
+| players-merchant-key | core | string | yes | `<slug>-players/MERCHANT_KEY` | | `PLAYERS_MERCHANT_KEY` |
 | game-provider-mode | casino | string | no | | | `GAME_PROVIDER_MODE` |
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
@@ -59,7 +66,6 @@ any publish while a manifest it publishes names one of these (contracts/release.
 
 | Service | Module | Spec |
 |---|---|---|
-| players | core | 008 |
 | kyc | core | 009 |
 | payouts | core | 007 |
 | attribution | core | 012 |

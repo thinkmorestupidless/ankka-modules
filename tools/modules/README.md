@@ -42,7 +42,8 @@ found before the first call, one line each.
   `schema-sync`, and in the release, `modules publish`. Never a secret.
 - **The casino's Keycloak**: the values' `keycloak.issuerBase`, as the master realm's administrator from
   `CASINO_KEYCLOAK_ADMIN_USERNAME` and `CASINO_KEYCLOAK_ADMIN_PASSWORD`; trusted with `CASINO_KEYCLOAK_CA`,
-  else `ANKKA_CA`. Without them the realm is not touched and the tool says so.
+  else `ANKKA_CA`. Without them the realm is not touched and the tool says so. `CASINO_KEYCLOAK_URL`
+  names another Keycloak, such as the one a service runs beside it locally.
 - **Secrets**: `--secrets <file>` holds `<secret>/<KEY>=<value>` lines, kept outside the repository. A
   secret key of `contract/keys.md` is filled into the project secret `tenant-values` from the line its
   row names; each secret the values declare is set as it is. Straight to the brand's project.

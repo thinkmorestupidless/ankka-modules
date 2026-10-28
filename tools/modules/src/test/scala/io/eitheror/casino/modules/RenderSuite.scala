@@ -37,12 +37,17 @@ class RenderSuite extends munit.FunSuite:
     fixture.path("descriptors").elements().asScala.toVector.map(n => readFromString[ServiceDescriptor](n.toString))
 
   private val NewIdentity = Set("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE")
+  private val PlayersSecrets = Set("REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY").map("PLAYERS_" + _)
   private val NewOwnKeys  = Map(
     "kyc"           -> Set("KYC_PROVIDER_KEY"),
+    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL") ++ PlayersSecrets),
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
     "engagement"    -> Set("PUSH_PROVIDER_KEY"),
     "support-agent" -> Set("MODEL_PROVIDER_KEY")
   )
+
+  /** Sizes spec 001 did not set: players outgrows `small`'s 512Mi on kind (spec 008 T077, OOM-killed). */
+  private val NewSizes = Map("players" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
     BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)
@@ -55,7 +60,11 @@ class RenderSuite extends munit.FunSuite:
     val byName = spec001.map(d => d.name -> d).toMap
     rendered.foreach { d =>
       val before = byName.getOrElse(d.name, fail(s"${d.name} is not a service spec 001 rendered"))
-      val now    = comparable(d, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
+      val resized = NewSizes.get(d.name).fold(d) { size =>
+        assertEquals(d.service.resources.instanceType, size, d.name)
+        d.copy(service = d.service.copy(resources = before.service.resources))
+      }
+      val now = comparable(resized, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
       assertEquals(now, comparable(before, Set("SUPPORT_AGENT_ENABLED")), d.name)
       assertEquals(d.service.env.map(_.name).filter(NewIdentity), Vector("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE"), d.name)
     }
@@ -76,6 +85,22 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(env("kyc").find(_.name == "KYC_PROVIDER_KEY"), Some(EnvVar("KYC_PROVIDER_KEY", secretKeyRef = Some(SecretKeyRef("tenant-values", "kyc-provider-key")))))
     assertEquals(env("game-provider").find(_.name == "ST8_API_KEY").flatMap(_.secretKeyRef), Some(SecretKeyRef("tenant-values", "st8-api-key")))
     assertEquals(env("game-provider").find(_.name == "GAME_PROVIDER_MODE").flatMap(_.value), Some("demo"))
+  }
+
+  test("players (spec 008 T075): both issuers' ANKKA_AUTH_* variables, the realm and ingest addresses, and its six secrets as secretKeyRefs") {
+    val env = plan(Vector("casino")).services.find(_.name == "players").get.service.env
+    def value(n: String) = env.find(_.name == n).flatMap(_.value)
+    assertEquals(value("ANKKA_AUTH_ISSUERS"), Some("player,staff"))
+    assertEquals(value("ANKKA_AUTH_PLAYER_ISSUER"), Some("https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-goldvibe"))
+    assertEquals(value("ANKKA_AUTH_PLAYER_JWKS_URL"), Some("http://casino-keycloak.casino-identity.svc/realms/casino-goldvibe/protocol/openid-connect/certs"))
+    assertEquals(value("ANKKA_AUTH_STAFF_ISSUER"), Some("https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror"))
+    assertEquals(value("ANKKA_AUTH_STAFF_AUDIENCE"), Some("eitheror-casino"))
+    assertEquals(value("KEYCLOAK_URL"), Some("http://casino-keycloak.casino-identity.svc"))
+    assertEquals(value("INGEST_URL"), Some("https://ingest-payments.127.0.0.1.sslip.io:8443"))
+    PlayersSecrets.foreach { n =>
+      val key = n.stripPrefix("PLAYERS_").toLowerCase.replace('_', '-')
+      assertEquals(env.find(_.name == n), Some(EnvVar(n, secretKeyRef = Some(SecretKeyRef("tenant-values", s"players-$key")))), n)
+    }
   }
 
   test("the topics are spec 001's for core and casino, less engagement's push, plus platform.modules") {

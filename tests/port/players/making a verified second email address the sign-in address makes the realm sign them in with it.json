@@ -1,0 +1,263 @@
+{
+  "scenario": "making a verified second email address the sign-in address makes the realm sign them in with it",
+  "requirement": "008/FR-026",
+  "recorded_at": "2026-10-26T23:22:30.194511Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "fbeb40d6-51d6-3ef7-aba4-2ed96a8a232b",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "fbeb40d6-51d6-3ef7-aba4-2ed96a8a232b",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "add a second address",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/emails",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "address": "{secondEmail}"
+        }
+      },
+      "response": {
+        "status": 202,
+        "body": {
+          "status": "verification_email_sent"
+        }
+      }
+    },
+    {
+      "name": "setup: read the second address's verification token",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "email": "making-a-verified-second-email-address-t-email-88c78b9c@example.test",
+          "kyc_check_deadline_at": "2026-11-25T23:22:30.290135277Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_login_at": "2026-10-26T23:22:30.447995867Z",
+          "marketing_consent": "false",
+          "player_email_list": "[{\"addedAt\":\"2026-10-26T23:22:30.456432967Z\",\"address\":\"making-a-verified-second-email-address-t-email-88c78b9c@example.test\",\"primary\":true,\"verificationExpiresAt\":null,\"verificationToken\":null,\"verified\":true},{\"addedAt\":\"2026-10-26T23:22:30.489081210Z\",\"address\":\"making-a-verified-second-email-address-t-secondemail-3a9a8f30@example.test\",\"primary\":false,\"verificationExpiresAt\":\"2026-10-27T23:22:30.489078127Z\",\"verificationToken\":\"8ebe2f2e-cb64-488c-9630-a6a63a53ffa3\",\"verified\":false}]",
+          "registered_at": "2026-10-26T23:22:30.290135277Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "making-a-verified-second-email-address-t-email-88c78b9c@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.player_email_list": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "follow the second address's link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/emails/verify",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "playerId": "{playerId}",
+          "token": "{secondLink}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "address": "making-a-verified-second-email-address-t-secondemail-3a9a8f30@example.test",
+          "status": "verified"
+        }
+      },
+      "vary": {
+        "$.address": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "make the second address the sign-in address",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/emails/{secondEmail}/promote",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "newPrimary": "making-a-verified-second-email-address-t-secondemail-3a9a8f30@example.test",
+          "status": "primary_updated"
+        }
+      },
+      "vary": {
+        "$.newPrimary": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "sign in with the second address",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{secondEmail}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "fbeb40d6-51d6-3ef7-aba4-2ed96a8a232b",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "sign in with the first address",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "fbeb40d6-51d6-3ef7-aba4-2ed96a8a232b",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

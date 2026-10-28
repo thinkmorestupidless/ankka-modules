@@ -343,7 +343,10 @@ func appendUnclaimed(path string, paths []string) error {
 	return nil
 }
 
-// results reads `go test -json` output: the last action of each top-level test.
+// results reads `go test -json` output: the last action of each test and subtest (a driver's
+// scenarios are subtests of one test), and under "/<subtest>" the last subtest of that name in the
+// output, whichever test ran it: a driver's offline checks name their subtests after the same
+// scenarios and run before the scenarios against the original do.
 func results(path string) (map[string]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -355,11 +358,14 @@ func results(path string) (map[string]string, error) {
 	s.Buffer(make([]byte, 1<<20), 1<<24)
 	for s.Scan() {
 		var e struct{ Action, Test string }
-		if json.Unmarshal(s.Bytes(), &e) != nil || e.Test == "" || strings.Contains(e.Test, "/") {
+		if json.Unmarshal(s.Bytes(), &e) != nil || e.Test == "" {
 			continue
 		}
 		if e.Action == "pass" || e.Action == "fail" || e.Action == "skip" {
 			out[e.Test] = e.Action
+			if i := strings.Index(e.Test, "/"); i >= 0 {
+				out[e.Test[i:]] = e.Action
+			}
 		}
 	}
 	return out, s.Err()
@@ -371,24 +377,39 @@ func writeResults(dir string, recs map[string]recorder.Recording, r1, r2 map[str
 		if byService[r.Service] == nil {
 			byService[r.Service] = map[string][2]string{}
 		}
-		byService[r.Service][r.Scenario] = [2]string{r1[r.Scenario], r2[r.Scenario]}
+		byService[r.Service][r.Scenario] = [2]string{result(r1, r.Scenario), result(r2, r.Scenario)}
 	}
-	// every test of the suite, recorded or not, so a skipped scenario is visible; added to what earlier
-	// suites' merges kept there, never in place of it
+	// every top-level test of the suite, recorded or not, so a skipped scenario is visible
 	all := map[string][2]string{}
-	if b, err := os.ReadFile(filepath.Join(dir, "_suite", "suite-result.json")); err == nil {
-		if err := json.Unmarshal(b, &all); err != nil {
-			return fmt.Errorf("_suite/suite-result.json: %w", err)
+	for t, a := range r1 {
+		if !strings.Contains(t, "/") {
+			all[t] = [2]string{a, r2[t]}
 		}
 	}
-	for t, a := range r1 {
-		all[t] = [2]string{a, r2[t]}
-	}
 	byService["_suite"] = all
+	// each added to what earlier merges kept there, never in place of it
 	for service, tests := range byService {
-		if err := write(filepath.Join(dir, service, "suite-result.json"), tests); err != nil {
+		path := filepath.Join(dir, service, "suite-result.json")
+		kept := map[string][2]string{}
+		if b, err := os.ReadFile(path); err == nil {
+			if err := json.Unmarshal(b, &kept); err != nil {
+				return fmt.Errorf("%s/suite-result.json: %w", service, err)
+			}
+		}
+		for t, a := range tests {
+			kept[t] = a
+		}
+		if err := write(path, kept); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// result is a scenario's outcome: its own test's, or the last subtest Go named after it (spaces as underscores).
+func result(r map[string]string, scenario string) string {
+	if a, ok := r[scenario]; ok {
+		return a
+	}
+	return r["/"+strings.ReplaceAll(scenario, " ", "_")]
 }

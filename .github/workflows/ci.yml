@@ -30,6 +30,7 @@ jobs:
       merchant: ${{ steps.filter.outputs.merchant }}
       psp-gateway: ${{ steps.filter.outputs.psp-gateway }}
       ingest: ${{ steps.filter.outputs.ingest }}
+      players: ${{ steps.filter.outputs.players }}
       game-provider: ${{ steps.filter.outputs.game-provider }}
       simulator: ${{ steps.filter.outputs.simulator }}
       responsible-gambling: ${{ steps.filter.outputs.responsible-gambling }}
@@ -67,6 +68,12 @@ jobs:
               - features/payments/**
               - tests/port/ingest/**
               - tests/original/ingest-driver/**
+            players:
+              - *build
+              - services/players/**
+              - features/players/**
+              - tests/port/players/**
+              - tests/original/players-driver/**
             game-provider:
               - *build
               - services/game-provider/**
@@ -219,6 +226,27 @@ jobs:
         run: sbt contract/publishLocal
       - name: ingest's suites
         working-directory: services/ingest
+        run: sbt test
+
+  # players (spec 008), every brand's account service: its own sbt build against the contract published
+  # from this commit; its integration suites start Postgres in Docker. The players driver's offline
+  # checks run in the check job's `go test ./...`.
+  players:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.players == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: players' suites
+        working-directory: services/players
         run: sbt test
 
   # The game provider simulator (spec 020): its own sbt build against the contract published from this

@@ -1,0 +1,167 @@
+{
+  "scenario": "a locked date of birth is unchanged by an edit, the other fields apply, and the fact names only what changed",
+  "requirement": "008/FR-024",
+  "recorded_at": "2026-10-26T23:22:28.736272Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-12-10",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "2a2b0bd5-68fc-38dd-82d5-29c41c81b0a8",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "2a2b0bd5-68fc-38dd-82d5-29c41c81b0a8",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "edit the date of birth and the city",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/players/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "city": "Leeds",
+          "dateOfBirth": "1980-01-01",
+          "firstName": "Ada"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "updated": true
+        }
+      }
+    },
+    {
+      "name": "read the profile",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "city": "Leeds",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-12-10",
+          "email": "a-locked-date-of-birth-is-unchanged-by-a-email-4a830f47@example.test",
+          "firstName": "Ada",
+          "first_name": "Ada",
+          "kyc_check_deadline_at": "2026-11-25T23:22:28.782772737Z",
+          "kyc_profile_updated_at": "2026-10-26T23:22:29.452053881Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_login_at": "2026-10-26T23:22:29.417814192Z",
+          "marketing_consent": "false",
+          "registered_at": "2026-10-26T23:22:28.782772737Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "a-locked-date-of-birth-is-unchanged-by-a-email-4a830f47@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.kyc_profile_updated_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    }
+  ]
+}

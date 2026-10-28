@@ -1,0 +1,213 @@
+{
+  "scenario": "a registration with the same name and date of birth as a player flags both as suspected duplicates and opens a fraud case with the identity signal",
+  "requirement": "008/FR-036",
+  "recorded_at": "2026-10-26T23:22:37.03879Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "setup: register the first player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1985-12-09",
+          "email": "{email}",
+          "firstName": "Grace",
+          "language": "en",
+          "lastName": "Hopper-{surname}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "a8b59616-4d84-3acc-8a2e-142d84951b90",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "register a second with the same name and date of birth",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1985-12-09",
+          "email": "{otherEmail}",
+          "firstName": "Grace",
+          "language": "en",
+          "lastName": "Hopper-{surname}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "94b7b909-fd56-38f5-a9b5-c57c2ffa358e",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "otherPlayerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: an open case links the second player",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/fraud-cases?status=OPEN",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "cases": [
+            {
+              "brandId": "spinvibe",
+              "caseId": "e96cc06f-1ab1-331c-8806-df219d13a032",
+              "detectedAt": "2026-10-26T23:13:33.909189904Z",
+              "linkedPlayerRef": "060bd579-b42f-3014-a2bb-28340000d3e2",
+              "playerRef": "50f89285-205c-327f-aac8-964cb1b3981d",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "identity_hash"
+              ],
+              "status": "OPEN"
+            },
+            {
+              "brandId": "spinvibe",
+              "caseId": "d15b4d2a-6b97-39bd-aa2b-af33e5ccede7",
+              "detectedAt": "2026-10-26T23:13:34.401945966Z",
+              "linkedPlayerRef": "c29f8856-0182-3d0e-af43-08be9237792d",
+              "playerRef": "5d926dc2-f4af-39f6-8a94-33afd168d62f",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "device_fingerprint"
+              ],
+              "status": "OPEN"
+            },
+            {
+              "brandId": "spinvibe",
+              "caseId": "73475372-dba0-3f2e-9f96-a0d1ff9cd6d9",
+              "detectedAt": "2026-10-26T23:14:10.379368620Z",
+              "linkedPlayerRef": "55c1ab8e-6e91-3a04-8424-8f7054725180",
+              "playerRef": "54d3ce38-5b1a-381b-be72-7543ac89b824",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "identity_hash"
+              ],
+              "status": "OPEN"
+            },
+            {
+              "brandId": "spinvibe",
+              "caseId": "3dc7d76a-c47f-38ec-a1a6-2d77606ece10",
+              "detectedAt": "2026-10-26T23:14:18.210701638Z",
+              "linkedPlayerRef": "09fe3d70-dd58-3501-8e03-b1b5548b76ac",
+              "playerRef": "4e761c36-c0eb-3d4b-8a3d-9023b6524088",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "device_fingerprint"
+              ],
+              "status": "OPEN"
+            },
+            {
+              "brandId": "spinvibe",
+              "caseId": "4dea33f1-0540-3e3b-9999-e4a51f23f756",
+              "detectedAt": "2026-10-26T23:14:17.692277197Z",
+              "linkedPlayerRef": "42fb9223-a585-3597-81d9-ac22722d271b",
+              "playerRef": "d124cef9-4f9a-3ab3-bd57-05959bd62388",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "identity_hash"
+              ],
+              "status": "OPEN"
+            },
+            {
+              "brandId": "spinvibe",
+              "caseId": "916173e2-53e5-3914-a0ae-7ee89f5fb71d",
+              "detectedAt": "2026-10-26T23:22:28.386988480Z",
+              "linkedPlayerRef": "54d3ce38-5b1a-381b-be72-7543ac89b824",
+              "playerRef": "68173d95-152e-3800-b786-b6a4677e08fb",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "identity_hash"
+              ],
+              "status": "OPEN"
+            },
+            {
+              "brandId": "spinvibe",
+              "caseId": "02b144cb-5976-3c09-988e-3af6e4f422ca",
+              "detectedAt": "2026-10-26T23:22:28.386915106Z",
+              "linkedPlayerRef": "55c1ab8e-6e91-3a04-8424-8f7054725180",
+              "playerRef": "68173d95-152e-3800-b786-b6a4677e08fb",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "identity_hash"
+              ],
+              "status": "OPEN"
+            },
+            {
+              "brandId": "spinvibe",
+              "caseId": "ca863940-3f40-38db-8d07-25239e1bd34f",
+              "detectedAt": "2026-10-26T23:22:37.558031765Z",
+              "linkedPlayerRef": "a8b59616-4d84-3acc-8a2e-142d84951b90",
+              "playerRef": "94b7b909-fd56-38f5-a9b5-c57c2ffa358e",
+              "reviewNotes": null,
+              "reviewedAt": null,
+              "reviewedBy": null,
+              "signals": [
+                "identity_hash"
+              ],
+              "status": "OPEN"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.cases": "differs between two runs of the original"
+      }
+    }
+  ]
+}

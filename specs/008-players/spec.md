@@ -354,7 +354,8 @@ store and `payments` for a personal field; fetch the response.
   ends at once.
 - A cookie decision for a device id the player has recorded before: replaced, keeping the latest.
 - A promote of an unverified email address: refused; a removal of the primary address: refused.
-- A verification link followed after 24 hours: `token_expired`; the player asks for another.
+- A verification link followed after 24 hours: `invalid_or_expired_token` (the original's one code
+  for both); the player asks for another.
 - A profile country change when the brand's allow-list is empty: every country allowed, as today.
 - A suspension of an already suspended player: the reason and time are updated, no second fact.
 - An operator date-of-birth correction for a player whose date is locked by KYC verification: refused
@@ -386,8 +387,8 @@ store and `payments` for a personal field; fetch the response.
   and bonus code.
 - **FR-005**: Email verification MUST be a signed link `players` can verify without a stored token,
   valid 24 hours, and following it MUST set the realm's address verified and the player `active`;
-  following it again MUST change nothing. A player MAY ask for the email again at a rate the brand
-  sets. (Source: `EmailVerificationTokenStore`.)
+  following it again MUST change nothing. A player MAY ask for the email again at a rate the service
+  sets (5 minutes between sends by default). (Source: `EmailVerificationTokenStore`.)
 - **FR-006**: The public geo lookup (`country` and `dialCode` for the caller's address) MUST be kept
   and MUST answer `null` for both when the lookup fails, never an error. (Source: `geoRoute`.)
 
@@ -404,7 +405,8 @@ store and `payments` for a personal field; fetch the response.
   `KeycloakWebhookRoutes`.)
 - **FR-009**: A recurring timer per brand MUST ask the realm for its live sessions and end every open
   player session the realm no longer holds, reason `expired`, and MUST set the brand's active-players
-  gauge from the live set; a failure for one brand MUST NOT stop the others. (Source:
+  gauge (an OpenTelemetry gauge the service's telemetry exports) from the live set; a failure for one
+  brand MUST NOT stop the others. (Source:
   `KeycloakSessionReconciler`.)
 - **FR-010**: Sign-in MUST use the realm's direct grant with the brand's frontend client, MUST read
   the player id and the realm session id from the token, MUST refuse `invalid_credentials` and
@@ -420,12 +422,12 @@ store and `payments` for a personal field; fetch the response.
   network address, the user agent and the device fingerprint, MUST stamp the last sign-in time, and
   MUST answer the tokens, brand, player id, currency, country and the bonus code still pending from
   registration. `player_logged_in` MUST carry the session id. When the brand's `brand-config` sets
-  `single_session` (FR-041; default off), opening the session MUST first end the player's other open
+  `singleSession` (FR-041; default off), opening the session MUST first end the player's other open
   player sessions with reason `superseded`, FR-020 cascading to their game sessions.
 - **FR-013**: `players` MUST serve the realm's authenticators a route answering whether a player may
-  sign in — the account status from its own state and, from `responsible-gambling`'s `may-log-in`
-  within the project (spec 010 FR-009), any break or exclusion — as a public route served only when
-  the authenticators' shared secret verifies, within 100 ms at the 99th percentile. The authenticator
+  sign in — the account status from its own state and, by FR-011's rule, any break or exclusion — as
+  a public route served only when the authenticators' shared secret verifies, within 100 ms at the
+  99th percentile at 20 sign-ins per second (the pilot brand's assumed peak, Assumptions). The authenticator
   MUST refuse when `players` does not answer in time (fail closed; a change to the plugin's failure
   behaviour). A GAMSTOP refusal the realm's second authenticator makes MUST be reported to `players`
   on the same route, and `players` MUST pass it to `responsible-gambling` within the project (spec
@@ -441,10 +443,10 @@ store and `payments` for a personal field; fetch the response.
 
 - **FR-016**: A player session MUST be an entity keyed by its id, holding player, realm session id,
   start, network address, user agent, device fingerprint, status (`active`, `completed`, `expired`,
-  `forced`, `suspended`) and end time, and the game sessions opened under it.
+  `forced`, `suspended`, `superseded`) and end time, and the game sessions opened under it.
 - **FR-017**: A game session MUST be an entity keyed by its id, holding player, parent player session,
   game, currency, start, end, duration in whole minutes, status and end reason (`player`, `limit`,
-  `forced`, `logout`, `expired`, `suspended`); `players` MUST open one on `game-provider`'s request
+  `forced`, `logout`, `expired`, `suspended`, `superseded`); `players` MUST open one on `game-provider`'s request
   within the project (001 FR-020 service class) and MUST refuse when the account status bars play
   (FR-018) or the player has no active player session (`session_expired`).
 - **FR-018**: `players` MUST answer `game-provider` the account status at launch (spec 003 FR-007):
@@ -519,8 +521,9 @@ store and `payments` for a personal field; fetch the response.
 - **FR-031**: A player's status MUST be one of `pending_email_verification`, `active`, `suspended`,
   `self_excluded`, `blocked`, `closed`, `erasure_pending`, `erased`, and every transition MUST be an
   event with actor (`operator`, `player`, `system`), actor id, reason and time, kept as the account
-  trail the original calls AccountEvent (feature 149). (Source: `PlayerStatus`,
-  `AccountEventChangeType`.)
+  trail the original calls AccountEvent (feature 149). `blocked` is a status the original checks at
+  sign-in and launch and never sets; nothing sets it here either, and a player carries it only from
+  the migration (019). (Source: `PlayerStatus`, `AccountEventChangeType`, `PlayerRoutes.scala:656`.)
 - **FR-032**: Suspend MUST take a reason, end every session with reason `suspended`, revoke the
   realm's sessions, and produce `player_suspended`; it MUST also be served as a service route to `kyc`
   (reason `kyc_window_expired`, idempotent under the player and deadline, spec 009 FR-025). Reinstate
@@ -562,7 +565,9 @@ store and `payments` for a personal field; fetch the response.
 - **FR-037**: A fraud case MUST be reviewed or dismissed by an operator with the brand's role;
   dismissal MUST clear the flag on every linked player and produce `player_fraud_cleared`; an operator
   MUST also clear one player's flag directly. `player_fraud_flagged` MUST be produced on a flag so
-  `rewards` withholds bonuses from the fact.
+  `rewards` withholds bonuses from the fact. A dismissal MUST keep the operator's notes and answer them
+  as `reviewNotes`, as the original (recorded at T029); the notes are personal data and MUST be blanked
+  when any player the case links is erased (FR-039).
 
 **Erasure and the data-subject response**
 
@@ -626,8 +631,8 @@ store and `payments` for a personal field; fetch the response.
   authenticator and by `players` within 2 seconds of the transition, in every test of User Story 5.
 - **SC-003**: Every open game session of a player ends within 5 seconds of their player session
   ending, for logout, expiry, suspension and closure.
-- **SC-004**: `players` answers the realm's authenticator in under 100 ms at the 99th percentile under
-  the brand's peak sign-in rate.
+- **SC-004**: `players` answers the realm's authenticator in under 100 ms at the 99th percentile at
+  20 sign-ins per second, the pilot brand's assumed peak (Assumptions).
 - **SC-005**: A duplicate by identity or device is flagged and its case open within 10 seconds of the
   second registration, with no scan of the brand's players.
 - **SC-006**: After an erasure, no personal field of the player is readable in `players`, in any brand
@@ -664,16 +669,25 @@ store and `payments` for a personal field; fetch the response.
 
 ## Recordings
 
-Go end-to-end scenarios whose requests reach `players` (001 FR-030; the suite holds 118 functions):
-`TestScenario7_CasinoGate3_FullPlayerJourney`, `TestScenario7_CasinoGate3_SessionLifecycle`,
-`TestScenario7_CasinoGate3_RGEnforcement` (the sign-in refusal), `TestScenario12_OnboardingGate3_FullChain`,
-`TestScenario14_CasinoDeposit_PlayerToWallet` (registration and sign-in steps),
-`TestScenario16_BonusGrant_RegistrationTrigger` (the registration fact),
-`TestScenario18_MultiAccountDetection_IdentityMatch`, `TestScenario18_MultiAccountDetection_BonusBlock`,
-`TestScenario18_MultiAccountDetection_FraudCaseReview`, `TestScenario9_CasinoRF_SessionDurationLimitCheck`.
-`TestScenario9_CasinoRF_LoginFailureLockout` records a function that does nothing and is not a parity
-test. Playwright: `ssr-authenticated-first-paint.spec.ts`, `activity-tab-game-lookup.spec.ts`, and the
-registration and sign-in specs of the frontend suite 001 names.
+The recordings come from a driver, `tests/original/players-driver/` (research R1): one scenario per
+scenario of `features/players/*.feature` the original can show, named as the feature names it, run
+against the original's `casino-service` and its Keycloak, written to `tests/port/players/`. The Go
+suite contributes only the four `TestScenario18_MultiAccountDetection_*` tests, whose registrations
+reach the player routes (the rest of each reads twins and fraud cases, `observe:` steps).
+
+Read and not recorded: `TestScenario7_CasinoGate3_*` drive the substrate's action executor
+(`/internal/actions/execute`), not the player routes, and fail or skip on the original;
+`TestScenario9_CasinoRF_SessionDurationLimitCheck` waits for an event its TL function never emits
+and is skipped; `TestScenario9_CasinoRF_LoginFailureLockout` records a function that does nothing;
+`TestScenario12_*`, `TestScenario14_*` and `TestScenario16_*` are `merchant`'s, `ingest`'s and
+`rewards`' recordings, whose registration and sign-in steps are their set-up. What the original
+cannot show at all (one session at a time, a player's own closure and reopening, the export's
+fan-out, the authenticator asking `players`, the session timer, a sign-in refused by `may-log-in`)
+is proven by the integration suites instead (`contracts/surface.md`, `new` and `inspected` rows).
+
+Playwright: `ssr-authenticated-first-paint.spec.ts`, `activity-tab-game-lookup.spec.ts`, and the
+registration and sign-in specs of the frontend suite 001 names, run against the rebuilt brand (SC-001;
+spec 001 FR-033), not recorded.
 
 ## Assumptions
 
@@ -691,6 +705,8 @@ registration and sign-in specs of the frontend suite 001 names.
   recording's matches reproduce.
 - Operator notes and messages stay here as the plan placed them; `engagement` (014) owns outbound
   CRM, not the in-app inbox.
+- The pilot brand's peak sign-in rate is taken as 20 sign-ins per second (FR-013, SC-004); a brand
+  with a higher peak restates the figure in its values.
 
 ## Dependencies
 

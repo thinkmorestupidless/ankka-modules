@@ -3,11 +3,23 @@
     "pass",
     "pass"
   ],
+  "TestASignInCapturesTheTokenAndLaterStepsCarryItsName": [
+    "pass",
+    "pass"
+  ],
   "TestATamperedAmountIsTenTimesTheSessionsInTheProvidersForm": [
     "pass",
     "pass"
   ],
   "TestATemplatedBodyStaysJSONWhereACapturedValueIsANumber": [
+    "pass",
+    "pass"
+  ],
+  "TestATwinTokenIsReadAsSetupAndSentByName": [
+    "pass",
+    "pass"
+  ],
+  "TestAnOperatorStepCarriesTheOperatorByNameAndARealmReadTheAdmin": [
     "pass",
     "pass"
   ],
@@ -31,11 +43,19 @@
     "pass",
     "pass"
   ],
+  "TestEveryScenarioRecordsNoCredentialAndNamesEveryTokenItCarries": [
+    "pass",
+    "pass"
+  ],
   "TestOutcomes": [
     "pass",
     "pass"
   ],
   "TestPayouts": [
+    "fail",
+    "fail"
+  ],
+  "TestPlayers": [
     "fail",
     "fail"
   ],
@@ -183,6 +203,18 @@
     "pass",
     "pass"
   ],
+  "TestScenario18_MultiAccountDetection_BonusBlock": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario18_MultiAccountDetection_FraudCaseReview": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario18_MultiAccountDetection_IdentityMatch": [
+    "pass",
+    "pass"
+  ],
   "TestScenarioFreeSpinsPlay_BonusBalanceDestination": [
     "pass",
     "pass"
@@ -212,6 +244,14 @@
     "pass"
   ],
   "TestTheReceiverKeepsNoSecretHeader": [
+    "pass",
+    "pass"
+  ],
+  "TestTheVerificationLinkIsRecordedByNameAndItsAddressTemplated": [
+    "pass",
+    "pass"
+  ],
+  "TestTheVerificationLinkIsTheOriginalsSignedPayload": [
     "pass",
     "pass"
   ],

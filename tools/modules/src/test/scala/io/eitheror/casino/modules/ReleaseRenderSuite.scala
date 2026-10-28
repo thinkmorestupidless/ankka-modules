@@ -82,7 +82,7 @@ class ReleaseRenderSuite extends munit.FunSuite:
     val (dir, _) = rendered("9.9.9")
     val (code, output, calls) = publish(dir, "9.9.9", Map("CASINO_RELEASE_REQUIRE_BUILDS" -> "1"))
     assertEquals(code, 1)
-    assert(output.contains("refused: service 'players' of module core has no build"), output)
+    assert(output.contains("refused: service 'kyc' of module core has no build"), output)
     assertEquals(calls, Vector.empty)
   }
 
