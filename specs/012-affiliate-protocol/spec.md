@@ -118,6 +118,21 @@ The markers left open for product and regulatory decisions, settled with Trevor 
   opt-in per network, since every round to every network multiplies volume and personal-data
   exposure for nothing (FR-016).
 
+### Session 2026-10-28
+
+The four decisions the plan made (*Open Questions* below, as they stood), answered by Sheldon.
+
+- Q: A player who deposits while organic and is bound by a code later: no `first-deposit` and no
+  facts for that money, or emitted at the binding marked before it? → A: As built, forward only
+  (FR-007, FR-015); it can change later if it must.
+- Q: Does money converted from restricted funds count in affiliate GGR once it is real? → A: No,
+  never. Converted bonus funds are never real or deposited money for affiliates. The wallet keeps
+  deposit-origin and converted money as two pools inside real balance (spec 025, the original's
+  spec 253 carried over) and `attribution` counts the deposit pool's movement, not real balance's
+  (FR-016, FR-030). The divergence the parity run kept is removed with spec 025.
+- Q: The bonus code window's default of 30 days? → A: Yes (FR-007).
+- Q: A refunded deposit reported as a `chargeback` with a `/refund` reference? → A: Yes (FR-030).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A visitor arrives on an affiliate's link and registers (Priority: P1)
@@ -382,7 +397,7 @@ attribution record.
   be carried over (the commission consequence is spec 013's, which holds the open confirmation).
 - **FR-016**: A `ggr-daily` fact MUST be emitted once per attributed player per reporting day with
   activity, when the day closes in the brand's reporting zone, holding total stake, total win and
-  GGR. A round settling after its day's close MUST produce a `ggr-adjustment` fact for that day.
+  GGR of deposit-origin money only (FR-030; spec 025). A round settling after its day's close MUST produce a `ggr-adjustment` fact for that day.
   A day earlier than the binding, for a player bound by a later code, MUST be emitted at the binding
   marked as before the binding. The daily aggregate MUST be what every network receives by default;
   the per-round facts MUST be emitted to a network only when its configuration at the brand opts in
@@ -455,10 +470,11 @@ attribution record.
   `casino.rewards` (the presentation, not the grant; an affiliate's code is told from the brand's
   own by the programme's code document, FR-023); deposits from `payment.captured`, and chargebacks
   from `payment.dispute.opened` and `payment.refunded`, on `payments.payments`; stakes and wins
-  from the real-money movements of `bet_placed`, `win_credited`, `bet_rolled_back`,
-  `round_settled_as_loss` and `provider_credited` on `money.transactions`, so a round funded by
-  restricted funds earns the affiliate nothing, as the original's rule had it (its specs 250 and
-  253); bonus costs from `restricted_funds_awarded`, and from a `provider_credited` landing on
+  from the deposit-origin movements of `bet_placed`, `win_credited`, `bet_rolled_back`,
+  `round_settled_as_loss` and `provider_credited` on `money.transactions` (the deposit pool's
+  movement, spec 025; until the wallet carries the pools, real balance's), so a round funded by
+  restricted funds, or by money converted from them, earns the affiliate nothing, as the original's
+  rule had it (its specs 250 and 253; Clarifications 2026-10-28); bonus costs from `restricted_funds_awarded`, and from a `provider_credited` landing on
   restricted funds, on `money.transactions`, recognised at the award and never negative (spec 011
   FR-028); withdrawals from `casino.withdrawals`
   (`withdrawal_requested` → `withdrawal-requested`, `withdrawal_completed` →
@@ -563,9 +579,11 @@ attribution record.
 - GGR is emitted per player per day, with adjustments, instead of per round through a feature
   that shipped switched off; the per-round stream is optional.
 - The first-deposit guard is per player for life, not per player per period.
-- Affiliate GGR counts the player's real-money stakes and wins, as the original did, but money
-  converted from restricted funds counts as real once converted; the original excluded it (its
-  spec 253). Bonus cost is recognised at the award from the wallet's fact; the original's call at
+- Affiliate GGR counts the player's deposit-origin stakes and wins, as the original's spec 253 did:
+  the wallet keeps deposit-origin and converted money as two pools (spec 025) and `attribution`
+  reads the deposit pool's movement. Between this spec's implementation and spec 025's, it counted
+  real balance's movement, converted money included (the parity run's one kept divergence,
+  2026-10-28). Bonus cost is recognised at the award from the wallet's fact; the original's call at
   the bonus grant never reached its affiliate service.
 - Commission, plans, overrides, the network tree, payouts, the portal and fraud flags leave the
   brand for the programme (spec 013).
@@ -574,14 +592,6 @@ attribution record.
 
 The transition period, the attribution window default and the per-round stream were settled on
 2026-10-25 (Clarifications; FR-004, FR-008, FR-016). The lifetime first-deposit guard is confirmed in
-spec 013. Four decisions the plan made are stated above as requirements and still await Sheldon
-(plan research *Open for Sheldon*); each names what changes if the answer differs:
-
-- A player who deposits while organic and is bound by a code later gets no `first-deposit` and no
-  facts for that money (research R8; FR-007, FR-015). The alternative emits them at the binding,
-  dated to the deposit and marked before the binding, as FR-016 does for GGR days.
-- Money converted from restricted funds counts in affiliate GGR once it is real (*Changes from the
-  original*, FR-030). The alternative is a deposit-origin marker on the wallet's facts, a spec 002
-  change.
-- The bonus code window's default is 30 days, the attribution window's (FR-007).
-- A refunded deposit is reported as a `chargeback` with a `/refund` reference (FR-030).
+spec 013. The four decisions the plan made were answered by Sheldon on 2026-10-28 (Clarifications):
+three stand as built; converted money never counts, which is spec 025's wallet change and this
+spec's FR-016 and FR-030 as amended. Nothing is open.

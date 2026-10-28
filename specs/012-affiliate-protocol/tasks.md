@@ -896,7 +896,8 @@ run, the README and quickstart proven, research closed, findings and questions r
       Still for the user: file the four issues, post to the plan doc, send the message.
       *Later 2026-10-28:* six issues filed in thinkmorestupidless/ankka, #197 to #202 (the four, and two
       from the kind run). The plan doc is still refused to this account (as an artifact and as a doc); the
-      message for Sheldon was handed to Trevor to send.
+      message for Sheldon was handed to Trevor to send. Sheldon answered the same day: 1, 3 and 4 as
+      built, 2 the other way (spec Clarifications 2026-10-28; spec 025 carries the wallet change).
 
 ---
 

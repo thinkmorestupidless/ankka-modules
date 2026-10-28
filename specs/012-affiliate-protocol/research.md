@@ -424,6 +424,9 @@ spec 019 imports); the link index (the programme's legacy tag document); `ipHash
 
 ## Open for Sheldon
 
+*Answered 2026-10-28* (spec Clarifications): 1, 3 and 4 as built; 2 the other way, converted money
+never counts, which is spec 025 (wallet pools, the original's 253) and FR-016, FR-030 amended.
+
 1. A player who deposits while organic and is bound by a code later gets no `first-deposit` fact and no
    facts for that money (R8); the alternative is to emit them at the binding, dated to the deposit, as the
    GGR days are, marked before the binding.

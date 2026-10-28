@@ -302,8 +302,10 @@ nothing holds a balance, a key leaves no store, and no fact carries a person.
 
 - **Spec corrections** 1 to 6 (research) are on this branch: FR-004, FR-007, FR-023, FR-030, *Changes
   from the original*; `facts.feature`'s outline; the glossary's *bonus cost*.
-- **For Sheldon** (research *Open*): a late code binds forward only; converted money counts in GGR; the
-  bonus code window is 30 days; a refund is a chargeback with a `/refund` reference.
+- **For Sheldon** (research *Open*), answered 2026-10-28: a late code binds forward only; the bonus
+  code window is 30 days; a refund is a chargeback with a `/refund` reference; converted money never
+  counts in GGR, so the wallet gains deposit-origin and converted pools (spec 025) and `attribution`
+  counts the deposit pool's movement, a change to its GGR input once spec 025 is built.
 - **For other specs** (research *Findings*): 001 (the digest, the seventh route class), 008 (the tag
   grammar, `player_reopened`, the reporting zone key), 013 (refunds, the double fold, the document
   shapes), 019 (the pseudonym key), 021 (`CASINO_MODULES`, machine grants at runtime).
