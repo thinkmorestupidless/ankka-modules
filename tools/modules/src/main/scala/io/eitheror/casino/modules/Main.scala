@@ -61,7 +61,7 @@ object Main:
             |       ankka casino secrets <slug> --secrets <file> [--installation <name> | --organization <tenant>]
             |       ankka casino hostnames <slug> [--installation <name> | --organization <tenant>]
             |       ankka casino realm <slug> [--installation <name>] [--secrets <file>]
-            |       ankka casino apply <slug> --installation <name> [--modules a,b] [--version m=v,...] [--secrets <file>]   (local mode only)
+            |       ankka casino apply <slug> --installation <name> [--modules a,b] [--version m=v,...] [--secrets <file>] [--allow-unbuilt]   (local mode only)
             |       ankka casino apply shared/<project>/manifest.json --installation <name> [--secrets <file>]
             |       ankka casino status <slug | shared project> [--installation <name>]
             |       ankka casino release render <tag> --out <dir>
@@ -137,7 +137,15 @@ object Main:
       order <- BrandRender.ordered(named, ms).left.map { e => out.err(e); 2 }
       vs   <- versions(args, order.map(_.name), vendor).left.map { e => out.err(e); 2 }
       organization = args.flags.get("--organization").orElse(env.get("ANKKA_ORGANIZATION")).getOrElse("eitheror")
-      plan <- BrandRender.plan(v, Keys.load(root), ms, named, vs, Some(inst)).left.map { e => out.err(e); 2 }
+      keys  = Keys.load(root)
+      plan <- BrandRender.plan(v, keys, ms, named, vs, Some(inst)).left.map { e => out.err(e); 2 }
+      _    <- LocalApply.unbuilt(plan, keys) match
+        case unbuilt if unbuilt.isEmpty || args.switches.contains("--allow-unbuilt") => Right(())
+        case unbuilt =>
+          unbuilt.foreach((module, service) => out.line(s"refused service '$service' of module $module has no build: contract/keys.md lists it as not yet built"))
+          out.line("note --allow-unbuilt applies them anyway, from whatever image the installation has")
+          out.line("calls: 0")
+          Left(1)
       supplied <- args.flags.get("--secrets").fold(Right(Map.empty))(f => SecretsFile.load(root.resolve(f))).left.map { e => out.err(e); 2 }
     yield (inst, v, plan, organization, supplied)
     prepared match

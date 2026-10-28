@@ -140,10 +140,14 @@ ankka`. Then, with `CASINO_KEYCLOAK_ADMIN_USERNAME`/`_PASSWORD` (dev-kind: `admi
 
 ```bash
 just modules render goldvibe
-just modules apply goldvibe --installation dev-kind --modules core --secrets <a file outside the repository>
+just modules apply goldvibe --installation dev-kind --modules core --allow-unbuilt --secrets <a file outside the repository>
 just modules secrets goldvibe --installation dev-kind --secrets <the same file>
-just modules apply goldvibe --installation dev-kind --modules core --secrets <the same file>
+just modules apply goldvibe --installation dev-kind --modules core --allow-unbuilt --secrets <the same file>
 ```
+
+`--allow-unbuilt` because the core still names `kyc`, `payouts` and `attribution`, which have no build
+(`contract/keys.md`): apply refuses them otherwise. They have no image on kind, so they never become
+Ready and apply waits on them; remove them with `ankka services delete <name> --project goldvibe`.
 
 The secrets file holds `<secret>/<KEY>=<value>` lines: `goldvibe-kyc/API_KEY`, `goldvibe-st8/API_KEY`, and
 `goldvibe-players/` `REALM_ADMIN`, `WEBHOOK_SECRET`, `REALM_SECRET`, `EMAIL_TOKEN`, `LOOKUP_KEY`,

@@ -23,9 +23,9 @@ to `contract/access/routes.md` must turn `ReadOnlyRoutesSuite` red.
 
 ```bash
 just it                       # ModulesOnKindSuite: the core alone, then --modules casino (SC-002 with the services that exist)
-just modules apply goldvibe --installation dev-kind
+just modules apply goldvibe --installation dev-kind --allow-unbuilt   # refused without it while core names a service with no build
 just modules status goldvibe --installation dev-kind
-just modules apply goldvibe --installation dev-kind --modules casino
+just modules apply goldvibe --installation dev-kind --modules casino --allow-unbuilt
 ```
 
 Expected: after the first apply the wallet's and players' scenarios that have services answer and

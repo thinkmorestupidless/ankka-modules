@@ -38,6 +38,16 @@ object LocalApply:
       case Some(url) => Left(s"installation ${installation.name} has a vendor ($url): its agent applies modules; use values push and the vendor's entitlements")
       case None      => Right(())
 
+  /**
+   * The plan's services `contract/keys.md` lists as not yet built, each with its module: the release's
+   * `CASINO_RELEASE_REQUIRE_BUILDS` refusal (contracts/release.md), made by default here. Such a service has no
+   * image of its own tree, so on kind it pulls nothing, or runs one built on another branch whose topic
+   * schemas need not match the ones this tree declares (dev-kind, 2026-10-28: kyc and payouts in
+   * ImagePullBackOff, players and attribution refusing to start their projections).
+   */
+  def unbuilt(plan: BrandPlan, keys: Keys): Vector[(String, String)] =
+    plan.inOrder.flatMap(m => m.services.map(_.name).filter(keys.notYetBuilt.contains).map(m.name -> _))
+
   def run(plan: BrandPlan, values: Values, installation: Option[Installation], cp: ControlPlane, options: Options): ApplyResult =
     val changes = mutable.ArrayBuffer.empty[String]
     val notes   = mutable.ArrayBuffer.empty[String]
