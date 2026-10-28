@@ -1,0 +1,275 @@
+{
+  "scenario": "a later tag does not change a binding and is recorded as a later touch",
+  "requirement": "012/FR-009",
+  "recorded_at": "2026-10-28T07:31:39.179073Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "attribution",
+  "steps": [
+    {
+      "name": "setup: the commission plan",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-plans-{brand}/{plan}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "{brand}",
+          "cpaAmount": "50.00",
+          "planName": "Gold CPA-481a431b",
+          "planType": "CPA",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-plans-{brand}/{plan}"
+        }
+      }
+    },
+    {
+      "name": "setup: the affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliates-{brand}/{affiliate}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "createdAt": "2026-10-28T07:31:39Z",
+          "email": "aff@example.com",
+          "planId": "{plan}",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliates-{brand}/{affiliate}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link in the tag index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links/{btag}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "btag": "{btag}",
+          "createdAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links/{btag}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link under the brand",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links-{brand}/{btag}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "btag": "{btag}",
+          "createdAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links-{brand}/{btag}"
+        }
+      }
+    },
+    {
+      "name": "setup: the commission plan2",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-plans-{brand}/{plan2}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "{brand}",
+          "cpaAmount": "50.00",
+          "planName": "Gold CPA-481a431b2",
+          "planType": "CPA",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-plans-{brand}/{plan2}"
+        }
+      }
+    },
+    {
+      "name": "setup: the affiliate2",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliates-{brand}/{affiliate2}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate2}",
+          "brandId": "{brand}",
+          "createdAt": "2026-10-28T07:31:39Z",
+          "email": "aff2@example.com",
+          "planId": "{plan2}",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliates-{brand}/{affiliate2}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link in the tag index2",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links/{btag2}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate2}",
+          "brandId": "{brand}",
+          "btag": "{btag2}",
+          "createdAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links/{btag2}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link under the brand2",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links-{brand}/{btag2}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate2}",
+          "brandId": "{brand}",
+          "btag": "{btag2}",
+          "createdAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links-{brand}/{btag2}"
+        }
+      }
+    },
+    {
+      "name": "notify the registration with the first tag",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{btag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify the registration with a second tag",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{btag2}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "duplicate": true,
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "observe: the player's registration",
+      "request": {
+        "method": "GET",
+        "path": "/twins/affiliate-registration-{brand}/{player}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "bonusCostCount": "0",
+          "brandId": "{brand}",
+          "btag": "{btag}",
+          "chargebackCount": "0",
+          "country": "GB",
+          "period": "2026-10",
+          "playerId": "{player}",
+          "registeredAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "vary": {
+        "$.registeredAt": "differs between two runs of the original"
+      }
+    }
+  ]
+}

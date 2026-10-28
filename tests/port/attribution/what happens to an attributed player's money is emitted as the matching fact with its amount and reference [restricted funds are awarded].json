@@ -1,0 +1,154 @@
+{
+  "scenario": "what happens to an attributed player's money is emitted as the matching fact with its amount and reference [restricted funds are awarded]",
+  "requirement": "012/FR-011",
+  "recorded_at": "2026-10-28T07:31:40.188974Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "attribution",
+  "steps": [
+    {
+      "name": "setup: the commission plan",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-plans-{brand}/{plan}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "{brand}",
+          "cpaAmount": "50.00",
+          "planName": "Gold CPA-7e2f239f",
+          "planType": "CPA",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-plans-{brand}/{plan}"
+        }
+      }
+    },
+    {
+      "name": "setup: the affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliates-{brand}/{affiliate}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "createdAt": "2026-10-28T07:31:40Z",
+          "email": "aff@example.com",
+          "planId": "{plan}",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliates-{brand}/{affiliate}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link in the tag index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links/{btag}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "btag": "{btag}",
+          "createdAt": "2026-10-28T07:31:40Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links/{btag}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link under the brand",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links-{brand}/{btag}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "btag": "{btag}",
+          "createdAt": "2026-10-28T07:31:40Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links-{brand}/{btag}"
+        }
+      }
+    },
+    {
+      "name": "notify the registration",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{btag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "2026-10-28T07:31:40Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify the bonus cost as casino-service sends it",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/bonus-cost",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "claimId": "{claim}",
+          "currency": "GBP",
+          "playerId": "{player}"
+        }
+      },
+      "response": {
+        "status": 400,
+        "body": {
+          "error": "transactionId is required"
+        }
+      }
+    }
+  ]
+}

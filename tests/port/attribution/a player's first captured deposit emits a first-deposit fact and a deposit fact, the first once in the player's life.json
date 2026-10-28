@@ -1,0 +1,246 @@
+{
+  "scenario": "a player's first captured deposit emits a first-deposit fact and a deposit fact, the first once in the player's life",
+  "requirement": "012/FR-015",
+  "recorded_at": "2026-10-28T07:31:39.387539Z",
+  "original": {
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "attribution",
+  "steps": [
+    {
+      "name": "setup: the commission plan",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-plans-{brand}/{plan}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "brandId": "{brand}",
+          "cpaAmount": "50.00",
+          "planName": "Gold CPA-79cd4a56",
+          "planType": "CPA",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-plans-{brand}/{plan}"
+        }
+      }
+    },
+    {
+      "name": "setup: the affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliates-{brand}/{affiliate}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "createdAt": "2026-10-28T07:31:39Z",
+          "email": "aff@example.com",
+          "planId": "{plan}",
+          "status": "ACTIVE"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliates-{brand}/{affiliate}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link in the tag index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links/{btag}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "btag": "{btag}",
+          "createdAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links/{btag}"
+        }
+      }
+    },
+    {
+      "name": "setup: the link under the brand",
+      "request": {
+        "method": "POST",
+        "path": "/twins/affiliate-links-{brand}/{btag}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "affiliateId": "{affiliate}",
+          "brandId": "{brand}",
+          "btag": "{btag}",
+          "createdAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "affiliate-links-{brand}/{btag}"
+        }
+      }
+    },
+    {
+      "name": "notify the registration",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{btag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "2026-10-28T07:31:39Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify the first deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/deposit",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "observe: the affiliate's revenue this month",
+      "request": {
+        "method": "GET",
+        "path": "/twins/affiliate-revenue-{affiliate}-{brand}/{revenue}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "{affiliate}",
+          "bonusCosts": "0.00",
+          "brandId": "{brand}",
+          "chargebacks": "0.00",
+          "cpaCommission": "50.00",
+          "depositCount": "1",
+          "excludedGgr": "0.00",
+          "ftdCount": "1",
+          "ggr": "0.00",
+          "ngr": "0.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "2026-10",
+          "providerFees": "0.00",
+          "registrationCount": 1,
+          "revShareCommission": "0.00",
+          "totalCommission": "50.00",
+          "totalDepositAmount": "50.00"
+        }
+      }
+    },
+    {
+      "name": "notify a second deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/deposit",
+        "service": "affiliate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{txn2}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "observe: the affiliate's revenue this month",
+      "request": {
+        "method": "GET",
+        "path": "/twins/affiliate-revenue-{affiliate}-{brand}/{revenue}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "{affiliate}",
+          "bonusCosts": "0.00",
+          "brandId": "{brand}",
+          "chargebacks": "0.00",
+          "cpaCommission": "50.00",
+          "deposit2Count": "1",
+          "depositCount": "2",
+          "excludedGgr": "0.00",
+          "ftdCount": "1",
+          "ggr": "0.00",
+          "ngr": "0.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "2026-10",
+          "providerFees": "0.00",
+          "registrationCount": 1,
+          "revShareCommission": "0.00",
+          "totalCommission": "50.00",
+          "totalDepositAmount": "100.00"
+        }
+      }
+    }
+  ]
+}

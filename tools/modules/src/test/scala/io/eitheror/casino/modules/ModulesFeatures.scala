@@ -350,7 +350,8 @@ class ModulesFeatures extends GherkinSuite("features/brands/modules.feature"):
       case p: Product      => p.productIterator.toVector.flatMap(texts)
       case _               => Vector.empty
     val shownTexts = (a.entitlements.values.toVector ++ a.entity.values.toVector).flatMap(texts).toSet
-    assertEquals(a.tenantValues.values.toSet.intersect(shownTexts), Set.empty[String])
+    // `casino-modules` is the list of the modules the brand runs, names the vendor holds already: not the brand's.
+    assertEquals((a.tenantValues - "casino-modules").values.toSet.intersect(shownTexts), Set.empty[String])
   }
 
   Then("a fact naming the module {string}, the change, the version and the actor is written on the brand's platform modules topic") { (module: String) =>

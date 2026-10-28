@@ -580,3 +580,9 @@ This spec names no end-to-end recordings; its parity evidence is the reconciliat
 (FR-017, FR-018) produced in each rehearsal and in the real cutover, kept under
 `brands/spinvibe/`, and the original's own parity tool's capture at the freeze point as the
 before-side of every row.
+
+## Open Questions
+
+Raised by spec 012 on 2026-10-25; each is one line, and [spec 012 research](../012-affiliate-protocol/research.md), *Findings for other specs* has the reasoning.
+
+- FR-006: "the programme's network key" is the brand's pseudonym key for the programme's network, read from `attribution`'s store, never copied (012 finding 7).

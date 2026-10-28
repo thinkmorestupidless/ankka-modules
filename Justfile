@@ -163,6 +163,23 @@ players-run:
         -Dankka.local-services.wallet=http://127.0.0.1:9015 -Dankka.local-services.merchant=http://127.0.0.1:9015 \
         -Dankka.local-services.vendor-agent=http://127.0.0.1:9017 run
 
+# attribution's unit suites (spec 012). The contract is published first.
+attribution-test:
+    sbt contract/publishLocal
+    cd services/attribution && sbt test
+
+# attribution's integration, parity and feature suites (Docker).
+attribution-it:
+    cd services/attribution && sbt -Dit=true "testOnly io.eitheror.casino.attribution.it.* io.eitheror.casino.attribution.port.* io.eitheror.casino.attribution.features.*"
+
+# attribution, locally on 9007 (`sbt schema && docker compose up -d` in services/attribution). With no
+# ANKKA_KAFKA_BOOTSTRAP_SERVERS the facts are read and published in memory: the click and the operator routes are
+# what it shows (quickstart §6). Export ANKKA_SECRET_KEY first (`openssl rand -base64 32`, kept: the store is
+# encrypted under it).
+# The operator routes trust dev-kind's eitheror realm through a port-forward on 18180, as ingest-run does.
+attribution-run:
+    cd services/attribution && ANKKA_HTTP_PORT=9007 ANKKA_DB_PORT=5437       CASINO_BRAND=goldvibe CASINO_PROJECT=goldvibe CASINO_REAL_MONEY=false CASINO_REPORTING_ZONE=Africa/Johannesburg       ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino       ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs       sbt run
+
 # The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
 psp-stub gateway="http://localhost:9001":
     cd tests && go build -o stubs/bin/ ./stubs/psp-stub

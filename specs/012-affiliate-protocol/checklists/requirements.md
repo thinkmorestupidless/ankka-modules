@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,9 +31,8 @@
 
 ## Notes
 
-- Three markers remain, all product decisions for Sheldon: the transition period for bare-UUID
-  tags (FR-004), the attribution window default (FR-008), and whether per-round GGR is opt-in per
-  network (FR-016). Resolve with `/speckit-clarify` before planning.
+- The three markers (FR-004 transition, FR-008 window default, FR-016 per-round opt-in) were
+  settled in Clarifications 2026-10-25; none remain.
 - The spec names ankka features (038, 040, 042, 043) and sibling specs (001, 008, 013, 019)
   because they bound what the brand can do; it names no component, route or table of its own.
 - Reconciled with 001 and 013 on 2026-10-08: the brand side is the `attribution` service

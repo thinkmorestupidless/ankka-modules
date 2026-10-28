@@ -99,6 +99,26 @@ func TestTheCashierRouteMustAnswerItsPreflight(t *testing.T) {
 	}
 }
 
+func TestTheAffiliateServiceMustAnswerItsHealthRoute(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			w.WriteHeader(200)
+			return
+		}
+		w.WriteHeader(404)
+	}))
+	defer up.Close()
+	if why := AffiliateAnswers(up.URL, up.Client()); why != "" {
+		t.Fatalf("an answering affiliate service: %s", why)
+	}
+	if why := AffiliateAnswers(up.URL+"/elsewhere", up.Client()); !strings.HasPrefix(why, Affiliate) {
+		t.Fatalf("an affiliate service answering 404: %q", why)
+	}
+	if why := AffiliateAnswers("http://127.0.0.1:1", http.DefaultClient); !strings.HasPrefix(why, Affiliate) {
+		t.Fatalf("a silent affiliate service: %q", why)
+	}
+}
+
 func TestEveryAdapterOfTheOriginalHasAStubKnown(t *testing.T) {
 	ps, err := Providers("../../../../eitheror-platform")
 	if err != nil {

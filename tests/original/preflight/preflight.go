@@ -3,12 +3,14 @@
 // services/psp-gateway/internal/ (each on its psp-stub port), and the game provider; and, for a
 // recording of the gateway (spec 005), the gateway driver's receiver, which stands in for
 // merchant-service and casino-service; and, for a recording of the cashier edge (spec 006), the
-// original's cashier route itself, so a run does not record a merchant-service that is not up. Exit 0 when all answer, 1 naming each that does not, 2 when
+// original's cashier route itself, so a run does not record a merchant-service that is not up; and, for a
+// recording of attribution (spec 012), the original's affiliate service. Exit 0 when all answer, 1 naming each that does not, 2 when
 // the original cannot be read.
 //
 //	go run ./original/preflight -original ../../eitheror-platform
 //	go run ./original/preflight -original ../../eitheror-platform -receiver http://localhost:18110/healthz
 //	go run ./original/preflight -original ../../eitheror-platform -cashier http://localhost:8085
+//	go run ./original/preflight -original ../../eitheror-platform -affiliate http://localhost:8082
 //	go run ./original/preflight -original ../../eitheror-platform -register http://localhost:8085 -brand spinvibe
 //
 // For a recording of players (spec 008) the original's registration route must answer too.
@@ -49,6 +51,23 @@ var Stubs = map[string]string{
 
 // Receiver is the name the gateway driver's receiver is reported under.
 const Receiver = "gateway-driver receiver"
+
+// Affiliate is the name the original's affiliate service is reported under.
+const Affiliate = "affiliate-service"
+
+// AffiliateAnswers says why the affiliate service at base does not answer its health route, or ""
+// when it does (a recording of attribution, spec 012).
+func AffiliateAnswers(base string, client *http.Client) string {
+	resp, err := client.Get(strings.TrimSuffix(base, "/") + "/health")
+	if err != nil {
+		return fmt.Sprintf("%s: nothing answers at %s (%v)", Affiliate, base, err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Sprintf("%s: %s answered %d", Affiliate, base, resp.StatusCode)
+	}
+	return ""
+}
 
 // Cashier is the name the original's cashier route is reported under.
 const Cashier = "merchant-service cashier"
@@ -158,6 +177,7 @@ func main() {
 	cashier := flag.String("cashier", "", "the original merchant-service, whose cashier route is checked when given (a recording of the cashier edge)")
 	register := flag.String("register", "", "the original casino-service, whose registration route is checked when given (a recording of players)")
 	brand := flag.String("brand", "spinvibe", "the brand the registration route is checked for")
+	affiliate := flag.String("affiliate", "", "the original affiliate-service, whose health route is checked when given (a recording of attribution)")
 	flag.Parse()
 	providers, err := Providers(*original)
 	if err != nil {
@@ -176,6 +196,12 @@ func main() {
 	if *register != "" {
 		systems = append(systems, Register)
 		if why := RegisterAnswers(*register, *brand, client); why != "" {
+			missing = append(missing, why)
+		}
+	}
+	if *affiliate != "" {
+		systems = append(systems, Affiliate)
+		if why := AffiliateAnswers(*affiliate, client); why != "" {
 			missing = append(missing, why)
 		}
 	}

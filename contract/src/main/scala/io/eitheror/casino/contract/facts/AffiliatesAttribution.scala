@@ -49,11 +49,16 @@ final case class Deposit(protocolVersion: Int, factId: String, occurredAt: Insta
     affiliate: String, link: String, campaign: Option[String], subIds: Vector[String], clickId: Option[String],
     pseudonym: String, currency: Currency, amount: MinorUnits, reference: String) extends PlayerAttributionFact
 
+/**
+ * One player's real-money stake, win and GGR for a reporting day (spec 012 FR-016, research R10).
+ * `beforeBinding` marks a day that closed before the player was bound by a later code, emitted at
+ * the binding so the programme applies its own rule; absent means false.
+ */
 @named("ggr-daily")
 final case class GgrDaily(protocolVersion: Int, factId: String, occurredAt: Instant, brand: String, network: String,
     affiliate: String, link: String, campaign: Option[String], subIds: Vector[String], clickId: Option[String],
     pseudonym: String, currency: Currency, reportingDay: String, stake: MinorUnits, win: MinorUnits, ggr: SignedMinorUnits,
-    reference: String) extends PlayerAttributionFact
+    reference: String, beforeBinding: Option[Boolean] = None) extends PlayerAttributionFact
 
 @named("ggr-adjustment")
 final case class GgrAdjustment(protocolVersion: Int, factId: String, occurredAt: Instant, brand: String, network: String,

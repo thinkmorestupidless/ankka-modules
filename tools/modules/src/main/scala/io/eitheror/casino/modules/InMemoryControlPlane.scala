@@ -26,14 +26,24 @@ final class InMemoryControlPlane(val hasGrants: Boolean = false, var installatio
 
   def deleteProject(id: String): Unit =
     projects.remove(id); topicsBy.remove(id); secretsBy.remove(id); servicesBy.remove(id); tombstones += id
+    generations.keys.filter(_._1 == id).toVector.foreach(generations.remove)
 
-  val rolledBack = mutable.Map.empty[(String, String), Long]
+  /** Every generation of a service, oldest first: its history entry and the descriptor it recorded, if any. */
+  private val generations = mutable.Map.empty[(String, String), Vector[(HistoryEntry, Option[ServiceDescriptor])]]
+
+  private def record(project: String, name: String, entry: Long => HistoryEntry, descriptor: Option[ServiceDescriptor]): Unit =
+    val held = generations.getOrElse((project, name), Vector.empty)
+    generations((project, name)) = held :+ (entry(held.size + 1L) -> descriptor)
+    descriptor.foreach(d => servicesBy(project)(name) = servicesBy(project).getOrElse(name, Vector.empty) :+ d)
 
   /** An operator's emergency rollback: a new generation with an earlier descriptor (033). */
   def rollback(project: String, name: String, toGeneration: Int): Unit =
-    val history = servicesBy(project)(name)
-    servicesBy(project)(name) = history :+ history(toGeneration - 1)
-    rolledBack((project, name)) = toGeneration.toLong
+    val earlier = generations((project, name))(toGeneration - 1)._2
+    record(project, name, g => HistoryEntry("rolled-back", g, rolledBackTo = Some(toGeneration.toLong)), earlier)
+
+  /** A restart: a new generation that records no descriptor, as the platform's does. */
+  def restart(project: String, name: String): Unit =
+    record(project, name, g => HistoryEntry("restarted", g), None)
 
   def project(id: String) = { log += s"GET /projects/$id"; projects.get(id) }
 
@@ -79,8 +89,7 @@ final class InMemoryControlPlane(val hasGrants: Boolean = false, var installatio
     all(name) = all.getOrElse(name, Map.empty) ++ entries
 
   private def status(project: String, name: String): ServiceStatus =
-    val generations = servicesBy(project)(name)
-    ServiceStatus(name, project, ServiceLifecycle.Ready, generations.size.toLong, generations.last.service.image, 1, 1,
+    ServiceStatus(name, project, ServiceLifecycle.Ready, generations((project, name)).size.toLong, servicesBy(project)(name).last.service.image, 1, 1,
       exposed = exposed.contains(project -> name))
 
   def services(project: String) =
@@ -89,26 +98,23 @@ final class InMemoryControlPlane(val hasGrants: Boolean = false, var installatio
 
   def descriptor(project: String, name: String, generation: Long) =
     log += s"GET /services/$project/$name/descriptor"
-    servicesBy.get(project).flatMap(_.get(name)).flatMap(_.lift(generation.toInt - 1))
+    generations.get((project, name)).flatMap(_.lift(generation.toInt - 1)).map {
+      case (_, Some(d)) => d
+      case (e, None)    => throw ControlPlaneError(409, s"generation $generation was a ${e.kind} and recorded no descriptor")
+    }
 
   def history(project: String, name: String) =
     log += s"GET /services/$project/$name/history"
-    val generations = servicesBy.get(project).flatMap(_.get(name)).getOrElse(Vector.empty)
-    generations.indices.toVector.map { i =>
-      val generation = (i + 1).toLong
-      val last = i == generations.size - 1
-      rolledBack.get((project, name)).filter(_ => last) match
-        case Some(to) => HistoryEntry("rolled-back", generation, rolledBackTo = Some(to))
-        case None     => HistoryEntry("applied", generation)
-    }
+    // Newest first, as the platform answers.
+    generations.get((project, name)).map(_.map(_._1).reverse).getOrElse(Vector.empty)
 
   def apply(project: String, descriptor: ServiceDescriptor) =
     log += s"PUT /services/$project/${descriptor.name}"
     mustExist(project)
     val problems = descriptor.problems
     if problems.nonEmpty then throw ControlPlaneError(400, problems.mkString("; "))
-    val all = servicesBy.getOrElseUpdate(project, mutable.LinkedHashMap.empty)
-    all(descriptor.name) = all.getOrElse(descriptor.name, Vector.empty) :+ descriptor
+    servicesBy.getOrElseUpdate(project, mutable.LinkedHashMap.empty)
+    record(project, descriptor.name, g => HistoryEntry("applied", g), Some(descriptor))
     status(project, descriptor.name)
 
   def expose(project: String, name: String) =
@@ -148,6 +154,7 @@ final class InMemoryControlPlane(val hasGrants: Boolean = false, var installatio
     log += s"DELETE /services/$project/$name"
     val existed = servicesBy.get(project).exists(_.contains(name))
     servicesBy.get(project).foreach(_.remove(name))
+    generations.remove((project, name))
     exposed -= project -> name
     existed
 

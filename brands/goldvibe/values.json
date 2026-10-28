@@ -15,6 +15,7 @@
   "values": {
     "player-site-base": "https://goldvibe.127.0.0.1.sslip.io:8443",
     "game-provider-mode": "demo",
-    "st8-operator-id": "op-1234"
+    "st8-operator-id": "op-1234",
+    "reporting-zone": "Africa/Johannesburg"
   }
 }

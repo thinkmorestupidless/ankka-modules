@@ -51,11 +51,20 @@ same for every brand and are literals in the descriptors, not keys.
 | players-email-token | core | string | yes | `<slug>-players/EMAIL_TOKEN` | | `PLAYERS_EMAIL_TOKEN` |
 | players-lookup-key | core | string | yes | `<slug>-players/LOOKUP_KEY` | | `PLAYERS_LOOKUP_KEY` |
 | players-merchant-key | core | string | yes | `<slug>-players/MERCHANT_KEY` | | `PLAYERS_MERCHANT_KEY` |
+| reporting-zone | core | string | no | | | `CASINO_REPORTING_ZONE` |
+| casino-modules | core | string | no | | | `CASINO_MODULES` |
 | game-provider-mode | casino | string | no | | | `GAME_PROVIDER_MODE` |
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
 | push-provider-key | engagement | string | yes | `<slug>-push/API_KEY` | | `PUSH_PROVIDER_KEY` |
 | model-provider-key | support | string | yes | `<slug>-model/API_KEY` | | `MODEL_PROVIDER_KEY` |
+
+`reporting-zone` and `casino-modules` have a value when a brand writes none (spec 012 research R7, R12;
+`Values.defaults`): the reporting zone is `UTC`, and the modules are those the brand runs, `core`
+among them, so the value is never empty (the platform refuses an empty entry; found on kind,
+2026-10-28). Locally the tool knows them from the modules it applies; through a vendor it does not, so
+a brand that runs the casino module writes `"casino-modules": "core,casino"` until spec 021 has the
+vendor render it.
 
 ## Not yet built
 
@@ -68,7 +77,6 @@ any publish while a manifest it publishes names one of these (contracts/release.
 |---|---|---|
 | kyc | core | 009 |
 | payouts | core | 007 |
-| attribution | core | 012 |
 | rewards | casino | 011 |
 | engagement | engagement | 014 |
 | reporting | reporting | 015 |
