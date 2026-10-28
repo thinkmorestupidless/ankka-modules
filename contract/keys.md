@@ -61,7 +61,6 @@ any publish while a manifest it publishes names one of these (contracts/release.
 |---|---|---|
 | players | core | 008 |
 | kyc | core | 009 |
-| responsible-gambling | core | 010 |
 | payouts | core | 007 |
 | attribution | core | 012 |
 | rewards | casino | 011 |

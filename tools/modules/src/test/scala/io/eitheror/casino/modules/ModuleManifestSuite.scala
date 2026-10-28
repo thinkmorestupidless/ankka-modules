@@ -100,7 +100,7 @@ class ModuleManifestSuite extends munit.FunSuite:
     val named = ModuleManifest.validateTree(Fixtures.root, tree)._1.flatMap(_.serviceNames)
     named.foreach(s => assert(built.contains(s) || keys.notYetBuilt.contains(s), s"$s has no build and is not listed as not yet built"))
     assert(keys.notYetBuilt.keySet.intersect(built).isEmpty, s"listed as not yet built but built: ${keys.notYetBuilt.keySet.intersect(built)}")
-    assertEquals(named.filter(built.contains).toSet, Set("wallet", "game-provider"))
+    assertEquals(named.filter(built.contains).toSet, Set("wallet", "game-provider", "responsible-gambling"))
   }
 
   test("in the tree an image is the registry's, named for its service, at 0.0.0 until the release renders the tag") {
