@@ -128,9 +128,17 @@ rg-it:
     cd services/responsible-gambling && sbt "testOnly io.eitheror.casino.rg.it.* io.eitheror.casino.rg.port.* io.eitheror.casino.rg.features.*"
 
 # responsible-gambling, locally on 9006 as brand goldvibe (`sbt schema && docker compose up -d` first, in
-# services/responsible-gambling); players at 9005 for the exclusion sync.
+# services/responsible-gambling); players at 9005 for the exclusion sync. Tokens are verified against the
+# kind installation's casino Keycloak (the brand realm for players, `eitheror` for operators).
 rg-run brand="goldvibe":
     cd services/responsible-gambling && CASINO_BRAND={{brand}} ANKKA_HTTP_PORT=9006 ANKKA_DB_PORT=5436 \
+      ANKKA_AUTH_ISSUERS=player,staff ANKKA_AUTH_REALM=casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}}/protocol/openid-connect/certs \
+      ANKKA_AUTH_PLAYER_AUDIENCE=casino-{{brand}} ANKKA_AUTH_PLAYER_CA=$HOME/.ankka/local-ca.crt \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror/protocol/openid-connect/certs \
+      ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
       sbt -Dankka.local-services.players=http://127.0.0.1:9005 run
 
 # players' suites (spec 008; Docker for the integration kit). The contract is published first.
