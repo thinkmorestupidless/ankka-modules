@@ -44,5 +44,5 @@ through the player routes with a token from the brand's local Keycloak.
 ## 7. An installation (kind)
 
 The image built and loaded as 008's §7; `just modules apply goldvibe --installation dev-kind --modules
-core`. Then 008's waiting check: a sign-in on kind ends in `player_logged_in` (it was refused
+core --allow-unbuilt` (008's §7 says why). Then 008's waiting check: a sign-in on kind ends in `player_logged_in` (it was refused
 `rg_unavailable` until this service ran), and a break set here refuses the next sign-in `cooling_off`.

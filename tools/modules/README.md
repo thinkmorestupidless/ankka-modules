@@ -20,7 +20,7 @@ just modules values push goldvibe --organization <tenant>          # through the
 just modules secrets goldvibe --installation dev-kind --secrets ~/casino-secrets.env
 just modules hostnames goldvibe --installation dev-kind
 just modules realm goldvibe --installation dev-kind
-just modules apply goldvibe --installation dev-kind [--modules casino] # local mode only
+just modules apply goldvibe --installation dev-kind [--modules casino] # local mode only; refuses a service with no build
 just modules apply shared/payments/manifest.json --installation dev-kind
 just modules status goldvibe --installation dev-kind
 just modules release render v0.3.0 --out target/release            # what release.yml publishes

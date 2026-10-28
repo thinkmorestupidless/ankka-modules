@@ -14,7 +14,7 @@ or failed, 2 the command itself is wrong.
 | `secrets <slug> --secrets <file>` | the secret keys and the named secrets straight to the project | `PUT /projects/{p}/secrets/*` |
 | `hostnames <slug>` | the values' hostnames | the control plane's hostname routes |
 | `realm <slug>` | the brand's realm and the operator role, as `brands apply` step 8 | the casino's Keycloak |
-| `apply <slug> --installation <name> [--modules a,b]` | local mode only: the agent's order on an installation whose overlay has no `VENDOR_URL`; refuses otherwise naming the vendor | the control plane, as `brands apply` did |
+| `apply <slug> --installation <name> [--modules a,b] [--allow-unbuilt]` | local mode only: the agent's order on an installation whose overlay has no `VENDOR_URL`; refuses otherwise naming the vendor, and refuses a plan naming a service `contract/keys.md` lists as not yet built unless `--allow-unbuilt` | the control plane, as `brands apply` did |
 | `apply shared/<project>/manifest.json --installation <name>` | unchanged from spec 001 | |
 | `status <slug> [--installation <name>]` | the installation's fitness, then the module entity (through the agent's `GET /vendor/modules` with the person's token, which the agent admits for `platform-admin`), then each service, topic, grant and the realm | the agent; the control plane |
 | `recordings check`, `specs established` | unchanged | none |
@@ -31,6 +31,12 @@ An installation is local when its overlay's `settings.env` has no `VENDOR_URL` (
 schemas, secrets noted, `core`'s services in manifest order and waited for, then each module of
 `--modules` after its dependencies, grants, hostnames, the realm; `status` reads the control
 plane instead of a module entity. The test installation `ApplyOnKindSuite` uses is local.
+
+Before any call, `apply` refuses a plan that names a service with no build (`contract/keys.md`'s
+"not yet built" table), naming each with its module: the release's `CASINO_RELEASE_REQUIRE_BUILDS`
+refusal, made by default. Such a service has no image from this tree; on kind it pulls nothing, or
+runs one built on another branch whose topic schemas need not match this tree's (dev-kind,
+2026-10-28). `--allow-unbuilt` applies them anyway, from whatever image the installation has.
 
 ## Tests
 

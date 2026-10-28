@@ -51,9 +51,10 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
     if cp.project(slug).isEmpty then cp.createProject(slug, slug, "eitheror")
     cp.setSecret(slug, "tenant-values", Fixtures.CoreSecrets + ("st8-api-key" -> "test"))
 
+  /** At a pinned release, as if every service had its build: the tree's "not yet built" ones are applied anyway. */
   private def applyBrand(slug: String, version: String, extra: String*): Int =
     withSecrets(slug)
-    run(Seq("apply", slug, "--modules", Modules, "--version", pinned(version)) ++ valuesOf(slug) ++ extra*)
+    run(Seq("apply", slug, "--allow-unbuilt", "--modules", Modules, "--version", pinned(version)) ++ valuesOf(slug) ++ extra*)
 
   When("the operator applies the manifest for a brand named {string}") { (slug: String) =>
     assertEquals(applyBrand(slug, "0.1.0", "--installation", "dev-kind"), 0, out.lines.mkString("\n"))
@@ -129,12 +130,12 @@ class ManifestFeatures extends GherkinSuite("features/brands/manifest.feature"):
 
   When("a manifest marked for real money is applied") { () =>
     withSecrets("goldvibe")
-    run(Seq("apply", "goldvibe", "--values", "tools/modules/src/test/resources/values/goldvibe-real-money.json") ++ installationArgs*)
+    run(Seq("apply", "goldvibe", "--allow-unbuilt", "--values", "tools/modules/src/test/resources/values/goldvibe-real-money.json") ++ installationArgs*)
   }
 
   When("a manifest not marked for real money is applied") { () =>
     withSecrets("goldvibe")
-    run(Seq("apply", "goldvibe") ++ installationArgs*)
+    run(Seq("apply", "goldvibe", "--allow-unbuilt") ++ installationArgs*)
   }
 
   Then("it is refused, naming the backups") { () => refusedNaming("the backups") }
