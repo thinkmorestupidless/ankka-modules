@@ -61,8 +61,10 @@ is unset. `apply <slug>` then plays the vendor's agent, in its order:
    secret keys `secrets` set stay).
 4. **Each module**, `core` first and each after its dependencies: every key it names present in
    `tenant-values`, else the module is held naming the key, and so is every module depending on it;
-   its topics with their contracts; its services in manifest order, each waited for until Ready; their
-   exposure; the grants it makes (locally the tool is the project's owner and makes them).
+   its topics with their contracts; its services in manifest order, each waited for until Ready (a
+   paused one is noted and not waited out, a failed one fails the module at once, and one applied only
+   by `--allow-unbuilt` is not waited for at all); their exposure; the grants it makes (locally the tool
+   is the project's owner and makes them).
 5. **Hostnames** the values name, where the platform has custom hostnames.
 6. **Realm**: `eitheror` from `brands/_realm/eitheror-operators.json` when the installation lacks it,
    `casino-<slug>`, and `brand_<slug>` in `eitheror`.

@@ -115,10 +115,52 @@ class LocalApplySuite extends munit.FunSuite:
     val v = Values.load(root.resolve("brands/goldvibe/values.json"), Main.valuesView(root)).toOption.get
     val ms = ModuleManifest.validateTree(root, ModuleManifest.ContractView.fromTree(root))._1
     val plan = BrandRender.plan(v, Keys.load(root), ms, Vector("casino"), Map.empty, Some(Fixtures.devKind)).toOption.get
-    val never = (_: ControlPlane, _: String, name: String) => if name == "players" then Left("service players not Ready within 10m") else Right(())
+    val never = (_: ControlPlane, _: String, name: String) => if name == "players" then Left("service players not Ready within 10m") else Right(LocalApply.Waited.Ready)
     val result = LocalApply.run(plan, v, Some(Fixtures.devKind), cp, LocalApply.Options("eitheror", ready = never))
     assertEquals(result.failure, Some("module core: service players not Ready within 10m"))
     assert(!cp.writes.exists(_.contains("game-provider")))
+  }
+
+  test("the wait ends at a paused service and at a failed one, at once: the paused one passes, the failed one fails naming it") {
+    import com.thinkmorestupidless.ankka.controlplane.api.ServiceLifecycle
+    val cp = withSecrets()
+    run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--allow-unbuilt", "--modules", "core"): Unit
+    cp.lifecycles(("goldvibe", "players")) = ServiceLifecycle.Paused
+    cp.lifecycles(("goldvibe", "wallet")) = ServiceLifecycle.Failed
+    cp.lifecycles(("goldvibe", "responsible-gambling")) = ServiceLifecycle.UpdateInProgress
+    val poll    = LocalApply.poll(every = java.time.Duration.ofMillis(10), within = java.time.Duration.ofMinutes(1))
+    val started = System.nanoTime()
+    assertEquals(poll(cp, "goldvibe", "players"), Right(LocalApply.Waited.Paused))
+    assertEquals(poll(cp, "goldvibe", "wallet"), Left("service wallet Failed"))
+    assert((System.nanoTime() - started) / 1_000_000 < 1000, "neither is waited out")
+    val brief = LocalApply.poll(every = java.time.Duration.ofMillis(10), within = java.time.Duration.ofMillis(100))
+    assert(brief(cp, "goldvibe", "responsible-gambling").isLeft, "a service still updating is waited for, up to the bound")
+  }
+
+  test("apply notes a paused service and goes on; a service applied with --allow-unbuilt is not waited for") {
+    val cp = withSecrets()
+    val v  = Values.load(root.resolve("brands/goldvibe/values.json"), Main.valuesView(root)).toOption.get
+    val ms = ModuleManifest.validateTree(root, ModuleManifest.ContractView.fromTree(root))._1
+    val plan   = BrandRender.plan(v, Keys.load(root), ms, Vector("core"), Map.empty, Some(Fixtures.devKind)).toOption.get
+    val waited = scala.collection.mutable.ArrayBuffer.empty[String]
+    val ready  = (_: ControlPlane, _: String, name: String) =>
+      waited += name
+      Right(if name == "players" then LocalApply.Waited.Paused else LocalApply.Waited.Ready)
+    val unbuilt = LocalApply.unbuilt(plan, Keys.load(root)).map(_._2).toSet
+    val result  = LocalApply.run(plan, v, Some(Fixtures.devKind), cp, LocalApply.Options("eitheror", ready = ready, unwaited = unbuilt))
+    assertEquals(result.failure, None)
+    assertEquals(unbuilt, Set("kyc", "payouts"))
+    assert(waited.contains("players") && waited.intersect(unbuilt.toSeq).isEmpty, waited.mkString(", "))
+    assert(result.notes.contains("service players is paused: not waited for"), result.notes.mkString("\n"))
+    unbuilt.foreach(s => assert(result.notes.contains(s"service $s not waited for: applied without a build (--allow-unbuilt)"), result.notes.mkString("\n")))
+    assert(cp.writes.exists(_.endsWith("/grants")), "the module goes on to its grants")
+  }
+
+  test("apply --allow-unbuilt through Main says which services it did not wait for") {
+    val cp = withSecrets()
+    val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--allow-unbuilt", "--modules", "core")
+    assertEquals(code, 0, out.lines.mkString("\n"))
+    assert(out.lines.contains("note service kyc not waited for: applied without a build (--allow-unbuilt)"), out.lines.mkString("\n"))
   }
 
   test("status <slug> gives the fitness, then each module with its services, topics and grants") {
