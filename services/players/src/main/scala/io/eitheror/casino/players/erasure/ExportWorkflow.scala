@@ -66,6 +66,8 @@ object ExportBody
  * `own` assembles this service's part (the profile, consents, sessions, activity and inbox; never an
  * operator's note); `others` asks each brand service for its part within `EXPORT_PART_BOUND` and names
  * one that does not answer as missing; the export is kept `EXPORT_RETENTION`, then `expire` deletes it.
+ * `own` is retried: it reads the player and puts the body under the workflow's id, so running it again
+ * is harmless, and without retries a stop in the middle of it (a redeploy) failed the export for good.
  */
 final class ExportWorkflow(context: WorkflowContext) extends Workflow[ExportFlow]:
   import ExportFlow.*
@@ -81,6 +83,7 @@ final class ExportWorkflow(context: WorkflowContext) extends Workflow[ExportFlow
   override def settings: WorkflowSettings =
     WorkflowSettings.builder
       .defaultStepTimeout(30.seconds)
+      .stepRecovery(ExportWorkflow.ownStep, RecoverStrategy.maxRetries(3))
       .stepTimeout(ExportWorkflow.othersStep, live.exportPartBound.toMillis.millis + 1.second)
       .stepRecovery(ExportWorkflow.othersStep, RecoverStrategy.maxRetries(0).failoverTo(ExportWorkflow.missingStep))
       .build
