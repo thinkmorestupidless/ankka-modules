@@ -118,8 +118,10 @@ class RegistrationSuite extends munit.FunSuite:
 
   test("a resend within 5 minutes: 429 with retry_after_seconds; after them: 200 and a second send; an unknown address: 200 and no send") {
     val email = address
-    kit.register("email" -> email)
+    val id    = kit.register("email" -> email).str("playerId")
     kit.eventually("the first send")(kit.engagement.lastLink(email))
+    // The workflow records the send once engagement has answered, a moment after the fake has it.
+    kit.eventually("the send recorded")(player(id).verificationEmail.lastSentAt)
     val soon = kit.json("POST", kit.playerPath("/resend-verification-email"), Json.obj("email" -> email), kit.asVisitor)
     assertEquals((soon.status, soon.str("error")), (429, "rate_limited"), soon.text)
     assert(soon.json.get("retry_after_seconds").asLong > 0)
