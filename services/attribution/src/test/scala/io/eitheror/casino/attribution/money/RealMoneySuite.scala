@@ -30,21 +30,52 @@ class RealMoneySuite extends munit.FunSuite:
     ProviderCredited("p", zar, "t14", "prov-2", m(900), "restricted", Some("aw-3"), s(7400), m(900), at)
   )
 
-  test("the counted families: a stake, a win, a credit landing on real, a rollback, a loss") {
-    val counted = all.flatMap(f => RealMoney.counted(f, delta = 100).map(RealMoney.family(f) -> _))
+  /** Spec 025: the parts a fact carries, deposit and converted. */
+  private def parts(d: Long, c: Long) = (Some(m(d)), Some(m(c)))
+
+  test("the counted families: a stake, a win, a rollback, a loss; a fact without parts counts 0") {
+    val counted = all.flatMap(f => RealMoney.counted(f).map(RealMoney.family(f) -> _))
     assertEquals(counted, Vector(
-      "bet_placed" -> Leg(Leg.Stake, "r1", -100),
-      "win_credited" -> Leg(Leg.Win, "r1", 100),
-      "bet_rolled_back" -> Leg(Leg.Rollback, "r1", 100),
-      "round_settled_as_loss" -> Leg(Leg.Loss, "r2", 0),
-      "provider_credited" -> Leg(Leg.Win, "prov-1", 100)))
+      "bet_placed" -> Leg(Leg.Stake, "r1", 0),
+      "win_credited" -> Leg(Leg.Win, "r1", 0),
+      "bet_rolled_back" -> Leg(Leg.Rollback, "r1", 0),
+      "round_settled_as_loss" -> Leg(Leg.Loss, "r2", 0)))
   }
 
-  test("a split bet counts only its real part: the balance difference") {
-    val split = BetPlaced("p", zar, "t", "r", "g", m(1000), "mixed", s(4400), m(400), at)
-    assertEquals(RealMoney.counted(split, delta = 4400 - 5000), Some(Leg(Leg.Stake, "r", 600)))
-    val bonusOnly = BetPlaced("p", zar, "t", "r", "g", m(1000), "restricted", s(5000), m(0), at)
-    assertEquals(RealMoney.counted(bonusOnly, delta = 0), Some(Leg(Leg.Stake, "r", 0)))
+  test("spec 025: a bet counts its deposit part, not its real movement") {
+    val (d, c) = parts(400, 600)
+    val bet = BetPlaced("p", zar, "t", "r", "g", m(1000), "real", s(4000), m(0), at, depositPartCents = d, convertedPartCents = c)
+    assertEquals(RealMoney.counted(bet), Some(Leg(Leg.Stake, "r", 400)))
+    val split = BetPlaced("p", zar, "t", "r", "g", m(1000), "mixed", s(4400), m(400), at, depositPartCents = Some(m(600)), convertedPartCents = Some(m(0)))
+    assertEquals(RealMoney.counted(split), Some(Leg(Leg.Stake, "r", 600)))
+  }
+
+  test("spec 025: a stake of converted money counts nothing") {
+    val (d, c) = parts(0, 1000)
+    assertEquals(RealMoney.counted(BetPlaced("p", zar, "t", "r", "g", m(1000), "real", s(0), m(0), at, depositPartCents = d, convertedPartCents = c)),
+      Some(Leg(Leg.Stake, "r", 0)))
+  }
+
+  test("spec 025: a win counts its deposit part") {
+    val (d, c) = parts(166, 834)
+    assertEquals(RealMoney.counted(WinCredited("p", zar, "t", "r", "g", m(1000), "real", s(5000), m(0), at, depositPartCents = d, convertedPartCents = c)),
+      Some(Leg(Leg.Win, "r", 166)))
+  }
+
+  test("spec 025: a rollback counts the deposit part it returns") {
+    val (d, c) = parts(1000, 5000)
+    assertEquals(RealMoney.counted(BetRolledBack("p", zar, "t", "r", m(6000), s(6000), m(0), at, depositPartCents = d, convertedPartCents = c)),
+      Some(Leg(Leg.Rollback, "r", 1000)))
+  }
+
+  test("spec 025: a loss settles its round with nothing, and a provider credit to real counts nothing") {
+    assertEquals(RealMoney.counted(RoundSettledAsLoss("p", zar, "t", "r", s(0), m(0), at)), Some(Leg(Leg.Loss, "r", 0)))
+    assertEquals(RealMoney.counted(ProviderCredited("p", zar, "t", "prov", m(700), "real", None, s(700), m(0), at,
+      depositPartCents = Some(m(0)), convertedPartCents = Some(m(700)))), None)
+  }
+
+  test("spec 025: a fact without parts counts 0, not its real movement") {
+    assertEquals(RealMoney.counted(BetPlaced("p", zar, "t", "r", "g", m(1000), "real", s(4000), m(0), at)), Some(Leg(Leg.Stake, "r", 0)))
   }
 
   test("a restricted award's cost and a credit landing on restricted; nothing else costs") {

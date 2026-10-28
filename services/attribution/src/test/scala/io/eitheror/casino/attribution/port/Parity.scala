@@ -50,10 +50,6 @@ object Parity:
     s.request.path.matches(s"/internal/v1/affiliates/[^/]+/notify/$kind")
   private def click(s: Recording.Step): Boolean = s.request.path == "/v1/track/click"
   private def read(twin: String)(s: Recording.Step): Boolean = s.request.path.startsWith(s"/twins/$twin-")
-  /** An affiliate fact the original wrote with GGR it left out: money converted from restricted funds. */
-  private def excluded(s: Recording.Step): Boolean =
-    s.response.body.flatMap(b => Option(b.get("twins"))).exists(_.elements().asScala.exists(t =>
-      Option(t.get("properties")).flatMap(p => Option(p.get("excludedGgrCents"))).exists(c => c.asText.toLongOption.exists(_ != 0))))
 
   val divergences: Vector[Divergence] = Vector(
     Divergence("The click answers the `clickId` the link carried", "the port answers the click id sent; the original minted its own",
@@ -68,9 +64,7 @@ object Parity:
       (_, s) => notification("bonus-cost")(s), Seq("*")),
     Divergence("`chargeback` from a dispute opened or a refund", "nothing in the original called its route",
       (_, s) => notification("chargeback")(s), Seq("*")),
-    Divergence("GGR per player per reporting day", "money converted from restricted funds counts in the port",
-      (r, s) => (r.scenario.contains("ConvertedMoney") && notification("ggr")(s)) || (read("affiliate-facts")(s) && excluded(s)), Seq("*"),
-      observable = true),
+
     Divergence("The seven `notify/*` routes are not served", "every input is a fact on a brand topic now",
       (_, s) => s.request.path.contains("/notify/"), Seq("$.ok", "$.affiliateId", "$.duplicate", "$.error"))
   )

@@ -53,7 +53,7 @@ class GgrSuite extends munit.FunSuite with LogCapturing:
 
   // ── the cases ───────────────────────────────────────────────────────────────────────────────────
 
-  test("a day's real stake and win, a round across midnight on its first stake's day; restricted money never counts") {
+  test("a day's deposit-origin stake and win, a round across midnight on its first stake's day; restricted and converted money never count") {
     val day    = evening()
     val split  = bound()
     split.deposit(5000)
@@ -84,13 +84,13 @@ class GgrSuite extends munit.FunSuite with LogCapturing:
     assertEquals((d.reference, d.factId), (s"EUR/$day", s"ggr-daily/$p/EUR/$day"))
     assert(kit.attributionMessages.exists(_.message.metadata.get("ce-id").contains(s"ggr-daily/$p/EUR/$day")))
 
-    val c = daily(pseudonym(conv.player), day)
-    assertEquals((c.stake.value, c.win.value, c.ggr.value), (300L, 0L, 300L))
     val r = daily(pseudonym(back.player), day)
     assertEquals((r.stake.value, r.win.value), (600L, 0L))
 
     settled()
     assertEquals(ggrOf(pseudonym(bonus.player)), Vector.empty)
+    // spec 025: a stake of converted money is not deposited money, so the round earns nothing
+    assertEquals(ggrOf(pseudonym(conv.player)), Vector.empty)
     assertEquals(ggrOf(pseudonym(split.player, "programme")).size, 1)
     assertEquals(kit.views.forView(OpenDays).ask(OpenDays.openBefore, "day" -> day.plusDays(1).toString).filter(_.day == day.toString),
       Vector.empty)

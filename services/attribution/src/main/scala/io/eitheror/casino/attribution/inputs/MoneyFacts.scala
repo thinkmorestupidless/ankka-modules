@@ -23,11 +23,11 @@ final class MoneyFacts(context: ConsumerContext) extends Consumer[Option[MoneyTr
     case Some(f) =>
       val currency = f.currency.code
       val dedupe   = RealMoney.dedupeId(f, None)
-      val delta = client.forKeyValueEntity(EntityId(WalletCursor.id(f.playerId, currency))).call(WalletCursor.advance)
-        .invoke(Advance(dedupe, f.realBalanceAfter.value)) match
-        case Advanced.Delta(d) => d
-        case Advanced.Seen(d)  => d
-      RealMoney.counted(f, delta).filter(l => l.amount != 0 || l.kind == Leg.Loss).foreach(tally(f, currency, dedupe, _))
+      // the cursor keeps the wallet's recent dedupe ids; since spec 025 a fact's amount is its deposit
+      // part, not the cursor's delta
+      client.forKeyValueEntity(EntityId(WalletCursor.id(f.playerId, currency))).call(WalletCursor.advance)
+        .invoke(Advance(dedupe, f.realBalanceAfter.value)): Unit
+      RealMoney.counted(f).filter(l => l.amount != 0 || l.kind == Leg.Loss).foreach(tally(f, currency, dedupe, _))
       RealMoney.bonusCost(f).foreach { (amount, reference) =>
         client.forEventSourcedEntity(EntityId(f.playerId)).call(AttributionRecord.money)
           .invoke(MoneyEvent(MoneyEvent.BonusCost, currency, amount, reference, f.occurredAt, dedupe)): Unit

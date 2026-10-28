@@ -3,9 +3,11 @@ package io.eitheror.casino.attribution.money
 import io.eitheror.casino.contract.facts.*
 
 /**
- * What a wallet fact means for affiliate GGR and bonus cost (contracts/facts.md; research R9, R10). The
- * real movement of a fact is its `realBalanceAfter` minus the wallet's previous one (`WalletCursor`), so a
- * split bet counts only its real part and restricted money never counts.
+ * What a wallet fact means for affiliate GGR and bonus cost (contracts/facts.md; research R9, R10). A
+ * fact counts its deposit part (`depositPartCents`, spec 025): the money of its real movement that a
+ * player deposited. Converted bonus money is never counted as deposited money (Sheldon, 2026-10-28), so
+ * a stake from the converted pool, its win and its rollback count nothing, restricted money never counts,
+ * and a fact without parts counts 0.
  */
 object RealMoney:
 
@@ -20,17 +22,19 @@ object RealMoney:
     val settling: Set[String] = Set(Win, Rollback, Loss)
 
   /**
-   * The leg a fact counts, given its real delta: a bet's stake is the real money it took (`−delta`), a win
-   * or a credit landing on real money what it gave, a rollback what it gave back, a loss nothing. Every
-   * other family counts nothing.
+   * The leg a fact counts: a bet's stake, a win's payout and a rollback's return are their deposit parts,
+   * a loss settles its round with nothing. A provider credit joins the converted pool (spec 025), so it
+   * counts nothing; every other family counts nothing.
    */
-  def counted(fact: MoneyTransactionsFact, delta: Long): Option[Leg] = fact match
-    case f: BetPlaced                                  => Some(Leg(Leg.Stake, f.roundId, -delta))
-    case f: WinCredited                                => Some(Leg(Leg.Win, f.roundId, delta))
-    case f: ProviderCredited if f.landedOn == "real"   => Some(Leg(Leg.Win, f.providerRef, delta))
-    case f: BetRolledBack                              => Some(Leg(Leg.Rollback, f.roundId, delta))
-    case f: RoundSettledAsLoss                         => Some(Leg(Leg.Loss, f.roundId, 0L))
-    case _                                             => None
+  def counted(fact: MoneyTransactionsFact): Option[Leg] = fact match
+    case f: BetPlaced          => Some(Leg(Leg.Stake, f.roundId, deposit(f.depositPartCents)))
+    case f: WinCredited        => Some(Leg(Leg.Win, f.roundId, deposit(f.depositPartCents)))
+    case f: BetRolledBack      => Some(Leg(Leg.Rollback, f.roundId, deposit(f.depositPartCents)))
+    case f: RoundSettledAsLoss => Some(Leg(Leg.Loss, f.roundId, 0L))
+    case _                     => None
+
+  /** A fact's deposit part; one without parts (published before spec 025) counts 0, never its real delta. */
+  private def deposit(part: Option[io.eitheror.casino.contract.money.MinorUnits]): Long = part.fold(0L)(_.value)
 
   /** A bonus's cost to the brand, recognised at the award and never negative (spec 011 FR-028). */
   def bonusCost(fact: MoneyTransactionsFact): Option[(Long, String)] = fact match

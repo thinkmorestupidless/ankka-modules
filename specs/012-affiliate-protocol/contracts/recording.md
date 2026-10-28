@@ -20,7 +20,7 @@ in its local checkout, and corrects scenario 17's seed namespaces (`affiliate-pl
 | `TestScenario17_AffiliateGate3_CPAPipeline` | seeds the plan, affiliate and link twins; `notify/registration` (first tag wins); `notify/deposit` (the FTD); the revenue twin read; the same two again (no double count) | FR-007, FR-015, SC-001 |
 | `TestScenario15_St8Wallet_RestrictedOnlyRoundEarnsNoAffiliateGGR` | a bonus-only player's round; no affiliate fact appears | R10 (real money only), SC-001 |
 | `TestScenario15_St8Wallet_SplitRoundEarnsRealGGROnly` | a split-funded round; one GGR fact with the real part | R10, SC-001 |
-| `TestScenario15_St8Wallet_ConvertedMoneyRoundEarnsNoAffiliateGGR` | a round funded by converted money; no fact | R10: **marked** (the port counts converted money; open for Sheldon 2) |
+| `TestScenario15_St8Wallet_ConvertedMoneyRoundEarnsNoAffiliateGGR` | a round funded by converted money; no fact | R10, spec 025: matches (the original's GGR fact of 0 is the port's day with no `ggr-daily`); was marked until the wallet carried the pools |
 
 ## `tests/original/attribution-driver/`: what the suite never reaches
 

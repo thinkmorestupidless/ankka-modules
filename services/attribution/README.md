@@ -29,7 +29,7 @@ has every answer.
 | `tag` | `Tag`, `TagCheck`, `Signing`, `Pseudonyms`, `Jcs` | the token's check against the network's keys and revocations; Ed25519; the pseudonym |
 | `record` | `AttributionRecord` (event sourced, player id) | the binding, made once; touches, money, closure and erasure |
 | `inputs` | `PlayersFacts`, `RewardsFacts`, `PaymentsFacts`, `WithdrawalsFacts`, `MoneyFacts`, `Registrar` | the five brand topics into the record and the day tallies |
-| `money` | `DayTally` (event sourced, player/currency/day), `WalletCursor`, `RoundIndex`, `OpenDays` (view), `DayCloser` (timer `close-days`, 5 min) | real money's GGR per reporting day, closed after `CLOSE_GRACE` |
+| `money` | `DayTally` (event sourced, player/currency/day), `WalletCursor`, `RoundIndex`, `OpenDays` (view), `DayCloser` (timer `close-days`, 5 min) | deposit-origin money's GGR per reporting day (each fact's deposit part, spec 025), closed after `CLOSE_GRACE` |
 | `facts` | `RecordFacts`, `TallyFacts`, `Publish` | the facts onto `affiliates.attribution`, `ce-id` the fact id, keyed and subjected by the pseudonym |
 | `carriers` | `FeedAppender`, `NetworkFeed` (event sourced, network), `Pages`, `WebhookSubscription`, `WebhookFanout`, `Delivery` (workflow), `DeliveryRetry` (timed action), `Deliveries` (view) | the feed and the webhooks, retried 1, 5, 15 and 60 minutes apart, then hourly, for 24 hours |
 | `networks` | `Network`, `NetworkDocuments` (key value, network), `DocumentRefresh` (timer `refresh-documents`, 1 min), `Cache`, `Codes` | the networks the operator adds and the documents fetched from them |

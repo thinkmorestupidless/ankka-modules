@@ -471,8 +471,8 @@ attribution record.
   own by the programme's code document, FR-023); deposits from `payment.captured`, and chargebacks
   from `payment.dispute.opened` and `payment.refunded`, on `payments.payments`; stakes and wins
   from the deposit-origin movements of `bet_placed`, `win_credited`, `bet_rolled_back`,
-  `round_settled_as_loss` and `provider_credited` on `money.transactions` (the deposit pool's
-  movement, spec 025; until the wallet carries the pools, real balance's), so a round funded by
+  `round_settled_as_loss` and `provider_credited` on `money.transactions` (each fact's deposit part,
+  the deposit pool's movement, spec 025; a fact without parts counts 0), so a round funded by
   restricted funds, or by money converted from them, earns the affiliate nothing, as the original's
   rule had it (its specs 250 and 253; Clarifications 2026-10-28); bonus costs from `restricted_funds_awarded`, and from a `provider_credited` landing on
   restricted funds, on `money.transactions`, recognised at the award and never negative (spec 011
@@ -581,9 +581,10 @@ attribution record.
 - The first-deposit guard is per player for life, not per player per period.
 - Affiliate GGR counts the player's deposit-origin stakes and wins, as the original's spec 253 did:
   the wallet keeps deposit-origin and converted money as two pools (spec 025) and `attribution`
-  reads the deposit pool's movement. Between this spec's implementation and spec 025's, it counted
-  real balance's movement, converted money included (the parity run's one kept divergence,
-  2026-10-28). Bonus cost is recognised at the award from the wallet's fact; the original's call at
+  reads each fact's deposit part. Before spec 025 it counted real balance's movement, converted
+  money included; that divergence is closed, and the parity run's two converted-money recordings
+  now match the original (a day the original wrote at 0 GGR, its play all converted, is a day the
+  port emits no `ggr-daily` for). Bonus cost is recognised at the award from the wallet's fact; the original's call at
   the bonus grant never reached its affiliate service.
 - Commission, plans, overrides, the network tree, payouts, the portal and fraud flags leave the
   brand for the programme (spec 013).

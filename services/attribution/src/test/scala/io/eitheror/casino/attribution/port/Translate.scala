@@ -186,11 +186,14 @@ object Translate:
           realBalance = realBalance.updated(key, afterWin)
           rounds = rounds.updated(player, rounds.getOrElse(player, Vector.empty) :+ ((Days.dayOf(at, zone), stake - win, currency)))
           val c = Currency.unsafe(currency)
+          // the GGR the original sent is deposit-origin money's (its spec 253): all of it a deposit part
           Vector(
             Publish(MoneyTransactions, BetPlaced(player, c, s"$round-bet", round, "recorded", MinorUnits.unsafe(stake), "real",
-              SignedMinorUnits(afterBet), MinorUnits.unsafe(0), at)),
+              SignedMinorUnits(afterBet), MinorUnits.unsafe(0), at, depositPartCents = Some(MinorUnits.unsafe(stake)),
+              convertedPartCents = Some(MinorUnits.unsafe(0)))),
             Publish(MoneyTransactions, WinCredited(player, c, s"$round-win", round, "recorded", MinorUnits.unsafe(win), "real",
-              SignedMinorUnits(afterWin), MinorUnits.unsafe(0), at))
+              SignedMinorUnits(afterWin), MinorUnits.unsafe(0), at, depositPartCents = Some(MinorUnits.unsafe(win)),
+              convertedPartCents = Some(MinorUnits.unsafe(0))))
           )
         case "bonus-cost" =>
           val currency = need(s, "currency")
@@ -207,7 +210,9 @@ object Translate:
 
     /**
      * The casino's settled round (scenario 15): its real-money stake and win, the legs the wallet now reports
-     * as `bet_placed` and `win_credited` of the real wallet. A round of restricted funds only moves nothing.
+     * as `bet_placed` and `win_credited` of the real wallet, with the deposit parts the round recorded
+     * (`deposit_stake`, `deposit_win`; spec 025) and the rest converted. A round of restricted funds only
+     * moves nothing.
      */
     private def round(s: Recording.Step): Vector[Action] =
       val props = s.response.body.flatMap(b => Option(b.get("properties"))).getOrElse(throw AssertionError(s"${s.name}: no round"))
@@ -216,6 +221,9 @@ object Translate:
       val currency = field("currency")
       def minor(f: String) = minorUnits(field(f), currency).fold(e => throw AssertionError(s"${s.name}: $e"), identity)
       val (stake, win) = (minor("real_stake"), minor("real_win"))
+      def deposit(f: String, real: Long) = Option(props.get(f)).fold(real)(_ => minor(f))
+      val (depositStake, depositWin) = (deposit("deposit_stake", stake), deposit("deposit_win", win))
+      def parts(d: Long, real: Long) = (Some(MinorUnits.unsafe(d)), Some(MinorUnits.unsafe(real - d)))
       val at    = shift(Instant.parse(field("settled_at")))
       val round = local(field("st8_round_id"))
       lastRound = Some(player -> Days.dayOf(at, zone))
@@ -226,10 +234,13 @@ object Translate:
         val afterWin = afterBet + win
         realBalance = realBalance.updated(key, afterWin)
         val c = Currency.unsafe(currency)
+        val (betDeposit, betConverted) = parts(depositStake, stake)
+        val (winDeposit, winConverted) = parts(depositWin, win)
         Vector(Publish(MoneyTransactions, BetPlaced(player, c, s"$round-bet", round, field("game_id"), MinorUnits.unsafe(stake), "real",
-          SignedMinorUnits(afterBet), MinorUnits.unsafe(0), at))) ++
+          SignedMinorUnits(afterBet), MinorUnits.unsafe(0), at, depositPartCents = betDeposit, convertedPartCents = betConverted))) ++
           Option.when(win > 0)(Publish(MoneyTransactions, WinCredited(player, c, s"$round-win", round, field("game_id"),
-            MinorUnits.unsafe(win), "real", SignedMinorUnits(afterWin), MinorUnits.unsafe(0), at)))
+            MinorUnits.unsafe(win), "real", SignedMinorUnits(afterWin), MinorUnits.unsafe(0), at,
+            depositPartCents = winDeposit, convertedPartCents = winConverted)))
 
     /** A twin the original wrote, read: the facts the port emits instead, for the player the twin names. */
     private def read(kind: String, s: Recording.Step): Vector[Action] =
@@ -251,6 +262,8 @@ object Translate:
     /**
      * The GGR facts the original wrote for the round just read (scenario 15), its commissionable GGR in
      * cents: a day's sum is the `ggr-daily` expected; none written, none expected for the round's player.
+     * A day the original wrote at 0, its play all excluded (`excludedGgrCents`: converted money, its spec
+     * 253), is a day with no deposit-origin play, for which the port emits no `ggr-daily`: none expected.
      */
     private def facts(s: Recording.Step): Vector[Action] =
       val twins = s.response.body.toVector.flatMap(b => b.get("twins").elements().asScala.toVector).flatMap(t => Option(t.get("properties")))
@@ -259,4 +272,8 @@ object Translate:
         lastRound.toVector.map((player, day) => ExpectNone("ggr-daily", player, day)(s.name))
       else
         twins.groupBy(t => (local(field(t, "playerId")), Days.dayOf(shift(Instant.parse(field(t, "occurredAt"))), zone))).toVector.sortBy(_._1)
-          .map { case ((player, day), ts) => Expect("ggr-daily", player, Some(ts.map(t => field(t, "amountCents").toLong).sum), Some(day))(s.name) }
+          .map { case ((player, day), ts) =>
+            val ggr = ts.map(t => field(t, "amountCents").toLong).sum
+            if ggr == 0 then ExpectNone("ggr-daily", player, day)(s.name)
+            else Expect("ggr-daily", player, Some(ggr), Some(day))(s.name)
+          }
