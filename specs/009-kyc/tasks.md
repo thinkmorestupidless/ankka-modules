@@ -57,7 +57,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T012 `S/policy/PolicyEntity.scala` with its `EventSourcedTestKit` suite: the Curaçao default with
       `isDefault` when no event; `ApplyProfile`, `Change` (profile `CUSTOM`), every refusal;
       `PolicyChanged` carries before and after
-- [ ] T013 `S/record/KycRecord.scala` and `T/record/KycRecordSuite.scala` (`EventSourcedTestKit`): every
+- [X] T013 `S/record/KycRecord.scala` and `T/record/KycRecordSuite.scala` (`EventSourcedTestKit`): every
       command, event and refusal of data-model.md's table in its order; the derivation after each input
       change and only a changed status written (FR-014); offers dropped an hour after they are offered;
       `Erase` blanks every `Personal` value and keeps ids, categories, times, statuses and reason codes

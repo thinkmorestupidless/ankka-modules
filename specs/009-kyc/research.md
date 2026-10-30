@@ -321,6 +321,14 @@ in 010. No secret.
   required (`payment_method`) stands in. Where the original rewrote an unchanged status, the row expects
   nothing (FR-014). The categories, statuses, modes and outcomes went into `record/Model.scala` with the
   port; T011 adds the rest of the model there.
+- **T013, when the record derives.** A record with no document derives nothing: the original's trigger
+  was `twin.kyc_documents != ""`, so an operator's status on a player with no document is never
+  recomputed by a profile fact. Either mode switch derives (FR-012 names "the mode changes"); a switch
+  to manual can only move the ready time. An operator's `SetStatus` or `Override` is not re-derived in
+  automatic mode, or the derivation would undo it at once; in manual mode the ready time follows it.
+  `Open` on a record that is not empty is refused `record_exists`, for the migration (spec 019) alone.
+  The review's outcome, the mode and the operator's status are parsed by the endpoint, which answers
+  the contract's 400s; the record's commands take them typed.
 
 ## Design finished
 

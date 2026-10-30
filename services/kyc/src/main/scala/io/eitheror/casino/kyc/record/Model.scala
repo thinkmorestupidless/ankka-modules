@@ -135,7 +135,9 @@ final case class ProfileFacts(
     changedAt: Option[Instant] = None
 )
 
-final case class Deadline(at: Instant, migrated: Boolean = false, handled: Boolean = false, suspensionRequested: Boolean = false)
+/** `suspend` is what the lapse decided: the policy suspends and the deadline is not a migrated one already past (FR-025). */
+final case class Deadline(at: Instant, migrated: Boolean = false, handled: Boolean = false, suspend: Boolean = false,
+    suspensionRequested: Boolean = false)
 
 final case class Dismissal(operatorId: String, note: Personal[String], at: Instant)
 
@@ -225,6 +227,8 @@ object KycEvent:
   final case class DeadlineHandled(deadline: Instant, suspend: Boolean, at: Instant)                                    extends KycEvent
   final case class SuspensionRequested(deadline: Instant, at: Instant)                                                  extends KycEvent
   final case class Closed(at: Instant)                                                                                  extends KycEvent
+  /** Offers an hour old, dropped by the next command after its own check (R7). */
+  final case class OffersDropped(documentIds: Vector[String], at: Instant)                                             extends KycEvent
   final case class Opened(record: KycState, at: Instant)                                                                extends KycEvent
   final case class Erased(at: Instant)                                                                                  extends KycEvent
 
@@ -232,13 +236,13 @@ object KycEvent:
 
 final case class RequestUpload(playerId: String, category: String, contentType: String, by: Uploader, documentId: String, at: Instant)
 final case class ConfirmUpload(documentId: String, size: Long, contentType: String, policyRequired: Vector[Category], at: Instant)
-final case class ReviewDocument(documentId: String, outcome: String, reasonCode: Option[String], operatorId: String,
+final case class ReviewDocument(documentId: String, outcome: Outcome, reasonCode: Option[String], operatorId: String,
     policyRequired: Vector[Category], at: Instant)
 final case class IssueView(documentId: String, requester: Actor, at: Instant)
-final case class SetMode(mode: String, operatorId: String, policyRequired: Vector[Category], at: Instant)
-final case class SetStatus(status: String, operatorId: String, at: Instant)
+final case class SetMode(mode: Mode, operatorId: String, policyRequired: Vector[Category], at: Instant)
+final case class SetStatus(status: Status, operatorId: String, policyRequired: Vector[Category], at: Instant)
 final case class SetRequired(categories: Vector[String], operatorId: String, policyRequired: Vector[Category], at: Instant)
-final case class Override(status: String, reason: Option[String], operatorId: String, at: Instant)
+final case class Override(status: Status, reason: Option[String], operatorId: String, policyRequired: Vector[Category], at: Instant)
 final case class ClearSof(operatorId: String, at: Instant)
 final case class ResetSof(operatorId: String, at: Instant)
 final case class DismissFlag(reason: String, note: String, operatorId: String, at: Instant)
