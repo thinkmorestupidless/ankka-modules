@@ -149,7 +149,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 7: US5, the verification window runs out (P2)
 
-- [ ] T035 [US5] Fail first: bind `features/kyc/window.feature` in `T/features/WindowFeatures.scala`
+- [X] T035 [US5] Fail first: bind `features/kyc/window.feature` in `T/features/WindowFeatures.scala`
       (7 scenarios)
 - [ ] T036 [US5] `S/consumers/RegistrationConsumer.scala` (`player_registered` → `SetDeadline` with the
       policy) and `S/consumers/ClosureConsumer.scala` (`player_closed` → `Close`) with their kits
