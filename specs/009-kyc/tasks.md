@@ -70,7 +70,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       reason; `verified → unverified` as `player_kyc_rejected` with `profile_changed`; a free-text reason
       never on a fact; one audit record per status change, review, view, source of funds change, flag
       dismissal, operator upload and policy change, naming that a note was given and never its text
-- [ ] T016 `S/KycService.scala` (registration), `S/api/Answers.scala` (refusal bodies
+- [X] T016 `S/KycService.scala` (registration), `S/api/Answers.scala` (refusal bodies
       `{error, message}`), and the integration kit `T/it/Kit.scala`: Postgres, the S3-compatible container,
       `FakePlayers` under `localServices`, `InMemoryBroker` for `casino.players`, `money.transactions` and
       `platform.audit`, `TimerRuntime(200.millis)`, a settable clock, player and operator tokens (operator
