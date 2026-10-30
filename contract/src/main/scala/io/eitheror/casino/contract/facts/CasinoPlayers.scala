@@ -102,10 +102,12 @@ final case class PlayerKycVerified(playerId: String, previousValue: String, newV
 final case class PlayerKycRejected(playerId: String, previousValue: String, newValue: String, actor: String,
     actorId: Option[String], reason: Option[String], occurredAt: Instant) extends CasinoPlayersFact
 
+/** `reason`: `agent`, `required_category`, `profile_changed` or `document` (spec 009 FR-030). */
 @named("player_kyc_pending")
-final case class PlayerKycPending(playerId: String, previousValue: String, newValue: String, occurredAt: Instant)
-    extends CasinoPlayersFact
+final case class PlayerKycPending(playerId: String, previousValue: String, newValue: String, occurredAt: Instant,
+    reason: Option[String] = None) extends CasinoPlayersFact
 
+/** `reason`: `threshold`, `source_of_funds`, `window` or `large_deposit` (spec 009 FR-030). */
 @named("player_kyc_review_required")
 final case class PlayerKycReviewRequired(playerId: String, reason: String, occurredAt: Instant) extends CasinoPlayersFact
 

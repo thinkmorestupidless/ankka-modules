@@ -12,7 +12,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 1: Setup
 
-- [ ] T001 Add `reason: Option[String] = None` to `PlayerKycPending` and `large_deposit` to the documented
+- [X] T001 Add `reason: Option[String] = None` to `PlayerKycPending` and `large_deposit` to the documented
       reasons of `PlayerKycReviewRequired` in
       `contract/src/main/scala/io/eitheror/casino/contract/facts/CasinoPlayers.scala` (contracts/facts.md,
       R13); `just schemas`; the schema diff shows one optional field only; `sbt contract/test` green

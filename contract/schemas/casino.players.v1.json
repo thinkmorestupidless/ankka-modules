@@ -620,6 +620,9 @@
         "previous_value": {
           "type": "string"
         },
+        "reason": {
+          "type": "string"
+        },
         "type": {
           "const": "player_kyc_pending"
         }
