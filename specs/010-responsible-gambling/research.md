@@ -264,6 +264,33 @@ Read from the code (`contracts/surface.md` has every element and its disposition
   game-provider and the wallet read `spending_limit` and `unavailable` as unavailable and refuse: R6's
   fail-closed, held by `CallersSuite`.
 - **SC-004** (T027, 2026-10-27): 1,000 asks of each check over HTTP in the integration kit, p99 at most 2 ms.
+- **The local run** (T045, 2026-10-28): `rg-run` set no issuer and ankka will not start without one; it now
+  verifies the player and staff issuers against the kind installation's casino Keycloak. The four checks
+  answered a fresh player `allowed`; with a real token from `casino-goldvibe` a daily deposit limit was set,
+  tightened at once, loosened as a change pending 24 h, refused `may-deposit` above it, and another
+  player's path was `403 player_id_mismatch`.
+- **A player's id is `eitheror_twin_id`, not `sub`** (T045): `players` mints the id and the realm maps it into
+  the token; `sub` is Keycloak's own user id. This service, the wallet and game-provider read `sub`, so every
+  real player would have been refused; the kits had given players `sub` = their id. `Routes.playerId` (the
+  contract) reads the claim, as the original's `claims.twinId`; each kit now gives a player a different `sub`.
+- **A player token's audience** (T045): the template's `casino-frontend` sets `azp` only, so its tokens carried
+  `aud: account` and every player route answered 401; the original accepted `azp` or `aud`, ankka checks `aud`.
+  `Realm.withPlayers` now adds an audience mapper naming the realm (`auth-player-audience`).
+- **kind's goldvibe realm predates `withPlayers`** (T045): no `eitheror_twin_id` in its user profile (Keycloak
+  24 dropped the attribute), no audience mapper, no `players-admin`. The first two were added by hand for this
+  run; T046 recreates the realm through the modules tool rather than patching it further.
+- **The kind run** (T046, 2026-10-28): `kind-ankka` rebuilt at ankka v0.14.2, goldvibe's core applied by the
+  modules tool from this branch (the realm made fresh: the twin-id profile, the audience mapper,
+  `players-admin`); `players`, `responsible-gambling` and `wallet` Ready, `kyc`, `payouts` and `attribution`
+  paused (no image). Through the gateway: registration `201`; sign-in `401 email_not_verified`; the
+  operator's verification link and `verify-email` `200`; sign-in `200`, `may-log-in` answered by this
+  service; with the token `players` handed out, the player's own status `200` and a 2 h break `200`; the next
+  sign-in `403 cooling_off` with its end. On `casino.players`: `player_registered`, `player_logged_in` and
+  `rg_case_opened`, no address in any; none in either service's log.
+- **The modules tool waits for a paused service** (T046): the second apply waited on the three imageless
+  services until the control plane's 300 s token lapsed (`401`), so it never reached grants or the brand's
+  hostnames. The services were created and exposed by then. A follow-up for the tool: skip a paused service,
+  or an `--allow-unbuilt` one, when waiting.
 
 ## For ankka (checked against 0.13.0)
 

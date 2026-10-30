@@ -154,8 +154,9 @@ object Kit:
         AuthDecision.Allow(Principal(subject, None, None, false, roles.split(',').filter(_.nonEmpty).toSet,
           Map("iss" -> "https://auth.example/realms/eitheror"), Some(Routes.StaffIssuer)))
       case Some("player" :: id :: Nil) =>
-        AuthDecision.Allow(Principal(id, None, None, false, Set.empty,
-          Map("iss" -> "https://auth.example/realms/casino-goldvibe", "eitheror_twin_id" -> id), Some(Routes.PlayerIssuer)))
+        // `sub` is the realm's own user id; the player id travels in `eitheror_twin_id` (`Routes.playerId`).
+        AuthDecision.Allow(Principal(s"realm-user-$id", None, None, false, Set.empty,
+          Map("iss" -> "https://auth.example/realms/casino-goldvibe", Routes.PlayerIdClaim -> id), Some(Routes.PlayerIssuer)))
       case Some(_) => AuthDecision.Unauthenticated("realm=\"casino\", error=\"invalid_token\"")
       case None    => AuthDecision.Unauthenticated("realm=\"casino\"")
   }

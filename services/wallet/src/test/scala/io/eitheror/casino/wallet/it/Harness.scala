@@ -122,7 +122,9 @@ object TestTokens:
     Acl.Authenticate { context =>
       context.header(Header).map(_.split("\\|", -1)) match
         case Some(Array(sub, issuer, realm, roles)) =>
-          AuthDecision.Allow(Principal(sub, roles = roles.split(',').filter(_.nonEmpty).toSet,
-            claims = Map("iss" -> s"https://auth.test/realms/$realm"), issuer = Some(issuer)))
+          // A player's `sub` is the realm's own user id; the player id travels in `eitheror_twin_id` (`Routes.playerId`).
+          val player = issuer == "player"
+          AuthDecision.Allow(Principal(if player then s"realm-user-$sub" else sub, roles = roles.split(',').filter(_.nonEmpty).toSet,
+            claims = Map("iss" -> s"https://auth.test/realms/$realm") ++ Option.when(player)("eitheror_twin_id" -> sub), issuer = Some(issuer)))
         case _ => AuthDecision.Unauthenticated("realm=\"test\"")
     }

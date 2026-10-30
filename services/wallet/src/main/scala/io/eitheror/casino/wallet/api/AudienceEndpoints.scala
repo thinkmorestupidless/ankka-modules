@@ -130,7 +130,7 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
 
 /**
  * The player site (`Routes.player(slug)`: the brand realm's token; the player is the token's
- * subject, never a path segment), in major units (FR-032).
+ * `eitheror_twin_id`, `Routes.playerId`, never a path segment), in major units (FR-032).
  */
 final class PlayerEndpoint(client: ComponentClient, views: ViewClient, brand: String, authenticate: => Acl = Oidc.authenticate())
     extends HttpEndpoint(s"/v1/casino/players/$brand/wallets"):
@@ -140,9 +140,12 @@ final class PlayerEndpoint(client: ComponentClient, views: ViewClient, brand: St
 
   private val transactions = views.forView(TransactionsView)
 
-  private def wallet(currency: String) = client.forEventSourcedEntity(WalletEntity.id(principal.subject, currency))
+  /** The token's player (`Routes.playerId`); `checked` refuses a token naming none before this is read. */
+  private def player: String = Routes.playerId(principal).getOrElse("")
+  private def wallet(currency: String) = client.forEventSourcedEntity(WalletEntity.id(player, currency))
   private def checked(currency: String)(answer: => Respond[Bytes]): Respond[Bytes] =
-    Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), _ => answer)
+    if Routes.playerId(principal).isEmpty then Wire.refusal("player_id_mismatch", "the token names no player")
+    else Currency.from(currency).fold(m => Wire.refusal("INVALID_REQUEST", m), _ => answer)
 
   get("/{currency}/balance") { (currency: String) =>
     checked(currency)(Wire.json(200, Major.balance(wallet(currency).call(WalletEntity.balance).invoke())))
@@ -153,7 +156,7 @@ final class PlayerEndpoint(client: ComponentClient, views: ViewClient, brand: St
   }
 
   get("/{currency}/transactions") { (currency: String) =>
-    checked(currency)(Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"${principal.subject}/$currency",
+    checked(currency)(Wire.json(200, Major.transactions(TransactionsQuery.page(transactions, s"$player/$currency",
       query.optional[String]("type"), query.optional[String]("walletType"), query.optional[Long]("from"), query.optional[Long]("to"),
       query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)))))
   }

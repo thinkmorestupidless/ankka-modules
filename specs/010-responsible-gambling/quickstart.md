@@ -37,9 +37,11 @@ ankka on kind for the run (memory: *Recording the original on kind*).
 
 ## 6. Locally
 
-`just rg-run`: the service on its port as brand goldvibe, Postgres from `docker compose`. `may-log-in`,
-`may-deposit`, `may-bet` and `may-play` answered by `curl` with a service identity; a limit set and staged
-through the player routes with a token from the brand's local Keycloak.
+`just rg-run`: the service on 9006 as brand goldvibe, Postgres from `docker compose`. `may-log-in`,
+`may-deposit`, `may-bet` and `may-play` answered by `curl` (locally every caller is admitted); a limit set
+and staged through the player routes with a token from goldvibe's realm on the kind installation's casino
+Keycloak, which `rg-run` verifies against. The token's player is its `eitheror_twin_id`, so the realm
+needs `Realm.withPlayers`' user profile and audience mapper (research, T045).
 
 ## 7. An installation (kind)
 

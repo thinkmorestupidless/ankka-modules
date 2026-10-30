@@ -24,11 +24,12 @@ final class Launch(ctx: Context):
 
   private val Restricted = Set("suspended", "self_excluded", "blocked", "closed")
 
-  def apply(body: String, caller: String): Respond[Bytes] =
+  /** `caller` is the player the token names (`Routes.playerId`); a token naming none matches no player. */
+  def apply(body: String, caller: Option[String]): Respond[Bytes] =
     val node     = Json.parseObject(body).getOrElse(badRequest("the body is not a JSON object"))
     val playerId = node.text("playerId").getOrElse(return refuse(400, "playerId required"))
     val gameId   = node.text("gameId").getOrElse(return refuse(400, "gameId required"))
-    if playerId != caller then return refuse(403, "player_id_mismatch")
+    if !caller.contains(playerId) then return refuse(403, "player_id_mismatch")
     val demo = node.bool("demo").getOrElse(false)
 
     val window = ctx.components.forKeyValueEntity(EntityId(playerId)).call(LaunchWindow.launch).invoke(ctx.now())

@@ -30,6 +30,10 @@ object Realm:
   /** The confidential client the brand's `players` takes its admin token with (spec 008 FR-007). */
   val PlayersAdmin = "players-admin"
 
+  /** The template's public client a player signs in with, and the audience mapper [[withPlayers]] gives it. */
+  val PlayerClient         = "casino-frontend"
+  val PlayerAudienceMapper = "player-audience"
+
   /**
    * What the brand's `players` needs of its realm (spec 008 contracts/realm.md), added to the rendered
    * template so the template stays the original's: the `players-admin` client with a service account
@@ -46,6 +50,10 @@ object Realm:
    * 24's default: that default drops `eitheror_twin_id`, the attribute `players` writes on the user it
    * creates and finds the user by, and requires a first and last name a registration need not give, so
    * every sign-in stops at `VERIFY_PROFILE` (found on the local run, 2026-10-27).
+   *
+   * And it gives the player client ([[PlayerClient]]) an audience mapper naming the realm, the
+   * `auth-player-audience` the services verify: ankka checks a token's `aud`, and the template's client
+   * sets only `azp`, which the original accepted instead (found on 010's local run, 2026-10-28).
    */
   def withPlayers(realmJson: String, playersUrl: Option[String], secrets: Map[String, String]): String =
     val mapper = ObjectMapper()
@@ -72,6 +80,14 @@ object Realm:
       u.put("username", s"service-account-$PlayersAdmin").put("enabled", true).put("serviceAccountClientId", PlayersAdmin)
       val roles = u.putObject("clientRoles").putArray("realm-management")
       Seq("manage-users", "view-users", "view-clients").foreach(roles.add)
+    clients.elements().asScala.collect { case c: ObjectNode if c.path("clientId").asText() == PlayerClient => c }.foreach { c =>
+      val mappers = Option(c.get("protocolMappers")).collect { case a: ArrayNode => a }.getOrElse(c.putArray("protocolMappers"))
+      if !mappers.elements().asScala.exists(_.path("name").asText() == PlayerAudienceMapper) then
+        val m = mappers.addObject()
+        m.put("name", PlayerAudienceMapper).put("protocol", "openid-connect").put("protocolMapper", "oidc-audience-mapper")
+        m.putObject("config").put("included.custom.audience", realm.path("realm").asText())
+          .put("access.token.claim", "true").put("id.token.claim", "false")
+    }
     val components = Option(realm.get("components")).collect { case o: ObjectNode => o }
       .getOrElse(realm.putObject("components"))
     if !components.has(UserProfileProvider) then

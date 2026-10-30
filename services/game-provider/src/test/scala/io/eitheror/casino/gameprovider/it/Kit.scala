@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
+import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.{CasinoPlayers, CasinoPlayersFact, CasinoRounds, RoundSettled}
 import io.eitheror.casino.gameprovider.{GameProviderService, Json, TestKeys, api, players}
 import io.eitheror.casino.gameprovider.Json.*
@@ -159,7 +160,9 @@ object Kit:
       case Some(token) =>
         token.split('|').toList match
           case "player" :: id :: Nil =>
-            AuthDecision.Allow(Principal(id, None, None, false, Set("player"), Map("iss" -> s"https://auth.example/realms/casino-$brand"), Some("player")))
+            // `sub` is the realm's own user id; the player id travels in `eitheror_twin_id` (`Routes.playerId`).
+            AuthDecision.Allow(Principal(s"realm-user-$id", None, None, false, Set("player"),
+              Map("iss" -> s"https://auth.example/realms/casino-$brand", Routes.PlayerIdClaim -> id), Some("player")))
           case "staff" :: id :: roles :: Nil =>
             AuthDecision.Allow(Principal(id, None, None, false, roles.split(',').toSet, Map("iss" -> "https://auth.example/realms/eitheror"), Some("staff")))
           case _ => AuthDecision.Unauthenticated("realm=\"casino\", error=\"invalid_token\"")
