@@ -5,7 +5,10 @@ import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.kyc.Json
 import io.eitheror.casino.kyc.Json.*
+import io.eitheror.casino.kyc.policy.{ApplyProfile, Change, ChangePolicy, PolicyAnswer, PolicyEntity}
 import io.eitheror.casino.kyc.record.*
+
+import scala.jdk.CollectionConverters.*
 
 import Answers.*
 
@@ -22,6 +25,31 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
     if principal.roles.exists(OperatorEndpoint.ComplianceRoles) then f else refused("forbidden")
 
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
+
+  // ── the brand's policy (US3) ───────────────────────────────────────────────────────────────────
+
+  private def policyAnswer(a: PolicyAnswer): Reply = a.refusal match
+    case None => ok(Render.policy(a.policy))
+    case Some(code) =>
+      val named = a.field.map(f => if code == "invalid_category" then "category" -> f else "field" -> OperatorEndpoint.PolicyWire.getOrElse(f, f)).toSeq ++
+        Option.when(code == "unknown_profile")("knownProfiles" -> Json.arr(a.known*)).toSeq
+      refused(code, named*)
+
+  get("/policy") { () => compliance(ok(Render.policy(ctx.policy))) }
+
+  putBody("/policy") { (text: String) =>
+    compliance(body(text) { b =>
+      OperatorEndpoint.change(b) match
+        case Left(field) => refused("invalid_policy", "field" -> field)
+        case Right(change) =>
+          policyAnswer(ctx.policyEntity.call(PolicyEntity.change).invoke(ChangePolicy(change, operatorId, ctx.now())))
+    })
+  }
+
+  postBody("/policy/profile") { (text: String) =>
+    compliance(body(text)(b => policyAnswer(ctx.policyEntity.call(PolicyEntity.applyProfile)
+      .invoke(ApplyProfile(b.text("profile"), operatorId, ctx.now())))))
+  }
 
   postBody("/{playerId}/uploads") { (p: String, text: String) =>
     compliance(body(text) { b =>
@@ -103,6 +131,46 @@ object OperatorEndpoint:
   /** What `PUT /status` sets; `POST /override` sets the other two. */
   val Settable: Set[Status]    = Set(Status.Pending, Status.Verified)
   val Overridable: Set[Status] = Set(Status.Verified, Status.Rejected)
+
+  /** The policy's fields by the names the routes use (the original's, contracts/wire.md). */
+  val PolicyWire: Map[String, String] = Map(
+    "depositGate" -> "depositGate", "playGate" -> "playGate", "currency" -> "kycCurrency",
+    "depositThreshold" -> "depositThresholdMinorUnits", "sofThreshold" -> "sofThresholdMinorUnits", "windowDays" -> "kycWindowDays",
+    "required" -> "requiredDocTypes", "suspendOnExpiry" -> "autoSuspendOnWindowExpiry"
+  )
+
+  /**
+   * A `PUT /policy` body as a change: a field left out keeps its value, `null` clears a nullable one, and
+   * a value of the wrong type is refused naming the field. `licenceProfile` is not read: any change is
+   * `CUSTOM`.
+   */
+  def change(b: JsonNode): Either[String, Change] =
+    def field(name: String): Option[JsonNode] = Option(b.get(name))
+    def text(name: String): Either[String, Option[String]] = field(name) match
+      case None                    => Right(None)
+      case Some(n) if n.isTextual  => Right(Some(n.asText))
+      case Some(_)                 => Left(name)
+    def nullable[A](name: String)(read: JsonNode => Option[A]): Either[String, Option[Option[A]]] = field(name) match
+      case None                 => Right(None)
+      case Some(n) if n.isNull  => Right(Some(None))
+      case Some(n)              => read(n).map(v => Some(Some(v))).toRight(name)
+    def whole(n: JsonNode): Option[Long] = Option.when(n.isIntegralNumber && n.canConvertToLong)(n.asLong)
+    for
+      deposit <- text("depositGate")
+      play    <- text("playGate")
+      ccy     <- nullable("kycCurrency")(n => Option.when(n.isTextual)(n.asText))
+      dt      <- nullable("depositThresholdMinorUnits")(whole)
+      sof     <- nullable("sofThresholdMinorUnits")(whole)
+      window  <- nullable("kycWindowDays")(n => whole(n).filter(_.isValidInt).map(_.toInt))
+      req     <- field("requiredDocTypes") match
+                   case None                                                 => Right(None)
+                   case Some(n) if n.isArray && n.elements.asScala.forall(_.isTextual) => Right(Some(n.elements.asScala.map(_.asText).toVector))
+                   case Some(_)                                              => Left("requiredDocTypes")
+      suspend <- field("autoSuspendOnWindowExpiry") match
+                   case None                    => Right(None)
+                   case Some(n) if n.isBoolean  => Right(Some(n.asBoolean))
+                   case Some(_)                 => Left("autoSuspendOnWindowExpiry")
+    yield Change(deposit, play, ccy, dt, sof, window, req, suspend)
 
   /** The roles that may act on a player's KYC and on the brand's policy (FR-002). */
   val ComplianceRoles: Set[String] = Set("brand_admin", "brand_compliance", "compliance_officer", "resource_admin", "platform_admin")

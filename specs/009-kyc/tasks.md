@@ -118,7 +118,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 ## Phase 5: US3, the brand's policy comes from its licence (P1)
 
 - [X] T026 [US3] Bind `features/kyc/policy.feature` in `T/features/PolicyFeatures.scala` (7 scenarios)
-- [ ] T027 [US3] `OperatorEndpoint`: `GET /policy` (every field, `null` for none, `isDefault`), `PUT
+- [X] T027 [US3] `OperatorEndpoint`: `GET /policy` (every field, `null` for none, `isDefault`), `PUT
       /policy` (`invalid_policy` naming the field, `currency_required`), `POST /policy/profile`
       (`profile_required`, `unknown_profile` with `knownProfiles`)
 - [ ] T028 [US3] `S/api/PublicEndpoint.scala` at `/v1/casino/kyc-requirements/<slug>`: `GET /` answers
