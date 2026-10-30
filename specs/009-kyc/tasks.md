@@ -143,7 +143,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       `game-provider`'s reading of the play check (decoders copied from
       `services/players/.../clients/Neighbours.scala` and `services/game-provider/.../clients/`), so a shape
       drift fails here; a refusal is never read as an outage
-- [ ] T034 [US4] `T/it/GatesLatencySuite.scala`: 1,000 asks of each gate, p99 under 50 ms (SC-003), no
+- [X] T034 [US4] `T/it/GatesLatencySuite.scala`: 1,000 asks of each gate, p99 under 50 ms (SC-003), no
       outbound call (`FakePlayers` and the store receive nothing); a policy change seen by the next ask
       (SC-006)
 
