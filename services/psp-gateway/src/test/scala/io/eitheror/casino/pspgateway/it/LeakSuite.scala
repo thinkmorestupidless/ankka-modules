@@ -76,14 +76,16 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
       }
     finally c.close()
 
-  private def logs: Vector[String] = appender.list.asScala.toVector.map(e => e.getFormattedMessage + Option(e.getThrowableProxy).fold("")(t => " " + t.getMessage))
+  /** Copied under the appender's own lock: `doAppend` holds it while the service's threads go on logging. */
+  private def logs: Vector[String] = appender.synchronized(appender.list.asScala.toVector).map(e => e.getFormattedMessage + Option(e.getThrowableProxy).fold("")(t => " " + t.getMessage))
 
   /** Where each value was found: the database column, a log line, or an answer. */
   private def found(values: Vector[String]): Vector[String] =
-    val db = database()
+    val db    = database()
+    val lines = logs
     values.flatMap { v =>
       db.collect { case (where, text) if text.contains(v) => s"$v in $where" } ++
-        logs.filter(_.contains(v)).map(l => s"$v in the log: $l") ++
+        lines.filter(_.contains(v)).map(l => s"$v in the log: $l") ++
         answers.synchronized(answers.toVector).filter(_.contains(v)).map(a => s"$v in an answer: ${a.take(300)}")
     }
 

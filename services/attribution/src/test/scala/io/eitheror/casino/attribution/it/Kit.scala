@@ -177,8 +177,11 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
   def record(player: String): Record.State =
     components.forEventSourcedEntity(EntityId(player)).call(AttributionRecord.get).invoke()
 
-  /** Polls until `f` answers, as a view's or consumer's effect must be waited for. */
-  def eventually[A](what: String, within: FiniteDuration = 20.seconds)(f: => Option[A]): A =
+  /**
+   * Polls until `f` answers, as a view's or consumer's effect must be waited for. A minute: on a loaded CI
+   * runner a retry timer's attempt has taken longer than 20 s to land (PR #14's first run).
+   */
+  def eventually[A](what: String, within: FiniteDuration = 60.seconds)(f: => Option[A]): A =
     testKit.eventually(what, within)(f)
 
 /**
