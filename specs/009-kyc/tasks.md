@@ -166,7 +166,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 - [X] T039 [US6] Bind `features/kyc/retention.feature` in `T/features/RetentionFeatures.scala`
       (4 scenarios; "encrypted at rest" asserted as the installation's store, R17, and named for kind)
-- [ ] T040 [US6] `ServiceEndpoint`: `POST /erasure/players/{playerId}` (every version under
+- [X] T040 [US6] `ServiceEndpoint`: `POST /erasure/players/{playerId}` (every version under
       `subjects/<player>/` deleted, then `Erase`; a certificate; runs again on every call) and `GET
       /exports/players/{playerId}` (the records, no object) for `players`; an erased player's view refused
       `document_erased`

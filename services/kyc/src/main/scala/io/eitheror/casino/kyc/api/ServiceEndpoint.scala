@@ -5,7 +5,8 @@ import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.kyc.Json
 import io.eitheror.casino.kyc.Json.*
-import io.eitheror.casino.kyc.record.{DepositCheck, Gates, KycRecord}
+import io.eitheror.casino.kyc.documents.ObjectNames
+import io.eitheror.casino.kyc.record.{DepositCheck, Erase, Gates, KycRecord}
 
 import Answers.*
 
@@ -33,6 +34,25 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
           case _ => refusal(400, "invalid_body", "playerId and a whole, non-negative amount in minor units are required")
       }
     }
+  }
+
+  /**
+   * Erasure (FR-033, R15): every version of every object under the player's prefix deleted, then `Erase`,
+   * which blanks every personal value and keeps ids, categories, times, statuses and reason codes. It runs
+   * in full on every call, so an object written after an earlier call goes too. A store that cannot be
+   * reached answers no certificate. The export is the records without the objects.
+   */
+  withAcl(Routes.serviceOf("players")) {
+    post("/erasure/players/{playerId}") { (p: String) =>
+      ctx.store.deleteAll(ObjectNames.prefix(p)) match
+        case Left(_) => storageUnavailable
+        case Right(deleted) =>
+          val at = ctx.now()
+          val s  = ctx.record(p).call(KycRecord.erase).invoke(Erase(at)).state
+          ok(Json.obj("service" -> "kyc", "playerId" -> p, "objectsDeleted" -> deleted, "recordsKept" -> s.documents.size, "erasedAt" -> at.toString))
+    }
+
+    get("/exports/players/{playerId}") { (p: String) => ok(Render.exported(ctx.state(p))) }
   }
 
   /** A read: the play gate on the record as it stands. */

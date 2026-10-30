@@ -69,6 +69,25 @@ object Render:
     )
 
   /** The operator's read (FR-036): the player's, with each document's reviewer, and the deadline, source of funds, deposits, flags and ready time. */
+  /**
+   * The player's KYC part of `players`' export (R15, 008 R10): every document record, no object and no
+   * address to one, with the status, mode, source of funds, flags and deadline.
+   */
+  def exported(s: KycState): ObjectNode =
+    def record(d: Document) =
+      val o = document(d, latest = s.latest(d.category).contains(d))
+      Json.set(o, "contentType", d.contentType)
+      Json.set(o, "size", d.size)
+      o
+    Json.obj(
+      "documents" -> Json.arr(s.documents.map(record)*),
+      "status"    -> s.status.wire,
+      "mode"      -> s.mode.wire,
+      "sof"       -> s.sof.wire,
+      "flags"     -> Json.arr(s.flags.map(f => Json.obj("reason" -> f.reason.wire, "at" -> f.at.toString, "open" -> f.open))*),
+      "deadline"  -> s.deadline.map(_.at.toString).orNull
+    )
+
   def operator(s: KycState, policy: Policy, now: Instant): ObjectNode =
     val read = documents(s, policy, now, operator = true)
     Json.set(read, "playerId", s.playerId)
