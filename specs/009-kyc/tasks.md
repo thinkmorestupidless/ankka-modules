@@ -128,7 +128,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 - [X] T029 [US4] Fail first: bind `features/kyc/gates.feature` in `T/features/GatesFeatures.scala`
       (14 scenarios)
-- [ ] T030 [US4] `S/api/ServiceEndpoint.scala` at `/v1/casino/brands/<slug>/kyc`: `POST /deposit-check`
+- [X] T030 [US4] `S/api/ServiceEndpoint.scala` at `/v1/casino/brands/<slug>/kyc`: `POST /deposit-check`
       for `players` (the policy read from `PolicyEntity`, then `DepositCheck` on the record; answered 200,
       `{allowed}` or `{allowed:false, code, message, kycStatus?}`) and `GET /{playerId}/play-check` for
       `game-provider` (a read; `error` and `code` both `PLAY_BLOCKED_KYC`); a player with no record
