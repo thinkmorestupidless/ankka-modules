@@ -111,7 +111,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T024 [US2] `S/consumers/ProfileConsumer.scala` (`player_profile_updated` → `ProfileChanged`:
       presence, age date, whether a required field changed) with its `ConsumerTestKit` suite; no field's
       value kept
-- [ ] T025 [US2] `T/it/OperatorSuite.scala`: each role admitted or refused; another brand's operator
+- [X] T025 [US2] `T/it/OperatorSuite.scala`: each role admitted or refused; another brand's operator
       refused; a review, override, mode and required change each in `platform.audit` with the operator;
       the ready time set and cleared in manual mode
 

@@ -329,6 +329,12 @@ in 010. No secret.
   `Open` on a record that is not empty is refused `record_exists`, for the migration (spec 019) alone.
   The review's outcome, the mode and the operator's status are parsed by the endpoint, which answers
   the contract's 400s; the record's commands take them typed.
+- **T025, mode and required changes are audited (Trevor, 2026-10-30).** T025 asked for a mode change
+  and a required-category change each in `platform.audit` with the operator; contracts/facts.md listed
+  no action for either, so neither was audited unless it moved the status. Decision: two actions,
+  `kyc.mode_changed` (mode before and after) and `kyc.required_changed` (the categories before and
+  after), with the operator as actor, so every operator decision on how a player is verified is
+  attributable. contracts/facts.md gains both; no other spec names KYC's actions.
 
 ## Design finished
 

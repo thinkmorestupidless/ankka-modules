@@ -87,6 +87,14 @@ class PublishersSuite extends munit.FunSuite:
     assert(!support.toString.contains("posted in"))
     assertEquals(audit(DocumentRecorded("p-1", document, at)), None)
 
+  test("a mode change and a required change, each with the operator and the values before and after"):
+    val mode = audit(ModeChanged(Mode.Manual, Mode.Automatic, "op-3", at)).get
+    assertEquals((mode.action, mode.actorKind, mode.actorId, mode.changes),
+      ("kyc.mode_changed", "operator", "op-3", Vector(f.AuditChange("mode", Some("automatic"), Some("manual")))))
+    val required = audit(RequiredChanged(Vector(Category.IdentityFront, Category.ProofOfAddress), Vector.empty, "op-3", at)).get
+    assertEquals((required.action, required.actorId, required.changes),
+      ("kyc.required_changed", "op-3", Vector(f.AuditChange("categories", None, Some("identity_front,proof_of_address")))))
+
   test("a policy change names every field that changed, before and after, the brand its subject"):
     val r = Facts.policyAudit("goldvibe", 3, PolicyChanged(Policy.Default, Profiles.Ukgc, "op-1", at)).fact
     assertEquals((r.action, r.subjectKind, r.subjectId, r.actorId), ("kyc.policy_changed", "brand", "goldvibe", "op-1"))

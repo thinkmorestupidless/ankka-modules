@@ -28,14 +28,15 @@ Notes:
 ## Produced on `platform.audit`
 
 One record per status change, review, view issued, source of funds change, flag dismissal, operator
-upload and policy change (FR-037). The record carries:
+upload, mode change, required-category change and policy change (FR-037; the mode and required
+actions from research *Found during implementation*, T025). The record carries:
 
 | Field | Value |
 |---|---|
-| `action` | `kyc.status_changed`, `kyc.document_reviewed`, `kyc.view_issued`, `kyc.sof_changed`, `kyc.flag_dismissed`, `kyc.upload_by_operator`, `kyc.policy_changed` |
+| `action` | `kyc.status_changed`, `kyc.document_reviewed`, `kyc.view_issued`, `kyc.sof_changed`, `kyc.flag_dismissed`, `kyc.upload_by_operator`, `kyc.mode_changed`, `kyc.required_changed`, `kyc.policy_changed` |
 | `actorKind`, `actorId` | `system`, `player` or `operator`, with the id |
 | `subjectKind`, `subjectId` | `player` and the id, or `brand` and the slug |
-| `changes` | for a policy change, every field before and after; for a status change, the previous and new status |
+| `changes` | for a policy change, every field before and after; for a status change, the previous and new status; for a mode change, the mode; for a required change, the categories, comma-separated |
 | `reasonCode` | for a review, the reason code |
 
 The record names that a note or reason was given. It never carries the note's text.

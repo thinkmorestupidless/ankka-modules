@@ -2,7 +2,7 @@ package io.eitheror.casino.kyc.facts
 
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.kyc.policy.{Policy, PolicyChanged}
-import io.eitheror.casino.kyc.record.{Actor, KycEvent, Status}
+import io.eitheror.casino.kyc.record.{Actor, Category, KycEvent, Status}
 import io.eitheror.casino.kyc.record.KycEvent.*
 
 /**
@@ -58,7 +58,7 @@ object Facts:
       recordClass = if actor.kind == "system" then "system" else "operator", occurredAt = at)
 
   /**
-   * One record per status change, review, view issued, source of funds change, flag dismissal and
+   * One record per status change, review, view issued, source of funds change, flag dismissal, mode change, required change and
    * operator upload (FR-014, FR-037). A note or reason is named, never written.
    */
   def audit(brand: String, playerId: String, sequence: Long, event: KycEvent): Option[Published[f.AuditRecord]] =
@@ -75,6 +75,11 @@ object Facts:
       case e: SofCleared       => Some(("kyc.sof_changed", op(e.operatorId), Vector(change("sof", Some("unverified"), Some("cleared"))), None))
       case e: SofReset         => Some(("kyc.sof_changed", op(e.operatorId), Vector(change("sof", Some("cleared"), Some("unverified"))), None))
       case e: FlagDismissed    => Some(("kyc.flag_dismissed", op(e.operatorId), Vector(change("flag", Some(e.reason.wire), None), named("note")), None))
+      case e: ModeChanged =>
+        Some(("kyc.mode_changed", op(e.operatorId), Vector(change("mode", Some(e.previous.wire), Some(e.mode.wire))), None))
+      case e: RequiredChanged =>
+        def listed(cs: Vector[Category]) = Option.when(cs.nonEmpty)(cs.map(_.wire).mkString(","))
+        Some(("kyc.required_changed", op(e.operatorId), Vector(change("categories", listed(e.previous), listed(e.categories))), None))
       case e: DocumentRecorded if e.document.by.bySupport =>
         Some(("kyc.upload_by_operator", op(e.document.by.operatorId.get),
           Vector(change("document", None, Some(e.document.id)), change("category", None, Some(e.document.category.wire)), named("reason")), None))
