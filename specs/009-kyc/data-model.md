@@ -11,7 +11,7 @@ services here.
 | Field | Type | Notes |
 |---|---|---|
 | `documents` | `Vector[Document]` | in recorded order; "latest" per category is the last recorded (R4) |
-| `offers` | `Map[DocumentId, Offer]` | uploads offered and not yet confirmed; dropped an hour after they are offered |
+| `offers` | `Map[DocumentId, Offer]` | uploads offered and not yet confirmed; dropped an hour after they are offered, by the next command after its own check (a confirm of an expired offer is refused `upload_expired`, a later one `document_not_found`) |
 | `status` | `unverified \| pending \| verified \| rejected` | starts `unverified` |
 | `mode` | `automatic \| manual` | starts `automatic` |
 | `required` | `Vector[Category]` | required of this player (FR-017); empty when none |

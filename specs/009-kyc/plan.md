@@ -46,8 +46,8 @@ pins).
 **Storage**:
 
 - the service's own Postgres from ankka (journal, durable state, view, timers);
-- the service's own bucket (`provisionObjectStorage`, `exposeObjectStorage`; already in
-  `modules/core/module.json`).
+- the service's own bucket (`provisionObjectStorage`, already in `modules/core/module.json`;
+  `exposeObjectStorage`, added there, so the service is given `ANKKA_S3_PUBLIC_ENDPOINT` to sign against).
 
 There is no secret beyond the bucket credential the platform writes (R16).
 
@@ -71,6 +71,8 @@ core module's `kyc` entry declares.
 
 - one ankka service (`services/kyc/`);
 - one contract change;
+- the core manifest's `kyc` entry: `exposeObjectStorage`, and `KYC_MAX_UPLOAD_BYTES` from an optional
+  brand key `kyc-max-upload-bytes` (the spec's "the brand's setting");
 - the removal of `kyc-provider-key` from the core manifest, `contract/keys.md`, goldvibe's values and
   the modules tool's tests (R16);
 - requests to `players` on its own spec (*Elsewhere*).
@@ -80,7 +82,7 @@ core module's `kyc` entry declares.
 | Criterion | Target |
 |---|---|
 | SC-001 | the 61 rollup and handler cases and the route specs' KYC cases pass: `RollupSuite`, `KycRecordSuite` |
-| SC-002 | the Playwright KYC suites pass with base URLs changed: the routes keep the original's shapes behind the BFF (`contracts/wire.md`) |
+| SC-002 | the Playwright KYC suites, run once the frontends' base-URL move is made (as 008's T077); the routes' paths moved (`contracts/surface.md`), so that move maps them |
 | SC-003 | a gate decision under 50 ms at p99: one policy read and one record command or read, no call out |
 | SC-004 | after erasure, no version under `subjects/<player>/`; the records' non-personal fields unchanged |
 | SC-005 | every view link an event and an audit record: `ViewIssued` is the only path to a signature |

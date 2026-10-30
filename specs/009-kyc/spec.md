@@ -531,8 +531,9 @@ the player sees their own; other services read facts.
 - **FR-032**: Every document object, and any field extracted from one, MUST be personal data under
   the player (ankka 042). Document ids, categories, times, statuses, reason codes, operator ids and
   the lifetime deposit total MUST NOT be.
-- **FR-033**: The service MUST implement the erasure handler: it MUST call `erase(subject)` on its
-  bucket for the player's prefix (ankka 042 FR-026) and MUST run again on every later application, so
+- **FR-033**: The service MUST implement the erasure handler: it MUST delete every version of every
+  object under the player's prefix (through `erase(subject)` once ankka 042 FR-026 is in the runtime;
+  until then the service lists and deletes them itself, research R15) and MUST run again on every later application, so
   a late upload is removed. Erasure MUST NOT remove the document records' non-personal fields.
 - **FR-034**: Documents MUST be kept until the player's erasure applies; this service MUST NOT delete
   a document for any other reason. The hold a brand's licence requires on erasure is `players`'

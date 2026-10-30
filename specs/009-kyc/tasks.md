@@ -19,7 +19,10 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [ ] T002 Remove `kyc-provider-key` (R16): `KYC_PROVIDER_KEY` from the `kyc` entry of
       `modules/core/module.json`, its row in `contract/keys.md`, `goldvibe-kyc/API_KEY` from
       `brands/goldvibe/values.json`, and its uses in `tools/modules/src/test/` (fixtures,
-      `LocalApplySuite`'s "core held: missing kyc-provider-key"); `just test` green
+      `LocalApplySuite`'s "core held: missing kyc-provider-key"). In the same entry add `"exposeObjectStorage": true`
+      (R7: the signed links need `ANKKA_S3_PUBLIC_ENDPOINT`) and `KYC_MAX_UPLOAD_BYTES` from an optional key
+      `kyc-max-upload-bytes` (a row in `contract/keys.md`, not required; the service's default when unset);
+      `just test` green
 - [ ] T003 `ankka init` the service at `services/kyc/` in the shape of `services/responsible-gambling/`:
       `build.sbt` on `casino-contract`, ankka 0.13.0 and `software.amazon.awssdk:s3`; `service.json` with
       `provisionObjectStorage` and `exposeObjectStorage`; `docker-compose.yml` (Postgres on 5438 and an
@@ -169,7 +172,8 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       `document_erased`
 - [ ] T041 [US6] `T/it/ErasureSuite.scala`: after erasure no object under the prefix in any version the
       store keeps (SC-004); the records' non-personal fields unchanged; a late upload removed by the next
-      call; a store failure answers no certificate
+      call; a store failure answers no certificate; no other path deletes a recorded document's object
+      (FR-034: only `file_rejected` on an unconfirmed upload, and erasure)
 - [ ] T042 [US6] `T/it/LeakSuite.scala`: after `Erase`, no reason, note or age date in any state, fact,
       audit record, view row or log line; no `Personal` value in any log line or span at any time
 
@@ -210,6 +214,8 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [ ] T053 Close research: *Findings* with dates; the cross-spec follow-ups (008, 007, 014, 015, 019, the
       vendor's `objectStorageOrigins`) written; `just features` green; `just kyc-test` and `just kyc-it`
       green
+- [ ] T054 SC-002: the Playwright KYC suites (28–33, 50) against the kind brand, once the frontends'
+      base-URL move is made (008's T077 waits on the same move); until then named in research *Findings*
 
 ## Dependencies & Execution Order
 
@@ -218,7 +224,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
   policy); US5 after US3; US6 after US1; US7 after US2 and US4 (the queue counts reviews and flags).
 - T047 needs the user and the original's kind stack; T046 before it; T048 after it. Nothing else waits on
   it.
-- T050 is on another branch and independent; T052 after T049–T051.
+- T050 is on another branch and independent; T052 after T049–T051; T054 after T052 and the frontends' move.
 
 ## Parallel examples
 

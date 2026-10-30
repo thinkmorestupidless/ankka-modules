@@ -50,7 +50,7 @@ the user (stopping ankka for the original's stack, `tests/original/README.md`).
 
 **What the recordings do not reach** (`e2e-rg-kyc.md` *Not covered*): the queue and tab reads, the
 window, retention, the profile-change downgrade, the lowered-threshold flag, the legacy-identity rows.
-These are held to the 68 Go rollup cases (R4), the Scala route specs' cases, and the features.
+These are held to the 61 Go rollup and handler cases and `substrate_test.go`'s 7 (R4), the Scala route specs' cases, and the features.
 
 ## R3. One event sourced entity per player: `KycRecord`
 
@@ -311,3 +311,7 @@ in 010. No secret.
 ## Findings
 
 *Written at task time.*
+
+## Design finished
+
+2026-10-30: analyze reported nothing above LOW.
