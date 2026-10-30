@@ -84,9 +84,10 @@ final class Kit(base: Settings = Kit.Base):
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server),
     localServices = Map("players" -> players.address)
   )
-  KycService.started(timers, store)
+  KycService.started(timers, store, views)
 
   def limit: Long  = settings.maxUploadBytes
+  def views       = testKit.service.viewClient
   def components = testKit.componentClient
   def scheduler  = timers.timerScheduler
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
@@ -101,7 +102,7 @@ final class Kit(base: Settings = Kit.Base):
     players.reset()
     clockOffset = JDuration.ZERO
     KycRuntime.wire(settings, () => now())
-    KycService.started(timers, s)
+    KycService.started(timers, s, views)
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 

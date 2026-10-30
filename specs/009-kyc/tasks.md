@@ -136,7 +136,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T031 [US4] `S/consumers/DepositsConsumer.scala` (`deposit_confirmed` → `CountDeposit` with the
       policy; per currency, deduplicated by `depositOrdinal`; FR-038's large-deposit flag) with its
       `ConsumerTestKit` suite: a repeat changes nothing; a deposit for a player with no record creates it
-- [ ] T032 [US4] `S/queue/KycQueue.scala` (the view of data-model.md, no `Personal` column; the
+- [X] T032 [US4] `S/queue/KycQueue.scala` (the view of data-model.md, no `Personal` column; the
       `overThreshold` query) and `S/consumers/PolicyFlagger.scala` (`PolicyChanged` lowering a threshold →
       `FlagForPolicy` for each row) with their suites: each player flagged once (FR-022)
 - [ ] T033 [US4] `T/it/CallersSuite.scala`: each gate answer decoded with `players`' `Kyc.read` and

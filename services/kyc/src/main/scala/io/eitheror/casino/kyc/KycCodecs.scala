@@ -61,6 +61,8 @@ object KycRuntime:
   @volatile var timers: () => com.thinkmorestupidless.ankka.sdk.TimerScheduler =
     () => throw IllegalStateException("the timers are not wired: KycService sets KycRuntime.timers at start")
 
+  @volatile var queue: () => io.eitheror.casino.kyc.consumers.QueueSearch = () => io.eitheror.casino.kyc.consumers.QueueSearch.Unwired
+
   def wire(s: Settings, clock: () => Instant = () => Instant.now()): Unit =
     settings = s
     now = clock
