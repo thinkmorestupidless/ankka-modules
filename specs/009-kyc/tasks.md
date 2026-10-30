@@ -185,7 +185,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T044 [US7] `OperatorEndpoint`: `GET /queue?filter=&reason=&sort=` (`invalid_filter`; every count of
       contracts/routes.md; oldest first unless `sort=newest`), `POST /{playerId}/sof` and `POST
       /{playerId}/flags/{reason}/dismiss` (`flag_not_found`, `note_required`)
-- [ ] T045 [US7] `T/it/QueueSuite.scala`: each filter lists its players with the right count; a flag leaves
+- [X] T045 [US7] `T/it/QueueSuite.scala`: each filter lists its players with the right count; a flag leaves
       the queue on verification or dismissal, and a source of funds flag on clearance (FR-024)
 
 ## Phase 10: The recordings and parity
