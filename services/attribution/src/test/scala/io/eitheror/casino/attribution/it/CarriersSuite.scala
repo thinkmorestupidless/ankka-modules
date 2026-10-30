@@ -166,21 +166,24 @@ class CarriersSuite extends munit.FunSuite with LogCapturing:
     val sub      = subscribe()
     val (a, b)   = (bound(), bound())
     def tries    = (postsOf(a).size, postsOf(b).size)
-    kit.eventually("the first attempts")(Option.when(tries == (1, 1))(()))
+    // An attempt's next timer is set from the clock after its post; the clock moves only once both deliveries
+    // have recorded it, or the timer is set from the moved clock and is never due.
+    def recorded = (delivery(sub, a).attempts, delivery(sub, b).attempts)
+    kit.eventually("the first attempts")(Option.when(tries == (1, 1) && recorded == (1, 1))(()))
 
     for (minutes, n) <- Vector(1, 5, 15, 60, 60).zipWithIndex do
       kit.clock.moveBy(minutes.minutes - 10.seconds)
       Thread.sleep(1000)
       assertEquals(tries, (n + 1, n + 1), s"no attempt before $minutes minutes")
       kit.clock.moveBy(10.seconds)
-      kit.eventually(s"attempt ${n + 2}")(Option.when(tries == (n + 2, n + 2))(()))
+      kit.eventually(s"attempt ${n + 2}")(Option.when(tries == (n + 2, n + 2) && recorded == (n + 2, n + 2))(()))
 
     var hours = 0
     while delivery(sub, a).status != DeliveryRules.Undelivered || delivery(sub, b).status != DeliveryRules.Undelivered do
       assert(hours < 30, s"still not undelivered after $hours more hours: ${delivery(sub, a)}")
       val before = tries
       kit.clock.moveBy(1.hour)
-      kit.eventually("the hourly attempt")(Option.when(tries._1 > before._1 && tries._2 > before._2)(()))
+      kit.eventually("the hourly attempt")(Option.when(tries._1 > before._1 && tries._2 > before._2 && recorded == tries)(()))
       hours += 1
     assertEquals(delivery(sub, a).lastStatus, Some(503))
     assert(!kit.now.isBefore(delivery(sub, a).firstAttemptAt.get.plus(JDuration.ofHours(24))), "undelivered only after 24 hours")
