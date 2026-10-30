@@ -117,6 +117,17 @@ Run 2026-10-28 on kind-ankka (platform 0.14.2, rebuilt; goldvibe re-created):
   `GET /services/goldvibe`), after the core's services were applied and before `game-provider`.
 - Not run: `attribution` (PR #11 is not merged; section 8).
 
+Run 2026-10-30 on kind-ankka, after PRs #11 to #18 merged: `wallet`, `players`,
+`responsible-gambling` and `attribution` rebuilt from `main` (`76fce14`) on one contract, loaded,
+restarted (`responsible-gambling` first) and `attribution` resumed. All four Ready; ankka started
+every topic source: `players`' `money-activity` and `wallet-summary` and `attribution`'s
+`money-facts` on `money.transactions`, with no digest refused. Not run: attribution's GGR on kind.
+It tallies every player's facts, but a day's GGR is published only when the day closes
+(`CLOSE_GRACE` after it ends) and is read from a network's feed, which needs a network, a bound
+player, converted money made by wagering or conversion, and a machine token (spec 012's two
+control-plane workarounds on kind). The deposit-part rule is held by `features.FactsFeatures` and by
+the two converted-money parity recordings, which agree with the original.
+
 ## 8. `attribution` (PR #11's branch)
 
 ```bash
