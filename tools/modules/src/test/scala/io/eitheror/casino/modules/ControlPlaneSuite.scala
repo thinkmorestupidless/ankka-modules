@@ -32,6 +32,48 @@ class ControlPlaneSuite extends munit.FunSuite:
     assertEquals(HttpControlPlane.settings(Map("ANKKA_URL" -> "https://elsewhere"), home(config, Some(credentials)))._2, None)
   }
 
+  private val local = "https://api.127.0.0.1.sslip.io:8443"
+  private def saved(token: String, expiresAt: Long) =
+    s"""{"$local":{"issuer":"i","clientId":"ankka-cli","refreshToken":"r","accessToken":"$token","expiresAt":$expiresAt}}"""
+
+  test("the CLI's login is read before each call and renewed when within 30 s of expiring; a given token never is") {
+    val h     = home(config, Some(saved("old", 1000)))
+    val file  = h.resolve(".ankka").resolve("credentials.json")
+    var asked = 0
+    var at    = java.time.Instant.ofEpochSecond(900)
+    val bearer = Bearer.Login(file, local, () => { asked += 1; Files.writeString(file, saved(s"new-$asked", at.getEpochSecond + 300)): Unit }, () => at)
+    assertEquals((bearer.current(), asked), (Some("old"), 0))
+    at = java.time.Instant.ofEpochSecond(975)
+    assertEquals((bearer.current(), asked), (Some("new-1"), 1))
+    assertEquals((bearer.current(), asked), (Some("new-1"), 1), "a renewed token is not renewed again")
+    val (_, fixed, _) = HttpControlPlane.resolve(Map("ANKKA_TOKEN" -> "fixed"), h, () => fail("a given token is not renewed"))
+    assertEquals((fixed.current(), fixed.renew()), (Some("fixed"), false))
+  }
+
+  test("a 401 renews the login and asks once more; a second 401 is the error") {
+    val server = com.sun.net.httpserver.HttpServer.create(java.net.InetSocketAddress("127.0.0.1", 0), 0)
+    server.createContext("/", ex => {
+      val ok   = ex.getRequestHeaders.getFirst("Authorization") == "Bearer good"
+      val body = (if ok then "[]" else """{"status":401}""").getBytes
+      ex.sendResponseHeaders(if ok then 200 else 401, body.length.toLong)
+      ex.getResponseBody.write(body); ex.close()
+    })
+    server.start()
+    try
+      val url  = s"http://127.0.0.1:${server.getAddress.getPort}"
+      val dir  = Files.createTempDirectory("ankka-creds")
+      val file = dir.resolve("credentials.json")
+      def write(t: String) = Files.writeString(file, s"""{"$url":{"accessToken":"$t","expiresAt":${Long.MaxValue / 2000}}}""")
+      write("expired")
+      var renewed = 0
+      val cp = HttpControlPlane(url, Bearer.Login(file, url, () => { renewed += 1; write("good"): Unit }), None)
+      assertEquals((cp.services("goldvibe"), renewed), (Vector.empty, 1))
+      write("expired")
+      val stuck = HttpControlPlane(url, Bearer.Login(file, url, () => ()), None)
+      assertEquals(intercept[ControlPlaneError](stuck.services("goldvibe")).status, 401)
+    finally server.stop(0)
+  }
+
   test("a grant is sent as the control plane's target object and read back in the tool's form (spec 005 T072)") {
     val mapper = com.fasterxml.jackson.databind.ObjectMapper()
     val route  = mapper.readTree(GrantJson.request(GrantRequest("service:goldvibe/payouts", "route:psp-gateway POST /v1/payments/withdrawals")))

@@ -10,7 +10,7 @@ import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.file.{Files, Path, Paths}
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
-import java.time.Duration
+import java.time.{Duration, Instant}
 import javax.net.ssl.{SSLContext, TrustManagerFactory}
 import scala.collection.mutable
 
@@ -56,8 +56,60 @@ trait ControlPlane:
 final case class GrantRequest(principal: String, target: String)
 final case class GrantStatus(principal: String, target: String, effect: String)
 
+/**
+ * Where the tool's bearer comes from. A token given (`ANKKA_TOKEN`, the config's `token`) is used as it
+ * is. The CLI's login is read again before each call, and renewed through the CLI when it is within
+ * [[Bearer.Margin]] of expiring or the control plane refuses it: `apply` waits on Ready for longer than
+ * the access token lives (five minutes on dev-kind).
+ */
+trait Bearer:
+  def current(): Option[String]
+
+  /** Asks for a new token; true when the next [[current]] may differ. */
+  def renew(): Boolean
+
+object Bearer:
+  val Margin: Duration = Duration.ofSeconds(30)
+
+  final case class Given(token: Option[String]) extends Bearer:
+    def current(): Option[String] = token
+    def renew(): Boolean          = false
+
+  /**
+   * The access token `ankka login` saved in `credentials.json` under `url`, renewed by `refresh` (by
+   * default `ankka whoami`, which refreshes and saves it), so the CLI keeps owning its refresh token.
+   */
+  final class Login(credentials: Path, url: String, refresh: () => Unit = () => Bearer.whoami(),
+      now: () => Instant = () => Instant.now()) extends Bearer:
+    def current(): Option[String] =
+      if saved().exists((_, expires) => expires.exists(e => !now().plus(Margin).isBefore(e))) then refresh()
+      saved().map(_._1)
+
+    def renew(): Boolean = { refresh(); true }
+
+    private def saved(): Option[(String, Option[Instant])] =
+      if !Files.exists(credentials) then None
+      else
+        scala.util.Try {
+          val node = com.fasterxml.jackson.databind.ObjectMapper().readTree(Files.readString(credentials))
+          Option(node.get(url.stripSuffix("/"))).flatMap { n =>
+            Option(n.get("accessToken")).filter(_.isTextual).map(t =>
+              t.asText() -> Option(n.get("expiresAt")).filter(_.canConvertToLong).map(e => Instant.ofEpochSecond(e.asLong())))
+          }
+        }.toOption.flatten
+
+  /** `ankka whoami`, quietly: its output is not the tool's, and a failure leaves the saved token as it was. */
+  def whoami(): Unit =
+    scala.util.Try {
+      val p = ProcessBuilder("ankka", "whoami").redirectOutput(ProcessBuilder.Redirect.DISCARD)
+        .redirectError(ProcessBuilder.Redirect.DISCARD).start()
+      if !p.waitFor(30, java.util.concurrent.TimeUnit.SECONDS) then p.destroyForcibly(): Unit
+    }: Unit
+
 /** The HTTP control plane, configured as the `ankka` CLI is: flag, then `ANKKA_*`, then its config. */
-final class HttpControlPlane(url: String, token: Option[String], ca: Option[String]) extends ControlPlane:
+final class HttpControlPlane(url: String, bearer: Bearer, ca: Option[String]) extends ControlPlane:
+
+  def this(url: String, token: Option[String], ca: Option[String]) = this(url, Bearer.Given(token), ca)
 
   private val log = mutable.ArrayBuffer.empty[String]
   def calls: Vector[String] = log.toVector
@@ -70,10 +122,15 @@ final class HttpControlPlane(url: String, token: Option[String], ca: Option[Stri
   private def segment(value: String): String =
     java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20")
 
+  /** One call; a `401` renews the bearer and asks once more. */
   private def send(method: String, path: String, body: Option[String]): (Int, String) =
     log += s"$method $path"
+    val first = attempt(method, path, body)
+    if first._1 == 401 && bearer.renew() then attempt(method, path, body) else first
+
+  private def attempt(method: String, path: String, body: Option[String]): (Int, String) =
     val builder = HttpRequest.newBuilder(URI.create(url.stripSuffix("/") + path)).timeout(Duration.ofSeconds(60))
-    token.foreach(t => builder.header("Authorization", s"Bearer $t"))
+    bearer.current().foreach(t => builder.header("Authorization", s"Bearer $t"))
     body match
       case Some(b) => builder.header("Content-Type", "application/json").method(method, HttpRequest.BodyPublishers.ofString(b))
       case None    => builder.method(method, HttpRequest.BodyPublishers.noBody())
@@ -126,31 +183,30 @@ object HttpControlPlane:
 
   /** Configured as the `ankka` CLI is configured, so one `ankka login` serves both. */
   def fromEnvironment(): HttpControlPlane =
-    val (url, token, ca) = settings()
-    HttpControlPlane(url, token, ca)
+    val (url, bearer, ca) = resolve()
+    HttpControlPlane(url, bearer, ca)
 
   /**
    * The control plane's address, token and authority: `ANKKA_*`, then the CLI's `config.json`, and for the
    * token last the access token `ankka login` saved in `credentials.json` under that address.
    */
   def settings(env: Map[String, String] = sys.env, home: Path = Paths.get(sys.props("user.home"))): (String, Option[String], Option[String]) =
+    val (url, bearer, ca) = resolve(env, home, () => ())
+    (url, bearer.current(), ca)
+
+  /** As [[settings]], with the token as a [[Bearer]]: the CLI's login is renewed by `refresh`, a given token never. */
+  def resolve(env: Map[String, String] = sys.env, home: Path = Paths.get(sys.props("user.home")),
+      refresh: () => Unit = () => Bearer.whoami()): (String, Bearer, Option[String]) =
     val dir = home.resolve(".ankka")
     val saved = dir.resolve("config.json")
     val config =
       if Files.exists(saved) then scala.util.Try(ujsonLite(Files.readString(saved))).getOrElse(Map.empty)
       else Map.empty[String, String]
     val url = env.get("ANKKA_URL").orElse(config.get("url")).getOrElse("http://localhost:9000")
-    val token = env.get("ANKKA_TOKEN").orElse(config.get("token")).orElse(login(dir.resolve("credentials.json"), url))
-    (url, token, env.get("ANKKA_CA").orElse(config.get("ca")))
-
-  /** The access token the CLI's login saved for this control plane, if it saved one. */
-  private def login(credentials: Path, url: String): Option[String] =
-    if !Files.exists(credentials) then None
-    else
-      scala.util.Try {
-        val node = com.fasterxml.jackson.databind.ObjectMapper().readTree(Files.readString(credentials))
-        Option(node.get(url.stripSuffix("/"))).flatMap(n => Option(n.get("accessToken"))).filter(_.isTextual).map(_.asText())
-      }.toOption.flatten
+    val bearer = env.get("ANKKA_TOKEN").orElse(config.get("token")) match
+      case Some(t) => Bearer.Given(Some(t))
+      case None    => Bearer.Login(dir.resolve("credentials.json"), url, refresh)
+    (url, bearer, env.get("ANKKA_CA").orElse(config.get("ca")))
 
   /** The four string fields of the CLI's config file; nothing else is read from it. */
   private def ujsonLite(text: String): Map[String, String] =
