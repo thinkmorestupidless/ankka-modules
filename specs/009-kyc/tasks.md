@@ -102,7 +102,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 4: US2, an operator reviews and the status follows the rules (P1)
 
-- [ ] T022 [US2] Fail first: bind `features/kyc/review.feature` in `T/features/ReviewFeatures.scala`
+- [X] T022 [US2] Fail first: bind `features/kyc/review.feature` in `T/features/ReviewFeatures.scala`
       (21 scenarios)
 - [ ] T023 [US2] `OperatorEndpoint`: `GET /{playerId}` (the operator's read), `POST
       /{playerId}/reviews/{documentId}` (the reason code checked first, `document_already_reviewed`, 404

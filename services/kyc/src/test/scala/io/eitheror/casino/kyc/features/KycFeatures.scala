@@ -7,9 +7,11 @@ import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.kyc.Json
 import io.eitheror.casino.kyc.Json.*
 import io.eitheror.casino.kyc.it.{Kit, Reply, SharedKit}
-import io.eitheror.casino.kyc.record.{KycRecord, KycState, Outcome, ReviewDocument}
+import io.eitheror.casino.contract.personal.Personal
+import io.eitheror.casino.kyc.policy.{ApplyProfile, PolicyEntity}
+import io.eitheror.casino.kyc.record.{KycRecord, KycState, Outcome, ProfileChanged, ProfileField, ReviewDocument}
 
-import java.time.{Duration, Instant}
+import java.time.{Duration, Instant, LocalDate, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.duration.*
 
@@ -33,6 +35,7 @@ abstract class KycFeatures(file: String) extends GherkinSuite(s"../../features/k
     kit.reset()
     player = newPlayer()
     last = null
+    applyProfile("CURACAO")
 
   protected def newPlayer(): String = s"p-${UUID.randomUUID().toString.take(8)}"
 
@@ -112,6 +115,62 @@ abstract class KycFeatures(file: String) extends GherkinSuite(s"../../features/k
     val answer = kit.components.forEventSourcedEntity(EntityId(player)).call(KycRecord.review)
       .invoke(ReviewDocument(documentId, outcome, reason, "op-1", Vector.empty, kit.now()))
     assertEquals(answer.refusal, None)
+
+  // ── the operator's routes ───────────────────────────────────────────────────────────────────────
+
+  protected def operatorRead(of: String = player): JsonNode =
+    val r = kit.request("GET", kit.operatorPath(s"/$of"), None, kit.asOperator())
+    assertEquals(r.status, 200, r.text)
+    r.json
+
+  protected def approve(documentId: String): Reply =
+    last = kit.json("POST", kit.operatorPath(s"/$player/reviews/$documentId"), json("outcome" -> "approved"), kit.asOperator())
+    last
+
+  protected def reject(documentId: String, code: String): Reply =
+    last = kit.json("POST", kit.operatorPath(s"/$player/reviews/$documentId"), json("outcome" -> "rejected", "reasonCode" -> code), kit.asOperator())
+    last
+
+  protected def setMode(mode: String): Reply =
+    last = kit.json("PUT", kit.operatorPath(s"/$player/mode"), json("mode" -> mode), kit.asOperator())
+    last
+
+  protected def setStatus(status: String): Reply =
+    last = kit.json("PUT", kit.operatorPath(s"/$player/status"), json("status" -> status), kit.asOperator())
+    last
+
+  protected def setRequired(categories: String*): Reply =
+    last = kit.json("PUT", kit.operatorPath(s"/$player/required"), json("categories" -> categories.toVector), kit.asOperator())
+    last
+
+  protected def overrideStatus(status: String, reason: String = "checked by the compliance team"): Reply =
+    last = kit.json("POST", kit.operatorPath(s"/$player/override"), json("status" -> status, "reason" -> reason), kit.asOperator())
+    last
+
+  protected def queue(filter: String): JsonNode =
+    val r = kit.request("GET", kit.operatorPath(s"/queue?filter=$filter"), None, kit.asOperator())
+    assertEquals(r.status, 200, r.text)
+    r.json
+
+  // ── the brand's policy and the player's profile, as the scene ───────────────────────────────────
+
+  protected def applyProfile(name: String): Unit =
+    val a = kit.components.forEventSourcedEntity(EntityId(kit.slug)).call(PolicyEntity.applyProfile)
+      .invoke(ApplyProfile(Some(name), "op-setup", kit.now()))
+    assertEquals(a.refusal, None)
+
+  protected def policyRequired = kit.components.forEventSourcedEntity(EntityId(kit.slug)).call(PolicyEntity.get).invoke().required
+
+  /** The profile as players' facts would leave it: every field present and an adult, or `missing` absent, or `adultFrom` as given. */
+  protected def profile(missing: Set[ProfileField] = Set.empty, adultFrom: LocalDate = LocalDate.of(1990, 1, 1)): Unit =
+    val present = ProfileField.values.toSet -- missing
+    val a = kit.components.forEventSourcedEntity(EntityId(player)).call(KycRecord.profileChanged)
+      .invoke(ProfileChanged(player, present, Option.when(present(ProfileField.DateOfBirth))(Personal(adultFrom)), false, policyRequired, kit.now()))
+    assertEquals(a.refusal, None)
+
+  protected def today: LocalDate = LocalDate.ofInstant(kit.now(), ZoneOffset.UTC)
+
+  protected def status: String = state().status.wire
 
   protected def near(a: Instant, b: Instant, within: Duration = Duration.ofMinutes(1)): Boolean =
     Duration.between(a, b).abs.compareTo(within) <= 0
