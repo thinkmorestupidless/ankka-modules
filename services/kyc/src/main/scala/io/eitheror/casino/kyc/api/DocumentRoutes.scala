@@ -23,9 +23,11 @@ final class DocumentRoutes(ctx: Ctx):
   def upload(playerId: String, body: JsonNode, by: Uploader): Reply =
     val documentId = UUID.randomUUID().toString
     val at         = ctx.now()
+    val category   = body.textOr("category", "")
     val answer = ctx.record(playerId).call(KycRecord.requestUpload)
-      .invoke(RequestUpload(playerId, body.textOr("category", ""), body.textOr("contentType", ""), by, documentId, at))
+      .invoke(RequestUpload(playerId, category, body.textOr("contentType", ""), by, documentId, at))
     answer.refusal match
+      case Some(r) if r.code == "invalid_category" => refused(r.copy(fields = Vector(category)))
       case Some(r) => refused(r)
       case None =>
         val offer = answer.state.offers(documentId)

@@ -95,7 +95,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       role check (FR-002, R14: `brand_admin`, `brand_compliance`, `compliance_officer`, `resource_admin`,
       `platform_admin`; any other `forbidden`): `POST /{playerId}/uploads` (with `reason`,
       `reason_required`), `POST /{playerId}/documents`, `GET /{playerId}/views/{documentId}`
-- [ ] T021 [US1] `T/it/DocumentsSuite.scala` against the store container: an upload through the signed
+- [X] T021 [US1] `T/it/DocumentsSuite.scala` against the store container: an upload through the signed
       PUT, confirmed; a category locked; `other` never locked; a replacement for a rejected document; a
       view link for fifteen minutes, its `ViewIssued` and its audit record (SC-005); another player's
       document refused; an id never offered `document_not_found`; an expired offer `upload_expired`
