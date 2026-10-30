@@ -121,7 +121,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T027 [US3] `OperatorEndpoint`: `GET /policy` (every field, `null` for none, `isDefault`), `PUT
       /policy` (`invalid_policy` naming the field, `currency_required`), `POST /policy/profile`
       (`profile_required`, `unknown_profile` with `knownProfiles`)
-- [ ] T028 [US3] `S/api/PublicEndpoint.scala` at `/v1/casino/kyc-requirements/<slug>`: `GET /` answers
+- [X] T028 [US3] `S/api/PublicEndpoint.scala` at `/v1/casino/kyc-requirements/<slug>`: `GET /` answers
       `{requiredDocTypes}` and nothing else (FR-029)
 
 ## Phase 6: US4, a deposit or a launch is allowed or refused (P1)

@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
-import io.eitheror.casino.kyc.api.{Ctx, OperatorEndpoint, PlayerEndpoint}
+import io.eitheror.casino.kyc.api.{Ctx, OperatorEndpoint, PlayerEndpoint, PublicEndpoint}
 import io.eitheror.casino.kyc.consumers.ProfileConsumer
 import io.eitheror.casino.kyc.documents.Store
 import io.eitheror.casino.kyc.facts.{AuditPublisher, KycPublisher, PolicyAuditPublisher}
@@ -26,7 +26,7 @@ object KycService:
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
     def ctx(c: EndpointClients) = Ctx(authenticate, c)
-    Seq[Ctx => HttpEndpoint](PlayerEndpoint(_), OperatorEndpoint(_)).map(e => (c: EndpointClients) => e(ctx(c)))
+    Seq[Ctx => HttpEndpoint](PlayerEndpoint(_), PublicEndpoint(_), OperatorEndpoint(_)).map(e => (c: EndpointClients) => e(ctx(c)))
 
   /** Once the service has started: the timers and the store reachable from the components and endpoints. */
   def started(timers: TimerRuntime, store: Store): Unit =
