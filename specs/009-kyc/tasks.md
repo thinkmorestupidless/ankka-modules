@@ -23,15 +23,15 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       (R7: the signed links need `ANKKA_S3_PUBLIC_ENDPOINT`) and `KYC_MAX_UPLOAD_BYTES` from an optional key
       `kyc-max-upload-bytes` (a row in `contract/keys.md`, not required; the service's default when unset);
       `just test` green
-- [ ] T003 `ankka init` the service at `services/kyc/` in the shape of `services/responsible-gambling/`:
+- [X] T003 `ankka init` the service at `services/kyc/` in the shape of `services/responsible-gambling/`:
       `build.sbt` on `casino-contract`, ankka 0.13.0 and `software.amazon.awssdk:s3`; `service.json` with
       `provisionObjectStorage` and `exposeObjectStorage`; `docker-compose.yml` (Postgres on 5438 and an
       S3-compatible store); `src/main/resources/application.conf`. Move the `kyc` row of `contract/keys.md`
       out of "Not yet built" (`ModuleManifestSuite` enforces it once `services/kyc/build.sbt` exists)
-- [ ] T004 [P] `S/Settings.scala` (brand, project, issuers from the env the core module renders;
+- [X] T004 [P] `S/Settings.scala` (brand, project, issuers from the env the core module renders;
       `KYC_MAX_UPLOAD_BYTES`, default 5,242,880; the `ANKKA_S3_*` variables) and `S/KycCodecs.scala` (the
       stored-type serializer helper as `RgCodecs`)
-- [ ] T005 [P] `justfile`: `kyc-test`, `kyc-it`, `kyc-run` (port 9012, R18); `.github/workflows/ci.yml`:
+- [X] T005 [P] `justfile`: `kyc-test`, `kyc-it`, `kyc-run` (port 9012, R18); `.github/workflows/ci.yml`:
       the service's filter, output and job
 
 ## Phase 2: Foundational

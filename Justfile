@@ -141,6 +141,33 @@ rg-run brand="goldvibe":
       ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
       sbt -Dankka.local-services.players=http://127.0.0.1:9005 run
 
+# kyc's suites (spec 009; Docker for the integration kit: Postgres and Garage). The contract is published first.
+kyc-test:
+    sbt contract/publishLocal
+    cd services/kyc && sbt test
+
+# kyc's integration, parity and feature suites only (Docker).
+kyc-it:
+    cd services/kyc && sbt "testOnly io.eitheror.casino.kyc.it.* io.eitheror.casino.kyc.port.* io.eitheror.casino.kyc.features.*"
+
+# kyc, locally on 9012 as brand goldvibe, where players' local run looks for it (`sbt schema && docker
+# compose up -d` first, in services/kyc); the bucket and its key from local/bucket.sh; players at 9005 for
+# the window's suspend. Tokens are verified against the kind installation's casino Keycloak.
+kyc-run brand="goldvibe":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd services/kyc
+    set -a; eval "$(./local/bucket.sh)"; set +a
+    CASINO_BRAND={{brand}} ANKKA_HTTP_PORT=9012 ANKKA_DB_PORT=5438 \
+      ANKKA_AUTH_ISSUERS=player,staff ANKKA_AUTH_REALM=casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}}/protocol/openid-connect/certs \
+      ANKKA_AUTH_PLAYER_AUDIENCE=casino-{{brand}} ANKKA_AUTH_PLAYER_CA=$HOME/.ankka/local-ca.crt \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror/protocol/openid-connect/certs \
+      ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
+      sbt -Dankka.local-services.players=http://127.0.0.1:9005 run
+
 # players' suites (spec 008; Docker for the integration kit). The contract is published first.
 players-test:
     sbt contract/publishLocal
