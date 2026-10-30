@@ -126,7 +126,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 6: US4, a deposit or a launch is allowed or refused (P1)
 
-- [ ] T029 [US4] Fail first: bind `features/kyc/gates.feature` in `T/features/GatesFeatures.scala`
+- [X] T029 [US4] Fail first: bind `features/kyc/gates.feature` in `T/features/GatesFeatures.scala`
       (14 scenarios)
 - [ ] T030 [US4] `S/api/ServiceEndpoint.scala` at `/v1/casino/brands/<slug>/kyc`: `POST /deposit-check`
       for `players` (the policy read from `PolicyEntity`, then `DepositCheck` on the record; answered 200,
