@@ -50,7 +50,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       messages of research R5 verbatim; a missing currency treated as another currency) and
       `T/record/GatesSuite.scala`: every row, exactly at the threshold allowed, a minor unit over refused,
       `DEPOSIT_BLOCKED_KYC` before the currency rule
-- [ ] T010 [P] `S/documents/ObjectNames.scala` (`subjects/<player>/kyc/<category>-<millis>.<ext>`, the three
+- [X] T010 [P] `S/documents/ObjectNames.scala` (`subjects/<player>/kyc/<category>-<millis>.<ext>`, the three
       content types of R18) with its suite: nothing but the player id and category in a name
 - [ ] T011 `S/record/Model.scala`: state, `Document`, `Offer`, `ProfileFacts`, `Flag`, `Category`,
       `ReasonCode`, events, commands and refusals (data-model.md), `Personal` reasons, notes and age date
