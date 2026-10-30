@@ -1,6 +1,8 @@
 package io.eitheror.casino.kyc.record
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import io.eitheror.casino.contract.personal.Personal
+import io.eitheror.casino.kyc.KycCodecs
 
 import java.time.LocalDate
 import scala.util.Try
@@ -15,6 +17,10 @@ enum ProfileField(val wire: String):
   case City         extends ProfileField("city")
   case PostalCode   extends ProfileField("postalCode")
   case Country      extends ProfileField("country")
+
+object ProfileField:
+  def of(wire: String): Option[ProfileField] = values.find(_.wire == wire)
+  given JsonValueCodec[ProfileField]          = KycCodecs.wire(values, _.wire)
 
 /** What the record keeps of a profile (R11): which fields are present, and the day the player turns eighteen. */
 final case class Presence(present: Set[ProfileField], adultFrom: Option[Personal[LocalDate]])

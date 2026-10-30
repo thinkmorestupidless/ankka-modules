@@ -1,10 +1,11 @@
 package io.eitheror.casino.kyc
 
-import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec, JsonWriter}
 import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
 import com.thinkmorestupidless.ankka.core.Serializer
+import io.eitheror.casino.contract.personal.Personal
 
-import java.time.Instant
+import java.time.{Instant, LocalDate}
 
 /**
  * The codec settings for this service's stored types, in one place, as responsible-gambling's: absent,
@@ -27,6 +28,25 @@ object KycCodecs:
     )
 
   inline def serializer[A](name: String): Serializer[A] = Serializer.json[A](s"kyc.$name")(using stored[A])
+
+  /**
+   * An enum written as its wire name, never its Scala name, so a renamed case does not break the
+   * journal. An unknown name fails the read.
+   */
+  def wire[E](values: Array[E], name: E => String): JsonValueCodec[E] =
+    val byName = values.map(e => name(e) -> e).toMap
+    new JsonValueCodec[E]:
+      def decodeValue(in: JsonReader, default: E): E =
+        val s = in.readString(null)
+        byName.getOrElse(s, in.decodeError(s"unknown value '$s'"))
+      def encodeValue(x: E, out: JsonWriter): Unit = out.writeVal(name(x))
+      def nullValue: E                             = null.asInstanceOf[E]
+
+  /** The day a player turns eighteen (R11): personal, written as an ISO date. */
+  given adultDate: JsonValueCodec[Personal[LocalDate]] with
+    def decodeValue(in: JsonReader, default: Personal[LocalDate]): Personal[LocalDate] = Personal(LocalDate.parse(in.readString(null)))
+    def encodeValue(x: Personal[LocalDate], out: JsonWriter): Unit                    = out.writeVal(x.reveal.toString)
+    def nullValue: Personal[LocalDate]                                                = null.asInstanceOf[Personal[LocalDate]]
 
 /**
  * What the components and the endpoints share that is the service's: the settings, the clock, the store

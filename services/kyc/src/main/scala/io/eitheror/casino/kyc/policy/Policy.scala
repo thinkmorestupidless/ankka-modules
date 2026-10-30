@@ -1,5 +1,7 @@
 package io.eitheror.casino.kyc.policy
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import io.eitheror.casino.kyc.KycCodecs
 import io.eitheror.casino.kyc.record.Category
 
 /** What a gate asks of the account before a deposit or play (FR-019). */
@@ -9,6 +11,7 @@ enum Gate(val wire: String):
 
 object Gate:
   def of(wire: String): Option[Gate] = values.find(_.wire == wire)
+  given JsonValueCodec[Gate]          = KycCodecs.wire(values, _.wire)
 
 /** The licence a policy was set from; `CUSTOM` once any field is changed by hand. */
 enum Profile(val wire: String):
@@ -16,6 +19,9 @@ enum Profile(val wire: String):
   case Mga     extends Profile("MGA")
   case Curacao extends Profile("CURACAO")
   case Custom  extends Profile("CUSTOM")
+
+object Profile:
+  given JsonValueCodec[Profile] = KycCodecs.wire(values, _.wire)
 
 /**
  * A brand's KYC policy (data-model.md, R9). Thresholds are minor units of `currency`, the brand's one
