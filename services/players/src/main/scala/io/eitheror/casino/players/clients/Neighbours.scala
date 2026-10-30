@@ -12,9 +12,9 @@ enum KycDecision:
   case Allowed
   case Refused(code: String, message: String)
 
-/** `kyc` within the project, under `/v1/casino/brands/<brand>/kyc`. */
+/** `kyc` within the project, under `/v1/casino/brands/<brand>/kyc`; the currency is the deposit's (009 R5). */
 trait Kyc:
-  def depositCheck(playerId: String, amount: Long, bound: Duration): Raced[KycDecision]
+  def depositCheck(playerId: String, amount: Long, currency: String, bound: Duration): Raced[KycDecision]
 
 object Kyc:
   val Service = "kyc"
@@ -22,8 +22,8 @@ object Kyc:
   def http(services: ServiceClients, brand: String): Kyc = new Kyc:
     import Neighbour.{bounded, call}
     private val target = Target(Service, s"/v1/casino/brands/$brand/kyc")
-    def depositCheck(playerId: String, amount: Long, bound: Duration): Raced[KycDecision] =
-      bounded(Service, bound)(call(services, target, "POST", "/deposit-check", Some(Json.obj("playerId" -> playerId, "amount" -> amount))))(read)
+    def depositCheck(playerId: String, amount: Long, currency: String, bound: Duration): Raced[KycDecision] =
+      bounded(Service, bound)(call(services, target, "POST", "/deposit-check", Some(Json.obj("playerId" -> playerId, "amount" -> amount, "currency" -> currency))))(read)
 
   def read(r: Reply): Either[String, KycDecision] =
     if !r.ok then Left(s"status ${r.status}")

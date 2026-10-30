@@ -202,7 +202,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 - [X] T049 [P] `services/kyc/README.md` (purpose, routes by endpoint with a pointer to contracts/routes.md,
       settings, the bucket, encryption by store (R17), the `just` recipes, what is verified where)
-- [ ] T050 [P] On 008's branch (`008-players`): the deposit check sends `currency` (R5); the suspend
+- [X] T050 [P] On 008's branch (`008-players`): the deposit check sends `currency` (R5); the suspend
       honours the deadline, idempotent under player and deadline (R10); `ErasureWorkflow.targets` and the
       export gain `kyc` (R15); `FakeKyc` answers the shapes of contracts/routes.md; its suites green
 - [ ] T051 Quickstart §6: the service run locally on 9012, the two gates answered by `curl`, an upload

@@ -59,11 +59,16 @@ final class OperatorStatusRoutes(ctx: Ctx):
       suspended(player(playerId).call(PlayerEntity.suspend).invoke(Suspend(reason, Some(p.subject), now())), playerId)
     }
 
-  /** `kyc`'s suspension at the end of its window (009 FR-025): a repeat under the same deadline is the first. */
+  /**
+   * `kyc`'s suspension at the end of its window (009 FR-025, R10): a repeat under the same deadline is the
+   * first, even after an operator reinstated the player.
+   */
   def suspendByKyc(playerId: String, text: String): Reply =
     known(playerId) { _ =>
-      val reason = body(text).text("reason").map(_.trim).filter(_.nonEmpty).getOrElse("kyc_window_expired")
-      suspended(player(playerId).call(PlayerEntity.suspend).invoke(Suspend(reason, Some("kyc"), now())), playerId)
+      val b        = body(text)
+      val reason   = b.text("reason").map(_.trim).filter(_.nonEmpty).getOrElse("kyc_window_expired")
+      val deadline = b.text("deadline").flatMap(t => Try(Instant.parse(t)).toOption)
+      suspended(player(playerId).call(PlayerEntity.suspend).invoke(Suspend(reason, Some("kyc"), now(), deadline)), playerId)
     }
 
   private def suspended(d: Done, playerId: String): Reply =

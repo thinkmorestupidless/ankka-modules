@@ -84,6 +84,3 @@ integration, parity and feature suites.
   note, the age date) is gone from the state, every fact, the audit, every view row and every answer after
   erasure, but stays in the event journal until ankka 042's `Personal` encrypts it under the player
   (`LeakSuite` names the journal as the one place allowed).
-- **The callers.** `players` (008) sends no `currency` on the deposit check yet, so under a policy with
-  a threshold every deposit through it is refused `DEPOSIT_BLOCKED_KYC_CURRENCY`; its suspend route, its
-  erasure and its export of `kyc` are 008's follow-up.
