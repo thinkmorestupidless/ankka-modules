@@ -90,7 +90,7 @@ are under `features/responsible-gambling/` and `features/kyc/`.
 | `TestScenario28_KYCReview_AutomaticModeOnlyIdentityApprovedStaysPending` | review · in automatic mode an account with only the identity front approved stays pending | run |
 | `TestScenario28_KYCReview_RejectedLatestDocumentRejectsAccount` | review · a rejected latest document in any category makes the account rejected… | run |
 | `TestScenario28_KYCReview_RejectedOtherDoesNotRejectAccount` | review · a rejected document in the category other does not reject the account | run |
-| `TestScenario28_KYCReview_IncompleteProfileStaysUnverified` | review · (outline) every required category approved but an incomplete profile stays unverified… | run (missing-field row) |
+| `TestScenario28_KYCReview_IncompleteProfileStaysPending` | review · (outline) every required category approved but an incomplete profile is pending… | run (missing-field row) |
 | `TestScenario28_KYCReview_ManualModeApprovingChangesNothing` | review · in manual mode approving every required document changes nothing | run |
 | `TestScenario28_KYCReview_ManualModeOperatorSetsVerified` | review · in manual mode the operator setting the account verified verifies it at once | run |
 | `TestScenario28_KYCReview_SetVerifiedWithIncompleteProfileRefused` | review · setting an account verified while the profile is incomplete is refused… | run |
