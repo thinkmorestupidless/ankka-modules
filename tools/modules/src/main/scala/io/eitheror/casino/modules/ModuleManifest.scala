@@ -44,6 +44,7 @@ object ModuleManifest:
     def image: String         = descriptor.path("image").asText()
     def expose: Boolean       = descriptor.path("expose").asBoolean(false)
     def objectStorage: Boolean = descriptor.path("provisionObjectStorage").asBoolean(false)
+    def exposeObjectStorage: Boolean = descriptor.path("exposeObjectStorage").asBoolean(false)
     def env: Vector[EnvEntry] =
       descriptor.path("env").elements().asScala.toVector.map { e =>
         EnvEntry(

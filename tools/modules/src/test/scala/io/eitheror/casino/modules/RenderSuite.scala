@@ -59,7 +59,8 @@ class RenderSuite extends munit.FunSuite:
 
   /** A descriptor with spec 021's listed additions taken out, and spec 001's dropped switch taken out of the other. */
   private def comparable(d: ServiceDescriptor, dropped: Set[String]): ServiceDescriptor =
-    d.copy(service = d.service.copy(env = d.service.env.filterNot(e => dropped.contains(e.name))))
+    // kyc's bucket is exposed for its signed URLs (spec 009 R7), which spec 001 did not render.
+    d.copy(service = d.service.copy(env = d.service.env.filterNot(e => dropped.contains(e.name)), exposeObjectStorage = false))
 
   private def sameAsSpec001(rendered: Vector[ServiceDescriptor]): Unit =
     val byName = spec001.map(d => d.name -> d).toMap
@@ -81,6 +82,13 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(p.services.map(_.name).toSet, spec001.map(_.name).toSet -- Set("engagement", "reporting", "support-agent"))
     sameAsSpec001(p.services)
     assertEquals(p.modules.flatMap(_.exposed).toSet, p.services.map(_.name).toSet, "spec 001 exposed every brand service")
+  }
+
+  test("kyc's bucket is provisioned and exposed, so the platform gives it ANKKA_S3_PUBLIC_ENDPOINT for signed URLs (spec 009 R7)") {
+    val p = plan(Vector("casino"))
+    val exposed = p.services.filter(_.service.exposeObjectStorage).map(_.name)
+    assertEquals(exposed, Vector("kyc"))
+    assert(p.services.find(_.name == "kyc").get.service.provisionObjectStorage)
   }
 
   test("the identity values are spec 001's, and a secret key is a secretKeyRef to tenant-values, never a value") {

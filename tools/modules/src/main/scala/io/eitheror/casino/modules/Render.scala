@@ -296,6 +296,7 @@ object BrandRender:
         hosting = hosting,
         protocol = Option(d.get("protocol")).map(_.asText()),
         resources = ServiceResources(instanceType = Option(d.path("resources").get("instanceType")).map(_.asText()).getOrElse("small")),
-        provisionObjectStorage = s.objectStorage
+        provisionObjectStorage = s.objectStorage,
+        exposeObjectStorage = s.exposeObjectStorage
       )
     )
