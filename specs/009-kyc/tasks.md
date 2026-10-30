@@ -40,7 +40,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       FR-013's legacy identity) and `T/record/RollupSuite.scala`: the 61 cases of `rollup_test.go` and
       `handler_test.go` as rows with the same inputs and outcomes (SC-001), written first and failing
       first; `StaleTimestampIsNoOp` restated as "a command that changes no input derives nothing"
-- [ ] T007 [P] `S/record/Completeness.scala` (pure: the eight fields, the age date checked against today,
+- [X] T007 [P] `S/record/Completeness.scala` (pure: the eight fields, the age date checked against today,
       the missing fields named, R11) with `T/record/CompletenessSuite.scala`: a player who turns eighteen
       completes with no new fact
 - [ ] T008 [P] `S/policy/Policy.scala` and `S/policy/Profiles.scala` (pure: research R9's table, the
