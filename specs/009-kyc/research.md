@@ -312,6 +312,16 @@ in 010. No secret.
 
 *Written at task time.*
 
+- **T006, the 61 Go cases.** 53 are ported as rows named after their Go tests: 47 in `RollupSuite` (23 of
+  `rollup_test.go`, 24 of `handler_test.go`) and 6 in `CompletenessSuite` (the profile rows of
+  `rollup_test.go`). 8 test the original's wire and apply to no typed state: `ParamsDecodeNumericProfileValues`,
+  `ParseKycRequiredDocTypesShapes`, `ParseKycDocuments`, `ParseKycDocumentsEmptyOrMalformed`,
+  `ParseRequiredDocTypesShapes`, `InvalidParams`, `MissingRequiredParams` and `NumericProfileValuesFromRuntime`.
+  `AnyDocTypeRejectionForcesRejected` rejects a `selfie`, which is no category here; a category not
+  required (`payment_method`) stands in. Where the original rewrote an unchanged status, the row expects
+  nothing (FR-014). The categories, statuses, modes and outcomes went into `record/Model.scala` with the
+  port; T011 adds the rest of the model there.
+
 ## Design finished
 
 2026-10-30: analyze reported nothing above LOW.

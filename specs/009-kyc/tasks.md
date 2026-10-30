@@ -36,7 +36,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 2: Foundational
 
-- [ ] T006 [P] `S/record/Rollup.scala` (pure port of `rollup.go` and `handler.go`, R4; the order of FR-012;
+- [X] T006 [P] `S/record/Rollup.scala` (pure port of `rollup.go` and `handler.go`, R4; the order of FR-012;
       FR-013's legacy identity) and `T/record/RollupSuite.scala`: the 61 cases of `rollup_test.go` and
       `handler_test.go` as rows with the same inputs and outcomes (SC-001), written first and failing
       first; `StaleTimestampIsNoOp` restated as "a command that changes no input derives nothing"
