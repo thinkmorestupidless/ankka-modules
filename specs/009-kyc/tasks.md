@@ -139,7 +139,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T032 [US4] `S/queue/KycQueue.scala` (the view of data-model.md, no `Personal` column; the
       `overThreshold` query) and `S/consumers/PolicyFlagger.scala` (`PolicyChanged` lowering a threshold →
       `FlagForPolicy` for each row) with their suites: each player flagged once (FR-022)
-- [ ] T033 [US4] `T/it/CallersSuite.scala`: each gate answer decoded with `players`' `Kyc.read` and
+- [X] T033 [US4] `T/it/CallersSuite.scala`: each gate answer decoded with `players`' `Kyc.read` and
       `game-provider`'s reading of the play check (decoders copied from
       `services/players/.../clients/Neighbours.scala` and `services/game-provider/.../clients/`), so a shape
       drift fails here; a refusal is never read as an outage
