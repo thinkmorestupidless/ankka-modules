@@ -50,6 +50,24 @@ object Render:
       "missingProfileFields" -> Json.arr(s.missingProfileFields(KycRecord.today(now)).map(_.wire)*)
     )
 
+  /**
+   * The policy in the original's field names (contracts/wire.md), every field with `null` for none, and
+   * `isDefault`. The KYC currency is this service's own (Clarifications 2026-10-30).
+   */
+  def policy(p: Policy): ObjectNode =
+    Json.obj(
+      "depositGate"                -> p.depositGate.wire,
+      "playGate"                   -> p.playGate.wire,
+      "kycCurrency"                -> p.currency.orNull,
+      "depositThresholdMinorUnits" -> p.depositThreshold.map(Long.box).orNull,
+      "sofThresholdMinorUnits"     -> p.sofThreshold.map(Long.box).orNull,
+      "kycWindowDays"              -> p.windowDays.map(Int.box).orNull,
+      "requiredDocTypes"           -> p.required.map(_.wire),
+      "autoSuspendOnWindowExpiry"  -> p.suspendOnExpiry,
+      "licenceProfile"             -> p.profile.wire,
+      "isDefault"                  -> p.isDefault
+    )
+
   /** The operator's read (FR-036): the player's, with each document's reviewer, and the deadline, source of funds, deposits, flags and ready time. */
   def operator(s: KycState, policy: Policy, now: Instant): ObjectNode =
     val read = documents(s, policy, now, operator = true)
