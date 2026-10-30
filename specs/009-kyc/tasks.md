@@ -75,9 +75,9 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       `FakePlayers` under `localServices`, `InMemoryBroker` for `casino.players`, `money.transactions` and
       `platform.audit`, `TimerRuntime(200.millis)`, a settable clock, player and operator tokens (operator
       with a role), a service identity per caller
-- [ ] T017 `T/port/WireTranslation.scala` (every row of contracts/wire.md, `<d>` captured beside `<k>`),
+- [X] T017 `T/port/WireTranslation.scala` (every row of contracts/wire.md, `<d>` captured beside `<k>`),
       `T/port/WireTranslationSuite.scala`, and `T/port/ParitySuite.scala` over `tests/port/kyc/`, `.ignore`d
-      until T055
+      until T048
 
 **Checkpoint**: the pure packages, both entities and the plumbing pass their kits.
 
