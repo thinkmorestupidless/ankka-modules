@@ -180,6 +180,7 @@
         "expose": true,
         "runtime": "0.13.0",
         "provisionObjectStorage": true,
+        "exposeObjectStorage": true,
         "env": [
           {
             "name": "CASINO_PROJECT",
@@ -238,8 +239,8 @@
             "key": "keycloak-jwks-base"
           },
           {
-            "name": "KYC_PROVIDER_KEY",
-            "key": "kyc-provider-key"
+            "name": "KYC_MAX_UPLOAD_BYTES",
+            "key": "kyc-max-upload-bytes"
           }
         ]
       }
@@ -640,9 +641,9 @@
       "secret": false
     },
     {
-      "key": "kyc-provider-key",
+      "key": "kyc-max-upload-bytes",
       "type": "string",
-      "secret": true
+      "secret": false
     },
     {
       "key": "ingest-url",

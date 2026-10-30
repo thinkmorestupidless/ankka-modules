@@ -35,7 +35,7 @@ class ValuesPushSuite extends munit.FunSuite:
     assertEquals(written("casino-real-money"), "false")
     assertEquals(written("game-provider-mode"), "demo")
     assertEquals(written("keycloak-jwks-base"), "http://casino-keycloak.casino-identity.svc")
-    assert(!written.contains("st8-api-key") && !written.contains("kyc-provider-key"), written.keys.toString)
+    assert(!written.contains("st8-api-key") && !written.contains("players-realm-admin"), written.keys.toString)
   }
 
   test("through the vendor, values push sets the tenant's values there and calls no control plane") {
@@ -86,7 +86,7 @@ class ValuesPushSuite extends munit.FunSuite:
     val (code, out) = run(Seq("secrets", "goldvibe", "--installation", "dev-kind", "--secrets", "tools/modules/src/test/resources/secrets/goldvibe.secrets"), cp, vendor)
     assertEquals(code, 0, out.errors.mkString)
     val tenant = cp.secretsBy("goldvibe")("tenant-values")
-    assertEquals(tenant.filterNot(_._1.startsWith("players-")), Map("st8-api-key" -> "test-st8", "kyc-provider-key" -> "test-kyc"))
+    assertEquals(tenant.filterNot(_._1.startsWith("players-")), Map("st8-api-key" -> "test-st8"))
     assertEquals((tenant("players-realm-admin"), tenant("players-merchant-key"), tenant.count(_._1.startsWith("players-"))), ("test-realm-admin", "test-merchant", 6))
     assertEquals(cp.secretsBy("goldvibe")("goldvibe-st8"), Map("API_KEY" -> "test-st8"))
     assertEquals(vendor.calls, Vector.empty)

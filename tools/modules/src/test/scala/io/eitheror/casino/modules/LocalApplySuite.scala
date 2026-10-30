@@ -66,7 +66,7 @@ class LocalApplySuite extends munit.FunSuite:
     cp.setSecret("goldvibe", "tenant-values", Map("st8-api-key" -> "test"))
     val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--allow-unbuilt", "--modules", "casino")
     assertEquals(code, 0, out.lines.mkString("\n"))
-    assert(out.lines.exists(l => l.startsWith("note module core held: missing kyc-provider-key")), out.lines.mkString("\n"))
+    assert(out.lines.exists(l => l.startsWith("note module core held: missing players-")), out.lines.mkString("\n"))
     assert(out.lines.exists(_.startsWith("note module casino held: its dependency core is held")), out.lines.mkString("\n"))
     assertEquals(cp.services("goldvibe"), Vector.empty)
   }

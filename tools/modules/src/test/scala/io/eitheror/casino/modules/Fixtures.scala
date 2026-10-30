@@ -6,10 +6,9 @@ import java.nio.file.{Path, Paths}
 object Fixtures:
   val root: Path = Paths.get(sys.props.getOrElse("casino.root", ".")).toAbsolutePath.normalize
 
-  /** The core's secret keys with test values: kyc's and players' six (spec 008 T075), as `secrets` would set them. */
+  /** The core's secret keys with test values: players' six (spec 008 T075), as `secrets` would set them. */
   val CoreSecrets: Map[String, String] =
-    Map("kyc-provider-key" -> "test") ++
-      Seq("realm-admin", "webhook-secret", "realm-secret", "email-token", "lookup-key", "merchant-key").map(k => s"players-$k" -> "test")
+    Seq("realm-admin", "webhook-secret", "realm-secret", "email-token", "lookup-key", "merchant-key").map(k => s"players-$k" -> "test").toMap
 
   def manifest(name: String): Path = root.resolve("tests/fixtures/manifests").resolve(s"$name.json")
 

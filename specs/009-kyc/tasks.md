@@ -16,7 +16,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       reasons of `PlayerKycReviewRequired` in
       `contract/src/main/scala/io/eitheror/casino/contract/facts/CasinoPlayers.scala` (contracts/facts.md,
       R13); `just schemas`; the schema diff shows one optional field only; `sbt contract/test` green
-- [ ] T002 Remove `kyc-provider-key` (R16): `KYC_PROVIDER_KEY` from the `kyc` entry of
+- [X] T002 Remove `kyc-provider-key` (R16): `KYC_PROVIDER_KEY` from the `kyc` entry of
       `modules/core/module.json`, its row in `contract/keys.md`, `goldvibe-kyc/API_KEY` from
       `brands/goldvibe/values.json`, and its uses in `tools/modules/src/test/` (fixtures,
       `LocalApplySuite`'s "core held: missing kyc-provider-key"). In the same entry add `"exposeObjectStorage": true`

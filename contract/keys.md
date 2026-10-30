@@ -44,7 +44,7 @@ same for every brand and are literals in the descriptors, not keys.
 
 | Key | Module | Type | Secret | Read from | Derived from | Env |
 |---|---|---|---|---|---|---|
-| kyc-provider-key | core | string | yes | `<slug>-kyc/API_KEY` | | `KYC_PROVIDER_KEY` |
+| kyc-max-upload-bytes | core | string | no | | | `KYC_MAX_UPLOAD_BYTES` |
 | players-realm-admin | core | string | yes | `<slug>-players/REALM_ADMIN` | | `PLAYERS_REALM_ADMIN` |
 | players-webhook-secret | core | string | yes | `<slug>-players/WEBHOOK_SECRET` | | `PLAYERS_WEBHOOK_SECRET` |
 | players-realm-secret | core | string | yes | `<slug>-players/REALM_SECRET` | | `PLAYERS_REALM_SECRET` |
@@ -59,8 +59,8 @@ same for every brand and are literals in the descriptors, not keys.
 | push-provider-key | engagement | string | yes | `<slug>-push/API_KEY` | | `PUSH_PROVIDER_KEY` |
 | model-provider-key | support | string | yes | `<slug>-model/API_KEY` | | `MODEL_PROVIDER_KEY` |
 
-`reporting-zone` and `casino-modules` have a value when a brand writes none (spec 012 research R7, R12;
-`Values.defaults`): the reporting zone is `UTC`, and the modules are those the brand runs, `core`
+`reporting-zone`, `casino-modules` and `kyc-max-upload-bytes` have a value when a brand writes none (spec
+012 research R7, R12; spec 009 R18; `Values.defaults`): the largest KYC upload is 5,242,880 bytes, the reporting zone is `UTC`, and the modules are those the brand runs, `core`
 among them, so the value is never empty (the platform refuses an empty entry; found on kind,
 2026-10-28). Locally the tool knows them from the modules it applies; through a vendor it does not, so
 a brand that runs the casino module writes `"casino-modules": "core,casino"` until spec 021 has the

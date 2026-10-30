@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.*
  *
  *  - E1: the three identity keys spec 001 did not render (`PLAYER_SITE_BASE`, `KEYCLOAK_ISSUER_BASE`,
  *    `KEYCLOAK_JWKS_BASE`) are named by every service (contracts/module-manifests.md);
- *  - the modules' own keys are new env: `KYC_PROVIDER_KEY` on kyc, and on game-provider
+ *  - the modules' own keys are new env: `KYC_MAX_UPLOAD_BYTES` on kyc, and on game-provider
  *    `ST8_OPERATOR_ID`, `ST8_API_KEY`, `GAME_PROVIDER_MODE`; a secret one is a `secretKeyRef` to
  *    `tenant-values`;
  *  - `SUPPORT_AGENT_ENABLED` is gone: `support` is a module and being entitled is the switch;
@@ -39,7 +39,7 @@ class RenderSuite extends munit.FunSuite:
   private val NewIdentity = Set("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE")
   private val PlayersSecrets = Set("REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY").map("PLAYERS_" + _)
   private val NewOwnKeys  = Map(
-    "kyc"           -> Set("KYC_PROVIDER_KEY"),
+    "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
     "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL") ++ PlayersSecrets),
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
     "engagement"    -> Set("PUSH_PROVIDER_KEY"),
@@ -87,7 +87,7 @@ class RenderSuite extends munit.FunSuite:
     val p = plan(Vector("casino"))
     def env(s: String) = p.services.find(_.name == s).get.service.env
     assertEquals(env("wallet").find(_.name == "KEYCLOAK_JWKS_BASE").flatMap(_.value), Some("http://casino-keycloak.casino-identity.svc"))
-    assertEquals(env("kyc").find(_.name == "KYC_PROVIDER_KEY"), Some(EnvVar("KYC_PROVIDER_KEY", secretKeyRef = Some(SecretKeyRef("tenant-values", "kyc-provider-key")))))
+    assertEquals(env("kyc").find(_.name == "KYC_MAX_UPLOAD_BYTES").flatMap(_.value), Some("5242880"))
     assertEquals(env("game-provider").find(_.name == "ST8_API_KEY").flatMap(_.secretKeyRef), Some(SecretKeyRef("tenant-values", "st8-api-key")))
     assertEquals(env("game-provider").find(_.name == "GAME_PROVIDER_MODE").flatMap(_.value), Some("demo"))
   }
