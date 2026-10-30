@@ -71,7 +71,11 @@ ignores unknown fields accepts. Task T010 stays open until 002 decides.
 | Need | Expected path | Answer |
 |---|---|---|
 | `may-play` (010 FR-008) | `GET /v1/casino/brands/{brand}/responsible-gambling/{playerId}/may-play` | `{allowed: true, sessionLimitMinutes?, minutesUsed}` or `{allowed: false, reason: "excluded" \| "cooling_off" \| "session_limit_reached", coolingOffUntil?, limitMinutes?, usedMinutes?}` |
-| `may-bet` (010 FR-010; asked by the wallet until 2026-10-10) | `POST /v1/casino/brands/{brand}/rg/may-bet` with `playerId`, `currency`, `amount` (the path spec 002 used) | `decision`: allowed, locked, excluded, cooling_off (`endsAt`) |
+| `may-bet` (010 FR-010; asked by the wallet until 2026-10-10) | `POST /v1/casino/brands/{brand}/rg/may-bet` with `playerId`, `currency`, `amount` (the path spec 002 used); *open (010 R6):* `lossLast24h`, `lossLast7d`, `lossLast30d` from the wallet | `decision`: allowed, locked, excluded, cooling_off (`endsAt`); also, as built in 010, `spending_limit` (`period`, `limit`, `remaining`) and `unavailable` |
+
+*Open, from spec 010 R6 (decided 2026-10-27):* the bet workflow does not yet carry the loss sums, nor
+read `spending_limit` as its own refusal. Both are read as unavailable today, which ends the bet `error`.
+So a player with a loss limit set cannot bet until spec 002 keeps the sums and this workflow carries them.
 
 Each of the three fails closed: no answer or a non-2xx that is not a refusal is 503
 `service_unavailable` naming the service (FR-007). `may-bet` is asked from the bet workflow's step
