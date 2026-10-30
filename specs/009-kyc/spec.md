@@ -135,6 +135,24 @@ Settled before 009 is planned.
   `DEPOSIT_BLOCKED_KYC_CURRENCY`, failing closed as spec 010 does, so no threshold is avoided by
   splitting currencies (FR-019, FR-021, FR-026).
 
+Settled at planning, once the original's code had been read whole (research R1).
+
+- Q: The Curaçao default, which every brand with no saved policy runs (every Spinvibe brand today),
+  has a 30-day window with suspension on expiry. With the window enforced from go-live (2026-10-25),
+  what is the default? → A: As the original: 30 days, suspend on expiry. An unverified player on a
+  default brand is suspended 30 days after registering, from go-live; a brand that wants otherwise
+  saves a policy.
+- Q: Every required document approved but the profile incomplete: `pending` (the original's code and
+  its own test, `IncompleteProfileKeepsAccountPending`) or `unverified` (this spec, until now)? → A:
+  `pending`, as the original. The player is told which fields are missing (FR-012).
+- Q: Which operator roles act on a player's KYC? The original's fallback route admits any operator
+  role with the brand in scope. → A: The compliance roles: `brand_admin`, `brand_compliance`,
+  `compliance_officer`, `resource_admin`, `platform_admin` (FR-002). Support agents, fraud analysts and
+  viewers lose access they have today by accident.
+- Q: The original's `EventIngestConsumer` proposes `kyc_review` on every captured payment by a
+  pending player; nobody acts on it. Carry it into the queue? → A: No. A pending player is already in
+  the queue; the proposal is not carried over.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player submits documents and sees where they stand (Priority: P1)
@@ -183,7 +201,7 @@ directly, switch the mode, and find accounts waiting on their final decision.
 hardest to get right (ClickUp 869eftg4h, 869ejmpvy, 869epq4cf, 869f028j8, 869eu7dpn). Every rule here
 is held to the Go rollup's tests.
 
-**Independent Test**: Replay the 43 rollup cases (`rollup_test.go`, `handler_test.go`) and
+**Independent Test**: Replay the 61 rollup cases (`rollup_test.go`, `handler_test.go`) and
 `BackofficePlayerRoutesSpec`'s KYC cases against the service's test kit.
 
 **Acceptance Scenarios**:
@@ -198,7 +216,7 @@ is held to the Go rollup's tests.
 - added `features/kyc/review.feature`: a rejected latest document in any category makes the account rejected, required or not
 - added `features/kyc/review.feature`: a rejected document in the category other does not reject the account
 - added `features/kyc/review.feature`: any pending document makes the account pending even when every required category is approved
-- added `features/kyc/review.feature`: an account with every required category approved but an incomplete profile stays unverified and the player is told
+- added `features/kyc/review.feature`: an account with every required category approved but an incomplete profile is pending and the player is told
 - added `features/kyc/review.feature`: a change to a required profile field returns a verified account to unverified until a document is reviewed after it
 - added `features/kyc/review.feature`: in manual mode approving every required document changes nothing
 - added `features/kyc/review.feature`: in manual mode the operator setting the account verified verifies it at once
@@ -274,8 +292,7 @@ When the window lapses unverified, the account is suspended if the policy says s
 review if not.
 
 **Why this priority**: Spec 137 FR-010 and FR-011; the UKGC profile's three days. Lower than the gates
-because the original sets the deadline and never acts on it (see Clarifications and the marker in
-FR-025).
+because the original sets the deadline and never acts on it (Clarifications 2026-10-25; FR-025).
 
 **Independent Test**: Register on a brand with a one-day window and suspend on expiry; advance the
 clock; observe suspension; register on a brand with no suspension; observe the review flag.
@@ -361,7 +378,7 @@ the player sees their own; other services read facts.
   refuses any other brand (spec 001 FR-005).
 - **FR-002**: Player routes MUST admit a `casino-<slug>` token for the player named in the route and
   no other player. Operator routes MUST admit an `eitheror` token whose realm roles name the brand and
-  include `brand_admin`, `brand_compliance`, `resource_admin` or `platform_admin` (decision 0045; spec
+  include `brand_admin`, `brand_compliance`, `compliance_officer`, `resource_admin` or `platform_admin` (decision 0045; spec
   001 FR-020). The brand's requirements route MUST be public.
 - **FR-003**: The gate queries MUST be served within the project, admitted by identity with no token:
   the deposit check (FR-019) to `players`' deposit-initiation route (spec 008 FR-043), the play check
@@ -403,9 +420,11 @@ the player sees their own; other services read facts.
   changes, by these rules in this order: if any category's latest document (other than `other`) is
   rejected, `rejected`; else if any category's latest document or any `other` document is pending,
   `pending`; else if the policy's required categories are non-empty and each is satisfied by an
-  approved latest document, `verified`; else `pending`. A status of `verified` MUST be withheld as
-  `unverified` while the profile is incomplete (FR-016) or the profile changed after the last
-  verification and no document has been reviewed since.
+  approved latest document, `verified`; else, with no document at all, `unverified`; else `pending`.
+  A derived `verified` on an account not already verified MUST be withheld as `pending` while the
+  profile is incomplete (FR-016), naming the missing fields to the player, and as `unverified` while
+  the profile changed after the last verification and no document has been reviewed since (the
+  original's `rollup.go` and `handler.go`; Clarifications 2026-10-30).
 - **FR-013**: A required category `identity` or `identity_front` MUST be satisfied by an approved
   `identity_front`, or by an approved legacy `identity` when no front exists; once a front exists the
   legacy document MUST count for nothing. `identity_back` MUST never be required by the policy.
@@ -422,7 +441,7 @@ the player sees their own; other services read facts.
   telephone, address line, city, postal code and country present, and the date of birth a date at
   least eighteen years before today. The fields MUST be read from `players`' `player_profile_updated`
   facts, never asked for. A verified account whose required field changes MUST return to `unverified`
-  with reason `profile_changed`.
+  with reason `profile_changed`, in either mode.
 - **FR-017**: An operator MUST be able to set the categories required of one player. Setting a
   non-empty list MUST put the player in manual mode and the status to pending unless it is pending or
   rejected, and MUST NOT affect any other player or the brand's policy. The player's documents page
@@ -446,8 +465,8 @@ the player sees their own; other services read facts.
   not compared. The messages MUST be the original's three for unverified, pending and rejected.
 - **FR-020**: The play check MUST answer `PLAY_BLOCKED_KYC` with the status-specific message when the
   policy's play gate is `KYC_APPROVED` and the status is not verified, else allowed.
-- **FR-021**: Lifetime deposits MUST be a view per player of `deposit_confirmed` on
-  `money.transactions` in the policy's KYC currency, summed in minor units for the player's life at
+- **FR-021**: Lifetime deposits MUST be kept per player and currency from `deposit_confirmed` on
+  `money.transactions`, read in the policy's KYC currency, summed in minor units for the player's life at
   the brand, never reset; a deposit in another currency MUST NOT count. With no KYC currency named,
   nothing is summed and no threshold applies.
 - **FR-022**: A policy save that lowers a threshold MUST flag for review, once, every unverified
@@ -540,8 +559,8 @@ the player sees their own; other services read facts.
 - **Policy**: one per brand; the gates, KYC currency, thresholds, window, required categories, suspend-on-expiry
   and profile; read as the Curaçao default when absent.
 - **Player KYC record**: one event sourced entity per player: documents, status, mode, required
-  categories, source of funds status, deadline, flags, ready-for-final-review time; lifetime deposits
-  as a view from facts.
+  categories, source of funds status, deadline, flags, ready-for-final-review time, and lifetime
+  deposits per currency from the wallet's facts.
 - **Document**: category, id, object name, content type, upload time, status (pending | approved |
   rejected), reason code, reviewer, review time; the object itself is personal data.
 - **Status**: `unverified` | `pending` | `verified` | `rejected`; the player sees `pending` as
@@ -556,7 +575,7 @@ the player sees their own; other services read facts.
 
 ### Measurable Outcomes
 
-- **SC-001**: Every case of the original's `rollup_test.go` and `handler_test.go` (43) and the KYC
+- **SC-001**: Every case of the original's `rollup_test.go` and `handler_test.go` (61) and the KYC
   cases of `BackofficePlayerRoutesSpec` and `PlayerRoutesSpec` pass against the service's test kit
   with the same inputs and outcomes.
 - **SC-002**: Playwright suites 28, 29, 30, 31, 32, 33 and 50 pass against a rebuilt brand with only
@@ -583,7 +602,8 @@ the player sees their own; other services read facts.
   needs no such gate. The rules of the derivation are unchanged (FR-012).
 - **Review proposals become a queue.** `kyc_review`, `sof_review` and `suspend_player` action
   proposals on the reasoner's topic become flags in this service's queue and a command to `players`;
-  nothing reaches the reasoner.
+  nothing reaches the reasoner. The `kyc_review` proposal `EventIngestConsumer` makes for every captured
+  payment by a pending player is not carried over (Clarifications 2026-10-30).
 - **Source of funds can be cleared.** The original has no action that sets `sof_status` to `cleared`,
   so a player over the threshold was refused every deposit for good (FR-023).
 - **One KYC currency.** The original summed every deposit into one number whatever its currency; the
@@ -592,39 +612,46 @@ the player sees their own; other services read facts.
 - **A large deposit flags and suspends no one.** The original's function proposed suspending a rejected
   player and fired only above a fixed 1,000,000 minor units; the flag now follows the policy's deposit
   threshold alone (FR-038).
+- **The deposit gate blocks the deposit.** The original's `notify/deposit` runs after the wallet has
+  credited the money and its refusal is only logged; the check now runs before the deposit starts
+  (FR-019, Clarifications 2026-10-08).
+- **Lifetime deposits are real.** The original's counter was written only by a function never
+  deployed, so its thresholds compared the one deposit alone; the total is now every confirmed
+  deposit in the KYC currency (FR-021).
+- **The compliance roles only.** The original admits any operator role through a fallback route; the
+  per-player KYC routes now admit the compliance roles (FR-002, Clarifications 2026-10-30).
+- **A changed policy reads custom; uploads are checked.** The original's policy save never set the
+  profile to `CUSTOM` (FR-027), its confirmation took any object key without looking for it (FR-007),
+  and its approval recorded no reviewer (FR-010).
 - **Every view is recorded.** `kyc_view_log` was one property overwritten on each issue (FR-037).
 - **Policy inheritance up the merchant hierarchy is dropped.** A brand is one project with one policy;
   the "ancestors" read goes.
-- **The window's expiry is enforced**, if the marker in FR-025 is answered yes; today it is a
-  deadline no one reads.
+- **The window's expiry is enforced** (FR-025, Clarifications 2026-10-25); today it is a deadline no
+  one reads.
 - **The upload proxy is the frontend's business.** The player site proxies the signed PUT today so
   the browser never reaches MinIO; with the bucket's CORS origins on the descriptor (ankka 039) it may
   upload directly or keep proxying, and this spec does not care which. The 5 MiB limit was the player
   site's ingress; it becomes the brand's setting.
 - **Object names carry the subject prefix** (`subjects/<player id>/kyc/...`) instead of
   `<brand>/<player>/...`, so ankka 042's `erase(subject)` finds them.
-- **Dropped**: the `kyc_updated` activity label that no route writes; the duplicate camelCase and
+- **Dropped**: the duplicate camelCase and
   snake_case profile keys (the fact carries one shape).
 
 ## Recordings
 
-The original's Go end-to-end suite has no unskipped KYC scenario: `TestScenario9_CasinoRF_KycGateOnLargeDeposit`
-and `TestScenario3_ReactiveFunction` (the `kyc_review` proposal) are skipped, and
-`TestScenario9_PaymentsTLFunctions_Gate3_KYCGate` replays a payments function that is not deployed.
-Under spec 001 FR-030 recordings are Go-driven, so before this service is recorded the Go suite MUST
-gain scenarios for: upload and confirm per category, approve and reject with each reason code,
-automatic verification on a Curaçao and an MGA brand, manual mode and the ready-for-final-review queue,
-per-player required categories, profile incompleteness and the profile-change downgrade, each of the
-three deposit refusals and the play refusal, and the view link. Until then the oracle is:
+The original's own Go suite had no unskipped KYC scenario. `tests/original/e2e-rg-kyc.patch` adds
+37 KYC tests to it (scenarios 28 and 29: documents, review, policy and gates), each mapped to a
+scenario in `features/kyc/` in `tests/original/e2e-rg-kyc.md`; those are the recordings this service
+replays (plan, research R2). What they do not reach (the queue and tab reads, the window, retention,
+the profile-change downgrade, the lowered-threshold flag, the legacy-identity rows) is held to:
 
+- Unit: `tl/runtime/capabilities/kyc_status_rollup/rollup_test.go` and `handler_test.go` (61 cases)
+  and `substrate_test.go` (7); `BackofficePlayerRoutesSpec`'s KYC groups (approve, reject, reason
+  codes, verification mode, status, required categories, the one-file lock, view links, the queue's
+  order and facets); `PlayerRoutesSpec`'s view link.
 - Playwright `28-kyc-document-view`, `29-kyc-document-review`, `30-kyc-policy-settings`,
-  `31-kyc-deposit-gate`, `32-kyc-play-gate`, `33-kyc-auto-approval`, `50-kyc-manual-verification`, and
-  the identity cases of `12-withdrawal-controls`.
-- Unit: `tl/runtime/capabilities/kyc_status_rollup/rollup_test.go` and `handler_test.go` (43 cases);
-  `BackofficePlayerRoutesSpec` ("PATCH kyc/documents/{docKey}/approve", "... reject", "... reason code
-  validation", "PUT kyc/verification-mode", the document-lock cases); `PlayerRoutesSpec` ("GET
-  .../kyc/documents/{docKey}/view-url (player)"); `SubstrateTwinClientSpec` (policy parsing and the
-  deadline write).
+  `31-kyc-deposit-gate`, `32-kyc-play-gate`, `33-kyc-auto-approval` and `50-kyc-manual-verification`,
+  read as the original's intent where an assertion disagrees with its code (research R1 lists each).
 
 Every requirement above names its source: the routes and Go capability cited in Context, specs 137,
 118 and 197 of the original, or a decision in Clarifications.
