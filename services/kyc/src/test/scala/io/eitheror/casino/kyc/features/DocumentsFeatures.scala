@@ -24,6 +24,10 @@ class DocumentsFeatures extends KycFeatures("documents.feature"):
 
   private val Six = Category.Uploadable.map(_.wire)
 
+  override def beforeEach(context: BeforeEach): Unit =
+    super.beforeEach(context)
+    read = null; category = ""; offers = Vector.empty; documentId = ""; completed = None
+
   // ── the page ──────────────────────────────────────────────────────────────────────────────────
 
   Given("the player has no documents") { () => assertEquals(state().documents, Vector.empty) }

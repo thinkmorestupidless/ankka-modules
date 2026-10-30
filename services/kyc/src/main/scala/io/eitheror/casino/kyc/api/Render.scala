@@ -1,0 +1,51 @@
+package io.eitheror.casino.kyc.api
+
+import com.fasterxml.jackson.databind.node.ObjectNode
+import io.eitheror.casino.kyc.Json
+import io.eitheror.casino.kyc.policy.Policy
+import io.eitheror.casino.kyc.record.{Category, Document, KycRecord, KycState}
+
+import java.time.Instant
+
+/** The answers' bodies (contracts/routes.md), written field by field. */
+object Render:
+
+  /** The policy's legacy `identity` is shown as the front of an identity document (FR-013). */
+  private def shown(c: Category): Category = if c == Category.Identity then Category.IdentityFront else c
+
+  /**
+   * A document as the player sees it. A rejection's reason code is shown only while the document is its
+   * category's latest (FR-011), which the caller says; an operator's view adds who reviewed it.
+   */
+  def document(d: Document, latest: Boolean = true, operator: Boolean = false): ObjectNode =
+    val status = d.review.fold("pending")(_.outcome.wire)
+    Json.obj(
+      "documentId"  -> d.id,
+      "category"    -> shown(d.category).wire,
+      "status"      -> status,
+      "uploadedAt"  -> d.uploadedAt.toString,
+      "reviewedAt"  -> d.review.map(_.at.toString),
+      "reasonCode"  -> Option.when(latest)(d.review.flatMap(_.reasonCode).map(_.wire)).flatten,
+      "submittedBy" -> (if d.by.bySupport then "support" else "player"),
+      "reviewedBy"  -> Option.when(operator)(d.review.map(_.operatorId)).flatten
+    )
+
+  /** The latest document of a category; the front's is a legacy `identity` while there is no front (FR-013). */
+  private def latest(s: KycState, c: Category): Option[Document] =
+    if c == Category.IdentityFront then s.latest(c).orElse(s.latest(Category.Identity)) else s.latest(c)
+
+  /** The player's read: every category with its latest document, every `other` document, what is missing of the profile. */
+  def documents(s: KycState, policy: Policy, now: Instant, operator: Boolean = false): ObjectNode =
+    val byPolicy = policy.required.map(shown).toSet
+    val ofPlayer = s.required.map(shown).toSet
+    val categories = Category.Uploadable.map { c =>
+      Json.obj("category" -> c.wire, "requiredByPolicy" -> byPolicy(c), "requiredOfPlayer" -> ofPlayer(c),
+        "document" -> Option.when(c != Category.Other)(latest(s, c).map(document(_, operator = operator))).flatten)
+    }
+    Json.obj(
+      "status"               -> s.status.wire,
+      "mode"                 -> s.mode.wire,
+      "categories"           -> Json.arr(categories*),
+      "other"                -> Json.arr(s.documents.filter(_.category == Category.Other).map(document(_, operator = operator))*),
+      "missingProfileFields" -> Json.arr(s.missingProfileFields(KycRecord.today(now)).map(_.wire)*)
+    )
