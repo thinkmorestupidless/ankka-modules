@@ -179,7 +179,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 9: US7, reads (P2)
 
-- [ ] T043 [US7] Bind `features/kyc/reads.feature` in `T/features/ReadsFeatures.scala` (4 scenarios;
+- [X] T043 [US7] Bind `features/kyc/reads.feature` in `T/features/ReadsFeatures.scala` (4 scenarios;
       "the player's activity history" is `players`' `ActivityView`, asserted on the facts here and named as
       008's)
 - [ ] T044 [US7] `OperatorEndpoint`: `GET /queue?filter=&reason=&sort=` (`invalid_filter`; every count of
