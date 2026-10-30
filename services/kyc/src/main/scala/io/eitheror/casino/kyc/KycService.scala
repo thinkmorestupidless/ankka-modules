@@ -5,13 +5,14 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime, ViewClient}
 import io.eitheror.casino.kyc.api.{Ctx, OperatorEndpoint, PlayerEndpoint, PublicEndpoint, ServiceEndpoint}
-import io.eitheror.casino.kyc.consumers.{DepositsConsumer, PolicyFlagger, ProfileConsumer}
+import io.eitheror.casino.kyc.consumers.{ClosureConsumer, DepositsConsumer, PolicyFlagger, ProfileConsumer, RegistrationConsumer}
 import io.eitheror.casino.kyc.consumers.PolicyFlagger.Search
 import io.eitheror.casino.kyc.documents.Store
 import io.eitheror.casino.kyc.facts.{AuditPublisher, KycPublisher, PolicyAuditPublisher}
 import io.eitheror.casino.kyc.policy.PolicyEntity
 import io.eitheror.casino.kyc.queue.KycQueue
 import io.eitheror.casino.kyc.record.KycRecord
+import io.eitheror.casino.kyc.timers.{RecordTimers, WindowTimer}
 
 /** Every component of the service (plan.md's table), registered by the service and by its test kit alike. */
 object KycService:
@@ -25,7 +26,11 @@ object KycService:
     ProfileConsumer.descriptor,
     DepositsConsumer.descriptor,
     KycQueue.descriptor,
-    PolicyFlagger.descriptor
+    PolicyFlagger.descriptor,
+    RegistrationConsumer.descriptor,
+    ClosureConsumer.descriptor,
+    RecordTimers.descriptor,
+    WindowTimer.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */
