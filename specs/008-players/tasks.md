@@ -1058,7 +1058,7 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       commands drifted
       *Open 2026-10-25:* the README, `tests/README.md` and `tests/original/README.md` (*Recording the players*) are written, and quickstart §7's apply command and secrets file are corrected to the module tool. Re-reading §6 and §7 against an actual run waits on T076 and T077.
       *Done 2026-10-27:* §6 rewritten to the local run (the realm from the tool, the printed link, `409` on a repeat), §7 to the kind run (the images, apply–secrets–apply, pausing imageless services, what was and was not reached); the README's local run and the compose file match.
-- [ ] T079 Close research: the verify-at-task-time items written with their result and date (T001's
+- [X] T079 Close research: the verify-at-task-time items written with their result and date (T001's
       fields, T016's multi-source view, T030's workflow kit, T075's mapper, T077's plugin and
       Playwright checks); *For ankka* checked against the pinned runtime; plan.md's *Divergences* checked against
       `Parity.divergences` (`CoverageSuite` green); the cross-spec follow-ups (the export route on
@@ -1067,6 +1067,11 @@ template, a local run beside Keycloak, a kind run, the README and quickstart pro
       findings in research; `just features` green; `just players-test` and `just players-it` green
       *Open 2026-10-25:* research's *Findings* are written: the four items verified so far with their dates, and the cross-spec follow-ups. *For ankka* is checked against 0.13.0. Waiting: T077's plugin, session-listing and Playwright checks, and `just players-it` with recordings (T029).
       *2026-10-27:* T077's open checks are findings with their owners; *For ankka* holds for 0.13.0; `CoverageSuite` green; `just features` 0 findings in 1,108 scenarios. `sbt test` in `services/players`: 379 of 382 pass, 2 skipped; the one failure is `RealmSuite`'s may-sign-in peak case, p99 162 ms and then 144 ms alone against the 100 ms bound (44 ms on 2026-10-25), measured with the machine at load average 60 on 10 cores (the kind control plane at 470% CPU and another session's image build). Open until that case is run again on a quiet machine.
+      *2026-10-30:* closed on CI's runner, the quiet machine this laptop is not. PR #14's `players` job
+      (2026-10-28) gave p50 67.0 ms and p99 81.2 ms, and its `players-test` and `players-it` passed. Locally,
+      the case run alone gave p99 79.8 ms at load average 80 to 98, and it failed inside the whole suite. The
+      bound holds with under 20 ms to spare. If CI ever trips it, look at the case's 20 ms RG stub and the
+      runner's load before the bound.
 
 ---
 
