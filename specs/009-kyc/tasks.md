@@ -158,7 +158,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       `S/timers/RecordTimers.scala` (sets `kyc-window-<player>` on `DeadlineSet`, replaced by name; cancels
       on `Closed`) and `S/timers/WindowTimer.scala` (`WindowLapsed`, the suspend when told to, then
       `SuspensionRequested`; a failure throws)
-- [ ] T038 [US5] `T/it/WindowSuite.scala`: a deadline lapses within a minute and flags; under a policy that
+- [X] T038 [US5] `T/it/WindowSuite.scala`: a deadline lapses within a minute and flags; under a policy that
       suspends `FakePlayers` is called once, retried while it fails, not again after it answered; a
       verified or closed player changes nothing; a migrated past deadline flags and never suspends
 
