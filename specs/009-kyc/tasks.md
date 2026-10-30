@@ -164,7 +164,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 8: US6, documents kept and then erased (P2)
 
-- [ ] T039 [US6] Bind `features/kyc/retention.feature` in `T/features/RetentionFeatures.scala`
+- [X] T039 [US6] Bind `features/kyc/retention.feature` in `T/features/RetentionFeatures.scala`
       (4 scenarios; "encrypted at rest" asserted as the installation's store, R17, and named for kind)
 - [ ] T040 [US6] `ServiceEndpoint`: `POST /erasure/players/{playerId}` (every version under
       `subjects/<player>/` deleted, then `Erase`; a certificate; runs again on every call) and `GET
