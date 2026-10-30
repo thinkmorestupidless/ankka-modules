@@ -7,11 +7,11 @@ auth="Authorization: Bearer kyc-local"
 for _ in $(seq 1 30); do curl -sf "$admin/health" >/dev/null && break; sleep 1; done
 bucket=$(curl -sf -H "$auth" "$admin/v2/GetBucketInfo?globalAlias=kyc-local" ||
   curl -sf -H "$auth" -H 'Content-Type: application/json' -d '{"globalAlias":"kyc-local"}' "$admin/v2/CreateBucket")
-bucket_id=$(printf '%s' "$bucket" | sed -E 's/.*"id" *: *"([^"]+)".*/\1/' | head -1)
+bucket_id=$(printf "%s" "$bucket" | tr -d "\n" | sed -E 's/.*"id" *: *"([^"]+)".*/\1/' | head -1)
 key=$(curl -sf -H "$auth" "$admin/v2/GetKeyInfo?search=kyc-local&showSecretKey=true" ||
   curl -sf -H "$auth" -H 'Content-Type: application/json' -d '{"name":"kyc-local"}' "$admin/v2/CreateKey")
-access=$(printf '%s' "$key" | sed -E 's/.*"accessKeyId" *: *"([^"]+)".*/\1/')
-secret=$(printf '%s' "$key" | sed -E 's/.*"secretAccessKey" *: *"([^"]+)".*/\1/')
+access=$(printf "%s" "$key" | tr -d "\n" | sed -E 's/.*"accessKeyId" *: *"([^"]+)".*/\1/')
+secret=$(printf "%s" "$key" | tr -d "\n" | sed -E 's/.*"secretAccessKey" *: *"([^"]+)".*/\1/')
 curl -sf -H "$auth" -H 'Content-Type: application/json' \
   -d "{\"bucketId\":\"$bucket_id\",\"accessKeyId\":\"$access\",\"permissions\":{\"read\":true,\"write\":true,\"owner\":true}}" \
   "$admin/v2/AllowBucketKey" >/dev/null

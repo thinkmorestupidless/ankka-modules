@@ -205,7 +205,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T050 [P] On 008's branch (`008-players`): the deposit check sends `currency` (R5); the suspend
       honours the deadline, idempotent under player and deadline (R10); `ErasureWorkflow.targets` and the
       export gain `kyc` (R15); `FakeKyc` answers the shapes of contracts/routes.md; its suites green
-- [ ] T051 Quickstart §6: the service run locally on 9012, the two gates answered by `curl`, an upload
+- [X] T051 Quickstart §6: the service run locally on 9012, the two gates answered by `curl`, an upload
       offered, put and confirmed with a real player token from kind
 - [ ] T052 Quickstart §7 on `kind-ankka` (never production; `--context kind-…`): the image built and
       loaded, `just modules apply goldvibe --installation dev-kind --modules core --allow-unbuilt`; the bucket

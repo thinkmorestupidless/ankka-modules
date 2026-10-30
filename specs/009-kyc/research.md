@@ -345,6 +345,19 @@ in 010. No secret.
   "unverified", `awaiting` 0), so the queries compare with `IS DISTINCT FROM` or `COALESCE`, and a
   parameter used as a JSON key goes through `jsonb_extract_path_text`: ankka's query check does not read
   `->> :name` as a parameter.
+- **T050, players' suspend under a deadline.** `players` records the deadline it suspended for on the
+  player (`kycDeadline`), so a retry under it changes nothing even after an operator reinstated the
+  player; a new deadline suspends. kyc is an erasure and export target between responsible-gambling and
+  merchant.
+- **T051, the local run (2026-10-30).** `kyc-run` on 9012 against a player made on kind through `players`
+  (registered, verified through the operator route with a `brand_goldvibe` operator of the `eitheror`
+  realm, signed in): the deposit check `allowed` with `currency`, the play check `allowed`; the player's
+  documents `401` with no token and `403` on another player's path; an `identity_front` offered, put to
+  the signed URL (`200`), confirmed (`pending`); the record `pending`. No address, token or signature in
+  the log. Two fixes on the way: `local/bucket.sh` read Garage's pretty-printed answers line by line and
+  took `{` as the bucket id, and `kyc-run` swallowed that failure inside `eval` and started with no bucket
+  (`503 storage_unavailable`); it now stops. On kind, the sign-in was first refused `rg_unavailable`:
+  `responsible-gambling` there answers slowly (connections 0.3–1.1 s, OOM-killed once today).
 
 ## Design finished
 

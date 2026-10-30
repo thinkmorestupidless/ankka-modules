@@ -157,7 +157,8 @@ kyc-run brand="goldvibe":
     #!/usr/bin/env bash
     set -euo pipefail
     cd services/kyc
-    set -a; eval "$(./local/bucket.sh)"; set +a
+    s3="$(./local/bucket.sh)"   # a failure stops here; inside eval it would start the service with no bucket
+    set -a; eval "$s3"; set +a
     CASINO_BRAND={{brand}} ANKKA_HTTP_PORT=9012 ANKKA_DB_PORT=5438 \
       ANKKA_AUTH_ISSUERS=player,staff ANKKA_AUTH_REALM=casino-{{brand}} \
       ANKKA_AUTH_PLAYER_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}} \
