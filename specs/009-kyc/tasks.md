@@ -61,7 +61,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       command, event and refusal of data-model.md's table in its order; the derivation after each input
       change and only a changed status written (FR-014); offers dropped an hour after they are offered;
       `Erase` blanks every `Personal` value and keeps ids, categories, times, statuses and reason codes
-- [ ] T014 [P] `S/documents/Store.scala` (trait: sign PUT with content type, sign GET, HEAD, DELETE, list
+- [X] T014 [P] `S/documents/Store.scala` (trait: sign PUT with content type, sign GET, HEAD, DELETE, list
       and delete every version under a prefix) with `S3Store` configured as `platform/object-storage.md`
       (path style, `ANKKA_S3_REGION`, checksums when required, `GenerationAsVersionId`; sign against
       `ANKKA_S3_PUBLIC_ENDPOINT`, read and write through `ANKKA_S3_ENDPOINT`) and `T/documents/FakeStore.scala`
