@@ -147,10 +147,10 @@ object Main:
           out.line("calls: 0")
           Left(1)
       supplied <- args.flags.get("--secrets").fold(Right(Map.empty))(f => SecretsFile.load(root.resolve(f))).left.map { e => out.err(e); 2 }
-    yield (inst, v, plan, organization, supplied)
+    yield (inst, v, plan, organization, supplied, LocalApply.unbuilt(plan, keys).map(_._2).toSet)
     prepared match
       case Left(code) => code
-      case Right((inst, v, plan, organization, supplied)) =>
+      case Right((inst, v, plan, organization, supplied, unbuilt)) =>
         val cp = controlPlane()
         val refusals = BrandCommands.realMoney(v, plan.project, Some(inst), BrandCommands.facts(Some(inst), Some(cp)))
         if refusals.nonEmpty then
@@ -159,7 +159,7 @@ object Main:
           val admin = realms.orElse(KeycloakAdmin.fromEnvironment(v.issuerBase).toOption)
           val realm = admin.map(a => a -> (() => Realm.withPlayers(Realm.render(Realm.template(root), v.slug, BrandCommands.frontend(v, Some(inst))),
             BrandCommands.playersUrl(v, Some(inst)), supplied.getOrElse(s"${v.slug}-players", Map.empty))))
-          val result = LocalApply.run(plan, v, Some(inst), cp, LocalApply.Options(organization, realm, () => Some(Realm.operators(root))))
+          val result = LocalApply.run(plan, v, Some(inst), cp, LocalApply.Options(organization, realm, () => Some(Realm.operators(root)), unwaited = unbuilt))
           result.changes.foreach(c => out.line(s"changed $c"))
           result.notes.foreach(n => out.line(s"note $n"))
           out.line(s"changes: ${result.changes.size}")

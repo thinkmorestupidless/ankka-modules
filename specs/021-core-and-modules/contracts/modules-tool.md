@@ -28,7 +28,8 @@ Refusals are one line each on standard error, in the words `contracts/module-man
 
 An installation is local when its overlay's `settings.env` has no `VENDOR_URL` (dev-kind) and
 `ANKKA_VENDOR_URL` is unset. In local mode `apply` plays the agent: project, topics with their
-schemas, secrets noted, `core`'s services in manifest order and waited for, then each module of
+schemas, secrets noted, `core`'s services in manifest order and waited for (not a paused one, nor one
+applied only by `--allow-unbuilt`; a failed one fails the module), then each module of
 `--modules` after its dependencies, grants, hostnames, the realm; `status` reads the control
 plane instead of a module entity. The test installation `ApplyOnKindSuite` uses is local.
 

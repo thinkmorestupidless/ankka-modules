@@ -19,18 +19,36 @@ object LocalApply:
       organization: String,
       realm: Option[(RealmAdmin, () => String)] = None,
       operatorsRealm: () => Option[String] = () => None,
-      /** Waits for one service to be Ready; the tests' control plane is Ready at once. */
-      ready: (ControlPlane, String, String) => Either[String, Unit] = LocalApply.poll()
+      /** Waits for one service to settle; the tests' control plane is Ready at once. */
+      ready: (ControlPlane, String, String) => Either[String, Waited] = LocalApply.poll(),
+      /** Services applied only because of `--allow-unbuilt`: they have no image of this tree, so none is waited for. */
+      unwaited: Set[String] = Set.empty
   )
 
-  /** `GET /services/{p}/{name}` every `every` until Ready, up to `within`; failed naming the service. */
+  /** How a wait that did not fail ended: the service Ready, or paused by someone, which no wait outlasts. */
+  enum Waited:
+    case Ready, Paused
+
+  /**
+   * `GET /services/{p}/{name}` every `every` until the service is Ready or Paused, up to `within`. A Failed
+   * service ends the wait at once; either failure names the service. A paused one is not waited out
+   * (dev-kind, 2026-10-28: the apply waited on paused services until the control plane's token lapsed).
+   */
   def poll(every: java.time.Duration = java.time.Duration.ofSeconds(5), within: java.time.Duration = java.time.Duration.ofMinutes(10))
-      : (ControlPlane, String, String) => Either[String, Unit] =
+      : (ControlPlane, String, String) => Either[String, Waited] =
     (cp, project, name) =>
       val deadline = System.nanoTime() + within.toNanos
-      def ready = cp.services(project).find(_.name == name).exists(_.lifecycle == ServiceLifecycle.Ready)
-      while !ready && System.nanoTime() < deadline do Thread.sleep(every.toMillis)
-      Either.cond(ready, (), s"service $name not Ready within ${within.toMinutes}m")
+      def lifecycle = cp.services(project).find(_.name == name).map(_.lifecycle)
+      val settled   = Set(ServiceLifecycle.Ready, ServiceLifecycle.Paused, ServiceLifecycle.Failed)
+      var now = lifecycle
+      while !now.exists(settled) && System.nanoTime() < deadline do
+        Thread.sleep(every.toMillis)
+        now = lifecycle
+      now match
+        case Some(ServiceLifecycle.Ready)  => Right(Waited.Ready)
+        case Some(ServiceLifecycle.Paused) => Right(Waited.Paused)
+        case Some(ServiceLifecycle.Failed) => Left(s"service $name Failed")
+        case _                             => Left(s"service $name not Ready within ${within.toMinutes}m")
 
   /** The installation is local: its overlay names no vendor and `ANKKA_VENDOR_URL` is unset. Else the refusal. */
   def local(installation: Installation, env: Map[String, String]): Either[String, Unit] =
@@ -102,5 +120,16 @@ object LocalApply:
     changes ++= r.changes.filterNot(_.startsWith("project "))
     notes ++= r.notes
     r.failure.map(f => s"module ${m.name}: $f").toLeft(()).flatMap { _ =>
-      m.services.foldLeft[Either[String, Unit]](Right(()))((acc, d) => acc.flatMap(_ => options.ready(cp, project, d.name).left.map(e => s"module ${m.name}: $e")))
+      m.services.foldLeft[Either[String, Unit]](Right(())) { (acc, d) =>
+        acc.flatMap { _ =>
+          if options.unwaited.contains(d.name) then
+            notes += s"service ${d.name} not waited for: applied without a build (--allow-unbuilt)"
+            Right(())
+          else
+            options.ready(cp, project, d.name).left.map(e => s"module ${m.name}: $e").map {
+              case Waited.Paused => notes += s"service ${d.name} is paused: not waited for"
+              case Waited.Ready  => ()
+            }
+        }
+      }
     }

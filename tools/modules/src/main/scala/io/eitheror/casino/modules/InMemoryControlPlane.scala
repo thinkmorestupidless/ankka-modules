@@ -88,8 +88,11 @@ final class InMemoryControlPlane(val hasGrants: Boolean = false, var installatio
     val all = secretsBy.getOrElseUpdate(project, mutable.LinkedHashMap.empty)
     all(name) = all.getOrElse(name, Map.empty) ++ entries
 
+  /** A service's lifecycle where a test sets one (a paused or failed service); Ready otherwise. */
+  val lifecycles = mutable.Map.empty[(String, String), ServiceLifecycle]
+
   private def status(project: String, name: String): ServiceStatus =
-    ServiceStatus(name, project, ServiceLifecycle.Ready, generations((project, name)).size.toLong, servicesBy(project)(name).last.service.image, 1, 1,
+    ServiceStatus(name, project, lifecycles.getOrElse((project, name), ServiceLifecycle.Ready), generations((project, name)).size.toLong, servicesBy(project)(name).last.service.image, 1, 1,
       exposed = exposed.contains(project -> name))
 
   def services(project: String) =
