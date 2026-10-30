@@ -6,6 +6,7 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.kyc.Json
 import io.eitheror.casino.kyc.Json.*
 import io.eitheror.casino.kyc.policy.{ApplyProfile, Change, ChangePolicy, PolicyAnswer, PolicyEntity}
+import io.eitheror.casino.kyc.queue.KycQueue
 import io.eitheror.casino.kyc.record.*
 
 import scala.jdk.CollectionConverters.*
@@ -64,6 +65,20 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   // ── the player's account (US2) ─────────────────────────────────────────────────────────────────
 
   private def operatorId = principal.subject
+
+  /** The queue (FR-035): a filter's rows, oldest first by its time unless `sort=newest`, and every filter's live count. */
+  get("/queue") { () =>
+    compliance {
+      KycQueue.Filter.of(request.query.raw("filter"), request.query.raw("reason")) match
+        case None => refused("invalid_filter")
+        case Some(filter) =>
+          val queue = ctx.views.forView(KycQueue)
+          val now   = ctx.now()
+          val rows  = filter.rows(queue, OperatorEndpoint.QueueLimit).sortBy(r => filter.since(r).getOrElse(now))
+          val shown = if request.query.raw("sort").contains("newest") then rows.reverse else rows
+          ok(Json.obj("rows" -> Json.arr(shown.map(Render.queueRow(_, filter.since, now))*), "counts" -> Json.obj(KycQueue.counts(queue)*)))
+    }
+  }
 
   get("/{playerId}") { (p: String) =>
     compliance {
@@ -127,7 +142,29 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
     })
   }
 
+  /** The source of funds review (FR-023): cleared closes the source of funds flag; unverified sets it back. */
+  postBody("/{playerId}/sof") { (p: String, text: String) =>
+    compliance(body(text) { b =>
+      val record = ctx.record(p)
+      b.text("status") match
+        case Some("cleared")    => ok(Json.obj("sof" -> record.call(KycRecord.clearSof).invoke(ClearSof(operatorId, ctx.now())).state.sof.wire))
+        case Some("unverified") => ok(Json.obj("sof" -> record.call(KycRecord.resetSof).invoke(ResetSof(operatorId, ctx.now())).state.sof.wire))
+        case _                  => refused("invalid_status")
+    })
+  }
+
+  /** An open flag dismissed with a note (FR-024); the note is personal and kept only on the record. */
+  postBody("/{playerId}/flags/{reason}/dismiss") { (p: String, reason: String, text: String) =>
+    compliance(body(text) { b =>
+      val a = ctx.record(p).call(KycRecord.dismissFlag).invoke(DismissFlag(reason, b.text("note").getOrElse(""), operatorId, ctx.now()))
+      a.refusal.fold(ok(Json.obj("flags" -> Render.flags(a.state))))(refused)
+    })
+  }
+
 object OperatorEndpoint:
+  /** The most rows one read of the queue lists. */
+  val QueueLimit = 1000
+
   /** What `PUT /status` sets; `POST /override` sets the other two. */
   val Settable: Set[Status]    = Set(Status.Pending, Status.Verified)
   val Overridable: Set[Status] = Set(Status.Verified, Status.Rejected)

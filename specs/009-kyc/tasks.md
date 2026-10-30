@@ -182,7 +182,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T043 [US7] Bind `features/kyc/reads.feature` in `T/features/ReadsFeatures.scala` (4 scenarios;
       "the player's activity history" is `players`' `ActivityView`, asserted on the facts here and named as
       008's)
-- [ ] T044 [US7] `OperatorEndpoint`: `GET /queue?filter=&reason=&sort=` (`invalid_filter`; every count of
+- [X] T044 [US7] `OperatorEndpoint`: `GET /queue?filter=&reason=&sort=` (`invalid_filter`; every count of
       contracts/routes.md; oldest first unless `sort=newest`), `POST /{playerId}/sof` and `POST
       /{playerId}/flags/{reason}/dismiss` (`flag_not_found`, `note_required`)
 - [ ] T045 [US7] `T/it/QueueSuite.scala`: each filter lists its players with the right count; a flag leaves

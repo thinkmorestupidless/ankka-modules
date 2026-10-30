@@ -1,8 +1,9 @@
 package io.eitheror.casino.kyc.api
 
-import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
 import io.eitheror.casino.kyc.Json
 import io.eitheror.casino.kyc.policy.Policy
+import io.eitheror.casino.kyc.queue.QueueRow
 import io.eitheror.casino.kyc.record.{Category, Document, KycRecord, KycState}
 
 import java.time.Instant
@@ -97,6 +98,27 @@ object Render:
     Json.set(read, "deadline", s.deadline.map(d => Json.obj("at" -> d.at.toString, "migrated" -> d.migrated, "handled" -> d.handled,
       "suspensionRequested" -> d.suspensionRequested)).orNull)
     Json.set(read, "depositsByCurrency", Json.obj(s.deposits.toSeq.sortBy(_._1).map((c, d) => c -> d.total)*))
-    Json.set(read, "flags", Json.arr(s.flags.map(f => Json.obj("reason" -> f.reason.wire, "at" -> f.at.toString, "open" -> f.open,
-      "dismissedAt" -> f.dismissed.map(_.at.toString), "dismissedBy" -> f.dismissed.map(_.operatorId), "closedAt" -> f.closedAt.map(_.toString)))*))
+    Json.set(read, "flags", flags(s))
     read
+
+  /** Every flag, open or not, with who dismissed it and when; never the dismissal's note. */
+  def flags(s: KycState): ArrayNode =
+    Json.arr(s.flags.map(f => Json.obj("reason" -> f.reason.wire, "at" -> f.at.toString, "open" -> f.open,
+      "dismissedAt" -> f.dismissed.map(_.at.toString), "dismissedBy" -> f.dismissed.map(_.operatorId), "closedAt" -> f.closedAt.map(_.toString)))*)
+
+  /** A queue row (FR-035), with the seconds since the filter's time: since ready, since flagged, since the oldest upload. */
+  def queueRow(r: QueueRow, since: QueueRow => Option[Instant], now: Instant): ObjectNode =
+    Json.obj(
+      "playerId"           -> r.playerId,
+      "status"             -> r.status,
+      "mode"               -> r.mode,
+      "awaiting"           -> r.awaiting,
+      "oldestAwaitingAt"   -> r.oldestAwaitingAt.map(_.toString),
+      "readyAt"            -> r.readyAt.map(_.toString),
+      "flags"              -> r.flags,
+      "flaggedAt"          -> r.flaggedAt.map(_.toString),
+      "sof"                -> r.sof,
+      "depositsByCurrency" -> Json.obj(r.depositsByCurrency.toSeq.sortBy(_._1)*),
+      "updatedAt"          -> r.updatedAt.map(_.toString),
+      "sinceSeconds"       -> since(r).map(t => java.time.Duration.between(t, now).toSeconds.max(0L))
+    )

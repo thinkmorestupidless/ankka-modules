@@ -335,6 +335,16 @@ in 010. No secret.
   `kyc.mode_changed` (mode before and after) and `kyc.required_changed` (the categories before and
   after), with the operator as actor, so every operator decision on how a player is verified is
   attributable. contracts/facts.md gains both; no other spec names KYC's actions.
+- **T044, the queue's filter values.** routes.md names `?filter=&reason=&sort=` and the counts, not the
+  values. They follow the counts' names: `awaiting`, `ready`, a status (`unverified`, `pending`,
+  `verified`, `rejected`), `flagged` with an optional `reason` (a flag's wire name; none lists every open
+  flag), and `sof` for the source of funds flag. Anything else is `400 invalid_filter`. Each row carries
+  `sinceSeconds` from its filter's time (ready, flagged, oldest upload, last change). A read lists at most
+  1,000 rows; the counts are not capped. Naming only: the frontends' move (T054) reads these.
+- **T032, the queue's defaults.** The row's codec leaves a default out (`status` "unverified", `sof`
+  "unverified", `awaiting` 0), so the queries compare with `IS DISTINCT FROM` or `COALESCE`, and a
+  parameter used as a JSON key goes through `jsonb_extract_path_text`: ankka's query check does not read
+  `->> :name` as a parameter.
 
 ## Design finished
 

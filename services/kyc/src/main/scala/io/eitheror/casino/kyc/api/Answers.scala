@@ -79,4 +79,5 @@ final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
   def record(playerId: String) = clients.componentClient.forEventSourcedEntity(EntityId(playerId))
   def state(playerId: String): KycState = record(playerId).call(KycRecord.get).invoke()
   def policyEntity               = clients.componentClient.forEventSourcedEntity(EntityId(slug))
+  def views                      = clients.viewClient
   def policy: Policy             = policyEntity.call(PolicyEntity.get).invoke()

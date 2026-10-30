@@ -1,6 +1,7 @@
 package io.eitheror.casino.kyc.queue
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, Serializer}
+import com.thinkmorestupidless.ankka.runtime.ViewQueries
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.kyc.KycCodecs
 import io.eitheror.casino.kyc.record.*
@@ -95,3 +96,49 @@ object KycQueue extends View.Companion[KycQueueView, KycEvent, QueueRow](
       s"AND COALESCE(jsonb_extract_path_text(payload::jsonb, 'depositsByCurrency', :currency)::bigint, 0) > CAST(:amount AS bigint) ORDER BY row_key")
 
   def create(ctx: ViewComponentContext) = new KycQueueView
+
+  /** A filter of the queue route (FR-035, contracts/routes.md): its rows and the time each row waits from. */
+  enum Filter:
+    case Awaiting
+    case ByStatus(status: Status)
+    case Ready
+    case Flagged(reason: Option[FlagReason])
+
+    def rows(queue: ViewQueries[QueueRow], limit: Int): Vector[QueueRow] = this match
+      case Awaiting          => queue.ask(awaiting, limit)
+      case ByStatus(s)       => queue.ask(byStatus, limit, "status" -> s.wire)
+      case Ready             => queue.ask(ready, limit)
+      case Flagged(Some(r))  => queue.ask(flagged, limit, "reason" -> r.wire)
+      case Flagged(None)     => FlagReason.values.toVector.flatMap(r => queue.ask(flagged, limit, "reason" -> r.wire)).distinctBy(_.playerId)
+
+    def since(row: QueueRow): Option[Instant] = this match
+      case Awaiting    => row.oldestAwaitingAt
+      case ByStatus(_) => row.updatedAt
+      case Ready       => row.readyAt
+      case Flagged(_)  => row.flaggedAt
+
+  object Filter:
+    /** `filter` and, for `flagged`, an optional `reason`; `sof` is the source of funds flag. Anything else is none. */
+    def of(filter: Option[String], reason: Option[String]): Option[Filter] = (filter, reason) match
+      case (Some("awaiting"), None) => Some(Awaiting)
+      case (Some("ready"), None)    => Some(Ready)
+      case (Some("sof"), None)      => Some(Flagged(Some(FlagReason.SourceOfFunds)))
+      case (Some("flagged"), None)  => Some(Flagged(None))
+      case (Some("flagged"), r)     => r.flatMap(FlagReason.of).map(r => Flagged(Some(r)))
+      case (Some(s), None)          => Status.of(s).map(ByStatus(_))
+      case _                        => None
+
+  /** The live count of each filter, by the names of contracts/routes.md. */
+  def counts(queue: ViewQueries[QueueRow]): Vector[(String, Long)] =
+    import com.thinkmorestupidless.ankka.runtime.SqlSyntax.{jsonText, sql}
+    val status = Status.values.toVector.map(s => s.wire -> queue.count(sql"COALESCE(" ++ jsonText("status") ++ sql", 'unverified') = ${s.wire}"))
+    val flags  = FlagReason.values.toVector.map(r => r.counted -> queue.count(sql"jsonb_exists(payload::jsonb->'flags', ${r.wire})"))
+    Vector(
+      "awaiting" -> queue.count(sql"COALESCE((" ++ jsonText("awaiting") ++ sql")::int, 0) > 0"),
+      "ready"    -> queue.count(jsonText("readyAt") ++ sql" IS NOT NULL")
+    ) ++ status ++ flags
+
+  extension (r: FlagReason)
+    /** A flag's count by its name in `counts`: `sourceOfFunds`, `largeDeposit`. */
+    private def counted: String = r.wire.split('_').toVector match
+      case first +: rest => first + rest.map(_.capitalize).mkString
