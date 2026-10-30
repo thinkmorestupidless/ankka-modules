@@ -174,7 +174,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       store keeps (SC-004); the records' non-personal fields unchanged; a late upload removed by the next
       call; a store failure answers no certificate; no other path deletes a recorded document's object
       (FR-034: only `file_rejected` on an unconfirmed upload, and erasure)
-- [ ] T042 [US6] `T/it/LeakSuite.scala`: after `Erase`, no reason, note or age date in any state, fact,
+- [X] T042 [US6] `T/it/LeakSuite.scala`: after `Erase`, no reason, note or age date in any state, fact,
       audit record, view row or log line; no `Personal` value in any log line or span at any time
 
 ## Phase 9: US7, reads (P2)

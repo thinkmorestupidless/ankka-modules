@@ -1,5 +1,8 @@
 package io.eitheror.casino.kyc.it
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.fasterxml.jackson.databind.JsonNode
 import com.sun.net.httpserver.HttpServer as JdkServer
 import com.thinkmorestupidless.ankka.core.Metadata
@@ -10,6 +13,7 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.kyc.{Json, KycRuntime, KycService, Settings}
 import io.eitheror.casino.kyc.documents.{S3Store, Store}
+import org.slf4j.LoggerFactory
 
 import java.net.{InetSocketAddress, URI}
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -76,6 +80,11 @@ final class Kit(base: Settings = Kit.Base):
   private val settings = base.copy(bucket = Some(bucket))
   KycRuntime.wire(settings, () => now())
 
+  /** Every log line of the service, from the start, for the leak suite. */
+  val log: ListAppender[ILoggingEvent] = ListAppender[ILoggingEvent]()
+  log.start()
+  LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
+
   private val timers = TimerRuntime(200.millis)
   private val server = HttpServer.at("127.0.0.1", 0)(KycService.endpoints(() => Kit.authenticate)*)
 
@@ -93,6 +102,7 @@ final class Kit(base: Settings = Kit.Base):
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
 
   def stop(): Unit =
+    LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].detachAppender(log): Unit
     testKit.stop()
     players.stop()
     garage.stop()
@@ -151,6 +161,16 @@ final class Kit(base: Settings = Kit.Base):
   def publish[F <: Fact](topic: Topic[F], key: String, fact: F): Unit =
     scala.concurrent.Await.result(broker.publish(topic.name, Some(key), topic.serializer.toBytes(fact),
       Metadata.empty.set(Metadata.CeSubject, key).set(Metadata.CeType, topic.contractName)), 10.seconds): Unit
+
+  def factTexts(topic: Topic[?]): Vector[String] = broker.publishedTo(topic.name).toVector.map(d => String(d.message.payload, UTF_8))
+
+  /** Every row of every table in the service's schema, as text: the journal, the views, the timers. */
+  def tables: Map[String, Vector[String]] =
+    Kit.query(testKit.jdbcUrl, "SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema() AND table_type = 'BASE TABLE'")
+      .map(t => t -> Kit.query(testKit.jdbcUrl, s"SELECT CAST(r AS text) FROM \"$t\" r")).toMap
+
+  def logText: Vector[String] =
+    log.list.asScala.toVector.map(e => s"${e.getFormattedMessage} ${Option(e.getThrowableProxy).fold("")(_.getMessage)}")
 
   def timerExists(name: String): Boolean =
     Kit.query(testKit.jdbcUrl, s"SELECT count(*) FROM ankka_timers WHERE timer_name = '$name'").headOption.contains("1")
