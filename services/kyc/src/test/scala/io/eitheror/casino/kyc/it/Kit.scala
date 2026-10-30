@@ -5,7 +5,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import com.fasterxml.jackson.databind.JsonNode
 import com.sun.net.httpserver.HttpServer as JdkServer
-import com.thinkmorestupidless.ankka.core.Metadata
+import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
@@ -13,6 +13,7 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.kyc.{Json, KycRuntime, KycService, Settings}
 import io.eitheror.casino.kyc.documents.{S3Store, Store}
+import io.eitheror.casino.kyc.policy.{ApplyProfile, PolicyEntity}
 import org.slf4j.LoggerFactory
 
 import java.net.{InetSocketAddress, URI}
@@ -107,12 +108,13 @@ final class Kit(base: Settings = Kit.Base):
     players.stop()
     garage.stop()
 
-  /** Back to the kit's own clock, settings and store, for the next suite. */
+  /** Back to the kit's own clock, settings and store, and the brand's default policy (Curaçao), for the next suite. */
   def reset(s: Store = store): Unit =
     players.reset()
     clockOffset = JDuration.ZERO
     KycRuntime.wire(settings, () => now())
     KycService.started(timers, s, views)
+    components.forEventSourcedEntity(EntityId(slug)).call(PolicyEntity.applyProfile).invoke(ApplyProfile(Some("CURACAO"), "kit", now())): Unit
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 

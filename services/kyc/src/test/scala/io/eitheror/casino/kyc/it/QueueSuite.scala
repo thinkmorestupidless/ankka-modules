@@ -65,7 +65,7 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
     val first = newPlayer(); submit(first)
     kit.advance(java.time.Duration.ofMinutes(5))
     val second = newPlayer(); submit(second)
-    listedUnder("filter=awaiting", second)
+    listedUnder("filter=awaiting", first); listedUnder("filter=awaiting", second)
     def order(query: String) = ids(queue(query)).filter(Set(first, second))
     assertEquals(order("filter=awaiting"), Vector(first, second))
     assertEquals(order("filter=awaiting&sort=newest"), Vector(second, first))

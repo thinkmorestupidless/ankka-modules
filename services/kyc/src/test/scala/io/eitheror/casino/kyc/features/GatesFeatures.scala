@@ -167,6 +167,11 @@ class GatesFeatures extends KycFeatures("gates.feature"):
     deposited(150000, of = verified)
     statusOf("verified", verified)
     untouched = Vector(under, verified)
+    // The flagger searches the queue, a view: the deposits are in it before the policy is saved.
+    eventually("the deposits in the queue") {
+      val rows = queue("unverified").objects("rows")
+      Option.when(tightened.forall(p => rows.exists(r => r.text("playerId").contains(p) && r.get("depositsByCurrency").path("EUR").asLong == 150000L)))(())
+    }
   }
 
   When("the policy is saved") { () => policy("depositThresholdMinorUnits" -> 100000L) }

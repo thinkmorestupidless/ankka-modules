@@ -95,7 +95,8 @@ class WindowFeatures extends KycFeatures("window.feature"):
     val past = kit.now().minus(Duration.ofDays(2))
     kit.components.forEventSourcedEntity(EntityId(player)).call(KycRecord.open)
       .invoke(Open(KycState(playerId = player, deadline = Some(Deadline(past, migrated = true))), kit.now())): Unit
-    eventually("the window's timer")(Option.when(kit.timerExists(timer()))(()))
+    // The deadline is past, so the timer is due at once: the runtime may have run it already.
+    eventually("the window's timer, set or run")(Option.when(kit.timerExists(timer()) || state().openFlag(FlagReason.Window).nonEmpty)(()))
   }
 
   Given("a player verified before their deadline") { () =>
