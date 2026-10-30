@@ -151,7 +151,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 - [X] T035 [US5] Fail first: bind `features/kyc/window.feature` in `T/features/WindowFeatures.scala`
       (7 scenarios)
-- [ ] T036 [US5] `S/consumers/RegistrationConsumer.scala` (`player_registered` → `SetDeadline` with the
+- [X] T036 [US5] `S/consumers/RegistrationConsumer.scala` (`player_registered` → `SetDeadline` with the
       policy) and `S/consumers/ClosureConsumer.scala` (`player_closed` → `Close`) with their kits
 - [ ] T037 [US5] `S/clients/Players.scala` (trait + HTTP: `POST
       /v1/casino/brands/<slug>/players/{playerId}/suspend {reason: "kyc_window_expired", deadline}`),
