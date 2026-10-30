@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import io.eitheror.casino.kyc.api.{Ctx, OperatorEndpoint, PlayerEndpoint}
+import io.eitheror.casino.kyc.consumers.ProfileConsumer
 import io.eitheror.casino.kyc.documents.Store
 import io.eitheror.casino.kyc.facts.{AuditPublisher, KycPublisher, PolicyAuditPublisher}
 import io.eitheror.casino.kyc.policy.PolicyEntity
@@ -18,7 +19,8 @@ object KycService:
     PolicyEntity.descriptor,
     KycPublisher.descriptor,
     AuditPublisher.descriptor,
-    PolicyAuditPublisher.descriptor
+    PolicyAuditPublisher.descriptor,
+    ProfileConsumer.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */

@@ -108,7 +108,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       /{playerId}/reviews/{documentId}` (the reason code checked first, `document_already_reviewed`, 404
       on an unknown document), `PUT /{playerId}/mode` (automatic recomputes), `PUT /{playerId}/status`
       (`profile_incomplete` with the missing fields), `PUT /{playerId}/required`, `POST /{playerId}/override`
-- [ ] T024 [US2] `S/consumers/ProfileConsumer.scala` (`player_profile_updated` → `ProfileChanged`:
+- [X] T024 [US2] `S/consumers/ProfileConsumer.scala` (`player_profile_updated` → `ProfileChanged`:
       presence, age date, whether a required field changed) with its `ConsumerTestKit` suite; no field's
       value kept
 - [ ] T025 [US2] `T/it/OperatorSuite.scala`: each role admitted or refused; another brand's operator
