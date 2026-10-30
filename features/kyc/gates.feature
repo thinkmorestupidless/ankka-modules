@@ -65,3 +65,36 @@ Feature: A deposit or a game launch is allowed or refused by the KYC policy
     Given a brand whose KYC policy tightens while unverified players have lifetime deposits over the new deposit threshold
     When the policy is saved
     Then each such player is flagged for review once
+
+  Scenario: a deposit check in a currency other than the KYC currency is refused while the brand has a threshold
+    Given the brand's KYC currency is "GBP" with a deposit threshold of "200000"
+    When a deposit of "5000" in "EUR" is checked
+    Then it refuses with "DEPOSIT_BLOCKED_KYC_CURRENCY"
+
+  Scenario: a deposit check in any currency is answered by the gates alone when the brand has no threshold
+    Given the brand has no deposit threshold and no source of funds threshold, and its deposit gate is none
+    When a deposit of "5000" in "EUR" is checked
+    Then it is allowed
+
+  Scenario: only deposits in the KYC currency count toward the player's lifetime deposits
+    Given the brand's KYC currency is "GBP" and the player's lifetime deposits of "190000"
+    When a "deposit_confirmed" fact of "5000" in "EUR" is read
+    Then the player's lifetime deposits are still "190000"
+
+  Scenario Outline: a confirmed deposit that alone exceeds the deposit threshold flags a player not verified for review and suspends no one
+    Given the brand's deposit threshold of "200000" and the player's KYC status is <status>
+    When a "deposit_confirmed" fact of "250000" is read
+    Then the player is flagged for review with reason "large deposit"
+    And a "player_kyc_review_required" fact is published
+    And the player is not suspended
+
+    Examples:
+      | status     |
+      | unverified |
+      | pending    |
+      | rejected   |
+
+  Scenario: a confirmed deposit that alone exceeds the deposit threshold does not flag a verified player
+    Given the brand's deposit threshold of "200000" and the player is verified
+    When a "deposit_confirmed" fact of "250000" is read
+    Then the player is not flagged

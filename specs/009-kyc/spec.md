@@ -116,6 +116,25 @@ The markers left open for product and regulatory decisions, settled with Trevor 
 - Q: May an operator upload for a player? → A: Yes, with a reason, audited under the operator, and
   shown in the player's list as submitted by support (FR-005, Assumptions).
 
+### Session 2026-10-30
+
+Settled before 009 is planned.
+
+- Q: The original's `player-kyc-gate-on-large-deposit` (casino starter pack, approved) flags an
+  unverified or pending player when one confirmed deposit exceeds the deposit threshold, and proposes
+  suspending a rejected one; the proposal reached no one. What does `kyc` do? → A: Flag, suspend no
+  one. A confirmed deposit whose own amount exceeds the policy's deposit threshold flags an unverified,
+  pending or rejected player for review (`large_deposit`) and publishes the fact; nobody is suspended,
+  which is what the original did in effect. The deployed trigger's extra floor of 1,000,000 minor
+  units, a leftover of its test fixture, is not carried over (FR-038).
+- Q: A player may hold wallets in several currencies (spec 002) and the thresholds are bare minor
+  units; the original summed every deposit into one number. How are deposits compared with the
+  thresholds? → A: One KYC currency per brand. The policy names it (the UKGC profile `GBP`, MGA `EUR`,
+  Curaçao none, having no threshold); only deposits in it are summed; while the policy has a deposit
+  or source of funds threshold, a deposit check in another currency is refused
+  `DEPOSIT_BLOCKED_KYC_CURRENCY`, failing closed as spec 010 does, so no threshold is avoided by
+  splitting currencies (FR-019, FR-021, FR-026).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player submits documents and sees where they stand (Priority: P1)
@@ -196,8 +215,8 @@ is held to the Go rollup's tests.
 ### User Story 3 - The brand's policy comes from its licence (Priority: P1)
 
 An operator applies a licence profile — UKGC, MGA or Curaçao — to the brand and the policy's fields
-take that profile's defaults: the deposit gate, the play gate, the deposit threshold, the source of
-funds threshold, the verification window, the required categories, and whether the window's expiry
+take that profile's defaults: the deposit gate, the play gate, the KYC currency, the deposit threshold,
+the source of funds threshold, the verification window, the required categories, and whether the window's expiry
 suspends. The operator may then override any field, which marks the profile custom.
 
 **Why this priority**: Every gate and every derivation reads the policy; without it the service has
@@ -240,6 +259,11 @@ must be one place's.
 - added `features/kyc/gates.feature`: play is allowed for a verified player or on a brand whose play gate is none
 - added `features/kyc/gates.feature`: a deposit confirmed by the wallet grows the player's lifetime deposits for the next check
 - added `features/kyc/gates.feature`: a tightened policy flags each unverified player over the new threshold for review once
+- added `features/kyc/gates.feature`: a deposit check in a currency other than the KYC currency is refused while the brand has a threshold
+- added `features/kyc/gates.feature`: a deposit check in any currency is answered by the gates alone when the brand has no threshold
+- added `features/kyc/gates.feature`: only deposits in the KYC currency count toward the player's lifetime deposits
+- added `features/kyc/gates.feature`: a confirmed deposit that alone exceeds the deposit threshold flags a player not verified for review and suspends no one
+- added `features/kyc/gates.feature`: a confirmed deposit that alone exceeds the deposit threshold does not flag a verified player
 
 ---
 
@@ -314,8 +338,10 @@ the player sees their own; other services read facts.
 - A player switched from manual to automatic while every required document is approved: the account is
   recomputed at the switch and becomes verified if the rules say so.
 - The policy is read while the brand has none: the Curaçao default, and the read says it is a default.
-- A deposit check for a currency other than the player's wallet: refused by the wallet, not here; the
-  threshold compares minor units of the brand's currency as today.
+- A deposit check in a currency other than the policy's KYC currency: refused
+  `DEPOSIT_BLOCKED_KYC_CURRENCY` while the policy has a threshold, answered by the gates alone while it
+  has none (FR-019). A currency the player holds no wallet in is the wallet's to refuse, not this
+  service's.
 - A deposit confirmed for a player with no record in this service: the record is created with that
   deposit as its lifetime total.
 - The store refuses an upload link (the bucket is unreachable): the player is told storage is
@@ -408,18 +434,22 @@ the player sees their own; other services read facts.
 
 **Gates and thresholds**
 
-- **FR-019**: The deposit check MUST take a player and an amount in minor units and answer, in this
-  order: `DEPOSIT_BLOCKED_KYC` with the status-specific message when the policy's deposit gate is
+- **FR-019**: The deposit check MUST take a player, a currency and an amount in minor units and answer,
+  in this order: `DEPOSIT_BLOCKED_KYC` with the status-specific message when the policy's deposit gate is
   `KYC_APPROVED` and the status is not verified; `DEPOSIT_BLOCKED_KYC_THRESHOLD` when the policy has a
   deposit threshold, the status is not verified, and lifetime deposits plus the amount exceed it,
   flagging the player for review (threshold) once; `DEPOSIT_BLOCKED_SOF` when the policy has a source
   of funds threshold, the source of funds status is not cleared, and lifetime deposits plus the amount
-  exceed it, flagging the player for source of funds review once; else allowed. The messages MUST be
-  the original's three for unverified, pending and rejected.
+  exceed it, flagging the player for source of funds review once; else allowed. Before the two
+  threshold rules, a check in a currency other than the policy's KYC currency MUST be refused
+  `DEPOSIT_BLOCKED_KYC_CURRENCY` while the policy has either threshold; with neither, the currency is
+  not compared. The messages MUST be the original's three for unverified, pending and rejected.
 - **FR-020**: The play check MUST answer `PLAY_BLOCKED_KYC` with the status-specific message when the
   policy's play gate is `KYC_APPROVED` and the status is not verified, else allowed.
 - **FR-021**: Lifetime deposits MUST be a view per player of `deposit_confirmed` on
-  `money.transactions`, summed in minor units for the player's life at the brand, never reset.
+  `money.transactions` in the policy's KYC currency, summed in minor units for the player's life at
+  the brand, never reset; a deposit in another currency MUST NOT count. With no KYC currency named,
+  nothing is summed and no threshold applies.
 - **FR-022**: A policy save that lowers a threshold MUST flag for review, once, every unverified
   player whose lifetime deposits already exceed the new deposit threshold, and every player with
   source of funds not cleared whose deposits exceed the new source of funds threshold.
@@ -428,6 +458,12 @@ the player sees their own; other services read facts.
   sets it back to unverified.
 - **FR-024**: A player flagged for review MUST appear in the queue under the reason until the account
   is verified, the source of funds is cleared, or an operator dismisses the flag with a note.
+- **FR-038**: A `deposit_confirmed` whose own amount, in the KYC currency, exceeds the policy's
+  deposit threshold MUST flag an unverified, pending or rejected player for review (large deposit) and
+  publish `player_kyc_review_required`; it MUST NOT suspend anyone, and MUST NOT flag a verified
+  player. With no deposit threshold it does nothing. **Change from the original**: the function also
+  proposed suspending a rejected player, a proposal nothing acted on, and its deployed trigger fired only
+  above 1,000,000 minor units whatever the policy said (Clarifications 2026-10-30).
 
 **The window**
 
@@ -447,7 +483,7 @@ the player sees their own; other services read facts.
 **The policy**
 
 - **FR-026**: The brand's policy MUST hold: deposit gate (`NONE` | `KYC_APPROVED`), play gate (the
-  same), deposit threshold (minor units or none), source of funds threshold (minor units or none),
+  same), KYC currency (ISO 4217, or none; required while either threshold is set), deposit threshold (minor units or none), source of funds threshold (minor units or none),
   window (days or none), required categories, suspend on expiry, and the licence profile (`UKGC` |
   `MGA` | `CURACAO` | `CUSTOM`). Absent, it MUST read as the Curaçao default of User Story 3.
 - **FR-027**: Applying a profile MUST set every field to the profile's defaults of User Story 3;
@@ -501,7 +537,7 @@ the player sees their own; other services read facts.
 
 ### Key Entities
 
-- **Policy**: one per brand; the gates, thresholds, window, required categories, suspend-on-expiry
+- **Policy**: one per brand; the gates, KYC currency, thresholds, window, required categories, suspend-on-expiry
   and profile; read as the Curaçao default when absent.
 - **Player KYC record**: one event sourced entity per player: documents, status, mode, required
   categories, source of funds status, deadline, flags, ready-for-final-review time; lifetime deposits
@@ -550,6 +586,12 @@ the player sees their own; other services read facts.
   nothing reaches the reasoner.
 - **Source of funds can be cleared.** The original has no action that sets `sof_status` to `cleared`,
   so a player over the threshold was refused every deposit for good (FR-023).
+- **One KYC currency.** The original summed every deposit into one number whatever its currency; the
+  policy now names the currency its thresholds are in, and a deposit check in another is refused
+  while a threshold is set (FR-019, FR-021).
+- **A large deposit flags and suspends no one.** The original's function proposed suspending a rejected
+  player and fired only above a fixed 1,000,000 minor units; the flag now follows the policy's deposit
+  threshold alone (FR-038).
 - **Every view is recorded.** `kyc_view_log` was one property overwritten on each issue (FR-037).
 - **Policy inheritance up the merchant hierarchy is dropped.** A brand is one project with one policy;
   the "ancestors" read goes.
