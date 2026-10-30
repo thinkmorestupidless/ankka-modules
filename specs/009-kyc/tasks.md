@@ -133,7 +133,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       `{allowed}` or `{allowed:false, code, message, kycStatus?}`) and `GET /{playerId}/play-check` for
       `game-provider` (a read; `error` and `code` both `PLAY_BLOCKED_KYC`); a player with no record
       answered as unverified with no documents
-- [ ] T031 [US4] `S/consumers/DepositsConsumer.scala` (`deposit_confirmed` → `CountDeposit` with the
+- [X] T031 [US4] `S/consumers/DepositsConsumer.scala` (`deposit_confirmed` → `CountDeposit` with the
       policy; per currency, deduplicated by `depositOrdinal`; FR-038's large-deposit flag) with its
       `ConsumerTestKit` suite: a repeat changes nothing; a deposit for a player with no record creates it
 - [ ] T032 [US4] `S/queue/KycQueue.scala` (the view of data-model.md, no `Personal` column; the
