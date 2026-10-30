@@ -241,18 +241,18 @@ Read from the code (`contracts/surface.md` has every element and its disposition
 
 *Written at task time.*
 
-- **Loss is net** (T010): `money.transactions` carries no loss amount (`round_settled_as_loss` has none), so
+- **Loss is net** (T010, 2026-10-27): `money.transactions` carries no loss amount (`round_settled_as_loss` has none), so
   the displayed loss is stakes less wins and rollbacks, per bucket, and a net gain is shown as no loss.
-- **A money limit's currency** (T018): ISO 4217 when named; with none named, the one currency the player's
+- **A money limit's currency** (T018, 2026-10-27): ISO 4217 when named; with none named, the one currency the player's
   limits already use, otherwise `invalid_currency`. FR-006's check against the player's wallets needs the
   wallets' currencies, which this service does not hold; it waits for a view of the wallet's facts.
-- **Timers from a consumer** (T014): `ProfileTimers` reads the profile's events and keeps a timer for each
+- **Timers from a consumer** (T014, 2026-10-27): `ProfileTimers` reads the profile's events and keeps a timer for each
   pending change, break and return and starts the sync, so a timer is set whatever path made the change.
-- **The lift** (T030): `POST /{player}/cooling-off/lift` with `reason` in the body; 0.13 has no `DELETE`
+- **The lift** (T030, 2026-10-27): `POST /{player}/cooling-off/lift` with `reason` in the body; 0.13 has no `DELETE`
   with a body, and a free-text reason must not travel in a query string.
-- **may-play's path** (T025): game-provider now calls `/v1/casino/brands/<slug>/rg/{player}/may-play`,
+- **may-play's path** (T025, 2026-10-27): game-provider now calls `/v1/casino/brands/<slug>/rg/{player}/may-play`,
   the service endpoint's one prefix.
-- **Breaks moved by an operator** keep their case; `rg_case_opened` is published once per break.
+- **Breaks moved by an operator** (2026-10-27) keep their case; `rg_case_opened` is published once per break.
 - **The brand's settings are event sourced** (T036, 2026-10-27): FR-028 audits every operator change, and a
   consumer of a key value entity may skip intermediate values. `SettingsChanged` carries the operator and
   the before and after; `SettingsAuditPublisher` writes `settings-change` with the brand as its subject.
@@ -290,7 +290,14 @@ Read from the code (`contracts/surface.md` has every element and its disposition
 - **The modules tool waits for a paused service** (T046): the second apply waited on the three imageless
   services until the control plane's 300 s token lapsed (`401`), so it never reached grants or the brand's
   hostnames. The services were created and exposed by then. A follow-up for the tool: skip a paused service,
-  or an `--allow-unbuilt` one, when waiting.
+  or an `--allow-unbuilt` one, when waiting. *Done 2026-10-29* (PR #15): the apply notes such a service and
+  goes on; on kind the second apply took 3 s. The token is now renewed during a long wait as well
+  (branch `modules-token-renew`).
+- **The cross-spec follow-ups** (2026-10-30):
+  - Spec 008 has both (the GAMSTOP refusal by player id; this service among the erasure targets).
+  - Specs 014 and 015 name this service's three fact families.
+  - The loss sums R6 leaves open are written into spec 002's dependencies and spec 003's
+    `contracts/neighbours.md`.
 
 ## For ankka (checked against 0.13.0)
 

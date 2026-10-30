@@ -833,3 +833,8 @@ amount only, that is a divergence of this spec to raise.
   they call here by wire name.
 - Spec 010 (responsible-gambling): `may-deposit`, asked within the project by the deposit workflow
   and failing closed (FR-022). `may-bet` is spec 003's (its FR-012).
+  *Open, from spec 010 R6 (decided 2026-10-27):* `may-bet` takes the player's loss over the last 24 hours,
+  7 days and 30 days (`lossLast24h`, `lossLast7d`, `lossLast30d`), net of wins and rollbacks. The wallet
+  keeps no loss sums yet. It should keep them as it keeps `recentDeposits`, from settled rounds, and answer
+  them to spec 003's bet workflow. Until it does, a player with a loss limit is refused every bet
+  (`unavailable`, failing closed).
