@@ -2,11 +2,8 @@ package io.eitheror.casino.kyc.it
 
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.kyc.Json
-import io.eitheror.casino.kyc.documents.{Head, Store}
 
-import java.time.Duration
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * SC-003 and SC-006: each gate answers 1,000 asks with a p99 under 50 ms, calling nothing outside the
@@ -18,20 +15,10 @@ class GatesLatencySuite extends munit.FunSuite with LogCapturing:
   private lazy val kit = SharedKit.kit
   private var player   = ""
 
-  /** The kit's store, counting every call made of it. */
-  private final class Counting(underlying: Store) extends Store:
-    val calls = AtomicInteger()
-    private def counted[A](a: => A): A = { calls.incrementAndGet(); a }
-    def signPut(objectName: String, contentType: String, ttl: Duration) = counted(underlying.signPut(objectName, contentType, ttl))
-    def signGet(objectName: String, ttl: Duration)                      = counted(underlying.signGet(objectName, ttl))
-    def head(objectName: String): Either[String, Option[Head]]          = counted(underlying.head(objectName))
-    def delete(objectName: String)                                      = counted(underlying.delete(objectName))
-    def deleteAll(prefix: String)                                       = counted(underlying.deleteAll(prefix))
-
-  private var store: Counting = null
+  private var store: CountingStore = null
 
   override def beforeEach(context: BeforeEach): Unit =
-    store = Counting(kit.store)
+    store = CountingStore(kit.store)
     kit.reset(store)
     player = s"p-${UUID.randomUUID().toString.take(8)}"
 
@@ -61,13 +48,13 @@ class GatesLatencySuite extends munit.FunSuite with LogCapturing:
     profile("MGA")
     val p = p99(1000)(() => depositCheck())
     assert(p < 50, s"p99 $p ms")
-    assertEquals((kit.players.calls, store.calls.get), (Vector.empty, 0))
+    assertEquals((kit.players.calls, store.calls), (Vector.empty, Vector.empty))
 
   test("the play check answers 1,000 asks with a p99 under 50 ms and calls nothing outside the service"):
     profile("UKGC")
     val p = p99(1000)(() => playCheck())
     assert(p < 50, s"p99 $p ms")
-    assertEquals((kit.players.calls, store.calls.get), (Vector.empty, 0))
+    assertEquals((kit.players.calls, store.calls), (Vector.empty, Vector.empty))
 
   test("a policy change is seen by the next ask"):
     profile("CURACAO")

@@ -170,7 +170,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       `subjects/<player>/` deleted, then `Erase`; a certificate; runs again on every call) and `GET
       /exports/players/{playerId}` (the records, no object) for `players`; an erased player's view refused
       `document_erased`
-- [ ] T041 [US6] `T/it/ErasureSuite.scala`: after erasure no object under the prefix in any version the
+- [X] T041 [US6] `T/it/ErasureSuite.scala`: after erasure no object under the prefix in any version the
       store keeps (SC-004); the records' non-personal fields unchanged; a late upload removed by the next
       call; a store failure answers no certificate; no other path deletes a recorded document's object
       (FR-034: only `file_rejected` on an unconfirmed upload, and erasure)
