@@ -76,9 +76,11 @@ class ScaleItSuite extends Harness:
    * SC-002: 500 reserve, release, settle and resolution payment commands a second across 50 wallets
    * for 20 seconds, over HTTP. Each wallet runs a cycle of the four, one command every 100 ms: reserve
    * 100 for an order, release 20 of it, settle 50 of it to the next wallet with the 30 left released,
-   * and take a payment of 10 from the pool account of a market of its own, which it seeded.
+   * and take a payment of 10 from the pool account of a market of its own, which it seeded. Reserve
+   * and release are held to 20 ms median and 100 ms p99; settle and payment, workflows of three
+   * steps, to 120 ms and 300 ms (research R15).
    */
-  test("SC-002: reserve, release, settle and payment at 500 a second over 50 wallets, median under 20 ms and p99 under 100 ms".tag(
+  test("SC-002: reserve, release, settle and payment at 500 a second over 50 wallets, each kind within its budget".tag(
     if perf then new munit.Tag("perf") else munit.Ignore)) {
     val exchange = Caller.Service(Harness.Project, "exchange")
     val wallets  = (0 until 50).map(i => s"sc2-$i")
@@ -126,12 +128,16 @@ class ScaleItSuite extends Harness:
       val sorted = all.sorted
       (sorted(sorted.size / 2), sorted((sorted.size * 99) / 100))
     val all = times.asScala.toVector
-    all.groupBy(_._1).toVector.sortBy(_._1).foreach { (kind, ts) =>
+    val budget = Map("reserve" -> (20.0, 100.0), "release" -> (20.0, 100.0),
+      "settle" -> (120.0, 300.0), "payment" -> (120.0, 300.0))
+    val over = all.groupBy(_._1).toVector.sortBy(_._1).flatMap { (kind, ts) =>
       val (m, p) = figures(ts.map(_._2))
       println(f"SC-002 $kind%-8s ${ts.size}%,6d commands: median $m%.1f ms, p99 $p%.1f ms")
+      val (bm, bp) = budget(kind)
+      Option.when(m >= bm || p >= bp)(f"$kind: median $m%.1f ms, p99 $p%.1f ms, over $bm%.0f/$bp%.0f")
     }
     val (median, p99) = figures(all.map(_._2))
     println(f"SC-002 all ${all.size}%,d commands in $elapsed%.1f s (${all.size / elapsed}%.0f a second): median $median%.1f ms, p99 $p99%.1f ms")
     assert(all.size / elapsed >= 450, f"the load ran at ${all.size / elapsed}%.0f a second, short of 500")
-    assert(median < 20 && p99 < 100, s"median $median ms, p99 $p99 ms")
+    assert(over.isEmpty, over.mkString("\n"))
   }

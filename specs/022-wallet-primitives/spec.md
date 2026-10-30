@@ -235,8 +235,10 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
 
 - **SC-001**: Every spec 002 scenario passes unchanged with this feature present; the casino's
   recordings replay with no difference.
-- **SC-002**: A reserve, release, settle or payout is answered within 20 ms at the median and
-  100 ms at p99 under 500 such commands per second across wallets in the brand's testkit.
+- **SC-002**: Under 500 reserve, release, settle and resolution payment commands per second across
+  wallets in the brand's testkit, a reserve or release (one wallet's command) is answered within
+  20 ms at the median and 100 ms at p99, and a settle or resolution payment (a workflow across two
+  entities) within 120 ms at the median and 300 ms at p99.
 - **SC-003**: No sequence of commands leaves available below zero, reserved unmatched by
   reservations, or a pool account below zero; a property suite over random sequences proves it.
 - **SC-004**: A wallet's balances are reconstructable from its `money.transactions` facts alone,

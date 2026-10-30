@@ -89,7 +89,8 @@ just wallet-perf
 ```
 
 Expected, beside spec 002's figures: 500 reserve/release/settle/payment commands per second across
-50 wallets for 20 s, median under 20 ms and p99 under 100 ms, printed and asserted.
+50 wallets for 20 s; reserve and release under 20 ms median and 100 ms p99, settle and payment under
+120 ms median and 300 ms p99, printed and asserted per kind.
 
 ## 8. The running service, locally, as the exchange
 

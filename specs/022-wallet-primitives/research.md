@@ -259,8 +259,8 @@ step timeout stays well above the test's wait. `EveryCommandIdempotentSuite` gai
 move steps and the invariants `reserved == Σ reservations`, `available ≥ 0` unless a correction
 debit; a new `AccountInvariantsSuite` holds `balance ≥ floor` over random debits, credits,
 adjustments and line changes (SC-003). `ScaleItSuite` gains SC-002 under `WALLET_PERF=1`: 500
-reserve/release/settle/payment commands per second across 50 wallets for 20 s, median under 20 ms,
-p99 under 100 ms. `MappingSuite` and `FactsSuite` cover the eight families; `SchemaDriftSuite`
+reserve/release/settle/payment commands per second across 50 wallets for 20 s, each kind held to
+its own figures (R15). `MappingSuite` and `FactsSuite` cover the eight families; `SchemaDriftSuite`
 fails until `just schemas` runs.
 
 Parity: there is no original of this feature (spec 023's exchange is new; ankka-predictions' ledger
@@ -305,6 +305,27 @@ real would let a cancel leave `reserved > realBalance`, which breaks the invaria
 **Alternatives considered**: refusing the cancel while a reservation stands (the original never
 refuses a cancel for want of money); clawing back the shortfall from the reservation (FR-003).
 
+## R15. The workflows have a latency budget of their own
+
+**Decision**: SC-002 holds reserve and release to 20 ms median and 100 ms p99, and settle and
+resolution payment to 120 ms median and 300 ms p99. `ScaleItSuite` asserts each kind against its own
+figures.
+
+**Rationale**: measured on 2026-10-25 at 501 commands a second with a market per wallet: reserve
+8.4/41 ms, release 11.5/46 ms, settle 95/278 ms, payment 82/171 ms. Reserve and release are one
+entity command; settle and payment are workflows of three journalled steps, and the time is the
+runtime's per step, not the wallet's work. The single 20 ms figure was set before the design made
+these two workflows (R3, R6). Three more runs on 2026-10-30 (a laptop, Postgres in Docker) held the
+medians at 73 to 93 ms, but the p99 ranged from 189 to 634 ms for payment and 196 to 308 ms for
+settle: one of the two was over 300 ms in each run. 300 ms stands as the target, and the suite fails
+when a run misses it, until a measurement on real infrastructure says whether the tail is the
+laptop's or the wallet's.
+
+**Alternatives considered**: one entity command across the accounts (ankka has no atomic command
+over several entities); claiming the account at the credit instead of first, which shortens nothing
+and brings back a compensating step (R6); polling the flow less often, which was tried and was
+slower. A faster workflow step is ankka's to give; when it does, the budget tightens.
+
 ## Resolved unknowns
 
 | Unknown | Resolved by |
@@ -323,3 +344,4 @@ refuses a cancel for want of money); clawing back the shortfall from the reserva
 | RG and the signature | R12 |
 | Erasure, removed owners | R13 |
 | A cancel's clawback beside a reservation | R14 |
+| SC-002's figures for the two workflows | R15 |

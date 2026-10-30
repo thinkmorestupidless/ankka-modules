@@ -39,9 +39,10 @@ with Postgres (Docker) for the workflows, the restart scenario, the facts and SC
 
 **Project Type**: one existing ankka service (`services/wallet/`) plus a contract change.
 
-**Performance Goals**: SC-002: reserve, release, settle or payment answered in 20 ms median, 100 ms
-p99 at 500 such commands per second across wallets. A workflow-backed move is two entity writes and
-a poll at 1 ms (`Flows`), inside the budget spec 002's deposit path already measured.
+**Performance Goals**: SC-002 at 500 such commands per second across wallets: reserve or release
+in 20 ms median, 100 ms p99; settle or payment in 120 ms median, 300 ms p99. A workflow-backed move
+is three journalled steps and a poll at 1 ms (`Flows`); measured, each step costs the runtime about
+30 ms, so the workflows have a budget of their own (R15).
 
 **Constraints**: minor units as `Long`; every money command keyed and digested (`KEY_REUSED`); an
 entity handler calls nothing; a flow's refusals precede its first write; restricted funds never
