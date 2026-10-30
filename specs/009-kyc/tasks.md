@@ -43,7 +43,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T007 [P] `S/record/Completeness.scala` (pure: the eight fields, the age date checked against today,
       the missing fields named, R11) with `T/record/CompletenessSuite.scala`: a player who turns eighteen
       completes with no new fact
-- [ ] T008 [P] `S/policy/Policy.scala` and `S/policy/Profiles.scala` (pure: research R9's table, the
+- [X] T008 [P] `S/policy/Policy.scala` and `S/policy/Profiles.scala` (pure: research R9's table, the
       validation of `Change`, `currency_required`) and `T/policy/PolicySuite.scala`: every profile row,
       every refusal, the seven `substrate_test.go` cases on the required categories' fallback
 - [ ] T009 [P] `S/record/Gates.scala` (pure: data-model.md's deposit check order and the play check; the
