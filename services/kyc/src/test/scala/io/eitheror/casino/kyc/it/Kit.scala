@@ -86,6 +86,7 @@ final class Kit(base: Settings = Kit.Base):
   )
   KycService.started(timers, store)
 
+  def limit: Long  = settings.maxUploadBytes
   def components = testKit.componentClient
   def scheduler  = timers.timerScheduler
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
@@ -162,7 +163,8 @@ final class Kit(base: Settings = Kit.Base):
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
-  val Base: Settings = Settings(brand = "goldvibe", suspendRetry = JDuration.ofSeconds(1))
+  // A small upload limit, so a scenario can pass it without sending megabytes.
+  val Base: Settings = Settings(brand = "goldvibe", maxUploadBytes = 64 * 1024, suspendRetry = JDuration.ofSeconds(1))
 
   /** Stands in for the token verifier: what is tested is what each audience's ACL decides once a token is verified. */
   val authenticate: Acl = Acl.Authenticate { context =>

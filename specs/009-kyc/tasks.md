@@ -83,7 +83,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 3: US1, a player submits documents and sees where they stand (P1)
 
-- [ ] T018 [US1] Fail first: bind `features/kyc/documents.feature` in `T/features/DocumentsFeatures.scala`
+- [X] T018 [US1] Fail first: bind `features/kyc/documents.feature` in `T/features/DocumentsFeatures.scala`
       (11 scenarios; "in the player's language" asserted as the code the page renders, frontends out of
       scope)
 - [ ] T019 [US1] `S/api/PlayerEndpoint.scala` at `/v1/casino/kyc/<slug>`: `GET /{playerId}/documents`,
