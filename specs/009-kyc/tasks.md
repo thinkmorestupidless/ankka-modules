@@ -46,7 +46,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T008 [P] `S/policy/Policy.scala` and `S/policy/Profiles.scala` (pure: research R9's table, the
       validation of `Change`, `currency_required`) and `T/policy/PolicySuite.scala`: every profile row,
       every refusal, the seven `substrate_test.go` cases on the required categories' fallback
-- [ ] T009 [P] `S/record/Gates.scala` (pure: data-model.md's deposit check order and the play check; the
+- [X] T009 [P] `S/record/Gates.scala` (pure: data-model.md's deposit check order and the play check; the
       messages of research R5 verbatim; a missing currency treated as another currency) and
       `T/record/GatesSuite.scala`: every row, exactly at the threshold allowed, a minor unit over refused,
       `DEPOSIT_BLOCKED_KYC` before the currency rule

@@ -32,6 +32,18 @@ enum Mode(val wire: String):
   case Automatic extends Mode("automatic")
   case Manual    extends Mode("manual")
 
+/** Why a player is flagged for review (FR-024). */
+enum FlagReason(val wire: String):
+  case Threshold     extends FlagReason("threshold")
+  case SourceOfFunds extends FlagReason("source_of_funds")
+  case Window        extends FlagReason("window")
+  case LargeDeposit  extends FlagReason("large_deposit")
+
+/** The source of funds review's status. */
+enum Sof(val wire: String):
+  case Unverified extends Sof("unverified")
+  case Cleared    extends Sof("cleared")
+
 /** A review's outcome; a document with none is awaiting review. */
 enum Outcome(val wire: String):
   case Approved extends Outcome("approved")
