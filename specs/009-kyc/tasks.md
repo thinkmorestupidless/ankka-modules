@@ -200,7 +200,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 ## Phase 11: Polish and cross-cutting
 
-- [ ] T049 [P] `services/kyc/README.md` (purpose, routes by endpoint with a pointer to contracts/routes.md,
+- [X] T049 [P] `services/kyc/README.md` (purpose, routes by endpoint with a pointer to contracts/routes.md,
       settings, the bucket, encryption by store (R17), the `just` recipes, what is verified where)
 - [ ] T050 [P] On 008's branch (`008-players`): the deposit check sends `currency` (R5); the suspend
       honours the deadline, idempotent under player and deadline (R10); `ErasureWorkflow.targets` and the
