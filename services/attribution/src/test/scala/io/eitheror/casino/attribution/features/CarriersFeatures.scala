@@ -201,14 +201,18 @@ class CarriersFeatures extends AttributionFeatures("carriers.feature"):
     assertEquals(post.path, "/hook")
   }
   Then("the brand retries with backoff on failure for a day") { () =>
+    // The clock moves only once the delivery has recorded the attempt: its next timer is set from the clock
+    // after the post, and from a clock already moved it would never fall due.
+    def recorded(n: Int) = delivery.attempts == n
+    kit.eventually("the first attempt recorded")(Option.when(recorded(postsOf(factId).size))(()))
     kit.clock.moveBy(1.minute)
-    kit.eventually("the retry after a minute")(Option.when(postsOf(factId).size == 2)(()))
+    kit.eventually("the retry after a minute")(Option.when(postsOf(factId).size == 2 && recorded(2))(()))
     var hours = 0
     while delivery.status != DeliveryRules.Undelivered do
       assert(hours < 30, s"still retrying: $delivery")
       val before = postsOf(factId).size
       kit.clock.moveBy(1.hour)
-      kit.eventually("another attempt")(Option.when(postsOf(factId).size > before)(()))
+      kit.eventually("another attempt")(Option.when(postsOf(factId).size > before && recorded(postsOf(factId).size))(()))
       hours += 1
     assert(!kit.now.isBefore(delivery.firstAttemptAt.get.plusSeconds(24 * 3600)))
   }

@@ -100,6 +100,9 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     val removed = as("DELETE", s"$Backoffice/networks/second")
     assertEquals(removed.status, 200, removed.text)
     assert(removed.json.hasNonNull("removed"), removed.text)
+    // The list and the status read the networks view: the next test's status races the removal without this.
+    kit.eventually("the removal listed")(Option.when(as("GET", s"$Backoffice/networks").json.get("networks").elements.asScala
+      .exists(n => n.get("id").asText == "second" && n.hasNonNull("removed")))(())): Unit
     assertEquals(as("GET", s"$Backoffice/networks/nowhere").status, 404)
 
     val k1 = as("POST", s"$Backoffice/signing-keys")
