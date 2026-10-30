@@ -28,8 +28,10 @@ object Read:
     log.warn("a {} fact this service cannot read was skipped (subject {})", topic, subject)
 
 /** `money.transactions` into the usage of the player's currency (R7): deposits, and stakes less wins and rollbacks as the net loss. */
-final class UsageConsumer(client: ComponentClient) extends Consumer[Option[MoneyTransactionsFact], Nothing]:
-  def onMessage(fact: Option[MoneyTransactionsFact]): Effect =
+final class UsageConsumer(client: ComponentClient) extends Consumer[Option[MoneyTransactionsMessage], Nothing]:
+  def onMessage(message: Option[MoneyTransactionsMessage]): Effect =
+    // a non-player account's message (spec 022's account_adjusted) is read, and is no player's usage
+    val fact = message.collect { case f: MoneyTransactionsFact => f }
     val record = fact.flatMap {
       case f: DepositConfirmed => Some(Record(f.transactionId, Record.Deposit, f.amountCents.value, f.occurredAt))
       case f: BetPlaced        => Some(Record(f.transactionId, Record.Loss, f.amountCents.value, f.occurredAt))
@@ -42,11 +44,12 @@ final class UsageConsumer(client: ComponentClient) extends Consumer[Option[Money
         client.forKeyValueEntity(EntityId(UsageEntity.id(f.playerId, f.currency.code))).call(UsageEntity.record).invoke(r): Unit
         effects.done()
       case (Some(_), None) => effects.ignore()
+      case (None, _) if message.isDefined => effects.ignore()
       case (None, _) =>
         Read.unreadable(MoneyTransactions.name, messageContext.subject)
         effects.ignore()
 
-object UsageConsumer extends Consumer.Companion[UsageConsumer, Option[MoneyTransactionsFact], Nothing](
+object UsageConsumer extends Consumer.Companion[UsageConsumer, Option[MoneyTransactionsMessage], Nothing](
       ComponentId("rg-usage-consumer"), Read.from(MoneyTransactions)):
   def create(ctx: ConsumerContext) = new UsageConsumer(ctx.componentClient)
 

@@ -326,6 +326,32 @@ over several entities); claiming the account at the credit instead of first, whi
 and brings back a compensating step (R6); polling the flow less often, which was tried and was
 slower. A faster workflow step is ankka's to give; when it does, the budget tightens.
 
+## R16. The movements cross spec 025's pools as spec 025 assumed
+
+**Decision**: spec 025 (merged to main while this spec was in its worktree) keeps real balance as a
+deposit pool and a converted pool, and asked this spec to confirm how its movements split them. It
+is confirmed: a reservation and its release move neither pool, since nothing leaves real balance; a
+settlement's buyer side and every move into an account leave the converted pool first; a
+settlement's seller side and every move from an account (merge, resolution payment, clearing) join
+the converted pool. A settlement draws on its reservation, which a correction debit may have left
+above real balance, so the debit's shortfall beyond both pools goes to the converted pool, as an
+allow-negative bet's does (spec 025 FR-003). Each event and each wallet-keyed family carries the
+parts and both pools after; `account_adjusted`, keyed by the account, carries no pools.
+
+**Rationale**: money another player or a market's pool pays in is not traceable to a deposit, and
+spec 025's tie-break is the one that gives the affiliate least (Trevor, 2026-10-14). Nothing in spec
+012 counts these families, so the choice moves no commission today; it fixes what the facts say if a
+later spec counts them.
+
+**Alternatives considered**: tracing a pool account's money back to the pools of the wallets that
+split into it (a ledger per market of deposit and converted origin), which a market paying out to
+many players across many splits makes a per-position allocation problem; and deposit first for the
+buyer's debit, which would make a player's trading look like spent deposits.
+
+The resolver's `available` is real balance itself when nothing is reserved, negative after a
+correction debit, so spec 025's proportional bet on a negative balance is refused as the original
+refuses it; the wallet's reads still clamp `available` at 0.
+
 ## Resolved unknowns
 
 | Unknown | Resolved by |
@@ -345,3 +371,4 @@ slower. A faster workflow step is ankka's to give; when it does, the budget tigh
 | Erasure, removed owners | R13 |
 | A cancel's clawback beside a reservation | R14 |
 | SC-002's figures for the two workflows | R15 |
+| The movements across spec 025's pools | R16 |

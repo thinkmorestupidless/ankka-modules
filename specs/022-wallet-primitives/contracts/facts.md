@@ -19,8 +19,10 @@ until it does; `FactsSuite` tests each family's sample. No existing family, fiel
 ## The eight families
 
 Common to the seven wallet-keyed families: `player_id`, `currency`, `transaction_id`,
-`real_balance_after`, `restricted_balance_after`, `reserved_balance_after`, `occurred_at`. The verb
-names what happened to the keyed ledger.
+`real_balance_after`, `restricted_balance_after`, `reserved_balance_after`, `occurred_at`, and the
+optional `deposit_pool_after` and `converted_pool_after` of spec 025; the five that move real
+balance also carry the optional `deposit_part_cents` and `converted_part_cents` (research R16).
+The verb names what happened to the keyed ledger.
 
 | Family | Key | Fields beyond the common ones | Meaning |
 |---|---|---|---|

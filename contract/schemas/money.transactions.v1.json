@@ -820,9 +820,17 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
         },
         "occurred_at": {
           "format": "date-time",
@@ -867,9 +875,17 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
         },
         "occurred_at": {
           "format": "date-time",
@@ -914,12 +930,30 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "converted_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "counterparty_player_id": {
           "type": "string"
         },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
+        },
+        "deposit_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
         },
         "occurred_at": {
           "format": "date-time",
@@ -972,12 +1006,30 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "converted_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "counterparty_player_id": {
           "type": "string"
         },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
+        },
+        "deposit_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
         },
         "occurred_at": {
           "format": "date-time",
@@ -1022,9 +1074,27 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "converted_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
+        },
+        "deposit_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
         },
         "market_id": {
           "type": "string"
@@ -1078,9 +1148,27 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "converted_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
+        },
+        "deposit_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
         },
         "occurred_at": {
           "format": "date-time",
@@ -1134,9 +1222,27 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "converted_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
+        },
+        "deposit_part_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
         },
         "occurred_at": {
           "format": "date-time",

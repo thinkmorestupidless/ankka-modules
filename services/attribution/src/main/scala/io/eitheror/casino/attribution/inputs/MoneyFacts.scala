@@ -16,11 +16,11 @@ import org.slf4j.LoggerFactory
  * is bonus cost. A redelivered fact is given the delta it was given before, and every write after the
  * cursor is idempotent by the dedupe id, so a delivery cut short is finished by the next.
  */
-final class MoneyFacts(context: ConsumerContext) extends Consumer[Option[MoneyTransactionsFact], Unit]:
+final class MoneyFacts(context: ConsumerContext) extends Consumer[Option[MoneyTransactionsMessage], Unit]:
   private def client = context.componentClient
 
-  def onMessage(fact: Option[MoneyTransactionsFact]): Effect = fact match
-    case Some(f) =>
+  def onMessage(fact: Option[MoneyTransactionsMessage]): Effect = fact match
+    case Some(f: MoneyTransactionsFact) =>
       val currency = f.currency.code
       val dedupe   = RealMoney.dedupeId(f, None)
       // the cursor keeps the wallet's recent dedupe ids; since spec 025 a fact's amount is its deposit
@@ -33,6 +33,8 @@ final class MoneyFacts(context: ConsumerContext) extends Consumer[Option[MoneyTr
           .invoke(MoneyEvent(MoneyEvent.BonusCost, currency, amount, reference, f.occurredAt, dedupe)): Unit
       }
       effects.done()
+    // a non-player account's message (spec 022's account_adjusted): no player's money, no wallet's cursor
+    case Some(_) => effects.ignore()
     case None =>
       MoneyFacts.log.warn("a money.transactions fact this service cannot read was skipped (subject {})", messageContext.subject)
       effects.ignore()
@@ -47,7 +49,7 @@ final class MoneyFacts(context: ConsumerContext) extends Consumer[Option[MoneyTr
     client.forEventSourcedEntity(EntityId(DayTally.id(f.playerId, currency, day))).call(DayTally.leg)
       .invoke(Tally.LegCmd(f.playerId, currency, day, leg.kind, leg.roundId, dedupe, leg.amount, f.occurredAt)): Unit
 
-object MoneyFacts extends Consumer.Companion[MoneyFacts, Option[MoneyTransactionsFact], Unit](
+object MoneyFacts extends Consumer.Companion[MoneyFacts, Option[MoneyTransactionsMessage], Unit](
       componentId = ComponentId("money-facts"),
       source = ChangeSource.fromTopic(MoneyTransactions.name, Lenient.serializer(MoneyTransactions.serializer), StartFrom.Earliest,
         TopicOptions(Some(MoneyTransactions.contract), None, false))

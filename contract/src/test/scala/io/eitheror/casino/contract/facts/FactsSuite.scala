@@ -149,10 +149,15 @@ class FactsSuite extends munit.FunSuite:
   }
 
   private val withParts = Set("deposit_confirmed", "bet_placed", "win_credited", "bet_rolled_back", "restricted_funds_converted",
-    "restricted_funds_forfeited", "admin_adjusted", "hold_placed", "hold_released", "withdrawal_reversed", "provider_credited")
+    "restricted_funds_forfeited", "admin_adjusted", "hold_placed", "hold_released", "withdrawal_reversed", "provider_credited",
+    // spec 022's movements of real balance (its research R16)
+    "settlement_debit", "settlement_credit", "resolution_payment", "account_debit", "account_credit")
+
+  /** Keyed by a non-player account, not a wallet: it has no pools (spec 022 contracts/facts.md). */
+  private val accountKeyed = Set("account_adjusted")
 
   test("spec 025: every money family carries both pools after it, and each that moves real balance its parts, all optional") {
-    MoneyTransactions.families.foreach { f =>
+    MoneyTransactions.families.filterNot(f => accountKeyed(f.name)).foreach { f =>
       val fields = f.fields.toMap
       val expected = Vector("deposit_pool_after", "converted_pool_after") ++
         (if withParts(f.name) then Vector("deposit_part_cents", "converted_part_cents") else Vector.empty) ++
@@ -172,11 +177,11 @@ class FactsSuite extends munit.FunSuite:
   test("spec 025: a fact written before the pools still decodes, its pools and parts absent") {
     val bet = """{"type":"bet_placed","player_id":"p1","currency":"EUR","transaction_id":"t1","round_id":"r1","game_id":"g1","amount_cents":1500,"wallet_type":"real","real_balance_after":500,"restricted_balance_after":0,"occurred_at":"2026-10-28T00:00:00Z"}"""
     val hold = """{"type":"hold_placed","player_id":"p1","currency":"EUR","transaction_id":"t2","withdrawal_request_id":"w1","amount_cents":2000,"voided_cents":500,"real_balance_after":0,"restricted_balance_after":0,"occurred_at":"2026-10-28T00:00:00Z"}"""
-    readFromString[MoneyTransactionsFact](bet)(using MoneyTransactions.codec) match
+    readFromString[MoneyTransactionsMessage](bet)(using MoneyTransactions.codec) match
       case b: BetPlaced =>
         assertEquals((b.depositPoolAfter, b.convertedPoolAfter, b.depositPartCents, b.convertedPartCents), (None, None, None, None))
       case other => fail(s"not a bet: $other")
-    readFromString[MoneyTransactionsFact](hold)(using MoneyTransactions.codec) match
+    readFromString[MoneyTransactionsMessage](hold)(using MoneyTransactions.codec) match
       case h: HoldPlaced => assertEquals((h.voidedDepositCents, h.voidedConvertedCents, h.depositPartCents), (None, None, None))
       case other         => fail(s"not a hold: $other")
   }

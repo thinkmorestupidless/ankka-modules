@@ -57,6 +57,13 @@ object RealMoney:
     case _: HoldReleased             => "hold_released"
     case _: WalletWithdrawalReversed => "withdrawal_reversed"
     case _: ProviderCredited         => "provider_credited"
+    case _: ReservationPlaced        => "reservation_placed"
+    case _: ReservationReleased      => "reservation_released"
+    case _: SettlementDebit          => "settlement_debit"
+    case _: SettlementCredit         => "settlement_credit"
+    case _: ResolutionPayment        => "resolution_payment"
+    case _: AccountDebit             => "account_debit"
+    case _: AccountCredit            => "account_credit"
 
   /**
    * A message's dedupe id: its `ce-id` as the wallet set it, or, when the runtime does not surface it,

@@ -425,8 +425,9 @@ Taken against the original with the pools live (a wallet the original creates is
   (a settlement's buyer side, a split) leaves the converted pool first; a credit of real balance
   from another player or from a non-player account (a settlement's seller side, a merge, a
   resolution payment) joins the converted pool. This is the GGR-minimising default for money whose
-  origin the wallet cannot trace. Spec 022 is a draft in another worktree and is asked to confirm
-  or change it; nothing in spec 012 counts these movements today.
+  origin the wallet cannot trace. Spec 022 confirms it (its FR-012a and research R16, 2026-10-30),
+  with one addition: a settlement's debit beyond both pools goes to the converted pool, as an
+  allow-negative bet's does; nothing in spec 012 counts these movements today.
 - The converted-origin GGR excluded from commission (the original's spec 253 FR-014) is not carried
   as a figure in spec 012's facts. If Sheldon wants the affiliate portal (spec 013) to show it, spec
   012 gains a field on `ggr-daily` and this wallet already carries what it needs.

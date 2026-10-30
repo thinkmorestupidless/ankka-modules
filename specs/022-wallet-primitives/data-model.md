@@ -30,7 +30,7 @@ Derived, never stored: `reserved = Σ reservations.amount`; `available = realBal
 
 | Field | Type | Notes |
 |---|---|---|
-| `reserved` | Long = 0 | `fundBet` draws real from `realBalance − reserved`; `withdraw` compares `realBalance − reserved` and `realAfter − reserved` with the amount; every absolute in a plan stays in real terms |
+| `reserved` | Long = 0 | `fundBet` draws real from `available`; `withdraw` compares `available` and `realAfter − reserved` with the amount; every absolute in a plan stays in real terms. `available` is `realBalance` itself when nothing is reserved (negative after a correction debit, as the original sees it), else `max(0, realBalance − reserved)` |
 
 ### Commands (all `MoneyCommand`: `key`, `at`; digested; refusals persisted)
 
@@ -50,7 +50,8 @@ boundary (spec 001 FR-026). Restricted funds are untouched by all six.
 ### Events (added to the `WalletEvent` enum; manifest `wallet.<Event>`)
 
 Every event carries `key`, `digest`, `transactionId`, `at`, `outcome`, `realAfter`,
-`restrictedAfter` and `reservedAfter`.
+`restrictedAfter` and `reservedAfter`, and, as every money event since spec 025, `depositAfter` and
+`convertedAfter`; the four that move real balance carry its `parts` (R16).
 
 | Event | Fields beyond the common ones |
 |---|---|

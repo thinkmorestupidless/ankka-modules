@@ -215,6 +215,14 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
   own: the wallet-keyed message names the account.
 - **FR-012**: Balance MUST report real, restricted, reserved and available; transactions MUST be
   filterable by the new types; the deposit sums MUST be unchanged.
+- **FR-012a**: Every movement above MUST keep spec 025's two pools summing to real balance: a
+  reservation or its release moves neither pool; a debit of real balance (a settlement's buyer side,
+  a split, a clearing move from the wallet) leaves the converted pool first, a shortfall beyond both
+  pools being charged to the converted pool; a credit (a settlement's seller side, a merge, a
+  resolution payment, a clearing move to the wallet) joins the converted pool. The parts and both
+  pools after MUST be on the event and on its wallet-keyed family (spec 025 FR-012). *Confirms spec
+  025's Assumptions: the default that gives the affiliate least for money whose origin the wallet
+  cannot trace; nothing in spec 012 counts these movements (research R16).*
 - **FR-013**: The routes MUST be of the service class, admitted in-project to `exchange` and, when
   a brand is bound to a pool, granted to the pool's `clearing` service (spec 024); a player's and
   an operator's reads are under the existing prefixes.
