@@ -342,9 +342,11 @@ class ReviewFeatures extends KycFeatures("review.feature"):
 
   // ── an override ───────────────────────────────────────────────────────────────────────────────
 
+  // A pending document and an approved one: the account is pending, so either decision is a change.
   Given("the player with documents in any state") { () =>
     submit("identity_front")
-    assertEquals(reject(submit("payment_method"), "document_unclear").status, 200)
+    approved("payment_method")
+    assertEquals(status, "pending")
   }
 
   When("an operator verifies the account directly") { () => assertEquals(overrideStatus("verified").status, 200, last.text) }

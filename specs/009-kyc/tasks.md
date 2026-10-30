@@ -104,7 +104,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 - [X] T022 [US2] Fail first: bind `features/kyc/review.feature` in `T/features/ReviewFeatures.scala`
       (21 scenarios)
-- [ ] T023 [US2] `OperatorEndpoint`: `GET /{playerId}` (the operator's read), `POST
+- [X] T023 [US2] `OperatorEndpoint`: `GET /{playerId}` (the operator's read), `POST
       /{playerId}/reviews/{documentId}` (the reason code checked first, `document_already_reviewed`, 404
       on an unknown document), `PUT /{playerId}/mode` (automatic recomputes), `PUT /{playerId}/status`
       (`profile_incomplete` with the missing fields), `PUT /{playerId}/required`, `POST /{playerId}/override`

@@ -49,3 +49,17 @@ object Render:
       "other"                -> Json.arr(s.documents.filter(_.category == Category.Other).map(document(_, operator = operator))*),
       "missingProfileFields" -> Json.arr(s.missingProfileFields(KycRecord.today(now)).map(_.wire)*)
     )
+
+  /** The operator's read (FR-036): the player's, with each document's reviewer, and the deadline, source of funds, deposits, flags and ready time. */
+  def operator(s: KycState, policy: Policy, now: Instant): ObjectNode =
+    val read = documents(s, policy, now, operator = true)
+    Json.set(read, "playerId", s.playerId)
+    Json.set(read, "readyAt", s.readyAt.map(_.toString).orNull)
+    Json.set(read, "sof", s.sof.wire)
+    Json.set(read, "requiredOfPlayer", s.required.map(shown(_).wire))
+    Json.set(read, "deadline", s.deadline.map(d => Json.obj("at" -> d.at.toString, "migrated" -> d.migrated, "handled" -> d.handled,
+      "suspensionRequested" -> d.suspensionRequested)).orNull)
+    Json.set(read, "depositsByCurrency", Json.obj(s.deposits.toSeq.sortBy(_._1).map((c, d) => c -> d.total)*))
+    Json.set(read, "flags", Json.arr(s.flags.map(f => Json.obj("reason" -> f.reason.wire, "at" -> f.at.toString, "open" -> f.open,
+      "dismissedAt" -> f.dismissed.map(_.at.toString), "dismissedBy" -> f.dismissed.map(_.operatorId), "closedAt" -> f.closedAt.map(_.toString)))*))
+    read
