@@ -54,7 +54,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       content types of R18) with its suite: nothing but the player id and category in a name
 - [X] T011 `S/record/Model.scala`: state, `Document`, `Offer`, `ProfileFacts`, `Flag`, `Category`,
       `ReasonCode`, events, commands and refusals (data-model.md), `Personal` reasons, notes and age date
-- [ ] T012 `S/policy/PolicyEntity.scala` with its `EventSourcedTestKit` suite: the Curaçao default with
+- [X] T012 `S/policy/PolicyEntity.scala` with its `EventSourcedTestKit` suite: the Curaçao default with
       `isDefault` when no event; `ApplyProfile`, `Change` (profile `CUSTOM`), every refusal;
       `PolicyChanged` carries before and after
 - [ ] T013 `S/record/KycRecord.scala` and `T/record/KycRecordSuite.scala` (`EventSourcedTestKit`): every
