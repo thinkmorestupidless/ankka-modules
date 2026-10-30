@@ -91,7 +91,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       (contracts/routes.md); `player_id_mismatch`; the signed PUT for an hour with the content type signed;
       the confirm's HEAD, an oversized or mistyped object deleted and refused `file_rejected` naming the
       rule; `storage_unavailable` on a store failure
-- [ ] T020 [US1] `S/api/OperatorEndpoint.scala` at `/v1/casino/backoffice/<slug>/kyc` with the compliance
+- [X] T020 [US1] `S/api/OperatorEndpoint.scala` at `/v1/casino/backoffice/<slug>/kyc` with the compliance
       role check (FR-002, R14: `brand_admin`, `brand_compliance`, `compliance_officer`, `resource_admin`,
       `platform_admin`; any other `forbidden`): `POST /{playerId}/uploads` (with `reason`,
       `reason_required`), `POST /{playerId}/documents`, `GET /{playerId}/views/{documentId}`
