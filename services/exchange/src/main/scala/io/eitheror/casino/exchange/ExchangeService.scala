@@ -10,6 +10,7 @@ import io.eitheror.casino.exchange.api.{OperatorEndpoint, PlayerEndpoint, Servic
 import io.eitheror.casino.exchange.ports.{Gates, Ledger, Neighbours, WalletCall, WalletClient}
 import io.eitheror.casino.exchange.retry.{RetryAudit, SettlementRetry, StartRetry}
 import com.thinkmorestupidless.predictions.exchange.components.LedgerAnswer
+import io.eitheror.casino.exchange.reads.{OrderRows, TradeRows}
 import io.eitheror.casino.exchange.reconcile.*
 import io.eitheror.casino.exchange.terms.MarketTerms
 
@@ -42,7 +43,8 @@ final class ExchangeService(timers: TimerRuntime):
 
   val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor, SettlementRetry.descriptor, RetryAudit.descriptor, TallyEntity.descriptor,
       MarketOfEntity.descriptor, ExchangeTallyCompanion(() => timers.timerScheduler).descriptor,
-      PlacementTallyCompanion(components.placement).descriptor, WalletTally.descriptor, Reconcile.descriptor, ReconcileAudit.descriptor)
+      PlacementTallyCompanion(components.placement).descriptor, WalletTally.descriptor, Reconcile.descriptor, ReconcileAudit.descriptor,
+      OrderRows.descriptor, TradeRows.descriptor)
 
   /** One endpoint per audience (contracts/routes.md), none sharing a prefix. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
