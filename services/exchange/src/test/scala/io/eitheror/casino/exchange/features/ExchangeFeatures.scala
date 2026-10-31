@@ -47,6 +47,7 @@ abstract class ExchangeFeatures(file: String) extends GherkinSuite(s"../../featu
   Given("the bet gate allows {string}") { (p: String) => kit.gates.rg.remove(p): Unit }
 
   protected def place(p: String, side: String, o: String, n: String, outcome: String, m: String, price: String): Reply =
+    made()
     last = kit.place(p, id(m), o, side, outcome, n.toLong, price.toLong)
     last
 
@@ -75,17 +76,45 @@ abstract class ExchangeFeatures(file: String) extends GherkinSuite(s"../../featu
     kit.eventually(s"$p's reservations at $n")(Option.when(kit.wallet.reserved(p) == n.toLong)(()))
   }
 
-  /** `p` holds `n` shares of `outcome`: bought against a counterpart's complementary buy, a split trade, and settled. */
-  protected def holds(p: String, n: Long, outcome: String, m: String): Unit =
-    val book    = kit.book(id(m))
-    val other   = book.outcomes.map(_.value).find(_ != outcome).get
-    val partner = s"partner-$run"
-    kit.wallet.real.put(partner, 100000L): Unit
-    ok(kit.place(p, id(m), s"hold-$p-$run", "buy", outcome, n, 60)): Unit
-    ok(kit.place(partner, id(m), s"hold-$partner", "buy", other, n, 40)): Unit
-    kit.eventually(s"$p holds $n of $outcome") {
-      Option.when(kit.book(id(m)).position(OwnerId(p), OutcomeId(outcome)).quantity == n && kit.wallet.reserved(p) == 0)(())
-    }
+  /** Holdings a scenario's Givens asked for, made together before the next step that acts (`made`). */
+  private var wanted = Vector.empty[(String, Long, String, String)]
+
+  override def afterEach(context: AfterEach): Unit =
+    wanted = Vector.empty
+    super.afterEach(context)
+
+  /**
+   * `p` holds `n` shares of `outcome`: asked for here, made by `made`. Two holdings of complementary
+   * outcomes and the same quantity are one split trade between their players; any other is bought
+   * against a counterpart's complementary buy. Each is settled before the scenario goes on.
+   */
+  protected def holds(p: String, n: Long, outcome: String, m: String): Unit = wanted = wanted :+ ((p, n, outcome, m))
+
+  protected def made(): Unit =
+    @scala.annotation.tailrec def pair(left: Vector[(String, Long, String, String)]): Unit = left match
+      case (p, n, o, m) +: rest =>
+        val other = kit.book(id(m)).outcomes.map(_.value).find(_ != o).get
+        val partner = rest.find(w => w._1 != p && w._2 == n && w._3 == other && w._4 == m)
+        val counterpart = partner.fold { kit.wallet.real.put(s"partner-$run", 100000L): Unit; s"partner-$run" }(_._1)
+        ok(kit.place(p, id(m), s"hold-$p-$run", "buy", o, n, 60)): Unit
+        ok(kit.place(counterpart, id(m), s"hold-$counterpart-$run-$o", "buy", other, n, 40)): Unit
+        kit.eventually(s"$p holds $n of $o") {
+          Option.when(kit.book(id(m)).position(OwnerId(p), OutcomeId(o)).quantity == n && kit.wallet.reserved(p) == 0 &&
+            kit.wallet.reserved(counterpart) == 0)(())
+        }
+        pair(partner.fold(rest)(x => rest.filterNot(_ == x)))
+      case _ => ()
+    val w = wanted
+    wanted = Vector.empty
+    pair(w)
+
+  Given("{string} holds {string} shares of {string} in {string}") { (p: String, n: String, outcome: String, m: String) =>
+    holds(p, n.toLong, outcome, m)
+  }
+
+  Given("the brand's taker fee rate is {string} basis points") { (_: String) =>
+    fail("the taker fee waits on ankka-predictions spec 007")
+  }
 
 class OrdersFeatures extends ExchangeFeatures("orders.feature"):
 
@@ -119,14 +148,6 @@ class OrdersFeatures extends ExchangeFeatures("orders.feature"):
   Then("it is refused as {string}") { (reason: String) =>
     assertEquals(last.status, 409, last.text)
     assertEquals(last.str("error"), reason)
-  }
-
-  Given("the brand's taker fee rate is {string} basis points") { (_: String) =>
-    fail("the taker fee waits on ankka-predictions spec 007")
-  }
-
-  Given("{string} holds {string} shares of {string} in {string}") { (p: String, n: String, outcome: String, m: String) =>
-    holds(p, n.toLong, outcome, m)
   }
 
   Then("it is refused naming the position") { () =>
