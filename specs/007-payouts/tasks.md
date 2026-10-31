@@ -180,13 +180,13 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 ## Phase 6: US4, an operator reviews the queue and approves or rejects (P1)
 
 - [ ] T035 [US4] Fail first: bind `features/payouts/review.feature` in `T/features/ReviewFeatures.scala`.
-- [ ] T036 [US4] `S/api/OperatorEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawal-requests`, with the
+- [X] T036 [US4] `S/api/OperatorEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawal-requests`, with the
       finance-or-admin check (R6):
       - `GET /` with every filter and `stale`, and `GET /{requestId}`;
       - `POST /{requestId}/approve` and `/reject` through the workflow's `approve` and `reject`;
       - `REQUEST_NOT_PENDING`;
       - rejection → `release` rejected.
-- [ ] T037 [US4] `PlayerEndpoint`: `GET /{playerId}/withdrawal-history`, with the operator ACL set by
+- [X] T037 [US4] `PlayerEndpoint`: `GET /{playerId}/withdrawal-history`, with the operator ACL set by
       `withAcl`.
 - [ ] T038 [US4] `T/it/OperatorSuite.scala`:
       - each of the five roles is admitted, and any other refused;
