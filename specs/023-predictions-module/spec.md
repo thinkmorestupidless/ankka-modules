@@ -155,6 +155,13 @@ topic either way; observations only with.
 - A brand bound to a pool (spec 024): `markets` and `exchange` serve the player and operator
   routes and forward to the pool's instance; no book runs in the brand. This spec's gates run in
   the brand either way.
+- An operator suspends an open market with a reason and resumes it (ankka-predictions spec 006
+  FR-007a, the venue's emergency authority); the exchange suspends and resumes with it (spec 005
+  FR-015a). `markets` drives `exchange` as it does for open and close, and both are facts.
+- The gates under a Designated Contract Market: the first licence (Assumptions) is not a
+  gambling licence. [NEEDS CLARIFICATION: which of `kyc`'s play gate and `responsible-gambling`'s
+  `may-bet` and limits apply to an order under a DCM, where a prediction market is a derivatives
+  contract and not a bet; `players` (account active) and KYC itself apply either way]
 - Four-eyes approval: carried from ankka-predictions spec 002. [NEEDS CLARIFICATION: whether
   approving a market needs a second operator, and whether the drafter may approve]
 - The casino's `may-bet` with a cost rather than a bet: spec 010 is asked for a stake of the
@@ -176,12 +183,14 @@ topic either way; observations only with.
   the market and position; a settlement the wallet refuses MUST be recorded, retried and raised
   on `platform.audit`.
 - **FR-004**: `markets` MUST implement the resolution port from the brand's roles: the
-  `brand_<slug>` role with the `markets` permission may draft, approve, open, close, resolve and
-  void; every other caller is refused naming the permission.
+  `brand_<slug>` role with the `markets` permission may draft, approve, open, suspend, resume,
+  close, resolve and void; every other caller is refused naming the permission.
 - **FR-005**: Player routes MUST be of the player class under the brand's player realm and MUST
   show open markets with last price, best bid and ask and depth, a price stream, and the player's
   own orders, positions and trades, never another player's; operator routes MUST be of the
-  operator class.
+  operator class. The price stream MUST number its messages per market, from the exchange's
+  sequence, and the depth read MUST carry the sequence it is current to, so that a client that
+  misses a message sees the gap and resyncs from the depth read; a stale read MUST say so.
 - **FR-006**: The contract MUST gain the topics `markets.events`, `exchange.orders`,
   `exchange.trades` and `exchange.prices`, keyed as ankka-predictions specs 002 and 003 state,
   with the player id a personal field; `reporting` and the shared `audit` read them by the
@@ -198,6 +207,11 @@ topic either way; observations only with.
 - **FR-010**: A brand bound to a pool MUST run `markets` and `exchange` as routes that forward to
   the pool's instance with the brand and the player, with this module's gates run in the brand;
   the forwarding is spec 024's.
+- **FR-011**: `exchange` MUST reconcile, per market and at least daily, what its events say was
+  reserved, released, settled, split, merged and paid against what the wallet's facts say moved
+  for the market's pool account and its players (spec 022's families), and MUST raise any
+  difference on `platform.audit` naming the market, the key and both figures; nothing MUST
+  correct a difference by itself. A market is reconciled once more when it is final.
 
 ### Key Entities
 
@@ -229,8 +243,19 @@ topic either way; observations only with.
   is granted to call; its image is private and pulled with the brand's credentials.
 - Forecasts, the conversational interface, evidence and curation (ankka-predictions specs 004 to
   008 as first numbered) are later modules or later versions of this one.
+- The first licence is in the United States, as a CFTC Designated Contract Market (Trevor,
+  2026-10-31). What the licence asks of the venue lands here or in a successor: emergency
+  authority is the market's suspend and resume (this spec); position limits are the exchange's
+  maximum position per market, with the DCM's accountability levels as the brand's values;
+  daily publication of trading information is `reporting`'s over `exchange.trades`;
+  recordkeeping is the facts and the shared `audit`. Market surveillance (wash trading,
+  spoofing, layering, self-matching across accounts beyond the library's own-owner rule) is a
+  later spec over the same facts and is not in this one.
 
 ## Dependencies
 
 - ankka-predictions spec 004 and its libraries; spec 021 (the module model), spec 022 (the
   wallet), spec 024 (the pool); specs 008, 009, 010 (the gates), 015 (reporting), 018 (audit).
+- ankka-predictions `notes/casino-requests.md` item 9: a trade matched through the pool charges
+  each buyer's reservation into the market's pool account, which spec 022's split and settlement
+  do not yet do; FR-003's split against the pool needs it.
