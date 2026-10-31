@@ -116,7 +116,8 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
       }
     }
   }
-  withAcl(Routes.serviceOf("game-provider", "wallet")) {
+  // exchange asks it with an order's cost (spec 023 FR-002).
+  withAcl(Routes.serviceOf("game-provider", "wallet", "exchange")) {
     postBody("/may-bet") { (text: String) =>
       body(text) { b =>
         (b.text("playerId"), b.text("currency"), b.long("amount")) match

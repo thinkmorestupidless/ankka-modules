@@ -176,7 +176,7 @@ In-project callers by certificate; no route here is granted to a shared project.
 
 | Route | Caller | Does | Answers |
 |---|---|---|---|
-| `GET /{playerId}/status` | `game-provider` (003 FR-007), `support-agent` (017 `get_player_state`) | `PlayerEntity.status`, display name, verification status from the kyc facts | 200 `{status, displayName, verification}`; 404 |
+| `GET /{playerId}/status` | `game-provider` (003 FR-007), `support-agent` (017 `get_player_state`), `exchange` (023 FR-002) | `PlayerEntity.status`, display name, verification status from the kyc facts | 200 `{status, displayName, verification}`; 404 |
 | `POST /{playerId}/game-sessions` | `game-provider` (003 FR-009) | body `gameId`, `currency`, `demo`, `playerSessionId`; opens the game session, schedules the limit (R5) | 201 `{sessionId}`; 403 `account_restricted`; 403 `session_limit_reached` + `limitMinutes`, `usedMinutes`; 409 `session_expired` |
 | `GET /{playerId}/game-sessions`, `POST /game-sessions/{sessionId}/end` | `support-agent` (017 `get_session_history`, `close_active_session`) | `SessionsView`; `End(forced)` with the approval id as the key | 200 |
 | `POST /{playerId}/suspend` | `kyc` (009 FR-025) | body `reason` (`kyc_window_expired`), `deadline`; idempotent under player and deadline | 200 |

@@ -281,6 +281,12 @@ class SessionsSuite extends munit.FunSuite with LogCapturing:
     kit.eventually("audit")(kit.facts(PlatformAudit).collectFirst { case f: AuditRecord if f.actorId == "ap-1" => f })
   }
 
+  test("spec 023: exchange reads a player's status, and a service the route does not name is refused") {
+    val (id, _, _) = signedIn()
+    assertEquals(kit.request("GET", kit.servicePath(s"/$id/status"), None, kit.asService("exchange")).str("status"), "active")
+    assertEquals(kit.request("GET", kit.servicePath(s"/$id/status"), None, kit.asService("rewards")).status, 403)
+  }
+
   test("sign-out ends the open game sessions with reason logout") {
     val (id, token, ps) = signedIn()
     val gs = launch(id, Some(ps)).str("sessionId")

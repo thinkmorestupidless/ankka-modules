@@ -36,6 +36,12 @@ class CallersSuite extends munit.FunSuite with LogCapturing:
   private def limit(p: String, t: String, v: String, c: Option[String] = Some("EUR")) =
     assertEquals(kit.json("PUT", kit.playerPath(s"/$p/limits/$t"), Json.obj("value" -> v, "currency" -> c), kit.asPlayer(p)).status, 200)
 
+  test("spec 023: exchange asks may-bet with an order's cost, and a service the route does not name is refused"):
+    val p = player()
+    val body = Json.obj("playerId" -> p, "currency" -> "EUR", "amount" -> 600)
+    assertEquals(kit.json("POST", kit.servicePath("/may-bet"), body, kit.asService("exchange")).str("decision"), "allowed")
+    assertEquals(kit.json("POST", kit.servicePath("/may-bet"), body, kit.asService("rewards")).status, 403)
+
   test("may-deposit, as the wallet and players read it"):
     val (free, limited, resting, gone) = (player(), player(), player(), player())
     limit(limited, "DEPOSIT_DAILY", "10000")

@@ -142,7 +142,7 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 
   private val games = GameSessionRoutes(ctx)
 
-  withAcl(Routes.serviceOf("game-provider", "support-agent")) {
+  withAcl(Routes.serviceOf("game-provider", "support-agent", "exchange")) {
     get("/{playerId}/status") { (playerId: String) => games.status(playerId) }
   }
   withAcl(Routes.serviceOf("game-provider")) {
