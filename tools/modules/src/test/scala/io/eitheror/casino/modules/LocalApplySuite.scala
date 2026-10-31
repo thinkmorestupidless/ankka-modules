@@ -146,7 +146,9 @@ class LocalApplySuite extends munit.FunSuite:
     val ready  = (_: ControlPlane, _: String, name: String) =>
       waited += name
       Right(if name == "players" then LocalApply.Waited.Paused else LocalApply.Waited.Ready)
-    val unbuilt = LocalApply.unbuilt(plan, Keys.load(root)).map(_._2).toSet
+    // Every core service is built since spec 007; the tree's keys are given an unbuilt one to apply around.
+    val keys    = Keys.load(root).copy(notYetBuilt = Keys.load(root).notYetBuilt + ("payouts" -> "core"))
+    val unbuilt = LocalApply.unbuilt(plan, keys).map(_._2).toSet
     val result  = LocalApply.run(plan, v, Some(Fixtures.devKind), cp, LocalApply.Options("eitheror", ready = ready, unwaited = unbuilt))
     assertEquals(result.failure, None)
     assertEquals(unbuilt, Set("payouts"))
@@ -156,11 +158,11 @@ class LocalApplySuite extends munit.FunSuite:
     assert(cp.writes.exists(_.endsWith("/grants")), "the module goes on to its grants")
   }
 
-  test("apply --allow-unbuilt through Main says which services it did not wait for") {
+  test("apply through Main of a module whose services are all built needs no --allow-unbuilt and waits for every one") {
     val cp = withSecrets()
-    val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--allow-unbuilt", "--modules", "core")
+    val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--modules", "core")
     assertEquals(code, 0, out.lines.mkString("\n"))
-    assert(out.lines.contains("note service payouts not waited for: applied without a build (--allow-unbuilt)"), out.lines.mkString("\n"))
+    assert(!out.lines.exists(_.contains("not waited for: applied without a build")), out.lines.mkString("\n"))
   }
 
   test("status <slug> gives the fitness, then each module with its services, topics and grants") {

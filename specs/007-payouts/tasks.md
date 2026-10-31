@@ -36,7 +36,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T003 [P] Add `brand_finance` to `brands/_realm/eitheror-operators.json` beside `brand_admin`
       (research R6). Correct `specs/001-brands-and-projects/contracts/grants.md:24` to the three payout
       routes `payments` grants (initiate, status, the terminal listing). Then `just test` green.
-- [ ] T004 Run `ankka init` for the service at `services/payouts/`, in the shape of `services/kyc/`:
+- [X] T004 Run `ankka init` for the service at `services/payouts/`, in the shape of `services/kyc/`:
       - `build.sbt` on `casino-contract` and ankka 0.13.0;
       - `service.json`;
       - `docker-compose.yml` (Postgres on 5439);
@@ -44,10 +44,10 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       Move the `payouts` row of `contract/keys.md` out of "Not yet built" (`ModuleManifestSuite` enforces
       it once `services/payouts/build.sbt` exists). Check that the core module's `payouts` entry
       (`modules/core/module.json:317-381`) needs no change.
-- [ ] T005 [P] `S/Settings.scala` (brand, project and issuers from the env the core module renders; the
+- [X] T005 [P] `S/Settings.scala` (brand, project and issuers from the env the core module renders; the
       wallet's and the gateway's addresses) and `S/PayoutsCodecs.scala` (the stored-type serializer helper,
       as `KycCodecs`).
-- [ ] T006 [P] In the `justfile`: `payouts-test`, `payouts-it` and `payouts-run` (port 9004). In
+- [X] T006 [P] In the `justfile`: `payouts-test`, `payouts-it` and `payouts-run` (port 9004). In
       `.github/workflows/ci.yml`: the service's filter (`services/payouts/**`, `features/payouts/**`,
       `tests/port/payouts/**`), its output and its job.
 
