@@ -10,7 +10,7 @@ admits the other by name: `Routes.service(Some(route))` on the brand side, and `
 
 `?currency=` is optional. The answer is `terminals[]`:
 
-- from `merchant`'s brand listing: `id`, `name`, `scheme`, `gateway`, `active`, `supportsWithdrawal`,
+- from `merchant`'s brand listing: `id`, `subBrandId` (what the payout below names; added by spec 007), `name`, `scheme`, `gateway`, `active`, `supportsWithdrawal`,
   `requiresPayoutDestination`;
 - from the terminal's `supportedCurrencies` property (comma-joined; trimmed, upper-cased, without repeats): `coins[]`;
 - from the catalogue: `hasStatus`, and `reviewWindow` (ISO-8601 duration, or null).

@@ -137,13 +137,14 @@ class PayoutSuite extends munit.FunSuite with LogCapturing:
     assertEquals((r.status, r.str("error")), (502, "status_unavailable"), r.text)
   }
 
-  test("the terminals listed are the brand's withdrawal terminals, each with hasStatus, reviewWindow and coins") {
+  test("the terminals listed are the brand's withdrawal terminals, each with its sub-brand, hasStatus, reviewWindow and coins") {
     val r = kit.request("GET", "/v1/payments/withdrawal-terminals", None, kit.asPayouts(brand))
     assertEquals(r.status, 200, r.text)
     val rows = r.json.get("terminals").elements.asScala.toVector
     assertEquals(rows.map(n => Json.text(n)("gateway").get).toSet, Kit.PayoutProviders.map(_.wire).toSet)
     val uf = rows.find(n => Json.text(n)("gateway").contains("UNITYFINANCE")).get
     assertEquals(uf.get("hasStatus").asBoolean, true)
+    assert(Json.text(uf)("subBrandId").exists(_.nonEmpty), uf.toString)
     val cz = rows.find(n => Json.text(n)("gateway").contains("COZENI")).get
     assertEquals(Json.text(cz)("reviewWindow"), Some("PT24H"))
     assertEquals(cz.get("coins").elements.asScala.map(_.asText).toVector, Vector("USDT", "BTC"))
