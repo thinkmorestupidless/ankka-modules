@@ -1,13 +1,65 @@
 package io.eitheror.casino.exchange
 
-import com.thinkmorestupidless.ankka.core.ComponentDescriptor
-import com.thinkmorestupidless.ankka.runtime.Ankka
+import com.thinkmorestupidless.ankka.auth.oidc.Oidc
+import com.thinkmorestupidless.ankka.core.{ComponentDescriptor, EntityId}
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
+import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import com.thinkmorestupidless.predictions.exchange.MarketId
+import com.thinkmorestupidless.predictions.exchange.components.{ExchangeComponents, ExchangePorts}
+import io.eitheror.casino.exchange.api.{PlayerEndpoint, ServiceEndpoint}
+import io.eitheror.casino.exchange.ports.{Gates, Ledger, Neighbours, WalletClient}
+import io.eitheror.casino.exchange.terms.MarketTerms
 
-/** Every component of the service (plan.md's table), registered by the service and by its test kit alike. */
+import java.time.Duration
+
+/**
+ * Every component of the service (plan.md's table): the exchange library's, built from this service's
+ * gate and ledger ports, beside the books' terms. Registered by the service and by its test kit alike.
+ */
+final class ExchangeService:
+  /** A book's currency, from its terms; a book that was never opened has none, and a call on it throws. */
+  private def currency(market: MarketId): String =
+    val t = ExchangeRuntime.components.forKeyValueEntity(EntityId(market.value)).call(MarketTerms.get).invoke()
+    if t.known then t.currency else throw IllegalStateException(s"the book of ${market.value} has no terms")
+
+  private def brand = ExchangeRuntime.settings.brand
+
+  val gates  = Gates(() => Neighbours(ExchangeRuntime.services, brand), () => ExchangeRuntime.settings.gates, currency)
+  val ledger = Ledger(() => WalletClient(ExchangeRuntime.services, brand), currency)
+
+  val components: ExchangeComponents = ExchangeComponents(ExchangePorts(ledger, gates, ExchangeService.LedgerPatience))
+
+  val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor)
+
+  /** One endpoint per audience (contracts/routes.md), none sharing a prefix. */
+  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
+    Seq[EndpointClients => HttpEndpoint](
+      clients => ServiceEndpoint(components, clients),
+      clients => PlayerEndpoint(components, clients, authenticate)
+    )
+
 object ExchangeService:
-  val descriptors: Seq[ComponentDescriptor] = Seq.empty
+  /** How long a reserve the wallet has not answered is retried before the order is refused (R4). */
+  val LedgerPatience: Duration = Duration.ofSeconds(5)
 
 @main def run(): Unit =
-  val service = Ankka.service.registerAll(ExchangeService.descriptors).start(name = "exchange")
+  val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
+  ExchangeRuntime.wire(settings)
+  // A local run with no broker reads and publishes in memory, so the service starts without Kafka; an installation sets one.
+  val broker =
+    if sys.env.get("ANKKA_KAFKA_BOOTSTRAP_SERVERS").exists(_.nonEmpty) then ProjectionRuntime.fromEnv()
+    else
+      org.slf4j.LoggerFactory.getLogger("exchange")
+        .warn("ANKKA_KAFKA_BOOTSTRAP_SERVERS is not set: facts are published in memory (a local run)")
+      val memory = InMemoryBroker()
+      ProjectionRuntime.withBroker(memory, memory)
+  val exchange = ExchangeService()
+  val service = Ankka.service
+    .registerAll(exchange.descriptors)
+    .withExtension(broker)
+    .withExtension(TimerRuntime())
+    .withExtension(HttpServer.of(exchange.endpoints(() => Oidc.authenticate())*))
+    .start(name = "exchange")
+  ExchangeRuntime.started(() => (service.services, service.componentClient))
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit
