@@ -177,6 +177,8 @@ path.
 - added `features/kyc/documents.feature`: a player with no documents sees all six categories with upload actions and the required ones marked
 - added `features/kyc/documents.feature`: asking to upload a file for a category gives an upload address valid for an hour and a document id, and the upload lands under the player's own prefix
 - added `features/kyc/documents.feature`: confirming a completed upload shows the category pending review and locks the document
+- added `features/kyc/documents.feature`: confirming an upload again answers as the first confirmation and records no second document
+- added `features/kyc/documents.feature`: of two uploads asked for one category before either is confirmed, the second to be confirmed is refused as locked
 - added `features/kyc/documents.feature`: a category whose latest document is pending or approved refuses another upload as locked
 - added `features/kyc/documents.feature`: the category other is never locked and every upload to it is a document of its own
 - added `features/kyc/documents.feature`: a replacement for a rejected document shows the category pending review and hides the rejection reason
@@ -393,13 +395,17 @@ the player sees their own; other services read facts.
 - **FR-005**: An upload MUST begin with the player (or an operator for the player, with a reason) asking for an upload
   link for a category and a content type among `image/jpeg`, `image/png`, `application/pdf`. The
   service MUST answer a link to its own bucket valid for one hour, the object name
-  `subjects/<player id>/kyc/<category>-<time>.<ext>`, and a document id; the link MUST allow one
-  object of at most the brand's size limit (default 5 MiB) and the named content type.
+  `subjects/<player id>/kyc/<category>-<time>.<ext>`, and a document id, for one object of the named
+  content type. The link cannot cap a size: the confirmation MUST refuse, and delete, an object over the
+  brand's size limit (default 5 MiB) or of another content type (FR-007, R7).
 - **FR-006**: A category other than `other` whose latest document is pending or approved MUST refuse a
-  new upload link as locked; a category whose latest is rejected, or none, MUST allow one.
+  new upload link as locked; a category whose latest is rejected, or none, MUST allow one. The lock MUST
+  hold at confirmation too: of two links asked for before either is confirmed, the second confirmed MUST
+  be refused as locked and its object deleted.
 - **FR-007**: The player (or operator) MUST confirm the upload; the service MUST verify the object
   exists before recording the document as pending with its upload time, and MUST publish
-  `player_kyc_submitted`. A document once recorded MUST NOT be edited, replaced or removed by a player.
+  `player_kyc_submitted`. A confirmation of a document already recorded MUST answer as the first did and
+  record nothing. A document once recorded MUST NOT be edited, replaced or removed by a player.
 - **FR-008**: A view of a document MUST be a link valid for fifteen minutes to that object only,
   issued to the player for their own documents and to an admitted operator for the brand's. The link
   MUST carry no credential of the requester. A request for a document the player does not hold MUST be

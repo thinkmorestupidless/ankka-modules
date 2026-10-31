@@ -104,6 +104,39 @@ class DocumentsFeatures extends KycFeatures("documents.feature"):
     eventually("player_kyc_submitted")(facts.collectFirst { case f: PlayerKycSubmitted if f.documentId == documentId => f })
   }
 
+  private var first: Reply = null
+
+  Given("the player confirmed it") { () =>
+    first = confirm(completed.get.documentId)
+    assertEquals(first.status, 200, first.text)
+  }
+
+  When("the player confirms it again") { () => confirm(completed.get.documentId) }
+
+  Then("the answer is the first confirmation's") { () => assertEquals((last.status, last.text), (200, first.text)) }
+
+  Then("the category holds that one document") { () =>
+    assertEquals(state().documents.map(_.id), Vector(completed.get.documentId))
+  }
+
+  Given("two uploads for the category {string} that completed") { (c: String) =>
+    category = c
+    offers = Vector(upload(askUpload(c)), upload(askUpload(c)))
+    offers.foreach(put(_))
+  }
+
+  When("the player confirms both") { () =>
+    assertEquals(confirm(offers(0).documentId).status, 200, last.text)
+    confirm(offers(1).documentId)
+  }
+
+  Then("the second is refused as locked") { () => assertEquals((last.status, last.str("error")), (409, "document_locked")) }
+
+  Then("its file is removed from the brand's document store") { () =>
+    assertEquals(kit.store.head(offers(1).objectName), Right(None))
+    assert(kit.store.head(offers(0).objectName).exists(_.isDefined))
+  }
+
   // ── locks ─────────────────────────────────────────────────────────────────────────────────────
 
   Given("a category whose latest document is {word}") { (s: String) =>
