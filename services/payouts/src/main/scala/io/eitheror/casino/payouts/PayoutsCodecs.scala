@@ -28,6 +28,11 @@ object PayoutsCodecs:
 
   inline def serializer[A](name: String): Serializer[A] = Serializer.json[A](s"payouts.$name")(using stored[A])
 
+  /** A view's row: every field written, defaults and empties too, so a query can match a column at its default. */
+  inline def row[A](name: String): Serializer[A] =
+    Serializer.json[A](s"payouts.$name")(using JsonCodecMaker.make[A](
+      CodecMakerConfig.withTransientEmpty(false).withTransientNone(true).withTransientDefault(false)))
+
   /**
    * An enum written as its wire name, never its Scala name, so a renamed case does not break the
    * journal. An unknown name fails the read.

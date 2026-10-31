@@ -137,7 +137,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [ ] T025 [US1] `PlayerEndpoint`: `GET /{playerId}/withdrawal-requests` (newest first, from
       `WithdrawalQueue.byPlayer`) and `DELETE /{playerId}/withdrawal-requests/{requestId}` through the
       workflow's `cancel` → `release` cancelled, refusing `WITHDRAWAL_REQUEST_NOT_CANCELLABLE`.
-- [ ] T026 [US1] `S/queue/WithdrawalQueue.scala` (the view of data-model.md, with no `Personal` column),
+- [X] T026 [US1] `S/queue/WithdrawalQueue.scala` (the view of data-model.md, with no `Personal` column),
       with its suite: each query and filter, pages of 1–200, and `total`.
 - [ ] T027 [US1] `T/it/RequestSuite.scala`:
       - a request holds, opens and is listed in the account and the queue;
