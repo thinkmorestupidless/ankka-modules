@@ -436,6 +436,13 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   is left, already declared above: a player both short and turnover-blocked is told they are short,
   because the wallet's preview reports its first refusal only. `GatesSuite` (unit and integration) holds
   the order; a follow-up for spec 002 is for the preview to report turnover as well.
+- **2026-10-31, the limit refusal in the original's names** (settled with the user). The limits came to the
+  original in #733 (`15b4ce94`), after the build the kind stack ran (`a78decf1`); recording them meant
+  rebuilding casino-service from main (T053). The original's refusal answers `weeklyLimit`, `weeklyUsed`,
+  `weeklyRemaining` (and the `monthly` forms) and `currency`, and its player site reads those names
+  (`WithdrawalPage.tsx`), where the design had `limit`, `used`, `remaining`. This service answers the
+  original's names, in minor units (routes.md). Its config route's limits are `weeklyWithdrawalLimitEur` and
+  `monthlyWithdrawalLimitEur`; wire.md had them as `weeklyLimitEur` and is corrected.
 
 ## Design finished
 

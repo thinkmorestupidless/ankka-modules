@@ -125,8 +125,8 @@ class GatesSuite extends munit.FunSuite:
     val recent = Standing(Kyc.Verified, recent = Vector(Counted("r", 9000L, Eur, now.minusSeconds(3600))), destination = standing.destination)
     val weekly = run(st = Some(recent), limits = Pair(Some(10000L), Some(10000L))).left.toOption.get
     assertEquals((weekly.status, weekly.code), (402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT"))
-    assertEquals(weekly.fields, Vector("limit" -> Field.Num(10000L), "used" -> Field.Num(9000L), "remaining" -> Field.Num(1000L),
-      "currency" -> Field.Text("EUR")))
+    assertEquals(weekly.fields, Vector("weeklyLimit" -> Field.Num(10000L), "weeklyUsed" -> Field.Num(9000L),
+      "weeklyRemaining" -> Field.Num(1000L), "currency" -> Field.Text("EUR")))
     assertEquals(code(run(st = Some(recent), limits = Pair(Some(50000L), Some(10000L)))), Left((402, "WITHDRAWAL_BLOCKED_MONTHLY_LIMIT")))
 
   test("6 before 8: the limits before the forfeit leaving too little"):

@@ -112,7 +112,7 @@ class GatesSuite extends munit.FunSuite with LogCapturing:
     kit.advance(java.time.Duration.ofSeconds(1))
     val r = ask(p, d, 6000L)
     refused(r, 402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")
-    assertEquals((r.json.long("used"), r.json.long("remaining")), (Some(6000L), Some(4000L)))
+    assertEquals((r.json.long("weeklyUsed"), r.json.long("weeklyRemaining")), (Some(6000L), Some(4000L)))
 
   test("the config routes: read, set, null for unset, admins only"):
     val set = put("""{"limits":{"eur":{"weekly":100000,"monthly":null},"GBP":{"monthly":250000}}}""")

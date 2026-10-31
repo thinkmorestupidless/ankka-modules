@@ -58,7 +58,8 @@ object WireTranslation:
 
   /** The answer fields that are amounts (wire.md, *Amounts*). */
   val AmountFields: Set[String] =
-    Set("amount", "forfeitedAmount", "clawbackAmount", "maxWithdrawable", "totalForfeit", "limit", "used", "remaining", "bonusBalance")
+    Set("amount", "forfeitedAmount", "clawbackAmount", "maxWithdrawable", "totalForfeit", "bonusBalance") ++
+      (for p <- Seq("weekly", "monthly"); f <- Seq("Limit", "Used", "Remaining") yield p + f)
 
   /** Every amount field of an object, and of the objects under it, from minor units back to decimals. */
   def toDecimals(node: JsonNode, currency: String): JsonNode = node match
@@ -135,8 +136,8 @@ object WireTranslation:
 
   /** The original's EUR limits as this service's, per currency in minor units; the turnover fields dropped. */
   private def limits(body: JsonNode): JsonNode =
-    val pair = Json.obj("weekly" -> decimal(body, "weeklyLimitEur").map(minor(_, "EUR")),
-      "monthly" -> decimal(body, "monthlyLimitEur").map(minor(_, "EUR")))
+    val pair = Json.obj("weekly" -> decimal(body, "weeklyWithdrawalLimitEur").map(minor(_, "EUR")),
+      "monthly" -> decimal(body, "monthlyWithdrawalLimitEur").map(minor(_, "EUR")))
     Json.obj("limits" -> Json.obj("EUR" -> pair))
 
   // ── answers ──────────────────────────────────────────────────────────────
@@ -202,7 +203,7 @@ object WireTranslation:
   private def eurLimits(o: JsonNode): JsonNode =
     val eur = Option(o.get("limits")).flatMap(l => Option(l.get("EUR"))).filter(_.isObject)
     def of(f: String) = eur.flatMap(e => Option(e.get(f))).filter(_.isIntegralNumber).map(v => decimalNode(v.asLong, "EUR"))
-    Json.obj("weeklyLimitEur" -> of("weekly"), "monthlyLimitEur" -> of("monthly"))
+    Json.obj("weeklyWithdrawalLimitEur" -> of("weekly"), "monthlyWithdrawalLimitEur" -> of("monthly"))
 
   /**
    * An object keeps only the fields the original answered (this service may say more, `message` beside

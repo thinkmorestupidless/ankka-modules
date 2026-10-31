@@ -14,8 +14,8 @@ Abbreviations:
 
 The original's player routes take and answer decimals of major units. They become minor units with
 the currency's exponent: × 100 for EUR, GBP and CAD. The answer's `amount`, `forfeitedAmount`,
-`clawbackAmount`, `maxWithdrawable`, `totalForfeit`, `limit`, `used` and `remaining`
-are translated back. A recorded decimal with more places than the exponent is a test failure, not a
+`clawbackAmount`, `maxWithdrawable`, `totalForfeit`, `bonusBalance` and the limit refusal's `weeklyLimit`,
+`weeklyUsed`, `weeklyRemaining` (and their `monthly` forms) are translated back. A recorded decimal with more places than the exponent is a test failure, not a
 rounding.
 
 ## Routes
@@ -32,7 +32,7 @@ rounding.
 | `GET /v1/casino/brands/<b>/withdrawal-requests?…` | the same | rows compared by id, status and amount |
 | `POST …/withdrawal-requests/<r>/approve`, `/reject`, `/confirm-payout`, `/mark-payout-failed` | `…/<id>/…` | `status` compared; `payoutStatus` compared after the workflow's first step |
 | `GET …/players/<p>/withdrawal-history` | the same | the same |
-| `GET`, `PUT /v1/casino/brands/<b>/withdrawal-config {…, weeklyLimitEur, monthlyLimitEur}` | `{limits: {EUR: {weekly × 100, monthly × 100}}}`; the turnover fields dropped | the limits back in the original's names |
+| `GET`, `PUT /v1/casino/brands/<b>/withdrawal-config {…, weeklyWithdrawalLimitEur, monthlyWithdrawalLimitEur}` | `{limits: {EUR: {weekly × 100, monthly × 100}}}`; the turnover fields dropped | the limits back in the original's names |
 | `POST /internal/v1/casino/withdrawal-requests/<r>/outcome` with `X-Internal-Secret` | `POST /v1/casino/brands/<b>/withdrawals/<id>/outcome` as `payments`/`psp-gateway`, the secret dropped | the same |
 
 ## Statuses and errors
