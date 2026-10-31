@@ -180,11 +180,14 @@ func (s *Session) Email(name string) string {
 	if v, ok := s.ids[name]; ok {
 		return v
 	}
+	// The local part stays within the 64 characters an address allows: the original refuses a longer one
+	// with a bare 503 ("Registration failed"), so the slug gives way to the rest.
+	rest := fmt.Sprintf("-%s-%s-%s", s.ids["tag"], name, newUUID()[:8])
 	slug := strings.ToLower(FileName(s.rec.Scenario))
-	if len(slug) > 30 {
-		slug = strings.Trim(slug[:30], "-.")
+	if most := min(30, 64-len(rest)); len(slug) > most {
+		slug = strings.Trim(slug[:max(most, 1)], "-.")
 	}
-	v := fmt.Sprintf("%s-%s-%s-%s@example.test", slug, s.ids["tag"], name, newUUID()[:8])
+	v := slug + rest + "@example.test"
 	s.remember(name, strings.ToLower(v))
 	return s.ids[name]
 }
