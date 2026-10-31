@@ -32,7 +32,8 @@ final case class PlayerState(
     deposits: Map[String, Set[String]] = Map.empty,
     destinations: Vector[Destination] = Vector.empty,
     recent: Vector[Counted] = Vector.empty,
-    erased: Boolean = false
+    erased: Boolean = false,
+    currency: Option[String] = None
 ):
   def destination(id: String): Option[Destination] = destinations.find(_.id == id)
   def activeDestinations: Vector[Destination]      = destinations.filter(_.active)
@@ -49,6 +50,7 @@ object PlayerEvent:
   final case class KycSeen(status: Kyc, at: Instant)                                             extends PlayerEvent
   final case class NamesSeen(names: ProfileName, at: Instant)                                    extends PlayerEvent
   final case class EmailSeen(address: Personal[String], at: Instant)                             extends PlayerEvent
+  final case class CurrencySeen(code: String, at: Instant)                                       extends PlayerEvent
   final case class ClosedSeen(at: Instant)                                                       extends PlayerEvent
   final case class DepositSeen(gateway: String, scheme: Option[String])                          extends PlayerEvent
   final case class DestinationSaved(destination: Destination)                                    extends PlayerEvent
@@ -63,6 +65,8 @@ final case class SeeKyc(status: Kyc, at: Instant)
 final case class SeeNames(givenName: Personal[String], familyName: Personal[String], at: Instant)
 final case class SeeEmail(address: Personal[String], at: Instant)
 final case class SeeClosed(at: Instant)
+/** The currency the player registered in, the one their wallet is opened in (spec 002). */
+final case class SeeCurrency(code: String, at: Instant)
 final case class SeeDeposit(gateway: String, scheme: Option[String], at: Instant)
 final case class SaveDestination(id: String, givenName: String, familyName: String, iban: String, label: String,
     setAsDefault: Boolean, at: Instant)

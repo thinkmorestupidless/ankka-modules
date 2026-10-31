@@ -27,6 +27,7 @@ to it, and the endpoints read from it. No rule that needs another component live
 | `outcomes` | `Vector[OutcomeRecord]` | every gateway answer, outcome, poll and manual settlement: `source` (`gateway`, `outcome`, `poll`, `operator`), `answer`, `reasonCode`, `note: Option[Personal[String]]`, `at` |
 | `createdAt`, `initiatedAt`, `settledAt` | `Instant`, `Option[Instant]`, `Option[Instant]` | |
 | `erased` | `Boolean` | |
+| `currency` | `Option[String]` | from `player_registered.currency`, the wallet's (spec 002); the terminal listing's currency when the query names none |
 
 **Payee** (all `Personal` but the method and coin):
 
@@ -138,6 +139,7 @@ paused workflow's state only, so 10,000 settled requests cost their rows, not ru
 | `Kyc(status, at)` | `KycSeen` | — |
 | `Names(given, family, at)` | `NamesSeen` | — |
 | `Email(address, at)` | `EmailSeen` | — |
+| `Currency(code, at)` | `CurrencySeen` | — |
 | `Closed(at)` | `ClosedSeen` | — |
 | `Deposit(gateway, scheme, ordinal)` | `DepositSeen` (deduplicated by the ordinal) | — |
 | `SaveDestination(given, family, iban, label, default)` | `DestinationSaved` (the first is default) | `PROFILE_INCOMPLETE`; `INVALID_IBAN`; `PAYOUT_DESTINATION_AML_BLOCKED` (the original's code for a name that does not match); 400 naming a missing field |
