@@ -353,5 +353,16 @@ object Parity:
     val kit    = SharedKit.kit
     val scoped = Parity.scoped(recording)
     kit.reset()
-    try Replay.run(scoped, Replaying(kit, scoped).send)
+    // Every step is sent, in order; a status that differs carries the answer observed, whose refusal code says why.
+    val answers   = Vector.newBuilder[Recording.Response]
+    val replaying = Replaying(kit, scoped)
+    try
+      val differences = Replay.run(scoped, r => { val o = replaying.send(r); answers += o; o })
+      val observed    = answers.result()
+      differences.map { d =>
+        StatusAt.findFirstMatchIn(d.at).flatMap(m => observed.lift(m.group(1).toInt)).flatMap(_.body)
+          .fold(d)(b => d.copy(observed = s"${d.observed} $b"))
+      }
     finally kit.reset()
+
+  private val StatusAt = """^\$\.steps\[(\d+)\]\.response\.status$""".r
