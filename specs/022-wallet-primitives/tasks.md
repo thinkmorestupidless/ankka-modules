@@ -417,7 +417,7 @@ balance scenario in the unit kit; the player's and operator's balance over HTTP.
 
 ankka-predictions `notes/casino-requests.md` item 9; research.md "Amendment 2026-10-31".
 
-- [ ] T055 In `contract/` add `orderId: Option[String] = None` and `releasedCents: Option[MinorUnits]
+- [X] T055 In `contract/` add `orderId: Option[String] = None` and `releasedCents: Option[MinorUnits]
       = None` to `facts.AccountDebit`; `just schemas`; the contract's suites green
 - [ ] T056 In `M/entity/` add `ChargeReservationToAccount` (`charge-reservation-to-account`), its
       handler beside `settle-debit` (the same refusals and pools rule), `orderId` and `unused` on

@@ -1174,6 +1174,9 @@
           "format": "date-time",
           "type": "string"
         },
+        "order_id": {
+          "type": "string"
+        },
         "player_id": {
           "type": "string"
         },
@@ -1186,6 +1189,11 @@
         },
         "reference": {
           "type": "string"
+        },
+        "released_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
         },
         "reserved_balance_after": {
           "minimum": 0,
