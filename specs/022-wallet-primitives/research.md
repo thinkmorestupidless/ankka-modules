@@ -352,6 +352,50 @@ The resolver's `available` is real balance itself when nothing is reserved, nega
 correction debit, so spec 025's proportional bet on a negative balance is refused as the original
 refuses it; the wallet's reads still clamp `available` at 0.
 
+## Amendment 2026-10-31: a split charged from a reservation (ankka-predictions item 9)
+
+**Decision.** A trade through the pool (ankka-predictions spec 005 FR-011: two buys of opposite
+outcomes, a set split between them) settles as one split per buying leg, each charged from that
+leg's order reservation: the `/splits` route takes an optional `orderId` and `unused`, the move
+flow's wallet step calls a new wallet command, `charge-reservation-to-account`, in place of
+`debit-to-account`, and the account side is the split's as it stands. The wallet writes
+`MovedToAccount` with the order and the unused part; its fact is `account_debit` with two new
+optional fields, `order_id` and `released_cents`.
+
+**Why this and not a settlement whose counterparty is a pool account.** Money entering a pool
+account is already a split in every place that reads it: the account's ledger (purpose `split`),
+the `account_debit` fact, and the fold that reconstructs an account's balance (SC-004). A
+settlement to an account would put pool money on `settlement_debit`, whose counterparty is a
+player, and every fold of a pool account would have to learn a second family. The split carries
+the claim (the first move creates the account under its caller, FR-006) and its owner check
+already; the settlement flow has neither. What the split lacks is the reservation, and the wallet
+has that rule once, in `settle-debit`: the new command applies the same rule (refusals, the
+reservation drawn down by amount and unused, the pools moved as a debit) with an account as the
+other side.
+
+**Why a new wallet command and not two fields on `debit-to-account`.** A command's digest is every
+field it has (FR-010); two defaulted fields would change the digest of every split already in the
+key window, and a repeat of one sent before the upgrade would be `KEY_REUSED`. A new command has
+no history. The move flow's start gains the two fields too, and its digest leaves them out while
+they are unset, for the same reason.
+
+**The merge side.** Two sells matched through the pool are paid from it: one merge per selling
+leg (FR-008), a credit to the seller's real balance from the pool account under the caller's key.
+A sell holds no reservation (its shares are the exchange's to hold), so 022 covers it as it
+stands; nothing is added.
+
+**Assumptions** (not settled by item 9, spec 005 FR-011 or 022; the conservative reading):
+
+- A leg's key is the caller's, as every split's is; the exchange derives one per leg from the
+  trade and the leg's owner (ankka-predictions `LedgerPort.settle`). The wallet does not check
+  that the legs of one trade sum to the sets they split; the exchange decided the trade, and the
+  pool account's balance against the exchange's pool is spec 023 FR-011's reconciliation.
+- A leg refused after another leg of the same trade was charged leaves the first charged: the
+  wallet has no trade to roll back, and undoing one leg on the other's refusal would be a decision
+  the exchange did not make. The reconciliation raises the difference.
+- The charge counts for responsible gambling where a settlement's debit does (the Clarifications
+  of 2026-10-25): the wallet asks nothing; the gate saw the cost when the order was reserved.
+
 ## Resolved unknowns
 
 | Unknown | Resolved by |

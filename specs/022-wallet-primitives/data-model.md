@@ -41,6 +41,7 @@ Derived, never stored: `reserved = Σ reservations.amount`; `available = realBal
 | `SettleDebit` (`settle-debit`) | `key` = trade id, `orderId`, `amount`, `unused`, `counterparty` (the seller) | `RESERVATION_NOT_FOUND`; `RESERVATION_SHORT` naming `amount + unused` and the reservation | `SettlementDebited`; real − amount; reservation − amount − unused |
 | `SettleCredit` (`settle-credit`) | `key` = trade id, `amount`, `counterparty` (the buyer) | `WALLET_NOT_FOUND` (the flow checked first; kept for the entity's own sake) | `SettlementCredited`; real + amount |
 | `DebitToAccount` (`debit-to-account`) | `key`, `accountKind`, `accountName`, `purpose`, `reference`, `amount` | `WALLET_NOT_FOUND`; `INSUFFICIENT_FUNDS` when `amount > available` | `MovedToAccount`; real − amount |
+| `ChargeReservationToAccount` (`charge-reservation-to-account`, amendment FR-008a) | `key`, `orderId`, `accountKind`, `accountName`, `purpose`, `reference`, `amount`, `unused` | `RESERVATION_NOT_FOUND`; `RESERVATION_SHORT` (details `required`, `reserved`) when `amount + unused` exceeds the order's reservation | `MovedToAccount` with `orderId` and `unused`; real − amount; the order's reservation − amount − unused, removed at 0 |
 | `CreditFromAccount` (`credit-from-account`) | `key`, `accountKind`, `accountName`, `purpose`, `reference`, `amount` | `WALLET_NOT_FOUND` | `MovedFromAccount`; real + amount |
 
 `purpose` is one of `split`, `merge`, `resolution_payment`, `clearing`; `reference` is the position
@@ -59,7 +60,7 @@ Every event carries `key`, `digest`, `transactionId`, `at`, `outcome`, `realAfte
 | `ReservationReleased` | `orderId`, `amount` |
 | `SettlementDebited` | `tradeId`, `orderId`, `amount`, `unused`, `counterparty` |
 | `SettlementCredited` | `tradeId`, `amount`, `counterparty` |
-| `MovedToAccount` | `accountKind`, `accountName`, `purpose`, `reference`, `amount` |
+| `MovedToAccount` | `accountKind`, `accountName`, `purpose`, `reference`, `amount`; `orderId` (absent) and `unused` (0) when charged from a reservation (FR-008a) |
 | `MovedFromAccount` | `accountKind`, `accountName`, `purpose`, `reference`, `amount` |
 
 `CommandRefused` is unchanged and records the new commands' refusals under their keys. Existing
@@ -175,7 +176,7 @@ answers from `status` (R4). Lifecycle: `Running` → `Completed`, or `Failed` wi
 | Field | Type | Notes |
 |---|---|---|
 | `status` | `new` \| `claiming` \| `checking` \| `debiting` \| `crediting` \| `done` \| `refused` | |
-| `request` | Option[AccountMoveStart] | account id, direction (`to-account` \| `from-account`), purpose, player, amount, key, reference, caller principal, at |
+| `request` | Option[AccountMoveStart] | account id, direction (`to-account` \| `from-account`), purpose, player, amount, key, reference, caller principal, at; the order id and unused part of a split charged from a reservation (FR-008a), left out of the digest while unset |
 | `digest`, `first`, `outcome` | as the settlement flow's | `first` is the debit side's outcome |
 
 ### Steps

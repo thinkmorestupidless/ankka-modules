@@ -20,7 +20,7 @@ the rest 409 (the default), `OUTCOME_PENDING` 503.
 | `POST W/reservations` | exchange | `reserve` | `key` (= order id), `amount` | balances, `reserved`, `available`, `txnId` | `INSUFFICIENT_FUNDS`, `KEY_REUSED`, `WALLET_NOT_FOUND` |
 | `POST W/reservations/release` | exchange | `release-reservation` (key `<orderId>/<sequence>`) | `orderId`, `sequence`, `amount` | balances, `reserved`, `available`, `txnId` | `RESERVATION_NOT_FOUND`, `RELEASE_EXCEEDS_RESERVATION` (details: `amount`, `reserved`), `KEY_REUSED` |
 | `POST /settlements` | exchange | `SettlementWorkflow` (id `<currency>/<tradeId>`) | `tradeId`, `currency`, `buyer`, `orderId`, `seller`, `amount`, `unused` (default 0) | `buyer{realBalance, reserved, available, txnId}`, `seller{realBalance, txnId}`, `currency` | `INVALID_REQUEST` (buyer = seller), `WALLET_NOT_FOUND`, `RESERVATION_NOT_FOUND`, `RESERVATION_SHORT` (details: `required`, `reserved`), `KEY_REUSED`, `OUTCOME_PENDING` |
-| `POST /accounts/{kind}/{name}/splits` | exchange | `AccountMoveWorkflow` to-account, purpose `split` | `key`, `currency`, `player`, `amount` | `wallet{realBalance, reserved, available, txnId}`, `account{balance, txnId}` | `INVALID_REQUEST` (kind ≠ pool), `NOT_OWNER`, `WALLET_NOT_FOUND`, `INSUFFICIENT_FUNDS`, `KEY_REUSED`, `OUTCOME_PENDING` |
+| `POST /accounts/{kind}/{name}/splits` | exchange | `AccountMoveWorkflow` to-account, purpose `split`; with `orderId`, charged from that order's reservation (FR-008a) | `key`, `currency`, `player`, `amount`; optional `orderId`, `unused` (only with `orderId`) | `wallet{realBalance, reserved, available, txnId}`, `account{balance, txnId}` | `INVALID_REQUEST` (kind ≠ pool; `unused` without `orderId`), `NOT_OWNER`, `WALLET_NOT_FOUND`, `INSUFFICIENT_FUNDS`, `RESERVATION_NOT_FOUND`, `RESERVATION_SHORT`, `KEY_REUSED`, `OUTCOME_PENDING` |
 | `POST /accounts/{kind}/{name}/merges` | exchange | from-account, purpose `merge` | `key`, `currency`, `player`, `amount` | as splits | `INVALID_REQUEST`, `WALLET_NOT_FOUND`, `ACCOUNT_NOT_FOUND`, `NOT_OWNER`, `INSUFFICIENT_FUNDS`, `KEY_REUSED`, `OUTCOME_PENDING` |
 | `POST /accounts/{kind}/{name}/payments` | exchange | from-account, purpose `resolution_payment` (key `<name>/<positionId>`) | `positionId`, `currency`, `player`, `amount` | as splits | as merges |
 | `POST /accounts/{kind}/{name}/moves` | the pool's `clearing` (granted); in-project services | to-account (`direction: from-wallet`) or from-account (`to-wallet`), purpose `clearing` | `key`, `currency`, `player`, `amount`, `direction` | as splits | as splits or merges by direction; `CREDIT_LINE_REACHED` (details: `amount`, `balance`, `floor`) |
@@ -78,6 +78,8 @@ lists the new types with `reference`. No new route.
 | release(order, ordinal, amount) | `POST W/reservations/release` | order id + ordinal |
 | settle(trade, buyer order, seller, quantity × price, unused) | `POST /settlements` | trade id |
 | split(market, player, sets) | `POST /accounts/pool/{market}/splits` | the exchange's key |
+| settle(trade, split, legs) | `POST /accounts/pool/{market}/splits` with `orderId` and `unused`, once per leg | the trade and the leg's owner |
+| settle(trade, merge, legs) | `POST /accounts/pool/{market}/merges`, once per leg | the trade and the leg's owner |
 | merge(market, player, sets) | `POST /accounts/pool/{market}/merges` | the exchange's key |
 | pay(market, position, player, amount) | `POST /accounts/pool/{market}/payments` | market + position |
 

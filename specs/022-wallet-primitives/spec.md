@@ -112,6 +112,13 @@ clearing account to its line and one past it.
 - added `features/wallet/accounts.feature`: a clearing account may go below zero to its credit line and no further
 - added `features/wallet/accounts.feature`: an operator adjusts a non-player account with a reason and a signature
 
+The four below are the amendment of 2026-10-31 (FR-008a):
+
+- added `features/wallet/accounts.feature`: a split charged from a reservation moves a leg's cost from the order's reservation into the pool account
+- added `features/wallet/accounts.feature`: a trade through the pool charges each buyer's reservation into the market's pool account
+- added `features/wallet/accounts.feature`: a split charged from a reservation that cannot cover it is refused and moves nothing
+- added `features/wallet/accounts.feature`: a split charged from a reservation repeated under its key returns the first outcome and moves nothing
+
 ---
 
 ### User Story 4 - Holds, bets and reads know about reserved money (Priority: P2)
@@ -139,7 +146,11 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
 
 - A release larger than the reservation: refused naming both amounts; nothing moves.
 - A settlement naming a reservation that is not the buyer's order: refused; the exchange's book
-  and the wallet's reservations are reconciled by the order id, never by amount.
+  and the wallet's reservations are reconciled by the order id, never by amount. A split charged
+  from a reservation is refused the same way (FR-008a).
+- A trade through the pool whose first leg is charged and whose second is refused: the first
+  stands. Each leg is its own keyed move; the exchange decided the trade, and a refused leg is
+  the reconciliation's to raise (spec 023 FR-011), not the wallet's to undo.
 - Erasure of a player with a reservation: the reservation is money, not personal data; it stands
   until the order is cancelled or settled, and the erasure marks the personal fields as spec 002
   FR-033 says.
@@ -195,6 +206,16 @@ as insufficient; of 400: placed. Bet 500: refused. Read balance and transactions
   that would take it below the negative of the line.
 - **FR-008**: Splitting a complete set MUST move one unit per set from the player's available
   amount to the market's pool account; merging MUST move it back; both keyed by the caller.
+- **FR-008a** *(amendment 2026-10-31)*: A split MAY instead be charged from an order's
+  reservation: it names the order, and the amount leaves the player's real balance and that
+  order's reservation for the market's pool account, with the unused part the caller names
+  released from the reservation in the same move, as a settlement's is (FR-004). It MUST be
+  refused as `RESERVATION_NOT_FOUND` when the player holds no reservation for the order and as
+  `RESERVATION_SHORT` naming both amounts when the amount and the unused part exceed what remains
+  reserved; nothing moves on either. This is how a trade through the pool settles (ankka-predictions
+  spec 005 FR-011): one such split per buying leg, keyed by the trade and the leg's owner, into
+  the one pool account. A trade through a merge is one merge per selling leg (FR-008), which needs
+  no reservation.
 - **FR-009**: An operator adjustment of a non-player account MUST require a reason and carry the
   actor, taken from the operator's authenticated staff token, as spec 002 FR-026 requires of a
   wallet's; the token is the signature, and no separate signed payload is carried.

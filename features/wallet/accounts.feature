@@ -44,3 +44,35 @@ Feature: Non-player accounts hold money that belongs to no player
     When an operator adjusts the clearing account of pool "north" by "500" with the reason "net settled" and a signature
     Then the clearing account of pool "north" in "EUR" holds "0"
     And an adjustment transaction of "500" with the reason "net settled" and the actor is written
+
+  Scenario: a split charged from a reservation moves a leg's cost from the order's reservation into the pool account
+    Given a reservation of "650" is placed for order "o1" on the wallet of "ada"
+    When leg "t1/ada" of "600" is charged from order "o1" of "ada" into the pool account of market "m1", releasing "50"
+    Then the real balance of "ada" is "400"
+    And the reserved amount of "ada" is "0"
+    And the pool account of market "m1" in "EUR" holds "600"
+
+  Scenario: a trade through the pool charges each buyer's reservation into the market's pool account
+    Given a player "bob" with a wallet in "EUR" and a real balance of "1000"
+    And a reservation of "600" is placed for order "o1" on the wallet of "ada"
+    And a reservation of "400" is placed for order "o2" on the wallet of "bob"
+    When leg "t1/ada" of "600" is charged from order "o1" of "ada" into the pool account of market "m1"
+    And leg "t1/bob" of "400" is charged from order "o2" of "bob" into the pool account of market "m1"
+    Then the pool account of market "m1" in "EUR" holds "1000"
+    And the reserved amount of "ada" is "0"
+    And the reserved amount of "bob" is "0"
+    And the real balance of "bob" is "600"
+
+  Scenario: a split charged from a reservation that cannot cover it is refused and moves nothing
+    Given a reservation of "300" is placed for order "o1" on the wallet of "ada"
+    When leg "t1/ada" of "600" is charged from order "o1" of "ada" into the pool account of market "m1"
+    Then it is refused as "reservation short"
+    And the reserved amount of "ada" is "300"
+    And the real balance of "ada" is "1000"
+
+  Scenario: a split charged from a reservation repeated under its key returns the first outcome and moves nothing
+    Given a reservation of "600" is placed for order "o1" on the wallet of "ada"
+    And leg "t1/ada" of "600" is charged from order "o1" of "ada" into the pool account of market "m1"
+    When leg "t1/ada" of "600" is charged from order "o1" of "ada" into the pool account of market "m1" again
+    Then the outcome is the first outcome
+    And the pool account of market "m1" in "EUR" holds "600"

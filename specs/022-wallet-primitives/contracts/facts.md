@@ -31,7 +31,7 @@ The verb names what happened to the keyed ledger.
 | `settlement_debit` | wallet (buyer) | `trade_id`, `order_id`, `amount_cents`, `released_cents`, `counterparty_player_id` | real down by the cost; reserved down by cost + released |
 | `settlement_credit` | wallet (seller) | `trade_id`, `amount_cents`, `counterparty_player_id` | real up |
 | `resolution_payment` | wallet | `market_id`, `position_id`, `amount_cents` | real up, from the market's pool account |
-| `account_debit` | wallet | `account_kind`, `account_name`, `purpose`, `reference`, `amount_cents` | real down, into the account (a split; a clearing move from the wallet) |
+| `account_debit` | wallet | `account_kind`, `account_name`, `purpose`, `reference`, `amount_cents`; `order_id` and `released_cents` when charged from a reservation (FR-008a) | real down, into the account (a split; a clearing move from the wallet); with `order_id`, reserved down by amount + released |
 | `account_credit` | wallet | `account_kind`, `account_name`, `purpose`, `reference`, `amount_cents` | real up, from the account (a merge; a clearing move to the wallet) |
 | `account_adjusted` | account (`<kind>/<name>/<currency>`) | `amount` (signed), `reason` (the category, never the text), `actor_id`, `balance_after`, `credit_line` | an operator's adjustment |
 

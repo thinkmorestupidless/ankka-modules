@@ -413,6 +413,30 @@ balance scenario in the unit kit; the player's and operator's balance over HTTP.
 
 ---
 
+## Phase 8: Amendment 2026-10-31, a split charged from a reservation (FR-008a)
+
+ankka-predictions `notes/casino-requests.md` item 9; research.md "Amendment 2026-10-31".
+
+- [ ] T055 In `contract/` add `orderId: Option[String] = None` and `releasedCents: Option[MinorUnits]
+      = None` to `facts.AccountDebit`; `just schemas`; the contract's suites green
+- [ ] T056 In `M/entity/` add `ChargeReservationToAccount` (`charge-reservation-to-account`), its
+      handler beside `settle-debit` (the same refusals and pools rule), `orderId` and `unused` on
+      `MovedToAccount` with its replay drawing the order's reservation down; a case in
+      `EveryCommandIdempotentSuite`, the rules in `EntityRulesSuite`, the command in `InvariantsSuite`'s
+      generator (SC-003)
+- [ ] T057 In `M/accounts/AccountMoveWorkflow.scala` add `orderId` and `unused` to `AccountMoveStart`,
+      left out of its digest while unset, and call the new command from `debit-wallet` when the order
+      is set; in `M/api/ServiceEndpoint.scala` and `M/wire/Wire.scala` take `orderId` and `unused` on
+      `/splits` only (`INVALID_REQUEST` for `unused` without `orderId`)
+- [ ] T058 In `M/publish/Facts.scala` map the order and the unused part onto `account_debit`; a case in
+      `MappingSuite`
+- [ ] T059 Bind the four scenarios in `T/features/AccountsFeaturesItSuite.scala` (the fold of SC-004
+      takes the new split as any split); `just wallet-test`, `just wallet-it`, `just features` 0 findings
+- [ ] T060 [P] `services/wallet/README.md`: the split charged from a reservation, and the port's
+      `settle` through the pool and through a merge (contracts/routes.md)
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase dependencies
