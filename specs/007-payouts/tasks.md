@@ -111,7 +111,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - `TimerRuntime(200.millis)` and a settable clock;
       - player tokens, and operator tokens with roles;
       - the `payments`/`psp-gateway` identity.
-- [ ] T021 `T/port/WireTranslation.scala` (every row of contracts/wire.md, with minor units and the ids
+- [X] T021 `T/port/WireTranslation.scala` (every row of contracts/wire.md, with minor units and the ids
       captured), `T/port/WireTranslationSuite.scala`, and `T/port/ParitySuite.scala` over
       `tests/port/payouts/`, which stays `.ignore`d until T054.
 
