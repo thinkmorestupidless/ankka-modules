@@ -28,7 +28,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
         completed, failed and reversed, and `reason` on cancelled;
       - then `just schemas` (the diff shows optional fields and one family only), `sbt contract/test` green,
         and `sbt contract/publishLocal`.
-- [ ] T002 `players`' publisher in `services/players/src/main/scala/io/eitheror/casino/players/facts/Facts.scala`:
+- [X] T002 `players`' publisher in `services/players/src/main/scala/io/eitheror/casino/players/facts/Facts.scala`:
       `player_registered.email` from `Registered.address`, and `player_email_changed` from
       `EmailPromoted` and `EmailChanged`, each `Personal`. Add cases to its `FactsSuite`, and the new
       family to `specs/001-brands-and-projects/contracts/topics.md`'s `casino.players` row. Then

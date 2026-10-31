@@ -32,7 +32,8 @@ object Facts:
         def personal(field: String) = e.profile.get(field).map(Personal(_))
         Some(f.PlayerRegistered(playerId, e.at, e.registration.tag, e.registration.clickId, e.registration.bonusCode,
           e.profile.get("country"), Some(e.currency).filter(_.nonEmpty), None, e.at, personal("firstName"), personal("lastName"),
-          personal("dateOfBirth"), personal("phone"), personal("addressLine1"), personal("city"), personal("postalCode")))
+          personal("dateOfBirth"), personal("phone"), personal("addressLine1"), personal("city"), personal("postalCode"),
+          Some(e.address)))
       case e: Suspended =>
         Some(f.PlayerSuspended(playerId, e.previous, Status.Suspended, Actor.Operator, e.actorId, Some(e.reason), e.at))
       case e: Reinstated =>
@@ -48,6 +49,9 @@ object Facts:
       case e: ProfileEdited        => Some(profileUpdated(playerId, e.profile, e.changed.toVector.sorted, e.at))
       case e: DateOfBirthCorrected => Some(profileUpdated(playerId, Profile(Map("dateOfBirth" -> e.value)), Vector("dateOfBirth"), e.at))
       case e: ConsentChanged       => Some(f.PlayerConsentChanged(playerId, e.channel, e.granted, e.source, e.at))
+      // The primary address, for payouts (spec 007 R7): promoted from a verified one, or changed by its link.
+      case e: EmailPromoted        => Some(f.PlayerEmailChanged(playerId, e.address, e.at))
+      case e: EmailChanged         => Some(f.PlayerEmailChanged(playerId, e.address, e.at))
       case e: DuplicateFlagged     => Some(f.PlayerFraudFlagged(playerId, e.caseId, e.signals.toVector.sorted.mkString(","), e.at))
       case e: DuplicateCleared     => Some(f.PlayerFraudCleared(playerId, e.caseId, e.at))
       case _                       => None
