@@ -477,6 +477,13 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   psp-gateway lists from `merchant`, so quickstart §6 locally is four services and their databases. The
   request, cancel and approval are driven with `curl` against kind-ankka, where T058 applies `payments`
   and goldvibe anyway, with tokens from the realms there. That covers the grants, which a local run does not.
+- **2026-10-31, from the review: waiting polls and the stale filter** (settled with the user).
+  - A poll answered `pending`, or not answered (`unavailable`, code `gateway_unavailable`), was recorded
+    nowhere, though FR-029 said every poll result. Recording each would add one record every 5 minutes
+    without bound while a payout waits. It is recorded the first time and whenever the answer changes
+    (the workflow keeps `lastPoll`); FR-029 and contracts/facts.md say so.
+  - `?stale=true` (ours; the original has no such filter) kept the status default `PENDING_REVIEW`, so on
+    its own it found nothing. With `stale` and no status, the status is `APPROVED`; routes.md says so.
 
 ## Findings
 

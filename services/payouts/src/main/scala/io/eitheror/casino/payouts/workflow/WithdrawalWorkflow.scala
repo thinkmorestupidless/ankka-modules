@@ -63,7 +63,8 @@ final case class ByOperator(operatorId: String, reason: Option[Personal[String]]
 
 /**
  * The workflow's state (data-model.md *WithdrawalWorkflow*): the step it is at, the job, the hold's
- * answer, a refusal, the money steps done (never sent again, R9), and the release in hand.
+ * answer, a refusal, the money steps done (never sent again, R9), and the release in hand. `lastPoll` is the
+ * answer of the last poll recorded: a poll is recorded when its answer differs (FR-029).
  */
 final case class Flow(
     step: String = Flow.New,
@@ -76,7 +77,8 @@ final case class Flow(
     approver: Option[String] = None,
     settle: Option[Settle] = None,
     reversal: Option[Outcome] = None,
-    polls: Int = 0
+    polls: Int = 0,
+    lastPoll: Option[String] = None
 ):
   def started: Boolean = step != Flow.New
 
@@ -425,8 +427,15 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
         case GatewayStatus.NoRecord =>
           recorded("no_record", None, None)
           stepEffects.updateState(polled.copy(step = Flow.NeedsReview)).thenTransitionTo(WithdrawalWorkflow.review.ref)
-        case GatewayStatus.Pending | GatewayStatus.Unavailable(_) =>
-          stepEffects.updateState(polled).thenTransitionTo(WithdrawalWorkflow.waitStep.ref)
+        // A waiting answer is recorded the first time and whenever it changes, not at every poll (FR-029).
+        case GatewayStatus.Pending =>
+          if !currentState.lastPoll.contains("pending") then recorded("pending", None, None)
+          stepEffects.updateState(polled.copy(lastPoll = Some("pending"))).thenTransitionTo(WithdrawalWorkflow.waitStep.ref)
+        case GatewayStatus.Unavailable(why) =>
+          if !currentState.lastPoll.contains("unavailable") then
+            log.warn(s"withdrawal ${job.requestId}: the gateway's status could not be read; asking again: $why")
+            recorded("unavailable", Some("gateway_unavailable"), None)
+          stepEffects.updateState(polled.copy(lastPoll = Some("unavailable"))).thenTransitionTo(WithdrawalWorkflow.waitStep.ref)
 
   /** Marked needs review, and paused for the operator or the provider's outcome (FR-022). */
   def reviewStep: StepEffect =
