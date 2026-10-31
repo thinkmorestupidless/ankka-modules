@@ -357,3 +357,14 @@ the original*).
     orders cannot set up: 100 shares held against a maximum of 50). The run before it failed only on
     sign-ins answered `rg_unavailable` while responsible-gambling was restarting.
     `PredictionsOnKindSuite` (`just it`, `CASINO_IT_PREDICTIONS=<slug>`) is the check.
+- **T042, SC-002 and the book's time.** At 200 orders a second the route's polling let owners'
+  commands reach the book behind its last event, and the library refused them as out of order. Trevor
+  chose to fix it in the library, in the book: an owner's command (place, cancel, split, merge) behind
+  the book's last event is applied at the book's time, while a market's command older than it is
+  still refused (ankka-predictions 0.1.1, its spec 005 FR-002 amended). The route waits with
+  `thenAwaitEnd`. With the neighbours scripted at 5 ms, 2,000 orders over 10 s, no refusals:
+  with kind running beside it (load about 8) the median was 51–57 ms and p99 220–330 ms, and at 0 ms
+  neighbours 35 ms and 449 ms, so the cost is the placement's persisted steps. With kind stopped
+  (2026-10-31), median 44.7, 45.2 and 45.7 ms, p99 152.3, 156.6 and 213.3 ms: the third ran while
+  other processes held the load average at 20. exchange pins ankka-predictions 0.1.1, which waits
+  on Trevor's tag.
