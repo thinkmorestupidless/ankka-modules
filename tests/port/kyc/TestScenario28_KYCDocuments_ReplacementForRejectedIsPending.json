@@ -1,0 +1,350 @@
+{
+  "scenario": "TestScenario28_KYCDocuments_ReplacementForRejectedIsPending",
+  "recorded_at": "2026-10-31T06:05:16.949163Z",
+  "original": {
+    "brand": "",
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "realm",
+  "steps": [
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "d556249a-a98c-48d9-879a-c6b939cd50da",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "e2e-2b507cbc@example.com",
+          "firstName": "E2E",
+          "language": "en",
+          "lastName": "Player2b507cbc",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "c89b6321-e82d-3807-a9f3-c0ffc5c35b05",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c0": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "f955e8a2-51a6-49cb-835a-dbbb8619ca50",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=e2e-2b507cbc%40example.com\u0026exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "createdTimestamp": 1793426717003,
+            "disableableCredentialTypes": [],
+            "email": "e2e-2b507cbc@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "20d0186a-4dbe-4c6c-9a8d-58ea1088a060",
+            "lastName": "Player2b507cbc",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-2b507cbc@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c1": "$[0].email",
+        "c2": "$[0].id"
+      },
+      "vary": {
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].lastName": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/20d0186a-4dbe-4c6c-9a8d-58ea1088a060",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/20d0186a-4dbe-4c6c-9a8d-58ea1088a060",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/c89b6321-e82d-3807-a9f3-c0ffc5c35b05"
+            ]
+          },
+          "createdTimestamp": 1793426717003,
+          "disableableCredentialTypes": [],
+          "email": "e2e-2b507cbc@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "E2E",
+          "id": "20d0186a-4dbe-4c6c-9a8d-58ea1088a060",
+          "lastName": "Player2b507cbc",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "e2e-2b507cbc@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.lastName": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c1}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "c89b6321-e82d-3807-a9f3-c0ffc5c35b05",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/spinvibe/players/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/kyc/documents",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/spinvibe/players/{c0}/kyc/documents",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "docType": "identity_front",
+          "key": "spinvibe/{c0}/identity_front-e2e-4136137a.jpg"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "recorded"
+        }
+      }
+    },
+    {
+      "name": "PATCH /v1/casino/spinvibe/players/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/kyc/documents/spinvibe/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/identity_front-e2e-4136137a.jpg/reject",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/spinvibe/players/{c0}/kyc/documents/spinvibe%2F{c0}%2Fidentity_front-e2e-4136137a.jpg/reject",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "reason": "document_unclear"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "docKey": "spinvibe/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/identity_front-e2e-4136137a.jpg",
+          "kycStatus": "unverified",
+          "status": "REJECTED"
+        }
+      },
+      "vary": {
+        "$.docKey": "differs between two runs of the original",
+        "$.kycStatus": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/spinvibe/players/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/kyc/documents",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/spinvibe/players/{c0}/kyc/documents",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "docType": "identity_front",
+          "key": "spinvibe/{c0}/identity_front-e2e-e2563c40.jpg"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "recorded"
+        }
+      }
+    },
+    {
+      "name": "GET /v1/casino/spinvibe/players/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/kyc/documents",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/spinvibe/players/{c0}/kyc/documents",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "documents": [
+            {
+              "docType": "identity_front",
+              "key": "spinvibe/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/identity_front-e2e-4136137a.jpg",
+              "rejectReason": "document_unclear",
+              "rejectionReason": "document_unclear",
+              "reviewStatus": "rejected",
+              "reviewedAt": "2026-10-31T06:05:17.556832346Z",
+              "status": "REJECTED",
+              "uploadedAt": "2026-10-31T06:05:17.544591635Z"
+            },
+            {
+              "docType": "identity_front",
+              "key": "spinvibe/c89b6321-e82d-3807-a9f3-c0ffc5c35b05/identity_front-e2e-e2563c40.jpg",
+              "reviewStatus": "pending",
+              "uploadedAt": "2026-10-31T06:05:17.575706955Z"
+            }
+          ],
+          "kycStatus": "rejected",
+          "requiredDocTypes": []
+        }
+      },
+      "vary": {
+        "$.documents[0].key": "differs between two runs of the original",
+        "$.documents[0].reviewedAt": "differs between two runs of the original",
+        "$.documents[0].uploadedAt": "differs between two runs of the original",
+        "$.documents[1].key": "differs between two runs of the original",
+        "$.documents[1].uploadedAt": "differs between two runs of the original"
+      }
+    }
+  ]
+}

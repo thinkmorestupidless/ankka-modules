@@ -63,10 +63,10 @@ Feature: An operator reviews documents and the KYC status follows the rules
     When the KYC status is derived
     Then the KYC status is pending
 
-  Scenario Outline: an account with every required category approved but an incomplete profile stays unverified and the player is told
+  Scenario Outline: an account with every required category approved but an incomplete profile is pending and the player is told
     Given every required category approved and <gap>
     When the KYC status is derived
-    Then the KYC status stays unverified
+    Then the KYC status is pending
     And the player is told to complete their profile
 
     Examples:

@@ -102,6 +102,7 @@ final case class PlayerState(
     registration: Registration = Registration(),
     verificationEmail: VerificationEmail = VerificationEmail(),
     suspension: Option[Suspension] = None,
+    kycDeadline: Option[Instant] = None,
     closedAt: Option[Instant] = None,
     exclusionAt: Option[Instant] = None,
     exclusionUntil: Option[Instant] = None,
@@ -153,9 +154,11 @@ object PlayerEvent:
   final case class CookieDecisionRecorded(deviceId: Personal[String], decision: CookieDecision, at: Instant) extends PlayerEvent
   final case class FavouriteAdded(gameId: String, at: Instant)                                     extends PlayerEvent
   final case class FavouriteRemoved(gameId: String, at: Instant)                                   extends PlayerEvent
-  final case class Suspended(previous: String, reason: String, actorId: Option[String], at: Instant) extends PlayerEvent
-  /** A suspended player suspended again with another reason: the reason and time move, no second fact (spec edge case). */
-  final case class SuspensionUpdated(reason: String, actorId: Option[String], at: Instant)        extends PlayerEvent
+  final case class Suspended(previous: String, reason: String, actorId: Option[String], at: Instant,
+      kycDeadline: Option[Instant] = None) extends PlayerEvent
+  /** A suspended player suspended again with another reason or window: the reason and time move, no second fact (spec edge case). */
+  final case class SuspensionUpdated(reason: String, actorId: Option[String], at: Instant,
+      kycDeadline: Option[Instant] = None) extends PlayerEvent
   final case class Reinstated(actorId: Option[String], reason: Option[String], at: Instant)       extends PlayerEvent
   final case class SelfExcluded(previous: String, until: Option[Instant], at: Instant)            extends PlayerEvent
   final case class ExclusionLifted(at: Instant)                                                    extends PlayerEvent
@@ -217,7 +220,8 @@ final case class SetMessagesSuppressed(suppressed: Boolean, actorId: String, at:
 final case class RecordCookieDecision(deviceId: Option[String], analytics: Option[Boolean], marketing: Option[Boolean],
     version: Option[String], timestamp: Option[String], at: Instant)
 final case class Favourite(gameId: String, at: Instant)
-final case class Suspend(reason: String, actorId: Option[String], at: Instant)
+/** `kycDeadline`: the window `kyc` suspends for at its end; a repeat under it is the first (009 R10). */
+final case class Suspend(reason: String, actorId: Option[String], at: Instant, kycDeadline: Option[Instant] = None)
 final case class Reinstate(actorId: Option[String], reason: Option[String], at: Instant)
 final case class SetSelfExcluded(until: Option[Instant], at: Instant)
 final case class Close(actor: String, actorId: Option[String], reason: String, at: Instant)

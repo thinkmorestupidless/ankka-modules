@@ -9,7 +9,6 @@
   },
   "secrets": [
     { "name": "goldvibe-st8", "keys": ["API_KEY"] },
-    { "name": "goldvibe-kyc", "keys": ["API_KEY"] },
     { "name": "goldvibe-players", "keys": ["REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY"] }
   ],
   "values": {

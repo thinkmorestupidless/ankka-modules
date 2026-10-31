@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.*
  *
  *  - E1: the three identity keys spec 001 did not render (`PLAYER_SITE_BASE`, `KEYCLOAK_ISSUER_BASE`,
  *    `KEYCLOAK_JWKS_BASE`) are named by every service (contracts/module-manifests.md);
- *  - the modules' own keys are new env: `KYC_PROVIDER_KEY` on kyc, and on game-provider
+ *  - the modules' own keys are new env: `KYC_MAX_UPLOAD_BYTES` on kyc, and on game-provider
  *    `ST8_OPERATOR_ID`, `ST8_API_KEY`, `GAME_PROVIDER_MODE`; a secret one is a `secretKeyRef` to
  *    `tenant-values`;
  *  - `SUPPORT_AGENT_ENABLED` is gone: `support` is a module and being entitled is the switch;
@@ -39,7 +39,7 @@ class RenderSuite extends munit.FunSuite:
   private val NewIdentity = Set("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE")
   private val PlayersSecrets = Set("REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY").map("PLAYERS_" + _)
   private val NewOwnKeys  = Map(
-    "kyc"           -> Set("KYC_PROVIDER_KEY"),
+    "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
     "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL") ++ PlayersSecrets),
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
     "engagement"    -> Set("PUSH_PROVIDER_KEY"),
@@ -52,14 +52,15 @@ class RenderSuite extends munit.FunSuite:
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
    * spec 012 T073; both OOM-killed).
    */
-  private val NewSizes = Map("players" -> "medium", "attribution" -> "medium")
+  private val NewSizes = Map("players" -> "medium", "attribution" -> "medium", "kyc" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
     BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)
 
   /** A descriptor with spec 021's listed additions taken out, and spec 001's dropped switch taken out of the other. */
   private def comparable(d: ServiceDescriptor, dropped: Set[String]): ServiceDescriptor =
-    d.copy(service = d.service.copy(env = d.service.env.filterNot(e => dropped.contains(e.name))))
+    // kyc's bucket is exposed for its signed URLs (spec 009 R7), which spec 001 did not render.
+    d.copy(service = d.service.copy(env = d.service.env.filterNot(e => dropped.contains(e.name)), exposeObjectStorage = false))
 
   private def sameAsSpec001(rendered: Vector[ServiceDescriptor]): Unit =
     val byName = spec001.map(d => d.name -> d).toMap
@@ -83,11 +84,18 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(p.modules.flatMap(_.exposed).toSet, p.services.map(_.name).toSet, "spec 001 exposed every brand service")
   }
 
+  test("kyc's bucket is provisioned and exposed, so the platform gives it ANKKA_S3_PUBLIC_ENDPOINT for signed URLs (spec 009 R7)") {
+    val p = plan(Vector("casino"))
+    val exposed = p.services.filter(_.service.exposeObjectStorage).map(_.name)
+    assertEquals(exposed, Vector("kyc"))
+    assert(p.services.find(_.name == "kyc").get.service.provisionObjectStorage)
+  }
+
   test("the identity values are spec 001's, and a secret key is a secretKeyRef to tenant-values, never a value") {
     val p = plan(Vector("casino"))
     def env(s: String) = p.services.find(_.name == s).get.service.env
     assertEquals(env("wallet").find(_.name == "KEYCLOAK_JWKS_BASE").flatMap(_.value), Some("http://casino-keycloak.casino-identity.svc"))
-    assertEquals(env("kyc").find(_.name == "KYC_PROVIDER_KEY"), Some(EnvVar("KYC_PROVIDER_KEY", secretKeyRef = Some(SecretKeyRef("tenant-values", "kyc-provider-key")))))
+    assertEquals(env("kyc").find(_.name == "KYC_MAX_UPLOAD_BYTES").flatMap(_.value), Some("5242880"))
     assertEquals(env("game-provider").find(_.name == "ST8_API_KEY").flatMap(_.secretKeyRef), Some(SecretKeyRef("tenant-values", "st8-api-key")))
     assertEquals(env("game-provider").find(_.name == "GAME_PROVIDER_MODE").flatMap(_.value), Some("demo"))
   }

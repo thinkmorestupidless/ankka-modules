@@ -53,19 +53,32 @@ final class FakeRg(brand: String, bind: Int = 0) extends KnobbedServer(bind):
       Answer.ok(Json.obj("service" -> "responsible-gambling", "playerId" -> p.split('/').last, "records" -> Json.obj()))
     case _                   => Answer(404, """{"error":"unknown route"}""")
 
-/** `kyc`'s deposit check: allowed unless a refusal `(code, message)` is scripted for the player. */
+/**
+ * `kyc` in the shapes of spec 009's contracts/routes.md: the deposit check allowed unless a refusal
+ * `(code, message)` is scripted for the player, with the `currency` each check sent; the erasure's
+ * certificate and the export's part.
+ */
 final class FakeKyc(brand: String, bind: Int = 0) extends KnobbedServer(bind):
+  private val prefix = s"/v1/casino/brands/$brand/kyc"
   val refusals = ConcurrentHashMap[String, (String, String)]()
 
   def reset(): Unit = { refusals.clear(); knobsReset() }
 
-  protected def answer(r: Received): Answer =
-    if r.path != s"/v1/casino/brands/$brand/kyc/deposit-check" then Answer(404, "")
-    else
+  def checks: Vector[JsonNode] = received.filter(_.path == s"$prefix/deposit-check").flatMap(_.json)
+  def erasures: Vector[String] = received.filter(_.path.startsWith(s"$prefix/erasure/players/")).map(_.path.split('/').last)
+
+  protected def answer(r: Received): Answer = r.path.stripPrefix(prefix) match
+    case "/deposit-check" =>
       val player = r.json.flatMap(_.text("playerId")).getOrElse("")
-      Option(refusals.get(player)).fold(Answer.ok(Json.obj("allowed" -> true))) { (code, message) =>
-        Answer.ok(Json.obj("allowed" -> false, "code" -> code, "message" -> message))
+      Option(refusals.get(player)).fold(Answer.ok(Json.obj("allowed" -> true, "kycStatus" -> "verified"))) { (code, message) =>
+        Answer.ok(Json.obj("allowed" -> false, "code" -> code, "message" -> message, "kycStatus" -> "unverified"))
       }
+    case p if p.startsWith("/erasure/players/") =>
+      Answer.ok(Json.obj("service" -> "kyc", "playerId" -> p.split('/').last, "objectsDeleted" -> 0, "recordsKept" -> 0,
+        "erasedAt" -> java.time.Instant.now().toString))
+    case p if p.startsWith("/exports/players/") =>
+      Answer.ok(Json.obj("service" -> "kyc", "playerId" -> p.split('/').last, "documents" -> Json.arr(), "status" -> "unverified"))
+    case _ => Answer(404, "")
 
 /** One send `engagement` was asked for. */
 final case class Sent(key: String, playerId: String, trigger: String, to: String, link: String)

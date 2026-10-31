@@ -37,7 +37,7 @@ final class DepositRoutes(ctx: Ctx):
 
   private def checked(playerId: String, amount: Long, currency: String, method: String, s: io.eitheror.casino.players.player.PlayerState): Reply =
     val n = ctx.neighbours
-    n.kyc.depositCheck(playerId, amount, CheckBound) match
+    n.kyc.depositCheck(playerId, amount, currency, CheckBound) match
       case Raced.Answered(KycDecision.Refused(code, message)) => refusal(403, code, message, "service" -> Kyc.Service)
       case Raced.Answered(KycDecision.Allowed) =>
         n.wallet.depositSums(playerId, currency, CheckBound) match

@@ -287,6 +287,18 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.currentState.status, Status.Active)
   }
 
+  test("kyc's Suspend under a deadline: once, and not again under it after a reinstatement; a new deadline suspends") {
+    val kit      = active
+    val deadline = Some(later(10))
+    assertEquals(kit.call(PlayerEntity.suspend)(Suspend("kyc_window_expired", Some("kyc"), at, deadline)).replyValue, Done.changed)
+    assertEquals(kit.currentState.kycDeadline, deadline)
+    assert(kit.call(PlayerEntity.reinstate)(Reinstate(Some("op-1"), Some("documents seen"), later(1))).persisted)
+    val retry = kit.call(PlayerEntity.suspend)(Suspend("kyc_window_expired", Some("kyc"), later(2), deadline))
+    assertEquals((retry.persisted, retry.replyValue, kit.currentState.status), (false, Done.unchanged, Status.Active))
+    val next = kit.call(PlayerEntity.suspend)(Suspend("kyc_window_expired", Some("kyc"), later(3), Some(later(20))))
+    assertEquals((next.replyValue, kit.currentState.status, kit.currentState.kycDeadline), (Done.changed, Status.Suspended, Some(later(20))))
+  }
+
   test("SetSelfExcluded once; LiftExclusion refuses not_excluded") {
     val kit = active
     assertEquals(code(kit.call(PlayerEntity.liftExclusion)(At(at)).replyValue), Some("not_excluded"))

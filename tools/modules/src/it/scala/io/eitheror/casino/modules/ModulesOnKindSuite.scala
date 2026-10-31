@@ -46,7 +46,7 @@ class ModulesOnKindSuite extends munit.FunSuite:
 
   private def apply(cp: ControlPlane, named: Vector[String]): ApplyResult =
     if cp.project(slug).isEmpty then cp.createProject(slug, slug, sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"))
-    cp.setSecret(slug, BrandRender.TenantValues, Map("kyc-provider-key" -> "it-not-a-key", "st8-api-key" -> "it-not-a-key"))
+    cp.setSecret(slug, BrandRender.TenantValues, Map("st8-api-key" -> "it-not-a-key"))
     LocalApply.run(plan(named), values, Some(installation), cp,
       LocalApply.Options(sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"), ready = LocalApply.poll(within = java.time.Duration.ofMinutes(15))))
 

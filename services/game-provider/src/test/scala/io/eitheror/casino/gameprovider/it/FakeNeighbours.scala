@@ -61,7 +61,7 @@ final class FakeNeighbours(brand: String) extends FakeServer:
           case None           => Answer.ok(Json.obj("decision" -> "allowed"))
           case Some(decision) => Answer.ok(Json.obj("decision" -> decision))
       case Players(_, _) if down("players") => unavailable
-      case Players(player, "account-status") =>
+      case Players(player, "status") =>
         Answer.ok(Json.obj("status" -> accountStatus.getOrElse(player, "active")))
       case Players(player, "profile") =>
         if unknown(player) then Answer(404, """{"error":"PLAYER_NOT_FOUND"}""")

@@ -1,0 +1,90 @@
+{
+  "scenario": "TestScenario29_KYCPolicy_ApplyingUKGCProfile",
+  "recorded_at": "2026-10-31T06:06:07.562107Z",
+  "original": {
+    "brand": "",
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "realm",
+  "steps": [
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "b6db645f-7524-4e7f-9d59-b9521edd76c3",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/casino/backoffice/spinvibe/kyc-policy",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/kyc-policy",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "autoSuspendOnWindowExpiry": true,
+          "depositGate": "NONE",
+          "kycWindowDays": 30,
+          "licenceProfile": "CURACAO",
+          "playGate": "NONE",
+          "requiredDocTypes": [
+            "identity"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/backoffice/spinvibe/kyc-policy/profile",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/kyc-policy/profile",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "profile": "ukgc"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "autoSuspendOnWindowExpiry": true,
+          "depositGate": "KYC_APPROVED",
+          "kycWindowDays": 3,
+          "licenceProfile": "UKGC",
+          "playGate": "KYC_APPROVED",
+          "requiredDocTypes": [
+            "identity",
+            "proof_of_address"
+          ],
+          "sofThresholdMinorUnits": 200000
+        }
+      }
+    }
+  ]
+}

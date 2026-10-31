@@ -1,0 +1,43 @@
+# Postgres and the document store for running kyc locally.
+#
+# Postgres: the event journal, snapshots, durable state, view tables and projection offsets. The schema
+# comes from target/ddl, which `sbt schema` fills from the ankka-runtime artifact — run that first.
+# Postgres applies an init directory only when its data volume is empty, so after an ankka upgrade:
+# `docker compose down -v`, `sbt schema`, `docker compose up -d`.
+#
+# Garage: the installation's object store, one node. `just kyc-run` makes the bucket and a key through
+# its admin API (local/bucket.sh) and hands them to the service as the platform would, as ANKKA_S3_*.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ankka
+      POSTGRES_PASSWORD: ankka
+      POSTGRES_DB: ankka
+    ports:
+      - "5438:5432"
+    volumes:
+      - ./target/ddl:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ankka -d ankka"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  garage:
+    image: dxflrs/garage:v2.3.0
+    command: ["/garage", "server", "--single-node"]
+    environment:
+      GARAGE_RPC_SECRET: "0000000000000000000000000000000000000000000000000000000000000000"
+      GARAGE_ADMIN_TOKEN: kyc-local
+    ports:
+      - "3900:3900"
+      - "3903:3903"
+    volumes:
+      - ./local/garage.toml:/etc/garage.toml:ro
+      - garage:/var/lib/garage
+
+volumes:
+  pgdata:
+  garage:

@@ -223,6 +223,154 @@
     "pass",
     "pass"
   ],
+  "TestScenario28_KYCDocuments_CategoryOtherNeverLocked": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_ConfirmedUploadIsPendingAndLocked": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_FileOfUnacceptedTypeOrSizeRefused": [
+    "skip",
+    "skip"
+  ],
+  "TestScenario28_KYCDocuments_NoDocumentsShowsRequiredCategories": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_PendingOrApprovedCategoryRefusesAnotherUpload": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_PlayerViewingAnotherPlayersDocumentRefused": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_PlayerViewsOwnDocument": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_RejectedReasonIsAReasonCode": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_ReplacementForRejectedIsPending": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCDocuments_UploadAddressValidForAnHourUnderPlayersPrefix": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_ApprovePendingDocumentSecondReviewRefused": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_AutomaticModeOnlyIdentityApprovedStaysPending": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_AutomaticModeVerifiesWhenRequiredApproved": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_IncompleteProfileStaysPending": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_ManualModeApprovingChangesNothing": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_ManualModeOperatorSetsVerified": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_MarkingCategoryRequiredForOnePlayer": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_OperatorVerifiesOrRejectsDirectly": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_OperatorViewsDocument": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_RejectWithKnownReasonCode": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_RejectWithUnknownReasonCodeRefused": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_RejectedLatestDocumentRejectsAccount": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_RejectedOtherDoesNotRejectAccount": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario28_KYCReview_SetVerifiedWithIncompleteProfileRefused": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCGates_DepositGateRefusesUnverifiedPendingRejected": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCGates_DepositOverSofThresholdClearedAllowed": [
+    "skip",
+    "skip"
+  ],
+  "TestScenario29_KYCGates_DepositOverSofThresholdRefused": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCGates_DepositOverThresholdRefused": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCGates_DepositUnderThresholdAllowed": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCGates_PlayAllowedForVerifiedOrGateNone": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCGates_PlayGateRefusesUnverified": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCPolicy_ApplyingMGAProfile": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCPolicy_ApplyingUKGCProfile": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCPolicy_BrandWithNoPolicyReadsCuracaoDefault": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCPolicy_ChangingOneFieldChangesOnlyThatField": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCPolicy_UnauthenticatedRequirementsRead": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario29_KYCPolicy_UnknownProfileRefused": [
+    "pass",
+    "pass"
+  ],
   "TestScenarioFreeSpinsPlay_BonusBalanceDestination": [
     "pass",
     "pass"

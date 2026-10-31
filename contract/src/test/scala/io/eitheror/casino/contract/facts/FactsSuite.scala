@@ -110,6 +110,14 @@ class FactsSuite extends munit.FunSuite:
     assert(reason.exists(_.optional), s"close_reason must be optional, so the first shape's readers still read it: $reason")
   }
 
+  test("spec 009's addition: player_registered carries the registration's profile as player_profile_updated does, optional") {
+    val fields  = CasinoPlayers.families.find(_.name == "player_registered").get.fields.toMap
+    val profile = Seq("given_name", "family_name", "date_of_birth", "telephone", "address_line", "city", "post_code")
+    assert(profile.forall(fields.get(_).exists(_.optional)), s"every profile field present and optional: ${fields.keySet}")
+    val updated = CasinoPlayers.families.find(_.name == "player_profile_updated").get.fields.toMap
+    assertEquals(profile.map(fields(_).schema), profile.map(updated(_).schema))
+  }
+
   test("round_settled carries the provider's and the wallet's ids and the grant, keyed by the wallet (spec 003 FR-019)") {
     val family = CasinoRounds.families.find(_.name == "round_settled").get
     val fields = family.fields.toMap

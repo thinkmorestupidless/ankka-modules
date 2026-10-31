@@ -1,0 +1,28 @@
+{
+  "scenario": "TestScenario29_KYCPolicy_BrandWithNoPolicyReadsCuracaoDefault",
+  "recorded_at": "2026-10-31T06:06:07.504586Z",
+  "original": {
+    "brand": "",
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "GET /v1/casino/players/e2e-nopolicy-7d28ea36/kyc/requirements",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/e2e-nopolicy-7d28ea36/kyc/requirements",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "requiredDocTypes": [
+            "identity"
+          ]
+        }
+      }
+    }
+  ]
+}

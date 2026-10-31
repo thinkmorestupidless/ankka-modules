@@ -70,9 +70,11 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       case e: FavouriteAdded         => s.copy(favourites = s.favourites + e.gameId)
       case e: FavouriteRemoved       => s.copy(favourites = s.favourites - e.gameId)
       case e: Suspended =>
-        status(Status.Suspended, "suspended", Actor.Operator, e.actorId, Some(e.reason)).copy(suspension = Some(Suspension(e.reason, e.at)))
+        status(Status.Suspended, "suspended", Actor.Operator, e.actorId, Some(e.reason))
+          .copy(suspension = Some(Suspension(e.reason, e.at)), kycDeadline = e.kycDeadline.orElse(s.kycDeadline))
       case e: SuspensionUpdated =>
-        status(Status.Suspended, "suspension_updated", Actor.Operator, e.actorId, Some(e.reason)).copy(suspension = Some(Suspension(e.reason, e.at)))
+        status(Status.Suspended, "suspension_updated", Actor.Operator, e.actorId, Some(e.reason))
+          .copy(suspension = Some(Suspension(e.reason, e.at)), kycDeadline = e.kycDeadline.orElse(s.kycDeadline))
       case e: Reinstated => status(Status.Active, "reinstated", Actor.Operator, e.actorId, e.reason).copy(suspension = None)
       case e: SelfExcluded =>
         status(Status.SelfExcluded, "self_excluded", Actor.System).copy(exclusionAt = Some(e.at), exclusionUntil = e.until)
@@ -287,11 +289,13 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
 
   def suspend(c: Suspend): Effect[Done] =
     val s = currentState
-    if Status.ended(s.status) then effects.reply(Done.refused("account_closed"))
+    // A window `kyc` has already suspended for is not suspended for again, though an operator reinstated since.
+    if c.kycDeadline.nonEmpty && c.kycDeadline == s.kycDeadline then effects.reply(Done.unchanged)
+    else if Status.ended(s.status) then effects.reply(Done.refused("account_closed"))
     else if s.status == Status.Suspended then
-      if s.suspension.exists(_.reason == c.reason.trim) then effects.reply(Done.unchanged)
-      else effects.persist(SuspensionUpdated(c.reason.trim, c.actorId, c.at)).thenReply(_ => Done.unchanged)
-    else effects.persist(Suspended(s.status, c.reason.trim, c.actorId, c.at)).thenReply(_ => Done.changed)
+      if s.suspension.exists(_.reason == c.reason.trim) && c.kycDeadline.isEmpty then effects.reply(Done.unchanged)
+      else effects.persist(SuspensionUpdated(c.reason.trim, c.actorId, c.at, c.kycDeadline)).thenReply(_ => Done.unchanged)
+    else effects.persist(Suspended(s.status, c.reason.trim, c.actorId, c.at, c.kycDeadline)).thenReply(_ => Done.changed)
 
   def reinstate(c: Reinstate): Effect[Done] =
     if currentState.status != Status.Suspended then effects.reply(Done.refused("not_suspended"))

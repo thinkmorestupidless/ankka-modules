@@ -26,6 +26,19 @@ Feature: A player submits documents and sees where they stand
     And the document cannot be changed or removed by the player
     And a "player_kyc_submitted" fact is published
 
+  Scenario: confirming an upload again answers as the first confirmation and records no second document
+    Given an upload that completed
+    And the player confirmed it
+    When the player confirms it again
+    Then the answer is the first confirmation's
+    And the category holds that one document
+
+  Scenario: of two uploads asked for one category before either is confirmed, the second to be confirmed is refused as locked
+    Given two uploads for the category "identity_front" that completed
+    When the player confirms both
+    Then the second is refused as locked
+    And its file is removed from the brand's document store
+
   Scenario Outline: a category whose latest document is pending or approved refuses another upload as locked
     Given a category whose latest document is <state>
     When the player asks to upload another for it

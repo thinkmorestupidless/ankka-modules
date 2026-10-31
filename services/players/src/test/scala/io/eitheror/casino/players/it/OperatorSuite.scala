@@ -97,6 +97,10 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     assertEquals(f.reason, Some("kyc_window_expired"))
     Thread.sleep(300)
     assertEquals(kit.facts(CasinoPlayers).count { case f: PlayerSuspended => f.playerId == id; case _ => false }, 1)
+    // An operator reinstates; kyc's retry under the same deadline does not suspend again.
+    assertEquals(op("PATCH", s"/players/$id/reinstate").status, 200)
+    assertEquals(svc("POST", s"/$id/suspend", "kyc", body*).status, 200)
+    assertEquals(player(id).status, Status.Active)
   }
 
   test("vip-tier from none: vip_tier_changed with an empty previous tier, an audit record naming the operator; pot-vip writes a note") {

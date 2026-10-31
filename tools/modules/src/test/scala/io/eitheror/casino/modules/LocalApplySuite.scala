@@ -66,7 +66,7 @@ class LocalApplySuite extends munit.FunSuite:
     cp.setSecret("goldvibe", "tenant-values", Map("st8-api-key" -> "test"))
     val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--allow-unbuilt", "--modules", "casino")
     assertEquals(code, 0, out.lines.mkString("\n"))
-    assert(out.lines.exists(l => l.startsWith("note module core held: missing kyc-provider-key")), out.lines.mkString("\n"))
+    assert(out.lines.exists(l => l.startsWith("note module core held: missing players-")), out.lines.mkString("\n"))
     assert(out.lines.exists(_.startsWith("note module casino held: its dependency core is held")), out.lines.mkString("\n"))
     assertEquals(cp.services("goldvibe"), Vector.empty)
   }
@@ -149,7 +149,7 @@ class LocalApplySuite extends munit.FunSuite:
     val unbuilt = LocalApply.unbuilt(plan, Keys.load(root)).map(_._2).toSet
     val result  = LocalApply.run(plan, v, Some(Fixtures.devKind), cp, LocalApply.Options("eitheror", ready = ready, unwaited = unbuilt))
     assertEquals(result.failure, None)
-    assertEquals(unbuilt, Set("kyc", "payouts"))
+    assertEquals(unbuilt, Set("payouts"))
     assert(waited.contains("players") && waited.intersect(unbuilt.toSeq).isEmpty, waited.mkString(", "))
     assert(result.notes.contains("service players is paused: not waited for"), result.notes.mkString("\n"))
     unbuilt.foreach(s => assert(result.notes.contains(s"service $s not waited for: applied without a build (--allow-unbuilt)"), result.notes.mkString("\n")))
@@ -160,7 +160,7 @@ class LocalApplySuite extends munit.FunSuite:
     val cp = withSecrets()
     val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--allow-unbuilt", "--modules", "core")
     assertEquals(code, 0, out.lines.mkString("\n"))
-    assert(out.lines.contains("note service kyc not waited for: applied without a build (--allow-unbuilt)"), out.lines.mkString("\n"))
+    assert(out.lines.contains("note service payouts not waited for: applied without a build (--allow-unbuilt)"), out.lines.mkString("\n"))
   }
 
   test("status <slug> gives the fitness, then each module with its services, topics and grants") {

@@ -67,11 +67,14 @@ class ClientsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(rg.requests.head.path, "/v1/casino/brands/goldvibe/rg/gamstop-refusal")
     val sent = Json.parse(String(rg.requests.head.body, UTF_8)).get
     assertEquals((sent.text("playerId"), sent.text("result"), sent.text("email")), (Some("p-1"), Some("excluded"), None))
+    val kycServices = scripted(Kyc.Service)(_ => json(200, """{"allowed":true,"kycStatus":"verified"}"""))
+    assertEquals(answered(Kyc.http(kycServices, "goldvibe").depositCheck("p-1", 100, "GBP", bound)), KycDecision.Allowed)
+    val asked = Json.parse(String(kycServices.requests.head.body, UTF_8)).get
+    assertEquals((asked.text("playerId"), asked.long("amount"), asked.text("currency")), (Some("p-1"), Some(100L), Some("GBP")))
     def kyc(body: String) = Kyc.http(scripted(Kyc.Service)(_ => json(200, body)), "goldvibe")
-    assertEquals(answered(kyc("""{"allowed":true}""").depositCheck("p-1", 100, bound)), KycDecision.Allowed)
-    assertEquals(answered(kyc("""{"allowed":false,"code":"DEPOSIT_BLOCKED_KYC","message":"Verify first"}""").depositCheck("p-1", 100, bound)),
+    assertEquals(answered(kyc("""{"allowed":false,"code":"DEPOSIT_BLOCKED_KYC","message":"Verify first"}""").depositCheck("p-1", 100, "EUR", bound)),
       KycDecision.Refused("DEPOSIT_BLOCKED_KYC", "Verify first"))
-    assert(kyc("""{"allowed":false}""").depositCheck("p-1", 100, bound).isInstanceOf[Raced.Failed[?]])
+    assert(kyc("""{"allowed":false}""").depositCheck("p-1", 100, "EUR", bound).isInstanceOf[Raced.Failed[?]])
   }
 
   test("engagement's send: accepted, not configured, suppressed; the key, trigger and link are sent") {

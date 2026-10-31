@@ -1002,7 +1002,7 @@ new file mode 100644
 index 0000000..1ccd14a
 --- /dev/null
 +++ b/tests/e2e/scenario28_kyc_documents_review_e2e_test.go
-@@ -0,0 +1,644 @@
+@@ -0,0 +1,645 @@
 +//go:build e2e
 +
 +// Scenario 28 — KYC: a player's documents, an operator's review, and the account's KYC status.
@@ -1491,11 +1491,11 @@ index 0000000..1ccd14a
 +}
 +
 +// features/kyc/review.feature
-+// Scenario Outline: an account with every required category approved but an incomplete profile stays unverified and the player is told
++// Scenario Outline: an account with every required category approved but an incomplete profile is pending and the player is told
 +//
 +// Driven for the "required profile field missing" row (a fresh registration has no phone or
 +// address); telling the player is the frontend's.
-+func TestScenario28_KYCReview_IncompleteProfileStaysUnverified(t *testing.T) {
++func TestScenario28_KYCReview_IncompleteProfileStaysPending(t *testing.T) {
 +	setup.SkipIfMissing(t)
 +	s := setup.New()
 +	op := rkOperatorToken(t, s)
@@ -1508,7 +1508,8 @@ index 0000000..1ccd14a
 +	identity := rkConfirmDoc(t, s, p, "identity_front")
 +	rkWaitKycStatus(t, s, p, "pending", 30*time.Second)
 +	rkRequireStatus(t, http.StatusOK, rkApproveDoc(t, s, p, op, identity), "approve identity_front")
-+	rkWaitKycStatus(t, s, p, "unverified", 30*time.Second)
++	rkRequireKycStatusNever(t, s, p, "verified", 8*time.Second)
++	rkWaitKycStatus(t, s, p, "pending", 30*time.Second)
 +}
 +
 +// features/kyc/review.feature

@@ -14,7 +14,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — three remain: window expiry enforcement (FR-025),
+- [x] No [NEEDS CLARIFICATION] markers remain — three remain: window expiry enforcement (FR-025),
       retention period per licence profile (FR-034), operator upload on a player's behalf (Assumptions)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable

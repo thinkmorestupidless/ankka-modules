@@ -254,3 +254,25 @@ hugin), and the substrate's twin API is reached through
 `kubectl --context kind-eitheror-dev port-forward -n eitheror svc/eitheror-bundle-substrate 9000:9000`.
 `dev-operator`'s password is the one the realm-sync job logs. The run of 2026-10-26 (T029) and how it
 differed from these steps are in `tests/port/players/README.md`.
+
+## Recording the KYC scenarios
+
+Scenarios 28 and 29 (`e2e-rg-kyc.patch`; spec 009 research R2) run from the original's own suite, on
+its KinD stack with the casino pack's MinIO and its `casino-kyc` bucket:
+
+```bash
+cd <the original's checkout>/tests/e2e
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/kyc-$run EITHEROR_ORIGINAL_COMMIT=$(git rev-parse --short HEAD) \
+  EITHEROR_CASINO_URL=http://localhost:8091 EITHEROR_KEYCLOAK_URL=http://localhost:8180 \
+  EITHEROR_SUBSTRATE_URL=http://localhost:9000 TEST_OPERATOR_EMAIL=dev-operator TEST_OPERATOR_PASSWORD=… \
+    go test -tags e2e -count=1 -json -run 'TestScenario2[89]_' ./... > /tmp/kyc-$run.json
+done
+```
+
+The merge files each recording by the original's service it reached first (the casino's routes, or the
+realm's token step), so the recordings are moved to `tests/port/kyc/` afterwards. Before the run,
+`casino/kyc-status-rollup` must be registered as the casino chart's registration job registers it
+(`IS_A player.registered`): the original's `kind-register-casino-functions` recipe registers it again
+with `IS_A Player`, a concept no twin carries, and the rollup then never runs. The run of 2026-10-31
+(T047) is in `tests/port/kyc/README.md`.

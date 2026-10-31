@@ -29,7 +29,7 @@ class DepositsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(r.status, 200, r.text)
     assert(r.str("redirectUrl").startsWith("https://cashier.example/"), r.text)
     assert(r.str("paymentId").nonEmpty)
-    assertEquals(kycAsked(id).flatMap(_.json).map(_.get("amount").asLong), Vector(5000L))
+    assertEquals(kycAsked(id).flatMap(_.json).map(a => (a.get("amount").asLong, a.textOr("currency", ""))), Vector((5000L, "EUR")))
     val asked = rgAsked(id)
     assertEquals(asked.map(a => (a.get("amount").asLong, a.get("last24h").asLong, a.get("last7d").asLong, a.get("last30d").asLong)),
       Vector((5000L, 100L, 700L, 3000L)))

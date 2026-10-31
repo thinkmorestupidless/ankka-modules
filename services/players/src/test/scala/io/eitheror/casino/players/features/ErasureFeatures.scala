@@ -80,7 +80,7 @@ class ErasureFeatures extends PlayersFeatures("erasure.feature"):
   }
   Then("the certificates are assembled into the erasure response") { () =>
     val e = op("GET", s"/players/$playerId/erasure").json.get("certificates")
-    assertEquals((0 until e.size).map(e.get(_).get("service").asText).toVector, Vector("wallet", "responsible-gambling", "merchant", "players"))
+    assertEquals((0 until e.size).map(e.get(_).get("service").asText).toVector, Vector("wallet", "responsible-gambling", "kyc", "merchant", "players"))
   }
   Then("the player's personal fields read as erased everywhere") { () =>
     assertEquals((player.status, player.profile.get("firstName"), player.primary.map(_.address.reveal)), (Status.Erased, None, Some("")))

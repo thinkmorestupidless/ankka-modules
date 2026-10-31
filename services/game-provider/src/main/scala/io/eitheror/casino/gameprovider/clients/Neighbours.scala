@@ -10,7 +10,7 @@ import io.eitheror.casino.gameprovider.Json.*
  * same constants, so one edit here moves both.
  */
 object NeighbourPaths:
-  def accountStatus(brand: String, player: String)  = s"/v1/casino/brands/${Http.segment(brand)}/players/${Http.segment(player)}/account-status"
+  def accountStatus(brand: String, player: String)  = s"/v1/casino/brands/${Http.segment(brand)}/players/${Http.segment(player)}/status"
   def gameSessions(brand: String, player: String)   = s"/v1/casino/brands/${Http.segment(brand)}/players/${Http.segment(player)}/game-sessions"
   def recentlyPlayed(brand: String, player: String) = s"/v1/casino/brands/${Http.segment(brand)}/players/${Http.segment(player)}/recently-played"
   def profile(brand: String, player: String)        = s"/v1/casino/brands/${Http.segment(brand)}/players/${Http.segment(player)}/profile"
