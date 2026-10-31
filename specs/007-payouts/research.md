@@ -401,6 +401,11 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   listing row gains `subBrandId`, additively (005 contracts/payouts.md); payouts holds it on the
   catalogue and on the request's terminal and sends it, as the original read `sub_brand_id` off the
   terminal (`W:1607`).
+- **2026-10-31, `deposit_confirmed` carries the deposit's gateway and scheme** (settled with the user).
+  The fact had neither, though the wallet records both on its event; eligibility (R5) needs them.
+  `deposit_confirmed` gains `psp: Option[String]` and `scheme: Option[String]`, additively, set by the
+  wallet's publisher (002 contracts/facts.md, 001 contracts/topics.md). A deposit published before
+  carries none and reads as not VISA, which fails closed, as the original's unrecorded schemes did.
 
 ## Design finished
 

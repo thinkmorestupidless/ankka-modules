@@ -46,6 +46,9 @@
         "player_id": {
           "type": "string"
         },
+        "psp": {
+          "type": "string"
+        },
         "real_balance_after": {
           "type": "integer",
           "x-unit": "minor"
@@ -54,6 +57,9 @@
           "minimum": 0,
           "type": "integer",
           "x-unit": "minor"
+        },
+        "scheme": {
+          "type": "string"
         },
         "transaction_id": {
           "type": "string"
