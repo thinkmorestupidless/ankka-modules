@@ -289,7 +289,7 @@ internal outcome route. One scenario per scenario of `features/payouts/*.feature
 `go test ./original/payouts-driver/...` checks every name against the features offline.
 
 - Each scenario takes fresh players, registered, verified by the link the original would send, and
-  funded through wallet-service's internal deposit route (`setup:`). Its terminals are written to
+  funded through wallet-service's internal deposit route (`setup:`; its internal API, port 9001, which the public port answers 404). Its terminals are written to
   substrate under UUID ids and appended to the brand's terminal index, as merchant-service and scenario
   251 write them, and made inactive when the scenario ends. A brand's limits set by a scenario are put
   back when it ends.
@@ -317,7 +317,7 @@ for run in 1 2; do
   EITHEROR_RECORD_TO=/tmp/payouts-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
     go test -tags e2e -count=1 -timeout 60m -json ./original/payouts-driver/... \
       -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -substrate-url http://localhost:9000 \
-      -wallet-url <wallet-service> -stub-url <psp-stub's Unity Finance> -brand spinvibe \
+      -wallet-url <wallet-service> -wallet-internal-url <its internal API> -stub-url <psp-stub's Unity Finance> -brand spinvibe \
       -operator-client casino-backoffice > /tmp/payouts-$run.json
 done
 go run ./original/merge -run1 /tmp/payouts-1 -run2 /tmp/payouts-2 -results1 /tmp/payouts-1.json -results2 /tmp/payouts-2.json -out port
@@ -327,7 +327,7 @@ for run in 1 2; do
   EITHEROR_RECORD_TO=/tmp/s251-$run EITHEROR_ORIGINAL_COMMIT=$(git rev-parse --short HEAD) \
   EITHEROR_CASINO_URL=http://localhost:8091 EITHEROR_KEYCLOAK_URL=http://localhost:8180 \
   EITHEROR_SUBSTRATE_URL=http://localhost:9000 EITHEROR_WALLET_URL=<wallet-service> \
-  EITHEROR_WALLET_INTERNAL_URL=<wallet-service> EITHEROR_WALLET_INTERNAL_SECRET=… \
+  EITHEROR_WALLET_INTERNAL_URL=<its internal API> EITHEROR_WALLET_INTERNAL_SECRET=… \
   TEST_OPERATOR_EMAIL=dev-operator TEST_OPERATOR_PASSWORD=… \
     go test -tags e2e -count=1 -json -run 'TestScenario251_' ./... > /tmp/s251-$run.json
 done
