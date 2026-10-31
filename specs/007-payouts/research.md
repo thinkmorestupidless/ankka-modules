@@ -406,6 +406,13 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   `deposit_confirmed` gains `psp: Option[String]` and `scheme: Option[String]`, additively, set by the
   wallet's publisher (002 contracts/facts.md, 001 contracts/topics.md). A deposit published before
   carries none and reads as not VISA, which fails closed, as the original's unrecorded schemes did.
+- **2026-10-31, the name check stays exact** (settled with the user). terminals.feature saved "A. Example"
+  against a profile of "Anna Example", which R13 and the original refuse. The scenario's profile is now
+  "A. Example"; the rule is unchanged.
+- **2026-10-31, the listing's currency when the query names none** is the one the player registered in,
+  which their wallet is opened in: `player_registered.currency`, held on `PlayerPayouts`. The original read
+  the player twin's `walletCurrency` and fell back to GBP; with none known this answers 400 naming
+  `currency`.
 
 ## Design finished
 

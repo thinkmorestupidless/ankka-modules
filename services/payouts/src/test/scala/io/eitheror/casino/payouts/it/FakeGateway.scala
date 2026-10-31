@@ -47,7 +47,7 @@ object FakeGateway:
 
   def terminal(id: String, gateway: String, name: String = "", scheme: String = "EUBANKING", active: Boolean = true,
       destination: Boolean = false, coins: Vector[String] = Vector.empty, hasStatus: Boolean = false,
-      reviewWindow: Option[String] = None): ObjectNode =
+      reviewWindow: Option[String] = None, withdrawals: Boolean = true): ObjectNode =
     Json.obj("id" -> id, "subBrandId" -> "sb-1", "name" -> (if name.isEmpty then id else name), "scheme" -> scheme,
-      "gateway" -> gateway, "active" -> active, "supportsWithdrawal" -> true, "requiresPayoutDestination" -> destination,
+      "gateway" -> gateway, "active" -> active, "supportsWithdrawal" -> withdrawals, "requiresPayoutDestination" -> destination,
       "coins" -> Json.arr(coins*), "hasStatus" -> hasStatus, "reviewWindow" -> reviewWindow)
