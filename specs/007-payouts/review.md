@@ -179,7 +179,7 @@
   - It logs at error each time, but it counts nothing. The ankka lifecycle reads `Paused`, not `Failed`.
   - While the position is in `Flow.Busy` (Holding, Opening, Approving, Paying, Initiating), an operator's commands answer `BUSY` for as long as the fault lasts.
   - That trade is better than a silent failed workflow, and the first round asked for it. Still, a counter or a gauge of workflows in `recover`, which an alert can watch, would turn "said loudly" into "seen". No change is needed for this spec if the logs are alerted on; say which.
-  Answered: the logs. Each `recover` logs at error with the request id and the position, and the installation alerts on service error logs. A gauge belongs with spec 015's operational views, not here.
+  Answered: the logs, for this spec. Each `recover` logs at error with the request id and the position. No alert on them exists yet; one, or a gauge of workflows in `recover`, is a follow-up for spec 015's operational views.
 - `services/payouts/src/main/scala/io/eitheror/casino/payouts/request/ReasonCode.scala:12` — thought: the shape rule decides what may be published.
   - Upper-case provider codes (`INSUFFICIENT_FUNDS`, `E1023`) become `provider_failed` on the fact, which loses information. A lower-case single token that is a name (`smith`) passes as a code.
   - Both are unlikely to matter with the four providers' known reasons. If one of them sends upper-case codes, an allowlist per provider in psp-gateway, sending `code` apart from `message`, would serve better than widening the regex. That is a follow-up for spec 005, not this change.
