@@ -79,34 +79,42 @@ object CasinoRounds extends Topic[CasinoRoundsFact]("casino.rounds", Vector("gam
 
 // ── casino.withdrawals (payouts) ──────────────────────────────────────────
 
-/** `payout_id` is the original's export name for the withdrawal request's id (FR-014). */
+/**
+ * `payout_id` is the original's export name for the withdrawal request's id (FR-014). `amount_cents` is the amount
+ * paid; `gateway`, `terminal` and `provider_reference` were added by spec 007 (R11), optional for older readers.
+ */
 sealed trait CasinoWithdrawalsFact extends Fact:
   def playerId: String
   def key: String = playerId
 
 @named("withdrawal_requested")
 final case class WithdrawalRequested(playerId: String, payoutId: String, amountCents: MinorUnits, currency: Currency,
-    terminal: String, occurredAt: Instant) extends CasinoWithdrawalsFact
+    terminal: String, occurredAt: Instant, gateway: Option[String] = None) extends CasinoWithdrawalsFact
 
 @named("withdrawal_approved")
 final case class WithdrawalApproved(playerId: String, payoutId: String, amountCents: MinorUnits, currency: Currency,
-    actorId: String, occurredAt: Instant) extends CasinoWithdrawalsFact
+    actorId: String, occurredAt: Instant, terminal: Option[String] = None, gateway: Option[String] = None)
+    extends CasinoWithdrawalsFact
 
 @named("withdrawal_completed")
 final case class WithdrawalCompleted(playerId: String, payoutId: String, amountCents: MinorUnits, currency: Currency,
-    occurredAt: Instant) extends CasinoWithdrawalsFact
+    occurredAt: Instant, terminal: Option[String] = None, gateway: Option[String] = None,
+    providerReference: Option[String] = None) extends CasinoWithdrawalsFact
 
 @named("withdrawal_cancelled")
 final case class WithdrawalCancelled(playerId: String, payoutId: String, amountCents: MinorUnits, currency: Currency,
-    actor: String, occurredAt: Instant) extends CasinoWithdrawalsFact
+    actor: String, occurredAt: Instant, terminal: Option[String] = None, gateway: Option[String] = None,
+    reason: Option[String] = None) extends CasinoWithdrawalsFact
 
 @named("withdrawal_failed")
 final case class WithdrawalFailed(playerId: String, payoutId: String, amountCents: MinorUnits, currency: Currency,
-    failureReason: String, occurredAt: Instant) extends CasinoWithdrawalsFact
+    failureReason: String, occurredAt: Instant, terminal: Option[String] = None, gateway: Option[String] = None,
+    providerReference: Option[String] = None) extends CasinoWithdrawalsFact
 
 @named("withdrawal_reversed")
 final case class WithdrawalReversed(playerId: String, payoutId: String, amountCents: MinorUnits, currency: Currency,
-    reason: String, occurredAt: Instant) extends CasinoWithdrawalsFact
+    reason: String, occurredAt: Instant, terminal: Option[String] = None, gateway: Option[String] = None,
+    providerReference: Option[String] = None) extends CasinoWithdrawalsFact
 
 object CasinoWithdrawalsFact:
   given JsonValueCodec[CasinoWithdrawalsFact] = FactCodecs.make
