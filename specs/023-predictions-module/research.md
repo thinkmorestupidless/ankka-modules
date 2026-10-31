@@ -165,7 +165,9 @@ schemas by `just schemas`:
 | `exchange.trades` | market | `trade_made` (legs with each player as `Personal`), `position_paid`, `remainder_kept` | `TradeFactsPublisher` over `exchange` |
 | `exchange.prices` | market | `prices_changed` (last price per outcome, the sequence) | `PriceFactsPublisher` over `exchange` |
 
-The player id is `Personal[String]` wherever it appears. `reporting` and the shared `audit` read
+Every topic is keyed by the market (FR-006). The player id is a plain id, as on every topic
+(spec 001 FR-024); a trade's legs and its prices are nested objects, which the contract's field
+types, personal-field scan and compatibility rules learn (decided in implementation). `reporting` and the shared `audit` read
 them by the grant pattern `core` uses.
 
 ## R10. Reads and the price stream
@@ -269,3 +271,11 @@ the original*).
   as R1 planned; T001 passed the contract's suites on 0.14.2, and these services' suites run its
   classes there. ankka-predictions v0.1.0 is not on Maven Central (the release's signing failed), so
   the builds resolve it from `~/.ivy2/local` (`sbt publishLocal` at the tag) until it is.
+- **T005, the facts.** The design keyed `exchange.orders` by player and marked the player id
+  personal; FR-006 keys every predictions topic by the market (ankka-predictions 003), and spec 001
+  FR-024 holds the player id a pseudonym. Trevor chose spec 001's rule, and nested objects for a
+  trade's legs and prices: `FieldType.nested`, `FamilyDef.allFields`, and `Compatibility` reading
+  within a nested object. `modules/predictions/module.json` is written here, ahead of T040, because
+  the contract's brand topics are read from the manifests; spec 001's fixed lists leave it out.
+  goldvibe's values gain the module's four required keys, so the tool's predictions scenario runs.
+- **T006.** The two services' builds exist from T002, so they never enter keys.md's "Not yet built".

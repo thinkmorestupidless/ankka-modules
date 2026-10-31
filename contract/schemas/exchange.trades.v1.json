@@ -1,0 +1,164 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/exchange.trades.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on exchange.trades, produced by exchange (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "legs": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "charge_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "order_id": {
+                "type": "string"
+              },
+              "outcome_id": {
+                "type": "string"
+              },
+              "paid_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "player_id": {
+                "type": "string"
+              },
+              "release_ordinal": {
+                "type": "integer"
+              },
+              "released_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "side": {
+                "type": "string"
+              }
+            },
+            "required": ["player_id", "order_id", "outcome_id", "side", "charge_cents", "paid_cents", "released_cents", "release_ordinal"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "prices": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "outcome_id": {
+                "type": "string"
+              },
+              "price": {
+                "type": "integer"
+              }
+            },
+            "required": ["outcome_id", "price"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "quantity": {
+          "type": "integer"
+        },
+        "sequence": {
+          "type": "integer"
+        },
+        "through": {
+          "type": "string"
+        },
+        "trade_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "trade_made"
+        }
+      },
+      "required": ["type", "market_id", "trade_id", "sequence", "through", "quantity", "prices", "legs", "currency", "occurred_at"],
+      "title": "trade_made",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "outcome_id": {
+          "type": "string"
+        },
+        "paid_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "position_id": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "integer"
+        },
+        "type": {
+          "const": "position_paid"
+        }
+      },
+      "required": ["type", "market_id", "position_id", "player_id", "outcome_id", "quantity", "paid_cents", "currency", "occurred_at"],
+      "title": "position_paid",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "const": "remainder_kept"
+        }
+      },
+      "required": ["type", "market_id", "amount_cents", "currency", "occurred_at"],
+      "title": "remainder_kept",
+      "type": "object"
+    }
+  ],
+  "title": "exchange.trades.v1"
+}

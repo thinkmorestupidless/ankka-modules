@@ -28,7 +28,7 @@ class PersonalFeatures extends GherkinSuite("features/brands/personal-data.featu
   }
 
   When("the brand keeps their name, email address, telephone number, postal address, date of birth, identity documents or network address") { () =>
-    kept = families.flatMap(_.fields).filter((name, _) => PersonalFields.names.contains(name))
+    kept = families.flatMap(_.allFields).filter((name, _) => PersonalFields.names.contains(name.split('.').last))
     assert(kept.map(_._1).toSet.intersect(Set("given_name", "family_name", "telephone", "date_of_birth", "network_address")).size == 5,
       s"the contract's facts carry these fields: ${kept.map(_._1).distinct}")
   }

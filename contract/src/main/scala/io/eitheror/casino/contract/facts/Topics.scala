@@ -6,7 +6,8 @@ import io.eitheror.casino.contract.Layout
 object Topics:
   val brand: Vector[Topic[?]] = Vector(
     MoneyTransactions, PaymentsPayments, CasinoPlayers, CasinoSessions, CasinoRounds, CasinoWithdrawals,
-    CasinoRewards, AffiliatesAttribution, CasinoPush, PlatformAudit, PlatformModules
+    CasinoRewards, AffiliatesAttribution, CasinoPush, PlatformAudit, PlatformModules,
+    MarketsEvents, ExchangeOrders, ExchangeTrades, ExchangePrices
   )
   val shared: Vector[Topic[?]] = Vector(PaymentsMerchants)
   val all: Vector[Topic[?]]    = brand ++ shared

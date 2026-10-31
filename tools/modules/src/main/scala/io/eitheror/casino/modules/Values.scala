@@ -81,10 +81,12 @@ object Values:
 
   /**
    * Keys a module reads that have a value when the brand writes none (contract/keys.md; spec 012
-   * research R7, R12; spec 009 R18): the largest KYC upload, the reporting zone, and the modules the brand runs, which only the local plan
+   * research R7, R12; spec 009 R18): the largest KYC upload, the reporting zone, the predictions module's fee rate and gates (spec 023), and the modules the brand runs, which only the local plan
    * knows and fills in (`Render.plan`).
    */
-  val defaults: Map[String, String] = Map("reporting-zone" -> "UTC", "casino-modules" -> "core", "kyc-max-upload-bytes" -> "5242880")
+  val defaults: Map[String, String] = Map("reporting-zone" -> "UTC", "casino-modules" -> "core", "kyc-max-upload-bytes" -> "5242880",
+    // spec 023 R7: no taker fee, and both gates an order may run
+    "predictions-taker-fee-bps" -> "0", "predictions-gates" -> "play-gate,may-bet")
 
   /** Every non-secret value a module may read: the defaults, the brand's own and the derived. */
   def all(v: Values, project: String, installation: Option[Installation]): Map[String, String] =

@@ -1,0 +1,45 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/exchange.prices.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on exchange.prices, produced by exchange (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "prices": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "outcome_id": {
+                "type": "string"
+              },
+              "price": {
+                "type": "integer"
+              }
+            },
+            "required": ["outcome_id", "price"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "sequence": {
+          "type": "integer"
+        },
+        "type": {
+          "const": "prices_changed"
+        }
+      },
+      "required": ["type", "market_id", "sequence", "prices", "occurred_at"],
+      "title": "prices_changed",
+      "type": "object"
+    }
+  ],
+  "title": "exchange.prices.v1"
+}

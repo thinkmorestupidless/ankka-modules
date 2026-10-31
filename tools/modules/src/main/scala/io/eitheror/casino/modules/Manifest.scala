@@ -148,8 +148,12 @@ object Manifest:
       "attribution", "partner-api", "engagement", "reporting", "support-agent"
     )
     val OptionalBrandServices: Set[String] = Set("partner-api", "support-agent")
-    val BrandTopics: Vector[String] = Layout.BrandTopics.filterNot(_ == "platform.modules")
-    val BrandGrantsMade: Vector[Grant] = Layout.BrandGrantsMade.filterNot(_.target == GrantTarget.Topic("platform.modules", "consume"))
+    // Spec 001's topics and grants: none of a module written after it (spec 023's predictions), and not
+    // spec 021's platform.modules.
+    private val later = Layout.Modules.filter(_.name == "predictions")
+    val BrandTopics: Vector[String] = Layout.BrandTopics.filterNot(t => t == "platform.modules" || later.exists(_.topics.contains(t)))
+    val BrandGrantsMade: Vector[Grant] = Layout.BrandGrantsMade
+      .filterNot(g => g.target == GrantTarget.Topic("platform.modules", "consume") || later.exists(_.grantsMade.contains(g)))
 
   private def brandRules(brand: BrandManifest): Vector[Problem] =
     val names    = brand.services.map(_.name).toSet

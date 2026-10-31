@@ -14,16 +14,16 @@ class PersonalSuite extends munit.FunSuite:
     for
       topic  <- Topics.all
       family <- topic.families
-      field  <- family.fields
+      field  <- family.allFields
     yield (topic.name, family.name, field)
 
   test("every fact field FR-023 names is marked personal: none crosses a topic in the clear (SC-002)") {
-    val clear = everyField.collect { case (t, f, field @ (name, _)) if PersonalFields.names.contains(name) && !personal(field) => s"$t $f $name" }
+    val clear = everyField.collect { case (t, f, field @ (name, _)) if PersonalFields.names.contains(name.split('.').last) && !personal(field) => s"$t $f $name" }
     assertEquals(clear, Vector.empty)
   }
 
   test("nothing FR-024 says is not personal is marked personal") {
-    val marked = everyField.collect { case (t, f, field @ (name, _)) if PersonalFields.notPersonal.contains(name) && personal(field) => s"$t $f $name" }
+    val marked = everyField.collect { case (t, f, field @ (name, _)) if PersonalFields.notPersonal.contains(name.split('.').last) && personal(field) => s"$t $f $name" }
     assertEquals(marked, Vector.empty)
   }
 

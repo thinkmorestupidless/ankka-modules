@@ -17,6 +17,12 @@ trait Fact:
 
 /** A family of a topic: its name, its fields' schema, and a value to prove the codec agrees. */
 final case class FamilyDef[A](name: String, fields: Vector[(String, FieldType[?])], sample: A):
+  /** Every field, a nested object's as `outer.inner`, so a scan for personal names reaches them. */
+  def allFields: Vector[(String, FieldType[?])] =
+    def walk(prefix: String, fs: Vector[(String, FieldType[?])]): Vector[(String, FieldType[?])] =
+      fs.flatMap((n, t) => (s"$prefix$n" -> t) +: walk(s"$prefix$n.", t.nested))
+    walk("", fields)
+
   def schema: Json =
     val required = fields.filterNot(_._2.optional).map(_._1)
     Json.obj(

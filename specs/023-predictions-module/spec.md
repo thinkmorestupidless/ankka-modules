@@ -59,6 +59,12 @@ into a reasoning service, and erasure. A brand entitled to it trades; a brand bo
   `may-bet`? → A: No; `responsible-gambling` applies the limits inside `may-bet`, so a brand's
   gates are two switches, `play-gate` and `may-bet`, and turning `may-bet` off turns the limits
   off with it.
+- Q: (found in implementation) Is the player id a personal field on the exchange topics? → A: No:
+  spec 001's rule holds, `player_id` is a pseudonym and not personal, so the predictions facts
+  carry no personal field.
+- Q: (found in implementation) The contract's fields were flat; how are a trade's legs and its
+  prices shaped? → A: As nested objects: the contract learns nested case classes in its schemas,
+  its personal-field scan and its compatibility rules.
 
 ## Context
 
@@ -251,8 +257,9 @@ The original (`eitheror-platform`) has no prediction markets: everything in this
   sequence, and the depth read MUST carry the sequence it is current to, so that a client that
   misses a message sees the gap and resyncs from the depth read; a stale read MUST say so.
 - **FR-006**: The contract MUST gain the topics `markets.events`, `exchange.orders`,
-  `exchange.trades` and `exchange.prices`, keyed as ankka-predictions specs 002 and 003 state,
-  with the player id a personal field; `reporting` and the shared `audit` read them by the
+  `exchange.trades` and `exchange.prices`, keyed by the market as ankka-predictions specs 002 and
+  003 state, with the player id a plain id as on every topic (spec 001 FR-024: a pseudonym, not
+  personal) and a trade's legs and prices as nested objects; `reporting` and the shared `audit` read them by the
   existing grant pattern.
 - **FR-007**: When the brand's values name a reasoning service, `markets` MUST mirror each
   approved market as a question with one hypothesis per outcome and the market venue named for the
