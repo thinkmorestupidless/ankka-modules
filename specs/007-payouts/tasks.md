@@ -215,7 +215,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - a repeat is 200 and moves nothing.
 - [X] T042 [US5] `OperatorEndpoint`: `POST /{requestId}/confirm-payout` and `/mark-payout-failed` (the
       default reason; `WITHDRAWAL_NOT_AWAITING_PAYOUT`; clears needs review).
-- [ ] T043 [US5] `T/it/PayoutFailureSuite.scala` (SC-002): `FakeGateway` broken at each answer (an
+- [X] T043 [US5] `T/it/PayoutFailureSuite.scala` (SC-002): `FakeGateway` broken at each answer (an
       unreachable gateway, 5xx, an unreadable body, `in_doubt`, `initiation_in_progress`) and at each
       wait. No request reaches awaiting manual payout but by approval on a manual terminal; `rejected`
       returns the money with `provider_rejected`.
