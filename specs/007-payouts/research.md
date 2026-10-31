@@ -537,6 +537,8 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   installation's CA; and the kind setup creates `casino-stubs`' `ankka-local-ca` ConfigMap.
 - **Spec 002 (`wallet`)**: `REQUEST_NOT_PENDING` on a hold's confirm or release could name how the hold
   ended, so a caller tells a repeat from a hold settled the other way (review, 2026-10-31).
+- **Spec 005 (`psp-gateway`)**: a payout's outcome, initiation and status carry the provider's `code` apart from
+  its `message`, so payouts publishes a provider's own codes, upper case too, and never has to tell them from text (review, 2026-10-31).
 - **Spec 013 (`affiliate-programme`)**: which of those kinds commission counts is its rule, not this
   service's.
 
