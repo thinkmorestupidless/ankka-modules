@@ -473,6 +473,60 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
     plan.md divergence, not a copy of the defect.
   - *Units.* The original's player routes answer decimals, but its queue, its operator's read of one
     request and the cancel's `amount` answer minor units. wire.md says which are translated.
+- **2026-10-31, T057's curl runs on kind** (settled with the user). A request needs a terminal, which
+  psp-gateway lists from `merchant`, so quickstart §6 locally is four services and their databases. The
+  request, cancel and approval are driven with `curl` against kind-ankka, where T058 applies `payments`
+  and goldvibe anyway, with tokens from the realms there. That covers the grants, which a local run does not.
+
+## Findings
+
+- **2026-10-31, the recording** (T053): 56 driver scenarios and scenario 251, each on two runs of the
+  original on kind (`tests/port/payouts/README.md` names the stack, the gates the driver could not reach,
+  and what the original showed: the 64-terminal index, the 64-character local part, the queue's projection
+  lag, the limits counted from wallet edges).
+- **2026-10-31, the parity replay** (T054): every recording replays; six divergences are marked, each a
+  row of plan.md's *Divergences*. What the replay found is under *Found during implementation*.
+- **2026-10-31, kind-ankka** (T057's `curl` and T058; never production). `payments` applied with the
+  modules tool, goldvibe's core module on this branch's images. A Cozeni `CRYPTO` terminal under a
+  `goldvibe` sub-brand with its routing tree, and a `COZENI` PSP credential on the sub-brand (the gateway
+  reads the credential, not the integration's properties). Two verified GBP players, each funded by an
+  operator adjustment on the wallet. Driven by `curl` with a player's token from the casino realm and a
+  `brand_finance` operator's from `eitheror`:
+  - the terminal listing: the Cozeni terminal, coins `["USDT"]`;
+  - a request of 5000 held (wallet 200.00 → 150.00); its cancel answered `refundedAmount: 5000` and the
+    wallet went back to 200.00; a second request while one is open: `409
+    WITHDRAWAL_REQUEST_ALREADY_PENDING`; the queue and the player's list showed both within seconds;
+  - an approval with no credential registered: `FAILED`, the gateway's `missing_credentials`, the money
+    released;
+  - with the credential, an approval of 4000 answered `APPROVED` / `INITIATED`; the stub's `COMPLETED`
+    callback reached psp-gateway, which delivered `completed` to `goldvibe/payouts` through the core
+    module's grant at the first attempt; the request `COMPLETED`, the hold confirmed (100.00 → 60.00);
+  - `attribution` recorded `withdrawal-requested` and `withdrawal-completed` (4000 GBP) on the player's
+    record, pending as the player has no affiliate binding.
+  - Not of this spec, found on the way: a deposit from `players` cannot open its cashier on kind. The
+    dev-kind `INGEST_URL` names the host's port 8443, but in a pod the sslip names resolve to the Envoy
+    gateway on 443, and the players JVM does not trust the installation's CA (*Follow-ups*). The
+    `casino-stubs` namespace had no `ankka-local-ca` ConfigMap, so the stub's callbacks failed TLS until
+    it was created from `~/.ankka/local-ca.crt`; and a stub restarted loses its sessions, so a payout
+    initiated before the restart stays `INITIATED` (Cozeni is never polled, as in the original).
+
+## Follow-ups
+
+- **Readers of `casino.players`** (`kyc`, `attribution`, `game-provider`, `responsible-gambling`):
+  rebuilt on the contract with `player_email_changed` before `players` first publishes it (*Elsewhere*).
+- **The frontends** (spec 001's frontend changes):
+  - the player site's withdrawal page sends minor units and a `key`;
+  - it reads `supportedCurrencies`, the refusals' `currency` and the cancel's returned amounts, as it did;
+  - the operator console's queue search takes a player id, not an email (*Found during implementation*);
+  - brand configuration saves limits per currency in minor units, and the turnover terms to the wallet.
+- **Spec 012 (`attribution`)**: derives its four withdrawal kinds from `casino.withdrawals`
+  (`withdrawal_requested`, `withdrawal_completed`, `withdrawal_failed`, `withdrawal_reversed`), one to one
+  by name; `withdrawal_approved` and `withdrawal_cancelled` produce no attribution fact.
+- **A deposit on kind** (specs 008 and 021): the dev-kind `INGEST_URL` must be reachable from a pod
+  (`https://ingest-payments.127.0.0.1.sslip.io`, port 443), and the services' JVMs must trust the
+  installation's CA; and the kind setup creates `casino-stubs`' `ankka-local-ca` ConfigMap.
+- **Spec 013 (`affiliate-programme`)**: which of those kinds commission counts is its rule, not this
+  service's.
 
 ## Design finished
 
