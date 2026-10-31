@@ -211,10 +211,10 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       loaded, `just modules apply goldvibe --installation dev-kind --modules core --allow-unbuilt`; the bucket
       in `ankka services get kyc`; under UKGC a deposit refused through `players` and a launch through
       `game-provider`
-- [ ] T053 Close research: *Findings* with dates; the cross-spec follow-ups (008, 007, 014, 015, 019, the
+- [X] T053 Close research: *Findings* with dates; the cross-spec follow-ups (008, 007, 014, 015, 019, the
       vendor's `objectStorageOrigins`) written; `just features` green; `just kyc-test` and `just kyc-it`
       green
-- [ ] T054 SC-002: the Playwright KYC suites (28–33, 50) against the kind brand, once the frontends'
+- [X] T054 SC-002: the Playwright KYC suites (28–33, 50) against the kind brand, once the frontends'
       base-URL move is made (008's T077 waits on the same move); until then named in research *Findings*
 
 ## Dependencies & Execution Order
