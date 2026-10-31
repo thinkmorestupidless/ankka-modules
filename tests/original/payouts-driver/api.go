@@ -291,6 +291,15 @@ func (s *Session) Held(who string, amount int64, terminal, capture string, extra
 	s.Want(s.Request("request a withdrawal of "+Decimal(amount), who, Ask(amount, terminal, extra), capture, true), http.StatusCreated)
 }
 
+// OnWallet waits until the request captured as `id` is among `who`'s wallet's requests: the original's
+// limits count what the wallet twin's HAS_WITHDRAWAL_REQUEST edges name (WithdrawalLimitChecker), which
+// substrate shows a moment after the hold is answered.
+func (s *Session) OnWallet(who, id string) {
+	s.Observe("the request is on "+label(who)+"'s wallet", "substrate", http.MethodGet,
+		"/twins/wallet/"+s.Value(key(who, "walletTwin"))+"/edges/HAS_WITHDRAWAL_REQUEST", NoAuth,
+		func(r Response) bool { return r.Status == http.StatusOK && strings.Contains(string(r.Raw), s.Value(id)) })
+}
+
 // Requests lists `who`'s requests as the player's account does.
 func (s *Session) Requests(name, who string) Response {
 	return s.Casino(name, http.MethodGet, s.PlayerPath(who)+"/withdrawal-requests", nil, Auth(key(who, "token")))

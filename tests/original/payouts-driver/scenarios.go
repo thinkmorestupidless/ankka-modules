@@ -217,6 +217,7 @@ func requests() []Def {
 				s.Ready("", 200000, false)
 				s.Limits(&weekly, nil)
 				s.Held("", 80000, s.Manual(false), "earlierId", nil)
+				s.OnWallet("", "earlierId")
 				r := s.Want(s.Request("request a withdrawal of 300.00", "", Ask(30000, s.Manual(false), nil), "", false), http.StatusPaymentRequired)
 				s.WantField(r, "error", "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")
 				s.WantField(r, "weeklyLimit", "1000")
@@ -228,6 +229,7 @@ func requests() []Def {
 				s.Ready("", 400000, false)
 				s.Limits(nil, &monthly)
 				s.Held("", 290000, s.Manual(false), "earlierId", nil)
+				s.OnWallet("", "earlierId")
 				r := s.Want(s.Request("request a withdrawal of 200.00", "", Ask(20000, s.Manual(false), nil), "", false), http.StatusPaymentRequired)
 				s.WantField(r, "error", "WITHDRAWAL_BLOCKED_MONTHLY_LIMIT")
 				s.WantField(r, "monthlyLimit", "3000")
@@ -469,7 +471,9 @@ func terminals() []Def {
 				s.Fund("", 10000, visa.Gateway, "VISA")
 				id := s.Terminal("visaTerminal", visa)
 				// marked: the original reads the deposits under the player twin's currency
-				if at := Offered(s.Want(s.Terminals("list the player's terminals", ""), http.StatusOK), id); at < 0 {
+				listed := s.Eventually(func() Response { return s.Terminals("list the player's terminals", "") },
+					func(r Response) bool { return Offered(r, id) >= 0 })
+				if at := Offered(s.Want(listed, http.StatusOK), id); at < 0 {
 					s.t.Errorf("the VISA terminal is not offered")
 				}
 			}},
