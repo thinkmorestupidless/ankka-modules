@@ -151,7 +151,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T028 [US2] Fail first: bind the US2 scenarios of `features/payouts/requests.feature` (identity, the
       weekly and monthly limits, what does not count, turnover, the forfeit and its confirmation, funds
       before forfeit) in `T/features/RequestsFeatures.scala`.
-- [ ] T029 [US2] `S/api/ConfigEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawal-config`: `GET /` and
+- [X] T029 [US2] `S/api/ConfigEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawal-config`: `GET /` and
       `PUT /`, with the admin role check (`brand_admin`, `resource_admin` or `platform_admin`; any other
       role is `forbidden`). Its refusals are 400s naming the field.
 - [ ] T030 [US2] `T/it/GatesSuite.scala` drives the endpoint through each gate in R4's order:
