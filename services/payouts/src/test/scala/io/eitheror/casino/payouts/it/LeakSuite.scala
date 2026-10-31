@@ -115,3 +115,41 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
     // the named gap: the journal holds the earlier events; this flips when ankka 042 lands
     assert(gap.exists(_._2.exists(r => r.contains(hex(m.givenName)) || r.contains(m.givenName))),
       s"the gap tables ${gap.map(_._1).mkString(", ")} no longer hold the names: ankka 042 has landed; flip this")
+
+  test("the provider's own reason text, on a rejection, a failed poll and a reversal: kept only as the request's note, a code everywhere else"):
+    val m      = Markers()
+    val said   = s"Payout to ${m.givenName} ${m.familyName} declined by the bank"
+    val p      = player(m)
+    val reject = ask(p, "t-polled")
+    kit.gateway.initiateFor(reject, FakeGateway.answer(reject, "rejected", None, Some(said)))
+    assertEquals(scene.approve(reject).status, 200)
+    scene.at(reject, Flow.Released)
+    val failed = ask(p, "t-polled")
+    kit.gateway.initiateFor(failed, FakeGateway.answer(failed, "initiated", Some(s"ref-$failed")))
+    assertEquals(scene.approve(failed).status, 200)
+    kit.gateway.statusFor(failed, FakeGateway.answer(failed, "failed", Some(s"ref-$failed"), Some(said)))
+    scene.at(failed, Flow.Released)
+    val reversed = ask(p, "t-polled")
+    kit.gateway.initiateFor(reversed, FakeGateway.answer(reversed, "completed", Some(s"ref-$reversed")))
+    assertEquals(scene.approve(reversed).status, 200)
+    scene.at(reversed, Flow.Completed)
+    val r = kit.json("POST", s"/v1/casino/brands/${kit.slug}/withdrawals/$reversed/outcome",
+      Json.obj("outcome" -> "reversed", "providerReference" -> s"ref-$reversed", "reason" -> said), kit.asGateway)
+    assertEquals(r.status, 200, r.text)
+    scene.at(reversed, Flow.Reversed)
+    kit.eventually("the facts")(Option.when(kit.facts(CasinoWithdrawals).count(_.playerId == p) >= 9)(()))
+    Thread.sleep(1000)
+
+    // The text is the request's note, which erasure blanks; the codes are the fixed ones.
+    Vector(reject, failed, reversed).foreach(id =>
+      assert(scene.state(id).outcomes.exists(_.note.exists(_.reveal == said)), s"$id: ${scene.state(id).outcomes}"))
+    val codes = kit.facts(CasinoWithdrawals).collect {
+      case f: WithdrawalFailed if f.playerId == p   => f.failureReason
+      case f: WithdrawalReversed if f.playerId == p => f.reason
+    }
+    assertEquals(codes.toSet, Set("provider_rejected", "provider_failed", "chargeback"))
+    val (_, rest) = kit.tables.toVector.partition((t, _) => Gap(t))
+    val markers   = Vector(said, m.givenName, m.familyName)
+    assertNowhere(markers, Vector("the log" -> kit.logText))
+    assertNowhere(markers, topics.map(t => s"facts on ${t.name}" -> kit.factTexts(t)))
+    assertNowhere(markers ++ markers.map(hex), rest.map((t, rows) => s"table $t" -> rows))

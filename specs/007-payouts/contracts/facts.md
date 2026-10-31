@@ -4,7 +4,8 @@
 
 Keyed by the player id (the contract's `key = playerId`, research R11). The request id is `payoutId`.
 Each fact's id is `withdrawal-<requestId>-<sequence>`, so a redelivery of the same event is the same
-fact. No family carries a destination, an address, a name or a reason's text.
+fact. No family carries a destination, an address, a name or a reason's text. A provider's reason that is not a
+code (its own message, which can name the holder) is kept only as the request's personal note (`request/ReasonCode`).
 
 | Event of `WithdrawalRequest` | Family | Fields beyond `playerId`, `payoutId`, `amountCents` (the paid amount), `currency`, `occurredAt` |
 |---|---|---|
@@ -13,8 +14,8 @@ fact. No family carries a destination, an address, a name or a reason's text.
 | `Completed` | `withdrawal_completed` | `terminal`, `gateway`, `providerReference` |
 | `Cancelled` | `withdrawal_cancelled` | `actor: player`, `terminal`, `gateway`, `reason` (a code) |
 | `Rejected` | `withdrawal_cancelled` | `actor: operator`, `terminal`, `gateway`, `reason: rejected` |
-| `Failed` | `withdrawal_failed` | `failureReason` (a code: `provider_rejected`, `payout_failed`, `manual_payout_failed`, or the gateway's code), `terminal`, `gateway`, `providerReference` |
-| `Reversed` | `withdrawal_reversed` | `reason` (a code), `terminal`, `gateway`, `providerReference` |
+| `Failed` | `withdrawal_failed` | `failureReason` (a code: `provider_rejected`, `provider_failed`, `payout_failed`, `manual_payout_failed`, or the gateway's or provider's own when it is a code, lower case, digits and `_`), `terminal`, `gateway`, `providerReference` |
+| `Reversed` | `withdrawal_reversed` | `reason` (a code: the provider's when it is one, else `chargeback`), `terminal`, `gateway`, `providerReference` |
 
 Not published: `AwaitingManualPayout`, `PayoutInitiated`, `OutcomeRecorded`, `MarkedNeedsReview`,
 `ReferenceMismatched`, `Erased`.

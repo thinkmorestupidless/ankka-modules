@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.payouts.{PayoutsCodecs, PayoutsRuntime}
-import io.eitheror.casino.payouts.clients.{Held, Initiation, Money, PayoutRequest, PayoutStatus as Status2}
+import io.eitheror.casino.payouts.clients.{Held, Initiation, Money, PayoutRequest, PayoutStatus as GatewayStatus}
 import io.eitheror.casino.payouts.player.PlayerPayouts
 import io.eitheror.casino.payouts.request.*
 
@@ -117,6 +117,8 @@ final case class FlowAnswer(flow: Flow, refusal: Option[String] = None)
 object FlowCodes:
   val AlreadyResolved = "ALREADY_RESOLVED"
   val Busy            = "BUSY"
+  /** An outcome word the workflow does not know; the outcome route refuses one before it gets here. */
+  val Unrecognised    = "UNRECOGNISED_OUTCOME"
 
 /**
  * A workflow per withdrawal request (R3, R9), keyed by the request id. `start` is the atomic claim: a
@@ -219,12 +221,13 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
             releasing(Release("failed", Actor.Operator, reasonCode = Some(o.reasonCode.getOrElse("provider_failed")), source = Source.Outcome))
           else if s.release.exists(_.outcome == "failed") then same
           else no(FlowCodes.AlreadyResolved)
-        case _ =>
+        case "reversed" =>
           if s.step == Flow.Completed then
             val next = s.copy(step = Flow.Reversing, reversal = Some(o))
             effects.updateState(next).transitionTo(WithdrawalWorkflow.reverse.ref).thenReply(FlowAnswer(next))
           else if s.step == Flow.Reversing || s.step == Flow.Reversed then same
           else no(RequestCodes.NotCompleted)
+        case _ => no(FlowCodes.Unrecognised)
 
   /** The operator's settlement of a request awaiting manual payout or marked needs review (FR-016). */
   def confirmPayout(by: ByOperator): Effect[FlowAnswer] =
@@ -337,8 +340,12 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
       case Approval.Decision.Automated(payout) =>
         val answer = gateway.initiate(PayoutRequest(r.requestId, t.id, r.paidAmount, r.currencyOf, payout))
         val at     = now()
-        def recorded(word: String, reason: Option[String] = None, reference: Option[String] = None) =
-          request.call(WithdrawalRequest.record).invoke(Record(OutcomeRecord(Source.Gateway, word, reason, reference, None, at))): Unit
+        def recorded(word: String, reason: Option[String] = None, reference: Option[String] = None, note: Option[Personal[String]] = None) =
+          request.call(WithdrawalRequest.record).invoke(Record(OutcomeRecord(Source.Gateway, word, reason, reference, note, at))): Unit
+        // The provider's reason: a code is recorded as one, its own text only as the request's note.
+        def fromProvider(word: String, reason: String) =
+          val (code, text) = ReasonCode.split(Some(reason))
+          recorded(word, code, note = text)
         def initiated(word: String, reference: Option[String]) =
           request.call(WithdrawalRequest.initiated).invoke(Initiated(word, reference, at)): Unit
           stepEffects.updateState(currentState.copy(step = Flow.Waiting, polls = 0)).thenTransitionTo(WithdrawalWorkflow.waitStep.ref)
@@ -350,7 +357,7 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
           case Initiation.Initiated(reference)        => initiated("initiated", reference)
           case Initiation.AlreadyInitiated(reference) => initiated("already_initiated", reference)
           case Initiation.InDoubt(reason) =>
-            recorded("in_doubt", Some(reason))
+            fromProvider("in_doubt", reason)
             initiated("in_doubt", None)
           case Initiation.InProgress => initiated("initiation_in_progress", None)
           case Initiation.Unreadable(reason) =>
@@ -358,7 +365,7 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
             recorded("unreadable", Some(reason))
             initiated("unreadable", None)
           case Initiation.Rejected(reason) =>
-            recorded("rejected", Some(reason))
+            fromProvider("rejected", reason)
             stepEffects.updateState(currentState.copy(step = Flow.Releasing,
               release = Some(Release("failed", Actor.Operator, reasonCode = Some("provider_rejected"), source = Source.Gateway))))
               .thenTransitionTo(WithdrawalWorkflow.releaseStep.ref)
@@ -386,28 +393,30 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
     if currentState.step != Flow.Waiting then stepEffects.thenPause()
     else
       val at = now()
-      def recorded(word: String, reason: Option[String], reference: Option[String]) =
-        request.call(WithdrawalRequest.record).invoke(Record(OutcomeRecord(Source.Poll, word, reason, reference, None, at))): Unit
+      def recorded(word: String, reason: Option[String], reference: Option[String], note: Option[Personal[String]] = None) =
+        request.call(WithdrawalRequest.record).invoke(Record(OutcomeRecord(Source.Poll, word, reason, reference, note, at))): Unit
       gateway.status(job.requestId) match
-        case Status2.Completed(reference) =>
+        case GatewayStatus.Completed(reference) =>
           recorded("completed", None, reference)
           stepEffects.updateState(polled.copy(step = Flow.Confirming, settle = Some(Settle(Source.Poll, reference))))
             .thenTransitionTo(WithdrawalWorkflow.confirm.ref)
-        case Status2.Failed(reference, reason) =>
-          recorded("failed", Some(reason), reference)
+        case GatewayStatus.Failed(reference, reason) =>
+          val (code, text) = ReasonCode.split(Some(reason))
+          recorded("failed", code, reference, text)
           stepEffects.updateState(polled.copy(step = Flow.Releasing,
-            release = Some(Release("failed", Actor.Operator, reasonCode = Some(reason), source = Source.Poll))))
+            release = Some(Release("failed", Actor.Operator, reasonCode = Some(code.getOrElse("provider_failed")), source = Source.Poll))))
             .thenTransitionTo(WithdrawalWorkflow.releaseStep.ref)
-        case Status2.Reversed(reference, reason) =>
+        case GatewayStatus.Reversed(reference, reason) =>
           // Paid, then charged back: completed first, then reversed, so the wallet's ledger tells both.
-          recorded("reversed", Some(reason), reference)
+          val (code, text) = ReasonCode.split(Some(reason))
+          recorded("reversed", code, reference, text)
           stepEffects.updateState(polled.copy(step = Flow.Confirming,
-            settle = Some(Settle(Source.Poll, reference, reverseAfter = Some(reason)))))
+            settle = Some(Settle(Source.Poll, reference, reverseAfter = Some(code.getOrElse("chargeback"))))))
             .thenTransitionTo(WithdrawalWorkflow.confirm.ref)
-        case Status2.NoRecord =>
+        case GatewayStatus.NoRecord =>
           recorded("no_record", None, None)
           stepEffects.updateState(polled.copy(step = Flow.NeedsReview)).thenTransitionTo(WithdrawalWorkflow.review.ref)
-        case Status2.Pending | Status2.Unavailable(_) =>
+        case GatewayStatus.Pending | GatewayStatus.Unavailable(_) =>
           stepEffects.updateState(polled).thenTransitionTo(WithdrawalWorkflow.waitStep.ref)
 
   /** Marked needs review, and paused for the operator or the provider's outcome (FR-022). */
