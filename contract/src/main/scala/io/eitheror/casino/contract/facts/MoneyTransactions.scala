@@ -37,7 +37,8 @@ sealed trait MoneyTransactionsFact extends MoneyTransactionsMessage:
 @named("deposit_confirmed")
 final case class DepositConfirmed(playerId: String, currency: Currency, transactionId: String, amountCents: MinorUnits,
     paymentReference: String, depositOrdinal: Int, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
-    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    psp: Option[String] = None, scheme: Option[String] = None) extends MoneyTransactionsFact
 
 @named("bet_placed")
 final case class BetPlaced(playerId: String, currency: Currency, transactionId: String, roundId: String, gameId: String,

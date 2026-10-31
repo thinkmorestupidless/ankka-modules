@@ -32,6 +32,15 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
     assertEquals((captured.key, captured.paymentProvider), ("pay-1", "dreamzpay"))
   }
 
+  test("deposit_confirmed carries the deposit's gateway and scheme, none when the wallet recorded none (spec 007)") {
+    val e = DepositConfirmed("pay-1", "d", "t-dep", 10000, "dreamzpay", "t1", "dreamzpay", "card", TurnoverTerms.Default, 10000, 1, 10000, 0, t0, ok)
+    val fact = Facts.moneyTransactions(wallet, e).head.fact.asInstanceOf[f.DepositConfirmed]
+    assertEquals((fact.psp, fact.scheme), (Some("dreamzpay"), Some("card")))
+    val none = DepositConfirmed("pay-2", "d", "t-dep2", 10000, "dreamzpay", "t1", "", "", TurnoverTerms.Default, 10000, 2, 10000, 0, t0, ok)
+    val bare = Facts.moneyTransactions(wallet, none).head.fact.asInstanceOf[f.DepositConfirmed]
+    assertEquals((bare.psp, bare.scheme), (None, None))
+  }
+
   test("a bet that converts a record is bet_placed and one restricted_funds_converted naming the award") {
     val e = BetPlaced("tx-1", "d", bet, "pragmatic", Vector(Leg("rf-1", 500)), Vector(update("rf-1", "grant-1", "CONVERTED_PENDING_CAP")), 0, 0, 0, 9500, 0, t0, ok)
     assertEquals(families(e), Vector("bet_placed", "restricted_funds_converted"))
