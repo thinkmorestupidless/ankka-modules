@@ -428,7 +428,7 @@ ankka-predictions `notes/casino-requests.md` item 9; research.md "Amendment 2026
       left out of its digest while unset, and call the new command from `debit-wallet` when the order
       is set; in `M/api/ServiceEndpoint.scala` and `M/wire/Wire.scala` take `orderId` and `unused` on
       `/splits` only (`INVALID_REQUEST` for `unused` without `orderId`)
-- [ ] T058 In `M/publish/Facts.scala` map the order and the unused part onto `account_debit`; a case in
+- [X] T058 In `M/publish/Facts.scala` map the order and the unused part onto `account_debit`; a case in
       `MappingSuite`
 - [ ] T059 Bind the four scenarios in `T/features/AccountsFeaturesItSuite.scala` (the fold of SC-004
       takes the new split as any split); `just wallet-test`, `just wallet-it`, `just features` 0 findings

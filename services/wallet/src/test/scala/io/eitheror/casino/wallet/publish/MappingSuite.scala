@@ -186,6 +186,17 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
     assertEquals((r.marketId, r.positionId, r.amountCents.value), ("m1", "p1", 300L))
     val merge = MovedFromAccount("mg-1", "d", "t-mg", "pool", "m1", Purpose.Merge, "mg-1", 100, 1000, 0, 0, t0, ok)
     assertEquals(families(merge), Vector("account_credit"))
+    assertEquals((s.orderId, s.releasedCents), (None, None))
+  }
+
+  test("a split charged from a reservation is account_debit naming the order and what it released (FR-008a)") {
+    val leg = MovedToAccount("t1/ada", "d", "t-leg", "pool", "m1", Purpose.Split, "t1/ada", 600, 400, 0, 0, t0, ok, orderId = Some("o1"),
+      unused = 50)
+    assertEquals(families(leg), Vector("account_debit"))
+    val d = Facts.moneyTransactions(wallet, leg).head.fact.asInstanceOf[f.AccountDebit]
+    assertEquals((d.purpose, d.reference, d.amountCents.value, d.orderId, d.releasedCents.map(_.value), d.reservedBalanceAfter.value),
+      ("split", "t1/ada", 600L, Some("o1"), Some(50L), 0L))
+    assertEquals(Facts.audit("goldvibe", wallet, leg).get.fact.asInstanceOf[f.AuditRecord].action, "charge-reservation-to-account")
   }
 
   test("the six ledger events are audited under their keys, and the publisher sets the transaction id as ce-id") {
