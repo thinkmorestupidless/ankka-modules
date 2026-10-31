@@ -256,9 +256,27 @@ func (s *Session) Destination(name, who, first, last, iban, capture string, setu
 	return r
 }
 
-// Destinations lists `who`'s destinations.
-func (s *Session) Destinations(name, who string) Response {
-	return s.Casino(name, http.MethodGet, s.PlayerPath(who)+"/payout-destinations", nil, Auth(key(who, "token")))
+// Destinations lists `who`'s destinations, read again until `until` holds: the original reads them from
+// substrate's projection, which shows a destination a moment after it is saved, changed or deleted.
+func (s *Session) Destinations(name, who string, until func(Response) bool) Response {
+	return s.Eventually(func() Response {
+		return s.Casino(name, http.MethodGet, s.PlayerPath(who)+"/payout-destinations", nil, Auth(key(who, "token")))
+	}, until)
+}
+
+// Saved says whether the listing holds the destination whose uuid is `id` (the original names it
+// `payout-destination/<uuid>`), and whether it is the default.
+func Saved(r Response, id string) (listed, isDefault bool) {
+	list, _ := r.Body["destinations"].([]any)
+	for _, e := range list {
+		if m, ok := e.(map[string]any); ok {
+			if got, _ := m["id"].(string); id != "" && strings.HasSuffix(got, id) {
+				def, _ := m["isDefault"].(bool)
+				return true, def
+			}
+		}
+	}
+	return false, false
 }
 
 // Ask is a request body as the player site sends it: the amount, the currency and the terminal, with
