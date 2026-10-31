@@ -17,7 +17,7 @@ Paths: `S/m` = `services/markets/src`, `S/x` = `services/exchange/src`, packages
 
 ## Phase 1: Setup
 
-- [ ] T001 Prove the contract on ankka 0.14.2 (R1): run the contract's suites with `ankkaVersion` overridden to 0.14.2 in `build.sbt` (a `sys.props` override, default 0.13.0); if they fail, stop and raise the repository bump as its own chore before going on
+- [X] T001 Prove the contract on ankka 0.14.2 (R1): run the contract's suites with `ankkaVersion` overridden to 0.14.2 in `build.sbt` (a `sys.props` override, default 0.13.0); if they fail, stop and raise the repository bump as its own chore before going on
 - [ ] T002 [P] Scaffold `services/markets/` with `ankka init` (ankka 0.14.2): `build.sbt` depending on `casino-contract` (`CASINO_VERSION`) and `com.thinkmorestupidless %% ankka-predictions-markets-components` 0.1.0, `service.json`, `docker-compose.yml`, `README.md`, an empty `Main.scala` registering nothing yet
 - [ ] T003 [P] Scaffold `services/exchange/` likewise, depending on `ankka-predictions-exchange-components` 0.1.0
 - [ ] T004 [P] Add `just` recipes `markets-test`, `markets-it`, `exchange-test`, `exchange-it`, `exchange-perf` in `Justfile`, each through `just service <name> …`
