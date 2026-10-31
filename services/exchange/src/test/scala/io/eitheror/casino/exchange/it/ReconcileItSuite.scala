@@ -31,18 +31,18 @@ class ReconcileItSuite extends munit.FunSuite with LogCapturing:
     val splits = kit.eventually("the split on the exchange's side") {
       Option(tally(m).exchange.keys.filter(_.startsWith("split|")).toVector.sorted).filter(_.size == 2)
     }
-    val trade = splits.head.stripPrefix("split|").takeWhile(_ != '/')
+    val trade = splits.head.stripPrefix("split|").stripSuffix("/ada") // the market's trade id, `<market>/<trade>` (R4)
 
     val eur = Currency.unsafe("EUR"); val at = kit.now(); val z = SignedMinorUnits(0)
     def u(n: Long) = MinorUnits.unsafe(n)
-    kit.publish(f.MoneyTransactions, "ada/EUR", f.ReservationPlaced("ada", eur, s"$m-1", s"$m-a", u(600), z, u(0), u(600), at))
-    kit.publish(f.MoneyTransactions, "bob/EUR", f.ReservationPlaced("bob", eur, s"$m-2", s"$m-b", u(400), z, u(0), u(400), at))
+    kit.publish(f.MoneyTransactions, "ada/EUR", f.ReservationPlaced("ada", eur, s"$m-1", s"$m/$m-a", u(600), z, u(0), u(600), at))
+    kit.publish(f.MoneyTransactions, "bob/EUR", f.ReservationPlaced("bob", eur, s"$m-2", s"$m/$m-b", u(400), z, u(0), u(400), at))
     kit.publish(f.MoneyTransactions, "ada/EUR",
-      f.AccountDebit("ada", eur, s"$m-3", "pool", m, "split", s"$trade/ada", u(600), z, u(0), u(0), at, orderId = Some(s"$m-a")))
+      f.AccountDebit("ada", eur, s"$m-3", "pool", m, "split", s"$trade/ada", u(600), z, u(0), u(0), at, orderId = Some(s"$m/$m-a")))
     kit.publish(f.MoneyTransactions, "bob/EUR",
-      f.AccountDebit("bob", eur, s"$m-4", "pool", m, "split", s"$trade/bob", u(399), z, u(0), u(0), at, orderId = Some(s"$m-b")))
+      f.AccountDebit("bob", eur, s"$m-4", "pool", m, "split", s"$trade/bob", u(399), z, u(0), u(0), at, orderId = Some(s"$m/$m-b")))
     // A fact published twice counts once.
-    kit.publish(f.MoneyTransactions, "ada/EUR", f.ReservationPlaced("ada", eur, s"$m-1", s"$m-a", u(600), z, u(0), u(600), at))
+    kit.publish(f.MoneyTransactions, "ada/EUR", f.ReservationPlaced("ada", eur, s"$m-1", s"$m/$m-a", u(600), z, u(0), u(600), at))
     kit.eventually("the wallet's four moves")(Option.when(tally(m).transactions.size == 4)(()))
 
     kit.components.forKeyValueEntity(EntityId(m)).call(TallyEntity.checkNow).invoke(CheckNow(kit.now(), last = true)): Unit

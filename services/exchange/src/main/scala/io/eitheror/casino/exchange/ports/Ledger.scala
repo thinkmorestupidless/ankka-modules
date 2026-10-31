@@ -12,11 +12,11 @@ import com.thinkmorestupidless.predictions.exchange.components.{LedgerAnswer, Le
 final class Ledger(wallet: () => WalletClient, currency: MarketId => String, retry: (WalletCall, LedgerAnswer) => Unit)
     extends LedgerPort:
   def reserve(market: MarketId, order: OrderId, money: Money): LedgerAnswer =
-    wallet().reserve(money.owner.value, currency(market), order.value, money.amount)
+    wallet().reserve(money.owner.value, currency(market), Ledger.order(market, order), money.amount)
 
   def release(market: MarketId, order: OrderId, ordinal: Int, money: Money): LedgerAnswer =
     if money.amount == 0 then LedgerAnswer.Done
-    else wallet().release(money.owner.value, currency(market), order.value, ordinal, money.amount)
+    else wallet().release(money.owner.value, currency(market), Ledger.order(market, order), ordinal, money.amount)
 
   def settle(market: MarketId, trade: TradeId, through: Through, legs: Vector[Leg]): LedgerAnswer =
     val c = currency(market)
@@ -24,13 +24,15 @@ final class Ledger(wallet: () => WalletClient, currency: MarketId => String, ret
     through match
       case Through.Direct =>
         (legs.find(_.side == Side.Buy), legs.find(_.side == Side.Sell)) match
-          case (Some(buy), Some(sell)) => kept(w, w.settlement(trade.value, c, buy.owner.value, buy.order.value, sell.owner.value, buy.charge, buy.released))
+          case (Some(buy), Some(sell)) =>
+            kept(w, w.settlement(Ledger.trade(market, trade), c, buy.owner.value, Ledger.order(market, buy.order), sell.owner.value, buy.charge,
+              buy.released))
           case _                       => LedgerAnswer.Refused("a direct trade has a buy and a sell")
       case Through.Split =>
         Ledger.each(legs.filter(_.side == Side.Buy))(l =>
-          kept(w, w.split(market.value, Ledger.key(trade, l), c, l.owner.value, l.charge, l.order.value, l.released)))
+          kept(w, w.split(market.value, Ledger.key(market, trade, l), c, l.owner.value, l.charge, Ledger.order(market, l.order), l.released)))
       case Through.Merge =>
-        Ledger.each(legs.filter(_.side == Side.Sell))(l => kept(w, w.merge(market.value, Ledger.key(trade, l), c, l.owner.value, l.paid)))
+        Ledger.each(legs.filter(_.side == Side.Sell))(l => kept(w, w.merge(market.value, Ledger.key(market, trade, l), c, l.owner.value, l.paid)))
 
   def charge(market: MarketId, key: SetKey, money: Money): LedgerAnswer = LedgerAnswer.Refused(Ledger.NotOffered)
   def pay(market: MarketId, key: SetKey, money: Money): LedgerAnswer    = LedgerAnswer.Refused(Ledger.NotOffered)
@@ -50,8 +52,16 @@ final class Ledger(wallet: () => WalletClient, currency: MarketId => String, ret
 object Ledger:
   val NotOffered = "not offered"
 
+  /**
+   * An order's and a trade's ids as the wallet knows them: under their market, since a book numbers
+   * its own (every market has a `t-1`, and a player's order ids are theirs per market), while a
+   * wallet keys a player's reservations and calls across every market.
+   */
+  def order(market: MarketId, order: OrderId): String = s"${market.value}/${order.value}"
+  def trade(market: MarketId, trade: TradeId): String = s"${market.value}/${trade.value}"
+
   /** A leg's own key: the trade and the leg's owner, which never repeat in a trade (spec 005 FR-009). */
-  def key(trade: TradeId, leg: Leg): String = s"${trade.value}/${leg.owner.value}"
+  def key(market: MarketId, trade: TradeId, leg: Leg): String = s"${Ledger.trade(market, trade)}/${leg.owner.value}"
 
   /** Every leg's call in turn, stopping at the first that is not done; a retry repeats the done ones under their keys. */
   def each(legs: Vector[Leg])(call: Leg => LedgerAnswer): LedgerAnswer =

@@ -2,10 +2,11 @@ package io.eitheror.casino.exchange.reconcile
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId, Metadata, Serializer}
 import com.thinkmorestupidless.ankka.sdk.*
-import com.thinkmorestupidless.predictions.exchange.{ExchangeEvent, Side}
+import com.thinkmorestupidless.predictions.exchange.{ExchangeEvent, MarketId, Side}
 import com.thinkmorestupidless.predictions.exchange.components.{ExchangeEntity, PlacementOutcome, PlacementState, PlacementWorkflow}
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.exchange.ExchangeRuntime
+import io.eitheror.casino.exchange.ports.Ledger
 
 import scala.concurrent.duration.*
 import scala.util.Try
@@ -27,15 +28,15 @@ final class ExchangeTally(context: ConsumerContext, timers: () => TimerScheduler
     val market = messageContext.subject
     def index(id: String) = context.componentClient.forKeyValueEntity(EntityId(id)).call(MarketOfEntity.set).invoke(MarketOf(market)): Unit
     event match
-      case e: ExchangeEvent.OrderPlaced => index(s"order/${e.order.value}")
-      case e: ExchangeEvent.TradeMade   => index(s"trade/${e.trade.value}")
+      case e: ExchangeEvent.OrderPlaced => index(s"order/${Ledger.order(MarketId(market), e.order)}")
+      case e: ExchangeEvent.TradeMade   => index(s"trade/${Ledger.trade(MarketId(market), e.trade)}")
       case _: ExchangeEvent.Opened =>
         timers().createRecurringTimer(Checks.daily(market), Checks.dailyEvery, Checks.dailyEvery, Reconcile.daily.deferred(market))
       case _: ExchangeEvent.Final =>
         timers().delete(Checks.daily(market))
         timers().createSingleTimer(Checks.last(market), Checks.afterFinal, Reconcile.last.deferred(market))
       case _ => ()
-    val moves = Tally.moves(event)
+    val moves = Tally.moves(MarketId(market), event)
     if moves.nonEmpty then
       context.componentClient.forKeyValueEntity(EntityId(market)).call(TallyEntity.exchanged)
         .invoke(ExchangeMoves(messageContext.sequenceNumber, moves)): Unit
@@ -54,11 +55,12 @@ final class PlacementTally(context: ConsumerContext) extends Consumer[PlacementS
   def onMessage(state: PlacementState): Effect =
     state.request.foreach { r =>
       val market = r.market.value
-      context.componentClient.forKeyValueEntity(EntityId(s"order/${r.order.order.value}")).call(MarketOfEntity.set).invoke(MarketOf(market)): Unit
+      val order  = Ledger.order(r.market, r.order.order)
+      context.componentClient.forKeyValueEntity(EntityId(s"order/$order")).call(MarketOfEntity.set).invoke(MarketOf(market)): Unit
       state.outcome match
         case PlacementOutcome.Refused(_) if state.reserved && r.order.side == Side.Buy =>
           context.componentClient.forKeyValueEntity(EntityId(market)).call(TallyEntity.refusedPlacement)
-            .invoke(RefusedPlacement(r.order.order.value, r.order.quantity * r.order.price)): Unit
+            .invoke(RefusedPlacement(order, r.order.quantity * r.order.price)): Unit
         case _ => ()
     }
     effects.done()

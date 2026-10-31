@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.core.{Codecs, ComponentId, Serializer}
 import com.thinkmorestupidless.ankka.sdk.*
 import com.thinkmorestupidless.predictions.exchange.*
 import io.eitheror.casino.contract.facts as f
+import io.eitheror.casino.exchange.ports.Ledger
 
 import java.time.Instant
 
@@ -54,20 +55,22 @@ object Tally:
 
   private def k(family: String, key: String) = s"$family|$key"
 
-  /** What an exchange event moved, by family and key, as the ledger port moves it (R4). */
-  def moves(event: ExchangeEvent): Map[String, Long] =
+  /** What an exchange event moved, by family and key, as the ledger port moves it (R4): under the market's ids. */
+  def moves(market: MarketId, event: ExchangeEvent): Map[String, Long] =
+    def order(o: OrderId) = Ledger.order(market, o)
     val pairs: Vector[(String, Long)] = event match
-      case e: ExchangeEvent.OrderPlaced if e.side == Side.Buy && e.cost > 0 => Vector(k("reservation", e.order.value) -> e.cost)
-      case e: ExchangeEvent.OrderCancelled if e.released > 0                => Vector(k("release", e.order.value) -> e.released)
-      case e: ExchangeEvent.OrderExpired if e.released > 0                  => Vector(k("release", e.order.value) -> e.released)
+      case e: ExchangeEvent.OrderPlaced if e.side == Side.Buy && e.cost > 0 => Vector(k("reservation", order(e.order)) -> e.cost)
+      case e: ExchangeEvent.OrderCancelled if e.released > 0                => Vector(k("release", order(e.order)) -> e.released)
+      case e: ExchangeEvent.OrderExpired if e.released > 0                  => Vector(k("release", order(e.order)) -> e.released)
       case e: ExchangeEvent.TradeMade =>
-        val released = e.legs.filter(_.released > 0).map(l => k("release", l.order.value) -> l.released)
+        val trade    = Ledger.trade(market, e.trade)
+        val released = e.legs.filter(_.released > 0).map(l => k("release", order(l.order)) -> l.released)
         val moved = e.through match
           case Through.Direct =>
-            e.legs.filter(_.side == Side.Buy).map(l => k("settlement", e.trade.value) -> l.charge) ++
-              e.legs.filter(_.side == Side.Sell).map(l => k("settlement_credit", e.trade.value) -> l.paid)
-          case Through.Split => e.legs.filter(_.side == Side.Buy).map(l => k("split", s"${e.trade.value}/${l.owner.value}") -> l.charge)
-          case Through.Merge => e.legs.filter(_.side == Side.Sell).map(l => k("merge", s"${e.trade.value}/${l.owner.value}") -> l.paid)
+            e.legs.filter(_.side == Side.Buy).map(l => k("settlement", trade) -> l.charge) ++
+              e.legs.filter(_.side == Side.Sell).map(l => k("settlement_credit", trade) -> l.paid)
+          case Through.Split => e.legs.filter(_.side == Side.Buy).map(l => k("split", Ledger.key(market, e.trade, l)) -> l.charge)
+          case Through.Merge => e.legs.filter(_.side == Side.Sell).map(l => k("merge", Ledger.key(market, e.trade, l)) -> l.paid)
         released ++ moved
       case e: ExchangeEvent.PositionPaid if e.paid > 0 => Vector(k("payment", e.key.value) -> e.paid)
       case _                                           => Vector.empty

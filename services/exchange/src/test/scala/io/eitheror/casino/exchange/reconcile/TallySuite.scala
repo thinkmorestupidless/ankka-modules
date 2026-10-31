@@ -17,29 +17,31 @@ class TallySuite extends munit.FunSuite:
   private def leg(owner: String, order: String, side: Side, charge: Long = 0, paid: Long = 0, released: Long = 0) =
     Leg(OwnerId(owner), OrderId(order), OutcomeId("yes"), side, charge, paid, released, if released > 0 then 1 else 0)
 
-  test("the exchange's events move reservations, releases, trades by their path and payments") {
-    assertEquals(Tally.moves(ExchangeEvent.OrderPlaced(OrderId("o1"), OwnerId("ada"), OutcomeId("yes"), Side.Buy, 60, 10,
-      OrderDuration.RestUntilClose, 600, 1, at)), Map("reservation|o1" -> 600L))
-    assertEquals(Tally.moves(ExchangeEvent.OrderPlaced(OrderId("o2"), OwnerId("ada"), OutcomeId("yes"), Side.Sell, 60, 10,
+  private val m1 = MarketId("m1")
+
+  test("the exchange's events move reservations, releases, trades by their path and payments, under the market's ids") {
+    assertEquals(Tally.moves(m1, ExchangeEvent.OrderPlaced(OrderId("o1"), OwnerId("ada"), OutcomeId("yes"), Side.Buy, 60, 10,
+      OrderDuration.RestUntilClose, 600, 1, at)), Map("reservation|m1/o1" -> 600L))
+    assertEquals(Tally.moves(m1, ExchangeEvent.OrderPlaced(OrderId("o2"), OwnerId("ada"), OutcomeId("yes"), Side.Sell, 60, 10,
       OrderDuration.RestUntilClose, 0, 2, at)), Map.empty[String, Long])
-    assertEquals(Tally.moves(ExchangeEvent.OrderCancelled(OrderId("o1"), OwnerId("ada"), 100, 2, at)), Map("release|o1" -> 100L))
+    assertEquals(Tally.moves(m1, ExchangeEvent.OrderCancelled(OrderId("o1"), OwnerId("ada"), 100, 2, at)), Map("release|m1/o1" -> 100L))
     val direct = ExchangeEvent.TradeMade(TradeId("t1"), 1, Through.Direct, 10, SortedMap.empty,
       Vector(leg("ada", "o1", Side.Buy, charge = 500, released = 100), leg("bob", "o2", Side.Sell, paid = 500)), at)
-    assertEquals(Tally.moves(direct), Map("release|o1" -> 100L, "settlement|t1" -> 500L, "settlement_credit|t1" -> 500L))
+    assertEquals(Tally.moves(m1, direct), Map("release|m1/o1" -> 100L, "settlement|m1/t1" -> 500L, "settlement_credit|m1/t1" -> 500L))
     val split = ExchangeEvent.TradeMade(TradeId("t2"), 2, Through.Split, 10, SortedMap.empty,
       Vector(leg("ada", "o1", Side.Buy, charge = 600), leg("bob", "o3", Side.Buy, charge = 400)), at)
-    assertEquals(Tally.moves(split), Map("split|t2/ada" -> 600L, "split|t2/bob" -> 400L))
-    assertEquals(Tally.moves(ExchangeEvent.PositionPaid(PositionKey("ada/yes"), OwnerId("ada"), OutcomeId("yes"), 10, 1000, at)),
+    assertEquals(Tally.moves(m1, split), Map("split|m1/t2/ada" -> 600L, "split|m1/t2/bob" -> 400L))
+    assertEquals(Tally.moves(m1, ExchangeEvent.PositionPaid(PositionKey("ada/yes"), OwnerId("ada"), OutcomeId("yes"), 10, 1000, at)),
       Map("payment|ada/yes" -> 1000L))
   }
 
   test("the wallet's facts move the same keys, found by the order, the trade or the pool's market") {
-    val placed = f.ReservationPlaced("ada", eur, "tx1", "o1", u(600), zero, u(0), u(600), at)
-    assertEquals(Tally.moves(placed), Some(Left("order/o1") -> Map("reservation|o1" -> 600L)))
-    val debit = f.SettlementDebit("ada", eur, "tx2", "t1", "o1", u(500), u(100), "bob", zero, u(0), u(0), at)
-    assertEquals(Tally.moves(debit), Some(Left("trade/t1") -> Map("settlement|t1" -> 500L, "release|o1" -> 100L)))
-    val split = f.AccountDebit("bob", eur, "tx3", "pool", "m1", "split", "t2/bob", u(400), zero, u(0), u(0), at, orderId = Some("o3"))
-    assertEquals(Tally.moves(split), Some(Right("m1") -> Map("split|t2/bob" -> 400L)))
+    val placed = f.ReservationPlaced("ada", eur, "tx1", "m1/o1", u(600), zero, u(0), u(600), at)
+    assertEquals(Tally.moves(placed), Some(Left("order/m1/o1") -> Map("reservation|m1/o1" -> 600L)))
+    val debit = f.SettlementDebit("ada", eur, "tx2", "m1/t1", "m1/o1", u(500), u(100), "bob", zero, u(0), u(0), at)
+    assertEquals(Tally.moves(debit), Some(Left("trade/m1/t1") -> Map("settlement|m1/t1" -> 500L, "release|m1/o1" -> 100L)))
+    val split = f.AccountDebit("bob", eur, "tx3", "pool", "m1", "split", "m1/t2/bob", u(400), zero, u(0), u(0), at, orderId = Some("m1/o3"))
+    assertEquals(Tally.moves(split), Some(Right("m1") -> Map("split|m1/t2/bob" -> 400L)))
     val paid = f.ResolutionPayment("ada", eur, "tx4", "m1", "ada/yes", u(1000), zero, u(0), u(0), at)
     assertEquals(Tally.moves(paid), Some(Right("m1") -> Map("payment|ada/yes" -> 1000L)))
     val clearing = f.AccountDebit("bob", eur, "tx5", "clearing", "c1", "clearing", "k", u(1), zero, u(0), u(0), at)

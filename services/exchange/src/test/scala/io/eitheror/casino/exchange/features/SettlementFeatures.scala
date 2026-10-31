@@ -20,7 +20,7 @@ class SettlementFeatures extends ExchangeFeatures("settlement.feature"):
       "the taker fee is ankka-predictions spec 007 (v0.2.0); this module builds on v0.1.0 with the rate 0 (research R8)"
   )
 
-  /** The trades the scenario named, by the feature's name: the wallet's key for each. */
+  /** The trades the scenario named, by the feature's name: the wallet's key for each, under its market (R4). */
   private var trades = Map.empty[String, String]
 
   override def beforeEach(context: BeforeEach): Unit =
@@ -30,7 +30,7 @@ class SettlementFeatures extends ExchangeFeatures("settlement.feature"):
   Then("trade {string} is settled through the wallet from order {string} of {string} to {string} for {string}") {
     (t: String, o: String, buyer: String, seller: String, amount: String) =>
       val (key, body) = kit.eventually(s"the settlement of $o") {
-        kit.wallet.calls("settlements").find(_._2.get("orderId").asText == o)
+        kit.wallet.calls("settlements").find(_._2.get("orderId").asText.endsWith(s"/$o"))
       }
       assertEquals((body.get("buyer").asText, body.get("seller").asText, body.get("amount").asLong), (buyer, seller, amount.toLong))
       trades += t -> key
@@ -73,21 +73,21 @@ class SettlementFeatures extends ExchangeFeatures("settlement.feature"):
   }
 
   Given("the wallet refuses the settlement of trade {string}") { (t: String) =>
-    trades += t -> s"$t-$run"
+    trades += t -> s"${id("m1")}/$t-$run"
     kit.wallet.script.put("settlements", List(404 -> """{"error":"WALLET_NOT_FOUND"}"""))
   }
 
   When("trade {string} is sent for settlement") { (t: String) =>
-    val key = trades(t)
+    val key = s"$t-$run"
     kit.wallet.real.put("ada", 1000L); kit.wallet.real.put("bob", 0L)
-    kit.wallet.reservations.put(s"o-$key", "ada" -> 600L)
+    kit.wallet.reservations.put(s"${id("m1")}/o-$key", "ada" -> 600L)
     val legs = Vector(Leg(OwnerId("ada"), OrderId(s"o-$key"), OutcomeId("yes"), Side.Buy, 600, 0, 0, 0),
       Leg(OwnerId("bob"), OrderId(s"s-$key"), OutcomeId("yes"), Side.Sell, 0, 600, 0, 0))
     last = null
     assertEquals(kit.exchange.ledger.settle(MarketId(id("m1")), TradeId(key), Through.Direct, legs), LedgerAnswer.Refused("WALLET_NOT_FOUND"))
   }
 
-  private def retry(t: String) = kit.components.forWorkflow(EntityId(trades(t))).call(SettlementRetry.get).invoke()
+  private def retry(t: String) = kit.components.forWorkflow(EntityId(trades(t).replace('/', '~'))).call(SettlementRetry.get).invoke()
 
   Then("the refusal is recorded against trade {string}") { (t: String) =>
     assertEquals(retry(t).lastRefusal, Some("WALLET_NOT_FOUND"))

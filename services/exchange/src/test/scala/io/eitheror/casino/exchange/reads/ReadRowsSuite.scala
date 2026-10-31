@@ -19,11 +19,16 @@ class ReadRowsSuite extends munit.FunSuite with LogCapturing:
   override def beforeEach(context: BeforeEach): Unit = kit.reset()
 
   private def views = kit.testKit.service.viewClient
-  private def orders(p: String) = views.forView(OrderRows).ask(OrderRows.byOwner, "owner" -> p).collect { case o: OrderRow.Order => o }
-  private def legs(p: String)   = views.forView(TradeRows).ask(TradeRows.byOwner, "owner" -> p).collect { case l: TradeRow.Leg => l }
+  // The kit is shared, and other suites' players have the same names: rows are read in this test's market only.
+  private var market = ""
+  private def orders(p: String) =
+    views.forView(OrderRows).ask(OrderRows.byOwner, "owner" -> p).collect { case o: OrderRow.Order if o.market == market => o }
+  private def legs(p: String) =
+    views.forView(TradeRows).ask(TradeRows.byOwner, "owner" -> p).collect { case l: TradeRow.Leg if l.market == market => l }
 
   test("each owner's orders with their fills and ends, each owner's legs of a trade, and the sequence seen") {
     val m = s"rows-${UUID.randomUUID().toString.take(8)}"
+    market = m
     assertEquals(kit.open(m, Vector("yes", "no"), "EUR").status, 200)
     Seq("ada", "bob").foreach(kit.wallet.real.put(_, 10000L))
     assertEquals(kit.place("ada", m, s"$m-a1", "buy", "yes", 10, 60).status, 200)

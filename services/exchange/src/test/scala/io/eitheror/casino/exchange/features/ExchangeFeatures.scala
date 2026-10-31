@@ -5,6 +5,7 @@ import com.thinkmorestupidless.predictions.exchange.{OrderId, OrderState, Outcom
 import io.eitheror.casino.exchange.it.{Kit, Reply, SharedKit}
 
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 import scala.concurrent.duration.*
 
 /**
@@ -134,7 +135,9 @@ class OrdersFeatures extends ExchangeFeatures("orders.feature"):
   }
 
   Then("a reservation of {string} is placed for order {string} on the wallet of {string}") { (n: String, o: String, p: String) =>
-    assertEquals(Option(kit.wallet.reservations.get(o)), Some(p -> n.toLong))
+    // The wallet knows an order under its market (research R4); a scenario's orders are in one market.
+    val held = kit.wallet.reservations.asScala.collect { case (k, v) if k.endsWith(s"/$o") => v }.toVector
+    assertEquals(held, Vector(p -> n.toLong))
   }
 
   Given("the play gate refuses {string}") { (p: String) => kit.gates.kyc.put(p, "pending"): Unit }

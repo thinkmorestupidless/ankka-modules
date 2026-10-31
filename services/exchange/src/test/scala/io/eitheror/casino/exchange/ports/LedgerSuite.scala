@@ -21,19 +21,19 @@ class LedgerSuite extends munit.FunSuite:
   private def leg(owner: String, order: String, side: Side, charge: Long = 0, paid: Long = 0, released: Long = 0) =
     Leg(OwnerId(owner), OrderId(order), OutcomeId("yes"), side, charge, paid, released, if released > 0 then 1 else 0)
 
-  test("a reservation is keyed by the order, in the market's currency") {
+  test("a reservation is keyed by the market and the order, in the market's currency") {
     val (l, s) = ledger()
     assertEquals(l.reserve(m, OrderId("o1"), Money(600, ada)), LedgerAnswer.Done)
     val (svc, method, path, body) = s.calls.head
     assertEquals((svc, method, path), ("wallet", "POST", s"/v1/casino/brands/$brand/wallets/ada/EUR/reservations"))
-    assert(body.contains("\"key\":\"o1\"") && body.contains("\"amount\":600"), body)
+    assert(body.contains("\"key\":\"m1/o1\"") && body.contains("\"amount\":600"), body)
   }
 
   test("a release names the order and its ordinal; nothing to release makes no call") {
     val (l, s) = ledger()
     assertEquals(l.release(m, OrderId("o1"), 2, Money(100, ada)), LedgerAnswer.Done)
     assert(s.calls.head._3.endsWith("/wallets/ada/EUR/reservations/release"))
-    assert(s.calls.head._4.contains("\"orderId\":\"o1\"") && s.calls.head._4.contains("\"sequence\":2"), s.calls.head._4)
+    assert(s.calls.head._4.contains("\"orderId\":\"m1/o1\"") && s.calls.head._4.contains("\"sequence\":2"), s.calls.head._4)
     assertEquals(l.release(m, OrderId("o1"), 3, Money(0, ada)), LedgerAnswer.Done)
     assertEquals(s.calls.size, 1)
   }
@@ -61,7 +61,7 @@ class LedgerSuite extends munit.FunSuite:
     assertEquals(l.settle(m, TradeId("t1"), Through.Direct, legs), LedgerAnswer.Done)
     assertEquals(s.calls.map(_._3), Vector(s"/v1/casino/brands/$brand/settlements"))
     val body = s.calls.head._4
-    Seq("\"tradeId\":\"t1\"", "\"buyer\":\"ada\"", "\"orderId\":\"o1\"", "\"seller\":\"bob\"", "\"amount\":500", "\"unused\":100", "\"currency\":\"EUR\"")
+    Seq("\"tradeId\":\"m1/t1\"", "\"buyer\":\"ada\"", "\"orderId\":\"m1/o1\"", "\"seller\":\"bob\"", "\"amount\":500", "\"unused\":100", "\"currency\":\"EUR\"")
       .foreach(f => assert(body.contains(f), s"$f in $body"))
   }
 
@@ -70,8 +70,8 @@ class LedgerSuite extends munit.FunSuite:
     val legs = Vector(leg("ada", "o1", Side.Buy, charge = 600), leg("bob", "o2", Side.Buy, charge = 400, released = 50))
     assertEquals(l.settle(m, TradeId("t2"), Through.Split, legs), LedgerAnswer.Done)
     assertEquals(s.calls.map(_._3).distinct, Vector(s"/v1/casino/brands/$brand/accounts/pool/m1/splits"))
-    assert(s.calls(0)._4.contains("\"key\":\"t2/ada\"") && s.calls(0)._4.contains("\"orderId\":\"o1\""), s.calls(0)._4)
-    assert(s.calls(1)._4.contains("\"key\":\"t2/bob\"") && s.calls(1)._4.contains("\"unused\":50"), s.calls(1)._4)
+    assert(s.calls(0)._4.contains("\"key\":\"m1/t2/ada\"") && s.calls(0)._4.contains("\"orderId\":\"m1/o1\""), s.calls(0)._4)
+    assert(s.calls(1)._4.contains("\"key\":\"m1/t2/bob\"") && s.calls(1)._4.contains("\"unused\":50"), s.calls(1)._4)
   }
 
   test("a merge trade pays each sell leg from the pool") {
@@ -79,7 +79,7 @@ class LedgerSuite extends munit.FunSuite:
     val legs = Vector(leg("ada", "o1", Side.Sell, paid = 600), leg("bob", "o2", Side.Sell, paid = 400))
     assertEquals(l.settle(m, TradeId("t3"), Through.Merge, legs), LedgerAnswer.Done)
     assertEquals(s.calls.map(_._3).distinct, Vector(s"/v1/casino/brands/$brand/accounts/pool/m1/merges"))
-    assert(s.calls(1)._4.contains("\"amount\":400") && s.calls(1)._4.contains("\"key\":\"t3/bob\""), s.calls(1)._4)
+    assert(s.calls(1)._4.contains("\"amount\":400") && s.calls(1)._4.contains("\"key\":\"m1/t3/bob\""), s.calls(1)._4)
   }
 
   test("a leg the wallet refuses stops the trade at it, is handed to the retry, and is answered as refused") {
@@ -89,7 +89,7 @@ class LedgerSuite extends munit.FunSuite:
     assertEquals(s.calls.size, 1)
     import scala.jdk.CollectionConverters.*
     val handed = retried.asScala.toVector
-    assertEquals(handed.map(_._1.key), Vector("t4/ada"))
+    assertEquals(handed.map(_._1.key), Vector("m1/t4/ada"))
     assertEquals(handed.map(_._2), Vector(LedgerAnswer.Refused("RESERVATION_SHORT")))
     assertEquals(handed.head._1.path, s.calls.head._3)
   }
@@ -109,4 +109,15 @@ class LedgerSuite extends munit.FunSuite:
     assert(s.calls.head._4.contains("\"positionId\":\"ada/yes\""), s.calls.head._4)
     assertEquals(l.payout(m, PositionKey.of(ada, OutcomeId("no")), Money(0, ada)), LedgerAnswer.Done)
     assertEquals(s.calls.size, 1)
+  }
+
+  test("two markets' orders and trades under the same ids reach the wallet under different keys") {
+    val (l, s) = ledger()
+    val m2 = MarketId("m2")
+    Seq(m, m2).foreach { x =>
+      l.reserve(x, OrderId("o-1"), Money(600, ada)): Unit
+      l.settle(x, TradeId("t-1"), Through.Split, Vector(leg("ada", "o-1", Side.Buy, charge = 600))): Unit
+    }
+    val keys = s.calls.map(_._4).map(b => "\"(key|orderId)\":\"([^\"]*)\"".r.findAllMatchIn(b).map(_.group(2)).toVector)
+    assertEquals(keys, Vector(Vector("m1/o-1"), Vector("m1/t-1/ada", "m1/o-1"), Vector("m2/o-1"), Vector("m2/t-1/ada", "m2/o-1")))
   }
