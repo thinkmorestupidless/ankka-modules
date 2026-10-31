@@ -13,8 +13,8 @@ import io.eitheror.casino.kyc.record.{CountDeposit, KycRecord}
  * when the deposit alone, in the KYC currency, exceeds the deposit threshold. A deposit for a player with
  * no record starts one.
  */
-final class DepositsConsumer(client: ComponentClient) extends Consumer[Option[MoneyTransactionsFact], Nothing]:
-  def onMessage(fact: Option[MoneyTransactionsFact]): Effect = fact match
+final class DepositsConsumer(client: ComponentClient) extends Consumer[Option[MoneyTransactionsMessage], Nothing]:
+  def onMessage(fact: Option[MoneyTransactionsMessage]): Effect = fact match
     case Some(f: DepositConfirmed) =>
       val policy = client.forEventSourcedEntity(EntityId(KycRuntime.settings.brand)).call(PolicyEntity.get).invoke()
       client.forEventSourcedEntity(EntityId(f.playerId)).call(KycRecord.countDeposit).invoke(DepositsConsumer.command(f, policy)): Unit
@@ -24,7 +24,7 @@ final class DepositsConsumer(client: ComponentClient) extends Consumer[Option[Mo
       Read.unreadable(MoneyTransactions.name, messageContext.subject)
       effects.ignore()
 
-object DepositsConsumer extends Consumer.Companion[DepositsConsumer, Option[MoneyTransactionsFact], Nothing](
+object DepositsConsumer extends Consumer.Companion[DepositsConsumer, Option[MoneyTransactionsMessage], Nothing](
       ComponentId("kyc-deposits-consumer"), Read.from(MoneyTransactions)):
   def create(ctx: ConsumerContext) = new DepositsConsumer(ctx.componentClient)
 
