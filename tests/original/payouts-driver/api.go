@@ -230,7 +230,12 @@ func (s *Session) Destination(name, who, first, last, iban, capture string, setu
 		r = s.Casino(name, http.MethodPost, path, body, Auth(key(who, "token")))
 	}
 	if r.Status == http.StatusCreated && capture != "" {
-		s.Grab(capture, "$.id", r.Str("id"))
+		// The original answers `payout-destination/<uuid>` and routes on the uuid alone: its
+		// `/{id}/set-default` and `/{id}` take one path segment and keep only what follows the last
+		// slash (PayoutDestinationAccess.entityId), so the whole id there misses the route and is
+		// answered 401 by the next one. Its other routes take either form.
+		id := r.Str("id")
+		s.Grab(capture, "$.id", id[strings.LastIndex(id, "/")+1:])
 	}
 	return r
 }
