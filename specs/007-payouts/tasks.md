@@ -240,7 +240,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T049 `S/api/ServiceEndpoint.scala` at `/v1/casino/brands/<slug>/payouts`:
       `POST /erasure/players/{playerId}`, for `players` alone, erases `PlayerPayouts` and each of the player's
       requests. It is idempotent.
-- [ ] T050 `T/it/ErasureSuite.scala` (SC-006): after erasure, every destination, address, account number,
+- [X] T050 `T/it/ErasureSuite.scala` (SC-006): after erasure, every destination, address, account number,
       name, email and reason is unreadable on the request, the player's record and the queue, while every
       amount, status and time stays readable; the facts never carried them.
 - [ ] T051 `T/it/LeakSuite.scala`: no `Personal` value in any log line, span, fact, audit record, view row
