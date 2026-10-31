@@ -1,0 +1,823 @@
+{
+  "scenario": "TestScenario29_KYCGates_DepositGateRefusesUnverifiedPendingRejected",
+  "recorded_at": "2026-10-31T06:06:07.862725Z",
+  "original": {
+    "brand": "",
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "realm",
+  "steps": [
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "24d07234-52c0-4037-b8e5-422b5c9bba6e",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/casino/backoffice/spinvibe/kyc-policy",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/kyc-policy",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "autoSuspendOnWindowExpiry": true,
+          "depositGate": "NONE",
+          "kycWindowDays": 30,
+          "licenceProfile": "CURACAO",
+          "playGate": "NONE",
+          "requiredDocTypes": [
+            "identity"
+          ]
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/backoffice/spinvibe/kyc-policy/profile",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/kyc-policy/profile",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "profile": "ukgc"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "autoSuspendOnWindowExpiry": true,
+          "depositGate": "KYC_APPROVED",
+          "kycWindowDays": 3,
+          "licenceProfile": "UKGC",
+          "playGate": "KYC_APPROVED",
+          "requiredDocTypes": [
+            "identity",
+            "proof_of_address"
+          ],
+          "sofThresholdMinorUnits": 200000
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "e2e-88cb0c91@example.com",
+          "firstName": "E2E",
+          "language": "en",
+          "lastName": "Player88cb0c91",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "f41c915a-a672-3626-a450-fe5039d2257c",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c0": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "805ea413-f0bc-44db-8224-3242060f51e4",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=e2e-88cb0c91%40example.com\u0026exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "attributes": {
+              "eitheror_twin_id": [
+                "casino.player/f41c915a-a672-3626-a450-fe5039d2257c"
+              ]
+            },
+            "createdTimestamp": 1793426767928,
+            "disableableCredentialTypes": [],
+            "email": "e2e-88cb0c91@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "a7dd8c50-059e-4841-a38f-e228d4482bdb",
+            "lastName": "Player88cb0c91",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-88cb0c91@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c1": "$[0].email",
+        "c2": "$[0].id"
+      },
+      "vary": {
+        "$[0].attributes": "differs between two runs of the original",
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].lastName": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/a7dd8c50-059e-4841-a38f-e228d4482bdb",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/a7dd8c50-059e-4841-a38f-e228d4482bdb",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/f41c915a-a672-3626-a450-fe5039d2257c"
+            ]
+          },
+          "createdTimestamp": 1793426767928,
+          "disableableCredentialTypes": [],
+          "email": "e2e-88cb0c91@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "E2E",
+          "id": "a7dd8c50-059e-4841-a38f-e228d4482bdb",
+          "lastName": "Player88cb0c91",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "e2e-88cb0c91@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.lastName": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c1}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "f41c915a-a672-3626-a450-fe5039d2257c",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /internal/v1/casino/spinvibe/notify/deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/casino/spinvibe/notify/deposit",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10",
+          "currency": "EUR",
+          "playerId": "{c0}",
+          "transactionId": "e2e-rk-c861da63-2d4e-4f0a-96dc-4e7263efbecb"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": "DEPOSIT_BLOCKED_KYC",
+          "kycStatus": "unverified",
+          "message": "Please verify your identity before depositing"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "e2e-28ac921f@example.com",
+          "firstName": "E2E",
+          "language": "en",
+          "lastName": "Player28ac921f",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "e5f5d5c4-0a4c-3ee0-bd34-41015803dc55",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c3": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "7fe23699-7ffc-4f77-9d30-73c271f5f6c7",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=e2e-28ac921f%40example.com\u0026exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "createdTimestamp": 1793426768563,
+            "disableableCredentialTypes": [],
+            "email": "e2e-28ac921f@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "b75a4568-b3d9-4214-93d6-ba82f111f6b8",
+            "lastName": "Player28ac921f",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-28ac921f@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c4": "$[0].email",
+        "c5": "$[0].id"
+      },
+      "vary": {
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].lastName": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/b75a4568-b3d9-4214-93d6-ba82f111f6b8",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c5}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/b75a4568-b3d9-4214-93d6-ba82f111f6b8",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c5}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/e5f5d5c4-0a4c-3ee0-bd34-41015803dc55"
+            ]
+          },
+          "createdTimestamp": 1793426768563,
+          "disableableCredentialTypes": [],
+          "email": "e2e-28ac921f@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "E2E",
+          "id": "b75a4568-b3d9-4214-93d6-ba82f111f6b8",
+          "lastName": "Player28ac921f",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "e2e-28ac921f@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.lastName": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c4}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "e5f5d5c4-0a4c-3ee0-bd34-41015803dc55",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /v1/casino/spinvibe/players/e5f5d5c4-0a4c-3ee0-bd34-41015803dc55/kyc/status",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/casino/spinvibe/players/{c3}/kyc/status",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "pending"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "kycStatus": "pending"
+        }
+      }
+    },
+    {
+      "name": "POST /internal/v1/casino/spinvibe/notify/deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/casino/spinvibe/notify/deposit",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10",
+          "currency": "EUR",
+          "playerId": "{c3}",
+          "transactionId": "e2e-rk-fe10591a-cb50-4f2d-a770-fef4c668d186"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": "DEPOSIT_BLOCKED_KYC",
+          "kycStatus": "pending",
+          "message": "Your identity documents are under review"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "e2e-0b78216b@example.com",
+          "firstName": "E2E",
+          "language": "en",
+          "lastName": "Player0b78216b",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "ceeb8549-a3e2-3de0-8d7f-f333a537e9d5",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c6": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "14735bce-c12e-4630-aaf5-e38b8586b6f5",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=e2e-0b78216b%40example.com\u0026exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "attributes": {
+              "eitheror_twin_id": [
+                "casino.player/ceeb8549-a3e2-3de0-8d7f-f333a537e9d5"
+              ]
+            },
+            "createdTimestamp": 1793426769279,
+            "disableableCredentialTypes": [],
+            "email": "e2e-0b78216b@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "2aa07698-c1ed-4fc5-b0b8-ab30beffcd5d",
+            "lastName": "Player0b78216b",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-0b78216b@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c7": "$[0].email",
+        "c8": "$[0].id"
+      },
+      "vary": {
+        "$[0].attributes": "differs between two runs of the original",
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].lastName": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/2aa07698-c1ed-4fc5-b0b8-ab30beffcd5d",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c8}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/2aa07698-c1ed-4fc5-b0b8-ab30beffcd5d",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c8}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/ceeb8549-a3e2-3de0-8d7f-f333a537e9d5"
+            ]
+          },
+          "createdTimestamp": 1793426769279,
+          "disableableCredentialTypes": [],
+          "email": "e2e-0b78216b@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "E2E",
+          "id": "2aa07698-c1ed-4fc5-b0b8-ab30beffcd5d",
+          "lastName": "Player0b78216b",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "e2e-0b78216b@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.lastName": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c7}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "ceeb8549-a3e2-3de0-8d7f-f333a537e9d5",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PATCH /v1/casino/spinvibe/players/ceeb8549-a3e2-3de0-8d7f-f333a537e9d5/kyc/reject",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/spinvibe/players/{c6}/kyc/reject",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "reason": "e2e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "kycStatus": "rejected"
+        }
+      }
+    },
+    {
+      "name": "POST /internal/v1/casino/spinvibe/notify/deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/casino/spinvibe/notify/deposit",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10",
+          "currency": "EUR",
+          "playerId": "{c6}",
+          "transactionId": "e2e-rk-8933bd82-f5d6-465b-a8d4-4d18bc58e23f"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": "DEPOSIT_BLOCKED_KYC",
+          "kycStatus": "rejected",
+          "message": "Your identity documents were not accepted — please re-submit"
+        }
+      }
+    }
+  ]
+}

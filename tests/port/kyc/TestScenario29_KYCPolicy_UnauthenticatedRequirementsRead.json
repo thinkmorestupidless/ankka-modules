@@ -1,0 +1,28 @@
+{
+  "scenario": "TestScenario29_KYCPolicy_UnauthenticatedRequirementsRead",
+  "recorded_at": "2026-10-31T06:06:07.808707Z",
+  "original": {
+    "brand": "",
+    "commit": "a78decf1"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "GET /v1/casino/players/spinvibe/kyc/requirements",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/players/spinvibe/kyc/requirements",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "requiredDocTypes": [
+            "identity"
+          ]
+        }
+      }
+    }
+  ]
+}

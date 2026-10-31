@@ -192,7 +192,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 
 - [X] T046 Correct `tests/original/e2e-rg-kyc.patch`: scenario 28's `IncompleteProfileStaysUnverified`
       waits for `pending` (R1; FR-012); update `tests/original/e2e-rg-kyc.md` to match
-- [ ] T047 The recording run (needs the user; research R2, quickstart §3): apply `e2e-recording.patch` and
+- [X] T047 The recording run (needs the user; research R2, quickstart §3): apply `e2e-recording.patch` and
       `e2e-rg-kyc.patch` to a local checkout of the original, run scenarios 28 and 29 against the local
       stack, copy the recordings to `tests/port/kyc/`; `tests/original/README.md` names the run
 - [ ] T048 Un-ignore `ParitySuite`; every recording replays through `WireTranslation`; each marked divergence
