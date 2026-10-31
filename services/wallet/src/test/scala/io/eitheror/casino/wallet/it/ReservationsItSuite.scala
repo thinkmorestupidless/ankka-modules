@@ -52,6 +52,21 @@ class ReservationsItSuite extends Harness:
     assertEquals(field(reserve("rv2", "o3", 0)._2, "error"), Some("INVALID_REQUEST"))
   }
 
+  test("FR-008a: unused without an order, and an order on a merge or a clearing move, are INVALID_REQUEST, moving nothing") {
+    open("rv-fr8a", 1000)
+    reserve("rv-fr8a", "o1", 600)
+    val accounts = s"/v1/casino/brands/$brand/accounts"
+    def body(extra: String) = Some(s"""{"key":"k-${extra.hashCode.abs}","currency":"EUR","player":"rv-fr8a","amount":100$extra}""")
+    val noOrder = send("POST", s"$accounts/pool/m-fr8a/splits", body(""","unused":50"""), as = exchange)
+    assertEquals((noOrder._1, field(noOrder._2, "error")), (400, Some("INVALID_REQUEST")), noOrder._2)
+    val merge = send("POST", s"$accounts/pool/m-fr8a/merges", body(""","orderId":"o1""""), as = exchange)
+    assertEquals(field(merge._2, "error"), Some("INVALID_REQUEST"), merge._2)
+    val moved = send("POST", s"$accounts/clearing/c-fr8a/moves", body(""","orderId":"o1","direction":"from-wallet""""), as = exchange)
+    assertEquals(field(moved._2, "error"), Some("INVALID_REQUEST"), moved._2)
+    val balance = send("GET", s"${wallet("rv-fr8a")}/balance")._2
+    assertEquals((field(balance, "realBalance"), field(balance, "reserved")), (Some("1000"), Some("600")))
+  }
+
   test("the player's and the operator's balance carry reserved and available in major units (FR-012)") {
     open("rv3", 100000)
     reserve("rv3", "o1", 60000)
