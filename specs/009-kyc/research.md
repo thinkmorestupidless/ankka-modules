@@ -109,7 +109,7 @@ alone while none is (every brand on the Curaçao default). `players` passes it (
 | | rejected | `Your identity documents were not accepted — please re-submit` |
 | `DEPOSIT_BLOCKED_KYC_THRESHOLD` | any but verified | `Your account requires identity verification before further deposits` |
 | `DEPOSIT_BLOCKED_SOF` | | `Your account requires a source of funds review before further deposits` |
-| `DEPOSIT_BLOCKED_KYC_CURRENCY` | | `Deposits in this currency are not accepted until your account is verified` (new) |
+| `DEPOSIT_BLOCKED_KYC_CURRENCY` | | `Deposits in this currency are not accepted` (new) |
 | `PLAY_BLOCKED_KYC` | unverified | `Please verify your identity before playing` |
 | | pending | `Your identity documents are under review` |
 | | rejected | `Your identity documents were not accepted — please re-submit` |
@@ -149,7 +149,13 @@ configures it: path style, `ANKKA_S3_REGION`, checksums only when required, and 
   endpoint first reads the object's head through `ANKKA_S3_ENDPOINT`. No object: 404 `upload_not_found`.
   Larger than the brand's limit (`KYC_MAX_UPLOAD_BYTES`, default 5,242,880), or another content type: the
   object is deleted and the confirm refused `file_rejected` naming the rule. A presigned PUT cannot cap a
-  size, so the check is at confirm.
+  size, so the check is at confirm. The lock is checked again at confirm, for two offers of one category
+  made side by side: the second is refused `document_locked` and its object deleted. A confirm of a
+  document already recorded answers as the first did, so a retry is safe.
+- **What a confirm never reaches**: an object put through a link whose offer is never confirmed stays in
+  the bucket until the player is erased (FR-033 deletes the prefix). A presigned POST policy with
+  `content-length-range` would cap the size at the store, but `platform/object-storage.md` describes no
+  POST policy, so the cap stays at confirm; sweeping unconfirmed objects is a follow-up.
 - **View link**: a GET signed for fifteen minutes. `IssueView(documentId, requester)` records
   `ViewIssued` (FR-037, every issue) and the endpoint signs.
 - **Operator upload**: the same commands with `by = operator(id, reason)`. The reason is `Personal`. The
@@ -430,6 +436,8 @@ What this spec leaves to others, each where its owner will look:
 - **The original**: its `kind-register-casino-functions` recipe registers `casino/kyc-status-rollup`
   with `IS_A Player`, a concept no twin carries, over the chart's correct registration
   (`tests/original/README.md`). Not ours to fix; noted for whoever next runs it on kind.
+- **Unconfirmed objects** (R7): an object put but never confirmed is kept until erasure. A sweep, by
+  the offers dropped after their hour, when the bucket's cost or a regulator asks for one.
 - **SC-002 (T054)**: the Playwright KYC suites (28–33, 50) against the kind brand wait for the
   frontends' base-URL move (008's T077 waits on the same move); not run.
 

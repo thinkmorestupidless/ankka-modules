@@ -62,7 +62,11 @@ final class DocumentRoutes(ctx: Ctx):
       case Right((size, contentType)) =>
         val answer = ctx.record(playerId).call(KycRecord.confirmUpload)
           .invoke(ConfirmUpload(documentId, size, contentType, ctx.policy.required, at))
-        answer.refusal.fold(withDocument(answer.state, documentId))(refused)
+        answer.refusal match
+          case None                                  => withDocument(answer.state, documentId)
+          case Some(r) if r.code == "document_locked" =>
+            offer.fold(refused(r))(o => ctx.store.delete(o.objectName).fold(_ => storageUnavailable, _ => refused(r)))
+          case Some(r)                               => refused(r)
 
   /** A link to that object alone for fifteen minutes (FR-008), signed before the view is recorded. */
   def view(playerId: String, documentId: String, requester: Actor): Reply =

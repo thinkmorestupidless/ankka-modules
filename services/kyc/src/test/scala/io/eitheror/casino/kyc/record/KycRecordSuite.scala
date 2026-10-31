@@ -94,6 +94,17 @@ class KycRecordSuite extends munit.FunSuite with LogCapturing:
     assertEquals((doc.uploadedAt, doc.awaiting, doc.size), (later(5), true, 100L))
     assertEquals(kit.currentState.offers, Map.empty)
 
+  test("ConfirmUpload: a retried confirm writes nothing and answers; a second offer of a locked category is refused at confirm"):
+    val kit = fresh
+    offer(kit, Category.IdentityFront, "d-1"): Unit
+    offer(kit, Category.IdentityFront, "d-2"): Unit
+    kit.call(KycRecord.confirmUpload)(ConfirmUpload("d-1", 100L, "image/jpeg", identity, at)): Unit
+    val again = kit.call(KycRecord.confirmUpload)(ConfirmUpload("d-1", 0L, "", identity, later(1)))
+    assertEquals((again.events, code(again.replyValue)), (ev(), None))
+    assertEquals(code(kit.call(KycRecord.confirmUpload)(ConfirmUpload("d-2", 100L, "image/jpeg", identity, at)).replyValue),
+      Some("document_locked"))
+    assertEquals(kit.currentState.documents.map(_.id), Vector("d-1"))
+
   test("offers are dropped an hour after they are offered: the confirm is refused upload_expired, a later one not found"):
     val kit = fresh
     offer(kit, Category.Other, "d-1"): Unit

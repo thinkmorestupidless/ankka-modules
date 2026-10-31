@@ -61,6 +61,16 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     review(rejected, Outcome.Rejected, Some("document_expired"))
     assertEquals(offer("identity_front").status, 200)
 
+  test("a confirm sent again answers the document; a second offer of a category confirmed meanwhile is locked at confirm"):
+    val first  = offer("identity_back")
+    val second = offer("identity_back")
+    for o <- Seq(first, second) do assertEquals(kit.putSigned(o.str("url"), Array.fill(100)(1.toByte), "image/png") / 100, 2)
+    val confirmed = confirm(first.str("documentId"))
+    assertEquals(confirmed.status, 200, confirmed.text)
+    val again = confirm(first.str("documentId"))
+    assertEquals((again.status, again.text), (200, confirmed.text))
+    assertEquals(error(confirm(second.str("documentId"))), (409, "document_locked"))
+
   test("a view link lasts fifteen minutes, records ViewIssued and one audit record naming the document (SC-005)"):
     val id = submit("identity_front")
     val v  = kit.request("GET", kit.playerPath(s"/$player/views/$id"), None, kit.asPlayer(player))

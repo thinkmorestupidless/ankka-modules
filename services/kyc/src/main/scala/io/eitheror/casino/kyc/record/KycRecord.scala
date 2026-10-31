@@ -44,18 +44,25 @@ final class KycRecord(@scala.annotation.unused context: EventSourcedEntityContex
       case _ if s.closed || s.erased                => refuse("account_closed")
       case None                                     => refuse("invalid_category")
       case Some(_) if !ObjectNames.accepted(c.contentType) => refuse("file_rejected", Vector("contentType"))
-      case Some(category) if category != Category.Other && s.latest(category).exists(d => !d.review.exists(_.outcome == Outcome.Rejected)) =>
-        refuse("document_locked")
+      case Some(category) if locked(s, category)    => refuse("document_locked")
       case Some(category) =>
-        val name  = ObjectNames.of(c.playerId, category, c.at, c.contentType).get
-        val offer = Offer(c.documentId, category, c.contentType, name, c.by, c.at)
-        emit(UploadOffered(c.playerId, offer, c.at) +: expired(s, c.at))
+        ObjectNames.of(c.playerId, category, c.at, c.contentType).fold(refuse("file_rejected", Vector("contentType"))) { name =>
+          val offer = Offer(c.documentId, category, c.contentType, name, c.by, c.at)
+          emit(UploadOffered(c.playerId, offer, c.at) +: expired(s, c.at))
+        }
 
+  /** A category whose latest document is awaiting review or approved takes no other until it is rejected; other never locks (FR-006). */
+  private def locked(s: KycState, category: Category): Boolean =
+    category != Category.Other && s.latest(category).exists(d => !d.review.exists(_.outcome == Outcome.Rejected))
+
+  /** A confirm of a document already recorded answers as the first did; the lock is held here too, for offers made side by side. */
   def confirmUpload(c: ConfirmUpload): Effect[KycAnswer] =
     currentState.offers.get(c.documentId) match
+      case None if currentState.document(c.documentId).isDefined => emit(Vector.empty)
       case None                                      => refuse("document_not_found")
       case Some(o) if isExpired(o, c.at)             => emit(expired(currentState, c.at), Some(Refusal("upload_expired")))
       case Some(o) if o.contentType != c.contentType => refuse("file_rejected", Vector("contentType"))
+      case Some(o) if locked(currentState, o.category) => refuse("document_locked")
       case Some(o) =>
         val document = Document(o.documentId, o.category, o.objectName, c.contentType, c.size, c.at, o.by)
         emit(withDerivation(Vector(DocumentRecorded(currentState.playerId, document, c.at)), Trigger.Documents, c.policyRequired, c.at))
