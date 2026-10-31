@@ -55,8 +55,8 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 - [ ] T007 [P] `S/request/Gates.scala` and `S/request/Refusals.scala` (pure: research R4's table in its
       order, each refusal's code, status and fields as in contracts/routes.md, and the KYC messages
-      verbatim), with `T/request/GatesSuite.scala`: every row; when two apply, the earlier wins; a decimal
-      amount is 400 naming `amount`. Write the suite first, and see it fail first.
+      verbatim), with `T/request/GatesSuite.scala`: every row; when two apply, the earlier wins; zero, a
+      negative or a decimal amount is 422 `INVALID_AMOUNT`. Write the suite first, and see it fail first.
 - [ ] T008 [P] `S/limits/Limits.scala` (pure: `used + amount > limit`, the rolling seven days, the UTC
       calendar month, the counting statuses; FR-005b), with `T/limits/LimitsSuite.scala`:
       `WithdrawalLimitChecker`'s cases per currency, each window at its edges, and zero or none as no
@@ -119,7 +119,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 3: US1, a verified player requests a withdrawal and the money is held (P1)
 
-- [ ] T022 [US1] Fail first: bind the US1 scenarios of `features/payouts/requests.feature` (the request
+- [ ] T022 [US1] Fail first (a saved destination is seeded on `PlayerPayouts` directly; saving one is US3's): bind the US1 scenarios of `features/payouts/requests.feature` (the request
       and its hold, already pending, the amount, destination required, crypto address and coin, a
       destination not the player's, insufficient funds) in `T/features/RequestsFeatures.scala`.
 - [ ] T023 [US1] `S/workflow/WithdrawalWorkflow.scala`, the request half: `start` as the atomic claim
@@ -168,7 +168,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       ranked from the catalogue, and the currency is the wallet's when absent. One rule serves the
       listing and the request (FR-010).
 - [ ] T033 [US3] `PlayerEndpoint`: `GET`, `POST /{playerId}/payout-destinations`,
-      `PUT /{playerId}/payout-destinations/{id}` (`default: true`) and `DELETE …/{id}`, with the refusals
+      `PUT /{playerId}/payout-destinations/{id}` (`setAsDefault: true`) and `DELETE …/{id}`, with the refusals
       of contracts/routes.md. The IBAN is shown as its last four.
 - [ ] T034 [US3] `T/it/EligibilitySuite.scala`:
       - a cold catalogue reads the gateway once;
@@ -210,11 +210,11 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       `POST /{requestId}/outcome` admitted by the grant (R6) and passed to the workflow's `outcome`:
       - `REQUEST_NOT_FOUND`;
       - `REFERENCE_MISMATCH`, recorded;
-      - `OUTCOME_CONFLICT`;
+      - `ALREADY_RESOLVED`;
       - `WITHDRAWAL_NOT_IN_COMPLETED_STATE`;
       - a repeat is 200 and moves nothing.
 - [ ] T042 [US5] `OperatorEndpoint`: `POST /{requestId}/confirm-payout` and `/mark-payout-failed` (the
-      default reason; `REQUEST_NOT_AWAITING_PAYOUT`; clears needs review).
+      default reason; `WITHDRAWAL_NOT_AWAITING_PAYOUT`; clears needs review).
 - [ ] T043 [US5] `T/it/PayoutFailureSuite.scala` (SC-002): `FakeGateway` broken at each answer (an
       unreachable gateway, 5xx, an unreadable body, `in_doubt`, `initiation_in_progress`) and at each
       wait. No request reaches awaiting manual payout but by approval on a manual terminal; `rejected`

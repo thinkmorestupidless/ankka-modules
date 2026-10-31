@@ -288,6 +288,7 @@ Unchanged:
 | Approval emits `withdrawal_approved` alone; the fact's amount is the amount paid | R11 | `PublishersSuite` |
 | The terminal listing's currency is the wallet's, not GBP by default | R5 | `EligibilitySuite`; scenario 30, marked |
 | Reasons, notes and destination fields are `Personal` | FR-027 | `ErasureSuite`, `LeakSuite` |
+| A Gigadat request missing its method fields is refused at the request, not parked for manual payout | FR-004, R4 | `GatesSuite`; scenario 30, marked |
 | Unused rate limits dropped | R1 | — |
 
 ## What the next command needs to know
