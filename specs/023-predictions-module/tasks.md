@@ -78,7 +78,7 @@ raised; the module reconciles. **Independent test**: `settlement.feature` bound 
 **Goal**: a player reads open markets, prices and depth, and only their own orders, positions and
 trades. **Independent test**: `catalogue.feature` bound in both services.
 
-- [ ] T033 [P] [US4] The catalogue routes in `S/m/main/…/markets/api/PlayerEndpoint.scala` over the library's `market-catalogue` view, a draft or approved market 404
+- [X] T033 [P] [US4] The catalogue routes in `S/m/main/…/markets/api/PlayerEndpoint.scala` over the library's `market-catalogue` view, a draft or approved market 404
 - [ ] T034 [P] [US4] Views `orders-by-owner` and `trades-by-owner` in `S/x/main/…/exchange/reads/` with unit suites
 - [ ] T035 [US4] The read routes in `PlayerEndpoint.scala` (prices, depth, the player's orders, positions with shares under sells added, trades), each carrying its sequence; the SSE stream per market numbered by the sequence (R10); a view read behind the entity's sequence answers with `stale: true` (FR-005)
 - [ ] T036 [US4] Bind `features/predictions/catalogue.feature` in `S/m/test/…/markets/features/CatalogueFeatures.scala` and `S/x/test/…/exchange/features/CatalogueFeatures.scala`

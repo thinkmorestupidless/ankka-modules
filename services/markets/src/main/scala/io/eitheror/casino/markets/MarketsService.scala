@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.predictions.markets.components.{MarketPorts, MarketsComponents}
-import io.eitheror.casino.markets.api.OperatorEndpoint
+import io.eitheror.casino.markets.api.{OperatorEndpoint, PlayerEndpoint}
 import io.eitheror.casino.markets.drive.ExchangeDriverCompanion
 import io.eitheror.casino.markets.facts.MarketFactsPublisher
 import io.eitheror.casino.markets.terms.MarketTerms
@@ -23,7 +23,10 @@ final class MarketsService(timers: TimerRuntime):
 
   /** One endpoint per audience (contracts/routes.md), none sharing a prefix. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
-    Seq[EndpointClients => HttpEndpoint](clients => OperatorEndpoint(components, clients, authenticate))
+    Seq[EndpointClients => HttpEndpoint](
+      clients => OperatorEndpoint(components, clients, authenticate),
+      clients => PlayerEndpoint(components, clients, authenticate)
+    )
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
