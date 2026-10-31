@@ -148,7 +148,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 4: US2, a player is blocked by identity, turnover, a limit or a bonus (P1)
 
-- [ ] T028 [US2] Fail first: bind the US2 scenarios of `features/payouts/requests.feature` (identity, the
+- [X] T028 [US2] Fail first: bind the US2 scenarios of `features/payouts/requests.feature` (identity, the
       weekly and monthly limits, what does not count, turnover, the forfeit and its confirmation, funds
       before forfeit) in `T/features/RequestsFeatures.scala`.
 - [ ] T029 [US2] `S/api/ConfigEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawal-config`: `GET /` and

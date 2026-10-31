@@ -81,6 +81,10 @@ final class Kit(base: Settings = Kit.Base):
     gateway.reset()
     clockOffset = JDuration.ZERO
     rewire()
+    // The brand's limits outlive a test, as the database does; none is the default every test starts from.
+    components.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId(slug))
+      .call(io.eitheror.casino.payouts.limits.WithdrawalLimits.set)
+      .invoke(io.eitheror.casino.payouts.limits.SetLimits(Map.empty, "kit", now())): Unit
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 
