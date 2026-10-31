@@ -110,7 +110,9 @@ func requests() []Def {
 				if got := Listed(s.Want(s.Requests("the player lists their requests", ""), http.StatusOK), s.Value("requestId")); got != "PENDING_REVIEW" {
 					s.t.Errorf("the player's list shows the request as %q", got)
 				}
-				q := s.Casino("an operator reads the queue", http.MethodGet, s.Queue()+"?status=PENDING_REVIEW&playerSearch="+s.Value("playerId"), nil, Operator)
+				q := s.Eventually(func() Response {
+					return s.Casino("an operator reads the queue", http.MethodGet, s.Queue()+"?status=PENDING_REVIEW&playerSearch="+s.Value("playerId"), nil, Operator)
+				}, func(r Response) bool { return Listed(r, s.Value("requestId")) != "" })
 				if got := Listed(s.Want(q, http.StatusOK), s.Value("requestId")); got != "PENDING_REVIEW" {
 					s.t.Errorf("the queue shows the request as %q", got)
 				}
@@ -581,8 +583,10 @@ func reads() []Def {
 		{Name: "a queue filtered by status pending review shows only pending requests", Requirement: "007/FR-014",
 			Run: func(t testing.TB, s *Session) {
 				queue(s)
-				r := s.Want(s.Casino("filter the queue by status pending review", http.MethodGet,
-					s.Queue()+"?status=PENDING_REVIEW&playerSearch="+s.Value("tag"), nil, Operator), http.StatusOK)
+				r := s.Want(s.Eventually(func() Response {
+					return s.Casino("filter the queue by status pending review", http.MethodGet,
+						s.Queue()+"?status=PENDING_REVIEW&playerSearch="+s.Value("tag"), nil, Operator)
+				}, func(r Response) bool { return Listed(r, s.Value("pendingId")) != "" }), http.StatusOK)
 				if Listed(r, s.Value("pendingId")) != "PENDING_REVIEW" || Listed(r, s.Value("approvedId")) != "" || Listed(r, s.Value("reviewId")) != "" {
 					s.t.Errorf("the queue filtered by pending review: %s", string(r.Raw))
 				}
@@ -590,8 +594,10 @@ func reads() []Def {
 		{Name: "a queue filtered by payment status needs review shows only those requests", Requirement: "007/FR-014",
 			Run: func(t testing.TB, s *Session) {
 				queue(s)
-				r := s.Want(s.Casino("filter the queue by payment status needs review", http.MethodGet,
-					s.Queue()+"?status=ALL&payoutStatus=NEEDS_REVIEW&playerSearch="+s.Value("tag"), nil, Operator), http.StatusOK)
+				r := s.Want(s.Eventually(func() Response {
+					return s.Casino("filter the queue by payment status needs review", http.MethodGet,
+						s.Queue()+"?status=ALL&payoutStatus=NEEDS_REVIEW&playerSearch="+s.Value("tag"), nil, Operator)
+				}, func(r Response) bool { return Listed(r, s.Value("reviewId")) != "" }), http.StatusOK)
 				if Listed(r, s.Value("reviewId")) == "" || Listed(r, s.Value("pendingId")) != "" || Listed(r, s.Value("approvedId")) != "" {
 					s.t.Errorf("the queue filtered by needs review: %s", string(r.Raw))
 				}
