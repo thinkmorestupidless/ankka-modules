@@ -73,7 +73,15 @@ amount, real balance less reserved. Its calls, in order
 | release(order, ordinal, amount) | `POST W/reservations/release` | order id + ordinal |
 | settle(trade, buyer order, seller, cost, unused) | `POST /settlements` | trade id |
 | split / merge(market, player, sets) | `POST /accounts/pool/{market}/splits`, `…/merges` | the exchange's key |
+| settle(trade) through the pool, a split | `POST /accounts/pool/{market}/splits` with `orderId` and `unused`, once per buying leg | the trade and the leg's owner |
+| settle(trade) through the pool, a merge | `POST /accounts/pool/{market}/merges`, once per selling leg | the trade and the leg's owner |
 | pay(market, position, player, amount) | `POST /accounts/pool/{market}/payments` | market + position |
+
+A split with `orderId` is charged from that order's reservation, not the available amount
+(spec 022 FR-008a): the amount leaves real balance and the reservation for the pool account, and
+`unused` is released from the reservation in the same move, as a settlement's is. It is refused
+`RESERVATION_NOT_FOUND` or `RESERVATION_SHORT` with nothing moved; `account_debit` names the order
+and what it released.
 
 `W` is `/v1/casino/brands/<brand>/wallets/<player>/<currency>`. An account's owner is the service that
 sent the first move naming it, even one refused after the claim (`service:<project>/<name>`, from `Routes.serviceNamed`); any other is
