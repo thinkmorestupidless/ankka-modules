@@ -41,6 +41,7 @@ final class Kit(base: Settings = Kit.Base):
   val realm      = FakeRealm(slug)
   val rg         = FakeRg(slug)
   val kyc        = FakeKyc(slug)
+  val payouts    = FakePayouts(slug)
   val engagement = FakeEngagement(slug)
   val ingest     = FakeIngest()
   val wallet     = FakeWallet(slug)
@@ -70,6 +71,7 @@ final class Kit(base: Settings = Kit.Base):
     localServices = Map(
       "responsible-gambling" -> rg.address,
       "kyc"                  -> kyc.address,
+      "payouts"              -> payouts.address,
       "engagement"           -> engagement.address,
       "wallet"               -> wallet.address,
       "merchant"             -> wallet.address,
@@ -91,7 +93,7 @@ final class Kit(base: Settings = Kit.Base):
     PlayersRuntime.wire(s, () => now())
     Neighbours.reset()
 
-  def fakes: Seq[FakeServer] = Seq(realm, rg, kyc, engagement, ingest, wallet, geo, agent)
+  def fakes: Seq[FakeServer] = Seq(realm, rg, kyc, payouts, engagement, ingest, wallet, geo, agent)
 
   /** Points the process-wide runtime at this kit again (its clock, timers and views), after another kit took it. */
   def adopt(): Unit =
@@ -110,7 +112,7 @@ final class Kit(base: Settings = Kit.Base):
 
   /** The fakes as they started, the clock now, the log empty. Entities and views keep what earlier tests left. */
   def reset(): Unit =
-    realm.reset(); rg.reset(); kyc.reset(); engagement.reset(); ingest.reset(); wallet.reset(); geo.reset(); agent.reset()
+    realm.reset(); rg.reset(); kyc.reset(); payouts.reset(); engagement.reset(); ingest.reset(); wallet.reset(); geo.reset(); agent.reset()
     clockOffset = JDuration.ZERO
     log.list.clear()
     io.eitheror.casino.players.registration.RegistrationRuntime.reset()

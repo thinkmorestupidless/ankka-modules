@@ -80,6 +80,20 @@ final class FakeKyc(brand: String, bind: Int = 0) extends KnobbedServer(bind):
       Answer.ok(Json.obj("service" -> "kyc", "playerId" -> p.split('/').last, "documents" -> Json.arr(), "status" -> "unverified"))
     case _ => Answer(404, "")
 
+/** `payouts` as `players` erases and exports through it (spec 007 contracts/routes.md): nothing held here. */
+final class FakePayouts(brand: String, bind: Int = 0) extends KnobbedServer(bind):
+  private val prefix = s"/v1/casino/brands/$brand/payouts"
+
+  def reset(): Unit = knobsReset()
+
+  def erasures: Vector[String] = received.filter(_.path.startsWith(s"$prefix/erasure/players/")).map(_.path.split('/').last)
+
+  protected def answer(r: Received): Answer = r.path.stripPrefix(prefix) match
+    case p if p.startsWith("/erasure/players/") => Answer.ok(Json.obj("erased" -> Json.arr()))
+    case p if p.startsWith("/exports/players/") =>
+      Answer.ok(Json.obj("service" -> "payouts", "playerId" -> p.split('/').last, "destinations" -> Json.arr(), "requests" -> Json.arr()))
+    case _                                     => Answer(404, "")
+
 /** One send `engagement` was asked for. */
 final case class Sent(key: String, playerId: String, trigger: String, to: String, link: String)
 
