@@ -198,7 +198,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 - [X] T039 [US5] Fail first: bind `features/payouts/settlement.feature` in
       `T/features/SettlementFeatures.scala`.
-- [ ] T040 [US5] `WithdrawalWorkflow`, the payout half:
+- [X] T040 [US5] `WithdrawalWorkflow`, the payout half:
       - `pay` (`Approval`), `initiate` with every answer of R7's table, and `AwaitManual`;
       - `wait` and `poll` (30 minutes, then every 5; `no_record` → `needs-review`; the `reviewWindow` for a
         provider with no status to ask; R8);
@@ -213,7 +213,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - `ALREADY_RESOLVED`;
       - `WITHDRAWAL_NOT_IN_COMPLETED_STATE`;
       - a repeat is 200 and moves nothing.
-- [ ] T042 [US5] `OperatorEndpoint`: `POST /{requestId}/confirm-payout` and `/mark-payout-failed` (the
+- [X] T042 [US5] `OperatorEndpoint`: `POST /{requestId}/confirm-payout` and `/mark-payout-failed` (the
       default reason; `WITHDRAWAL_NOT_AWAITING_PAYOUT`; clears needs review).
 - [ ] T043 [US5] `T/it/PayoutFailureSuite.scala` (SC-002): `FakeGateway` broken at each answer (an
       unreachable gateway, 5xx, an unreadable body, `in_doubt`, `initiation_in_progress`) and at each
