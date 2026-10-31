@@ -419,7 +419,7 @@ ankka-predictions `notes/casino-requests.md` item 9; research.md "Amendment 2026
 
 - [X] T055 In `contract/` add `orderId: Option[String] = None` and `releasedCents: Option[MinorUnits]
       = None` to `facts.AccountDebit`; `just schemas`; the contract's suites green
-- [ ] T056 In `M/entity/` add `ChargeReservationToAccount` (`charge-reservation-to-account`), its
+- [X] T056 In `M/entity/` add `ChargeReservationToAccount` (`charge-reservation-to-account`), its
       handler beside `settle-debit` (the same refusals and pools rule), `orderId` and `unused` on
       `MovedToAccount` with its replay drawing the order's reservation down; a case in
       `EveryCommandIdempotentSuite`, the rules in `EntityRulesSuite`, the command in `InvariantsSuite`'s

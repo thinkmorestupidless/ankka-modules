@@ -46,6 +46,7 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
   private final case class SettleCreditS(amount: Long) extends Step
   private final case class MoveToAccountS(amount: Long) extends Step
   private final case class MoveFromAccountS(amount: Long) extends Step
+  private final case class ChargeReservationS(order: Int, amount: Long, unused: Long) extends Step
 
   private val step: Gen[Step] = Gen.frequency(
     4 -> Gen.zip(Gen.choose(0L, 5000L), Gen.oneOf(0L, 0L, 1L)).map(DepositS.apply),
@@ -70,7 +71,8 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
     2 -> Gen.zip(Gen.choose(1, 3), Gen.choose(1L, 2000L), Gen.choose(0L, 500L)).map(SettleDebitS.apply),
     1 -> Gen.choose(1L, 2000L).map(SettleCreditS.apply),
     2 -> Gen.choose(1L, 4000L).map(MoveToAccountS.apply),
-    1 -> Gen.choose(1L, 2000L).map(MoveFromAccountS.apply)
+    1 -> Gen.choose(1L, 2000L).map(MoveFromAccountS.apply),
+    2 -> Gen.zip(Gen.choose(1, 3), Gen.choose(1L, 2000L), Gen.choose(0L, 500L)).map(ChargeReservationS.apply)
   )
 
   private def run(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], steps: List[Step],
@@ -108,6 +110,9 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
         case SettleCreditS(a) => SettleCredit(key, a, "ada", at)
         case MoveToAccountS(a) => DebitToAccount(key, "pool", "m1", Purpose.Split, key, a, at)
         case MoveFromAccountS(a) => CreditFromAccount(key, "pool", "m1", Purpose.Merge, key, a, at)
+        case ChargeReservationS(o, a, u) =>
+          ChargeReservationToAccount(key, st.reservations.keys.toVector.sorted.lift(o - 1).getOrElse(s"none-$o"), "pool", "m1",
+            Purpose.Split, key, a, u, at)
       if command.isInstanceOf[Adjust] && command.asInstanceOf[Adjust].target == "real" && command.asInstanceOf[Adjust].amount < 0 then corrected = true
       val seenBefore = kit.currentState.seen.seen.keySet
       val restrictedBefore = kit.currentState.restrictedBalance
@@ -119,7 +124,8 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
       checkStep(kit.currentState, seenBefore, s"after step $i: $s")
       checkLedger(kit.currentState, corrected, s"after step $i: $s")
       command match
-        case _: Reserve | _: ReleaseReservation | _: SettleDebit | _: SettleCredit | _: DebitToAccount | _: CreditFromAccount =>
+        case _: Reserve | _: ReleaseReservation | _: SettleDebit | _: SettleCredit | _: DebitToAccount | _: CreditFromAccount |
+            _: ChargeReservationToAccount =>
           assertEquals(kit.currentState.restrictedBalance, restrictedBefore, s"a ledger command moved restricted funds after step $i: $s")
         case _ => ()
     }
@@ -146,6 +152,7 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
     case x: SettleCredit       => kit.call(WalletEntity.settleCredit)(x): Unit
     case x: DebitToAccount     => kit.call(WalletEntity.debitToAccount)(x): Unit
     case x: CreditFromAccount  => kit.call(WalletEntity.creditFromAccount)(x): Unit
+    case x: ChargeReservationToAccount => kit.call(WalletEntity.chargeReservationToAccount)(x): Unit
     case other              => fail(s"not generated: $other")
 
   private def check(s: WalletState, seenBefore: Set[String], where: String): Unit =

@@ -128,6 +128,14 @@ final case class DebitToAccount(key: String, accountKind: String, accountName: S
     amount: Long, at: Instant) extends MoneyCommand
 
 /**
+ * A split charged from an order's reservation (FR-008a, a buying leg of a trade through the pool):
+ * `amount` leaves real balance and the reservation for the account, and `unused` is released from
+ * the reservation, as a settlement's buyer side does. The key is the caller's, one per leg.
+ */
+final case class ChargeReservationToAccount(key: String, orderId: String, accountKind: String, accountName: String, purpose: String,
+    reference: String, amount: Long, unused: Long, at: Instant) extends MoneyCommand
+
+/**
  * Real balance credited from a non-player account (a merge, a resolution payment, a clearing move
  * to the wallet; FR-005, FR-006, FR-008). For a resolution payment `reference` is the position id.
  */

@@ -91,7 +91,11 @@ class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
     Case("DebitToAccount", funded, DebitToAccount("sp-1", "pool", "m1", Purpose.Split, "sp-1", 500, t0),
       DebitToAccount("sp-1", "pool", "m1", Purpose.Split, "sp-1", 600, t0), sender(WalletEntity.debitToAccount)),
     Case("CreditFromAccount", funded, CreditFromAccount("mg-1", "pool", "m1", Purpose.Merge, "mg-1", 500, t0),
-      CreditFromAccount("mg-1", "pool", "m1", Purpose.Merge, "mg-1", 600, t0), sender(WalletEntity.creditFromAccount))
+      CreditFromAccount("mg-1", "pool", "m1", Purpose.Merge, "mg-1", 600, t0), sender(WalletEntity.creditFromAccount)),
+    Case("ChargeReservationToAccount", withReservation,
+      ChargeReservationToAccount("t-1/ada", "o1", "pool", "m1", Purpose.Split, "t-1/ada", 1000, 0, t0),
+      ChargeReservationToAccount("t-1/ada", "o1", "pool", "m1", Purpose.Split, "t-1/ada", 1000, 100, t0),
+      sender(WalletEntity.chargeReservationToAccount))
   )
 
   test("every money command type has a case") {
@@ -129,14 +133,18 @@ class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.allEvents.size, before)
   }
 
-  test("spec 022: a refused reservation, release, settle-debit and move are refused the same way when repeated, persisting nothing") {
+  test("spec 022: a refused reservation, release, settle-debit, move and charge are refused the same way when repeated, persisting nothing") {
     val kit = withReservation("idem-refused-022/EUR")
     val refusedOnce: Vector[(String, () => Outcome)] = Vector(
       "INSUFFICIENT_FUNDS"          -> (() => kit.call(WalletEntity.reserve)(Reserve("o-big", 8000, t0)).replyValue),
       "RESERVATION_NOT_FOUND"       -> (() => kit.call(WalletEntity.releaseReservation)(ReleaseReservation("o9/1", "o9", 100, t0)).replyValue),
       "RELEASE_EXCEEDS_RESERVATION" -> (() => kit.call(WalletEntity.releaseReservation)(ReleaseReservation("o1/9", "o1", 3001, t0)).replyValue),
       "RESERVATION_SHORT"           -> (() => kit.call(WalletEntity.settleDebit)(SettleDebit("t-9", "o1", 2900, 200, "bob", t0)).replyValue),
-      "INSUFFICIENT_FUNDS"          -> (() => kit.call(WalletEntity.debitToAccount)(DebitToAccount("sp-9", "pool", "m1", Purpose.Split, "sp-9", 7001, t0)).replyValue)
+      "INSUFFICIENT_FUNDS"          -> (() => kit.call(WalletEntity.debitToAccount)(DebitToAccount("sp-9", "pool", "m1", Purpose.Split, "sp-9", 7001, t0)).replyValue),
+      "RESERVATION_NOT_FOUND"       -> (() => kit.call(WalletEntity.chargeReservationToAccount)(
+        ChargeReservationToAccount("t-8/ada", "o9", "pool", "m1", Purpose.Split, "t-8/ada", 100, 0, t0)).replyValue),
+      "RESERVATION_SHORT"           -> (() => kit.call(WalletEntity.chargeReservationToAccount)(
+        ChargeReservationToAccount("t-9/ada", "o1", "pool", "m1", Purpose.Split, "t-9/ada", 2900, 200, t0)).replyValue)
     )
     for (code, send) <- refusedOnce do
       val first = send()
