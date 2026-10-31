@@ -93,7 +93,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       listing, initiate, status; every answer of research R7 and R8 decoded, an unreadable body as
       `Unreadable`), with `T/it/FakeWallet.scala` and `T/it/FakeGateway.scala` (each answer scriptable per
       request id, as spec 005's recordings prove the real one answers).
-- [ ] T018 `S/consumers/PlayersConsumer.scala`, `S/consumers/DepositsConsumer.scala` and
+- [X] T018 `S/consumers/PlayersConsumer.scala`, `S/consumers/DepositsConsumer.scala` and
       `S/consumers/RequestsConsumer.scala`, with their `ConsumerTestKit` suites. A redelivery changes
       nothing, and a fact for a player with no record creates one.
 - [ ] T019 `S/facts/Facts.scala` and `S/facts/Publishers.scala` (`WithdrawalPublisher`, `AuditPublisher`,
