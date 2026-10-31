@@ -53,6 +53,7 @@ same for every brand and are literals in the descriptors, not keys.
 | players-merchant-key | core | string | yes | `<slug>-players/MERCHANT_KEY` | | `PLAYERS_MERCHANT_KEY` |
 | reporting-zone | core | string | no | | | `CASINO_REPORTING_ZONE` |
 | casino-modules | core | string | no | | | `CASINO_MODULES` |
+| erasure-targets | core | string | no | | | `ERASURE_TARGETS` |
 | game-provider-mode | casino | string | no | | | `GAME_PROVIDER_MODE` |
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
@@ -71,6 +72,14 @@ among them, so the value is never empty (the platform refuses an empty entry; fo
 2026-10-28). Locally the tool knows them from the modules it applies; through a vendor it does not, so
 a brand that runs the casino module writes `"casino-modules": "core,casino"` until spec 021 has the
 vendor render it.
+
+`erasure-targets` (spec 023 R13) names the services of the brand's modules beyond core's own that
+erase a player, as `service=prefix` pairs: each planned service with a `POST
+…/erasure/players/{player}` row in `contract/access/routes.md`, the prefix the path before it with
+the brand filled in. It is `none` when no module adds one. Like `casino-modules`, only the local plan
+computes it; through a vendor a brand that runs `predictions` writes
+`"erasure-targets": "exchange=/v1/casino/brands/<slug>/exchange"` until spec 021 has the vendor
+render it.
 
 The predictions module's keys (spec 023 R7): `predictions-categories` and `predictions-currencies`
 are comma lists, and a brand that runs the module names at least one of each; the two limits are

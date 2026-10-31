@@ -8,6 +8,7 @@ import com.thinkmorestupidless.predictions.exchange.components.ExchangeComponent
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.exchange.{ExchangeRuntime, Json}
 import io.eitheror.casino.exchange.Json.*
+import io.eitheror.casino.exchange.erasure.Erasure
 import io.eitheror.casino.exchange.terms.{MarketTerms, Terms}
 
 import java.time.Instant
@@ -19,7 +20,8 @@ import Answers.*
  * `/v1/casino/brands/<slug>/exchange` (contracts/routes.md): `markets` drives a market's book. Open
  * writes the book's terms (its currency and outcomes) before the library opens it with its unit and
  * limits. Each command carries the market event's own time, so a redelivered command is refused by the
- * library as `state` or `out of order`, which `markets` takes as done.
+ * library as `state` or `out of order`, which `markets` takes as done. `players` erases a player
+ * here (R13): their resting orders cancelled, the player marked, the certificate answered.
  */
 final class ServiceEndpoint(components: ExchangeComponents, clients: EndpointClients)
     extends HttpEndpoint(s"/v1/casino/brands/${ExchangeRuntime.settings.brand}/exchange"):
@@ -51,6 +53,14 @@ final class ServiceEndpoint(components: ExchangeComponents, clients: EndpointCli
             case other => refusal(404, "unknown_command", s"$other is not a command of a book")
         }
       }
+    }
+  }
+
+  withAcl(Routes.serviceOf("players")) {
+    post("/erasure/players/{player}") { (player: String) =>
+      val e = Erasure.erase(components, clients.componentClient, clients.viewClient, player, () => ExchangeRuntime.now())
+      ok(Json.obj("service" -> "exchange", "playerId" -> player, "ordersCancelled" -> e.cancelled.size, "positionsKept" -> e.positionsKept,
+        "erasedAt" -> e.at.map(_.toString)))
     }
   }
 

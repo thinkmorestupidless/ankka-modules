@@ -41,7 +41,8 @@ class RenderSuite extends munit.FunSuite:
   private val PlayersSecrets = Set("REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY").map("PLAYERS_" + _)
   private val NewOwnKeys  = Map(
     "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
-    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL") ++ PlayersSecrets),
+    // spec 023 R13: the erasure targets the brand's modules add.
+    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS") ++ PlayersSecrets),
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
     "engagement"    -> Set("PUSH_PROVIDER_KEY"),
     "support-agent" -> Set("MODEL_PROVIDER_KEY"),
@@ -56,7 +57,8 @@ class RenderSuite extends munit.FunSuite:
   private val NewSizes = Map("players" -> "medium", "attribution" -> "medium", "kyc" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
-    BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)
+    BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind), routes = ModuleManifest.ContractView.contractRoutes(Fixtures.root))
+      .fold(e => fail(e), identity)
 
   /** A descriptor with spec 021's listed additions taken out, and spec 001's dropped switch taken out of the other. */
   private def comparable(d: ServiceDescriptor, dropped: Set[String]): ServiceDescriptor =
@@ -172,6 +174,13 @@ class RenderSuite extends munit.FunSuite:
     assert(!names.contains("game-provider") && !names.contains("rewards"), names.toString)
     val exchange = p.services.find(_.name == "exchange").get.service.env.map(e => e.name -> e.value).toMap
     assertEquals(exchange.get("PREDICTIONS_GATES"), Some(Some("play-gate,may-bet")))
+  }
+
+  test("players erases at exchange when the brand runs predictions, and at core's own targets only when it does not (spec 023 R13)") {
+    def targets(named: Vector[String]) =
+      plan(named).services.find(_.name == "players").get.service.env.find(_.name == "ERASURE_TARGETS").flatMap(_.value)
+    assertEquals(targets(Vector("predictions")), Some("exchange=/v1/casino/brands/goldvibe/exchange"))
+    assertEquals(targets(Vector("casino")), Some("none"))
   }
 
   test("core comes first and a module after its dependencies; a module that does not exist is named") {

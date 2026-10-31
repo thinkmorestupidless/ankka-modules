@@ -311,3 +311,14 @@ the original*).
   splits and pool payments. `markets` and `exchange` were never in keys.md's "Not yet built"
   table: their builds landed with T002 and T003. The services read `REASONING_SERVICE`; the
   manifest names no such key until ankka-reasoning 0.2.0 (keys.md, R14), so nothing is mirrored.
+- **T041, how players learns of the exchange.** players' erasure calls each target and retries
+  until it answers, so an `exchange` target on a brand without predictions would stop every
+  erasure. Trevor chose that the module wire it. A manifest's configuration may carry no value
+  and the vendor's format no new field, so the wiring is the module's route row: a planned
+  service with a `POST …/erasure/players/{player}` row in `contract/access/routes.md` is an
+  erasure target, and the modules tool derives `erasure-targets` (`service=prefix` pairs, `none`
+  when there are none) as it derives `casino-modules`; core's manifest gives it to players as
+  `ERASURE_TARGETS`. players erases them after core's own targets; the export does not ask them
+  (exchange holds nothing to export). Through a vendor the brand writes the value until spec 021
+  renders it (keys.md). The player id is a plain id on every fact and view (FR-006), so the
+  exchange's "mark" is a record of the erasure, which also makes a repeat answer the first.

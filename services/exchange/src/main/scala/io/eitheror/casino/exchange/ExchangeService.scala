@@ -10,6 +10,7 @@ import io.eitheror.casino.exchange.api.{OperatorEndpoint, PlayerEndpoint, Servic
 import io.eitheror.casino.exchange.ports.{Gates, Ledger, Neighbours, WalletCall, WalletClient}
 import io.eitheror.casino.exchange.retry.{RetryAudit, SettlementRetry, StartRetry}
 import com.thinkmorestupidless.predictions.exchange.components.LedgerAnswer
+import io.eitheror.casino.exchange.erasure.ErasedEntity
 import io.eitheror.casino.exchange.facts.{ObservedEntity, OrderFactsPublisher, PriceFactsPublisher, PriceObservations, TradeFactsPublisher}
 import io.eitheror.casino.exchange.reads.{OrderRows, TradeRows}
 import io.eitheror.casino.exchange.reconcile.*
@@ -45,7 +46,7 @@ final class ExchangeService(timers: TimerRuntime, settings: Settings):
   val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor, SettlementRetry.descriptor, RetryAudit.descriptor, TallyEntity.descriptor,
       MarketOfEntity.descriptor, ExchangeTallyCompanion(() => timers.timerScheduler).descriptor,
       PlacementTallyCompanion(components.placement).descriptor, WalletTally.descriptor, Reconcile.descriptor, ReconcileAudit.descriptor,
-      OrderRows.descriptor, TradeRows.descriptor, OrderFactsPublisher.descriptor, TradeFactsPublisher.descriptor,
+      OrderRows.descriptor, TradeRows.descriptor, ErasedEntity.descriptor, OrderFactsPublisher.descriptor, TradeFactsPublisher.descriptor,
       PriceFactsPublisher.descriptor) ++
       // The observations only when the brand's values name a reasoning service (FR-007).
       settings.reasoningService.toSeq.flatMap(_ => Seq(ObservedEntity.descriptor, PriceObservations.descriptor))

@@ -26,7 +26,9 @@ final case class Settings(
     exportPartBound: Duration = Duration.ofSeconds(10),
     exportRetention: Duration = Duration.ofHours(24),
     registrationBound: Duration = Duration.ofSeconds(5),
-    erasureHoldPoll: Duration = Duration.ofHours(1)
+    erasureHoldPoll: Duration = Duration.ofHours(1),
+    /** The erasure targets the brand's modules add beyond core's own, as service and route prefix (spec 023 R13). */
+    erasureTargets: Vector[(String, String)] = Vector.empty
 ):
   /** The brand's realm (contracts/realm.md). */
   def realm: String = s"casino-$brand"
@@ -50,6 +52,7 @@ object Settings:
       exportKept <- duration(env, "EXPORT_RETENTION", d.exportRetention)
       register   <- duration(env, "REGISTRATION_BOUND", d.registrationBound)
       holdPoll   <- duration(env, "ERASURE_HOLD_POLL", d.erasureHoldPoll)
+      targets    <- erasureTargets(env)
     yield Settings(
       brand = brand,
       realMoney = realMoney,
@@ -66,8 +69,17 @@ object Settings:
       exportPartBound = exportPart,
       exportRetention = exportKept,
       registrationBound = register,
-      erasureHoldPoll = holdPoll
+      erasureHoldPoll = holdPoll,
+      erasureTargets = targets
     )
+
+  /** `ERASURE_TARGETS`: `service=prefix` pairs, comma-separated, or `none` (the modules tool's value when no module adds one). */
+  def erasureTargets(env: Map[String, String]): Either[String, Vector[(String, String)]] =
+    text(env, "ERASURE_TARGETS").filterNot(_ == "none").fold(Right(Vector.empty)) { v =>
+      val pairs = v.split(',').toVector.map(_.trim).filter(_.nonEmpty).map(_.split('=').toVector.map(_.trim))
+      pairs.find(p => p.size != 2 || p(0).isEmpty || !p(1).startsWith("/")).map(p => p.mkString("="))
+        .map(bad => s"ERASURE_TARGETS: '$bad' is not service=/route-prefix").toLeft(pairs.map(p => p(0) -> p(1)))
+    }
 
   private def text(env: Map[String, String], name: String): Option[String] = env.get(name).map(_.trim).filter(_.nonEmpty)
 

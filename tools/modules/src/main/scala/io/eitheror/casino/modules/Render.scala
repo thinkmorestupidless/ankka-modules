@@ -231,14 +231,17 @@ object BrandRender:
       named: Vector[String],
       versions: Map[String, String],
       installation: Option[Installation],
-      organization: Option[String] = None
+      organization: Option[String] = None,
+      routes: Set[(String, String, String)] = Set.empty
   ): Either[String, BrandPlan] =
     ordered(named, manifests).map { order =>
       val project = Values.tenantProject(values.slug, organization)
       // The modules the brand runs, core among them so the value is never empty (the platform refuses an empty entry),
       // for a core service that reads a module's topic (spec 012 R7), unless the brand wrote them.
       val modules = "casino-modules" -> order.map(_.name).mkString(",")
-      val known   = Values.all(values, project, installation) ++ Option.unless(values.values.contains("casino-modules"))(modules)
+      val targets = erasureTargets(order, routes, values.slug)
+      val known   = Values.all(values, project, installation) ++ Option.unless(values.values.contains("casino-modules"))(modules) ++
+        Option.unless(values.values.contains("erasure-targets") || targets.isEmpty)("erasure-targets" -> targets.mkString(","))
       val planned = order.map(module(_, values, keys, known, versions.get, installation))
       // A module held for a key holds every module that depends on it: the agent resolves dependencies first.
       val held = planned.foldLeft(Vector.empty[ModulePlan]) { (held, m) =>
@@ -246,6 +249,20 @@ object BrandRender:
       }
       BrandPlan(project, values.slug, values.realMoney, planned.filterNot(held.contains), held, order.map(_.name))
     }
+
+  private val ErasureRoute = "/erasure/players/{player}"
+
+  /**
+   * The services of the planned modules that erase a player beyond core's own (spec 023 R13), as
+   * `service=prefix`: each with a `POST …/erasure/players/{player}` row in `contract/access/routes.md`.
+   * A module wires its erasure by its route row; `players` reads the pairs from `erasure-targets`.
+   */
+  def erasureTargets(order: Vector[ModuleManifest], routes: Set[(String, String, String)], slug: String): Vector[String] =
+    for
+      m              <- order.filterNot(_.name == "core")
+      s              <- m.services
+      (svc, _, path) <- routes.toVector.sorted if svc == s.name && path.endsWith(ErasureRoute)
+    yield s"${s.name}=${path.stripSuffix(ErasureRoute).replace("{brand}", slug)}"
 
   private def module(m: ModuleManifest, values: Values, keys: Keys, known: Map[String, String], version: String => Option[String], installation: Option[Installation]): ModulePlan =
     val v = version(m.name)

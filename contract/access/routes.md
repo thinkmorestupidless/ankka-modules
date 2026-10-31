@@ -27,3 +27,4 @@ target only a route listed here; the modules tool refuses any other.
 | wallet | POST | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/adjustments | operator | 022 FR-009 |
 | wallet | GET | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/balance | operator | 022 FR-012 |
 | payouts | POST | /v1/casino/brands/{brand}/withdrawals/{requestId}/outcome | service | 001 FR-016, 007 (granted to payments/psp-gateway) |
+| exchange | POST | /v1/casino/brands/{brand}/exchange/erasure/players/{player} | service | 023 R13 (an erasure target: players reads it from `erasure-targets`) |

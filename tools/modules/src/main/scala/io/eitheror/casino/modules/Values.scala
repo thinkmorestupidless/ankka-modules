@@ -86,7 +86,9 @@ object Values:
    */
   val defaults: Map[String, String] = Map("reporting-zone" -> "UTC", "casino-modules" -> "core", "kyc-max-upload-bytes" -> "5242880",
     // spec 023 R7: no taker fee, and both gates an order may run
-    "predictions-taker-fee-bps" -> "0", "predictions-gates" -> "play-gate,may-bet")
+    "predictions-taker-fee-bps" -> "0", "predictions-gates" -> "play-gate,may-bet",
+    // spec 023 R13: no erasure target beyond core's own unless a planned module's service serves one
+    "erasure-targets" -> "none")
 
   /** Every non-secret value a module may read: the defaults, the brand's own and the derived. */
   def all(v: Values, project: String, installation: Option[Installation]): Map[String, String] =
