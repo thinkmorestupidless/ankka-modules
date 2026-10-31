@@ -60,7 +60,7 @@ Every event carries `key`, `digest`, `transactionId`, `at`, `outcome`, `realAfte
 | `ReservationReleased` | `orderId`, `amount` |
 | `SettlementDebited` | `tradeId`, `orderId`, `amount`, `unused`, `counterparty` |
 | `SettlementCredited` | `tradeId`, `amount`, `counterparty` |
-| `MovedToAccount` | `accountKind`, `accountName`, `purpose`, `reference`, `amount`; `orderId` (absent) and `unused` (0) when charged from a reservation (FR-008a) |
+| `MovedToAccount` | `accountKind`, `accountName`, `purpose`, `reference`, `amount`; `orderId` and `unused`, set when charged from a reservation (FR-008a); absent and 0 otherwise |
 | `MovedFromAccount` | `accountKind`, `accountName`, `purpose`, `reference`, `amount` |
 
 `CommandRefused` is unchanged and records the new commands' refusals under their keys. Existing

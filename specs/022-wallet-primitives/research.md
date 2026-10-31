@@ -389,12 +389,25 @@ stands; nothing is added.
 - A leg's key is the caller's, as every split's is; the exchange derives one per leg from the
   trade and the leg's owner (ankka-predictions `LedgerPort.settle`). The wallet does not check
   that the legs of one trade sum to the sets they split; the exchange decided the trade, and the
-  pool account's balance against the exchange's pool is spec 023 FR-011's reconciliation.
+  pool account's balance against the exchange's pool is spec 023 FR-011's reconciliation, which
+  must read an order's drawdown from `account_debit` (`order_id`, `released_cents`) as well as
+  from `settlement_debit`.
 - A leg refused after another leg of the same trade was charged leaves the first charged: the
   wallet has no trade to roll back, and undoing one leg on the other's refusal would be a decision
-  the exchange did not make. The reconciliation raises the difference.
-- The charge counts for responsible gambling where a settlement's debit does (the Clarifications
-  of 2026-10-25): the wallet asks nothing; the gate saw the cost when the order was reserved.
+  the exchange did not make. The reconciliation raises the difference; until it is settled the
+  pool account holds less than the exchange's pool, so it pays short at resolution.
+- Responsible gambling: the gate counted the cost when the order was reserved (the Clarifications
+  of 2026-10-25), and the wallet asks nothing at the charge. After the wallet, nothing counts it
+  again: the RG consumer reads neither `settlement_debit` nor `account_debit`.
+- Deploying: safe to upgrade, not to roll back. A wallet binary from before this change reads a
+  charge's `MovedToAccount` without `orderId` and `unused` (the stored codec skips unknown
+  fields), so its replay leaves the order's reservation in full and would accept a settle or a
+  release against it. No rollback of the wallet past this version once a charge is journaled, and
+  the exchange's pool settlement is turned on only after the wallet's rollout has finished (found
+  in review, 2026-10-31).
+- The merge side departs from item 9's wording ("spec 022's payment as it stands"): a trade
+  through a merge is one merge per selling leg, keyed by the caller, since a payment pays a
+  position and `LedgerPort`'s `Merge` pays legs. ankka-predictions wires `merge`, not `pay`.
 
 ## Resolved unknowns
 

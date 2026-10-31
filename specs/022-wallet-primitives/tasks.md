@@ -422,7 +422,7 @@ ankka-predictions `notes/casino-requests.md` item 9; research.md "Amendment 2026
 - [X] T056 In `M/entity/` add `ChargeReservationToAccount` (`charge-reservation-to-account`), its
       handler beside `settle-debit` (the same refusals and pools rule), `orderId` and `unused` on
       `MovedToAccount` with its replay drawing the order's reservation down; a case in
-      `EveryCommandIdempotentSuite`, the rules in `EntityRulesSuite`, the command in `InvariantsSuite`'s
+      `EveryCommandIdempotentSuite`, the rules in `EntityRulesSuite` (the boundary and one unit over; added after review), the command in `InvariantsSuite`'s
       generator (SC-003)
 - [X] T057 In `M/accounts/AccountMoveWorkflow.scala` add `orderId` and `unused` to `AccountMoveStart`,
       left out of its digest while unset, and call the new command from `debit-wallet` when the order
