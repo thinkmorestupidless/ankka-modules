@@ -268,9 +268,9 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       (`services/players/src/main/scala/io/eitheror/casino/players/erasure/ErasureWorkflow.scala`), and
       add a fake payouts erasure route to its suites (research R12). Then `just service players test`
       green.
-- [ ] T057 Quickstart §6: the service run locally on 9004 beside `wallet-run` and `psp-gateway`'s local
+- [X] T057 Quickstart §6: the service run locally on 9004 beside `wallet-run` and `psp-gateway`'s local
       run; a request, a cancel and an approval driven by `curl` with real tokens from kind.
-- [ ] T058 Quickstart §7 on `kind-ankka` (never production; always `--context kind-…`):
+- [X] T058 Quickstart §7 on `kind-ankka` (never production; always `--context kind-…`):
       - build and load the image, then run
         `just modules apply goldvibe --installation dev-kind --modules core --allow-unbuilt`;
       - a request held and approved;
