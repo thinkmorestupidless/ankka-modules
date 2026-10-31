@@ -1,0 +1,418 @@
+{
+  "scenario": "a Gigadat request missing its method fields is accepted and parked for manual payment at approval",
+  "requirement": "007/FR-004",
+  "recorded_at": "2026-10-31T15:13:33.017885Z",
+  "original": {
+    "commit": "e7d8f2de"
+  },
+  "runs": 2,
+  "service": "payouts",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "firstName": "A.",
+          "language": "en",
+          "lastName": "Example",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "62aa93d2-fbf7-3049-ba95-d753abf4b6f1",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "62aa93d2-fbf7-3049-ba95-d753abf4b6f1",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player's identity is verified",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "kyc_status": "verified"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/62aa93d2-fbf7-3049-ba95-d753abf4b6f1"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: deposit to the player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+        "service": "wallet",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Internal-Brand-Id": "spinvibe"
+        },
+        "body": {
+          "amount": "100.00",
+          "paymentRef": "{deposit}",
+          "pspId": "payouts-driver-psp",
+          "scheme": "card",
+          "terminalId": "payouts-driver"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "realBalance": "100.00",
+          "txnId": "transaction/84ed95a2-a4ee-487a-a888-021c67eafcc7"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player's deposit turnover pending is 0.00",
+      "request": {
+        "method": "POST",
+        "path": "/twins/wallet/{walletTwin}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "deposit_turnover_pending": 0
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "wallet/ee026044-5402-3331-9716-9a4d0175397d"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the terminal payouts driver gigadat",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal/{gigadatTerminal}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "gateway": "gigadat",
+          "id": "{gigadatTerminal}",
+          "name": "payouts driver gigadat",
+          "properties": "{\"accountId\":\"stub-account\",\"purseId\":\"stub-purse\",\"signKey\":\"{stubSignKey}\",\"userId\":\"stub-user\",\"withdrawalApiKey\":\"{stubWithdrawalKey}\"}",
+          "requiresPayoutDestination": false,
+          "scheme": "interac",
+          "status": "active",
+          "sub_brand_id": "2867b301-c32d-3879-b766-10321f0302a8",
+          "supportsWithdrawal": true
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal/de73c0c0-fd68-429f-be44-03a746598757"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the brand's terminal index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8"
+        }
+      }
+    },
+    {
+      "name": "setup: add the terminal to the brand's index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8|{gigadatTerminal}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a"
+        }
+      }
+    },
+    {
+      "name": "request a withdrawal naming no method",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/players/{playerId}/withdrawal-requests",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "EUR",
+          "terminalId": "{gigadatTerminal}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "amount": 50,
+          "bonusForfeited": false,
+          "clawbackAmount": 0,
+          "createdAt": "2026-10-31T15:13:34.048223841Z",
+          "currency": "EUR",
+          "forfeitedAmount": 0,
+          "requestId": "976aca67-34a2-4b0d-889e-718735a2f5fa",
+          "status": "PENDING_REVIEW",
+          "terminalId": "de73c0c0-fd68-429f-be44-03a746598757"
+        }
+      },
+      "capture": {
+        "requestId": "$.requestId"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.requestId": "differs between two runs of the original",
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "approve",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/withdrawal-requests/{requestId}/approve",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "requestId": "976aca67-34a2-4b0d-889e-718735a2f5fa",
+          "status": "AWAITING_MANUAL_PAYOUT"
+        }
+      },
+      "vary": {
+        "$.requestId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the request is AWAITING_MANUAL_PAYOUT",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/withdrawal-requests/{requestId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "amount": 5000,
+          "approvedAt": "2026-10-31T15:13:34.229102840Z",
+          "approvedBy": "dev-operator@eitheror.io",
+          "balanceAfterReservation": 5000,
+          "balanceAfterReturn": null,
+          "balanceBefore": 10000,
+          "clawbackAmount": 0,
+          "createdAt": "2026-10-31T15:13:34.048223841Z",
+          "cryptoCurrency": "",
+          "cryptoWalletAddress": "",
+          "currency": "EUR",
+          "forfeitedAmount": 0,
+          "kycStatus": "verified",
+          "payoutInitiatedAt": "",
+          "payoutMethod": "",
+          "payoutStatus": "",
+          "playerEmail": "a-gigadat-request-missing-its-pd18e2590b2c-email-f8871edd@example.test",
+          "playerId": "62aa93d2-fbf7-3049-ba95-d753abf4b6f1",
+          "pspPayoutRef": "",
+          "reason": "",
+          "requestId": "976aca67-34a2-4b0d-889e-718735a2f5fa",
+          "resolvedAt": "2026-10-31T15:13:34.229102840Z",
+          "resolvedBy": "dev-operator@eitheror.io",
+          "reversedAt": "",
+          "status": "AWAITING_MANUAL_PAYOUT",
+          "terminalId": "de73c0c0-fd68-429f-be44-03a746598757",
+          "terminalName": "payouts driver gigadat",
+          "terminalScheme": "interac"
+        }
+      },
+      "vary": {
+        "$.approvedAt": "differs between two runs of the original",
+        "$.createdAt": "differs between two runs of the original",
+        "$.playerEmail": "differs between two runs of the original",
+        "$.playerId": "differs between two runs of the original",
+        "$.requestId": "differs between two runs of the original",
+        "$.resolvedAt": "differs between two runs of the original",
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: retire the terminal payouts driver gigadat",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal/{gigadatTerminal}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "inactive"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal/de73c0c0-fd68-429f-be44-03a746598757"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the brand's terminal index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8|de73c0c0-fd68-429f-be44-03a746598757"
+        }
+      },
+      "vary": {
+        "$.ids": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: take the terminal out of the brand's index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a"
+        }
+      }
+    }
+  ]
+}

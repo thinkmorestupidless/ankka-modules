@@ -1,5 +1,13 @@
 {
+  "TestADepositIsSignedWithTheBrandsHMACAndRecordedAsSetup": [
+    "pass",
+    "pass"
+  ],
   "TestARecordingHasTheContractShapeAndNoRunValuesOrSecrets": [
+    "pass",
+    "pass"
+  ],
+  "TestARequestCarriesItsAmountInMajorUnitsAndLaterStepsItsIDByName": [
     "pass",
     "pass"
   ],
@@ -12,6 +20,10 @@
     "pass"
   ],
   "TestATemplatedBodyStaysJSONWhereACapturedValueIsANumber": [
+    "pass",
+    "pass"
+  ],
+  "TestATerminalIsWrittenUnderItsIDAppendedToTheBrandsIndexAndRetiredAndRemovedAfterwards": [
     "pass",
     "pass"
   ],
@@ -60,8 +72,8 @@
     "pass"
   ],
   "TestPayouts": [
-    "fail",
-    "fail"
+    "pass",
+    "pass"
   ],
   "TestPlayers": [
     "fail",
@@ -404,6 +416,22 @@
     "pass"
   ],
   "TestTheFirstDepositIsReadFromThisMonthsRevenueTwin": [
+    "pass",
+    "pass"
+  ],
+  "TestTheLimitsAreRestoredAfterTheScenario": [
+    "pass",
+    "pass"
+  ],
+  "TestTheOriginalsNameUUIDsAndMajorUnits": [
+    "pass",
+    "pass"
+  ],
+  "TestTheOutcomeIsSignedWithTheInternalSecretWhichIsNeverRecorded": [
+    "pass",
+    "pass"
+  ],
+  "TestTheQueueIsNarrowedToTheRunsPlayersByItsTag": [
     "pass",
     "pass"
   ],

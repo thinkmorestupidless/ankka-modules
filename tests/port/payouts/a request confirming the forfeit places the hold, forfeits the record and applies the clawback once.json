@@ -1,0 +1,423 @@
+{
+  "scenario": "a request confirming the forfeit places the hold, forfeits the record and applies the clawback once",
+  "requirement": "007/FR-006",
+  "recorded_at": "2026-10-31T15:12:25.141734Z",
+  "original": {
+    "commit": "e7d8f2de"
+  },
+  "runs": 2,
+  "service": "payouts",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "494d7cf7-a23d-3183-91b3-2278ed82528e",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "494d7cf7-a23d-3183-91b3-2278ed82528e",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player's identity is verified",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "kyc_status": "verified"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/494d7cf7-a23d-3183-91b3-2278ed82528e"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: deposit to the player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+        "service": "wallet",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Internal-Brand-Id": "spinvibe"
+        },
+        "body": {
+          "amount": "100.00",
+          "paymentRef": "{deposit}",
+          "pspId": "payouts-driver-psp",
+          "scheme": "card",
+          "terminalId": "payouts-driver"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "realBalance": "100.00",
+          "txnId": "transaction/76df75b2-1c4f-4335-9289-29260b58255d"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player's deposit turnover pending is 0.00",
+      "request": {
+        "method": "POST",
+        "path": "/twins/wallet/{walletTwin}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "deposit_turnover_pending": 0
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "wallet/6c729dc6-de06-35b1-bebc-0cd60bdad9cb"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: grant the player a bonus",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonusAmount": "10.00",
+          "currency": "EUR",
+          "wager": "1"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusAmount": "10.00",
+          "status": "granted",
+          "wageringRequired": "10.00"
+        }
+      }
+    },
+    {
+      "name": "observe: the bonus is active",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{playerId}/EUR/bonus/status",
+        "service": "wallet",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "10.00",
+          "bonusStatus": "ACTIVE",
+          "currency": "EUR",
+          "maxWin": "10.00",
+          "restrictedFunds": [
+            {
+              "balance": "10.00",
+              "grantRef": "bonus-claims/5d6719d6-f761-4329-b611-91e412c94e6d",
+              "id": "restricted-funds/5d6719d6-f761-4329-b611-91e412c94e6d",
+              "maxConvertibleAmount": "10.00",
+              "priority": 0,
+              "releaseRequirement": "10.00",
+              "releasedProgress": "0.00",
+              "status": "ACTIVE"
+            }
+          ],
+          "wageredAmount": "0.00",
+          "wageringRequirement": "10.00"
+        }
+      },
+      "vary": {
+        "$.restrictedFunds[0].grantRef": "differs between two runs of the original",
+        "$.restrictedFunds[0].id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the terminal payouts driver manualTerminal",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal/{manualTerminal}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "gateway": "manual",
+          "id": "{manualTerminal}",
+          "name": "payouts driver manualTerminal",
+          "requiresPayoutDestination": false,
+          "scheme": "eubanking",
+          "status": "active",
+          "supportsWithdrawal": true
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal/d88ea68b-c768-47e9-a64b-012ff21c0ffe"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the brand's terminal index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8"
+        }
+      }
+    },
+    {
+      "name": "setup: add the terminal to the brand's index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8|{manualTerminal}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a"
+        }
+      }
+    },
+    {
+      "name": "request a withdrawal confirming the forfeit",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/players/{playerId}/withdrawal-requests",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "confirmForfeit": true,
+          "currency": "EUR",
+          "terminalId": "{manualTerminal}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "amount": 50,
+          "bonusForfeited": true,
+          "clawbackAmount": 0,
+          "createdAt": "2026-10-31T15:12:26.189913799Z",
+          "currency": "EUR",
+          "forfeitedAmount": 10,
+          "requestId": "b3caa787-789c-4a72-ba90-821c0269bc90",
+          "status": "PENDING_REVIEW",
+          "terminalId": "d88ea68b-c768-47e9-a64b-012ff21c0ffe"
+        }
+      },
+      "capture": {
+        "requestId": "$.requestId"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.requestId": "differs between two runs of the original",
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the player's balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{playerId}/EUR/balance",
+        "service": "wallet",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "convertedPoolBalance": "0.00",
+          "currency": "EUR",
+          "depositPoolBalance": "50.00",
+          "realBalance": "50.00"
+        }
+      }
+    },
+    {
+      "name": "setup: retire the terminal payouts driver manualTerminal",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal/{manualTerminal}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "inactive"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal/d88ea68b-c768-47e9-a64b-012ff21c0ffe"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the brand's terminal index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8|d88ea68b-c768-47e9-a64b-012ff21c0ffe"
+        }
+      },
+      "vary": {
+        "$.ids": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: take the terminal out of the brand's index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a"
+        }
+      }
+    }
+  ]
+}
