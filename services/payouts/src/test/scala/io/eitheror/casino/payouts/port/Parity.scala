@@ -205,12 +205,20 @@ object Parity:
 
     /** The gateway's listing and the brand's catalogue, as psp-gateway's would read once the twin is written. */
     private def list(): Unit =
-      Currencies.foreach { c =>
-        val rows = twins.toVector.map(row)
-        kit.gateway.terminals(c, rows*)
-        kit.components.forKeyValueEntity(EntityId(kit.slug)).call(TerminalCatalogue.refresh)
-          .invoke(Refresh(c, rows.flatMap(Gateway.terminal), kit.now())): Unit
-      }
+      val rows      = twins.toVector.map(row)
+      val terminals = rows.flatMap(Gateway.terminal)
+      val catalogue = kit.components.forKeyValueEntity(EntityId(kit.slug))
+      Currencies.foreach(c => kit.gateway.terminals(c, rows*))
+      def write()  = Currencies.foreach(c => catalogue.call(TerminalCatalogue.refresh).invoke(Refresh(c, terminals, kit.now())): Unit)
+      def holds()  = Currencies.forall(c => catalogue.call(TerminalCatalogue.get).invoke().of(c).contains(terminals))
+      // The kit's catalogue timer (every 2 s) may have read the gateway before the listing above and write its older
+      // list after this one: written again until it has held for longer than a timer's run takes.
+      val until = System.nanoTime + 5_000_000_000L
+      def settle(): Unit =
+        write()
+        Thread.sleep(300)
+        if !holds() && System.nanoTime < until then settle()
+      settle()
 
     /** The wallet's preview while a bonus is active: a forfeit to confirm, and no more than the real balance. */
     private def bonus(p: String, amount: Long): Unit =
