@@ -72,6 +72,25 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
     assert(facts.nonEmpty)
     facts.foreach(f => clean("a fact", new String(CasinoWithdrawals.serializer.toBytes(f), UTF_8), p))
 
+  test("the export is the player's destinations and requests, with no whole IBAN and no operator's reason; players alone may read it"):
+    val p        = scene.player("ex")
+    val rejected = scene.request(p, amount = 1500L)
+    assertEquals(kit.json("POST", s"/v1/casino/brands/${kit.slug}/withdrawal-requests/$rejected/reject", Json.obj("reason" -> Reason),
+      kit.asOperator()).status, 200)
+    val pending = scene.request(p, amount = 2500L)
+    def read(h: Seq[(String, String)]) = kit.request("GET", s"/v1/casino/brands/${kit.slug}/payouts/exports/players/$p", None, h)
+    val a = kit.eventually("both exported")(Some(read(kit.asService("players"))).filter(_.json.objects("requests").size == 2))
+    assertEquals((a.status, a.str("service"), a.str("playerId")), (200, "payouts", p), a.text)
+    val rs = a.json.objects("requests")
+    assertEquals(rs.flatMap(_.text("requestId")), Vector(rejected, pending))
+    assertEquals(rs.flatMap(_.text("status")), Vector("REJECTED", "PENDING_REVIEW"))
+    assertEquals(rs.flatMap(_.long("amount")), Vector(1500L, 2500L))
+    val d = a.json.objects("destinations")
+    assertEquals(d.flatMap(_.text("ibanLastFour")), Vector("3000"))
+    assertEquals(d.flatMap(_.text("firstName")), Vector("Ana"))
+    assert(!a.text.contains(Iban) && !a.text.contains(Reason), a.text)
+    Vector(kit.asService("wallet"), kit.asPlayer(p), kit.asOperator()).foreach(h => assert(Set(401, 403)(read(h).status)))
+
   test("only players may erase"):
     val p = scene.player("er")
     Vector(kit.asService("wallet"), kit.asService("players", "payments"), kit.asPlayer(p), kit.asOperator(), kit.asGateway).foreach { h =>

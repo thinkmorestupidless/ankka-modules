@@ -85,6 +85,7 @@ ACL: `Routes.serviceOf("players")`.
 | Method and path | Answer |
 |---|---|
 | `POST /erasure/players/{playerId}` (the path `players`' `ErasureWorkflow` calls on every target) | 200 `{erased: [requestIds]}`, idempotent |
+| `GET /exports/players/{playerId}` (the player's part of their export, spec 008 FR-040) | 200 `{service: "payouts", playerId, destinations: [as the player's listing], requests: [{requestId, amount, paidAmount, currency, terminal, status, payoutStatus, createdAt, initiatedAt, settledAt}]}`; no whole IBAN, no operator's reason |
 
 ## Calls out
 

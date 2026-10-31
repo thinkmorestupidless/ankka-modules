@@ -418,6 +418,12 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   brand's project, so `players` or `wallet` could settle a payout. FR-001 says "that identity alone":
   the route now admits only the callers the grant names (`payments`/`psp-gateway`), and
   contracts/routes.md says so. The route's table is unchanged. `OutcomeSuite` holds it.
+- **2026-10-31, payouts serves the player's export too** (settled with the user). Adding `payouts` to
+  `players`' targets (T056) adds it to the export as well, because spec 008 FR-040 has every brand service
+  serve both routes. `ServiceEndpoint` gains `GET /exports/players/{playerId}`, for `players` alone. It
+  answers the player's destinations as their own listing shows them, and each request with its money,
+  statuses and times. The whole IBAN and the operators' reasons are left out, as kyc's part leaves out
+  its objects. contracts/routes.md says so; `ErasureSuite` holds it.
 
 ## Design finished
 
