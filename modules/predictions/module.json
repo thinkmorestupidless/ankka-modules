@@ -15,6 +15,9 @@
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/markets:0.0.0",
         "expose": true,
         "runtime": "0.14.2",
+        "resources": {
+          "instanceType": "medium"
+        },
         "env": [
           {
             "name": "CASINO_PROJECT",
@@ -101,6 +104,9 @@
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/exchange:0.0.0",
         "expose": true,
         "runtime": "0.14.2",
+        "resources": {
+          "instanceType": "medium"
+        },
         "env": [
           {
             "name": "CASINO_PROJECT",

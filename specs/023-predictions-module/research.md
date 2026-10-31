@@ -74,14 +74,18 @@ stake is quantity × price there.
 
 | Port call | Wallet route | Key |
 |---|---|---|
-| `reserve(m, order, money)` | `POST /wallets/{owner}/{currency}/reservations` `{key: order, amount}` | the order |
-| `release(m, order, ordinal, money)` | `POST …/reservations/release` `{orderId, sequence: ordinal, amount}` | `order/ordinal` |
-| `settle(m, trade, Direct, legs)` | `POST /settlements` `{tradeId, buyer, orderId, seller, amount: charge, unused: released}` | the trade |
-| `settle(m, trade, Split, legs)` | per buying leg `POST /accounts/pool/{m}/splits` `{key: trade/owner, player, amount: charge, orderId, unused: released}` (FR-008a) | trade and owner |
-| `settle(m, trade, Merge, legs)` | per selling leg `POST /accounts/pool/{m}/merges` `{key: trade/owner, player, amount: paid}` | trade and owner |
+| `reserve(m, order, money)` | `POST /wallets/{owner}/{currency}/reservations` `{key: m/order, amount}` | the market and the order |
+| `release(m, order, ordinal, money)` | `POST …/reservations/release` `{orderId: m/order, sequence: ordinal, amount}` | `m/order/ordinal` |
+| `settle(m, trade, Direct, legs)` | `POST /settlements` `{tradeId: m/trade, buyer, orderId: m/order, seller, amount: charge, unused: released}` | the market and the trade |
+| `settle(m, trade, Split, legs)` | per buying leg `POST /accounts/pool/{m}/splits` `{key: m/trade/owner, player, amount: charge, orderId: m/order, unused: released}` (FR-008a) | market, trade and owner |
+| `settle(m, trade, Merge, legs)` | per selling leg `POST /accounts/pool/{m}/merges` `{key: m/trade/owner, player, amount: paid}` | market, trade and owner |
 | `payout(m, position, money)` | `POST /accounts/pool/{m}/payments` `{positionId: owner/outcome, …}` | market and position |
 | `charge`, `pay` (explicit split and merge) | none: answered `Refused("not offered")` (FR-016) | |
 | the taker fee (R8) | spec 022's amended fee move into `/accounts/fee/fees/…` | trade and taker |
+
+Order and trade ids are a book's own (every market has a `t-1`), and a wallet keys a player's calls
+across every market, so every id the port sends is under its market (amended 2026-10-31, found on
+kind; "Found during implementation").
 
 Answers: a 2xx is `Done`; `INSUFFICIENT_FUNDS` is `Insufficient`; `OUTCOME_PENDING`, a 5xx or
 an unreachable wallet throws (the library retries: placement with backoff within
@@ -322,3 +326,34 @@ the original*).
   (exchange holds nothing to export). Through a vendor the brand writes the value until spec 021
   renders it (keys.md). The player id is a plain id on every fact and view (FR-006), so the
   exchange's "mark" is a record of the erasure, which also makes a repeat answer the first.
+- **T043, found on kind (SC-003 against goldvibe).** The kind suite found three faults the
+  service suites could not, each settled by Trevor:
+  - *Ids across markets.* The ledger port sent order and trade ids bare, but a book numbers its
+    own, so a player's second market reused the first's keys: its reservation was answered as a
+    repeat, its split found no reservation (`RESERVATION_NOT_FOUND`), and the library passed the
+    event, granting the position with no money moved (8 of 8 markets on kind). Trevor chose to
+    qualify by market: R4's table is amended, the tally keys and indexes the same ids, a retry's
+    key names the market, and `LedgerSuite` holds two markets reusing an order and a trade id.
+  - *An order priced or sized below one* reached the wallet as a reservation of nothing or less,
+    refused `INVALID_REQUEST` before the library could name the price or the quantity. Trevor chose
+    the library: ankka-predictions' placement sends such an order to the book alone (no gate, no
+    reservation), on the 0.1.1 branch.
+  - *A book with no terms.* `markets` shows a market open before its driver has opened the book on
+    `exchange`, and an order in that window failed 424 when the gate read the missing terms. The
+    place route now refuses it `state: empty` (409), as the library refuses a book that is not open.
+  - *Funding.* A staff adjustment credits a wallet no deposit has opened, and the wallet refuses a
+    reservation on one (`WALLET_NOT_FOUND`); the suite funds each player by a deposit, as
+    `payments/merchant` lands one, from merchant's pod with its own service identity.
+  - *Repeats.* The place route stamps each call with its clock, and the library's placement compared
+    the whole request, so a repeat sent later was refused as another order on other terms; the
+    library now compares it without its time (0.1.1). Another order under a placed order's id met
+    the workflow's conflict error, not the id refusal; the route now refuses it naming the id.
+  - *Instance size.* The exchange was OOM-killed on the small default (512 MiB) under the suite;
+    the predictions manifest gives `markets` and `exchange` the medium instance, as core's services.
+    core's `responsible-gambling` stays on the small instance and was OOM-killed once under the
+    suite (every order asks it the bet gate); that is core's manifest, left for its owner.
+  - *The result*, 2026-10-31 on goldvibe (kind, platform 0.14.2, ankka-predictions
+    0.1.1-pr023-SNAPSHOT): 18 of 18 scenarios pass and one runs outside (the maximum position, which
+    orders cannot set up: 100 shares held against a maximum of 50). The run before it failed only on
+    sign-ins answered `rg_unavailable` while responsible-gambling was restarting.
+    `PredictionsOnKindSuite` (`just it`, `CASINO_IT_PREDICTIONS=<slug>`) is the check.
