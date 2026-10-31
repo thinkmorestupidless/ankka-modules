@@ -57,6 +57,33 @@ class EligibilitySuite extends munit.FunSuite with LogCapturing:
     Catalogue.refreshes(held(s), gateway.terminals, kit.now()).foreach(r => entity.call(TerminalCatalogue.refresh).invoke(r): Unit)
     assertEquals((held(s).of("EUR").map(_.map(_.id)), held(s).of("GBP").map(_.map(_.id))), (Some(Vector("t-3")), Some(Vector("t-2"))))
 
+  test("a terminal deactivated after the last refresh is offered, then refused by the gateway at initiation, which returns the money"):
+    val p      = s"el-${UUID.randomUUID().toString.take(8)}"
+    val record = kit.components.forEventSourcedEntity(EntityId(p))
+    record.call(PlayerPayouts.seeNames).invoke(SeeNames(Personal("Ana"), Personal("Silva"), kit.now())): Unit
+    record.call(PlayerPayouts.seeEmail).invoke(SeeEmail(Personal("ana@example.test"), kit.now())): Unit
+    record.call(PlayerPayouts.seeKyc).invoke(SeeKyc(Kyc.Verified, kit.now())): Unit
+    record.call(PlayerPayouts.saveDestination).invoke(SaveDestination(s"d-$p", "Ana", "Silva", "DE89370400440532013000", "main", true, kit.now())): Unit
+    kit.wallet.balanceFor(p, 10000L)
+    val row = FakeGateway.terminal("t-late", "unityfinance", destination = true)
+    kit.gateway.terminals("EUR", row)
+    kit.components.forKeyValueEntity(EntityId(kit.slug)).call(TerminalCatalogue.refresh)
+      .invoke(Refresh("EUR", Vector(Gateway.terminal(row).get), kit.now())): Unit
+    val listed = kit.request("GET", kit.playerPath(s"/$p/withdrawal-terminals?currency=EUR"), None, kit.asPlayer(p))
+    assertEquals(listed.json.objects("terminals").flatMap(_.text("id")), Vector("t-late"))
+    // An operator deactivates it; the catalogue still holds it until the next refresh, and the request is taken.
+    val r = kit.json("POST", kit.playerPath(s"/$p/withdrawal-requests"), io.eitheror.casino.payouts.Json.obj("amount" -> 5000L,
+      "currency" -> "EUR", "terminalId" -> "t-late", "destinationId" -> s"d-$p", "key" -> UUID.randomUUID().toString), kit.asPlayer(p))
+    assertEquals(r.status, 201, r.text)
+    val id = r.str("requestId")
+    kit.gateway.initiateFor(id, FakeGateway.answer(id, "rejected", None, Some("terminal_inactive")))
+    val approved = kit.request("POST", s"/v1/casino/brands/${kit.slug}/withdrawal-requests/$id/approve", Some("{}"),
+      kit.asOperator("op-1", s"brand_${kit.slug},brand_finance"))
+    assertEquals(approved.status, 200, approved.text)
+    kit.eventually("failed")(Some(kit.components.forEventSourcedEntity(EntityId(id)).call(io.eitheror.casino.payouts.request.WithdrawalRequest.get)
+      .invoke()).filter(_.status == io.eitheror.casino.payouts.request.Status.Failed))
+    assertEquals(kit.wallet.balance(p), Some(10000L))
+
   test("SC-007: the listing's order is the same on 1,000 reads"):
     val p = s"el-${UUID.randomUUID().toString.take(8)}"
     val record = kit.components.forEventSourcedEntity(EntityId(p))

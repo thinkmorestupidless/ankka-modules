@@ -170,7 +170,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T033 [US3] `PlayerEndpoint`: `GET`, `POST /{playerId}/payout-destinations`,
       `PUT /{playerId}/payout-destinations/{id}` (`setAsDefault: true`) and `DELETE …/{id}`, with the refusals
       of contracts/routes.md. The IBAN is shown as its last four.
-- [ ] T034 [US3] `T/it/EligibilitySuite.scala`:
+- [X] T034 [US3] `T/it/EligibilitySuite.scala`:
       - a cold catalogue reads the gateway once;
       - a refresh replaces one currency;
       - a terminal deactivated after the last refresh is offered, and refused by the gateway at
