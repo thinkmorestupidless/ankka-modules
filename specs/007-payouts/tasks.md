@@ -232,7 +232,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 ## Phase 8: US6, reads (P2)
 
 - [X] T047 [US6] Bind `features/payouts/reads.feature` in `T/features/ReadsFeatures.scala`.
-- [ ] T048 [US6] `T/it/QueueSuite.scala`: each filter of FR-014 lists its requests with the right total,
+- [X] T048 [US6] `T/it/QueueSuite.scala`: each filter of FR-014 lists its requests with the right total,
       and the default is pending review.
 
 ## Phase 9: Personal data and erasure
