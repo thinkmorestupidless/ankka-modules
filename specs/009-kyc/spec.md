@@ -488,7 +488,8 @@ the player sees their own; other services read facts.
 
 - **FR-025**: When a player registers on a brand whose policy has a window, the service MUST set the
   player's deadline to the registration time plus the window and a timer for it; a policy change MUST
-  NOT move existing deadlines. When the timer fires on a player still unverified, the service MUST
+  NOT move existing deadlines. When the timer fires on a player still not verified (unverified or pending, as the
+  original's `kyc_status != "verified"`), the service MUST
   tell `players` to suspend the player with reason `kyc_window_expired` if the policy suspends on
   expiry, else flag the player for review (window), and in both cases publish
   `player_kyc_review_required`; the command MUST be idempotent under the player id and deadline.
