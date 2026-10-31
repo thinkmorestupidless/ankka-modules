@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
-import io.eitheror.casino.payouts.api.{ConfigEndpoint, Ctx, PlayerEndpoint}
+import io.eitheror.casino.payouts.api.{ConfigEndpoint, Ctx, OperatorEndpoint, PlayerEndpoint}
 import io.eitheror.casino.payouts.consumers.{DepositsConsumer, PlayersConsumer, RequestsConsumer}
 import io.eitheror.casino.payouts.facts.{AuditPublisher, ConfigAuditPublisher, PlayerAuditPublisher, WithdrawalPublisher}
 import io.eitheror.casino.payouts.limits.WithdrawalLimits
@@ -38,7 +38,7 @@ object PayoutsService:
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
     def ctx(c: EndpointClients) = Ctx(authenticate, c)
-    Seq[Ctx => HttpEndpoint](PlayerEndpoint(_), ConfigEndpoint(_)).map(e => (c: EndpointClients) => e(ctx(c)))
+    Seq[Ctx => HttpEndpoint](PlayerEndpoint(_), OperatorEndpoint(_), ConfigEndpoint(_)).map(e => (c: EndpointClients) => e(ctx(c)))
 
   /** Once the service has started: the timers reachable from the components, and the catalogue's refresh scheduled. */
   def started(timers: TimerRuntime): Unit =
