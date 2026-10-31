@@ -32,7 +32,7 @@ parameters (`WireTranslation` maps it).
 Each R4 refusal carries its own fields:
 
 - `WITHDRAWAL_BLOCKED_KYC`: `kycStatus`;
-- `WITHDRAWAL_BLOCKED_TURNOVER`: `totalRemaining`, `currency`;
+- `WITHDRAWAL_BLOCKED_TURNOVER`: no amount (the wallet's preview names none; research *Found during implementation*);
 - `_WEEKLY_LIMIT` and `_MONTHLY_LIMIT`: `limit`, `used`, `remaining`, `currency`;
 - `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT`: `maxWithdrawable`, `totalForfeit`;
 - `WITHDRAWAL_REQUIRES_BONUS_FORFEIT_CONFIRMATION`: `bonusBalance`, `clawbackAmount`, `totalForfeit`;
@@ -82,7 +82,7 @@ ACL: `Routes.serviceOf("players")`.
 
 | Method and path | Answer |
 |---|---|
-| `POST /erasure/{playerId}` | 200 `{erased: [requestIds]}`, idempotent |
+| `POST /erasure/players/{playerId}` (the path `players`' `ErasureWorkflow` calls on every target) | 200 `{erased: [requestIds]}`, idempotent |
 
 ## Calls out
 

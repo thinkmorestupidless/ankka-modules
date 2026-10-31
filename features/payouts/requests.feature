@@ -110,10 +110,10 @@ Feature: A verified player requests a withdrawal and the money is held
       | rejected  |
       | failed    |
 
-  Scenario: a request while deposit turnover is pending is refused naming what remains
+  Scenario: a request while deposit turnover is pending is refused as blocked by turnover
     Given deposit turnover pending of "25000"
     When the player requests a withdrawal
-    Then it is refused as blocked by turnover, naming "25000" "EUR" remaining
+    Then it is refused as blocked by turnover
 
   Scenario: a request whose clawback under a funds and winnings policy would leave real balance short is refused naming the most they could withdraw
     Given an active restricted funds record under withdrawal policy "funds_and_winnings" whose clawback would leave real balance below the amount
