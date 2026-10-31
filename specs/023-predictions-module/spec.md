@@ -55,6 +55,10 @@ into a reasoning service, and erasure. A brand entitled to it trades; a brand bo
   player's losses from trading? → A: `responsible-gambling` works them out itself from
   `money.transactions`, trades, fees and resolution payments included (an amendment to spec 010);
   `exchange` sends no sums.
+- Q: (found in analysis) Is "the limits" a third gate a brand can switch off apart from
+  `may-bet`? → A: No; `responsible-gambling` applies the limits inside `may-bet`, so a brand's
+  gates are two switches, `play-gate` and `may-bet`, and turning `may-bet` off turns the limits
+  off with it.
 
 ## Context
 
@@ -226,8 +230,8 @@ The original (`eitheror-platform`) has no prediction markets: everything in this
   explicitly and adding no lifecycle, matching, position or settlement rule of its own.
 - **FR-002**: `exchange` MUST implement the gate port by asking, in order, `players` (account
   active, always), then those the brand's values enable of `kyc` (play gate) and
-  `responsible-gambling` (`may-bet` with the order's cost, and its limits), all of them by
-  default, and MUST turn each refusal into the port's reason naming the gate and the casino's
+  `responsible-gambling` (`may-bet` with the order's cost, which applies the player's limits),
+  both by default, and MUST turn each refusal into the port's reason naming the gate and the casino's
   reason. A gate the values disable is not asked.
 - **FR-003**: `exchange` MUST implement the ledger port on the brand's wallet (spec 022): reserve
   under the order id before an order reaches a book (the cost, and with a taker fee the most it
@@ -273,8 +277,8 @@ The original (`eitheror-platform`) has no prediction markets: everything in this
   price MUST be a whole number of minor units from 1 to 99; `exchange` opens every book with that
   unit.
 - **FR-013**: `markets` MUST refuse a draft or a change whose category is not one the brand's
-  values list, naming the category, and whose currency the brand's wallet does not hold, naming
-  the currency, before the library sees it.
+  values list, naming the category, and whose currency the brand's wallet does not hold (the currencies its values
+  list), naming the currency, before the library sees it.
 - **FR-014**: `exchange` MUST open a market's book with the maximum order cost and maximum
   position its draft sets, else the brand's values' defaults; a draft MAY set either.
 - **FR-015**: With a taker fee rate above 0 in the brand's values (0 by default, in basis
@@ -299,8 +303,8 @@ The original (`eitheror-platform`) has no prediction markets: everything in this
 - **Fee account**: the brand's wallet account of kind `fee` that taker fees move into.
 - **Categories and limits**: values in the brand's values: the categories a brand offers, and
   the default maximum order cost and maximum position.
-- **Gates**: a value in the brand's values naming which of the play gate, `may-bet` and the
-  limits an order runs; all of them by default.
+- **Gates**: a value in the brand's values naming which of the play gate and `may-bet` (which
+  applies the limits) an order runs; both by default.
 
 ## Success Criteria *(mandatory)*
 

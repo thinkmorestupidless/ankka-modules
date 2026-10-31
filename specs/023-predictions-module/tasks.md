@@ -69,7 +69,7 @@ raised; the module reconciles. **Independent test**: `settlement.feature` bound 
 - [ ] T027 [US2] The ledger port's `settle` (direct, split, merge) and `payout` (R4) in `Ledger.scala`, one call per leg as the table says; extend `LedgerSuite.scala`
 - [ ] T028 [US2] `SettlementRetry` workflow (R5, data-model) in `S/x/main/…/exchange/retry/SettlementRetry.scala`: `start` as the claim, the backoff 1, 5, 15 min then hourly, an audit record at the first refusal and at the end; the port starts it before answering a refusal; its unit suite
 - [ ] T029 [US2] `OperatorEndpoint` in `S/x/main/…/exchange/api/OperatorEndpoint.scala`: `POST /exchange/retries/{key}/abandon` under `operatorWith(slug, "markets", "platform_admin")`
-- [ ] T030 [US2] The reconciliation (R12) in `S/x/main/…/exchange/reconcile/`: the `reconciliation` view over `money.transactions` and the exchange's events, a daily timed action and one at `Final`, one audit record per difference; the `money.transactions` grant added to the manifest work in T040; a unit suite feeding a deliberate difference
+- [ ] T030 [US2] The reconciliation (R12) in `S/x/main/…/exchange/reconcile/`: the `reconciliation` view over `money.transactions` and the exchange's events, a daily timed action and one at `Final`, one audit record per difference; `money.transactions` is the brand project's own topic, read with no grant; a unit suite feeding a deliberate difference
 - [ ] T031 [US2] Bind `features/predictions/settlement.feature` in `S/x/test/…/exchange/features/SettlementFeatures.scala`; the fee scenario ignored naming ankka-predictions spec 007
 - [ ] T032 [US2] Integration suite `S/x/test/…/exchange/it/SettlementItSuite.scala`: a restart between a trade and its settlement settles once; a refused settlement retries and succeeds under the same key; a final market pays every position from the pool
 
@@ -80,7 +80,7 @@ trades. **Independent test**: `catalogue.feature` bound in both services.
 
 - [ ] T033 [P] [US4] The catalogue routes in `S/m/main/…/markets/api/PlayerEndpoint.scala` over the library's `market-catalogue` view, a draft or approved market 404
 - [ ] T034 [P] [US4] Views `orders-by-owner` and `trades-by-owner` in `S/x/main/…/exchange/reads/` with unit suites
-- [ ] T035 [US4] The read routes in `PlayerEndpoint.scala` (prices, depth, the player's orders, positions with shares under sells added, trades), each carrying its sequence; the SSE stream per market numbered by the sequence (R10)
+- [ ] T035 [US4] The read routes in `PlayerEndpoint.scala` (prices, depth, the player's orders, positions with shares under sells added, trades), each carrying its sequence; the SSE stream per market numbered by the sequence (R10); a view read behind the entity's sequence answers with `stale: true` (FR-005)
 - [ ] T036 [US4] Bind `features/predictions/catalogue.feature` in `S/m/test/…/markets/features/CatalogueFeatures.scala` and `S/x/test/…/exchange/features/CatalogueFeatures.scala`
 
 ## Phase 7: User Story 5 — facts and the reasoning mirror (P2)
@@ -89,16 +89,16 @@ trades. **Independent test**: `catalogue.feature` bound in both services.
 service is named. **Independent test**: `facts.feature` bound in `exchange`.
 
 - [ ] T037 [P] [US5] `OrderFactsPublisher`, `TradeFactsPublisher`, `PriceFactsPublisher` in `S/x/main/…/exchange/facts/` (R9), with unit suites over sample events
-- [ ] T038 [US5] `MarketMirror` and `PriceObservations` behind `reasoning-service` (R14) in `S/m/main/…/markets/facts/` and `S/x/main/…/exchange/facts/`, registered only when the value is present
+- [ ] T038 [US5] `MarketMirror` and `PriceObservations` behind `reasoning-service` (R14) in `S/m/main/…/markets/facts/` and `S/x/main/…/exchange/facts/`, registered only when the value is present; at most one observation per outcome a minute, with a unit test of the throttle
 - [ ] T039 [US5] Bind `features/predictions/facts.feature` in `S/x/test/…/exchange/features/FactsFeatures.scala`; the mirroring scenario ignored naming ankka-reasoning 0.2.0
 
 ## Phase 8: Polish and cross-cutting
 
-- [ ] T040 `modules/predictions/module.json` (R15): both services at runtime 0.14.2 with their env entries, the four topics, the configuration, the `money.transactions` grant received, the core dependency; `just modules validate --all` and `just modules render` for a brand entitled to `predictions`; move the services out of keys.md's "Not yet built"
-- [ ] T041 Erasure (R13): `POST /erasure/players/{player}` in `S/x/main/…/exchange/api/ServiceEndpoint.scala` cancelling resting orders; `exchange` added to `services/players/…/erasure/ErasureWorkflow.scala` targets; a test each side
+- [ ] T040 `modules/predictions/module.json` (R15): both services at runtime 0.14.2 with their env entries, the four topics, the configuration, the grants made to `service:reasoner/audit` to consume the four topics (FR-006), the core dependency; `just modules validate --all` and `just modules render` for a brand entitled to `predictions`; a modules-tool test that a brand entitled to `predictions` and not `casino` renders `markets` and `exchange` and no game-provider (SC-004); move the services out of keys.md's "Not yet built"
+- [ ] T041 Erasure (R13): `POST /erasure/players/{player}` in `S/x/main/…/exchange/api/ServiceEndpoint.scala` cancelling resting orders, then marking the player's `Personal` fields on the exchange's facts and views; `exchange` added to `services/players/…/erasure/ErasureWorkflow.scala` targets; a test each side
 - [ ] T042 [P] `PlacementPerfSuite` in `S/x/test/…/exchange/perf/` (SC-002): 200 orders/s, neighbours at a fixed latency, median ≤ 50 ms, p99 ≤ 200 ms printed and asserted
 - [ ] T043 [P] SC-003 in the kind integration suite (`just it`, on purpose only): ankka-predictions' `features/exchange/orders.feature` against the real gates and wallet
-- [ ] T044 [P] An SC-001 check in `S/x/test/…/exchange/NoRulesSuite.scala` and its twin in markets: no source file outside the ports names a price, quantity or phase rule (a grep over the sources for the library's rule types used other than through its components)
+- [ ] T044 [P] An SC-001 check in `S/x/test/…/exchange/NoRulesSuite.scala` and its twin in markets: no source file outside the ports names a price, quantity or phase rule (the suite fails when a main source outside `ports/` and `api/` constructs the library's domain commands or reads a book's or market's state other than through the components' entity and view clients)
 - [ ] T045 [P] READMEs for both services (components, suites, how to run); CLAUDE.md's spec table and the brain's project file name 023 as built; spec status Built
 - [ ] T046 Run quickstart.md end to end and record the results in the pull request
 

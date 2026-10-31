@@ -198,7 +198,7 @@ bet gate, which is the safe reading.
 ## R12. Reconciliation
 
 **Decision**: FR-011 as a view and a timer in `exchange`. A consumer of `money.transactions`
-(granted from `core`, as `reporting`'s is) sums per market and family: reservations and releases
+(a topic of the same project, so no grant) sums per market and family: reservations and releases
 by order (the order's market from `orders-by-owner`), settlement debits and credits, splits and
 merges (`account_debit` and `account_credit` on `pool/<market>`), payments, fees. A timed action
 daily, and at `Final`, compares them with the exchange's own sums (from its events) and writes one
@@ -222,7 +222,9 @@ that runs; the mirroring scenario is ignored naming ankka-reasoning 0.2.0 until 
 
 **Decision**: `modules/predictions/module.json`, kind `product`: services `markets` and
 `exchange` (runtime 0.14.2), the four topics, the configuration keys of R7, no grant within the
-brand, and a dependency on `core` at the version carrying spec 022 FR-008a and the fee amendment.
+brand (a service reads its own project's topics without one), the grants made to
+`service:reasoner/audit` to consume the four topics (FR-006), as `core` makes them for
+`platform.audit`, and a dependency on `core` at the version carrying spec 022 FR-008a and the fee amendment.
 `contract/keys.md` gains the keys and the two services in its "Not yet built" table until their
 builds exist; `just modules validate --all` passes. The test fixture
 `tools/modules/src/test/resources/manifests/predictions.json` is left as the tool's own fixture.
@@ -255,3 +257,7 @@ the original*).
 | spec 010 amended: losses folded in `responsible-gambling` | loss limits on orders | a limited player is refused `unavailable` |
 | ankka-reasoning 0.2.0 | the mirror | nothing mirrored; one scenario ignored |
 | `players`, `kyc`, `responsible-gambling` admitting `exchange` | the gate | in this branch, three one-line changes |
+
+## Design finished
+
+2026-10-31: analyze reported nothing above LOW.

@@ -8,7 +8,7 @@ path parameters a route, no shared prefix between endpoints (ankka 0.13, kept in
 | Route | Class | Body | Answer | Refusals |
 |---|---|---|---|---|
 | `POST /markets/operator/drafts` | operator, `markets` role | the definition (spec 006), optional `maxOrderCost`, `maxPosition` | the market | `forbidden` (permission), `category`, `currency`, the library's field refusals |
-| `POST /markets/operator/{market}/{command}` with `command` ∈ change, approve, suspend, resume, close, move-close, resolve, correct, void | operator, `markets` role | the command's fields | the market | `forbidden`, `category`, `currency` (change), the library's |
+| `POST /markets/operator/{market}/{command}` with `command` ∈ change, approve, open (early, before its open time), suspend, resume, close, move-close, resolve, correct, void | operator, `markets` role | the command's fields | the market | `forbidden`, `category`, `currency` (change), the library's |
 | `GET /markets/operator/{market}` | operator | | the market with its record | |
 | `GET /markets/catalogue` `?category=` | player | | open markets | |
 | `GET /markets/catalogue/{market}` | player | | an open market | 404 for a draft or approved one |
