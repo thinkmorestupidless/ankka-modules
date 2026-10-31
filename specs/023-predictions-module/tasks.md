@@ -100,7 +100,7 @@ service is named. **Independent test**: `facts.feature` bound in `exchange`.
 - [X] T043 [P] SC-003 in the kind integration suite (`just it`, on purpose only): ankka-predictions' `features/exchange/orders.feature` against the real gates and wallet
 - [X] T044 [P] An SC-001 check in `S/x/test/…/exchange/NoRulesSuite.scala` and its twin in markets: no source file outside the ports names a price, quantity or phase rule (the suite fails when a main source outside `ports/` and `api/` constructs the library's domain commands or reads a book's or market's state other than through the components' entity and view clients)
 - [X] T045 [P] READMEs for both services (components, suites, how to run); CLAUDE.md's spec table and the brain's project file name 023 as built; spec status Built
-- [ ] T046 Run quickstart.md end to end and record the results in the pull request
+- [X] T046 Run quickstart.md end to end and record the results in the pull request
 
 ## Dependencies
 
