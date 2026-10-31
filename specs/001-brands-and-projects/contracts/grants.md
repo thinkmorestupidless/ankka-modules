@@ -21,7 +21,7 @@ their grantees and their kinds. A service spec that changes a path changes it he
 
 | Granter | Grantee | Target |
 |---|---|---|
-| `payments` | `service:<slug>/payouts` | route `psp-gateway` `POST /v1/payments/withdrawals` (initiate a withdrawal payment) |
+| `payments` | `service:<slug>/payouts` | routes `psp-gateway` `GET /v1/payments/withdrawal-terminals` (the brand's withdrawal-capable terminals), `POST /v1/payments/withdrawals` (initiate a withdrawal payment) and `GET /v1/payments/withdrawals/{requestId}` (its status) |
 | `payments` | `service:<slug>/players` | `erasure` (the brand files a player's erasure in `payments`, FR-025) |
 
 ## Not grants

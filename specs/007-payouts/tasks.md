@@ -33,7 +33,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       `EmailPromoted` and `EmailChanged`, each `Personal`. Add cases to its `FactsSuite`, and the new
       family to `specs/001-brands-and-projects/contracts/topics.md`'s `casino.players` row. Then
       `just service players test` green.
-- [ ] T003 [P] Add `brand_finance` to `brands/_realm/eitheror-operators.json` beside `brand_admin`
+- [X] T003 [P] Add `brand_finance` to `brands/_realm/eitheror-operators.json` beside `brand_admin`
       (research R6). Correct `specs/001-brands-and-projects/contracts/grants.md:24` to the three payout
       routes `payments` grants (initiate, status, the terminal listing). Then `just test` green.
 - [ ] T004 Run `ankka init` for the service at `services/payouts/`, in the shape of `services/kyc/`:
