@@ -272,7 +272,7 @@ func TestARequestCarriesItsAmountInMajorUnitsAndLaterStepsItsIDByName(t *testing
 	}
 }
 
-func TestATerminalIsWrittenUnderItsIDAppendedToTheBrandsIndexAndRetiredAfterwards(t *testing.T) {
+func TestATerminalIsWrittenUnderItsIDAppendedToTheBrandsIndexAndRetiredAndRemovedAfterwards(t *testing.T) {
 	rec, _, _ := record(t, find(t, "a request to a crypto terminal is refused when no address is supplied"))
 	index := "/twins/eitheror-terminal-index/" + NameUUID("eitheror-terminal-index."+NameUUID("seed.sub-brand.spinvibe"))
 	add := step(t, rec, "setup: add the terminal to the brand's index")
@@ -283,8 +283,12 @@ func TestATerminalIsWrittenUnderItsIDAppendedToTheBrandsIndexAndRetiredAfterward
 		!strings.Contains(compact(w.Request.Body), `"supportsWithdrawal":true`) {
 		t.Errorf("terminal: %+v %s", w.Request, w.Request.Body)
 	}
-	if last := rec.Steps[len(rec.Steps)-1]; last.Name != "setup: retire the terminal payouts driver crypto" || compact(last.Request.Body) != `{"status":"inactive"}` {
-		t.Errorf("the last step is %q", last.Name)
+	if r := step(t, rec, "setup: retire the terminal payouts driver crypto"); compact(r.Request.Body) != `{"status":"inactive"}` {
+		t.Errorf("retire: %s", r.Request.Body)
+	}
+	if last := rec.Steps[len(rec.Steps)-1]; last.Name != "setup: take the terminal out of the brand's index" ||
+		last.Request.Path != index || compact(last.Request.Body) != `{"ids":"existing-terminal"}` {
+		t.Errorf("the last step is %q %s", last.Name, last.Request.Body)
 	}
 }
 
