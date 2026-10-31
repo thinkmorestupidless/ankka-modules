@@ -15,6 +15,9 @@
           "pattern": "^[A-Z]{3}$",
           "type": "string"
         },
+        "gateway": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -51,6 +54,9 @@
           "pattern": "^[A-Z]{3}$",
           "type": "string"
         },
+        "gateway": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -59,6 +65,9 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "terminal": {
           "type": "string"
         },
         "type": {
@@ -81,6 +90,9 @@
           "pattern": "^[A-Z]{3}$",
           "type": "string"
         },
+        "gateway": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -89,6 +101,12 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "provider_reference": {
+          "type": "string"
+        },
+        "terminal": {
           "type": "string"
         },
         "type": {
@@ -114,6 +132,9 @@
           "pattern": "^[A-Z]{3}$",
           "type": "string"
         },
+        "gateway": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -122,6 +143,12 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "terminal": {
           "type": "string"
         },
         "type": {
@@ -147,6 +174,9 @@
         "failure_reason": {
           "type": "string"
         },
+        "gateway": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -155,6 +185,12 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "provider_reference": {
+          "type": "string"
+        },
+        "terminal": {
           "type": "string"
         },
         "type": {
@@ -177,6 +213,9 @@
           "pattern": "^[A-Z]{3}$",
           "type": "string"
         },
+        "gateway": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -187,7 +226,13 @@
         "player_id": {
           "type": "string"
         },
+        "provider_reference": {
+          "type": "string"
+        },
         "reason": {
+          "type": "string"
+        },
+        "terminal": {
           "type": "string"
         },
         "type": {

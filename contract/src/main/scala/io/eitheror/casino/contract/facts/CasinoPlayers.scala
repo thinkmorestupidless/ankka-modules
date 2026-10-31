@@ -28,7 +28,17 @@ final case class PlayerRegistered(playerId: String, registeredAt: Instant, btag:
     bonusCode: Option[String], country: Option[String], currency: Option[String], vipTier: Option[String], occurredAt: Instant,
     givenName: Option[Personal[String]] = None, familyName: Option[Personal[String]] = None,
     dateOfBirth: Option[Personal[String]] = None, telephone: Option[Personal[String]] = None,
-    addressLine: Option[Personal[String]] = None, city: Option[Personal[String]] = None, postCode: Option[Personal[String]] = None)
+    addressLine: Option[Personal[String]] = None, city: Option[Personal[String]] = None, postCode: Option[Personal[String]] = None,
+    email: Option[Personal[String]] = None)
+    extends CasinoPlayersFact
+
+/**
+ * The player's primary email changed (promoted or changed and verified), so `payouts` pays Unity Finance with the
+ * address the player holds (spec 007 R7). A family of its own: `player_profile_updated` carries the whole profile
+ * `kyc` judges completeness from.
+ */
+@named("player_email_changed")
+final case class PlayerEmailChanged(playerId: String, email: Personal[String], occurredAt: Instant)
     extends CasinoPlayersFact
 
 @named("player_logged_in")
@@ -153,6 +163,7 @@ object CasinoPlayers extends Topic[CasinoPlayersFact]("casino.players", Vector("
     FamilyDef.of[PlayerConsentChanged]("player_consent_changed"),
     FamilyDef.of[PlayerFraudFlagged]("player_fraud_flagged"),
     FamilyDef.of[PlayerFraudCleared]("player_fraud_cleared"),
+    FamilyDef.of[PlayerEmailChanged]("player_email_changed"),
     FamilyDef.of[PlayerMessageCreated]("player_message_created"),
     FamilyDef.of[PlayerMessageRead]("player_message_read"),
     FamilyDef.of[PlayerMessageDeleted]("player_message_deleted"),

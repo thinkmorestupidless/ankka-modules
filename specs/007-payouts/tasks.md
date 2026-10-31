@@ -17,7 +17,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 1: Setup
 
-- [ ] T001 The contract additions (contracts/facts.md; research R7, R11), every field `Option` with a
+- [X] T001 The contract additions (contracts/facts.md; research R7, R11), every field `Option` with a
       default of `None`:
       - in `contract/src/main/scala/io/eitheror/casino/contract/facts/CasinoPlayers.scala`:
         `PlayerRegistered.email: Option[Personal[String]]`, and a new family
