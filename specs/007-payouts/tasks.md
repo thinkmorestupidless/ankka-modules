@@ -119,7 +119,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 3: US1, a verified player requests a withdrawal and the money is held (P1)
 
-- [ ] T022 [US1] Fail first (a saved destination is seeded on `PlayerPayouts` directly; saving one is US3's): bind the US1 scenarios of `features/payouts/requests.feature` (the request
+- [X] T022 [US1] Fail first (a saved destination is seeded on `PlayerPayouts` directly; saving one is US3's): bind the US1 scenarios of `features/payouts/requests.feature` (the request
       and its hold, already pending, the amount, destination required, crypto address and coin, a
       destination not the player's, insufficient funds) in `T/features/RequestsFeatures.scala`.
 - [X] T023 [US1] `S/workflow/WithdrawalWorkflow.scala`, the request half: `start` as the atomic claim
