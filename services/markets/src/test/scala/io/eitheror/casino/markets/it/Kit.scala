@@ -77,7 +77,7 @@ final class Kit(val base: Settings = Kit.Base):
   MarketsRuntime.wire(base, () => now())
 
   private val timers  = TimerRuntime(200.millis)
-  val markets         = MarketsService(timers)
+  val markets         = MarketsService(timers, base)
   private val server  = HttpServer.at("127.0.0.1", 0)(markets.endpoints(() => Kit.authenticate)*)
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(

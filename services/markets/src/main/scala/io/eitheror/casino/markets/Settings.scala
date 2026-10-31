@@ -3,7 +3,8 @@ package io.eitheror.casino.markets
 /**
  * What `markets` is told at start (spec 023 R7), from the brand's values as the modules tool renders
  * them: the categories and currencies a draft may name (FR-013), the limits a book opens with when a
- * draft sets none (FR-014), and the taker fee rate in basis points (FR-015). No secret.
+ * draft sets none (FR-014), the taker fee rate in basis points (FR-015), and the reasoning service to
+ * mirror markets to, if any (FR-007). No secret.
  */
 final case class Settings(
     brand: String,
@@ -11,10 +12,14 @@ final case class Settings(
     currencies: Vector[String],
     maxOrderCost: Long,
     maxPosition: Long,
-    takerFeeBps: Int = 0
+    takerFeeBps: Int = 0,
+    reasoningService: Option[String] = None
 )
 
 object Settings:
+  /** The reasoning service a brand's values name (`project/service`, R7), absent unless named: then nothing is mirrored (FR-007). */
+  def reasoning(env: Map[String, String]): Option[String] = env.get("REASONING_SERVICE").map(_.trim).filter(_.nonEmpty)
+
   /** The settings from the environment, refused naming the variable when one cannot be read. */
   def fromEnvironment(env: Map[String, String] = sys.env): Either[String, Settings] =
     def named(name: String): Either[String, String] =
@@ -34,4 +39,4 @@ object Settings:
       cost       <- positive("PREDICTIONS_MAX_ORDER_COST")
       position   <- positive("PREDICTIONS_MAX_POSITION")
       bps        <- fee
-    yield Settings(brand, categories, currencies, cost, position, bps)
+    yield Settings(brand, categories, currencies, cost, position, bps, Settings.reasoning(env))

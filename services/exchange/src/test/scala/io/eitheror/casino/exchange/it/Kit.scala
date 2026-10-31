@@ -40,7 +40,7 @@ final class Kit(val base: Settings = Kit.Base):
   SettlementRetry.backoff = _ => JDuration.ofMillis(500)
 
   private val timers = TimerRuntime(200.millis)
-  val exchange       = ExchangeService(timers)
+  val exchange       = ExchangeService(timers, base)
   private val server = HttpServer.at("127.0.0.1", 0)(exchange.endpoints(() => Kit.authenticate)*)
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(

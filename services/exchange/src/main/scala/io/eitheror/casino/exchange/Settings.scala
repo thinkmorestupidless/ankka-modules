@@ -7,9 +7,10 @@ enum Gate(val word: String):
 
 /**
  * What `exchange` is told at start (spec 023 R7): the brand, and which of the play gate and
- * `may-bet` (which applies the player's limits) an order runs, both when the values name none.
+ * `may-bet` (which applies the player's limits) an order runs, both when the values name none, and
+ * the reasoning service prices are observed to, if any (FR-007).
  */
-final case class Settings(brand: String, gates: Set[Gate] = Gate.values.toSet)
+final case class Settings(brand: String, gates: Set[Gate] = Gate.values.toSet, reasoningService: Option[String] = None)
 
 object Settings:
   def fromEnvironment(env: Map[String, String] = sys.env): Either[String, Settings] =
@@ -22,4 +23,4 @@ object Settings:
     for
       brand <- env.get("CASINO_BRAND").map(_.trim).filter(_.nonEmpty).toRight("CASINO_BRAND: not set; a brand service is deployed by the modules tool")
       gs    <- gates
-    yield Settings(brand, gs)
+    yield Settings(brand, gs, env.get("REASONING_SERVICE").map(_.trim).filter(_.nonEmpty))

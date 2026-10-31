@@ -89,7 +89,7 @@ trades. **Independent test**: `catalogue.feature` bound in both services.
 service is named. **Independent test**: `facts.feature` bound in `exchange`.
 
 - [X] T037 [P] [US5] `OrderFactsPublisher`, `TradeFactsPublisher`, `PriceFactsPublisher` in `S/x/main/…/exchange/facts/` (R9), with unit suites over sample events
-- [ ] T038 [US5] `MarketMirror` and `PriceObservations` behind `reasoning-service` (R14) in `S/m/main/…/markets/facts/` and `S/x/main/…/exchange/facts/`, registered only when the value is present; at most one observation per outcome a minute, with a unit test of the throttle
+- [X] T038 [US5] `MarketMirror` and `PriceObservations` behind `reasoning-service` (R14) in `S/m/main/…/markets/facts/` and `S/x/main/…/exchange/facts/`, registered only when the value is present; at most one observation per outcome a minute, with a unit test of the throttle
 - [ ] T039 [US5] Bind `features/predictions/facts.feature` in `S/x/test/…/exchange/features/FactsFeatures.scala`; the mirroring scenario ignored naming ankka-reasoning 0.2.0
 
 ## Phase 8: Polish and cross-cutting

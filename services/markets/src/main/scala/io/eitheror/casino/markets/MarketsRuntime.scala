@@ -16,6 +16,10 @@ object MarketsRuntime:
   /** How the driver reaches `exchange`: its service client, as the brand's other services call theirs. */
   @volatile var exchange: ConsumerContext => ExchangeCalls = ctx => ExchangeCalls(ctx.services, settings.brand)
 
+  /** How the mirror reaches the reasoning service the brand's values name; registered only when they name one. */
+  @volatile var reasoning: ConsumerContext => io.eitheror.casino.markets.facts.ReasoningCalls =
+    ctx => io.eitheror.casino.markets.facts.ReasoningCalls(ctx.services, settings.reasoningService.get)
+
   def settings: Settings = current.getOrElse(throw IllegalStateException("markets is not wired: MarketsService.wire first"))
 
   def wire(s: Settings, clock: () => Instant = () => Instant.now()): Unit =

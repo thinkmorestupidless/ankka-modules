@@ -10,7 +10,7 @@ import io.eitheror.casino.exchange.api.{OperatorEndpoint, PlayerEndpoint, Servic
 import io.eitheror.casino.exchange.ports.{Gates, Ledger, Neighbours, WalletCall, WalletClient}
 import io.eitheror.casino.exchange.retry.{RetryAudit, SettlementRetry, StartRetry}
 import com.thinkmorestupidless.predictions.exchange.components.LedgerAnswer
-import io.eitheror.casino.exchange.facts.{OrderFactsPublisher, PriceFactsPublisher, TradeFactsPublisher}
+import io.eitheror.casino.exchange.facts.{ObservedEntity, OrderFactsPublisher, PriceFactsPublisher, PriceObservations, TradeFactsPublisher}
 import io.eitheror.casino.exchange.reads.{OrderRows, TradeRows}
 import io.eitheror.casino.exchange.reconcile.*
 import io.eitheror.casino.exchange.terms.MarketTerms
@@ -21,7 +21,7 @@ import java.time.Duration
  * Every component of the service (plan.md's table): the exchange library's, built from this service's
  * gate and ledger ports, beside the books' terms. Registered by the service and by its test kit alike.
  */
-final class ExchangeService(timers: TimerRuntime):
+final class ExchangeService(timers: TimerRuntime, settings: Settings):
   /** A book's currency, from its terms; a book that was never opened has none, and a call on it throws. */
   private def currency(market: MarketId): String =
     val t = ExchangeRuntime.components.forKeyValueEntity(EntityId(market.value)).call(MarketTerms.get).invoke()
@@ -46,7 +46,9 @@ final class ExchangeService(timers: TimerRuntime):
       MarketOfEntity.descriptor, ExchangeTallyCompanion(() => timers.timerScheduler).descriptor,
       PlacementTallyCompanion(components.placement).descriptor, WalletTally.descriptor, Reconcile.descriptor, ReconcileAudit.descriptor,
       OrderRows.descriptor, TradeRows.descriptor, OrderFactsPublisher.descriptor, TradeFactsPublisher.descriptor,
-      PriceFactsPublisher.descriptor)
+      PriceFactsPublisher.descriptor) ++
+      // The observations only when the brand's values name a reasoning service (FR-007).
+      settings.reasoningService.toSeq.flatMap(_ => Seq(ObservedEntity.descriptor, PriceObservations.descriptor))
 
   /** One endpoint per audience (contracts/routes.md), none sharing a prefix. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
@@ -72,7 +74,7 @@ object ExchangeService:
       val memory = InMemoryBroker()
       ProjectionRuntime.withBroker(memory, memory)
   val timers   = TimerRuntime()
-  val exchange = ExchangeService(timers)
+  val exchange = ExchangeService(timers, settings)
   val service = Ankka.service
     .registerAll(exchange.descriptors)
     .withExtension(broker)
