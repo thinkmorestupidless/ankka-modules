@@ -12,9 +12,13 @@ import scala.jdk.CollectionConverters.*
 
 /** A neighbour scripted at its route contract: one JDK server, a handler from (method, path, body) to (status, body). */
 abstract class Fake:
+  /** How long every answer takes, for a perf suite's neighbours at a fixed latency. */
+  @volatile var latency: java.time.Duration = java.time.Duration.ZERO
+
   private val server = JdkServer.create(InetSocketAddress("127.0.0.1", 0), 0)
   server.createContext("/", (exchange: HttpExchange) => {
     val body = String(exchange.getRequestBody.readAllBytes(), UTF_8)
+    if !latency.isZero then Thread.sleep(latency)
     val path = exchange.getRequestURI.getPath.split('/').map(URLDecoder.decode(_, UTF_8)).mkString("/")
     val (status, text) =
       try handle(exchange.getRequestMethod, path, Json.parse(body).getOrElse(Json.obj()))
@@ -70,7 +74,7 @@ final class FakeGates(brand: String) extends Fake:
   def asked(player: String): Vector[String] = log.asScala.toVector.collect { case (g, `player`) => g }
 
   def reset(): Unit =
-    status.clear(); kyc.clear(); rg.clear(); log.clear(); down = Set.empty
+    status.clear(); kyc.clear(); rg.clear(); log.clear(); down = Set.empty; latency = java.time.Duration.ZERO
 
 /**
  * The wallet at its spec 022 routes, keeping what they move: each player's real balance, each order's
@@ -153,5 +157,5 @@ final class FakeWallet(brand: String) extends Fake:
     case _ => refuse(404, "NOT_FOUND")
 
   def reset(): Unit = synchronized {
-    real.clear(); reservations.clear(); pools.clear(); done.clear(); log.clear(); script.clear()
+    real.clear(); reservations.clear(); pools.clear(); done.clear(); log.clear(); script.clear(); latency = java.time.Duration.ZERO
   }

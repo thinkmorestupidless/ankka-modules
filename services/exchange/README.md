@@ -31,7 +31,7 @@ The library's own (the book entity, the placement workflow, the positions view) 
 | timed action, consumer | `exchange-reconcile`, `exchange-reconcile-audit` | compares the three sides; a difference is an audit record (`exchange.reconciliation_difference`) |
 | keyed view | `orders-by-owner`, `trades-by-owner` | a player's orders and trades, each with the sequence it has seen (FR-005) |
 | key value | `exchange-erased` | a player's erasure: when, the orders it cancelled, the positions it left (FR-008) |
-| consumer | `exchange-order-facts`, `exchange-trade-facts`, `exchange-price-facts` | the brand's `predictions.orders`, `.trades` and `.prices` topics, keyed by the market (FR-006) |
+| consumer | `exchange-order-facts`, `exchange-trade-facts`, `exchange-price-facts` | the brand's `exchange.orders`, `exchange.trades` and `exchange.prices` topics, keyed by the market (FR-006) |
 | key value, consumer | `exchange-observed`, `exchange-price-observations` | a minute's throttle per outcome, and the prices posted to the reasoning service; only when the brand names one (FR-007) |
 
 ## The routes

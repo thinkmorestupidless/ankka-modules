@@ -23,7 +23,7 @@ The library's own (the market entity, its view and its timers) are registered fr
 | Kind | Name | What it holds |
 |---|---|---|
 | key value | `market-terms` | a market's drafted limits, or the brand's when the draft sets none (FR-014) |
-| consumer | `market-facts` | every change to a market on the brand's `predictions.markets` topic, keyed by the market (FR-006) |
+| consumer | `market-facts` | every change to a market on the brand's `markets.events` topic, keyed by the market (FR-006) |
 | consumer | `exchange-driver` | the market's events driven onto `exchange`'s service routes: open, suspend, resume, close, finalise; a `409 state` is taken as done |
 | consumer | `market-mirror` | the market posted to the reasoning service; only when the brand names one (FR-007) |
 

@@ -14,7 +14,7 @@ import io.eitheror.casino.exchange.erasure.ErasedEntity
 import io.eitheror.casino.exchange.facts.{ObservedEntity, OrderFactsPublisher, PriceFactsPublisher, PriceObservations, TradeFactsPublisher}
 import io.eitheror.casino.exchange.reads.{OrderRows, TradeRows}
 import io.eitheror.casino.exchange.reconcile.*
-import io.eitheror.casino.exchange.terms.MarketTerms
+import io.eitheror.casino.exchange.terms.{KnownTerms, MarketTerms}
 
 import java.time.Duration
 
@@ -25,7 +25,7 @@ import java.time.Duration
 final class ExchangeService(timers: TimerRuntime, settings: Settings):
   /** A book's currency, from its terms; a book that was never opened has none, and a call on it throws. */
   private def currency(market: MarketId): String =
-    val t = ExchangeRuntime.components.forKeyValueEntity(EntityId(market.value)).call(MarketTerms.get).invoke()
+    val t = KnownTerms.of(market.value)(ExchangeRuntime.components.forKeyValueEntity(EntityId(market.value)).call(MarketTerms.get).invoke())
     if t.known then t.currency else throw IllegalStateException(s"the book of ${market.value} has no terms")
 
   private def brand = ExchangeRuntime.settings.brand

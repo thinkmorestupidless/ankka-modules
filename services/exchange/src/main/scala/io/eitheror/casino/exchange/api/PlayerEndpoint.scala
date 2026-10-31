@@ -1,17 +1,17 @@
 package io.eitheror.casino.exchange.api
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.core.{CommandError, EntityId, ErrorCode}
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint}
 import com.thinkmorestupidless.predictions.exchange.*
-import com.thinkmorestupidless.predictions.exchange.components.{Depth, ExchangeComponents, PlaceOrder, PlacementOutcome, PlacementWorkflow, PositionRow, PositionRows, Prices}
+import com.thinkmorestupidless.predictions.exchange.components.{Depth, ExchangeComponents, PlaceOrder, PlacementOutcome, PlacementState, PlacementWorkflow, PositionRow, PositionRows, Prices}
 import io.eitheror.casino.exchange.reads.{OrderRow, OrderRows, TradeRow, TradeRows}
+import io.eitheror.casino.exchange.terms.{KnownTerms, MarketTerms}
 import org.apache.pekko.stream.scaladsl.Source
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.exchange.{ExchangeRuntime, Json}
 import io.eitheror.casino.exchange.Json.*
 
-import scala.annotation.tailrec
 import scala.concurrent.duration.*
 
 import Answers.*
@@ -112,22 +112,28 @@ final class PlayerEndpoint(components: ExchangeComponents, clients: EndpointClie
       PlayerEndpoint.seen(m, view, book(m).call(components.exchange.prices).invoke().sequence)
     }*)
 
+  /**
+   * The placement started and waited on to its end, which holds the outcome; a wait past `Wait` answers
+   * pending. A book with no terms has not been opened by `markets` yet (its catalogue may already show
+   * the market open), and is refused as the library refuses a book that is not open; terms are never
+   * taken away, so the gate that reads them finds them.
+   */
   private def placed(request: PlaceOrder): Reply =
     val flow = clients.componentClient.forWorkflow(PlacementWorkflow.id(request))
-    val deadline = System.nanoTime() + PlayerEndpoint.Wait.toNanos
-    @tailrec def poll(o: PlacementOutcome): PlacementOutcome =
-      if o != PlacementOutcome.Running || System.nanoTime() > deadline then o
-      else
-        Thread.sleep(10)
-        poll(flow.call(components.placement.outcome).invoke())
-    answer(flow.call(components.placement.place).invoke(request)) { first =>
-      poll(first) match
-        case PlacementOutcome.Accepted(events) =>
-          ok(Json.obj("order" -> request.order.order.value, "outcome" -> "accepted", "events" -> events.size))
-        case PlacementOutcome.Refused(r) => refused(r)
-        case PlacementOutcome.Running =>
-          refusal(503, "pending", "The order is still being placed; ask again with the same order", "order" -> request.order.order.value)
-    }
+    val terms = KnownTerms.of(request.market.value)(clients.componentClient.forKeyValueEntity(EntityId(request.market.value)).call(MarketTerms.get).invoke())
+    if !terms.known then refusal(409, "state", "state: state empty", "state" -> "empty")
+    else try
+      answer(flow.call(components.placement.place).thenAwaitEnd[PlacementState](PlayerEndpoint.Wait).invoke(request)) { end =>
+        end.outcome match
+          case PlacementOutcome.Accepted(events) =>
+            ok(Json.obj("order" -> request.order.order.value, "outcome" -> "accepted", "events" -> events.size))
+          case PlacementOutcome.Refused(r) => refused(r)
+          case PlacementOutcome.Running    => pending(request)
+      }
+    catch case e: CommandError if e.code == ErrorCode.Timeout => pending(request)
+
+  private def pending(request: PlaceOrder) =
+    refusal(503, "pending", "The order is still being placed; ask again with the same order", "order" -> request.order.order.value)
 
 object PlayerEndpoint:
   val StreamEvery: FiniteDuration = 250.millis
@@ -156,7 +162,7 @@ object PlayerEndpoint:
       "quantity" -> l.quantity, "through" -> l.through, "at" -> l.at.toString)
 
   /** Longer than the ledger's patience (5 s), so an order that will be answered is. */
-  val Wait: java.time.Duration = java.time.Duration.ofSeconds(15)
+  val Wait: FiniteDuration = 15.seconds
 
   val forbidden: Reply = refusal(403, "forbidden", "A player acts for themselves only")
 

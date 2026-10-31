@@ -8,7 +8,8 @@ import scala.concurrent.duration.*
 
 /**
  * A placement over Postgres (T026): a wallet that has no answer yet is asked again under the same key
- * and the order is funded once; a gate that cannot be reached refuses the order closed.
+ * and the order is funded once; a gate that cannot be reached refuses the order closed; a book with
+ * no terms yet refuses it naming the state.
  */
 class PlacementItSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 300.seconds
@@ -27,8 +28,8 @@ class PlacementItSuite extends munit.FunSuite with LogCapturing:
     kit.wallet.script.put("reservations", List(503 -> """{"error":"OUTCOME_PENDING"}"""))
     val r = kit.place("ada", m, "o1", "buy", "yes", 10, 60)
     assertEquals(r.status, 200, r.text)
-    assertEquals(kit.wallet.calls("reservations").map(_._1), Vector("o1", "o1"))
-    assertEquals(Option(kit.wallet.reservations.get("o1")), Some("ada" -> 600L))
+    assertEquals(kit.wallet.calls("reservations").map(_._1), Vector(s"$m/o1", s"$m/o1"))
+    assertEquals(Option(kit.wallet.reservations.get(s"$m/o1")), Some("ada" -> 600L))
     assertEquals(kit.book(m).orders.get(OrderId("o1")).map(_.state), Some(OrderState.Resting))
   }
 
@@ -51,4 +52,21 @@ class PlacementItSuite extends munit.FunSuite with LogCapturing:
     assertEquals(r.status, 400, r.text)
     assertEquals(r.str("error"), "owner")
     assertEquals(kit.book(m).orders.get(OrderId("o3")).map(_.state), Some(OrderState.Resting))
+  }
+
+  test("an order on a book markets has not opened yet is refused naming the state, with nothing asked of the wallet") {
+    val m = s"placement-${UUID.randomUUID().toString.take(8)}"
+    kit.wallet.real.put("ada", 1000L)
+    val r = kit.place("ada", m, "o4", "buy", "yes", 10, 60)
+    assertEquals(r.status, 409, r.text)
+    assertEquals((r.str("error"), r.str("state")), ("state", "empty"))
+    assert(kit.wallet.calls("reservations").isEmpty)
+  }
+
+  test("a second open of a book keeps its first terms") {
+    val m = market()
+    kit.open(m, Vector("yes", "no"), "GBP"): Unit
+    val terms = kit.components.forKeyValueEntity(com.thinkmorestupidless.ankka.core.EntityId(m))
+      .call(io.eitheror.casino.exchange.terms.MarketTerms.get).invoke()
+    assertEquals(terms.currency, "EUR")
   }
