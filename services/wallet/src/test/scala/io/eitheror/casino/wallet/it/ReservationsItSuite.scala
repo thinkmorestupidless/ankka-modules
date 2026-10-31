@@ -67,6 +67,21 @@ class ReservationsItSuite extends Harness:
     assertEquals((field(balance, "realBalance"), field(balance, "reserved")), (Some("1000"), Some("600")))
   }
 
+  test("a split or a settlement whose amount and unused part overflow is INVALID_REQUEST, moving nothing") {
+    open("rv-big", 1000)
+    reserve("rv-big", "o1", 600)
+    val big   = Long.MaxValue
+    val split = send("POST", s"/v1/casino/brands/$brand/accounts/pool/m-big/splits",
+      Some(s"""{"key":"k-big","currency":"EUR","player":"rv-big","amount":1,"orderId":"o1","unused":$big}"""), as = exchange)
+    assertEquals((split._1, field(split._2, "error")), (400, Some("INVALID_REQUEST")), split._2)
+    open("rv-big-s", 0)
+    val settled = send("POST", s"/v1/casino/brands/$brand/settlements",
+      Some(s"""{"tradeId":"t-big","currency":"EUR","buyer":"rv-big","orderId":"o1","seller":"rv-big-s","amount":1,"unused":$big}"""), as = exchange)
+    assertEquals((settled._1, field(settled._2, "error")), (400, Some("INVALID_REQUEST")), settled._2)
+    val balance = send("GET", s"${wallet("rv-big")}/balance")._2
+    assertEquals((field(balance, "realBalance"), field(balance, "reserved")), (Some("1000"), Some("600")))
+  }
+
   test("the player's and the operator's balance carry reserved and available in major units (FR-012)") {
     open("rv3", 100000)
     reserve("rv3", "o1", 60000)

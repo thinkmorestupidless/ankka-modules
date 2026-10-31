@@ -245,6 +245,7 @@ final class ServiceEndpoint(
             t <- key(r.tradeId)
             a <- positive(r.amount)
             u <- r.unused.fold(Right(0L))(amount)
+            _ <- drawn(a, u)
             _ <- Either.cond(r.buyer != r.seller, (), Wire.refusal("INVALID_REQUEST", "a trade's buyer and seller are two players"))
           yield
             val start = SettlementStart(t, r.currency, r.buyer, r.orderId, r.seller, a, u, clock())
@@ -286,6 +287,10 @@ final class ServiceEndpoint(
   private def noOrder(r: AccountMoveRequest): Either[Respond[Bytes], Unit] =
     Either.cond(r.orderId.isEmpty && r.unused.isEmpty, (), Wire.refusal("INVALID_REQUEST", "only a split is charged from a reservation"))
 
+  /** What a reservation gives up, the amount and the unused part, fits in a Long; past it the entity would throw. */
+  private def drawn(amount: Long, unused: Long): Either[Respond[Bytes], Unit] =
+    Either.cond(amount <= Long.MaxValue - unused, (), Wire.refusal("INVALID_REQUEST", "the amount and the unused part together are too large"))
+
   /** A split's order and unused part: `unused` only with an order, and an order named by a key. */
   private def charged(r: AccountMoveRequest): Either[Respond[Bytes], (Option[String], Long)] =
     (r.orderId, r.unused) match
@@ -299,7 +304,7 @@ final class ServiceEndpoint(
     postBody("/accounts/{kind}/{name}/splits") { (kind: String, name: String, r: AccountMoveRequest) =>
       onPool(kind) {
         Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m))
-          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount); c <- charged(r) yield (k, a, c))
+          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount); c <- charged(r); _ <- drawn(a, c._2) yield (k, a, c))
           .fold(identity, (k, a, c) => move(kind, name, r.currency, AccountMoveWorkflow.ToAccount, Purpose.Split, r.player, a, k, k, c._1, c._2))
       }
     }
