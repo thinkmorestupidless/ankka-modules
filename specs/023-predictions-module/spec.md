@@ -22,7 +22,27 @@ into a reasoning service, and erasure. A brand entitled to it trades; a brand bo
 - Q: Does approving a market need a second operator, and may the drafter approve? → A: No second
   operator; the drafter may approve, for now.
 - Q: Which of the play gate, `may-bet` and limits apply to an order under a DCM? → A: Not yet
-  known; the DCM's requirements are still to be learned. Left open.
+  known, so it is configuration: the gates an order runs are a brand value, all three on by
+  default; when the DCM's requirements are known the value changes, not the code.
+- Q: Does a brand bound to a pool belong in this spec's first version? → A: No; FR-010's
+  forwarding moves to spec 024, and a brand runs its own books here.
+- Q: Who may change a market or move its close (ankka-predictions request item 10)? → A: The same
+  `markets` permission as every other act on a market; the domain checks none.
+- Q: What does one share pay, and in what are prices quoted? → A: One major unit of the market's
+  currency (100 minor units); prices are whole minor units from 1 to 99, for every brand.
+- Q: Where do a brand's categories and currencies come from? → A: The brand's values list the
+  categories; a market's currency must be one the brand's wallet holds. `markets` refuses any
+  other before the library sees the draft.
+- Q: Who sets the exchange's limits? → A: The brand's values give the default maximum order cost
+  and maximum position; an operator may set a market's own on its draft, and the book opens with
+  whichever applies.
+- Q: Do fees belong in the first version, and how? → A: Yes, as Kalshi and Polymarket charge them:
+  a taker fee of rate × contracts × price × (1 − price), rounded up to the minor unit, makers
+  free. The rate is a brand value, 0 by default (no fee).
+- Q: Where does a taker fee land? → A: In the brand's fee account, a new account kind `fee` with
+  a purpose `fee`, by an amendment to spec 022; charged from the taker's reservation as a split
+  is (spec 022 FR-008a).
+- Q: Do the 39 proposed predictions terms in the glossary stand? → A: All accepted as defined.
 
 ## Context
 
@@ -48,8 +68,8 @@ into that reason.
 A player places a buy order through the brand's player routes. Before the library's book sees it,
 `exchange` checks that the player's account is active (`players`), that the KYC play gate allows
 play (`kyc`), that the bet gate allows a stake of the order's cost (`responsible-gambling`
-`may-bet`), and reserves quantity times price in the player's wallet under the order id (spec
-022). An order any check refuses never reaches the book and reserves nothing, and the refusal
+`may-bet`), and reserves quantity times price, and with a taker fee the most that fee can be, in
+the player's wallet under the order id (spec 022). An order any check refuses never reaches the book and reserves nothing, and the refusal
 names the gate and the casino's reason. A sell order needs the position; it reserves nothing.
 
 **Why this priority**: The gates are the regulatory line between a market and a player; the
@@ -65,6 +85,7 @@ wallet; only the allowed, funded order rests, and each refusal names its gate.
 - added `features/predictions/orders.feature`: an order the bet gate refuses rests nowhere and names the casino's reason
 - added `features/predictions/orders.feature`: an order the wallet cannot fund is refused as insufficient funds and rests nowhere
 - added `features/predictions/orders.feature`: a sell order needs the position and reserves nothing
+- added `features/predictions/orders.feature`: with a taker fee a buy order reserves its cost and the most its fee can be
 
 ---
 
@@ -87,6 +108,7 @@ the service between trade and settlement and restart; settle once.
 - added `features/predictions/settlement.feature`: a trade is settled through the wallet keyed by the trade, once
 - added `features/predictions/settlement.feature`: a final market pays each position from the market's pool account
 - added `features/predictions/settlement.feature`: a settlement the wallet refuses is recorded, retried and raised to an operator
+- added `features/predictions/settlement.feature`: a taker's fee moves to the brand's fee account keyed by the trade, and the maker pays none
 
 ---
 
@@ -108,6 +130,9 @@ refused act names the role.
 - added `features/predictions/lifecycle.feature`: an operator with the markets permission drafts, approves, closes, resolves and voids a market
 - added `features/predictions/lifecycle.feature`: an operator without the markets permission is refused naming the permission
 - added `features/predictions/lifecycle.feature`: every change to a market is a fact on the brand's markets topic
+- added `features/predictions/lifecycle.feature`: a draft in a category the brand does not offer is refused naming the category
+- added `features/predictions/lifecycle.feature`: a draft in a currency the brand's wallet does not hold is refused naming the currency
+- added `features/predictions/lifecycle.feature`: a market opens with the brand's limits unless its draft sets its own
 
 ---
 
@@ -161,17 +186,14 @@ topic either way; observations only with.
   player is cancelled first, and an open position stands until the market is final.
 - A market closes while orders rest: every order is cancelled and its reservation released, as
   the library's close says; the facts say why.
-- A brand bound to a pool (spec 024): `markets` and `exchange` serve the player and operator
-  routes and forward to the pool's instance; no book runs in the brand. This spec's gates run in
-  the brand either way.
+- A brand bound to a pool is spec 024's, not this spec's: here every brand runs its own books.
 - An operator suspends an open market with a reason and resumes it (ankka-predictions spec 006
   FR-007a, the venue's emergency authority); the exchange suspends and resumes with it (spec 005
   FR-015a). `markets` drives `exchange` as it does for open and close, and both are facts.
 - The gates under a Designated Contract Market: the first licence (Assumptions) is not a
-  gambling licence. [NEEDS CLARIFICATION: which of `kyc`'s play gate and `responsible-gambling`'s
-  `may-bet` and limits apply to an order under a DCM, where a prediction market is a derivatives
-  contract and not a bet; `players` (account active) and KYC itself apply either way. Deferred
-  (Trevor, 2026-10-31): the DCM's requirements are not yet known]
+  gambling licence, and which of `kyc`'s play gate and `responsible-gambling`'s `may-bet` and
+  limits it asks of an order is not yet known. The brand's values say which run (FR-002), all
+  three by default; `players` (account active) runs always.
 - Approval: one operator with the `markets` permission approves a draft, and the operator who
   drafted it may (Trevor, 2026-10-31). Four-eyes approval, carried from ankka-predictions spec 002,
   is not required for now.
@@ -186,16 +208,21 @@ topic either way; observations only with.
   ankka-predictions' libraries at a pinned version, registering the libraries' components
   explicitly and adding no lifecycle, matching, position or settlement rule of its own.
 - **FR-002**: `exchange` MUST implement the gate port by asking, in order, `players` (account
-  active), `kyc` (play gate) and `responsible-gambling` (`may-bet` with the order's cost), and
-  MUST turn each refusal into the port's reason naming the gate and the casino's reason.
+  active, always), then those the brand's values enable of `kyc` (play gate) and
+  `responsible-gambling` (`may-bet` with the order's cost, and its limits), all of them by
+  default, and MUST turn each refusal into the port's reason naming the gate and the casino's
+  reason. A gate the values disable is not asked.
 - **FR-003**: `exchange` MUST implement the ledger port on the brand's wallet (spec 022): reserve
-  under the order id before an order reaches a book, release on cancel, expiry or close, settle
+  under the order id before an order reaches a book (the cost, and with a taker fee the most it
+  can be, FR-015), release on cancel, expiry or close, settle
   under the trade id at least once, split and merge against the market's pool account, pay under
   the market and position; a settlement the wallet refuses MUST be recorded, retried and raised
   on `platform.audit`.
 - **FR-004**: `markets` MUST implement the resolution port from the brand's roles: the
-  `brand_<slug>` role with the `markets` permission may draft, approve, open, suspend, resume,
-  close, resolve and void; every other caller is refused naming the permission.
+  `brand_<slug>` role with the `markets` permission may draft, change, approve, open, suspend,
+  resume, close, move the close of, resolve, correct and void a market; every other caller is
+  refused naming the permission. The libraries' entity asks the port nothing for a change or a
+  move of the close, so `markets` checks the permission before it calls them.
 - **FR-005**: Player routes MUST be of the player class under the brand's player realm and MUST
   show open markets with last price, best bid and ask and depth, a price stream, and the player's
   own orders, positions and trades, never another player's; operator routes MUST be of the
@@ -212,19 +239,33 @@ topic either way; observations only with.
   none named, nothing MUST be mirrored and nothing refused.
 - **FR-008**: Erasure MUST mark the player id on orders, trades and positions, cancel the
   player's resting orders first, and leave positions to pay or void as the market does.
-- **FR-009**: The module's manifest MUST depend on `core` at the version that carries spec 022,
-  declare its four topics, declare no grant within the brand, and declare the grants it makes to
-  and receives from a pool instance for spec 024 to use.
-- **FR-010**: A brand bound to a pool MUST run `markets` and `exchange` as routes that forward to
-  the pool's instance with the brand and the player, with this module's gates run in the brand;
-  the forwarding is spec 024's.
+- **FR-009**: The module's manifest MUST depend on `core` at the version that carries spec 022
+  FR-008a, declare its four topics and declare no grant within the brand; the grants to and from
+  a pool instance are spec 024's.
+- **FR-010**: Moved to spec 024 (Trevor, 2026-10-31): a brand bound to a pool forwarding to the
+  pool's instance. Here every brand runs its own books.
 - **FR-011**: `exchange` MUST reconcile, per market and at least daily, what its events say was
   reserved, released, settled, split, merged and paid against what the wallet's facts say moved
   for the market's pool account and its players (spec 022's families), and MUST raise any
   difference on `platform.audit` naming the market, the key and both figures; nothing MUST
   correct a difference by itself. A market is reconciled once more when it is final. An order's
   reservation is drawn down by `settlement_debit` and, for a trade through the pool, by
-  `account_debit` with an `order_id` and its `released_cents` (spec 022 FR-008a).
+  `account_debit` with an `order_id` and its `released_cents` (spec 022 FR-008a), and by a taker
+  fee's move into the brand's fee account (FR-015).
+- **FR-012**: A share MUST pay one major unit of the market's currency (100 minor units), and a
+  price MUST be a whole number of minor units from 1 to 99; `exchange` opens every book with that
+  unit.
+- **FR-013**: `markets` MUST refuse a draft or a change whose category is not one the brand's
+  values list, naming the category, and whose currency the brand's wallet does not hold, naming
+  the currency, before the library sees it.
+- **FR-014**: `exchange` MUST open a market's book with the maximum order cost and maximum
+  position its draft sets, else the brand's values' defaults; a draft MAY set either.
+- **FR-015**: With a taker fee rate above 0 in the brand's values (0 by default, in basis
+  points), each trade's taker MUST pay ⌈rate × contracts × price × (100 − price) / 1,000,000⌉
+  minor units, moved from the taker's order reservation into the brand's fee account keyed by
+  the trade; the maker pays nothing. A buy order MUST reserve, beside its cost,
+  ⌈rate × contracts × 2,500 / 1,000,000⌉, the most its fee can be; what a fill does not use is
+  released with the order. The fee account is spec 022's, amended with the kind `fee`.
 
 ### Key Entities
 
@@ -234,6 +275,12 @@ topic either way; observations only with.
   the casino's reason.
 - **Reasoning service**: a value in the brand's values naming where the mirror goes; absent by
   default.
+- **Taker fee rate**: a value in the brand's values, in basis points, 0 by default.
+- **Fee account**: the brand's wallet account of kind `fee` that taker fees move into.
+- **Categories and limits**: values in the brand's values: the categories a brand offers, and
+  the default maximum order cost and maximum position.
+- **Gates**: a value in the brand's values naming which of the play gate, `may-bet` and the
+  limits an order runs; all of them by default.
 
 ## Success Criteria *(mandatory)*
 
@@ -268,7 +315,7 @@ topic either way; observations only with.
 ## Dependencies
 
 - ankka-predictions spec 004 and its libraries; spec 021 (the module model), spec 022 (the
-  wallet), spec 024 (the pool); specs 008, 009, 010 (the gates), 015 (reporting), 018 (audit).
+  wallet), with an amendment adding the account kind `fee` and the purpose `fee`; specs 008, 009, 010 (the gates), 015 (reporting), 018 (audit).
 - ankka-predictions `notes/casino-requests.md` item 9: a trade matched through the pool charges
   each buyer's reservation into the market's pool account, as spec 022 FR-008a's split charged
   from a reservation; a trade through a merge is one merge per selling leg (spec 022 FR-008).

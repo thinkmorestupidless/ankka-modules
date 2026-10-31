@@ -32,3 +32,13 @@ Feature: Trades and resolutions move money through the brand's wallet
     Then the refusal is recorded against trade "t1"
     And the settlement is retried
     And a record naming trade "t1" is written on the brand's platform audit topic
+
+  Scenario: a taker's fee moves to the brand's fee account keyed by the trade, and the maker pays none
+    Given the brand's taker fee rate is "700" basis points
+    And "bob" holds "10" shares of "yes" in "m1"
+    And "bob" places a sell order "o1" for "10" shares of "yes" in "m1" at price "60"
+    When "ada" places a buy order "o2" for "10" shares of "yes" in "m1" at price "60"
+    Then trade "t1" is settled through the wallet from order "o2" of "ada" to "bob" for "600"
+    And a fee of "17" moves from order "o2" of "ada" to the brand's fee account in "EUR", keyed by trade "t1"
+    And the reserved amount of "ada" is "0"
+    And "bob" pays no fee
