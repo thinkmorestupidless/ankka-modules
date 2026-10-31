@@ -128,6 +128,9 @@ The markers left open for product and regulatory decisions, settled with Trevor 
   the wallet and the gateway. Where do the profile's names come from? → A: A view of `payouts`' own,
   from `player_registered` and `player_profile_updated` on `casino.players` (spec 009's addition), the
   names `Personal` and erased with the player (FR-003).
+- Q (analyze): The original accepts a Gigadat request missing its method fields and sends it to manual
+  payout at approval; FR-004 refuses it. → A: refused at the request naming the field (FR-004), a change
+  from the original (research R4).
 - Q (plan): Unity Finance's payout carries the player's email, and no fact carries it. → A:
   `casino.players` gains it: `player_registered.email` and a new family `player_email_changed`, both
   `Personal`, published by `players` (research R7).
@@ -557,6 +560,8 @@ provider reference and status; the queue's needs-review set is visible at a glan
 - Amounts on the player's route are minor units, not a decimal of major units (spec 001 FR-026); the
   `bonusForfeited`, `forfeitedAmount` and `clawbackAmount` fields of the reply are minor units too.
 - Reasons and review notes are `Personal`; the original stored them in the clear on the twin.
+- A Gigadat request missing its method fields is refused naming the field (FR-004); the original
+  accepted it and parked it for a manual payout at approval.
 - Withdrawal limits are per currency, not EUR only with every other currency let through; their usage
   is counted from `payouts`' own requests, not a fan-out over the wallet twin's edges, so nothing fails
   open (FR-005b). The turnover terms the original's `withdrawal-config` also carried are the wallet's.

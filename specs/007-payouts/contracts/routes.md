@@ -13,13 +13,13 @@ check, set by `withAcl`.
 
 | Method and path | Body | Answer | Refusals |
 |---|---|---|---|
-| `POST /{playerId}/withdrawal-requests` | `{amount, currency, terminalId, destinationId?, walletAddress?, coin?, method?, mobile?, account?, institution?, transit?, confirmForfeit?: false, key}` | 201 `{requestId, status: "PENDING_REVIEW", amount, currency, terminalId, createdAt, bonusForfeited, forfeitedAmount, clawbackAmount}` | research R4's table, in order; 503 `SERVICE_UNAVAILABLE` (the wallet slower than 2 s, or unreachable) |
+| `POST /{playerId}/withdrawal-requests` | `{amount, currency, terminalId, destinationId?, walletAddress?, cryptoCurrency?, payoutMethod?, mobile?, bankAccount?, institutionCode?, transitNumber?, confirmForfeit?: false, key}` (the original's names) | 201 `{requestId, status: "PENDING_REVIEW", amount, currency, terminalId, createdAt, bonusForfeited, forfeitedAmount, clawbackAmount}` | research R4's table, in order; 503 `SERVICE_UNAVAILABLE` (the wallet slower than 2 s, or unreachable) |
 | `GET /{playerId}/withdrawal-requests` | — | `{requests: [{requestId, amount, currency, terminalName, createdAt, status, payoutStatus}]}`, newest first | — |
 | `DELETE /{playerId}/withdrawal-requests/{requestId}` | — | `{requestId, status: "CANCELLED"}` | 404 `REQUEST_NOT_FOUND`; 409 `WITHDRAWAL_REQUEST_NOT_CANCELLABLE` |
-| `GET /{playerId}/withdrawal-terminals?currency=` | — | `{terminals: [{id, name, scheme, gateway, requiresPayoutDestination, coins}]}`, ranked (FR-011) | 400 `currency` |
-| `GET /{playerId}/payout-destinations` | — | `{destinations: [{id, label, holderGivenName, holderFamilyName, ibanLastFour, default, createdAt}]}`, active only | — |
-| `POST /{playerId}/payout-destinations` | `{holderGivenName, holderFamilyName, iban, label?, default?}` | 201 the destination | 400 naming the field; 422 `INVALID_IBAN`; 422 `PROFILE_INCOMPLETE`; 422 `NAME_MISMATCH` |
-| `PUT /{playerId}/payout-destinations/{id}` | `{default: true}` (the original's `set-default`) | the destination | 404 `DESTINATION_NOT_FOUND`; 409 `DESTINATION_DELETED` |
+| `GET /{playerId}/withdrawal-terminals?currency=` | — | `{terminals: [{id, name, scheme, gateway, requiresPayoutDestination, coins}]}`, ranked (FR-011) | 400 naming `currency` |
+| `GET /{playerId}/payout-destinations` | — | `{destinations: [{id, label, firstName, lastName, ibanLastFour, isDefault, createdAt}]}`, active only | — |
+| `POST /{playerId}/payout-destinations` | `{firstName, lastName, iban, label?, setAsDefault?}` (the original's names) | 201 the destination | 400 naming the field; 422 `INVALID_IBAN`; 422 `PROFILE_INCOMPLETE`; 422 `PAYOUT_DESTINATION_AML_BLOCKED` (the original's code for a name that does not match) |
+| `PUT /{playerId}/payout-destinations/{id}` | `{setAsDefault: true}` (the original's `set-default`) | the destination; an already default one answers 200 `{destinationId, isDefault: true}` and writes nothing (the original's `ALREADY_DEFAULT`) | 404 `DESTINATION_NOT_FOUND`; 409 `DESTINATION_DELETED` |
 | `DELETE /{playerId}/payout-destinations/{id}` | — | 204 | 404 `DESTINATION_NOT_FOUND`; 409 `DESTINATION_DELETED` |
 | `GET /{playerId}/withdrawal-history` (operator) | — | `{requests: [the queue row]}` | 403 `forbidden` |
 
@@ -49,8 +49,8 @@ ACL: `Routes.operator(slug)`. The handler also checks a role: `brand_admin`, `br
 | `GET /{requestId}` | — | the request: every field of `WithdrawalRequest` but `Personal` ones beyond the IBAN's last four and the holder's names | 404 `REQUEST_NOT_FOUND` |
 | `POST /{requestId}/approve` | — | `{requestId, status, payoutStatus}` after the approval's first step | 404; 409 `REQUEST_NOT_PENDING` |
 | `POST /{requestId}/reject` | `{reason?}` | `{requestId, status: "REJECTED"}` | 404; 409 `REQUEST_NOT_PENDING` |
-| `POST /{requestId}/confirm-payout` | `{note?}` | `{requestId, status: "COMPLETED"}` | 404; 409 `REQUEST_NOT_AWAITING_PAYOUT` |
-| `POST /{requestId}/mark-payout-failed` | `{reason?}` (default "Manual payout not completed") | `{requestId, status: "FAILED"}` | 404; 409 `REQUEST_NOT_AWAITING_PAYOUT` |
+| `POST /{requestId}/confirm-payout` | `{note?}` | `{requestId, status: "COMPLETED"}` | 404; 409 `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
+| `POST /{requestId}/mark-payout-failed` | `{reason?}` (default "Manual payout not completed") | `{requestId, status: "FAILED"}` | 404; 409 `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
 
 A row is `{requestId, playerId, kycStatus, amount, currency, terminalName, method, destinationLastFour,
 createdAt, status, payoutStatus}`.
@@ -71,7 +71,7 @@ ACL: `Routes.service(Some(GrantTarget.Route("payouts", "POST",
 
 | Method and path | Body | Answer | Refusals |
 |---|---|---|---|
-| `POST /{requestId}/outcome` | `{outcome: completed \| failed \| reversed, providerReference, reason?}` | 200 `{requestId, status}` | 404 `REQUEST_NOT_FOUND`; 409 `REFERENCE_MISMATCH` (recorded); 409 `OUTCOME_CONFLICT` (a different outcome on a settled request, or any outcome before approval); 409 `WITHDRAWAL_NOT_IN_COMPLETED_STATE` (a reversal of a request not completed) |
+| `POST /{requestId}/outcome` | `{outcome: completed \| failed \| reversed, providerReference, reason?}` | 200 `{requestId, status}` | 400 `UNRECOGNISED_OUTCOME` (the original's); 404 `REQUEST_NOT_FOUND`; 409 `REFERENCE_MISMATCH` (recorded, new); 409 `ALREADY_RESOLVED` (a different outcome on a settled request, or any outcome before approval); 409 `WITHDRAWAL_NOT_IN_COMPLETED_STATE` (a reversal of a request not completed) |
 
 The gateway retries on 429, 5xx and no answer; a 4xx is final (R6). A repeat of the outcome that
 settled the request is 200 and moves nothing.

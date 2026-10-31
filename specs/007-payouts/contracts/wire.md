@@ -22,12 +22,12 @@ rounding.
 
 | Original request | Here | Answer translated |
 |---|---|---|
-| `POST /v1/casino/brands/<b>/players/<p>/withdrawal-requests {amount, terminalId, …, confirmBonusForfeit}` | the same path, `{amount × 100, currency: the wallet's, terminalId, …, confirmForfeit, key: <a fresh key>}` | 201 body with `requestId` → `<r>` |
+| `POST /v1/casino/brands/<b>/players/<p>/withdrawal-requests {amount, currency, terminalId, …, confirmForfeit}` | the same path and field names, `amount × 100`, the currency the wallet's when absent, and `key: <a fresh key>` | 201 body with `requestId` → `<r>` |
 | `GET …/players/<p>/withdrawal-requests` | the same | `{requests}`: only `PENDING_REVIEW` rows compared, as the original listed only those |
 | `DELETE …/withdrawal-requests/<r>` | `DELETE …/withdrawal-requests/<id>` | the same |
 | `GET …/players/<p>/withdrawal-terminals?currency=` | the same; a missing currency becomes the wallet's | `{terminals}` compared by id and order |
 | `GET`, `POST …/payout-destinations` | the same | `iban` compared by its last four |
-| `PUT …/payout-destinations/<d>/set-default` | `PUT …/payout-destinations/<d> {default: true}` | the same |
+| `PUT …/payout-destinations/<d>/set-default` | `PUT …/payout-destinations/<d> {setAsDefault: true}` | the same |
 | `DELETE …/payout-destinations/<d>` | the same | 204 for the original's 200 |
 | `GET /v1/casino/brands/<b>/withdrawal-requests?…` | the same | rows compared by id, status and amount |
 | `POST …/withdrawal-requests/<r>/approve`, `/reject`, `/confirm-payout`, `/mark-payout-failed` | `…/<id>/…` | `status` compared; `payoutStatus` compared after the workflow's first step |

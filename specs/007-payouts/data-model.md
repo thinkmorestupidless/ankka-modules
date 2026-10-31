@@ -55,8 +55,8 @@ the player asked, and a later deletion changes nothing in flight.
 | `Initiated(answer, reference)` | workflow | `approved` | `PayoutInitiated` (payout status `initiated`) | — |
 | `Record(outcome)` | workflow | not settled | `OutcomeRecorded` | — |
 | `NeedsReview(reason)` | workflow | `approved`, payout status `initiated` | `MarkedNeedsReview` | — |
-| `Complete(source, reference)` | workflow | `approved` or `awaiting_manual_payout` | `Completed` (payout status `resolved`) | `REQUEST_NOT_AWAITING_PAYOUT` |
-| `Fail(source, reasonCode, note)` | workflow | `approved` or `awaiting_manual_payout` | `Failed` (payout status `resolved`) | `REQUEST_NOT_AWAITING_PAYOUT` |
+| `Complete(source, reference)` | workflow | `approved` or `awaiting_manual_payout` | `Completed` (payout status `resolved`) | `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
+| `Fail(source, reasonCode, note)` | workflow | `approved` or `awaiting_manual_payout` | `Failed` (payout status `resolved`) | `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
 | `Reverse(reasonCode)` | workflow | `completed` | `Reversed` | `WITHDRAWAL_NOT_IN_COMPLETED_STATE` |
 | `ReferenceMismatch(given)` | workflow | any | `ReferenceMismatched` (recorded, nothing moves) | — |
 | `Erase` | erasure route | any | `Erased` (every `Personal` blanked) | — |
@@ -94,7 +94,7 @@ writes nothing. The operator's settlement routes (FR-016) accept `awaiting_manua
 | `wait` | a timer: 30 min then 5 min (`hasStatus`), or the `reviewWindow` | `poll` or `needs-review` |
 | `poll` | `GET /v1/payments/withdrawals/{id}` | R8 |
 | `needs-review` | `NeedsReview`; pause | commands: `outcome`, `confirmPayout`, `markFailed` |
-| `confirm` | `POST …/holds/confirm` keyed `<id>/confirm` | `Complete`; pause for a reversal |
+| `confirm` | `Complete` first (the provider paid: the request is completed whatever follows; spec Edge Cases), then `POST …/holds/confirm` keyed `<id>/confirm`, retried until the wallet answers (FR-024) | pause for a reversal |
 | `reverse` | `POST …/holds/reverse` keyed `<id>/reverse` | `Reverse`; end |
 
 **Commands**:
@@ -140,7 +140,7 @@ paused workflow's state only, so 10,000 settled requests cost their rows, not ru
 | `Email(address, at)` | `EmailSeen` | — |
 | `Closed(at)` | `ClosedSeen` | — |
 | `Deposit(gateway, scheme, ordinal)` | `DepositSeen` (deduplicated by the ordinal) | — |
-| `SaveDestination(given, family, iban, label, default)` | `DestinationSaved` (the first is default) | `PROFILE_INCOMPLETE`; `INVALID_IBAN`; `NAME_MISMATCH`; 400 naming a missing field |
+| `SaveDestination(given, family, iban, label, default)` | `DestinationSaved` (the first is default) | `PROFILE_INCOMPLETE`; `INVALID_IBAN`; `PAYOUT_DESTINATION_AML_BLOCKED` (the original's code for a name that does not match); 400 naming a missing field |
 | `SetDefault(id)` | `DefaultSet` | `DESTINATION_NOT_FOUND`; `DESTINATION_DELETED` |
 | `DeleteDestination(id)` | `DestinationDeleted` (blanked; no default promoted) | `DESTINATION_NOT_FOUND`; `DESTINATION_DELETED` |
 | `Requested(id, amount, currency, at)` | `RequestCounted` | — |

@@ -106,7 +106,8 @@ standing for the route's own turnover, bonus and clawback reads.
 | # | Check | Answer | Read from |
 |---|---|---|---|
 | 1 | token's player is the route's | 403 `player_id_mismatch` | the token |
-| 2 | amount, currency, terminal present; amount a positive whole number | 400 naming the field | the body |
+| 2 | amount a positive whole number | 422 `INVALID_AMOUNT` (the original's code and status) | the body |
+| 2a | amount, currency, terminal present; for a Gigadat terminal, `payoutMethod` with `mobile` (ETO) or `bankAccount`, `institutionCode` and `transitNumber` (ACH) | 400 naming the field | the body, and the listing for the terminal's gateway |
 | 3 | player known | 404 `PLAYER_NOT_FOUND` | `PlayerPayouts` |
 | 4 | identity verified | 402 `WITHDRAWAL_BLOCKED_KYC` with `kycStatus` and the original's message | `PlayerPayouts` |
 | 5 | turnover | 402 `WITHDRAWAL_BLOCKED_TURNOVER`, the remaining amount | the preview |
@@ -127,6 +128,8 @@ standing for the route's own turnover, bonus and clawback reads.
 - The hold answers 409 for every refusal (`Wire.scala:132-139`). This service maps each refusal to the original's status.
 - The original answered the hold's turnover refusal as 500, an accident of its catch-all (`W:642-678`). Here it is the 402 of step 5, which the preview already gave.
 
+**Gigadat's fields** (settled with the user, 2026-10-31): FR-004 refuses a missing one at the request, a divergence from the original, which accepted it and sent it to manual payout at approval. The player corrects it at once, and no operator settles by hand what a field would have paid. `Approval` keeps the original's manual fallback for a request that predates this check (migrated, spec 019).
+
 **Rationale**: FR-005's order put the terminal checks before the funds and forfeit gates. The
 original's order is the specification, and it decides which refusal a player sees when two apply.
 FR-005, FR-005b and FR-006 are amended to this table. No scenario changes, since each scenario fails
@@ -134,7 +137,7 @@ one gate.
 
 **The amount**:
 
-- Minor units (spec 001 FR-026). A decimal is 400 naming `amount`.
+- Minor units (spec 001 FR-026). Zero, a negative or a decimal is 422 `INVALID_AMOUNT`, the original's answer to an amount it could not take.
 - The original truncated `amount * 100` for its limit check and rounded HALF_UP for the wallet. Neither is possible here.
 
 ## R5. Terminals: the gateway's listing, held here and refreshed
@@ -377,3 +380,7 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
 - **`brands/_realm/eitheror-operators.json`**: `brand_finance` is added (R6), settled with the user on 2026-10-31. This is done in this spec's build, since it is this repository's realm.
 - **Spec 001 `contracts/grants.md:24`** lists one of the three payout routes `payments` grants; the manifest and `Layout` have three. It is corrected here.
 - **The operator console**: brand configuration saves limits here and turnover terms to the wallet (R10). Amounts in minor units. Both are among spec 001's frontend changes.
+
+## Design finished
+
+2026-10-31: analyze reported nothing above LOW.
