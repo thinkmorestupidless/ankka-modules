@@ -231,7 +231,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 8: US6, reads (P2)
 
-- [ ] T047 [US6] Bind `features/payouts/reads.feature` in `T/features/ReadsFeatures.scala`.
+- [X] T047 [US6] Bind `features/payouts/reads.feature` in `T/features/ReadsFeatures.scala`.
 - [ ] T048 [US6] `T/it/QueueSuite.scala`: each filter of FR-014 lists its requests with the right total,
       and the default is pending review.
 
