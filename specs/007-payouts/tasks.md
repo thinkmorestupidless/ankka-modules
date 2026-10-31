@@ -64,7 +64,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T009 [P] `S/terminals/Eligibility.scala` (pure: research R5's rule and ranking), with
       `T/terminals/EligibilitySuite.scala`: `WithdrawalTerminalEligibility`'s cases, an unrecorded scheme
       counted as not VISA, and 1,000 reads in one order (SC-007).
-- [ ] T010 [P] `S/player/Iban.scala` and `S/player/Names.scala` (pure: research R13), with their suites:
+- [X] T010 [P] `S/player/Iban.scala` and `S/player/Names.scala` (pure: research R13), with their suites:
       `IbanValidator`'s and `PayoutDestinationRoutesSpec`'s cases; diacritics, case and spacing normalised.
 - [ ] T011 [P] `S/workflow/Approval.scala` (pure: automated or manual, and the gateway's fields per
       provider, from `resolveApprovalOutcome`; research R7), with `T/workflow/ApprovalSuite.scala`: each
