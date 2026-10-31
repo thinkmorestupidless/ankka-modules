@@ -188,7 +188,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - rejection → `release` rejected.
 - [X] T037 [US4] `PlayerEndpoint`: `GET /{playerId}/withdrawal-history`, with the operator ACL set by
       `withAcl`.
-- [ ] T038 [US4] `T/it/OperatorSuite.scala`:
+- [X] T038 [US4] `T/it/OperatorSuite.scala`:
       - each of the five roles is admitted, and any other refused;
       - another brand's operator is refused;
       - a second decision is refused;
