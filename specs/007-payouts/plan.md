@@ -276,10 +276,12 @@ Unchanged:
 |---|---|---|
 | A second approval, or a rejection after approval, is `REQUEST_NOT_PENDING` | FR-015, R1 | `WithdrawalRequestSuite`; `review.feature`; no recording (the defect is not driven) |
 | An outcome is accepted only once approved or awaiting manual payout; a settled request answers the same outcome 200 and moves nothing | FR-019, FR-020, R8 | `OutcomeSuite`; `outcomes.feature` |
-| A provider's rejection at initiation releases and tells the player; nothing reaches manual payout but an operator | FR-018 | `PayoutFailureSuite` (SC-002); scenario 30's rejection, marked |
+| A provider's rejection at initiation releases and tells the player; nothing reaches manual payout but an operator | FR-018 | `PayoutFailureSuite` (SC-002); the driver's rejection at initiation, marked |
 | Operator actions refuse another brand | FR-001 | `OperatorSuite` |
+| A caller the route's ACL refuses is answered by ankka, not with the original's sentence | FR-001, spec 001 | the driver's operator of another brand, marked |
 | Limits per currency; usage from this service's requests | FR-005a, FR-005b | `LimitsSuite`; `requests.feature`; the driver's limit scenarios on EUR, marked for other currencies |
 | The turnover refusal from the hold is the preview's 402, not 500 | R4 | `GatesSuite`; scenario 30, marked |
+| The turnover refusal names no amount remaining (`totalRemaining`): the wallet's preview names none | R4, research *Found during implementation* | `GatesSuite`; the driver's turnover scenario, marked |
 | Amounts in minor units throughout | FR-028 | `WireTranslation` |
 | The outcome route moves to the gateway's path, admitted by the grant, with no secret | R6 | `WireTranslation` maps the internal route; `OutcomeSuite` |
 | Morphosis answers `completed` like every provider | R1 | `ApprovalSuite`; `FakeGateway` |
@@ -288,7 +290,9 @@ Unchanged:
 | Approval emits `withdrawal_approved` alone; the fact's amount is the amount paid | R11 | `PublishersSuite` |
 | The terminal listing's currency is the wallet's, not GBP by default | R5 | `EligibilitySuite`; scenario 30, marked |
 | Reasons, notes and destination fields are `Personal` | FR-027 | `ErasureSuite`, `LeakSuite` |
-| A Gigadat request missing its method fields is refused at the request, not parked for manual payout | FR-004, R4 | `GatesSuite`; scenario 30, marked |
+| A Gigadat request missing its method fields is refused at the request, not parked for manual payout | FR-004, R4 | `GatesSuite`; the driver's Gigadat scenario, marked |
+| The queue's player search is a player id, not part of an email: the queue keeps no personal value | FR-014, FR-027, research *Found during implementation* | `QueueSuite`; the driver's queue filters, marked |
+| A destination listing shows which destination is the default; the original's listed none as default | FR-013, research *Found during implementation* | `TerminalsFeatures` (destinations); the driver's destination scenarios, marked |
 | Unused rate limits dropped | R1 | — |
 
 ## What the next command needs to know

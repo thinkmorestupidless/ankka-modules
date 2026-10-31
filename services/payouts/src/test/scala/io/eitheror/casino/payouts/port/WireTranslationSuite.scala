@@ -41,24 +41,43 @@ class WireTranslationSuite extends munit.FunSuite:
     val (status, out) = answer(r, 422, observed, None)
     assertEquals((status, out.map(_.get("weeklyRemaining").decimalValue.toPlainString)), (422, Some("50")))
 
-  test("the player's list compares only the pending rows"):
+  test("the player's list compares only the pending rows, in decimals"):
     val r        = tr("GET", "/v1/casino/brands/goldvibe/players/p-1/withdrawal-requests")
     val observed = body("""{"requests":[{"requestId":"a","status":"PENDING_REVIEW","amount":100},{"requestId":"b","status":"COMPLETED","amount":200}]}""")
     val (_, out) = answer(r, 200, observed, None)
     assertEquals(out.map(_.objects("requests").flatMap(_.text("requestId"))), Some(Vector("a")))
+    assertEquals(out.map(_.objects("requests").head.get("amount").decimalValue.toPlainString), Some("1"))
     assertEquals(recordedShape(Row.Requests, observed.get).objects("requests").size, 1)
 
   test("a cancel names this service's id"):
     assertEquals(tr("DELETE", "/v1/casino/brands/goldvibe/players/p-1/withdrawal-requests/orig-r").path,
       "/v1/casino/brands/goldvibe/players/p-1/withdrawal-requests/id-r")
 
+  test("a cancel's answer: the amount in minor units and the returned amounts in decimals, as the original answered"):
+    val r        = tr("DELETE", "/v1/casino/brands/goldvibe/players/p-1/withdrawal-requests/orig-r")
+    val observed = body("""{"requestId":"id-r","status":"CANCELLED","amount":5000,"refundedAmount":5000,"voidedReturnedAmount":0}""")
+    val recorded = body("""{"requestId":"withdrawal-request/orig-r","status":"CANCELLED","amount":5000,"refundedAmount":50,"voidedReturnedAmount":0}""")
+    val (_, out) = answer(r, 200, observed, recorded)
+    assertEquals(out.map(o => (o.textOr("requestId", ""), o.get("amount").asLong, o.get("refundedAmount").decimalValue.toPlainString)),
+      Some(("withdrawal-request/id-r", 5000L, "50")))
+
+  test("an operator's read of one request names this service's id; compared by status and payment status"):
+    val r = tr("GET", "/v1/casino/brands/goldvibe/withdrawal-requests/orig-r")
+    assertEquals((r.row, r.path), (Row.Detail, "/v1/casino/brands/goldvibe/withdrawal-requests/id-r"))
+    val observed = body("""{"requestId":"id-r","status":"AWAITING_MANUAL_PAYOUT","payoutStatus":"NOT_STARTED","amount":5000}""")
+    val recorded = body("""{"requestId":"orig-r","status":"AWAITING_MANUAL_PAYOUT","payoutStatus":"NOT_STARTED","amount":5000,"balanceBefore":10000}""")
+    val (_, out) = answer(r, 200, observed, recorded)
+    assertEquals(out.map(Json.render), recorded.map(n => Json.render(recordedShape(Row.Detail, n))))
+
   test("terminals: the currency the wallet's when missing; compared by id and order"):
     assertEquals(tr("GET", "/v1/casino/brands/goldvibe/players/p-1/withdrawal-terminals").path,
       "/v1/casino/brands/goldvibe/players/p-1/withdrawal-terminals?currency=EUR")
     val r        = tr("GET", "/v1/casino/brands/goldvibe/players/p-1/withdrawal-terminals?currency=CAD")
     val observed = body("""{"terminals":[{"id":"t-2","name":"Interac"},{"id":"t-1","name":"Bank"}]}""")
-    val recorded = body("""{"terminals":[{"id":"t-2","name":"Interac e-Transfer","scheme":"INTERAC"},{"id":"t-1"}]}""")
+    val recorded = body("""{"terminals":[{"terminalId":"t-2","name":"Interac e-Transfer","scheme":"INTERAC"},{"terminalId":"t-1"}]}""")
     assertEquals(answer(r, 200, observed, recorded)._2.map(Json.render), recorded.map(recordedShape(Row.Terminals, _)).map(Json.render))
+    val reordered = body("""{"terminals":[{"terminalId":"t-1"},{"terminalId":"t-2"}]}""")
+    assertNotEquals(answer(r, 200, observed, reordered)._2.map(Json.render), reordered.map(recordedShape(Row.Terminals, _)).map(Json.render))
 
   test("destinations: the IBAN compared by its last four, on both sides"):
     val r        = tr("GET", "/v1/casino/brands/goldvibe/players/p-1/payout-destinations")
@@ -69,20 +88,20 @@ class WireTranslationSuite extends munit.FunSuite:
     assertEquals(recordedShape(Row.Destinations, recorded.get).objects("destinations").head.text("iban"), Some("3000"))
     assertEquals(tr("POST", "/v1/casino/brands/goldvibe/players/p-1/payout-destinations", Some("""{"iban":"x"}""")).row, Row.SaveDestination)
 
-  test("set-default is a PUT of the destination; a delete's 204 is the original's 200"):
+  test("set-default is a PUT of the destination; a delete answers 204, as the original did"):
     val set = tr("PUT", "/v1/casino/brands/goldvibe/players/p-1/payout-destinations/orig-d/set-default")
     assertEquals((set.row, set.path, set.body.flatMap(_.bool("setAsDefault"))),
       (Row.SetDefault, "/v1/casino/brands/goldvibe/players/p-1/payout-destinations/id-d", Some(true)))
     val del = tr("DELETE", "/v1/casino/brands/goldvibe/players/p-1/payout-destinations/orig-d")
     assertEquals((del.row, del.path), (Row.DeleteDestination, "/v1/casino/brands/goldvibe/players/p-1/payout-destinations/id-d"))
-    assertEquals(answer(del, 204, None, body("""{"ok":true}"""))._1, 200)
+    assertEquals(answer(del, 204, None, None), (204, None))
 
-  test("the queue: the same path and query; rows compared by id, status and amount"):
+  test("the queue: the same path and query; rows compared by id, status and amount, in minor units"):
     val r = tr("GET", "/v1/casino/brands/goldvibe/withdrawal-requests?status=ALL&page=2")
     assertEquals(r.path, "/v1/casino/brands/goldvibe/withdrawal-requests?status=ALL&page=2")
     val observed = body("""{"requests":[{"requestId":"id-r","status":"APPROVED","amount":2550,"playerId":"p-1"}],"total":1}""")
     val (_, out) = answer(r, 200, observed, None)
-    assertEquals(out.map(o => Json.render(o.objects("requests").head)), Some("""{"requestId":"id-r","status":"APPROVED","amount":25.5}"""))
+    assertEquals(out.map(o => Json.render(o.objects("requests").head)), Some("""{"requestId":"id-r","status":"APPROVED","amount":2550}"""))
 
   test("each decision names this service's id"):
     for action <- Vector("approve", "reject", "confirm-payout", "mark-payout-failed") do

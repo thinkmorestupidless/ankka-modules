@@ -22,8 +22,8 @@ object WireTranslation:
 
   /** Which row of the table a request is: the answer is translated by its row. */
   enum Row:
-    case Request, Requests, Cancel, Terminals, Destinations, SaveDestination, SetDefault, DeleteDestination, Queue, Decision,
-      History, Config, Outcome
+    case Request, Requests, Cancel, Terminals, Destinations, SaveDestination, SetDefault, DeleteDestination, Queue, Detail,
+      Decision, History, Config, Outcome
 
   /**
    * What a path needs that it does not carry: the brand served, the wallet's currency (for a request that
@@ -58,7 +58,8 @@ object WireTranslation:
 
   /** The answer fields that are amounts (wire.md, *Amounts*). */
   val AmountFields: Set[String] =
-    Set("amount", "forfeitedAmount", "clawbackAmount", "maxWithdrawable", "totalForfeit", "bonusBalance") ++
+    Set("amount", "forfeitedAmount", "clawbackAmount", "maxWithdrawable", "totalForfeit", "bonusBalance", "refundedAmount",
+      "voidedReturnedAmount") ++
       (for p <- Seq("weekly", "monthly"); f <- Seq("Limit", "Used", "Remaining") yield p + f)
 
   /** Every amount field of an object, and of the objects under it, from minor units back to decimals. */
@@ -87,6 +88,7 @@ object WireTranslation:
   private val Seg        = "([^/?]+)"
   private val PlayerPath = s"/v1/casino/brands/$Seg/players/$Seg/(.+)".r
   private val Queue      = s"/v1/casino/brands/$Seg/withdrawal-requests".r
+  private val Detail     = s"/v1/casino/brands/$Seg/withdrawal-requests/$Seg".r
   private val Decide     = s"/v1/casino/brands/$Seg/withdrawal-requests/$Seg/(approve|reject|confirm-payout|mark-payout-failed)".r
   private val ConfigPath = s"/v1/casino/brands/$Seg/withdrawal-config".r
   private val OutcomeAt  = s"/internal/v1/casino/withdrawal-requests/$Seg/outcome".r
@@ -117,6 +119,7 @@ object WireTranslation:
       case ("DELETE", PlayerPath(_, p, DestOne(d))) => Some(Request(Row.DeleteDestination, "DELETE", players(p, s"$Dests/${ctx.id(d)}"), None))
       case ("GET", PlayerPath(_, p, "withdrawal-history")) => Some(Request(Row.History, "GET", players(p, "withdrawal-history"), None))
       case ("GET", Queue(_)) => Some(Request(Row.Queue, "GET", s"/v1/casino/brands/$b/withdrawal-requests" + query.fold("")("?" + _), None))
+      case ("GET", Detail(_, r)) => Some(Request(Row.Detail, "GET", s"/v1/casino/brands/$b/withdrawal-requests/${ctx.id(r)}", None))
       case ("POST", Decide(_, r, action)) =>
         Some(Request(Row.Decision, "POST", s"/v1/casino/brands/$b/withdrawal-requests/${ctx.id(r)}/$action", body))
       case ("GET", ConfigPath(_)) => Some(Request(Row.Config, "GET", s"/v1/casino/brands/$b/withdrawal-config", None))
@@ -162,23 +165,40 @@ object WireTranslation:
         case Row.Request =>
           (status, decimals.map(o => withField(o, "requestId", originalId.orElse(o.text("requestId")))))
         case Row.Requests          => (status, decimals.map(pendingOnly))
-        case Row.Terminals         => (status, decimals.map(o => Json.obj("terminals" -> Json.arr(o.objects("terminals").map(t => Json.obj("id" -> t.text("id")))*))))
+        case Row.Terminals         => (status, decimals.map(terminalIds))
         case Row.Destinations      => (status, decimals.map(o => Json.obj("destinations" -> Json.arr(o.objects("destinations").map(lastFour)*))))
         case Row.SaveDestination   => (status, decimals.map(lastFour))
-        case Row.DeleteDestination => (200, recorded)
-        case Row.Queue             => (status, decimals.map(o => Json.obj("requests" -> Json.arr(o.objects("requests").map(queueRow)*))))
+        case Row.DeleteDestination => (status, None)
+        case Row.Cancel            => (status, decimals.map(o => cancelled(o, observed, recorded)))
+        // The original's queue, like its operator's read of one request, answered minor units.
+        case Row.Queue             => (status, observed.map(o => Json.obj("requests" -> Json.arr(o.objects("requests").map(queueRow)*))))
         case Row.Config            => (status, observed.map(eurLimits))
-        case Row.Cancel | Row.Decision | Row.History | Row.Outcome => (status, decimals)
+        case Row.Detail            => (status, observed.map(statuses))
+        case Row.SetDefault | Row.Decision | Row.History | Row.Outcome => (status, decimals)
     (s, narrowed(recorded.map(recordedShape(request.row, _)), body))
 
   /** The recording read the way its row compares it: only pending rows, terminals by id, an IBAN by its last four, queue rows by id, status and amount. */
   def recordedShape(row: Row, recorded: JsonNode): JsonNode = row match
     case Row.Requests     => pendingOnly(recorded)
-    case Row.Terminals    => Json.obj("terminals" -> Json.arr(recorded.objects("terminals").map(t => Json.obj("id" -> t.text("id")))*))
+    case Row.Terminals    => terminalIds(recorded)
     case Row.Destinations => Json.obj("destinations" -> Json.arr(recorded.objects("destinations").map(lastFour)*))
     case Row.SaveDestination => lastFour(recorded)
     case Row.Queue        => Json.obj("requests" -> Json.arr(recorded.objects("requests").map(queueRow)*))
+    case Row.Detail       => statuses(recorded)
     case _                => recorded
+
+  /**
+   * The original's cancel answer kept its `amount` in minor units beside a decimal `refundedAmount`, and named
+   * the request by its twin id; both as recorded.
+   */
+  private def cancelled(o: JsonNode, observed: Option[JsonNode], recorded: Option[JsonNode]): JsonNode =
+    val out    = o.deepCopy[JsonNode]().asInstanceOf[ObjectNode]
+    observed.flatMap(n => Option(n.get("amount"))).foreach(out.set[JsonNode]("amount", _))
+    val prefix = recorded.flatMap(_.text("requestId")).filter(_.startsWith(TwinPrefix)).map(_ => TwinPrefix)
+    prefix.foreach(p => o.text("requestId").filterNot(_.startsWith(p)).foreach(id => out.put("requestId", p + id)))
+    out
+
+  private val TwinPrefix = "withdrawal-request/"
 
   private def withField(o: JsonNode, field: String, value: Option[String]): JsonNode =
     val out = o.deepCopy[JsonNode]().asInstanceOf[ObjectNode]
@@ -195,6 +215,13 @@ object WireTranslation:
     out.remove("ibanLastFour"): Unit
     four.foreach(out.put("iban", _))
     out
+
+  /** A listing by its terminals' ids, in order: the original names each `terminalId`, this service `id`. */
+  private def terminalIds(o: JsonNode): JsonNode =
+    Json.obj("terminals" -> Json.arr(o.objects("terminals").map(t => Json.obj("terminalId" -> t.text("terminalId").orElse(t.text("id"))))*))
+
+  /** An operator's read of one request, as the steps that wait on it read it: its status and payment status. */
+  private def statuses(r: JsonNode): JsonNode = Json.obj("status" -> r.text("status"), "payoutStatus" -> r.text("payoutStatus"))
 
   private def queueRow(r: JsonNode): JsonNode =
     Json.obj("requestId" -> r.text("requestId").orElse(r.text("id")), "status" -> r.text("status"), "amount" -> Option(r.get("amount")))
