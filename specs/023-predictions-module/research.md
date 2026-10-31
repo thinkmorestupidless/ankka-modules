@@ -161,7 +161,7 @@ schemas by `just schemas`:
 | Topic | Key | Families | Producer |
 |---|---|---|---|
 | `markets.events` | market | `market_drafted` … `market_final`, one per market event | `MarketFactsPublisher` over `market` |
-| `exchange.orders` | player | `order_placed`, `order_cancelled`, `order_expired`, `order_filled` | `OrderFactsPublisher` over `exchange` |
+| `exchange.orders` | market | `order_placed`, `order_cancelled`, `order_expired`, `order_filled` | `OrderFactsPublisher` over `exchange` |
 | `exchange.trades` | market | `trade_made` (legs with each player as `Personal`), `position_paid`, `remainder_kept` | `TradeFactsPublisher` over `exchange` |
 | `exchange.prices` | market | `prices_changed` (last price per outcome, the sequence) | `PriceFactsPublisher` over `exchange` |
 
@@ -302,3 +302,6 @@ the original*).
   `quantity` and `restingUnderSells`, the second taken from the player's resting sells. The
   positions view keeps no sequence; the orders view's, over the same journal, stands for it in the
   `stale` answer.
+- **T039, the orders topic's key.** facts.feature and R9's table said `exchange.orders` was keyed
+  by the player; FR-006, contracts/facts.md and the contract key every exchange topic by the
+  market. Trevor settled it as the scenario's error: the step now says "keyed by the market".
