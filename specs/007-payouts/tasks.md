@@ -219,7 +219,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       unreachable gateway, 5xx, an unreadable body, `in_doubt`, `initiation_in_progress`) and at each
       wait. No request reaches awaiting manual payout but by approval on a manual terminal; `rejected`
       returns the money with `provider_rejected`.
-- [ ] T044 [US5] `T/it/DoublePaySuite.scala` (SC-003): `initiated`, then a timeout, then `completed` on
+- [X] T044 [US5] `T/it/DoublePaySuite.scala` (SC-003): `initiated`, then a timeout, then `completed` on
       the outcome route and the status read at once. The result is one completed request, one confirm at
       `FakeWallet`, and one `withdrawal_completed`.
 - [ ] T045 [US5] `T/it/OutcomeSuite.scala`: the gateway's identity is admitted, and any other caller and
