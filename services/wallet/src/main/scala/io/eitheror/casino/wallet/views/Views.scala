@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.contract.personal.Personal.given
 import io.eitheror.casino.wallet.Ids
-import io.eitheror.casino.wallet.entity.{WalletEntity, WalletEvent}
+import io.eitheror.casino.wallet.entity.{Purpose, WalletEntity, WalletEvent}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
 import io.eitheror.casino.wallet.funding.Parts
 
@@ -44,7 +44,9 @@ final case class TransactionRow(
     depositPart: Long = 0L,
     convertedPart: Long = 0L,
     depositPoolAfter: Long = 0L,
-    convertedPoolAfter: Long = 0L
+    convertedPoolAfter: Long = 0L,
+    /** Spec 022: the order, trade, account or position a ledger move is about. */
+    reference: Option[String] = None
 )
 
 /** The original's transaction types. */
@@ -62,6 +64,18 @@ object TransactionType:
   val WithdrawalReversal = "withdrawal_reversal"
   val AdminAdjust        = "admin_adjust"
   val GameProviderCredit = "game_provider_credit"
+  // spec 022
+  val Reservation        = "reservation"
+  val ReservationRelease = "reservation_release"
+  val SettlementDebit    = "settlement_debit"
+  val SettlementCredit   = "settlement_credit"
+  val ResolutionPayment  = "resolution_payment"
+  val AccountDebit       = "account_debit"
+  val AccountCredit      = "account_credit"
+
+  /** The types spec 022 adds, which the transactions read accepts in its `type` filter. */
+  val Ledger: Set[String] =
+    Set(Reservation, ReservationRelease, SettlementDebit, SettlementCredit, ResolutionPayment, AccountDebit, AccountCredit)
 
 /** The rows a wallet event writes, as pure values (tested without a runtime). */
 object TransactionRows:
@@ -98,6 +112,12 @@ object TransactionRows:
       case e: WithdrawalReversed => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
       case e: AdminAdjusted      => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
       case e: ProviderCredited   => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: ReservationPlaced   => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter)
+      case e: ReservationReleased => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter)
+      case e: SettlementDebited   => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: SettlementCredited  => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: MovedToAccount      => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
+      case e: MovedFromAccount    => pooled(plain(walletId, e, row), e.depositAfter, e.convertedAfter, e.parts)
       case _                     => Vector.empty
 
   private type Row = (String, String, String, Long, Long, Long, String, Instant) => TransactionRow
@@ -150,6 +170,25 @@ object TransactionRows:
         val (before, after) = if e.landedOn == "restricted" then (e.restrictedAfter - e.amount, e.restrictedAfter) else (e.realAfter - e.amount, e.realAfter)
         Vector(row(e.transactionId, TransactionType.GameProviderCredit, if e.landedOn == "restricted" then "bonus" else "real", e.amount,
           before, after, "completed", e.at).copy(actorId = Some(e.actorId)))
+      case e: ReservationPlaced =>
+        Vector(row(e.transactionId, TransactionType.Reservation, "real", e.amount, e.realAfter, e.realAfter, "completed", e.at)
+          .copy(reference = Some(e.orderId)))
+      case e: ReservationReleased =>
+        Vector(row(e.transactionId, TransactionType.ReservationRelease, "real", e.amount, e.realAfter, e.realAfter, "completed", e.at)
+          .copy(reference = Some(e.orderId)))
+      case e: SettlementDebited =>
+        Vector(row(e.transactionId, TransactionType.SettlementDebit, "real", e.amount, e.realAfter + e.amount, e.realAfter, "completed", e.at)
+          .copy(reference = Some(e.tradeId)))
+      case e: SettlementCredited =>
+        Vector(row(e.transactionId, TransactionType.SettlementCredit, "real", e.amount, e.realAfter - e.amount, e.realAfter, "completed", e.at)
+          .copy(reference = Some(e.tradeId)))
+      case e: MovedToAccount =>
+        Vector(row(e.transactionId, TransactionType.AccountDebit, "real", e.amount, e.realAfter + e.amount, e.realAfter, "completed", e.at)
+          .copy(reference = Some(s"${e.accountKind}/${e.accountName}/${e.reference}")))
+      case e: MovedFromAccount =>
+        val kind = if e.purpose == Purpose.ResolutionPayment then TransactionType.ResolutionPayment else TransactionType.AccountCredit
+        Vector(row(e.transactionId, kind, "real", e.amount, e.realAfter - e.amount, e.realAfter, "completed", e.at)
+          .copy(reference = Some(s"${e.accountKind}/${e.accountName}/${e.reference}")))
       case _ => Vector.empty
 
   /** The bets a settlement closes, and the status their rows take. */

@@ -9,7 +9,9 @@ import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.Layout.GrantTarget
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.money.{Currency, Key}
+import io.eitheror.casino.wallet.accounts.{AccountBalance, AccountEntity, AccountMoveStart, AccountMoveWorkflow, AccountState, SetCreditLine}
 import io.eitheror.casino.wallet.config.{BrandConfigEntity, SetBetSwitches}
+import io.eitheror.casino.wallet.settlement.{SettlementStart, SettlementWorkflow}
 import io.eitheror.casino.wallet.deposits.{DepositStart, DepositWorkflow}
 import io.eitheror.casino.wallet.entity.*
 import io.eitheror.casino.wallet.payments.{PaymentEntity, PaymentOutcome}
@@ -34,7 +36,12 @@ final class ServiceEndpoint(
     client: ComponentClient,
     views: ViewClient,
     brand: String,
-    clock: () => Instant = () => Instant.now()
+    clock: () => Instant = () => Instant.now(),
+    /**
+     * This service's project, which `Routes.serviceNamed` admits by name (an authenticating ACL is not
+     * told its own): the brand's project is its slug; the integration kit's is `local`.
+     */
+    project: String = ""
 ) extends HttpEndpoint(s"/v1/casino/brands/$brand"):
   import ServiceEndpoint.{*, given}
 
@@ -205,6 +212,138 @@ final class ServiceEndpoint(
       query.optional[Int]("page").getOrElse(0), query.optional[Int]("pageSize").getOrElse(50)))
   }
 
+  // ── spec 022: reservations (the exchange) ─────────────────────────────────
+
+  /** A spec 022 amount: whole minor units and above zero (spec 001 FR-026). */
+  private def positive(a: AmountText): Either[Respond[Bytes], Long] =
+    amount(a).flatMap(v => if v > 0 then Right(v) else Left(Wire.refusal("INVALID_REQUEST", s"the amount ${a.text} is not above zero",
+      Map("amount" -> a.text))))
+
+  postBody("/wallets/{player}/{currency}/reservations") { (player: String, currency: String, r: ReservationRequest) =>
+    money(currency)(for k <- key(r.key); a <- positive(r.amount) yield
+      wallet(player, currency).call(WalletEntity.reserve).invoke(Reserve(k, a, clock())))
+  }
+
+  postBody("/wallets/{player}/{currency}/reservations/release") { (player: String, currency: String, r: ReleaseReservationRequest) =>
+    money(currency) {
+      for
+        o <- key(r.orderId)
+        n <- r.sequence.toRight(Wire.missingKey)
+        a <- positive(r.amount)
+      yield wallet(player, currency).call(WalletEntity.releaseReservation).invoke(ReleaseReservation(s"$o/$n", o, a, clock()))
+    }
+  }
+
+  // ── spec 022: settlement (FR-004) ─────────────────────────────────────────
+
+  postBody("/settlements") { (r: SettlementRequest) =>
+    Currency.from(r.currency) match
+      case Left(message) => Wire.refusal("INVALID_REQUEST", message)
+      case Right(_) =>
+        val answer =
+          for
+            t <- key(r.tradeId)
+            a <- positive(r.amount)
+            u <- r.unused.fold(Right(0L))(amount)
+            _ <- Either.cond(r.buyer != r.seller, (), Wire.refusal("INVALID_REQUEST", "a trade's buyer and seller are two players"))
+          yield
+            val start = SettlementStart(t, r.currency, r.buyer, r.orderId, r.seller, a, u, clock())
+            val flow  = client.forWorkflow(SettlementWorkflow.id(r.currency, t))
+            Flows.answer(flow.call(SettlementWorkflow.start).invoke(start): Unit, {
+              val s = flow.call(SettlementWorkflow.status).invoke()
+              Flows.Seen(s.digest, s.request.map(_.amount), s.outcome)
+            }, SettlementWorkflow.digest(start), "settle", t)
+        answer.fold(identity, o =>
+          if !o.accepted then Wire.outcome(o, r.currency)
+          else Wire.json(200, SettlementReply(SettlementBuyer(o.realBalance, o.reserved.getOrElse(0L), o.available.getOrElse(0L), o.transactionId),
+            SettlementSeller(o.counterpartyRealBalance.getOrElse(0L), o.counterpartyTransactionId), r.currency)))
+  }
+
+  // ── spec 022: non-player accounts (FR-005 to FR-008, FR-012) ──────────────
+
+  private def accountKind(kind: String): Either[Respond[Bytes], String] =
+    Either.cond(AccountState.Kinds(kind), kind, Wire.refusal("INVALID_REQUEST", s"an account is pool or clearing, not '$kind'"))
+
+  /** A move as its flow: claimed under the caller's key, then answered from the flow (research R4). */
+  private def move(kind: String, name: String, currency: String, direction: String, purpose: String, player: String, amount: Long,
+      k: String, reference: String): Respond[Bytes] =
+    val accountId = s"$kind/$name/$currency"
+    val start     = AccountMoveStart(accountId, direction, purpose, player, amount, k, reference, principal.subject, clock())
+    val flow      = client.forWorkflow(AccountMoveWorkflow.id(accountId, k))
+    val o = Flows.answer(flow.call(AccountMoveWorkflow.start).invoke(start): Unit, {
+      val s = flow.call(AccountMoveWorkflow.status).invoke()
+      Flows.Seen(s.digest, s.request.map(_.amount), s.outcome)
+    }, AccountMoveWorkflow.digest(start), purpose, k)
+    if !o.accepted then Wire.outcome(o, currency)
+    else Wire.json(200, AccountMoveReply(MoveWallet(o.realBalance, o.reserved.getOrElse(0L), o.available.getOrElse(0L), o.transactionId),
+      MoveAccount(o.accountBalance.getOrElse(0L), o.counterpartyTransactionId), currency))
+
+  private def onPool(kind: String)(answer: => Respond[Bytes]): Respond[Bytes] =
+    accountKind(kind).flatMap(k => Either.cond(k == AccountState.Pool, k,
+      Wire.refusal("INVALID_REQUEST", "splits, merges and resolution payments are on a pool account"))).fold(identity, _ => answer)
+
+  private val ownProject = if project.isEmpty then brand else project
+
+  withAcl(Routes.serviceNamed(ownProject)) {
+    postBody("/accounts/{kind}/{name}/splits") { (kind: String, name: String, r: AccountMoveRequest) =>
+      onPool(kind) {
+        Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m))
+          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount) yield (k, a))
+          .fold(identity, (k, a) => move(kind, name, r.currency, AccountMoveWorkflow.ToAccount, Purpose.Split, r.player, a, k, k))
+      }
+    }
+
+    postBody("/accounts/{kind}/{name}/merges") { (kind: String, name: String, r: AccountMoveRequest) =>
+      onPool(kind) {
+        Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m))
+          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount) yield (k, a))
+          .fold(identity, (k, a) => move(kind, name, r.currency, AccountMoveWorkflow.FromAccount, Purpose.Merge, r.player, a, k, k))
+      }
+    }
+
+    /** A position is paid once: the key is the market and the position (FR-005). */
+    postBody("/accounts/{kind}/{name}/payments") { (kind: String, name: String, r: ResolutionPaymentRequest) =>
+      onPool(kind) {
+        Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m))
+          .flatMap(_ => for p <- key(r.positionId); a <- positive(r.amount) yield (p, a))
+          .fold(identity, (p, a) =>
+            move(kind, name, r.currency, AccountMoveWorkflow.FromAccount, Purpose.ResolutionPayment, r.player, a, s"$name/$p", p))
+      }
+    }
+
+    get("/accounts/{kind}/{name}/balance") { (kind: String, name: String) =>
+      val currency = query.required[String]("currency")
+      accountKind(kind).flatMap(_ => Currency.from(currency).left.map(m => Wire.refusal("INVALID_REQUEST", m))).fold(identity, _ =>
+        ServiceEndpoint.accountBalance(client.forEventSourcedEntity(AccountEntity.id(kind, name, currency)).call(AccountEntity.balance).invoke()))
+    }
+  }
+
+  withAcl(Routes.serviceNamed(ownProject, Some(GrantTarget.Route("wallet", "POST", "/v1/casino/brands/{brand}/accounts/{kind}/{name}/moves")))) {
+    postBody("/accounts/{kind}/{name}/moves") { (kind: String, name: String, r: AccountMoveRequest) =>
+      val direction = r.direction match
+        case Some("to-wallet")   => Right(AccountMoveWorkflow.FromAccount)
+        case Some("from-wallet") => Right(AccountMoveWorkflow.ToAccount)
+        case _                   => Left(Wire.refusal("INVALID_REQUEST", "direction is to-wallet or from-wallet"))
+      accountKind(kind)
+        .flatMap(_ => Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m)))
+        .flatMap(_ => for d <- direction; k <- key(r.key); a <- positive(r.amount) yield (d, k, a))
+        .fold(identity, (d, k, a) => move(kind, name, r.currency, d, Purpose.Clearing, r.player, a, k, k))
+    }
+  }
+
+  withAcl(Routes.serviceNamed(ownProject, Some(GrantTarget.Route("wallet", "PUT", "/v1/casino/brands/{brand}/accounts/{kind}/{name}/credit-line")))) {
+    putBody("/accounts/{kind}/{name}/credit-line") { (kind: String, name: String, r: CreditLineRequest) =>
+      accountKind(kind)
+        .flatMap(_ => Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m)))
+        .flatMap(_ => amount(r.creditLine))
+        .fold(identity, line =>
+          val account = client.forEventSourcedEntity(AccountEntity.id(kind, name, r.currency))
+          val o       = account.call(AccountEntity.setCreditLine).invoke(SetCreditLine(line, principal.subject, clock()))
+          if !o.accepted then Wire.outcome(o, r.currency)
+          else ServiceEndpoint.accountBalance(account.call(AccountEntity.balance).invoke()))
+    }
+  }
+
   // ── erasure (FR-033) ──────────────────────────────────────────────────────
 
   /**
@@ -249,6 +388,20 @@ final class ServiceEndpoint(
   }
 
 object ServiceEndpoint:
+  given JsonValueCodec[ReservationRequest]        = Codecs.make[ReservationRequest]
+  given JsonValueCodec[ReleaseReservationRequest] = Codecs.make[ReleaseReservationRequest]
+  given JsonValueCodec[SettlementRequest]         = Codecs.make[SettlementRequest]
+  given JsonValueCodec[AccountMoveRequest]        = Codecs.make[AccountMoveRequest]
+  given JsonValueCodec[ResolutionPaymentRequest]  = Codecs.make[ResolutionPaymentRequest]
+  given JsonValueCodec[CreditLineRequest]         = Codecs.make[CreditLineRequest]
+  given JsonValueCodec[SettlementReply]           = Codecs.make[SettlementReply]
+  given JsonValueCodec[AccountMoveReply]          = Codecs.make[AccountMoveReply]
+  given JsonValueCodec[AccountBalanceReply]       = Codecs.make[AccountBalanceReply]
+
+  /** An account's balance as the service route answers it; an account no one has moved money through is not found. */
+  def accountBalance(b: AccountBalance): Respond[Bytes] =
+    if !b.found then Wire.refusal(Refusals.AccountNotFound, Refusals.accountNotFound(b.accountId))
+    else Wire.json(200, AccountBalanceReply(b.balance, b.creditLine, b.floor, b.owner, b.currency))
   given JsonValueCodec[BetRequest]            = Codecs.make[BetRequest]
   given JsonValueCodec[WinRequest]            = Codecs.make[WinRequest]
   given JsonValueCodec[RollbackRequest]       = Codecs.make[RollbackRequest]
@@ -270,7 +423,9 @@ object ServiceEndpoint:
   given JsonValueCodec[TransactionsPage] =
     com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(
       com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withTransientNone(false).withTransientDefault(false).withTransientEmpty(false))
-  given JsonValueCodec[Balance]               = Codecs.make[Balance]
+  /** reserved and available are written at 0 too: the read reports both (spec 022 contracts/routes.md). */
+  given JsonValueCodec[Balance] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withAllowRecursiveTypes(true).withRequireDiscriminatorFirst(false).withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
   given JsonValueCodec[RestrictedFundsStatus] = Codecs.make[RestrictedFundsStatus]
   given JsonValueCodec[DepositSums]           = Codecs.make[DepositSums]
   given JsonValueCodec[LifetimeTotals]        = Codecs.make[LifetimeTotals]

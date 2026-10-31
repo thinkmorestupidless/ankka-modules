@@ -122,6 +122,20 @@ class ReadsFeatures extends RouteFeatures("reads.feature"):
 
   Given("an active restricted funds record") { () => award("g1", 2000L, 0L, "funds_and_winnings") }
 
+  /** Spec 022: the exchange holds part of the real balance for an order (FR-012). */
+  Given("a real balance of {string} and a reservation of {string} placed for order {string}") { (r: String, a: String, o: String) =>
+    assertEquals(deposit(r.toLong)._1, 200)
+    val (status, body) = send("POST", s"$path/reservations", Some(s"""{"key":"$o","amount":$a}"""), as = Caller.Service("local", "exchange"))
+    assertEquals(status, 200, body)
+  }
+
+  Then("real balance {string}, reserved amount {string} and available amount {string} are returned as major-unit strings") {
+    (r: String, a: String, v: String) =>
+      def major(m: String) = io.eitheror.casino.wallet.wire.Wire.major(m.toLong)
+      assertEquals((read.get("realBalance").asText, read.get("reserved").asText, read.get("available").asText), (major(r), major(a), major(v)))
+      assert(read.get("reserved").isTextual && read.get("available").isTextual, read.toString)
+  }
+
   When("the balance is read") { () =>
     val (status, body) = sendWithToken("GET", s"/v1/casino/players/$brand/wallets/$currency/balance", TestTokens.player(player))
     assertEquals(status, 200, body)

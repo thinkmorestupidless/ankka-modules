@@ -83,8 +83,25 @@ class RealMoneySuite extends munit.FunSuite with LogCapturing:
     assertEquals(all.flatMap(RealMoney.bonusCost), Vector(2000L -> "aw-1", 900L -> "prov-2"))
   }
 
-  test("every family is named as the topic names it") {
-    assertEquals(all.map(RealMoney.family).distinct.toSet, MoneyTransactions.families.map(_.name).toSet)
+  /** Spec 022's movements: counted nowhere in GGR, no bonus cost (spec 025's Assumptions). */
+  private val ledger: Vector[MoneyTransactionsFact] = Vector(
+    ReservationPlaced("p", zar, "t15", "o1", m(600), s(7400), m(900), m(600), at),
+    ReservationReleased("p", zar, "t16", "o1", m(100), s(7400), m(900), m(500), at),
+    SettlementDebit("p", zar, "t17", "tr-1", "o1", m(300), m(200), "q", s(7100), m(900), m(0), at),
+    SettlementCredit("p", zar, "t18", "tr-2", m(300), "q", s(7400), m(900), m(0), at),
+    ResolutionPayment("p", zar, "t19", "mk-1", "pos-1", m(100), s(7500), m(900), m(0), at),
+    AccountDebit("p", zar, "t20", "pool", "mk-1", "split", "sp-1", m(100), s(7400), m(900), m(0), at),
+    AccountCredit("p", zar, "t21", "pool", "mk-1", "merge", "mg-1", m(100), s(7500), m(900), m(0), at)
+  )
+
+  test("every family is named as the topic names it; account_adjusted is no wallet's and never reaches a tally") {
+    assertEquals((all ++ ledger).map(RealMoney.family).distinct.toSet,
+      MoneyTransactions.families.map(_.name).toSet - "account_adjusted")
+  }
+
+  test("spec 022's movements count nothing and cost nothing") {
+    assertEquals(ledger.flatMap(RealMoney.counted), Vector.empty)
+    assertEquals(ledger.flatMap(RealMoney.bonusCost), Vector.empty)
   }
 
   test("the dedupe id is the ce-id when present, else family, transaction and award") {

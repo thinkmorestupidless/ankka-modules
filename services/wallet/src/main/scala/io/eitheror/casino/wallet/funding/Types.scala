@@ -23,10 +23,18 @@ object Status:
  * The funding-relevant slice of the wallet (types.go `Wallet`). `pools` is the wallet's deposit and
  * converted pools (spec 025): the entity always passes them; `None` is the original's unstamped
  * wallet and exists only so the resolver's tables that predate the pools run unchanged, as the
- * original's do (`TestPlaceBetPools_UnstampedUnchanged`): no pool step, no parts.
+ * original's do (`TestPlaceBetPools_UnstampedUnchanged`): no pool step, no parts. `reserved` is real
+ * balance set aside under resting orders (spec 022 FR-003): a bet, a hold and a cancel's clawback
+ * draw only on `available`. Absent from the original, so 0 leaves every ported table as it was.
  */
 final case class Wallet(realBalance: Long, depositTurnoverPending: Long = 0L, restrictedBalance: Long = 0L,
-    pools: Option[Pools] = None)
+    pools: Option[Pools] = None, reserved: Long = 0L):
+  /**
+   * What a bet, a hold or a clawback may take: real balance less what is reserved, never below 0
+   * while anything is. With nothing reserved it is real balance itself, negative after a correction
+   * debit, so the original's tables (a proportional bet's negative real leg among them) run unchanged.
+   */
+  def available: Long = if reserved == 0 then realBalance else math.max(0L, realBalance - reserved)
 
 /**
  * One restricted-funds record with its rule snapshot (types.go `Record`). Records reach the resolver

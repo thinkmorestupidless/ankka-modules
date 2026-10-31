@@ -3,7 +3,7 @@ package io.eitheror.casino.players.reads
 import com.thinkmorestupidless.ankka.core.ComponentId
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.contract.facts.{MoneyTransactions, MoneyTransactionsFact}
+import io.eitheror.casino.contract.facts.{MoneyTransactions, MoneyTransactionsFact, MoneyTransactionsMessage}
 import io.eitheror.casino.players.PlayersCodecs
 import io.eitheror.casino.players.facts.Lenient
 
@@ -15,14 +15,15 @@ import io.eitheror.casino.players.facts.Lenient
 final case class WalletSummaryRow(playerId: String, currency: String, realBalanceAfter: Long, restrictedBalanceAfter: Long,
     lastMovementAt: Long)
 
-final class WalletSummaryViewRows extends View[Option[MoneyTransactionsFact], WalletSummaryRow]:
-  def onChange(fact: Option[MoneyTransactionsFact]): Effect = fact match
-    case Some(f) if rowState.forall(_.lastMovementAt <= f.occurredAt.toEpochMilli) =>
+final class WalletSummaryViewRows extends View[Option[MoneyTransactionsMessage], WalletSummaryRow]:
+  // a non-player account's message (spec 022's account_adjusted) is no wallet's movement
+  def onChange(fact: Option[MoneyTransactionsMessage]): Effect = fact match
+    case Some(f: MoneyTransactionsFact) if rowState.forall(_.lastMovementAt <= f.occurredAt.toEpochMilli) =>
       effects.updateRow(WalletSummaryRow(f.playerId, f.currency.code, f.realBalanceAfter.value, f.restrictedBalanceAfter.value,
         f.occurredAt.toEpochMilli))
     case _ => effects.ignore()
 
-object WalletSummaryView extends View.Companion[WalletSummaryViewRows, Option[MoneyTransactionsFact], WalletSummaryRow](
+object WalletSummaryView extends View.Companion[WalletSummaryViewRows, Option[MoneyTransactionsMessage], WalletSummaryRow](
       componentId = ComponentId("wallet-summary"),
       source = ChangeSource.fromTopic(MoneyTransactions.name, Lenient.of(MoneyTransactions), StartFrom.Earliest,
         TopicOptions(Some(MoneyTransactions.contract), None, false)),

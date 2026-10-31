@@ -13,6 +13,12 @@ Feature: Non-player accounts hold money that belongs to no player
     And its balance is "100"
     And the real balance of "ada" is "900"
 
+  Scenario: a move refused after the claim still leaves the account created under its caller
+    When the service "exchange" moves "100" from the wallet of "nobody" into the pool account of market "m9" in "EUR"
+    Then it is refused as "wallet not found"
+    And the pool account of market "m9" in "EUR" exists, owned by the service "exchange"
+    And its balance is "0"
+
   Scenario: a resolution payment credits a player's real balance from a non-player account keyed by the market and the position
     Given the pool account of market "m1" in "EUR" holds "1000"
     When a resolution payment of "300" is paid to "ada" from the pool account of market "m1" for position "p1"

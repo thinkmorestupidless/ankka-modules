@@ -1,7 +1,7 @@
 package io.eitheror.casino.wallet.entity
 
 import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
-import io.eitheror.casino.wallet.funding.Pools
+import io.eitheror.casino.wallet.funding.{Parts, Pools}
 
 import java.time.Instant
 
@@ -97,4 +97,21 @@ class WalletBasicsSuite extends munit.FunSuite with LogCapturing:
     assert(!kit.currentState.created)
     val half = kit.call(WalletEntity.openMigrated)(OpenMigrated("open-2", 10000, 0L, Vector.empty, 0L, 0, 0L, t0, depositPool = Some(10000L)))
     assertEquals(half.replyValue.code, Some("POOLS_INVARIANT"))
+  }
+
+  // ── spec 022's movements across the pools (its research R16) ────────────
+
+  test("a reservation moves neither pool; a debit leaves converted first, a credit joins converted") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "x1/EUR")
+    kit.call(WalletEntity.openMigrated)(opening("open", 10000, Some((6000L, 4000L)))): Unit
+    kit.call(WalletEntity.reserve)(Reserve("o1", 5000, t0)): Unit
+    assertEquals(kit.currentState.pools, Pools(6000, 4000))
+    val settled = kit.call(WalletEntity.settleDebit)(SettleDebit("tr-1", "o1", 4500, 500, "bob", t0))
+    assertEquals((settled.replyValue.depositPool, settled.replyValue.convertedPool), (Some(5500L), Some(0L)))
+    assertEquals(settled.events.collectFirst { case e: WalletEvent.SettlementDebited => e.parts }, Some(Parts(500, 4000)))
+    kit.call(WalletEntity.debitToAccount)(DebitToAccount("sp-1", "pool", "m1", Purpose.Split, "sp-1", 1000, t0)): Unit
+    assertEquals(kit.currentState.pools, Pools(4500, 0))
+    kit.call(WalletEntity.settleCredit)(SettleCredit("tr-2", 300, "bob", t0)): Unit
+    kit.call(WalletEntity.creditFromAccount)(CreditFromAccount("m1/p1", "pool", "m1", Purpose.ResolutionPayment, "p1", 200, t0)): Unit
+    assertEquals((kit.currentState.pools, kit.currentState.realBalance), (Pools(4500, 500), 5000L))
   }

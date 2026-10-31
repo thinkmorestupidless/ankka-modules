@@ -136,7 +136,7 @@ object Resolver:
     // Step 4 — funding.
     val order    = fundingOrder(recs)
     val fundable = fundableRecords(recs)
-    val (fundedReal, fundedLegs, funded) = fundBet(order, w.realBalance, fundable, s.amount, f.partialSplits)
+    val (fundedReal, fundedLegs, funded) = fundBet(order, w.available, fundable, s.amount, f.partialSplits)
 
     // Step 5 — insufficient / allow_negative.
     var realLeg    = fundedReal
@@ -421,13 +421,14 @@ object Resolver:
       Right(ClosePlan(Vector(recs(i).id), Vector(RecordUpdate.from(working(i), closedNow = true)), project(working, Status.Forfeited), recs(i).balance))
 
   /**
-   * Cancels: the clawback clamped to real is applied whether or not a record is open, and the
+   * Cancels: the clawback clamped to available (real less reserved, spec 022; real when nothing is
+   * reserved, as the original) is applied whether or not a record is open, and the
    * primary ACTIVE record, or the one `grantRef` names, is forfeited. A named award that is not
    * active is `GRANT_NOT_OPEN`.
    */
   def cancelRecord(w: Wallet, recs: Vector[Record], clawback: Long, grantRef: Option[String] = None): Either[Deny, CancelPlan] =
     val before  = sumActiveBalances(recs)
-    val applied = math.max(0L, math.min(clawback, w.realBalance))
+    val applied = math.max(0L, math.min(clawback, w.available))
     val newReal = w.realBalance - applied
     val plan = grantRef match
       case Some(g) if !recs.exists(r => r.grantRef == g && r.status == Status.Active) =>
@@ -503,7 +504,7 @@ object Resolver:
   def withdraw(w: Wallet, recs: Vector[Record], in: WithdrawInput): Either[Deny, WithdrawPlan] =
     if in.pendingWithdrawalRequestRef.nonEmpty then
       return Left(Deny(Codes.WithdrawalRequestAlreadyPending, Messages.WithdrawalRequestAlreadyPending))
-    if w.realBalance < in.amount then return Left(Deny(Codes.InsufficientFunds, Messages.InsufficientRealBalance))
+    if w.available < in.amount then return Left(Deny(Codes.InsufficientFunds, Messages.InsufficientRealBalance))
     if w.depositTurnoverPending > 0 then return Left(Deny(Codes.WithdrawalBlockedTurnover, Messages.WithdrawalBlockedTurnover))
 
     val working = recs.toArray
@@ -527,7 +528,7 @@ object Resolver:
 
     val clawback  = if applyClawback then in.clawback else 0L
     val realAfter = w.realBalance - clawback
-    if realAfter < in.amount then
+    if realAfter - w.reserved < in.amount then
       return Left(Deny(Codes.WithdrawalInsufficientAfterBonusForfeit, Messages.WithdrawalInsufficientAfterBonusForfeit))
 
     var remaining = if recs.exists(_.status == Status.ConvertedPendingCap) then in.amount else 0L

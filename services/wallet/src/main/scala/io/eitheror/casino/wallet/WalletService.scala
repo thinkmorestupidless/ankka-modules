@@ -7,7 +7,9 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, ProjectionRuntime}
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.wallet.api.*
 import com.thinkmorestupidless.ankka.sdk.ServiceClients
+import io.eitheror.casino.wallet.accounts.{AccountEntity, AccountMoveWorkflow}
 import io.eitheror.casino.wallet.config.BrandConfigEntity
+import io.eitheror.casino.wallet.settlement.SettlementWorkflow
 import io.eitheror.casino.wallet.deposits.DepositWorkflow
 import io.eitheror.casino.wallet.entity.WalletEntity
 import io.eitheror.casino.wallet.payments.PaymentEntity
@@ -37,12 +39,18 @@ object WalletService:
     MoneyTransactionsPublisher.descriptor,
     PaymentCapturedPublisher.descriptor,
     PaymentsPublisher.descriptor,
-    AuditPublisher.descriptor
+    AuditPublisher.descriptor,
+    // spec 022
+    SettlementWorkflow.descriptor,
+    AccountEntity.descriptor,
+    AccountMoveWorkflow.descriptor,
+    AccountAuditPublisher.descriptor,
+    AccountTransactionsPublisher.descriptor
   )
 
   /** The four audiences' endpoints, for a brand, with `responsible-gambling` as given. */
-  def endpoints(brand: String, authenticate: () => Acl = () => Oidc.authenticate()): Seq[EndpointClients => HttpEndpoint] = Seq(
-    clients => ServiceEndpoint(clients.componentClient, clients.viewClient, brand),
+  def endpoints(brand: String, authenticate: () => Acl = () => Oidc.authenticate(), project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
+    clients => ServiceEndpoint(clients.componentClient, clients.viewClient, brand, project = project),
     clients => OperatorEndpoint(clients.componentClient, clients.viewClient, brand, authenticate()),
     clients => PlayerEndpoint(clients.componentClient, clients.viewClient, brand, authenticate())
   )

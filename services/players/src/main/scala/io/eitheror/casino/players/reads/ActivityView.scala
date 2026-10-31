@@ -151,12 +151,14 @@ private[reads] object FromTopic:
   def apply[F <: Fact](topic: Topic[F]): ChangeSource[Option[F]] =
     ChangeSource.fromTopic(topic.name, Lenient.of(topic), StartFrom.Earliest, TopicOptions(Some(topic.contract), None, false))
 
-final class MoneyActivity(client: ComponentClient) extends Consumer[Option[MoneyTransactionsFact], Nothing]:
-  def onMessage(fact: Option[MoneyTransactionsFact]): Effect =
+final class MoneyActivity(client: ComponentClient) extends Consumer[Option[MoneyTransactionsMessage], Nothing]:
+  // a non-player account's message (spec 022's account_adjusted) is no player's activity
+  def onMessage(message: Option[MoneyTransactionsMessage]): Effect =
+    val fact = message.collect { case f: MoneyTransactionsFact => f }
     ActivityEntry.keep(client, MoneyTransactions.name, messageContext, fact, fact.flatMap(ActivityLines.money))
     effects.done()
 
-object MoneyActivity extends Consumer.Companion[MoneyActivity, Option[MoneyTransactionsFact], Nothing](
+object MoneyActivity extends Consumer.Companion[MoneyActivity, Option[MoneyTransactionsMessage], Nothing](
       ComponentId("money-activity"), FromTopic(MoneyTransactions)):
   def create(ctx: ConsumerContext) = new MoneyActivity(ctx.componentClient)
 

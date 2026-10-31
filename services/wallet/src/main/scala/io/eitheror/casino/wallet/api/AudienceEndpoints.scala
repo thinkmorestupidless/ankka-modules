@@ -17,17 +17,24 @@ import java.time.Instant
 
 /** The player site's and backoffice's amounts: major units with two decimals (FR-003). */
 final case class MajorBalance(realBalance: String, bonusBalance: String, currency: String, primary: Option[MajorPrimary],
-    depositPoolBalance: String, convertedPoolBalance: String)
+    depositPoolBalance: String, convertedPoolBalance: String, reserved: String, available: String)
 final case class MajorPrimary(grantRef: String, status: String, wageringRequirement: String, wagered: String, progressPercent: Long)
 final case class MajorTransaction(transactionId: String, `type`: String, walletType: String, amount: String, balanceBefore: String,
     balanceAfter: String, status: String, roundId: Option[String], awardRef: Option[String], paymentReference: Option[String],
-    createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String)
+    createdAt: String, depositPart: String, convertedPart: String, depositPoolAfter: String, convertedPoolAfter: String,
+    reference: Option[String] = None)
 final case class MajorTransactions(transactions: Vector[MajorTransaction], page: Int, pageSize: Int, total: Long)
 final case class MajorLifetime(totalDeposited: String, totalWagered: String, totalWon: String)
+/** Spec 022 FR-009: an operator's adjustment of a non-player account, in major units; the reason names no player. */
+final case class OperatorAccountAdjustRequest(key: Option[String], currency: String, amount: String, reason: String = "", category: String = "other")
+final case class MajorAccountBalance(balance: String, creditLine: String, floor: String, owner: String, currency: String,
+    txnId: Option[String] = None)
 final case class OperatorAdjustRequest(key: Option[String], walletType: String = "real", amount: String, reason: String = "", category: String = "other")
 
 private[api] object Major:
-  given JsonValueCodec[MajorBalance]          = Codecs.make[MajorBalance]
+  /** reserved and available are written at "0.00" too: the read reports both (spec 022). */
+  given JsonValueCodec[MajorBalance] =
+    com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker.make(com.github.plokhotnyuk.jsoniter_scala.macros.CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withAllowRecursiveTypes(true).withRequireDiscriminatorFirst(false).withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
   given JsonValueCodec[MajorTransactions]     = Codecs.make[MajorTransactions]
   given JsonValueCodec[MajorLifetime]         = Codecs.make[MajorLifetime]
   given JsonValueCodec[OperatorAdjustRequest] = Codecs.make[OperatorAdjustRequest]
@@ -35,16 +42,22 @@ private[api] object Major:
   given JsonValueCodec[TurnoverOverrideRequest] = Codecs.make[TurnoverOverrideRequest]
   given JsonValueCodec[RestrictedFundsStatus] = Codecs.make[RestrictedFundsStatus]
   given JsonValueCodec[BrandConfig]           = Codecs.make[BrandConfig]
+  given JsonValueCodec[OperatorAccountAdjustRequest] = Codecs.make[OperatorAccountAdjustRequest]
+  given JsonValueCodec[MajorAccountBalance]   = Codecs.make[MajorAccountBalance]
+
+  def accountBalance(b: io.eitheror.casino.wallet.accounts.AccountBalance, txnId: Option[String] = None): MajorAccountBalance =
+    MajorAccountBalance(Wire.major(b.balance), Wire.major(b.creditLine), Wire.major(b.floor), b.owner, b.currency, txnId)
 
   def balance(b: Balance): MajorBalance =
     MajorBalance(Wire.major(b.realBalance), Wire.major(b.restrictedBalance), b.currency,
       b.primary.map(p => MajorPrimary(p.grantRef, p.status, Wire.major(p.requirement), Wire.major(p.wagered), p.progressPercent)),
-      Wire.major(b.depositPoolBalance), Wire.major(b.convertedPoolBalance))
+      Wire.major(b.depositPoolBalance), Wire.major(b.convertedPoolBalance), Wire.major(b.reserved), Wire.major(b.available))
 
   def transactions(p: TransactionsPage): MajorTransactions =
     MajorTransactions(p.transactions.map(r => MajorTransaction(r.transactionId, r.`type`, r.walletType, Wire.major(r.amount),
       Wire.major(r.balanceBefore), Wire.major(r.balanceAfter), r.status, r.roundKey, r.awardRef, r.paymentReference, r.createdAt,
-      Wire.major(r.depositPart), Wire.major(r.convertedPart), Wire.major(r.depositPoolAfter), Wire.major(r.convertedPoolAfter))),
+      Wire.major(r.depositPart), Wire.major(r.convertedPart), Wire.major(r.depositPoolAfter), Wire.major(r.convertedPoolAfter),
+      r.reference)),
       p.page, p.pageSize, p.total)
 
   /** "10.00" → 1000: at most two decimals; anything else names the amount (spec 001 FR-026). */
@@ -116,6 +129,38 @@ final class OperatorEndpoint(client: ComponentClient, views: ViewClient, brand: 
   get("/wallets/{player}/{currency}/lifetime-totals") { (player: String, currency: String) =>
     val t = lifetime.get(s"$player/$currency").getOrElse(LifetimeTotals(s"$player/$currency", 0L, 0L, 0L))
     checked(currency)(Wire.json(200, MajorLifetime(Wire.major(t.deposited), Wire.major(t.wagered), Wire.major(t.won))))
+  }
+
+  // ── spec 022: non-player accounts (FR-009, FR-012) ────────────────────────
+
+  private def account(kind: String, name: String, currency: String) =
+    client.forEventSourcedEntity(io.eitheror.casino.wallet.accounts.AccountEntity.id(kind, name, currency))
+
+  private def accountChecked(kind: String, currency: String)(answer: => Respond[Bytes]): Respond[Bytes] =
+    if !io.eitheror.casino.wallet.accounts.AccountState.Kinds(kind) then Wire.refusal("INVALID_REQUEST", s"an account is pool or clearing, not '$kind'")
+    else checked(currency)(answer)
+
+  postBody("/accounts/{kind}/{name}/adjustments") { (kind: String, name: String, r: OperatorAccountAdjustRequest) =>
+    accountChecked(kind, r.currency) {
+      (Key.from(r.key), Major.parse(r.amount)) match
+        case (Left(_), _)       => Wire.missingKey
+        case (_, Left(message)) => Wire.refusal("INVALID_REQUEST", message, Map("amount" -> r.amount))
+        case (Right(k), Right(a)) =>
+          val acc = account(kind, name, r.currency)
+          val o = acc.call(io.eitheror.casino.wallet.accounts.AccountEntity.adjust)
+            .invoke(io.eitheror.casino.wallet.accounts.AdjustAccount(k.value, a, r.reason, r.category, principal.subject, clock()))
+          if !o.accepted then Wire.outcome(o, r.currency)
+          else Wire.json(200, Major.accountBalance(acc.call(io.eitheror.casino.wallet.accounts.AccountEntity.balance).invoke(), o.transactionId))
+    }
+  }
+
+  get("/accounts/{kind}/{name}/balance") { (kind: String, name: String) =>
+    val currency = query.required[String]("currency")
+    accountChecked(kind, currency) {
+      val b = account(kind, name, currency).call(io.eitheror.casino.wallet.accounts.AccountEntity.balance).invoke()
+      if !b.found then Wire.refusal(Refusals.AccountNotFound, Refusals.accountNotFound(b.accountId))
+      else Wire.json(200, Major.accountBalance(b))
+    }
   }
 
   putBody("/wallet-config/turnover") { (r: TurnoverTermsRequest) =>

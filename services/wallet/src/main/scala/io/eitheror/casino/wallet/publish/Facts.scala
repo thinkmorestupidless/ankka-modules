@@ -24,11 +24,11 @@ object Facts:
     updates.find(_.id == recordId).fold("")(_.grantRef)
 
   /** `money.transactions` for one wallet event; audit-only events yield nothing. */
-  def moneyTransactions(walletId: String, event: WalletEvent): Vector[Published[f.MoneyTransactionsFact]] =
+  def moneyTransactions(walletId: String, event: WalletEvent): Vector[Published[f.MoneyTransactionsMessage]] =
     val playerId = walletId.takeWhile(_ != '/')
     val currency = Currency.unsafe(walletId.drop(walletId.indexOf('/') + 1))
     def real(v: Long)  = SignedMinorUnits(v)
-    def one(fact: f.MoneyTransactionsFact, id: String) = Vector(Published(fact, id))
+    def one(fact: f.MoneyTransactionsMessage, id: String) = Vector(Published(fact, id))
 
     // Spec 025: every fact carries both pools after it; each that moves real balance its parts.
     def dep(v: Long)   = Some(real(v))
@@ -36,7 +36,7 @@ object Facts:
 
     def forfeited(txId: String, forfeits: Vector[Forfeit], cause: String, clawback: Long, clawbackParts: Parts,
         updates: Vector[RecordUpdate], realAfter: Long, restrictedAfter: Long, depositAfter: Long, convertedAfter: Long,
-        at: java.time.Instant): Vector[Published[f.MoneyTransactionsFact]] =
+        at: java.time.Instant): Vector[Published[f.MoneyTransactionsMessage]] =
       if forfeits.isEmpty && clawback > 0 then
         // A cancel with no open record still claws back (FR-017): the movement is on the topic.
         one(f.RestrictedFundsForfeited(playerId, currency, txId, "", units(0), cause, units(clawback), real(realAfter),
@@ -130,6 +130,41 @@ object Facts:
         one(f.ProviderCredited(playerId, currency, e.transactionId, e.providerRef, units(e.amount), e.landedOn,
           e.recordId.map(grantOf(e.recordUpdates, _)).filter(_.nonEmpty), real(e.realAfter), units(e.restrictedAfter), e.at,
           dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
+
+      // ── spec 022 (contracts/facts.md); the pools and parts as spec 025 FR-012 asks of every family ──
+      case e: ReservationPlaced =>
+        one(f.ReservationPlaced(playerId, currency, e.transactionId, e.orderId, units(e.amount), real(e.realAfter),
+          units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter)), e.transactionId)
+
+      case e: ReservationReleased =>
+        one(f.ReservationReleased(playerId, currency, e.transactionId, e.orderId, units(e.amount), real(e.realAfter),
+          units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter)), e.transactionId)
+
+      case e: SettlementDebited =>
+        one(f.SettlementDebit(playerId, currency, e.transactionId, e.tradeId, e.orderId, units(e.amount), units(e.unused),
+          e.counterparty, real(e.realAfter), units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter),
+          dep(e.convertedAfter), part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
+
+      case e: SettlementCredited =>
+        one(f.SettlementCredit(playerId, currency, e.transactionId, e.tradeId, units(e.amount), e.counterparty, real(e.realAfter),
+          units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId)
+
+      case e: MovedToAccount =>
+        one(f.AccountDebit(playerId, currency, e.transactionId, e.accountKind, e.accountName, e.purpose, e.reference, units(e.amount),
+          real(e.realAfter), units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
+          part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
+
+      case e: MovedFromAccount if e.purpose == io.eitheror.casino.wallet.entity.Purpose.ResolutionPayment =>
+        one(f.ResolutionPayment(playerId, currency, e.transactionId, e.accountName, e.reference, units(e.amount), real(e.realAfter),
+          units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
+          part(e.parts.converted)), e.transactionId)
+
+      case e: MovedFromAccount =>
+        one(f.AccountCredit(playerId, currency, e.transactionId, e.accountKind, e.accountName, e.purpose, e.reference, units(e.amount),
+          real(e.realAfter), units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
+          part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
+
       case _: WalletOpenedFromMigration | _: PendingCapClosed | _: PrimarySwitched | _: HoldConfirmed | _: TurnoverOverrideSet |
           _: CommandRefused =>
         Vector.empty
@@ -190,6 +225,12 @@ object Facts:
       case e: HoldReleased           => Some(A(e.key, "release", "accepted", "service", "", e.transactionId, Some(e.releasedAs), e.at))
       case e: HoldConfirmed          => Some(A(e.key, "confirm", "accepted", "service", "", "", None, e.at))
       case e: WithdrawalReversed     => Some(A(e.key, "reverse", "accepted", "service", "", e.transactionId, None, e.at))
+      case e: ReservationPlaced      => Some(A(e.key, "reserve", "accepted", "service", "", e.transactionId, None, e.at))
+      case e: ReservationReleased    => Some(A(e.key, "release-reservation", "accepted", "service", "", e.transactionId, None, e.at))
+      case e: SettlementDebited      => Some(A(e.key, "settle-debit", "accepted", "service", "", e.transactionId, None, e.at))
+      case e: SettlementCredited     => Some(A(e.key, "settle-credit", "accepted", "service", "", e.transactionId, None, e.at))
+      case e: MovedToAccount         => Some(A(e.key, "debit-to-account", "accepted", "service", "", e.transactionId, Some(e.purpose), e.at))
+      case e: MovedFromAccount       => Some(A(e.key, "credit-from-account", "accepted", "service", "", e.transactionId, Some(e.purpose), e.at))
     a.map { x =>
       val recordId = s"wallet/$walletId/${x.key}"
       Published(

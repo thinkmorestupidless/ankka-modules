@@ -149,3 +149,49 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
     val conv = Facts.moneyTransactions(wallet, e)(1).fact.asInstanceOf[f.RestrictedFundsConverted]
     assertEquals((conv.depositPartCents.map(_.value), conv.convertedPartCents.map(_.value)), (Some(0L), Some(500L)))
   }
+
+  // ── spec 022 (contracts/facts.md) ─────────────────────────────────────────
+
+  test("a reservation and its release are reservation_placed and reservation_released with the reserved balance after") {
+    val placed = ReservationPlaced("o1", "d", "t-r", "o1", 600, 1000, 0, 600, t0, ok)
+    assertEquals(families(placed), Vector("reservation_placed"))
+    val fact = Facts.moneyTransactions(wallet, placed).head
+    val p    = fact.fact.asInstanceOf[f.ReservationPlaced]
+    assertEquals((p.orderId, p.amountCents.value, p.realBalanceAfter.value, p.reservedBalanceAfter.value, p.key, fact.dedupeId),
+      ("o1", 600L, 1000L, 600L, "p1/EUR", "t-r"))
+    val released = ReservationReleased("o1/1", "d", "t-rl", "o1", 200, 1000, 0, 400, t0, ok)
+    assertEquals(families(released), Vector("reservation_released"))
+    assertEquals(Facts.moneyTransactions(wallet, released).head.fact.asInstanceOf[f.ReservationReleased].reservedBalanceAfter.value, 400L)
+  }
+
+  test("a settlement's two sides are settlement_debit, with what was released and the seller, and settlement_credit") {
+    val debit = SettlementDebited("t1", "d", "t-sd", "t1", "o1", 600, 50, "bob", 400, 0, 0, t0, ok)
+    assertEquals(families(debit), Vector("settlement_debit"))
+    val d = Facts.moneyTransactions(wallet, debit).head.fact.asInstanceOf[f.SettlementDebit]
+    assertEquals((d.tradeId, d.orderId, d.amountCents.value, d.releasedCents.value, d.counterpartyPlayerId, d.reservedBalanceAfter.value),
+      ("t1", "o1", 600L, 50L, "bob", 0L))
+    val credit = SettlementCredited("t1", "d", "t-sc", "t1", 600, "ada", 600, 0, 0, t0, ok)
+    assertEquals(families(credit), Vector("settlement_credit"))
+    assertEquals(Facts.moneyTransactions(wallet, credit).head.fact.asInstanceOf[f.SettlementCredit].counterpartyPlayerId, "ada")
+  }
+
+  test("a move to an account is account_debit; from one, resolution_payment for a resolution payment and account_credit otherwise") {
+    val split = MovedToAccount("sp-1", "d", "t-sp", "pool", "m1", Purpose.Split, "sp-1", 100, 900, 0, 0, t0, ok)
+    assertEquals(families(split), Vector("account_debit"))
+    val s = Facts.moneyTransactions(wallet, split).head.fact.asInstanceOf[f.AccountDebit]
+    assertEquals((s.accountKind, s.accountName, s.purpose, s.reference, s.amountCents.value), ("pool", "m1", "split", "sp-1", 100L))
+    val paid = MovedFromAccount("m1/p1", "d", "t-pay", "pool", "m1", Purpose.ResolutionPayment, "p1", 300, 1300, 0, 0, t0, ok)
+    assertEquals(families(paid), Vector("resolution_payment"))
+    val r = Facts.moneyTransactions(wallet, paid).head.fact.asInstanceOf[f.ResolutionPayment]
+    assertEquals((r.marketId, r.positionId, r.amountCents.value), ("m1", "p1", 300L))
+    val merge = MovedFromAccount("mg-1", "d", "t-mg", "pool", "m1", Purpose.Merge, "mg-1", 100, 1000, 0, 0, t0, ok)
+    assertEquals(families(merge), Vector("account_credit"))
+  }
+
+  test("the six ledger events are audited under their keys, and the publisher sets the transaction id as ce-id") {
+    val e = ReservationPlaced("o1", "d", "t-r", "o1", 600, 1000, 0, 600, t0, ok)
+    assertEquals(Facts.audit("goldvibe", wallet, e).get.fact.asInstanceOf[f.AuditRecord].action, "reserve")
+    val result = ConsumerTestKit.of(MoneyTransactionsPublisher).onMessage(e, subject = wallet, sequenceNumber = 4)
+    assertEquals(result.recordKeys, Vector(Some(wallet)))
+    assertEquals(result.messages.head.metadata.get("ce-id"), Some("t-r"))
+  }

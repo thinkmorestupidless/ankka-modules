@@ -7,7 +7,7 @@
 val ankkaVersion = "0.13.0"
 val serviceName  = "players"
 // The root build's `version`; a mismatch resolves nothing in CI, where only this commit's is published.
-val contractVersion = "0.2.0-SNAPSHOT"
+val contractVersion = sys.env.getOrElse("CASINO_VERSION", "0.2.0-SNAPSHOT")
 
 ThisBuild / scalaVersion := "3.9.0"
 

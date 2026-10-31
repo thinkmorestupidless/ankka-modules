@@ -168,6 +168,30 @@ object Routes:
    */
   val playersOnly: Acl = serviceOf("players")
 
+  /**
+   * The service class as an authenticating ACL, for a route whose handler needs the caller's name:
+   * the owner of a non-player account is the service principal that first moved it (spec 022 FR-006).
+   * It admits exactly whom `service` admits — another service of `project`, and for a granted route
+   * that route's grantees — and the principal it yields is `service:<project>/<name>`. Outside a
+   * cluster every caller is local and admitted as `local`, as `Acl.allowCallers` admits it. The
+   * project is named because an authenticating ACL is not told the service's own.
+   */
+  def serviceNamed(project: String, grantedRoute: Option[GrantTarget.Route] = None): Acl =
+    serviceNamed(project, grantedRoute, Layout.BrandGrantsMade)
+
+  /** As above, with the grants given: the modules' grants in a service, any list in a test. */
+  def serviceNamed(project: String, grantedRoute: Option[GrantTarget.Route], grants: Vector[Layout.Grant]): Acl =
+    val grantees: Set[(String, String)] = grantedRoute.toSet.flatMap { route =>
+      grants.collect { case Layout.Grant(principal, `route`) => Layout.grantedCaller(principal) }.flatten
+    }
+    Acl.Authenticate { (context: RequestContext) =>
+      context.caller match
+        case Caller.Service(`project`, name)                 => AuthDecision.Allow(Principal(s"service:$project/$name"))
+        case Caller.Service(p, name) if grantees((p, name)) => AuthDecision.Allow(Principal(s"service:$p/$name"))
+        case Caller.Local                                   => AuthDecision.Allow(Principal("local"))
+        case _                                              => AuthDecision.Forbidden("not permitted by this endpoint's acl")
+    }
+
   /** The routes a brand grants, each with the ACL that admits exactly its grantees. */
   def granted(service: String): Vector[(GrantTarget.Route, Acl)] =
     Layout.BrandGrantsMade.collect { case Layout.Grant(_, r @ GrantTarget.Route(`service`, _, _)) => r }.distinct

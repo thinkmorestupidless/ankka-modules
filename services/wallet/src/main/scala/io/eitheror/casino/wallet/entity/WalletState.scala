@@ -40,7 +40,9 @@ final case class WalletState(
      * it moves anything, and refuses (`POOLS_INVARIANT`) rather than write a drifted pair.
      */
     depositPool: Long = 0L,
-    convertedPool: Long = 0L
+    convertedPool: Long = 0L,
+    /** Real balance set aside under resting orders, by order id (spec 022 FR-001); an entry at 0 is removed. */
+    reservations: Map[String, Reservation] = Map.empty
 ):
   def playerId: String = walletId.takeWhile(_ != '/')
   def currency: String = walletId.drop(walletId.indexOf('/') + 1)
@@ -54,7 +56,7 @@ final case class WalletState(
 
   def pools: Pools = Pools(depositPool, convertedPool)
 
-  def fundingWallet: Wallet = Wallet(realBalance, depositTurnoverPending, restrictedBalance, Some(pools))
+  def fundingWallet: Wallet = Wallet(realBalance, depositTurnoverPending, restrictedBalance, Some(pools), reserved)
 
   /**
    * Deposit turnover closed because no deposit-origin money is left and no round is open (spec 025
@@ -72,6 +74,12 @@ final case class WalletState(
   /** The fold's one rule for the pools: the event's `after` values. */
   private[entity] def withPools(depositAfter: Long, convertedAfter: Long): WalletState =
     copy(depositPool = depositAfter, convertedPool = convertedAfter)
+
+  /** Σ reservations, never stored (spec 022 FR-001). */
+  def reserved: Long = reservations.valuesIterator.map(_.amount).sum
+
+  /** Real balance less reserved, never below 0: what a bet, a hold or a move to an account may take (FR-003). */
+  def available: Long = math.max(0L, realBalance - reserved)
 
   def record(id: String): Option[AwardedRecord] = records.find(_.id == id)
 
@@ -103,6 +111,11 @@ final case class WalletState(
     // A late rollback voids an already-settled bet: replace it where it lies.
     val resettled = settledBets.map(b => if betKeys.contains(b.key) then b.copy(status = as) else b)
     copy(openBets = staying, settledBets = (resettled ++ closed).takeRight(WalletState.SettledBound))
+
+  /** A reservation's amount set to `amount`, removed at 0 (spec 022). */
+  private[entity] def reserving(orderId: String, amount: Long, at: Instant): WalletState =
+    if amount <= 0 then copy(reservations = reservations - orderId)
+    else copy(reservations = reservations.updated(orderId, reservations.get(orderId).fold(Reservation(orderId, amount, at))(_.copy(amount = amount))))
 
   private[entity] def withDeposit(d: DepositRecord): WalletState =
     val window = d.confirmedAt.minus(Duration.ofDays(30))

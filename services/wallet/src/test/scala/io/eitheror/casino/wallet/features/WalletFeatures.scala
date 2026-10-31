@@ -38,7 +38,13 @@ abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../feature
     "debit exceeds balance"              -> "DEBIT_EXCEEDS_BALANCE",
     "reason required"                    -> "REASON_REQUIRED",
     "no open restricted funds"           -> "NO_OPEN_RESTRICTED_FUNDS",
-    "key reused"                         -> "KEY_REUSED"
+    "key reused"                         -> "KEY_REUSED",
+    // spec 022
+    "release exceeds reservation"        -> "RELEASE_EXCEEDS_RESERVATION",
+    "reservation not found"              -> "RESERVATION_NOT_FOUND",
+    "reservation short"                  -> "RESERVATION_SHORT",
+    "credit line reached"                -> "CREDIT_LINE_REACHED",
+    "not owner"                          -> "NOT_OWNER"
   )
 
   protected val t0 = Instant.parse("2026-10-09T10:00:00Z")
@@ -87,6 +93,7 @@ abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../feature
     clock = t0; keys = 0; before = null; lastOutcome = null; lastEvents = Vector.empty; firstOutcome = null
     lastBetKey = None; betOutcome = null; focus = None
     switches = BetSwitches(); brandTerms = TurnoverTerms.Default; maxConcurrentAwards = None
+    releases = Map.empty
 
   protected def nextKey(prefix: String): String = { keys += 1; s"$prefix-$keys" }
   protected def now(): Instant                  = { clock = clock.plusSeconds(1); clock }
@@ -159,6 +166,16 @@ abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../feature
   protected def hold(amount: Long, request: String): Result =
     run(walletKit.call(WalletEntity.hold)(Hold(request, amount, playerConfirmed = true, now())))
 
+  /** Spec 022: a reservation under the order's key, and a release under `<order>/<sequence>`. */
+  protected def reserve(amount: Long, order: String): Result =
+    run(walletKit.call(WalletEntity.reserve)(Reserve(order, amount, now())))
+
+  protected def releaseReservation(order: String, sequence: Int, amount: Long): Result =
+    run(walletKit.call(WalletEntity.releaseReservation)(ReleaseReservation(s"$order/$sequence", order, amount, now())))
+
+  /** The releases placed per order, so each has its own key. */
+  protected var releases = Map.empty[String, Int]
+
   protected def adjust(target: String, amount: Long, reason: String): Result =
     run(walletKit.call(WalletEntity.adjust)(Adjust(nextKey("adj"), target, amount, reason, "goodwill", "op-7", now())))
 
@@ -219,6 +236,31 @@ abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../feature
   }
 
   Then("no transaction is written") { () => assertEquals(rowsWritten, Vector.empty) }
+
+  // ── spec 022: reservations (the vocabulary the four ledger features share) ──
+
+  When("a reservation of {string} is placed for order {string}") { (a: String, o: String) =>
+    val r = act(reserve(long(a), o))
+    if firstOutcome == null then firstOutcome = r.outcome
+  }
+
+  When("a reservation of {string} is placed for order {string} again") { (a: String, o: String) => act(reserve(long(a), o)): Unit }
+
+  When("a release of {string} is placed for order {string}") { (a: String, o: String) =>
+    val sequence = releases.getOrElse(o, 0) + 1
+    releases += o -> sequence
+    act(releaseReservation(o, sequence, long(a))): Unit
+  }
+
+  Then("the reserved amount is {string}") { (r: String) => assertEquals(state.reserved, long(r)) }
+
+  Then("the available amount is {string}") { (r: String) => assertEquals(state.available, long(r)) }
+
+  Then("the outcome is the first outcome") { () => assertEquals(lastOutcome, firstOutcome) }
+
+  Then("a reservation transaction of {string} is written") { (a: String) =>
+    assert(rowsWritten.exists(r => r.`type` == "reservation" && r.amount == long(a)), rowsWritten.toString)
+  }
 
   Then("a {string} transaction is written") { (kind: String) =>
     assert(rowsWritten.exists(_.`type` == kind), rowsWritten.toString)

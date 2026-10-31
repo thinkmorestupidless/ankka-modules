@@ -42,6 +42,12 @@ class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
     if confirmed then kit.call(WalletEntity.confirm)(Confirm("seed-confirm", "w-1", t0)): Unit
     kit
 
+  /** Spec 022: 3,000 of the 10,000 reserved under order o1. */
+  private def withReservation(id: String): Kit =
+    val kit = funded(id)
+    kit.call(WalletEntity.reserve)(Reserve("o1", 3000, t0))
+    kit
+
   /** A case: the wallet to start from, the command, a changed command under the same key, and how to send one. */
   private final case class Case(name: String, start: String => Kit, first: MoneyCommand, changed: MoneyCommand, send: (Kit, MoneyCommand) => Outcome,
       sendChanged: Option[(Kit, MoneyCommand) => Outcome] = None)
@@ -74,7 +80,18 @@ class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
     Case("Confirm", id => withHold(id), Confirm("cf-1", "w-1", t0), Confirm("cf-1", "w-2", t0), sender(WalletEntity.confirm)),
     Case("Reverse", id => withHold(id, confirmed = true), Reverse("rv-1", "w-1", t0), Reverse("rv-1", "w-2", t0), sender(WalletEntity.reverse)),
     Case("Adjust", funded, Adjust("a-1", "real", 100, "reason", "goodwill", "op", t0), Adjust("a-1", "real", 200, "reason", "goodwill", "op", t0),
-      sender(WalletEntity.adjust))
+      sender(WalletEntity.adjust)),
+    // spec 022
+    Case("Reserve", funded, Reserve("o-9", 1000, t0), Reserve("o-9", 1200, t0), sender(WalletEntity.reserve)),
+    Case("ReleaseReservation", withReservation, ReleaseReservation("o1/1", "o1", 500, t0), ReleaseReservation("o1/1", "o1", 600, t0),
+      sender(WalletEntity.releaseReservation)),
+    Case("SettleDebit", withReservation, SettleDebit("t-1", "o1", 1000, 0, "bob", t0), SettleDebit("t-1", "o1", 1100, 0, "bob", t0),
+      sender(WalletEntity.settleDebit)),
+    Case("SettleCredit", funded, SettleCredit("t-1", 1000, "ada", t0), SettleCredit("t-1", 1100, "ada", t0), sender(WalletEntity.settleCredit)),
+    Case("DebitToAccount", funded, DebitToAccount("sp-1", "pool", "m1", Purpose.Split, "sp-1", 500, t0),
+      DebitToAccount("sp-1", "pool", "m1", Purpose.Split, "sp-1", 600, t0), sender(WalletEntity.debitToAccount)),
+    Case("CreditFromAccount", funded, CreditFromAccount("mg-1", "pool", "m1", Purpose.Merge, "mg-1", 500, t0),
+      CreditFromAccount("mg-1", "pool", "m1", Purpose.Merge, "mg-1", 600, t0), sender(WalletEntity.creditFromAccount))
   )
 
   test("every money command type has a case") {
@@ -110,6 +127,24 @@ class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
     val before = kit.allEvents.size
     assertEquals(kit.call(WalletEntity.placeBet)(bet).replyValue, refused)
     assertEquals(kit.allEvents.size, before)
+  }
+
+  test("spec 022: a refused reservation, release, settle-debit and move are refused the same way when repeated, persisting nothing") {
+    val kit = withReservation("idem-refused-022/EUR")
+    val refusedOnce: Vector[(String, () => Outcome)] = Vector(
+      "INSUFFICIENT_FUNDS"          -> (() => kit.call(WalletEntity.reserve)(Reserve("o-big", 8000, t0)).replyValue),
+      "RESERVATION_NOT_FOUND"       -> (() => kit.call(WalletEntity.releaseReservation)(ReleaseReservation("o9/1", "o9", 100, t0)).replyValue),
+      "RELEASE_EXCEEDS_RESERVATION" -> (() => kit.call(WalletEntity.releaseReservation)(ReleaseReservation("o1/9", "o1", 3001, t0)).replyValue),
+      "RESERVATION_SHORT"           -> (() => kit.call(WalletEntity.settleDebit)(SettleDebit("t-9", "o1", 2900, 200, "bob", t0)).replyValue),
+      "INSUFFICIENT_FUNDS"          -> (() => kit.call(WalletEntity.debitToAccount)(DebitToAccount("sp-9", "pool", "m1", Purpose.Split, "sp-9", 7001, t0)).replyValue)
+    )
+    for (code, send) <- refusedOnce do
+      val first = send()
+      assertEquals(first.code, Some(code), first.toString)
+      val before = kit.allEvents.size
+      assertEquals(send(), first)
+      assertEquals(kit.allEvents.size, before, s"$code: a repeat persisted an event")
+    assertEquals((kit.currentState.realBalance, kit.currentState.reserved), (10000L, 3000L))
   }
 
   test("a key reused twice records each reuse under its own synthetic key and leaves the first outcome") {

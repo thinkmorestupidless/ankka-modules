@@ -21,7 +21,13 @@ object MoneyCommand:
   private val NotPayload = Set("key", "at", "switches", "brandTerms", "maxConcurrentAwards")
 
   /** The digest that tells a repeat from a reuse (FR-002): the wire name and every payload field. */
-  def digest(wireName: String, command: MoneyCommand): String =
+  def digest(wireName: String, command: MoneyCommand): String = digestOf(wireName, command)
+
+  /**
+   * The same rule over any command's fields: an account's money commands and a flow's start, which
+   * are not wallet commands, are digested exactly as a wallet's (spec 022 research R4, R7).
+   */
+  def digestOf(wireName: String, command: Product): String =
     Digest.of(
       ("command" -> wireName) +: command.productElementNames.zip(command.productIterator.map(_.toString)).filterNot((n, _) => NotPayload(n)).toVector
     )
@@ -95,3 +101,43 @@ final case class SetTurnoverOverride(terms: Option[TurnoverTerms], actorId: Stri
 final case class DepositSumsAt(asOf: Instant)
 
 final case class PreviewHold(amount: Long)
+
+// ── spec 022: reservations, settlement, moves with a non-player account ──────
+
+/** Set aside `amount` of real balance under an order; the key is the order id (FR-001). */
+final case class Reserve(key: String, amount: Long, at: Instant) extends MoneyCommand
+
+/** Return part or all of an order's reservation; the key is `<orderId>/<sequence>` (FR-002, research R2). */
+final case class ReleaseReservation(key: String, orderId: String, amount: Long, at: Instant) extends MoneyCommand
+
+/**
+ * The buyer's side of a trade (FR-004): `amount` leaves real balance and the order's reservation,
+ * and `unused` (the exchange's figure) is released from the reservation. The key is the trade id.
+ */
+final case class SettleDebit(key: String, orderId: String, amount: Long, unused: Long, counterparty: String, at: Instant)
+    extends MoneyCommand
+
+/** The seller's side of a trade (FR-004): `amount` added to real balance. The key is the trade id. */
+final case class SettleCredit(key: String, amount: Long, counterparty: String, at: Instant) extends MoneyCommand
+
+/**
+ * Real balance moved into a non-player account (a split; a clearing move from the wallet; FR-006,
+ * FR-008). `purpose` is `split` or `clearing`; `reference` is the caller's key.
+ */
+final case class DebitToAccount(key: String, accountKind: String, accountName: String, purpose: String, reference: String,
+    amount: Long, at: Instant) extends MoneyCommand
+
+/**
+ * Real balance credited from a non-player account (a merge, a resolution payment, a clearing move
+ * to the wallet; FR-005, FR-006, FR-008). For a resolution payment `reference` is the position id.
+ */
+final case class CreditFromAccount(key: String, accountKind: String, accountName: String, purpose: String, reference: String,
+    amount: Long, at: Instant) extends MoneyCommand
+
+/** What a move with an account is for (data-model.md). */
+object Purpose:
+  val Split             = "split"
+  val Merge             = "merge"
+  val ResolutionPayment = "resolution_payment"
+  val Clearing          = "clearing"
+  val all: Set[String]  = Set(Split, Merge, ResolutionPayment, Clearing)

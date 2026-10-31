@@ -2,7 +2,7 @@ package io.eitheror.casino.wallet.publish
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, Metadata, Serializer}
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.contract.facts.{MoneyTransactions, MoneyTransactionsFact, PaymentsPayments, PaymentsPaymentsFact, PlatformAudit, PlatformAuditFact}
+import io.eitheror.casino.contract.facts.{MoneyTransactions, MoneyTransactionsMessage, PaymentsPayments, PaymentsPaymentsFact, PlatformAudit, PlatformAuditFact}
 import io.eitheror.casino.wallet.entity.{WalletEntity, WalletEvent}
 import io.eitheror.casino.wallet.payments.{PaymentEntity, PaymentEvent}
 
@@ -15,19 +15,19 @@ private[publish] object Publish:
   def withId(id: String): Metadata = Metadata.empty.set("ce-id", id)
 
 /** `money.transactions`: one fact per movement, keyed by the wallet (spec 001 FR-012). */
-final class MoneyTransactionsPublisher extends Consumer[WalletEvent, MoneyTransactionsFact]:
+final class MoneyTransactionsPublisher extends Consumer[WalletEvent, MoneyTransactionsMessage]:
   def onMessage(event: WalletEvent): Effect =
     Facts.moneyTransactions(messageContext.subject, event) match
       case facts if facts.isEmpty => effects.ignore()
       case facts                  => effects.produceAll(facts.map(p => effects.message(p.fact).withMetadata(Publish.withId(p.dedupeId))))
 
 object MoneyTransactionsPublisher
-    extends Consumer.Companion[MoneyTransactionsPublisher, WalletEvent, MoneyTransactionsFact](
+    extends Consumer.Companion[MoneyTransactionsPublisher, WalletEvent, MoneyTransactionsMessage](
       componentId = ComponentId("money-transactions-publisher"),
       source = ChangeSource.eventsOf(WalletEntity)
     ):
   def create(ctx: ConsumerContext) = new MoneyTransactionsPublisher
-  override val outputSerializer: Option[Serializer[MoneyTransactionsFact]] = Some(MoneyTransactions.serializer)
+  override val outputSerializer: Option[Serializer[MoneyTransactionsMessage]] = Some(MoneyTransactions.serializer)
   override val produceTo: Option[String]                                   = Some(MoneyTransactions.name)
   // The topic's contract, which the project declares: ankka refuses a publisher that names none.
   override val produces: Option[Publication] = Some(Publication(MoneyTransactions.name, Some(MoneyTransactions.contract), None))

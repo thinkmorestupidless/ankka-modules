@@ -1,6 +1,6 @@
 package io.eitheror.casino.contract.access
 
-import com.thinkmorestupidless.ankka.http.Caller
+import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller}
 import com.thinkmorestupidless.ankka.runtime.RotatingTls
 import io.eitheror.casino.contract.Layout.GrantTarget
 import Requests.*
@@ -111,6 +111,26 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(deposit, merchant), Outcome.Served)
     assert(outcome(Routes.service(), merchant).isInstanceOf[Outcome.Refused], "an ungranted route refuses it")
     assert(outcome(deposit, Request(caller = Caller.Service("payments", "psp-gateway"))).isInstanceOf[Outcome.Refused])
+  }
+
+  test("spec 022: the named service class admits the project's services and a route's grantees by name, and nobody else") {
+    val moves: GrantTarget.Route = GrantTarget.Route("wallet", "POST", "/v1/casino/brands/{brand}/accounts/{kind}/{name}/moves")
+    val grants = Vector(io.eitheror.casino.contract.Layout.Grant("service:pool-north/clearing", moves))
+    val acl    = Routes.serviceNamed("goldvibe", Some(moves), grants)
+    def principal(caller: Caller): Option[String] = acl match
+      case Acl.Authenticate(check) =>
+        check(Request(caller = caller)) match
+          case AuthDecision.Allow(p) => Some(p.subject)
+          case _                     => None
+      case other => fail(s"not an authenticating ACL: $other")
+    assertEquals(principal(Caller.Service("goldvibe", "exchange")), Some("service:goldvibe/exchange"))
+    assertEquals(principal(Caller.Service("pool-north", "clearing")), Some("service:pool-north/clearing"))
+    assertEquals(principal(Caller.Service("pool-north", "markets")), None, "another service of the grantee's project")
+    assertEquals(principal(Caller.Service("spinvibe", "exchange")), None, "another brand's service")
+    assertEquals(principal(Caller.Gateway), None, "the internet is not a service")
+    val ungranted = Routes.serviceNamed("goldvibe", None, grants)
+    assert(outcome(ungranted, Request(caller = Caller.Service("pool-north", "clearing"))).isInstanceOf[Outcome.Refused],
+      "a grantee of one route is not admitted to a route it was not granted")
   }
 
   test("the routes a brand grants are exactly the grants contract's") {
