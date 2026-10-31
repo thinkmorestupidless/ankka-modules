@@ -59,11 +59,13 @@ final class Kit(val base: Settings = Kit.Base):
     gates.stop()
     wallet.stop()
 
+  /** The fakes cleared and the runtime pointed at this kit, which another kit in the JVM may have taken. */
   def reset(settings: Settings = base): Unit =
     gates.reset()
     wallet.reset()
     clockOffset = JDuration.ZERO
     ExchangeRuntime.wire(settings, () => now())
+    ExchangeRuntime.started(() => (testKit.service.services, testKit.service.componentClient))
 
   def book(market: String): Exchange = components.forEventSourcedEntity(EntityId(market)).call(exchange.components.exchange.get).invoke()
 
