@@ -264,7 +264,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 - [X] T055 [P] `services/payouts/README.md`: purpose, routes by endpoint (with a pointer to
       contracts/routes.md), settings, the two calls out, the `just` recipes, and what is verified where.
-- [ ] T056 [P] On `players`: add `payouts` to `ErasureWorkflow.targets`
+- [X] T056 [P] On `players`: add `payouts` to `ErasureWorkflow.targets`
       (`services/players/src/main/scala/io/eitheror/casino/players/erasure/ErasureWorkflow.scala`), and
       add a fake payouts erasure route to its suites (research R12). Then `just service players test`
       green.
