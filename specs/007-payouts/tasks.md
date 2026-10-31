@@ -222,7 +222,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T044 [US5] `T/it/DoublePaySuite.scala` (SC-003): `initiated`, then a timeout, then `completed` on
       the outcome route and the status read at once. The result is one completed request, one confirm at
       `FakeWallet`, and one `withdrawal_completed`.
-- [ ] T045 [US5] `T/it/OutcomeSuite.scala`: the gateway's identity is admitted, and any other caller and
+- [X] T045 [US5] `T/it/OutcomeSuite.scala`: the gateway's identity is admitted, and any other caller and
       any player or operator token refused; an outcome on a request awaiting manual payout wins; a
       reversal of a completed request credits back once.
 - [ ] T046 [US5] `T/it/ScaleSuite.scala` (SC-004): 10,000 requests with 200 in flight; only the 200

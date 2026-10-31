@@ -413,6 +413,11 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   which their wallet is opened in: `player_registered.currency`, held on `PlayerPayouts`. The original read
   the player twin's `walletCurrency` and fell back to GBP; with none known this answers 400 naming
   `currency`.
+- **2026-10-31, the outcome route admits the grantee alone** (settled with the user). The contract
+  gave the route `Routes.service(Some(grant))`, but the service class also admits every service of the
+  brand's project, so `players` or `wallet` could settle a payout. FR-001 says "that identity alone":
+  the route now admits only the callers the grant names (`payments`/`psp-gateway`), and
+  contracts/routes.md says so. The route's table is unchanged. `OutcomeSuite` holds it.
 
 ## Design finished
 

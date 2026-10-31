@@ -66,8 +66,10 @@ ACL: `Routes.operator(slug)`, with the admin check: `brand_admin`, `resource_adm
 
 ## `OutcomeEndpoint`: `/v1/casino/brands/<slug>/withdrawals`
 
-ACL: `Routes.service(Some(GrantTarget.Route("payouts", "POST",
-"/v1/casino/brands/{brand}/withdrawals/{requestId}/outcome")))`, which admits `payments`/`psp-gateway`.
+ACL: the callers the grant `GrantTarget.Route("payouts", "POST",
+"/v1/casino/brands/{brand}/withdrawals/{requestId}/outcome")` names, which is `payments`/`psp-gateway`,
+and no one else: not the service class, which would also admit every service of the brand's project
+(FR-001, "that identity alone"; found during implementation, research.md). Any other caller is 403.
 
 | Method and path | Body | Answer | Refusals |
 |---|---|---|---|
