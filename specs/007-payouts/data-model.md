@@ -24,7 +24,7 @@ to it, and the endpoints read from it. No rule that needs another component live
 | `payoutStatus` | `none \| initiated \| needs_review \| resolved` | |
 | `providerReference` | `Option[String]` | |
 | `decisions` | `Vector[Decision]` | `approved \| rejected`, `operatorId`, `reason: Option[Personal[String]]`, `at` |
-| `outcomes` | `Vector[OutcomeRecord]` | every gateway answer, outcome, poll and manual settlement: `source` (`gateway`, `outcome`, `poll`, `operator`), `answer`, `reasonCode`, `note: Option[Personal[String]]`, `at` |
+| `outcomes` | `Vector[OutcomeRecord]` | every gateway answer, outcome, poll and manual settlement: `source` (`gateway`, `outcome`, `poll`, `operator`, or `workflow` for an in-doubt initiation it records with no gateway answer: `details_erased`, `initiation_unconfirmed`), `answer`, `reasonCode`, `note: Option[Personal[String]]`, `at` |
 | `createdAt`, `initiatedAt`, `settledAt` | `Instant`, `Option[Instant]`, `Option[Instant]` | |
 | `erased` | `Boolean` | |
 | `currency` | `Option[String]` | from `player_registered.currency`, the wallet's (spec 002); the terminal listing's currency when the query names none |

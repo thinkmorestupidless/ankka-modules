@@ -345,8 +345,8 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
         // provider, so the payout is in doubt, never awaiting manual payout (FR-018): the wait asks the
         // gateway, which answers `no_record` when nothing reached it, and an operator settles it.
         val at = now()
-        request.call(WithdrawalRequest.record).invoke(Record(OutcomeRecord(Source.Gateway, "in_doubt", Some("details_erased"), None, None, at))): Unit
-        request.call(WithdrawalRequest.initiated).invoke(Initiated("in_doubt", None, at)): Unit
+        request.call(WithdrawalRequest.record).invoke(Record(OutcomeRecord(Source.Workflow, "in_doubt", Some(Unanswered.DetailsErased), None, None, at))): Unit
+        request.call(WithdrawalRequest.initiated).invoke(Initiated(Unanswered.DetailsErased, None, at)): Unit
         stepEffects.updateState(currentState.copy(step = Flow.Waiting, polls = 0)).thenTransitionTo(WithdrawalWorkflow.waitStep.ref)
       case Approval.Decision.Automated(payout) =>
         val answer = gateway.initiate(PayoutRequest(r.requestId, t.id, r.paidAmount, r.currencyOf, payout))
@@ -391,7 +391,15 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
    * `pollEvery`; one with none is reviewed when its window from the listing has passed.
    */
   def waitStepRun: StepEffect =
-    val t = request.call(WithdrawalRequest.get).invoke().terminal
+    val r = request.call(WithdrawalRequest.get).invoke()
+    val t = r.terminal
+    // Here from an initiation that failed before any answer was recorded: in doubt, so the poll's `no_record`
+    // marks it needs review rather than leaving it in no list (the request records it once).
+    if r.status == Status.Approved && r.payoutStatus == PayoutStatus.None then
+      val at = now()
+      request.call(WithdrawalRequest.record)
+        .invoke(Record(OutcomeRecord(Source.Workflow, "in_doubt", Some(Unanswered.InitiationUnconfirmed), None, None, at))): Unit
+      request.call(WithdrawalRequest.initiated).invoke(Initiated(Unanswered.InitiationUnconfirmed, None, at)): Unit
     if t.exists(_.hasStatus) then
       val after = if currentState.polls == 0 then waits.firstPoll else waits.pollEvery
       stepEffects.updateState(currentState.copy(step = Flow.Waiting)).thenPause(after.toMillis.millis, WithdrawalWorkflow.poll.ref)

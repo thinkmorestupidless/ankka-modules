@@ -72,6 +72,11 @@ class PublishersSuite extends munit.FunSuite:
       Some(("service", "psp-gateway")), None))
     val poll = OutcomeRecorded(OutcomeRecord(Source.Poll, "pending", None, None, None, at))
     assertEquals(who(poll), Some(("system", "payouts")))
+    // What the workflow records with no gateway answer behind it names the workflow, never the gateway (FR-029).
+    Unanswered.All.foreach { answer =>
+      assertEquals(who(PayoutInitiated(answer, None, at)), Some(("system", "payouts")), answer)
+      assertEquals(who(OutcomeRecorded(OutcomeRecord(Source.Workflow, "in_doubt", Some(answer), None, None, at))), Some(("system", "payouts")), answer)
+    }
 
   test("never a personal value or free text on a fact or an audit record"):
     val destination = Destination("d-1", Personal("Ana"), Personal("Silva"), Personal("DE89370400440532013000"), Personal("main"),
