@@ -75,7 +75,6 @@ any publish while a manifest it publishes names one of these (contracts/release.
 
 | Service | Module | Spec |
 |---|---|---|
-| payouts | core | 007 |
 | rewards | casino | 011 |
 | engagement | engagement | 014 |
 | reporting | reporting | 015 |

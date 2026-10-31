@@ -35,7 +35,7 @@ Feature: The player is offered the terminals they may withdraw to, and saves des
       | does not pay withdrawals  |
 
   Scenario Outline: a destination is saved only in a name that matches the player's
-    Given the player's profile names them "Anna Example"
+    Given the player's profile names them "A. Example"
     When the player saves a destination in the name "<name>"
     Then <outcome>
 

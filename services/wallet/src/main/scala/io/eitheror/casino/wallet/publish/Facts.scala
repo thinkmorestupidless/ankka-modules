@@ -57,7 +57,7 @@ object Facts:
       case e: DepositConfirmed =>
         one(f.DepositConfirmed(playerId, currency, e.transactionId, units(e.amount), e.key, e.depositOrdinal, real(e.realAfter),
           units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
-          part(e.parts.converted)), e.transactionId)
+          part(e.parts.converted), Option(e.psp).filter(_.nonEmpty), Option(e.scheme).filter(_.nonEmpty)), e.transactionId)
 
       case e: BetPlaced =>
         val parts = e.bet.parts.getOrElse(Parts.zero)
