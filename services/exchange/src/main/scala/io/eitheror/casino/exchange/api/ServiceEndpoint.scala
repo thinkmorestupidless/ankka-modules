@@ -8,7 +8,6 @@ import com.thinkmorestupidless.predictions.exchange.components.ExchangeComponent
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.exchange.{ExchangeRuntime, Json}
 import io.eitheror.casino.exchange.Json.*
-import io.eitheror.casino.exchange.erasure.Erasure
 import io.eitheror.casino.exchange.terms.{MarketTerms, Terms}
 
 import java.time.Instant
