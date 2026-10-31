@@ -30,7 +30,10 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
     val cases: Vector[(PlayerEvent, CasinoPlayersFact)] = Vector(
       Registered("p-1", profile, Personal("a@b.test"), "EUR", Consents(), registration, at) ->
         PlayerRegistered("p-1", at, Some("a_1b_2c_"), Some("click-1"), Some("WELCOME"), Some("GB"), Some("EUR"), None, at,
-          givenName = Some(Personal("Ada")), familyName = Some(Personal("Lovelace")), dateOfBirth = Some(Personal("1990-01-02"))),
+          givenName = Some(Personal("Ada")), familyName = Some(Personal("Lovelace")), dateOfBirth = Some(Personal("1990-01-02")),
+          email = Some(Personal("a@b.test"))),
+      EmailPromoted(Personal("c@d.test"), at) -> PlayerEmailChanged("p-1", Personal("c@d.test"), at),
+      EmailChanged(Personal("e@f.test"), at) -> PlayerEmailChanged("p-1", Personal("e@f.test"), at),
       Suspended(Status.Active, "review", Some("op-1"), at) -> PlayerSuspended("p-1", "active", "suspended", "operator", Some("op-1"), Some("review"), at),
       Reinstated(Some("op-1"), Some("cleared"), at) -> PlayerReinstated("p-1", "suspended", "active", "operator", Some("op-1"), Some("cleared"), at),
       SelfExcluded(Status.Active, Some(at.plusSeconds(60)), at) ->
