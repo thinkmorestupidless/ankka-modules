@@ -63,4 +63,12 @@ object Refusals:
 
   def coin(coin: String, supported: Vector[String]): Refusal =
     Refusal(422, "CRYPTO_CURRENCY_NOT_SUPPORTED", "this terminal does not pay out in that coin",
-      Vector("cryptoCurrency" -> Text(coin), "supported" -> Texts(supported)))
+      Vector("cryptoCurrency" -> Text(coin), "supportedCurrencies" -> Texts(supported)))
+
+  /** The refusals the original names the request's currency on, beside the limits' (its player site reads it). */
+  private val NamesCurrency = Set(Turnover.code, "WITHDRAWAL_REQUIRES_BONUS_FORFEIT_CONFIRMATION")
+
+  /** `r` with the request's currency, when the original names it there. */
+  def inCurrency(r: Refusal, currency: String): Refusal =
+    if NamesCurrency(r.code) && !r.fields.exists(_._1 == "currency") then r.copy(fields = r.fields :+ ("currency" -> Text(currency)))
+    else r

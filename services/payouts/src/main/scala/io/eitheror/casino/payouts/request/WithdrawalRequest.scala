@@ -29,7 +29,8 @@ final class WithdrawalRequest(@scala.annotation.unused context: EventSourcedEnti
 
   def open(c: Open): Effect[RequestAnswer] =
     if currentState.opened then same
-    else write(Opened(c.requestId, c.playerId, c.amount, c.paidAmount, c.currency, c.terminal, c.payee, c.forfeit, c.kyc, c.at))
+    else write(Opened(c.requestId, c.playerId, c.amount, c.paidAmount, c.currency, c.terminal, c.payee, c.forfeit, c.kyc, c.at,
+      c.voidedAmount))
 
   def cancel(c: Cancel): Effect[RequestAnswer] = opened { s =>
     s.status match
@@ -132,7 +133,7 @@ object WithdrawalRequest
   def applied(s: RequestState, event: RequestEvent): RequestState = event match
     case e: Opened =>
       s.copy(opened = true, requestId = e.requestId, playerId = e.playerId, amount = e.amount, paidAmount = e.paidAmount,
-        currency = e.currency, terminal = Some(e.terminal), payee = e.payee, forfeit = e.forfeit, kyc = e.kyc, createdAt = e.at)
+        voidedAmount = e.voidedAmount, currency = e.currency, terminal = Some(e.terminal), payee = e.payee, forfeit = e.forfeit, kyc = e.kyc, createdAt = e.at)
     case Cancelled(_, _, at)       => s.copy(status = Status.Cancelled, settledAt = Some(at))
     case Approved(op, at)          => s.copy(status = Status.Approved, decisions = s.decisions :+ Decision(true, op, None, at))
     case Rejected(op, reason, at)  =>

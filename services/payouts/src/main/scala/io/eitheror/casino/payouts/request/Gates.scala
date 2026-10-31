@@ -82,6 +82,9 @@ object Gates:
 
   def check(in: Inputs): Either[Refusal, Passed] =
     val d = in.draft
+    checked(in, d).left.map(r => d.currency.fold(r)(Refusals.inCurrency(r, _)))
+
+  private def checked(in: Inputs, d: Draft): Either[Refusal, Passed] =
     for
       key      <- d.key.toRight(Refusals.MissingKey)
       // The original asks for all three before it reads the amount (W:213-220).

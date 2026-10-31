@@ -125,7 +125,8 @@ object Requests:
       case None => unavailable
       case Some(f) if f.step == Flow.Refused =>
         val r = f.refusal.get
-        refused(holdRefusal(r.code, r.status, r.message, f.job.fold(Preview())(_.preview)))
+        val refusal = holdRefusal(r.code, r.status, r.message, f.job.fold(Preview())(_.preview))
+        refused(f.job.fold(refusal)(j => Refusals.inCurrency(refusal, j.currency)))
       case Some(_) =>
         val s = ctx.requestState(id)
         if !s.opened then unavailable
@@ -139,8 +140,8 @@ object Requests:
 
   def list(ctx: Ctx, playerId: String): Reply =
     ok(Json.obj("requests" -> Json.arr(ctx.byPlayer(playerId).map(r =>
-      Json.obj("requestId" -> r.requestId, "amount" -> r.amount, "currency" -> r.currency, "terminalName" -> r.terminalName,
-        "createdAt" -> r.createdAt.toString, "status" -> r.status.toUpperCase, "payoutStatus" -> r.payoutStatus.toUpperCase))*)))
+      Json.obj("requestId" -> r.requestId, "amount" -> r.amount, "currency" -> r.currency, "terminalId" -> r.terminalId,
+        "terminalName" -> r.terminalName, "terminalScheme" -> r.method, "createdAt" -> r.createdAt.toString, "status" -> r.status.toUpperCase, "payoutStatus" -> r.payoutStatus.toUpperCase))*)))
 
   /** The player's cancel, through the workflow, which releases the hold before the request records it (FR-014). */
   def cancel(ctx: Ctx, playerId: String, requestId: String): Reply =
@@ -149,10 +150,14 @@ object Requests:
     else
       val answer = ctx.workflow(requestId).call(WithdrawalWorkflow.cancel).invoke(Actor.Player)
       answer.refusal match
-        case Some(_) if s.status == Status.Cancelled => ok(Json.obj("requestId" -> requestId, "status" -> Status.Cancelled.upper))
+        case Some(_) if s.status == Status.Cancelled => ok(cancelled(s))
         case Some(code) => refused(Refusal(409, code, "the withdrawal request can no longer be cancelled"))
         case None =>
           val until = System.nanoTime() + ctx.settings.requestBound.toNanos
           def done(): Boolean =
             ctx.requestState(requestId).status == Status.Cancelled || (System.nanoTime() < until && { Thread.sleep(10); done() })
-          if done() then ok(Json.obj("requestId" -> requestId, "status" -> Status.Cancelled.upper)) else unavailable
+          if done() then ok(cancelled(ctx.requestState(requestId))) else unavailable
+
+  /** The original's cancel answer: the amount asked, and what the release gave back. */
+  private def cancelled(s: RequestState): JsonNode =
+    Json.obj((Seq[(String, Any)]("requestId" -> s.requestId, "status" -> Status.Cancelled.upper, "amount" -> s.amount) ++ returned(s))*)

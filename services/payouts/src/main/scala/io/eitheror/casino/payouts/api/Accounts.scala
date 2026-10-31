@@ -34,11 +34,21 @@ object Accounts:
 
   /** Active destinations only, the IBAN as its last four. */
   def destinations(ctx: Ctx, playerId: String): Reply =
-    ok(Json.obj("destinations" -> Json.arr(ctx.playerState(playerId).activeDestinations.map(destination)*)))
+    val state = ctx.playerState(playerId)
+    ok(Json.obj("destinations" -> Json.arr(state.activeDestinations.map(destination(_, currencyOf(state)))*)))
 
-  def destination(d: Destination): JsonNode =
+  /**
+   * A destination as the original answered it, with the holder's names beside: an IBAN is a bank transfer
+   * (`eubanking`, the original's `method`), in the player's currency, as the original defaulted it to EUR.
+   */
+  def destination(d: Destination, currency: String): JsonNode =
     Json.obj("id" -> d.id, "label" -> d.label.reveal, "firstName" -> d.givenName.reveal, "lastName" -> d.familyName.reveal,
-      "ibanLastFour" -> d.iban.reveal.takeRight(4), "isDefault" -> d.default, "createdAt" -> d.createdAt.toString)
+      "ibanLastFour" -> d.iban.reveal.takeRight(4), "scheme" -> BankScheme, "currency" -> currency, "isDefault" -> d.default,
+      "createdAt" -> d.createdAt.toString)
+
+  private val BankScheme = "eubanking"
+
+  def currencyOf(state: PlayerState): String = state.currency.getOrElse("EUR")
 
   /** `{firstName, lastName, iban, label?, setAsDefault?}`, the original's names. */
   def save(ctx: Ctx, playerId: String, b: JsonNode): Reply =
@@ -49,7 +59,8 @@ object Accounts:
       iban  <- field("iban")
     yield SaveDestination(UUID.randomUUID().toString, first, last, iban, b.text("label").getOrElse(""),
       b.bool("setAsDefault").getOrElse(false), ctx.now())
-    saved.fold(refused, c => answered(ctx.player(playerId).call(PlayerPayouts.saveDestination).invoke(c))(d => created(destination(d))))
+    saved.fold(refused, c => answered(ctx.player(playerId).call(PlayerPayouts.saveDestination).invoke(c))(d =>
+      created(destination(d, currencyOf(ctx.playerState(playerId))))))
 
   /** `{setAsDefault: true}`, which stands for the original's `set-default`; an already default one writes nothing. */
   def setDefault(ctx: Ctx, playerId: String, id: String, b: JsonNode): Reply =
@@ -57,7 +68,7 @@ object Accounts:
     else
       val a = ctx.player(playerId).call(PlayerPayouts.setDefault).invoke(SetDefault(id, ctx.now()))
       if a.refusal.contains(PlayerCodes.AlreadyDefault) then ok(Json.obj("destinationId" -> id, "isDefault" -> true))
-      else answered(a)(d => ok(destination(d)))
+      else answered(a)(d => ok(Json.obj("destinationId" -> d.id, "isDefault" -> d.default)))
 
   def delete(ctx: Ctx, playerId: String, id: String): Reply =
     answered(ctx.player(playerId).call(PlayerPayouts.deleteDestination).invoke(DeleteDestination(id, ctx.now())))(_ => noContent)

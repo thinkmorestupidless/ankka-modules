@@ -69,4 +69,6 @@ object Outcomes:
               Thread.sleep(10)
               poll()
           poll()
-          ok(Json.obj("requestId" -> id, "status" -> ctx.requestState(id).status.upper))
+          val s = ctx.requestState(id)
+          // `ok` is the original's acknowledgement, which psp-gateway reads.
+          ok(Json.obj((Seq[(String, Any)]("ok" -> true, "requestId" -> id, "status" -> s.status.upper) ++ returned(s))*))

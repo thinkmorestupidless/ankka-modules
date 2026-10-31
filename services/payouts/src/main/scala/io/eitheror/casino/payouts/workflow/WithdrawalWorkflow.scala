@@ -137,6 +137,15 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
 
   private def request = components.forEventSourcedEntity(EntityId(job.requestId))
 
+  /**
+   * The request no longer counts towards the player's limits, before the request records why, which is what
+   * the endpoints wait on: a request made straight after a cancel sees it (FR-005b). RequestsConsumer uncounts
+   * it too, should this be lost.
+   */
+  private def uncount(at: java.time.Instant): Unit =
+    components.forEventSourcedEntity(EntityId(job.playerId)).call(PlayerPayouts.uncount)
+      .invoke(io.eitheror.casino.payouts.player.Uncount(job.requestId, at)): Unit
+
   def emptyState: Flow = Flow()
 
   override def settings: WorkflowSettings =
@@ -263,7 +272,7 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
     val held = currentState.held.get
     val forfeit = Forfeit(held.bonusForfeited, if held.bonusForfeited then j.preview.bonusBalance else 0L, held.clawbackAmount)
     request.call(WithdrawalRequest.open).invoke(Open(j.requestId, j.playerId, j.amount, held.paidAmount, j.currency, j.terminal,
-      j.payee, forfeit, j.kyc, now())): Unit
+      j.payee, forfeit, j.kyc, now(), held.voidedAmount)): Unit
     stepEffects.updateState(currentState.copy(step = Flow.Review, job = Some(j.copy(payee = Payee())))).thenPause()
 
   /** The hold released with the outcome in hand, then the request records why; a repeat the wallet already made is done (R9). */
@@ -275,6 +284,7 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
     answer match
       case Money.Done(()) =>
         val at = now()
+        uncount(at)
         r.outcome match
           case "cancelled" => request.call(WithdrawalRequest.cancel).invoke(Cancel(r.by, r.reasonCode, at)): Unit
           case "rejected"  => request.call(WithdrawalRequest.reject).invoke(Reject(r.operatorId.getOrElse(""), r.reason, at)): Unit
@@ -447,7 +457,9 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
     val answer = if currentState.money("reverse") then Money.Done(()) else wallet.reverse(j.playerId, j.currencyOf, j.requestId)
     answer match
       case Money.Done(()) =>
-        request.call(WithdrawalRequest.reverse).invoke(Reverse(o.reasonCode.getOrElse("chargeback"), o.reference, now())): Unit
+        val at = now()
+        uncount(at)
+        request.call(WithdrawalRequest.reverse).invoke(Reverse(o.reasonCode.getOrElse("chargeback"), o.reference, at)): Unit
         stepEffects.updateState(currentState.copy(step = Flow.Reversed, money = currentState.money + "reverse", attempts = 0)).thenEnd
       case Money.Refused(status, code, _) =>
         log.warn(s"withdrawal ${j.requestId}: the wallet refused the reverse ($status $code), trying again")

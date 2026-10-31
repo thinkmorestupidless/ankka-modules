@@ -151,7 +151,7 @@ class RequestsFeatures extends PayoutsFeatures("requests.feature"):
 
   Then("it is refused naming {string} and {string}") { (a: String, b: String) =>
     val body = refusedWith(422, "CRYPTO_CURRENCY_NOT_SUPPORTED")
-    assertEquals(body.strings("supported"), Vector(a, b))
+    assertEquals(body.strings("supportedCurrencies"), Vector(a, b))
   }
 
   Given("a destination that is another player's") { () =>

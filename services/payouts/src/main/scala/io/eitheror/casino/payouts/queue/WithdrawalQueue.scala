@@ -22,6 +22,7 @@ final case class QueueRow(
     currency: String = "",
     terminalName: String = "",
     method: String = "",
+    terminalId: String = "",
     destinationLastFour: Option[String] = None,
     createdAt: Instant = Instant.EPOCH,
     initiatedAt: Option[Instant] = None,
@@ -46,6 +47,7 @@ object QueueRow:
       currency = s.currency,
       terminalName = s.terminal.fold("")(_.name),
       method = s.terminal.fold("")(_.scheme),
+      terminalId = s.terminal.fold("")(_.id),
       destinationLastFour = s.payee.iban.map(i => Iban.lastFour(i.reveal)),
       createdAt = s.createdAt,
       initiatedAt = s.initiatedAt,
@@ -80,7 +82,7 @@ object WithdrawalQueue extends View.Companion[WithdrawalQueueView, RequestEvent,
       status = Status.from(r.status).getOrElse(Status.PendingReview),
       payoutStatus = PayoutStatus.values.find(_.wire == r.payoutStatus).getOrElse(PayoutStatus.None),
       createdAt = r.createdAt, initiatedAt = r.initiatedAt,
-      terminal = Some(io.eitheror.casino.payouts.request.TerminalRef("", "", r.terminalName, "", r.method, true)),
+      terminal = Some(io.eitheror.casino.payouts.request.TerminalRef(r.terminalId, "", r.terminalName, "", r.method, true)),
       payee = io.eitheror.casino.payouts.request.Payee(iban = r.destinationLastFour.map(io.eitheror.casino.contract.personal.Personal(_))))
 
   /** The queue's filters (contracts/routes.md): each is a condition; none is every row. */
