@@ -178,6 +178,10 @@ payouts-test:
 payouts-it:
     cd services/payouts && sbt "testOnly io.eitheror.casino.payouts.it.* io.eitheror.casino.payouts.port.* io.eitheror.casino.payouts.features.*"
 
+# SC-004 at full size: 10,000 requests with 200 in flight (the default run has 1,000; Docker).
+payouts-scale:
+    cd services/payouts && PAYOUTS_SCALE=1 sbt "testOnly io.eitheror.casino.payouts.it.ScaleSuite"
+
 # payouts, locally on 9004 as brand goldvibe (`sbt schema && docker compose up -d` first, in services/payouts);
 # the wallet's local run on 9000 and psp-gateway's on 9001. Tokens are verified against the kind installation's
 # casino Keycloak.
