@@ -9,9 +9,14 @@ class LedgerSuite extends munit.FunSuite:
   private val m     = MarketId("m1")
   private val ada   = OwnerId("ada")
 
+  /** The calls handed to the retry, with the answer that handed them. */
+  private val retried = java.util.concurrent.ConcurrentLinkedQueue[(WalletCall, LedgerAnswer)]()
+
+  override def beforeEach(context: BeforeEach): Unit = retried.clear()
+
   private def ledger(answer: (String, String) => Option[(Int, String)] = (_, _) => Some(200 -> """{"txnId":"t"}""")) =
     val s = Scripted(answer)
-    (Ledger(() => WalletClient(s, brand), _ => "EUR"), s)
+    (Ledger(() => WalletClient(s, brand), _ => "EUR", (c, a) => retried.add(c -> a): Unit), s)
 
   private def leg(owner: String, order: String, side: Side, charge: Long = 0, paid: Long = 0, released: Long = 0) =
     Leg(OwnerId(owner), OrderId(order), OutcomeId("yes"), side, charge, paid, released, if released > 0 then 1 else 0)
@@ -77,11 +82,24 @@ class LedgerSuite extends munit.FunSuite:
     assert(s.calls(1)._4.contains("\"amount\":400") && s.calls(1)._4.contains("\"key\":\"t3/bob\""), s.calls(1)._4)
   }
 
-  test("a leg the wallet refuses stops the trade at it, answered as refused") {
+  test("a leg the wallet refuses stops the trade at it, is handed to the retry, and is answered as refused") {
     val (l, s) = ledger((_, _) => Some(409 -> """{"error":"RESERVATION_SHORT"}"""))
     val legs = Vector(leg("ada", "o1", Side.Buy, charge = 600), leg("bob", "o2", Side.Buy, charge = 400))
     assertEquals(l.settle(m, TradeId("t4"), Through.Split, legs), LedgerAnswer.Refused("RESERVATION_SHORT"))
     assertEquals(s.calls.size, 1)
+    import scala.jdk.CollectionConverters.*
+    val handed = retried.asScala.toVector
+    assertEquals(handed.map(_._1.key), Vector("t4/ada"))
+    assertEquals(handed.map(_._2), Vector(LedgerAnswer.Refused("RESERVATION_SHORT")))
+    assertEquals(handed.head._1.path, s.calls.head._3)
+  }
+
+  test("a payout the wallet cannot fund is handed to the retry; a reservation it refuses is not") {
+    val (l, _) = ledger((_, _) => Some(409 -> """{"error":"INSUFFICIENT_FUNDS"}"""))
+    assertEquals(l.payout(m, PositionKey.of(ada, OutcomeId("yes")), Money(1000, ada)), LedgerAnswer.Insufficient)
+    assertEquals(l.reserve(m, OrderId("o9"), Money(1000, ada)), LedgerAnswer.Insufficient)
+    import scala.jdk.CollectionConverters.*
+    assertEquals(retried.asScala.toVector.map(_._1.key), Vector("m1/ada/yes"))
   }
 
   test("a payout is paid from the pool under the position; a position worth nothing makes no call") {

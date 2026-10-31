@@ -16,6 +16,14 @@ final class WalletPending(message: String) extends RuntimeException(message)
  * first was. A 2xx is `Done`; `INSUFFICIENT_FUNDS` is `Insufficient`; any other code is `Refused`
  * with it; no answer, a 5xx or `OUTCOME_PENDING` throws [[WalletPending]] (research R4).
  */
+/** One keyed call to the wallet, kept whole so a retry repeats it exactly (research R5). */
+final case class WalletCall(key: String, path: String, body: String)
+
+/**
+ * The wallet's money routes for the exchange. Every call is keyed, so a repeat is answered as the
+ * first was. A 2xx is `Done`; `INSUFFICIENT_FUNDS` is `Insufficient`; any other code is `Refused`
+ * with it; no answer, a 5xx or `OUTCOME_PENDING` throws [[WalletPending]] (research R4).
+ */
 final class WalletClient(services: ServiceClients, brand: String):
   private val http = Http(services, "wallet")
   private val root = s"/v1/casino/brands/${Http.segment(brand)}"
@@ -23,28 +31,33 @@ final class WalletClient(services: ServiceClients, brand: String):
   private def wallet(player: String, currency: String) = s"$root/wallets/${Http.segment(player)}/${Http.segment(currency)}"
   private def pool(market: String)                     = s"$root/accounts/pool/${Http.segment(market)}"
 
+  private def call(key: String, path: String, fields: (String, Any)*) = WalletCall(key, path, Json.render(Json.obj(fields*)))
+
   def reserve(player: String, currency: String, key: String, amount: Long): LedgerAnswer =
-    answer(http.post(s"${wallet(player, currency)}/reservations", Json.obj("key" -> key, "amount" -> amount)))
+    send(call(key, s"${wallet(player, currency)}/reservations", "key" -> key, "amount" -> amount))
 
   def release(player: String, currency: String, order: String, sequence: Int, amount: Long): LedgerAnswer =
-    answer(http.post(s"${wallet(player, currency)}/reservations/release",
-      Json.obj("orderId" -> order, "sequence" -> sequence, "amount" -> amount)))
+    send(call(s"$order/$sequence", s"${wallet(player, currency)}/reservations/release",
+      "orderId" -> order, "sequence" -> sequence, "amount" -> amount))
 
-  def settle(trade: String, currency: String, buyer: String, order: String, seller: String, amount: Long, unused: Long): LedgerAnswer =
-    answer(http.post(s"$root/settlements", Json.obj("tradeId" -> trade, "currency" -> currency, "buyer" -> buyer, "orderId" -> order,
-      "seller" -> seller, "amount" -> amount, "unused" -> unused)))
+  def settlement(trade: String, currency: String, buyer: String, order: String, seller: String, amount: Long, unused: Long): WalletCall =
+    call(trade, s"$root/settlements", "tradeId" -> trade, "currency" -> currency, "buyer" -> buyer, "orderId" -> order,
+      "seller" -> seller, "amount" -> amount, "unused" -> unused)
 
   /** A buy leg of a split trade, charged from its order's reservation into the pool (022 FR-008a). */
-  def split(market: String, key: String, currency: String, player: String, amount: Long, order: String, unused: Long): LedgerAnswer =
-    answer(http.post(s"${pool(market)}/splits", Json.obj("key" -> key, "currency" -> currency, "player" -> player, "amount" -> amount,
-      "orderId" -> order, "unused" -> unused)))
+  def split(market: String, key: String, currency: String, player: String, amount: Long, order: String, unused: Long): WalletCall =
+    call(key, s"${pool(market)}/splits", "key" -> key, "currency" -> currency, "player" -> player, "amount" -> amount,
+      "orderId" -> order, "unused" -> unused)
 
-  def merge(market: String, key: String, currency: String, player: String, amount: Long): LedgerAnswer =
-    answer(http.post(s"${pool(market)}/merges", Json.obj("key" -> key, "currency" -> currency, "player" -> player, "amount" -> amount)))
+  def merge(market: String, key: String, currency: String, player: String, amount: Long): WalletCall =
+    call(key, s"${pool(market)}/merges", "key" -> key, "currency" -> currency, "player" -> player, "amount" -> amount)
 
-  def payment(market: String, position: String, currency: String, player: String, amount: Long): LedgerAnswer =
-    answer(http.post(s"${pool(market)}/payments",
-      Json.obj("positionId" -> position, "currency" -> currency, "player" -> player, "amount" -> amount)))
+  def payment(market: String, position: String, currency: String, player: String, amount: Long): WalletCall =
+    call(s"$market/$position", s"${pool(market)}/payments", "positionId" -> position, "currency" -> currency, "player" -> player,
+      "amount" -> amount)
+
+  def send(c: WalletCall): LedgerAnswer =
+    answer(Json.parse(c.body).fold(Reply.Unreachable("the call's body is not JSON"))(http.post(c.path, _)))
 
   private def answer(reply: Reply): LedgerAnswer = reply match
     case Reply.Unreachable(reason)                    => throw WalletPending(reason)

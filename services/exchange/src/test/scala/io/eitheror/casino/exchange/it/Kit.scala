@@ -9,6 +9,7 @@ import com.thinkmorestupidless.predictions.exchange.Exchange
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.exchange.{ExchangeRuntime, ExchangeService, Json, Settings}
+import io.eitheror.casino.exchange.retry.SettlementRetry
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -36,6 +37,7 @@ final class Kit(val base: Settings = Kit.Base):
   def advance(d: JDuration): Unit = clockOffset = clockOffset.plus(d)
 
   ExchangeRuntime.wire(base, () => now())
+  SettlementRetry.backoff = _ => JDuration.ofMillis(500)
 
   private val timers = TimerRuntime(200.millis)
   val exchange       = ExchangeService()
@@ -83,6 +85,9 @@ final class Kit(val base: Settings = Kit.Base):
   private def gateway = testKit.asCaller(Caller.Gateway)
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gateway, "Authorization" -> s"Bearer player|$playerId")
   def asService(name: String): Seq[(String, String)]   = Seq(testKit.asCaller(Caller.Service("local", name)))
+  def asOperator(subject: String = "op-1", roles: String = s"brand_$slug,markets"): Seq[(String, String)] =
+    Seq(gateway, "Authorization" -> s"Bearer staff|$subject|$roles")
+  def operatorPath(rest: String) = s"/v1/casino/backoffice/$slug/exchange$rest"
 
   def playerPath(rest: String)  = s"/v1/casino/exchange/$slug$rest"
   def servicePath(rest: String) = s"/v1/casino/brands/$slug/exchange$rest"
@@ -102,6 +107,8 @@ final class Kit(val base: Settings = Kit.Base):
 
   def facts[F <: Fact](topic: Topic[F]): Vector[(Option[String], F)] =
     broker.publishedTo(topic.name).toVector.flatMap(d => scala.util.Try(topic.serializer.fromBytes(d.message.payload)).toOption.map(d.message.key -> _))
+
+  def audit: Vector[AuditRecord] = facts(PlatformAudit).collect { case (_, r: AuditRecord) => r }
 
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 

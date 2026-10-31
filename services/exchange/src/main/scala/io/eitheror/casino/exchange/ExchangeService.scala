@@ -6,8 +6,10 @@ import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, H
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.predictions.exchange.MarketId
 import com.thinkmorestupidless.predictions.exchange.components.{ExchangeComponents, ExchangePorts}
-import io.eitheror.casino.exchange.api.{PlayerEndpoint, ServiceEndpoint}
-import io.eitheror.casino.exchange.ports.{Gates, Ledger, Neighbours, WalletClient}
+import io.eitheror.casino.exchange.api.{OperatorEndpoint, PlayerEndpoint, ServiceEndpoint}
+import io.eitheror.casino.exchange.ports.{Gates, Ledger, Neighbours, WalletCall, WalletClient}
+import io.eitheror.casino.exchange.retry.{RetryAudit, SettlementRetry, StartRetry}
+import com.thinkmorestupidless.predictions.exchange.components.LedgerAnswer
 import io.eitheror.casino.exchange.terms.MarketTerms
 
 import java.time.Duration
@@ -25,17 +27,26 @@ final class ExchangeService:
   private def brand = ExchangeRuntime.settings.brand
 
   val gates  = Gates(() => Neighbours(ExchangeRuntime.services, brand), () => ExchangeRuntime.settings.gates, currency)
-  val ledger = Ledger(() => WalletClient(ExchangeRuntime.services, brand), currency)
+  val ledger = Ledger(() => WalletClient(ExchangeRuntime.services, brand), currency, retry)
+
+  /** Starts the retry of a refused call before the refusal is answered (R5); a second start is the same retry. */
+  private def retry(call: WalletCall, answer: LedgerAnswer): Unit =
+    val refusal = answer match
+      case LedgerAnswer.Refused(code) => code
+      case LedgerAnswer.Insufficient  => "INSUFFICIENT_FUNDS"
+      case LedgerAnswer.Done          => "done"
+    ExchangeRuntime.components.forWorkflow(SettlementRetry.id(call)).call(SettlementRetry.start).invoke(StartRetry(call, refusal)): Unit
 
   val components: ExchangeComponents = ExchangeComponents(ExchangePorts(ledger, gates, ExchangeService.LedgerPatience))
 
-  val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor)
+  val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor, SettlementRetry.descriptor, RetryAudit.descriptor)
 
   /** One endpoint per audience (contracts/routes.md), none sharing a prefix. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
     Seq[EndpointClients => HttpEndpoint](
       clients => ServiceEndpoint(components, clients),
-      clients => PlayerEndpoint(components, clients, authenticate)
+      clients => PlayerEndpoint(components, clients, authenticate),
+      clients => OperatorEndpoint(clients, authenticate)
     )
 
 object ExchangeService:
