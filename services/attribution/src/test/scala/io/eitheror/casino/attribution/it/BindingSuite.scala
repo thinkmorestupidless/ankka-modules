@@ -38,6 +38,17 @@ class BindingSuite extends munit.FunSuite with LogCapturing:
     kit.moveClock(kit.now.plusSeconds(kit.network.cacheSeconds + 1))
     kit.refreshDocuments(): Unit
 
+  /**
+   * The service's own minute's timer runs, within a poll of the timer runtime (200 ms), what an earlier
+   * `refresh()`'s clock move made due, and may fetch then. Waits until the network has heard nothing for
+   * 500 ms; with the clock not moved, nothing more falls due.
+   */
+  private def quiet(): Unit =
+    var seen = -1
+    while kit.network.received.size != seen do
+      seen = kit.network.received.size
+      Thread.sleep(500)
+
   test("a tag minted a day ago binds once, with the pseudonym, and emits one registration fact") {
     val link   = kit.fresh("lnk")
     val tag    = kit.network.mint("aff-1", link, Some("autumn"), Vector("s1"), iat = kit.now.minus(JDuration.ofDays(1)))
@@ -95,6 +106,8 @@ class BindingSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("a kid the cached key document lacks is withdrawn_key, and registration fetches nothing (FR-023)") {
+    // Before the rotation: a refresh still due from an earlier clock move would otherwise cache the new kid.
+    quiet()
     kit.network.rotate(withdraw = false): Unit
     val tag    = kit.network.mint("aff-1", kit.fresh("lnk"))
     val before = kit.network.received.size
