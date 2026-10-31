@@ -79,7 +79,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - `Erase` blanks every `Personal` value and keeps the rest.
 - [X] T014 `S/limits/WithdrawalLimits.scala`, with its kit: `Set`, its refusals, and `LimitsSet` carrying
       before and after.
-- [ ] T015 `S/request/WithdrawalRequest.scala`, with `T/request/WithdrawalRequestSuite.scala`
+- [X] T015 `S/request/WithdrawalRequest.scala`, with `T/request/WithdrawalRequestSuite.scala`
       (`EventSourcedTestKit`):
       - every row of data-model.md's table;
       - a second `Approve` or `Reject`, or a `Reject` after approval, is `REQUEST_NOT_PENDING` (R1);
