@@ -225,7 +225,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T045 [US5] `T/it/OutcomeSuite.scala`: the gateway's identity is admitted, and any other caller and
       any player or operator token refused; an outcome on a request awaiting manual payout wins; a
       reversal of a completed request credits back once.
-- [ ] T046 [US5] `T/it/ScaleSuite.scala` (SC-004): 10,000 requests with 200 in flight; only the 200
+- [X] T046 [US5] `T/it/ScaleSuite.scala` (SC-004): 10,000 requests with 200 in flight; only the 200
       workflows wake on the clock's advance, and no component reads the whole set; FR-022's `stale`
       count.
 
