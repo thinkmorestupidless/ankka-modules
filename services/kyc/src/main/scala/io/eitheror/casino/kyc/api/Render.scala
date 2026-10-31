@@ -69,7 +69,6 @@ object Render:
       "isDefault"                  -> p.isDefault
     )
 
-  /** The operator's read (FR-036): the player's, with each document's reviewer, and the deadline, source of funds, deposits, flags and ready time. */
   /**
    * The player's KYC part of `players`' export (R15, 008 R10): every document record, no object and no
    * address to one, with the status, mode, source of funds, flags and deadline.

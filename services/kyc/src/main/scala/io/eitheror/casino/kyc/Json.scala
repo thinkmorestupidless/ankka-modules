@@ -68,7 +68,7 @@ object Json:
       }
 
     def long(field: String): Option[Long] =
-      Option(node.get(field)).flatMap(n => if n.isNumber then Some(n.asLong) else n.asText.toLongOption)
+      Option(node.get(field)).flatMap(n => if n.isIntegralNumber && n.canConvertToLong then Some(n.asLong) else if n.isTextual then n.asText.toLongOption else None)
 
     def strings(field: String): Vector[String] =
       Option(node.get(field)).filter(_.isArray).map(_.elements.asScala.map(_.asText).toVector).getOrElse(Vector.empty)

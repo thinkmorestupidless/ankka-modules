@@ -19,8 +19,9 @@ The service has:
   source of funds, deadline, flags, profile completeness, deposits);
 - one per brand (`PolicyEntity`);
 - a view (`KycQueue`) and one timer kind (`kyc-window-<player>`);
-- four consumers in and four out (`DepositsConsumer`, `ProfileConsumer`, `RegistrationConsumer` and
-  `ClosureConsumer`; `RecordTimers`, `PolicyFlagger`, `KycPublisher` and `AuditPublisher`);
+- four consumers in and five out (`DepositsConsumer`, `ProfileConsumer`, `RegistrationConsumer` and
+  `ClosureConsumer`; `RecordTimers`, `PolicyFlagger`, `KycPublisher`, `AuditPublisher` and
+  `PolicyAuditPublisher`, the last three in `facts/Publishers.scala`);
 - four endpoints.
 
 The status rules are a pure port of the original's `rollup.go`, held to its 68 tests. Decisions are in
@@ -193,7 +194,7 @@ services/kyc/                                   # ankka init; one sbt build; dep
 │   ├── queue/          # KycQueue
 │   ├── timers/         # RecordTimers, WindowTimer
 │   ├── consumers/      # DepositsConsumer, ProfileConsumer, RegistrationConsumer, ClosureConsumer, PolicyFlagger
-│   ├── facts/          # KycPublisher, AuditPublisher
+│   ├── facts/          # Facts (event to fact); Publishers: KycPublisher, AuditPublisher, PolicyAuditPublisher
 │   ├── clients/        # Players (trait + HTTP)
 │   ├── api/            # PlayerEndpoint, OperatorEndpoint, ServiceEndpoint, PublicEndpoint; Answers
 │   ├── KycCodecs.scala

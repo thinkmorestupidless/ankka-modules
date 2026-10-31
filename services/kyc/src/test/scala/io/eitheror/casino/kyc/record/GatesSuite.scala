@@ -31,7 +31,7 @@ class GatesSuite extends munit.FunSuite:
     assertEquals(deposit(gated.copy(currency = GBP, depositThreshold = Some(1L)), currency = Some("EUR")).code, Some("DEPOSIT_BLOCKED_KYC"))
 
   test("2. a currency other than the KYC currency, or none, is refused while the policy has either threshold"):
-    val refusal = GateAnswer(false, Some("DEPOSIT_BLOCKED_KYC_CURRENCY"), Some("Deposits in this currency are not accepted until your account is verified"))
+    val refusal = GateAnswer(false, Some("DEPOSIT_BLOCKED_KYC_CURRENCY"), Some("Deposits in this currency are not accepted"))
     assertEquals(deposit(currency = Some("EUR")), refusal)
     assertEquals(deposit(currency = None), refusal)
     assertEquals(deposit(gbp.copy(depositThreshold = None), currency = Some("EUR")), refusal)

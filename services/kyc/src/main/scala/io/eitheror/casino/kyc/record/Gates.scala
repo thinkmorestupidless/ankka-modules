@@ -35,7 +35,7 @@ object Gates:
     def over(threshold: Option[Long]) = threshold.exists(lifetime + amount > _)
     if policy.depositGate == Gate.KycApproved && !verified then refused("DEPOSIT_BLOCKED_KYC", depositMessage(status))
     else if hasThreshold && (currency.isEmpty || currency != policy.currency) then
-      refused("DEPOSIT_BLOCKED_KYC_CURRENCY", "Deposits in this currency are not accepted until your account is verified")
+      refused("DEPOSIT_BLOCKED_KYC_CURRENCY", "Deposits in this currency are not accepted")
     else if !verified && over(policy.depositThreshold) then
       refused("DEPOSIT_BLOCKED_KYC_THRESHOLD", "Your account requires identity verification before further deposits", Some(FlagReason.Threshold))
     else if sof != Sof.Cleared && over(policy.sofThreshold) then

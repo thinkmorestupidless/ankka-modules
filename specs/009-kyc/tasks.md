@@ -65,7 +65,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       and delete every version under a prefix) with `S3Store` configured as `platform/object-storage.md`
       (path style, `ANKKA_S3_REGION`, checksums when required, `GenerationAsVersionId`; sign against
       `ANKKA_S3_PUBLIC_ENDPOINT`, read and write through `ANKKA_S3_ENDPOINT`) and `T/documents/FakeStore.scala`
-- [X] T015 `S/facts/KycPublisher.scala` and `S/facts/AuditPublisher.scala` (contracts/facts.md) with
+- [X] T015 `S/facts/Facts.scala` and `S/facts/Publishers.scala` (`KycPublisher`, `AuditPublisher`; contracts/facts.md) with
       `T/facts/PublishersSuite.scala`: every event to its family or none; `player_kyc_pending` with its
       reason; `verified → unverified` as `player_kyc_rejected` with `profile_changed`; a free-text reason
       never on a fact; one audit record per status change, review, view, source of funds change, flag
