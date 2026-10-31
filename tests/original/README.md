@@ -291,7 +291,7 @@ internal outcome route. One scenario per scenario of `features/payouts/*.feature
 - Each scenario takes fresh players, registered, verified by the link the original would send, and
   funded through wallet-service's internal deposit route (`setup:`; its internal API, port 9001, which the public port answers 404). Its terminals are written to
   substrate under UUID ids and appended to the brand's terminal index, as merchant-service and scenario
-  251 write them, and made inactive when the scenario ends. A brand's limits set by a scenario are put
+  251 write them, made inactive and taken out of the index when the scenario ends (casino-service reads every terminal the index names at once, and past 64 its connection pool refuses them all as ineligible; scenario 251 leaves its own in the index, so clear them between runs). A brand's limits set by a scenario are put
   back when it ends.
 - Identity status (`kyc_status`), deposit turnover and a payout's `NEEDS_REVIEW` are written where the
   KYC rollup, the wallet and the reconciliation sweeper write them; psp-stub's Unity Finance is held

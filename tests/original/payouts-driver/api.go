@@ -178,13 +178,7 @@ func (s *Session) Terminal(name string, t TerminalSpec) string {
 	}
 	s.ok(s.Setup("the terminal "+t.Name, "substrate", http.MethodPost, "/twins/eitheror-terminal/"+id, props, NoAuth))
 	index := "/twins/eitheror-terminal-index/" + NameUUID("eitheror-terminal-index."+subBrand)
-	r := s.Setup("read the brand's terminal index", "substrate", http.MethodGet, index, nil, NoAuth)
-	ids := r.Str("ids")
-	if ids == "" {
-		if p, ok := r.Body["properties"].(map[string]any); ok {
-			ids, _ = p["ids"].(string)
-		}
-	}
+	ids := s.indexed(index)
 	if ids == "" {
 		ids = id
 	} else {
@@ -193,8 +187,30 @@ func (s *Session) Terminal(name string, t TerminalSpec) string {
 	s.ok(s.Setup("add the terminal to the brand's index", "substrate", http.MethodPost, index, map[string]any{"ids": ids}, NoAuth))
 	s.Cleanup(func() {
 		s.Setup("retire the terminal "+t.Name, "substrate", http.MethodPost, "/twins/eitheror-terminal/"+id, map[string]any{"status": "inactive"}, NoAuth)
+		// Out of the index too: casino-service reads every terminal the index names at once, and past 64 its
+		// connection pool refuses the reads and every terminal is ineligible.
+		var left []string
+		for _, v := range strings.Split(s.indexed(index), "|") {
+			if v != id {
+				left = append(left, v)
+			}
+		}
+		s.Setup("take the terminal out of the brand's index", "substrate", http.MethodPost, index,
+			map[string]any{"ids": strings.Join(left, "|")}, NoAuth)
 	})
 	return id
+}
+
+// indexed is the brand's terminal index, `|`-separated, as substrate holds it.
+func (s *Session) indexed(index string) string {
+	r := s.Setup("read the brand's terminal index", "substrate", http.MethodGet, index, nil, NoAuth)
+	ids := r.Str("ids")
+	if ids == "" {
+		if p, ok := r.Body["properties"].(map[string]any); ok {
+			ids, _ = p["ids"].(string)
+		}
+	}
+	return ids
 }
 
 // Manual is the scenario's terminal with no automated payout, requiring a destination when asked.
