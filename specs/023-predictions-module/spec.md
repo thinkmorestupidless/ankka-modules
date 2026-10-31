@@ -173,7 +173,8 @@ positions.
 
 **Acceptance Scenarios**:
 
-- added `features/predictions/catalogue.feature`: a player sees open markets with prices and depth and no draft or unopened market
+- added `features/predictions/catalogue.feature`: a player sees open markets and no draft or unopened market
+- added `features/predictions/catalogue.feature`: a player sees each outcome's last price, best bid, best ask and depth of an open market
 - added `features/predictions/catalogue.feature`: a player sees their own orders, positions and trades and no other player's
 
 ---

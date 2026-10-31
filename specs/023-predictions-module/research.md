@@ -292,3 +292,7 @@ the original*).
 - **T020 and T027 together.** The ledger port's `settle` and `payout` were written with `reserve` and
   `release`: the orders feature's sell scenario needs a held position, which a split trade makes, and
   the library's settlement consumer settles it at once. `LedgerSuite` covers every row of R4.
+- **T036, the catalogue scenario split.** catalogue.feature's first scenario joined `markets`'
+  catalogue with `exchange`'s prices and depth, which no one service's suite can run. Trevor chose to
+  split it: the catalogue scenario is bound in `markets`, the prices and depth scenario in
+  `exchange`; the joined read is the kind suite's (T043).
