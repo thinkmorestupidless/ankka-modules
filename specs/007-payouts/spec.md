@@ -128,6 +128,15 @@ The markers left open for product and regulatory decisions, settled with Trevor 
   the wallet and the gateway. Where do the profile's names come from? → A: A view of `payouts`' own,
   from `player_registered` and `player_profile_updated` on `casino.players` (spec 009's addition), the
   names `Personal` and erased with the player (FR-003).
+- Q (plan): Unity Finance's payout carries the player's email, and no fact carries it. → A:
+  `casino.players` gains it: `player_registered.email` and a new family `player_email_changed`, both
+  `Personal`, published by `players` (research R7).
+- Q (plan): the operator realm has no `brand_finance`, which the original admits to the queue. → A: it
+  is added to the operator realm beside `brand_admin` (research R6).
+- Q (plan): eligibility needs the gateway's terminal listing, and SC-005 puts the wallet alone in a
+  request's path. → A: `payouts` holds the listing per brand and refreshes it every 60 seconds; a terminal
+  deactivated within that minute is refused by the gateway at initiation and the money returned
+  (research R5).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -338,7 +347,8 @@ provider reference and status; the queue's needs-review set is visible at a glan
 - **FR-003**: `payouts` MUST build its own views from `casino.players` (identity verified, rejected,
   submitted and pending — spec 009 FR-030's `player_kyc_verified`, `player_kyc_rejected`,
   `player_kyc_submitted`, `player_kyc_pending`; account closed; the given and family names
-  `player_registered` and `player_profile_updated` carry, kept `Personal` for FR-013's match) and
+  `player_registered` and `player_profile_updated` carry, kept `Personal` for FR-013's match; the email
+  `player_registered` and `player_email_changed` carry, `Personal`, for FR-017's Unity Finance payout) and
   `money.transactions` (the gateway and scheme of every confirmed deposit), and MUST NOT query another
   service's store (constitution IV).
 
@@ -349,11 +359,13 @@ provider reference and status; the queue's needs-review set is visible at a glan
   wallet address, and optionally a coin, for a crypto terminal; a payout method (ETO or ACH) with
   mobile number or bank account, institution and transit numbers for Gigadat. A missing field, a
   decimal, zero or a negative amount MUST be refused naming the field.
-- **FR-005**: Before the hold, in this order, a request MUST be refused when: the player is unknown;
-  the player's identity is not verified, with the original's three messages for unverified, under
-  review and rejected; the terminal is not eligible (FR-012); the terminal requires a destination and
-  none is named; a crypto terminal has no wallet address; the coin named is not in the terminal's
-  list, naming the list; the destination is not the player's own and active.
+- **FR-005**: Before the hold, in the original's order (research R4), a request MUST be refused when:
+  the player is unknown; the player's identity is not verified, with the original's three messages for
+  unverified, under review and rejected; then by the hold preview's turnover answer (FR-006), the
+  withdrawal limits (FR-005b) and the preview's funds and forfeit answers (FR-006); then when the
+  terminal is not eligible (FR-012); the terminal requires a destination and none is named; a crypto
+  terminal has no wallet address; the coin named is not in the terminal's list, naming the list; the
+  destination is not the player's own and active.
 - **FR-005a**: A brand MAY set, per currency, a weekly and a monthly withdrawal limit in minor units;
   none set, or zero, is no limit. The admin route of FR-001 MUST read and set them (`GET` and `PUT
   withdrawal-config`), refusing a negative or decimal amount naming the field, and MUST record each
@@ -463,8 +475,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
 - **FR-025**: `payouts` MUST produce `casino.withdrawals` (spec 001 FR-011) with the families
   `withdrawal_requested`, `withdrawal_approved`, `withdrawal_completed`, `withdrawal_cancelled`
   (carrying whether the player or an operator cancelled, and the reason), `withdrawal_failed`
-  (carrying the reason) and `withdrawal_reversed`; each keyed by the request id and carrying the
-  player id as subject (spec 001 FR-012), the amount in minor units, the currency, the terminal, the
+  (carrying the reason) and `withdrawal_reversed`; each keyed by the player id, as the contract keys
+  the topic so a player's facts stay in order (research R11), and carrying the request id as
+  `payoutId` and the player id as subject (spec 001 FR-012), the amount in minor units, the currency, the terminal, the
   gateway, the provider's reference when there is one, and when it occurred. A fact MUST be emitted
   exactly once per transition and MUST NOT carry a destination, address, name or reason text in the
   clear.
@@ -493,14 +506,15 @@ provider reference and status; the queue's needs-review set is visible at a glan
   outcomes, times. An event sourced entity keyed by the request id.
 - **Withdrawal workflow**: one per request; the lifecycle of FR-017 to FR-023 with its waits and
   timers; keyed by the request id.
-- **Payout destination**: a player's saved bank destinations with holder names, IBAN, label, default
-  flag and status (`active`, `deleted`); one event sourced entity per player.
-- **Eligibility view**: per player, the gateways and schemes of confirmed deposits, from
-  `money.transactions`; per player, identity status and account status, from `casino.players`.
+- **Player's payout record**: one event sourced entity per player (research R3) holding the saved bank
+  destinations (holder names, IBAN, label, default flag, status `active` or `deleted`); the gateways
+  and schemes of confirmed deposits, from `money.transactions`; identity status, account status, the
+  names and the email, from `casino.players`; and the player's requests of the last 32 days for
+  FR-005b. An entity, not views, so the limit check reads the request made a second before.
+- **Terminal catalogue**: per brand, the gateway's withdrawal-capable terminals, refreshed every 60
+  seconds (research R5).
 - **Withdrawal limits**: per brand, a weekly and a monthly limit per currency (FR-005a); one entity
   per brand.
-- **Name view**: per player, the given and family names from `casino.players`, `Personal`, for the
-  destination match (FR-013).
 - **Queue view**: the brand's requests by status, payout status, player, identity status, method,
   amount and age, from request events.
 - **Withdrawal notifier**: the consumer that shapes request events into `casino.withdrawals`.
@@ -552,13 +566,16 @@ provider reference and status; the queue's needs-review set is visible at a glan
 
 ## Recordings
 
-- Go: `TestScenario7_CasinoGate3_FullPlayerJourney` (the withdrawal request, cancel and queue
-  steps), `TestScenario10_PaymentsHTTPAPIGate3_PayoutLifecycle`.
-- TL: `create-withdrawal-request.test.tl`, `approve-withdrawal-request.test.tl`,
-  `reject-withdrawal-request.test.tl`, `cancel-withdrawal-request.test.tl`,
-  `complete-withdrawal-request.test.tl`, `fail-withdrawal-request.test.tl`,
-  `reverse-withdrawal-request.test.tl`, `mark-withdrawal-awaiting-payout.test.tl`.
-- Scala: `WithdrawalRoutesSpec`, `WithdrawalTerminalRoutesSpec`, `PayoutDestinationRoutesSpec`,
+*Corrected 2026-10-31 (research R2):* `TestScenario7_CasinoGate3_FullPlayerJourney` never reaches the
+withdrawal routes and fails on the original, and `TestScenario10_PaymentsHTTPAPIGate3_PayoutLifecycle`
+is skipped; neither can be recorded. The recordings are:
+
+- Go: a new driver, `tests/original/payouts-driver` (scenario 30, one test per scenario of
+  `features/payouts/`), and the original's
+  `scenario251_withdrawal_cap_lifecycle_e2e_test.go`, recorded against the local original.
+- TL: the wallet handlers' `.test.tl` cases are spec 002's (the money movement); read here as the
+  oracle for the workflow's money steps, not replayed.
+- Scala (read as the oracle for `contracts/routes.md`, not replayed): `WithdrawalRoutesSpec`, `WithdrawalTerminalRoutesSpec`, `PayoutDestinationRoutesSpec`,
   `PayoutReconciliationSweeperSpec`.
 - Playwright: `withdrawal-us1-new-destination.spec.ts`, `withdrawal-us2-saved-destination.spec.ts`,
   `58-brand-config-withdrawal-limits.spec.ts`.
@@ -582,8 +599,8 @@ provider reference and status; the queue's needs-review set is visible at a glan
 - Spec 002 serves the hold preview (002 FR-023a) and computes the clawback itself (002 FR-015a,
   FR-023); `payouts` supplies none.
 - The roles the original admits (`brand_admin`, `resource_admin`, `platform_admin`, `brand_finance`,
-  `resource_finance`) map onto the operator realm's roles for the brand (spec 001 FR-020); which of
-  them is "finance or admin" is the realm's configuration, not this spec's.
+  `resource_finance`) are the operator realm's roles, checked by the handler for the brand (spec 001
+  FR-020); `brand_finance` is added to the realm with this spec (research R6).
 - A provider's explicit rejection at initiation releases the hold and tells the player to try another
   terminal (FR-018), as the plan had it; the original parks the request for a manual payout, which
   waits on a person and makes a support ticket of every rejection. Awaiting manual payout is reached
