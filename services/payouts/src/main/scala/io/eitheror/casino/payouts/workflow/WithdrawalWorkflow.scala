@@ -434,7 +434,8 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
             .thenTransitionTo(WithdrawalWorkflow.confirm.ref)
         case GatewayStatus.NoRecord =>
           recorded("no_record", None, None)
-          stepEffects.updateState(polled.copy(step = Flow.NeedsReview)).thenTransitionTo(WithdrawalWorkflow.review.ref)
+          // Still waiting: the review step says needs review once the request does, as the window's path does.
+          stepEffects.updateState(polled).thenTransitionTo(WithdrawalWorkflow.review.ref)
         // A waiting answer is recorded the first time and whenever it changes, not at every poll (FR-029).
         case GatewayStatus.Pending =>
           if !currentState.lastPoll.contains("pending") then recorded("pending", None, None)
