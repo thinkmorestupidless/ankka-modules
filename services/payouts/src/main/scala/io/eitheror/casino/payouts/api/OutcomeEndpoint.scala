@@ -42,9 +42,11 @@ object Outcomes:
   def deliver(ctx: Ctx, id: String, outcome: Option[String], reference: Option[String], reason: Option[String]): Reply =
     val word = outcome.map(_.trim.toLowerCase)
     val s    = ctx.requestState(id)
+    // The provider's reason: a code goes on to the workflow, the facts and the audit; its own text only to the request's note.
+    val (code, text) = ReasonCode.split(reason)
     def record(answer: String) =
       ctx.request(id).call(WithdrawalRequest.record)
-        .invoke(Record(OutcomeRecord(Source.Outcome, answer, reason, reference, None, ctx.now()))): Unit
+        .invoke(Record(OutcomeRecord(Source.Outcome, answer, code, reference, text, ctx.now()))): Unit
     if !word.exists(Known) then refusal(400, "UNRECOGNISED_OUTCOME", "the outcome is not completed, failed or reversed")
     else if !s.opened then refusal(404, RequestCodes.NotFound, "no such withdrawal request")
     else if reference.exists(r => s.providerReference.exists(_ != r)) then
@@ -53,7 +55,7 @@ object Outcomes:
       refusal(409, "REFERENCE_MISMATCH", "the provider's reference is not this request's")
     else
       val before = ctx.flow(id).step
-      val a = ctx.workflow(id).call(WithdrawalWorkflow.outcome).invoke(Outcome(word.get, reference, reason))
+      val a = ctx.workflow(id).call(WithdrawalWorkflow.outcome).invoke(Outcome(word.get, reference, code))
       a.refusal match
         case Some(FlowCodes.Busy) => unavailable
         case Some(code) =>
