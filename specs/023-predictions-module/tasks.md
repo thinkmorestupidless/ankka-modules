@@ -49,24 +49,24 @@ suspends, resumes, resolves, corrects and voids a market; every change is a fact
 rests; any refusal rests nothing and reserves nothing. **Independent test**: `orders.feature`
 bound in `exchange`, the book opened through the service route.
 
-- [ ] T016 [P] [US1] Copy `Http`/`Reply` and the players, kyc and RG clients from game-provider into `S/x/main/…/exchange/ports/` (`Http.scala`, `Neighbours.scala`), and the wallet's routes into `WalletClient.scala`; note in each file's header where it was copied from
-- [ ] T017 [US1] Prove `ServiceClients` can be had by a port outside a component's context (R3) in a spike suite `S/x/test/…/exchange/ports/ServiceClientsSuite.scala`; if not, pass the clients in from `Main` and record the answer under `## Found during implementation` in research.md
-- [ ] T018 [US1] The gate port in `S/x/main/…/exchange/ports/Gates.scala` (contracts/ports.md): order, failing closed, sells skip may-bet, gates by `predictions-gates`; a unit suite `GatesSuite.scala` covering every row with scripted replies
-- [ ] T019 [US1] `MarketTerms` (currency, outcomes) in `S/x/main/…/exchange/terms/MarketTerms.scala`
-- [ ] T020 [US1] The ledger port's `reserve` and `release` (R4) in `S/x/main/…/exchange/ports/Ledger.scala`, `charge` and `pay` answering `Refused("not offered")` (FR-016); `LedgerSuite.scala` maps every wallet code to its answer
-- [ ] T021 [US1] Register `ExchangeComponents` in `S/x/main/…/exchange/Main.scala` with the two ports and `ledgerPatience` 5 s
-- [ ] T022 [US1] `ServiceEndpoint` in `S/x/main/…/exchange/api/ServiceEndpoint.scala`: `/exchange/markets/{market}/{command}` admitted to `markets` only; open writes `MarketTerms` then sends `Open` with unit 100 and the limits
-- [ ] T023 [US1] `PlayerEndpoint` order and cancel routes in `S/x/main/…/exchange/api/PlayerEndpoint.scala`: place starts `exchange-placement` and polls its outcome as `Flows.answer` does; another player's order is `forbidden`
-- [ ] T024 [US1] `ExchangeDriver` consumer in `S/m/main/…/markets/drive/ExchangeDriver.scala` (R2): each market event to its call, limits from `MarketTerms` else the values; a `state` refusal is done, anything else is audited on `platform.audit`; its unit suite with a scripted exchange
-- [ ] T025 [US1] Bind `features/predictions/orders.feature` in `S/x/test/…/exchange/features/OrdersFeatures.scala`, the neighbours scripted at their route contracts; the fee scenario ignored naming ankka-predictions spec 007
-- [ ] T026 [US1] Integration suite `S/x/test/…/exchange/it/PlacementItSuite.scala`: a wallet that answers `OUTCOME_PENDING` then `Done` funds once; an unreachable kyc refuses `play gate: unavailable`
+- [X] T016 [P] [US1] Copy `Http`/`Reply` and the players, kyc and RG clients from game-provider into `S/x/main/…/exchange/ports/` (`Http.scala`, `Neighbours.scala`), and the wallet's routes into `WalletClient.scala`; note in each file's header where it was copied from
+- [X] T017 [US1] Prove `ServiceClients` can be had by a port outside a component's context (R3) in a spike suite `S/x/test/…/exchange/ports/ServiceClientsSuite.scala`; if not, pass the clients in from `Main` and record the answer under `## Found during implementation` in research.md
+- [X] T018 [US1] The gate port in `S/x/main/…/exchange/ports/Gates.scala` (contracts/ports.md): order, failing closed, sells skip may-bet, gates by `predictions-gates`; a unit suite `GatesSuite.scala` covering every row with scripted replies
+- [X] T019 [US1] `MarketTerms` (currency, outcomes) in `S/x/main/…/exchange/terms/MarketTerms.scala`
+- [X] T020 [US1] The ledger port's `reserve` and `release` (R4) in `S/x/main/…/exchange/ports/Ledger.scala`, `charge` and `pay` answering `Refused("not offered")` (FR-016); `LedgerSuite.scala` maps every wallet code to its answer
+- [X] T021 [US1] Register `ExchangeComponents` in `S/x/main/…/exchange/Main.scala` with the two ports and `ledgerPatience` 5 s
+- [X] T022 [US1] `ServiceEndpoint` in `S/x/main/…/exchange/api/ServiceEndpoint.scala`: `/exchange/markets/{market}/{command}` admitted to `markets` only; open writes `MarketTerms` then sends `Open` with unit 100 and the limits
+- [X] T023 [US1] `PlayerEndpoint` order and cancel routes in `S/x/main/…/exchange/api/PlayerEndpoint.scala`: place starts `exchange-placement` and polls its outcome as `Flows.answer` does; another player's order is `forbidden`
+- [X] T024 [US1] `ExchangeDriver` consumer in `S/m/main/…/markets/drive/ExchangeDriver.scala` (R2): each market event to its call, limits from `MarketTerms` else the values; a `state` refusal is done, anything else is audited on `platform.audit`; its unit suite with a scripted exchange
+- [X] T025 [US1] Bind `features/predictions/orders.feature` in `S/x/test/…/exchange/features/OrdersFeatures.scala`, the neighbours scripted at their route contracts; the fee scenario ignored naming ankka-predictions spec 007
+- [X] T026 [US1] Integration suite `S/x/test/…/exchange/it/PlacementItSuite.scala`: a wallet that answers `OUTCOME_PENDING` then `Done` funds once; an unreachable kyc refuses `play gate: unavailable`
 
 ## Phase 5: User Story 2 — money through the brand's wallet (P1)
 
 **Goal**: each trade and each payout is one keyed wallet call; a refusal is recorded, retried and
 raised; the module reconciles. **Independent test**: `settlement.feature` bound in `exchange`.
 
-- [ ] T027 [US2] The ledger port's `settle` (direct, split, merge) and `payout` (R4) in `Ledger.scala`, one call per leg as the table says; extend `LedgerSuite.scala`
+- [X] T027 [US2] The ledger port's `settle` (direct, split, merge) and `payout` (R4) in `Ledger.scala`, one call per leg as the table says; extend `LedgerSuite.scala`
 - [ ] T028 [US2] `SettlementRetry` workflow (R5, data-model) in `S/x/main/…/exchange/retry/SettlementRetry.scala`: `start` as the claim, the backoff 1, 5, 15 min then hourly, an audit record at the first refusal and at the end; the port starts it before answering a refusal; its unit suite
 - [ ] T029 [US2] `OperatorEndpoint` in `S/x/main/…/exchange/api/OperatorEndpoint.scala`: `POST /exchange/retries/{key}/abandon` under `operatorHolding(slug, "markets", "platform_admin")`
 - [ ] T030 [US2] The reconciliation (R12) in `S/x/main/…/exchange/reconcile/`: the `reconciliation` view over `money.transactions` and the exchange's events, a daily timed action and one at `Final`, one audit record per difference; `money.transactions` is the brand project's own topic, read with no grant; a unit suite feeding a deliberate difference
