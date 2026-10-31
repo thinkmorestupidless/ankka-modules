@@ -153,18 +153,23 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
   override def settings: WorkflowSettings =
     WorkflowSettings.builder
       .defaultStepTimeout(30.seconds)
-      // A step that throws (a crash mid-call) is run again: the wallet answers a key it has seen with its first outcome.
-      .stepRecovery(WithdrawalWorkflow.hold, RecoverStrategy.maxRetries(5))
-      .stepRecovery(WithdrawalWorkflow.open, RecoverStrategy.maxRetries(10))
-      .stepRecovery(WithdrawalWorkflow.releaseStep, RecoverStrategy.maxRetries(5))
-      .stepRecovery(WithdrawalWorkflow.approveStep, RecoverStrategy.maxRetries(10))
-      .stepRecovery(WithdrawalWorkflow.pay, RecoverStrategy.maxRetries(10))
+      // A step that throws (a crash mid-call, an entity's ask timing out) is run again: the wallet answers a key
+      // it has seen with its first outcome. Past its retries it fails over to `recover`, which waits and runs it
+      // again, so no workflow ends failed with money held or a payout unconfirmed (FR-024).
+      .stepRecovery(WithdrawalWorkflow.hold, RecoverStrategy.maxRetries(5).failoverTo(WithdrawalWorkflow.recover))
+      .stepRecovery(WithdrawalWorkflow.open, RecoverStrategy.maxRetries(10).failoverTo(WithdrawalWorkflow.recover))
+      .stepRecovery(WithdrawalWorkflow.releaseStep, RecoverStrategy.maxRetries(5).failoverTo(WithdrawalWorkflow.recover))
+      .stepRecovery(WithdrawalWorkflow.approveStep, RecoverStrategy.maxRetries(10).failoverTo(WithdrawalWorkflow.recover))
+      .stepRecovery(WithdrawalWorkflow.pay, RecoverStrategy.maxRetries(10).failoverTo(WithdrawalWorkflow.recover))
       // The gateway claims the request id: an initiation run again answers the first answer (R7).
       .stepRecovery(WithdrawalWorkflow.initiate, RecoverStrategy.maxRetries(5).failoverTo(WithdrawalWorkflow.waitStep))
       .stepRecovery(WithdrawalWorkflow.poll, RecoverStrategy.maxRetries(3).failoverTo(WithdrawalWorkflow.waitStep))
-      .stepRecovery(WithdrawalWorkflow.review, RecoverStrategy.maxRetries(10))
-      .stepRecovery(WithdrawalWorkflow.confirm, RecoverStrategy.maxRetries(10))
-      .stepRecovery(WithdrawalWorkflow.reverse, RecoverStrategy.maxRetries(10))
+      .stepRecovery(WithdrawalWorkflow.waitStep, RecoverStrategy.maxRetries(5).failoverTo(WithdrawalWorkflow.recover))
+      .stepRecovery(WithdrawalWorkflow.review, RecoverStrategy.maxRetries(10).failoverTo(WithdrawalWorkflow.recover))
+      .stepRecovery(WithdrawalWorkflow.confirm, RecoverStrategy.maxRetries(10).failoverTo(WithdrawalWorkflow.recover))
+      .stepRecovery(WithdrawalWorkflow.reverse, RecoverStrategy.maxRetries(10).failoverTo(WithdrawalWorkflow.recover))
+      // `recover` only pauses; should it throw, it is run again.
+      .stepRecovery(WithdrawalWorkflow.recover, RecoverStrategy.maxRetries(100))
       .build
 
   // ── Commands ─────────────────────────────────────────────────────────────────────────────────
@@ -333,10 +338,14 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
     val names  = player.names.map(n => (n.givenName, n.familyName))
     val t      = r.terminal.get
     Approval.decide(t.payout, r.payee, r.playerId, names, player.email) match
-      case Approval.Decision.Manual(why) =>
-        // The request's details were erased between approval and the call: nothing was sent.
-        request.call(WithdrawalRequest.awaitManual).invoke(AwaitManual(why, now())): Unit
-        stepEffects.updateState(currentState.copy(step = Flow.AwaitingManual)).thenPause()
+      case Approval.Decision.Manual(_) =>
+        // The details were erased since `pay` decided. An earlier run of this step may have reached the
+        // provider, so the payout is in doubt, never awaiting manual payout (FR-018): the wait asks the
+        // gateway, which answers `no_record` when nothing reached it, and an operator settles it.
+        val at = now()
+        request.call(WithdrawalRequest.record).invoke(Record(OutcomeRecord(Source.Gateway, "in_doubt", Some("details_erased"), None, None, at))): Unit
+        request.call(WithdrawalRequest.initiated).invoke(Initiated("in_doubt", None, at)): Unit
+        stepEffects.updateState(currentState.copy(step = Flow.Waiting, polls = 0)).thenTransitionTo(WithdrawalWorkflow.waitStep.ref)
       case Approval.Decision.Automated(payout) =>
         val answer = gateway.initiate(PayoutRequest(r.requestId, t.id, r.paidAmount, r.currencyOf, payout))
         val at     = now()
@@ -479,6 +488,21 @@ final class WithdrawalWorkflow(context: WorkflowContext) extends Workflow[Flow]:
         stepEffects.updateState(currentState.copy(attempts = currentState.attempts + 1))
           .thenPause(Flow.backoff(currentState.attempts), WithdrawalWorkflow.reverse.ref)
 
+  /**
+   * A step failed past its retries. Each step reads what was done from the state, the request and the
+   * wallet's keys, so running it again is safe; it is run again after the backoff, and said loudly.
+   */
+  def recoverStep: StepEffect =
+    val id = currentState.job.map(_.requestId).getOrElse("(none)")
+    WithdrawalWorkflow.resumable.get(currentState.step) match
+      case Some(again) =>
+        log.error(s"withdrawal $id: the ${currentState.step} step failed past its retries; running it again")
+        stepEffects.updateState(currentState.copy(attempts = currentState.attempts + 1))
+          .thenPause(Flow.backoff(currentState.attempts), again.ref)
+      case None =>
+        log.error(s"withdrawal $id: a step failed at ${currentState.step}, which no step resumes; paused for an operator")
+        stepEffects.thenPause()
+
 object WithdrawalWorkflow
     extends Workflow.Companion[WithdrawalWorkflow, Flow](
       componentId = ComponentId("withdrawal"),
@@ -510,6 +534,21 @@ object WithdrawalWorkflow
   val review      = step("needs-review")(_.reviewStep)
   val confirm     = step("confirm")(_.confirmStepRun)
   val reverse     = step("reverse")(_.reverseStepRun)
+  val recover     = step("recover")(_.recoverStep)
+
+  /** The step a workflow at each of its working positions runs again after a fault (`recover`). */
+  val resumable = Map(
+    Flow.Holding    -> hold,
+    Flow.Opening    -> open,
+    Flow.Releasing  -> releaseStep,
+    Flow.Approving  -> approveStep,
+    Flow.Paying     -> pay,
+    Flow.Initiating -> waitStep,
+    Flow.Waiting    -> waitStep,
+    Flow.NeedsReview -> review,
+    Flow.Confirming -> confirm,
+    Flow.Reversing  -> reverse
+  )
 
   val start  = command("start")(_.start)
   val status = query("status")(_.status)
