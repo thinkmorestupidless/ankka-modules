@@ -4,12 +4,15 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import io.eitheror.casino.payouts.api.{Ctx, PlayerEndpoint}
 import io.eitheror.casino.payouts.consumers.{DepositsConsumer, PlayersConsumer, RequestsConsumer}
 import io.eitheror.casino.payouts.facts.{AuditPublisher, ConfigAuditPublisher, PlayerAuditPublisher, WithdrawalPublisher}
 import io.eitheror.casino.payouts.limits.WithdrawalLimits
 import io.eitheror.casino.payouts.player.PlayerPayouts
+import io.eitheror.casino.payouts.queue.WithdrawalQueue
 import io.eitheror.casino.payouts.request.WithdrawalRequest
 import io.eitheror.casino.payouts.terminals.{CatalogueTimer, TerminalCatalogue}
+import io.eitheror.casino.payouts.workflow.WithdrawalWorkflow
 
 import scala.concurrent.duration.*
 
@@ -27,13 +30,15 @@ object PayoutsService:
     WithdrawalPublisher.descriptor,
     AuditPublisher.descriptor,
     PlayerAuditPublisher.descriptor,
-    ConfigAuditPublisher.descriptor
+    ConfigAuditPublisher.descriptor,
+    WithdrawalWorkflow.descriptor,
+    WithdrawalQueue.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
-    val _ = authenticate
-    Seq.empty
+    def ctx(c: EndpointClients) = Ctx(authenticate, c)
+    Seq[Ctx => HttpEndpoint](PlayerEndpoint(_)).map(e => (c: EndpointClients) => e(ctx(c)))
 
   /** Once the service has started: the timers reachable from the components, and the catalogue's refresh scheduled. */
   def started(timers: TimerRuntime): Unit =
