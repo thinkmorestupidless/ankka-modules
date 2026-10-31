@@ -67,9 +67,20 @@ object Requests:
       b.text("walletAddress"), b.text("cryptoCurrency").map(_.toUpperCase), b.text("payoutMethod"), b.text("mobile"),
       b.text("bankAccount"), b.text("institutionCode"), b.text("transitNumber"), b.bool("confirmForfeit").getOrElse(false))
 
-  /** The digest of a body under its key: the same body is the same request, another is `KEY_REUSED`. */
+  /**
+   * The digest of a body under its key: the same body is the same request, another is `KEY_REUSED`. The fields
+   * are named and ordered here, so a field added to `Draft` changes no digest of a request in flight.
+   */
   def fingerprint(d: Draft): String =
-    HexFormat.of.formatHex(MessageDigest.getInstance("SHA-256").digest(d.copy(key = None).toString.getBytes(UTF_8)))
+    val amount = d.amount match
+      case Amount.Whole(v) => v.toString
+      case other           => other.toString
+    val fields = Vector(amount, d.currency, d.terminalId, d.destinationId, d.walletAddress, d.cryptoCurrency, d.payoutMethod,
+      d.mobile, d.bankAccount, d.institutionCode, d.transitNumber, d.confirmForfeit).map {
+      case o: Option[?] => o.fold("\u0000")(_.toString)
+      case v            => v.toString
+    }
+    HexFormat.of.formatHex(MessageDigest.getInstance("SHA-256").digest(fields.mkString("\u001f").getBytes(UTF_8)))
 
   def ref(t: Terminal): TerminalRef =
     TerminalRef(t.id, t.subBrandId, t.name, t.gateway, t.scheme, t.supportsWithdrawal, t.hasStatus, t.reviewWindow)
