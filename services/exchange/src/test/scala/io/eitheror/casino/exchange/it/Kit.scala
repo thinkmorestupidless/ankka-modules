@@ -1,7 +1,7 @@
 package io.eitheror.casino.exchange.it
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.core.{EntityId, Metadata}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
@@ -40,7 +40,7 @@ final class Kit(val base: Settings = Kit.Base):
   SettlementRetry.backoff = _ => JDuration.ofMillis(500)
 
   private val timers = TimerRuntime(200.millis)
-  val exchange       = ExchangeService()
+  val exchange       = ExchangeService(timers)
   private val server = HttpServer.at("127.0.0.1", 0)(exchange.endpoints(() => Kit.authenticate)*)
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
@@ -107,6 +107,11 @@ final class Kit(val base: Settings = Kit.Base):
 
   def facts[F <: Fact](topic: Topic[F]): Vector[(Option[String], F)] =
     broker.publishedTo(topic.name).toVector.flatMap(d => scala.util.Try(topic.serializer.fromBytes(d.message.payload)).toOption.map(d.message.key -> _))
+
+  /** A fact published as its producer publishes it, keyed `key`. */
+  def publish[F <: Fact](topic: Topic[F], key: String, fact: F): Unit =
+    scala.concurrent.Await.result(broker.publish(topic.name, Some(key), topic.serializer.toBytes(fact),
+      Metadata.empty.set(Metadata.CeSubject, key).set(Metadata.CeType, topic.contractName)), 10.seconds): Unit
 
   def audit: Vector[AuditRecord] = facts(PlatformAudit).collect { case (_, r: AuditRecord) => r }
 

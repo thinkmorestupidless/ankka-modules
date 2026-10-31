@@ -10,6 +10,7 @@ import io.eitheror.casino.exchange.api.{OperatorEndpoint, PlayerEndpoint, Servic
 import io.eitheror.casino.exchange.ports.{Gates, Ledger, Neighbours, WalletCall, WalletClient}
 import io.eitheror.casino.exchange.retry.{RetryAudit, SettlementRetry, StartRetry}
 import com.thinkmorestupidless.predictions.exchange.components.LedgerAnswer
+import io.eitheror.casino.exchange.reconcile.*
 import io.eitheror.casino.exchange.terms.MarketTerms
 
 import java.time.Duration
@@ -18,7 +19,7 @@ import java.time.Duration
  * Every component of the service (plan.md's table): the exchange library's, built from this service's
  * gate and ledger ports, beside the books' terms. Registered by the service and by its test kit alike.
  */
-final class ExchangeService:
+final class ExchangeService(timers: TimerRuntime):
   /** A book's currency, from its terms; a book that was never opened has none, and a call on it throws. */
   private def currency(market: MarketId): String =
     val t = ExchangeRuntime.components.forKeyValueEntity(EntityId(market.value)).call(MarketTerms.get).invoke()
@@ -39,7 +40,9 @@ final class ExchangeService:
 
   val components: ExchangeComponents = ExchangeComponents(ExchangePorts(ledger, gates, ExchangeService.LedgerPatience))
 
-  val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor, SettlementRetry.descriptor, RetryAudit.descriptor)
+  val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor, SettlementRetry.descriptor, RetryAudit.descriptor, TallyEntity.descriptor,
+      MarketOfEntity.descriptor, ExchangeTallyCompanion(() => timers.timerScheduler).descriptor,
+      PlacementTallyCompanion(components.placement).descriptor, WalletTally.descriptor, Reconcile.descriptor, ReconcileAudit.descriptor)
 
   /** One endpoint per audience (contracts/routes.md), none sharing a prefix. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] =
@@ -64,11 +67,12 @@ object ExchangeService:
         .warn("ANKKA_KAFKA_BOOTSTRAP_SERVERS is not set: facts are published in memory (a local run)")
       val memory = InMemoryBroker()
       ProjectionRuntime.withBroker(memory, memory)
-  val exchange = ExchangeService()
+  val timers   = TimerRuntime()
+  val exchange = ExchangeService(timers)
   val service = Ankka.service
     .registerAll(exchange.descriptors)
     .withExtension(broker)
-    .withExtension(TimerRuntime())
+    .withExtension(timers)
     .withExtension(HttpServer.of(exchange.endpoints(() => Oidc.authenticate())*))
     .start(name = "exchange")
   ExchangeRuntime.started(() => (service.services, service.componentClient))
