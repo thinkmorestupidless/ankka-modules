@@ -443,6 +443,36 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   (`WithdrawalPage.tsx`), where the design had `limit`, `used`, `remaining`. This service answers the
   original's names, in minor units (routes.md). Its config route's limits are `weeklyWithdrawalLimitEur` and
   `monthlyWithdrawalLimitEur`; wire.md had them as `weeklyLimitEur` and is corrected.
+- **2026-10-31, the answers carry the original's fields** (settled with the user). Replaying the recordings
+  (T054) showed fields the original answers and routes.md had left out. This service answers them where
+  it holds the value, so the frontends read them unchanged:
+  - the cancel's `amount`, `refundedAmount` and `voidedReturnedAmount`, and the latter two on a rejection
+    and a payment marked failed (from the wallet's release);
+  - the outcome route's `ok: true`;
+  - `currency` on the gate refusals that lacked it (turnover, forfeit);
+  - `supportedCurrencies` on the coin refusal;
+  - a saved destination's `currency`, `scheme` and `ibanLastFour`;
+  - the set-default's `destinationId`;
+  - a request row's `terminalId` and `terminalScheme`.
+
+  The turnover refusal's `totalRemaining` stays out, as settled above. routes.md and wire.md say so.
+- **2026-10-31, what the parity replay (T054) found besides the fields.**
+  - *A request straight after a cancel was refused by the limit.* `RequestsConsumer` uncounted the
+    cancelled request a moment after the cancel answered. The workflow now uncounts it itself, before the
+    request records its end, which is what the cancel, the rejection and the outcome wait on. The consumer
+    still uncounts, should that call be lost, as the endpoint and the consumer both count (FR-005b).
+  - *An approval answered before the payout was decided.* The original answered once the payout was parked
+    for manual payment or initiated. The approval now waits through that step too, still within the
+    request bound (routes.md).
+  - *The queue's player search is a player id.* The original matched part of an email or a player id. The
+    queue keeps no personal value (FR-027), so an email search would need one in the view. The operator
+    console searches by player id until a players' search route serves it (a plan.md divergence, and a
+    follow-up for the console).
+  - *The original's destination listing read no destination as the default*, though its save answered
+    `isDefault: true` (its projection dropped the flag). This service lists the default as saved: a
+    plan.md divergence, not a copy of the defect.
+  - *Units.* The original's player routes answer decimals, but its queue, its operator's read of one
+    request and the cancel's `amount` answer minor units. wire.md says which are translated.
 
 ## Design finished
 

@@ -31,6 +31,16 @@ object Answers:
     case Field.Text(v)   => v
     case Field.Texts(vs) => Json.arr(vs*)
 
+  /**
+   * What a release gave back, as the original answered it on a cancel, a rejection and a failure: the paid
+   * amount and the voided bonus (spec 002's release returns both). Nothing for a request not released.
+   */
+  def returned(s: io.eitheror.casino.payouts.request.RequestState): Seq[(String, Any)] =
+    import io.eitheror.casino.payouts.request.Status
+    if Set(Status.Cancelled, Status.Rejected, Status.Failed).contains(s.status) then
+      Seq("refundedAmount" -> s.paidAmount, "voidedReturnedAmount" -> s.voidedAmount)
+    else Seq.empty
+
   val badBody: Reply      = refusal(400, "invalid_body", "The body is not a JSON object")
   val wrongBrand: Reply   = refusal(404, "wrong_brand", "This service serves another brand")
   val notYours: Reply     = refusal(403, "player_id_mismatch", "The player id is not the caller's")

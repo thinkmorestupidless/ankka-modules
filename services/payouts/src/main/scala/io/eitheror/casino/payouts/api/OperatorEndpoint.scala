@@ -114,7 +114,8 @@ object Operator:
         "createdAt" -> s.createdAt.toString, "initiatedAt" -> s.initiatedAt.map(_.toString), "settledAt" -> s.settledAt.map(_.toString)))
 
   private def answer(s: RequestState): Reply =
-    ok(Json.obj("requestId" -> s.requestId, "status" -> s.status.upper, "payoutStatus" -> s.payoutStatus.upper))
+    ok(Json.obj((Seq[(String, Any)]("requestId" -> s.requestId, "status" -> s.status.upper, "payoutStatus" -> s.payoutStatus.upper)
+      ++ returned(s))*))
 
   /** Waits, up to the request bound, until the workflow is past `running`; then the request as it stands. */
   private def after(ctx: Ctx, id: String, running: Set[String]): RequestState =
@@ -133,7 +134,8 @@ object Operator:
       val a = call
       a.refusal match
         case Some(_) => refusal(409, RequestCodes.NotPending, "the withdrawal request is not pending review")
-        case None    => answer(after(ctx, id, Set(Flow.Approving, Flow.Releasing)))
+        // Through the payout's decision, as the original answered: parked for manual payout, or initiated.
+        case None    => answer(after(ctx, id, Set(Flow.Approving, Flow.Paying, Flow.Initiating, Flow.Releasing)))
 
   /** A settlement by hand of a request awaiting manual payout or marked needs review (FR-016). */
   def settle(ctx: Ctx, id: String)(call: => FlowAnswer): Reply =
@@ -145,4 +147,4 @@ object Operator:
         case Some(_)              => refusal(409, RequestCodes.NotAwaitingPayout, "the withdrawal request is not awaiting payout")
         case None =>
           val s = after(ctx, id, Set(Flow.Confirming, Flow.Releasing))
-          ok(Json.obj("requestId" -> s.requestId, "status" -> s.status.upper))
+          ok(Json.obj((Seq[(String, Any)]("requestId" -> s.requestId, "status" -> s.status.upper) ++ returned(s))*))

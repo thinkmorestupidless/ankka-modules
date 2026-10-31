@@ -92,6 +92,8 @@ final case class RequestState(
     playerId: String = "",
     amount: Long = 0L,
     paidAmount: Long = 0L,
+    /** The bonus the hold voided, which a release returns with the paid amount (spec 002). */
+    voidedAmount: Long = 0L,
     currency: String = "",
     terminal: Option[TerminalRef] = None,
     payee: Payee = Payee(),
@@ -119,7 +121,7 @@ final case class RequestAnswer(state: RequestState, refusal: Option[String] = No
 sealed trait RequestEvent
 object RequestEvent:
   final case class Opened(requestId: String, playerId: String, amount: Long, paidAmount: Long, currency: String,
-      terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant)            extends RequestEvent
+      terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant, voidedAmount: Long = 0L) extends RequestEvent
   final case class Cancelled(by: Actor, reasonCode: Option[String], at: Instant)                 extends RequestEvent
   final case class Approved(operatorId: String, at: Instant)                                    extends RequestEvent
   final case class Rejected(operatorId: String, reason: Option[Personal[String]], at: Instant)  extends RequestEvent
@@ -137,7 +139,7 @@ object RequestEvent:
   final case class Erased(at: Instant)                                                          extends RequestEvent
 
 final case class Open(requestId: String, playerId: String, amount: Long, paidAmount: Long, currency: String,
-    terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant)
+    terminal: TerminalRef, payee: Payee, forfeit: Forfeit, kyc: String, at: Instant, voidedAmount: Long = 0L)
 final case class Cancel(by: Actor, reasonCode: Option[String], at: Instant)
 final case class Approve(operatorId: String, at: Instant)
 final case class Reject(operatorId: String, reason: Option[Personal[String]], at: Instant)

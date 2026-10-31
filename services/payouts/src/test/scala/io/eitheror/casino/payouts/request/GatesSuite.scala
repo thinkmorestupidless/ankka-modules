@@ -91,10 +91,10 @@ class GatesSuite extends munit.FunSuite:
       assertEquals((r.status, r.code, r.message, r.fields), (402, "WITHDRAWAL_BLOCKED_KYC", message, Vector("kycStatus" -> Field.Text(kyc.wire))))
     assertEquals(previewed, 0)
 
-  test("5. the preview's refusals are 402: insufficient funds, and turnover naming no amount"):
+  test("5. the preview's refusals are 402: insufficient funds, and turnover naming no amount but the currency"):
     assertEquals(code(run(preview = Right(Preview(Some("INSUFFICIENT_FUNDS"))))), Left((402, "INSUFFICIENT_FUNDS")))
     val turnover = run(preview = Right(Preview(Some("WITHDRAWAL_BLOCKED_TURNOVER")))).left.toOption.get
-    assertEquals((turnover.status, turnover.code, turnover.fields), (402, "WITHDRAWAL_BLOCKED_TURNOVER", Vector.empty))
+    assertEquals((turnover.status, turnover.code, turnover.fields), (402, "WITHDRAWAL_BLOCKED_TURNOVER", Vector("currency" -> Field.Text("EUR"))))
 
   test("15. a request already pending is 409 at the hold, after the limits and the terminal (W:642)"):
     val pending = Right(Preview(Some("WITHDRAWAL_REQUEST_ALREADY_PENDING")))
@@ -139,11 +139,12 @@ class GatesSuite extends munit.FunSuite:
     assertEquals((r.status, r.code, r.fields), (422, "WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT",
       Vector("maxWithdrawable" -> Field.Num(4000L), "totalForfeit" -> Field.Num(2000L))))
 
-  test("9. a forfeit not confirmed is 402 with the bonus, the clawback and the total; confirmed passes"):
+  test("9. a forfeit not confirmed is 402 with the bonus, the clawback, the total and the currency; confirmed passes"):
     val p = Right(Preview(None, true, 2000L, 300L, 2300L, 9000L))
     val r = run(preview = p).left.toOption.get
     assertEquals((r.status, r.code, r.fields), (402, "WITHDRAWAL_REQUIRES_BONUS_FORFEIT_CONFIRMATION",
-      Vector("bonusBalance" -> Field.Num(2000L), "clawbackAmount" -> Field.Num(300L), "totalForfeit" -> Field.Num(2300L))))
+      Vector("bonusBalance" -> Field.Num(2000L), "clawbackAmount" -> Field.Num(300L), "totalForfeit" -> Field.Num(2300L),
+        "currency" -> Field.Text("EUR"))))
     assertEquals(run(draft.copy(confirmForfeit = true), preview = p).map(_.confirmForfeit), Right(true))
 
   test("9 before 10: the confirmation before the terminal"):
@@ -167,7 +168,7 @@ class GatesSuite extends munit.FunSuite:
     val d = draft.copy(terminalId = Some("coin"), destinationId = None, walletAddress = Some("0xabc"))
     val r = run(d.copy(cryptoCurrency = Some("DOGE"))).left.toOption.get
     assertEquals((r.status, r.code), (422, "CRYPTO_CURRENCY_NOT_SUPPORTED"))
-    assertEquals(r.fields.collectFirst { case ("supported", v) => v }, Some(Field.Texts(Vector("USDT", "BTC"))))
+    assertEquals(r.fields.collectFirst { case ("supportedCurrencies", v) => v }, Some(Field.Texts(Vector("USDT", "BTC"))))
     val passed = run(d.copy(cryptoCurrency = Some("btc"))).toOption.get.payee
     assertEquals((passed.coin, passed.walletAddress.map(Personal.reveal)), (Some("BTC"), Some("0xabc")))
 

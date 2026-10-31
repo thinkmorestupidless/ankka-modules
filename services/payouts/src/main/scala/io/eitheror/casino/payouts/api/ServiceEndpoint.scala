@@ -42,5 +42,5 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
         "createdAt" -> s.createdAt.toString, "initiatedAt" -> s.initiatedAt.map(_.toString), "settledAt" -> s.settledAt.map(_.toString))
     }
     ok(Json.obj("service" -> "payouts", "playerId" -> p,
-      "destinations" -> Json.arr(record.activeDestinations.map(Accounts.destination)*), "requests" -> Json.arr(requests*)))
+      "destinations" -> Json.arr(record.activeDestinations.map(Accounts.destination(_, Accounts.currencyOf(record)))*), "requests" -> Json.arr(requests*)))
   }
