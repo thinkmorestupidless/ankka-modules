@@ -279,3 +279,9 @@ the original*).
   the contract's brand topics are read from the manifests; spec 001's fixed lists leave it out.
   goldvibe's values gain the module's four required keys, so the tool's predictions scenario runs.
 - **T006.** The two services' builds exist from T002, so they never enter keys.md's "Not yet built".
+- **The routes' prefixes.** contracts/routes.md put every route under `/v1/casino/brands/<slug>`;
+  Trevor chose the repository's convention, one endpoint per audience under its own prefix
+  (operators `/v1/casino/backoffice/<slug>/<service>`, players `/v1/casino/<service>/<slug>`,
+  services `/v1/casino/brands/<slug>/<service>`), and routes.md is rewritten to it.
+- **The review window** is 24 hours, ankka-predictions spec 002 FR-007's default, carried on every
+  resolve, correct and void; it becomes a brand value when a brand asks for another.
