@@ -126,9 +126,10 @@ enum WalletEvent:
       realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
       parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L)
 
+  /** With `orderId`, charged from that order's reservation (FR-008a): the reservation − amount − unused, removed at 0. */
   case MovedToAccount(key: String, digest: String, transactionId: String, accountKind: String, accountName: String, purpose: String,
       reference: String, amount: Long, realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,
-      parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L)
+      parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L, orderId: Option[String] = None, unused: Long = 0L)
 
   case MovedFromAccount(key: String, digest: String, transactionId: String, accountKind: String, accountName: String, purpose: String,
       reference: String, amount: Long, realAfter: Long, restrictedAfter: Long, reservedAfter: Long, at: Instant, outcome: Outcome,

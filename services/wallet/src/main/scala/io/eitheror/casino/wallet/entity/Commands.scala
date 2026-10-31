@@ -27,9 +27,17 @@ object MoneyCommand:
    * The same rule over any command's fields: an account's money commands and a flow's start, which
    * are not wallet commands, are digested exactly as a wallet's (spec 022 research R4, R7).
    */
-  def digestOf(wireName: String, command: Product): String =
+  def digestOf(wireName: String, command: Product): String = digestOf(wireName, command, Set.empty)
+
+  /**
+   * As above, leaving out each `(field, value)` in `unset`: a field added to a stored start with a
+   * default is left out while it holds that default, so a request sent before it existed keeps its
+   * digest (spec 022 research, Amendment 2026-10-31).
+   */
+  def digestOf(wireName: String, command: Product, unset: Set[(String, String)]): String =
     Digest.of(
-      ("command" -> wireName) +: command.productElementNames.zip(command.productIterator.map(_.toString)).filterNot((n, _) => NotPayload(n)).toVector
+      ("command" -> wireName) +: command.productElementNames.zip(command.productIterator.map(_.toString))
+        .filterNot((n, v) => NotPayload(n) || unset((n, v))).toVector
     )
 
 /**
@@ -126,6 +134,14 @@ final case class SettleCredit(key: String, amount: Long, counterparty: String, a
  */
 final case class DebitToAccount(key: String, accountKind: String, accountName: String, purpose: String, reference: String,
     amount: Long, at: Instant) extends MoneyCommand
+
+/**
+ * A split charged from an order's reservation (FR-008a, a buying leg of a trade through the pool):
+ * `amount` leaves real balance and the reservation for the account, and `unused` is released from
+ * the reservation, as a settlement's buyer side does. The key is the caller's, one per leg.
+ */
+final case class ChargeReservationToAccount(key: String, orderId: String, accountKind: String, accountName: String, purpose: String,
+    reference: String, amount: Long, unused: Long, at: Instant) extends MoneyCommand
 
 /**
  * Real balance credited from a non-player account (a merge, a resolution payment, a clearing move

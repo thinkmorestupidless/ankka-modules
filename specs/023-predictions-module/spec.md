@@ -211,7 +211,9 @@ topic either way; observations only with.
   reserved, released, settled, split, merged and paid against what the wallet's facts say moved
   for the market's pool account and its players (spec 022's families), and MUST raise any
   difference on `platform.audit` naming the market, the key and both figures; nothing MUST
-  correct a difference by itself. A market is reconciled once more when it is final.
+  correct a difference by itself. A market is reconciled once more when it is final. An order's
+  reservation is drawn down by `settlement_debit` and, for a trade through the pool, by
+  `account_debit` with an `order_id` and its `released_cents` (spec 022 FR-008a).
 
 ### Key Entities
 
@@ -257,5 +259,5 @@ topic either way; observations only with.
 - ankka-predictions spec 004 and its libraries; spec 021 (the module model), spec 022 (the
   wallet), spec 024 (the pool); specs 008, 009, 010 (the gates), 015 (reporting), 018 (audit).
 - ankka-predictions `notes/casino-requests.md` item 9: a trade matched through the pool charges
-  each buyer's reservation into the market's pool account, which spec 022's split and settlement
-  do not yet do; FR-003's split against the pool needs it.
+  each buyer's reservation into the market's pool account, as spec 022 FR-008a's split charged
+  from a reservation; a trade through a merge is one merge per selling leg (spec 022 FR-008).

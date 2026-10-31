@@ -101,6 +101,25 @@ class WalletBasicsSuite extends munit.FunSuite with LogCapturing:
 
   // ── spec 022's movements across the pools (its research R16) ────────────
 
+  test("a split charged from a reservation draws the order down by the amount and the unused part, and leaves converted first") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "x2/EUR")
+    kit.call(WalletEntity.openMigrated)(opening("open", 10000, Some((6000L, 4000L)))): Unit
+    kit.call(WalletEntity.reserve)(Reserve("o1", 5000, t0)): Unit
+    kit.call(WalletEntity.reserve)(Reserve("o2", 1000, t0)): Unit
+    val charged = kit.call(WalletEntity.chargeReservationToAccount)(
+      ChargeReservationToAccount("t1/ada", "o1", "pool", "m1", Purpose.Split, "t1/ada", 4500, 500, t0))
+    val o = charged.replyValue
+    assertEquals((o.realBalance, o.reserved, o.available), (5500L, Some(1000L), Some(4500L)))
+    assertEquals(kit.currentState.reservations.keySet, Set("o2"), "the order's reservation is removed at 0")
+    assertEquals(kit.currentState.pools, Pools(5500, 0))
+    assertEquals(charged.events.collectFirst { case e: WalletEvent.MovedToAccount => (e.orderId, e.unused, e.reservedAfter) },
+      Some((Some("o1"), 500L, 1000L)))
+    // The other order is untouched, and a second charge on the drawn order is refused naming it.
+    val again = kit.call(WalletEntity.chargeReservationToAccount)(
+      ChargeReservationToAccount("t2/ada", "o1", "pool", "m1", Purpose.Split, "t2/ada", 1, 0, t0)).replyValue
+    assertEquals(again.code, Some("RESERVATION_NOT_FOUND"))
+  }
+
   test("a reservation moves neither pool; a debit leaves converted first, a credit joins converted") {
     val kit = EventSourcedTestKit.of(WalletEntity, "x1/EUR")
     kit.call(WalletEntity.openMigrated)(opening("open", 10000, Some((6000L, 4000L)))): Unit

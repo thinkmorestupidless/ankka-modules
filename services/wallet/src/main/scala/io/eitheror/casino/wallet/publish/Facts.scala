@@ -151,9 +151,10 @@ object Facts:
           part(e.parts.converted)), e.transactionId)
 
       case e: MovedToAccount =>
+        // Charged from a reservation (FR-008a): the order and its release, so a fold can draw the order down.
         one(f.AccountDebit(playerId, currency, e.transactionId, e.accountKind, e.accountName, e.purpose, e.reference, units(e.amount),
           real(e.realAfter), units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
-          part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
+          part(e.parts.deposit), part(e.parts.converted), e.orderId, e.orderId.map(_ => units(e.unused))), e.transactionId)
 
       case e: MovedFromAccount if e.purpose == io.eitheror.casino.wallet.entity.Purpose.ResolutionPayment =>
         one(f.ResolutionPayment(playerId, currency, e.transactionId, e.accountName, e.reference, units(e.amount), real(e.realAfter),
@@ -229,7 +230,9 @@ object Facts:
       case e: ReservationReleased    => Some(A(e.key, "release-reservation", "accepted", "service", "", e.transactionId, None, e.at))
       case e: SettlementDebited      => Some(A(e.key, "settle-debit", "accepted", "service", "", e.transactionId, None, e.at))
       case e: SettlementCredited     => Some(A(e.key, "settle-credit", "accepted", "service", "", e.transactionId, None, e.at))
-      case e: MovedToAccount         => Some(A(e.key, "debit-to-account", "accepted", "service", "", e.transactionId, Some(e.purpose), e.at))
+      case e: MovedToAccount =>
+        val action = if e.orderId.isDefined then "charge-reservation-to-account" else "debit-to-account"
+        Some(A(e.key, action, "accepted", "service", "", e.transactionId, Some(e.purpose), e.at))
       case e: MovedFromAccount       => Some(A(e.key, "credit-from-account", "accepted", "service", "", e.transactionId, Some(e.purpose), e.at))
     a.map { x =>
       val recordId = s"wallet/$walletId/${x.key}"

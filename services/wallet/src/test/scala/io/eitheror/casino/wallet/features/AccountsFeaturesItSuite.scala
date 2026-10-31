@@ -90,6 +90,28 @@ class AccountsFeaturesItSuite extends LedgerFeatures("accounts.feature"):
     assert(paid.exists(t => t.contains(s""""amount_cents":$a""") && t.contains(s""""position_id":"p1"""")), paid.mkString("\n"))
   }
 
+  // ── a split charged from a reservation (FR-008a) ──────────────────────────
+
+  /** One leg of a trade through the pool, as the exchange sends it: keyed by the leg, naming the order. */
+  private def charge(leg: String, a: String, order: String, name: String, market: String, unused: Long): Unit =
+    acted = true
+    last = send("POST", s"${accounts("pool", p(market))}/splits",
+      Some(s"""{"key":"${p(leg)}","currency":"$currency","player":"${p(name)}","amount":$a,"orderId":"${p(order)}","unused":$unused}"""),
+      as = exchange)
+    if first._1 == 0 then first = last
+
+  When("leg {string} of {string} is charged from order {string} of {string} into the pool account of market {string}") {
+    (leg: String, a: String, o: String, name: String, market: String) => charge(leg, a, o, name, market, 0)
+  }
+
+  When("leg {string} of {string} is charged from order {string} of {string} into the pool account of market {string}, releasing {string}") {
+    (leg: String, a: String, o: String, name: String, market: String, unused: String) => charge(leg, a, o, name, market, unused.toLong)
+  }
+
+  When("leg {string} of {string} is charged from order {string} of {string} into the pool account of market {string} again") {
+    (leg: String, a: String, o: String, name: String, market: String) => charge(leg, a, o, name, market, 0)
+  }
+
   // ── clearing accounts ─────────────────────────────────────────────────────
 
   /** The clearing service sets the line, which creates the account under it; a balance below zero is a move to a wallet. */

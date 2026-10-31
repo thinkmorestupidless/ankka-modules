@@ -1254,6 +1254,12 @@ Real balance less the reserved amount; what a bet or a hold may take.
 ### settlement
 One keyed move of a trade's cost from the buyer's reservation to the seller's real balance, across two wallets.
 
+### leg
+One owner's side of a trade: what it is charged into the pool or paid from it, and what it releases. A trade through the pool has a leg per owner, each its own keyed move.
+
+### split charged from a reservation
+A split whose money leaves an order's reservation, not the available amount: a buying leg of a trade through the pool. What the trade did not use is released in the same move.
+
 ### non-player account
 A ledger in the wallet service owned by a service principal and keyed by what it is for: a pool account or a clearing account.
 

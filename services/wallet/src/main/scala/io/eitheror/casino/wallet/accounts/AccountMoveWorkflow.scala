@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.core.*
 import com.thinkmorestupidless.ankka.core.Serializers.given
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.wallet.WalletCodecs
-import io.eitheror.casino.wallet.entity.{CreditFromAccount, DebitToAccount, MoneyCommand, Outcome, Refusals, WalletEntity}
+import io.eitheror.casino.wallet.entity.{ChargeReservationToAccount, CreditFromAccount, DebitToAccount, MoneyCommand, Outcome, Refusals, WalletEntity}
 
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
@@ -14,10 +14,11 @@ import scala.concurrent.duration.*
  * One move between a player's wallet and a non-player account (spec 022 FR-005, FR-006, FR-008).
  * `direction` is `to-account` (a split; a clearing move from the wallet) or `from-account` (a merge,
  * a resolution payment, a clearing move to the wallet). `caller` is the moving service's principal,
- * which owns the account (R7).
+ * which owns the account (R7). A split with `orderId` is charged from that order's reservation,
+ * releasing `unused` from it (FR-008a).
  */
 final case class AccountMoveStart(accountId: String, direction: String, purpose: String, player: String, amount: Long, key: String,
-    reference: String, caller: String, at: Instant):
+    reference: String, caller: String, at: Instant, orderId: Option[String] = None, unused: Long = 0L):
   def kind: String     = AccountState.kindOf(accountId)
   def name: String     = AccountState.nameOf(accountId)
   def currency: String = accountId.drop(accountId.lastIndexOf('/') + 1)
@@ -78,7 +79,12 @@ final class AccountMoveWorkflow(context: WorkflowContext) extends Workflow[Accou
   def debitWalletStep: StepEffect =
     AccountMoveWorkflow.faults.get()("debit-wallet")
     val r = request
-    val o = wallet(r).call(WalletEntity.debitToAccount).invoke(DebitToAccount(r.walletKey, r.kind, r.name, r.purpose, r.reference, r.amount, r.at))
+    val o = r.orderId match
+      case Some(order) =>
+        wallet(r).call(WalletEntity.chargeReservationToAccount)
+          .invoke(ChargeReservationToAccount(r.walletKey, order, r.kind, r.name, r.purpose, r.reference, r.amount, r.unused, r.at))
+      case None =>
+        wallet(r).call(WalletEntity.debitToAccount).invoke(DebitToAccount(r.walletKey, r.kind, r.name, r.purpose, r.reference, r.amount, r.at))
     if !o.accepted then refused(o)
     else stepEffects.updateState(currentState.copy(status = "crediting", first = Some(o))).thenTransitionTo(AccountMoveWorkflow.creditAccount.ref)
 
@@ -136,8 +142,11 @@ object AccountMoveWorkflow
 
   def id(accountId: String, key: String): EntityId = EntityId(s"$accountId/$key")
 
-  /** What `KEY_REUSED` compares: every field of the move but its time. */
-  def digest(s: AccountMoveStart): String = MoneyCommand.digestOf(s.purpose, s)
+  /**
+   * What `KEY_REUSED` compares: every field of the move but its time. The order and the unused part
+   * are left out while unset, so a move started before FR-008a keeps its digest.
+   */
+  def digest(s: AccountMoveStart): String = MoneyCommand.digestOf(s.purpose, s, Set("orderId" -> "None", "unused" -> "0"))
 
   val claim         = step("claim")(_.claimStep)
   val debitWallet   = step("debit-wallet")(_.debitWalletStep)

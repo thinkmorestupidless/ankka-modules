@@ -150,13 +150,18 @@ final case class ResolutionPayment(playerId: String, currency: Currency, transac
     depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
     depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
 
-/** The wallet debited into a non-player account: a split, or a clearing move from the wallet (FR-006, FR-008). */
+/**
+ * The wallet debited into a non-player account: a split, or a clearing move from the wallet (FR-006, FR-008).
+ * A split charged from a reservation (FR-008a, a leg of a trade through the pool) names the order and
+ * what it released, the reservation falling by the amount and the release.
+ */
 @named("account_debit")
 final case class AccountDebit(playerId: String, currency: Currency, transactionId: String, accountKind: String,
     accountName: String, purpose: String, reference: String, amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits,
     restrictedBalanceAfter: MinorUnits, reservedBalanceAfter: MinorUnits, occurredAt: Instant,
     depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
-    depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    orderId: Option[String] = None, releasedCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
 
 /** The wallet credited from a non-player account: a merge, or a clearing move to the wallet (FR-006, FR-008). */
 @named("account_credit")

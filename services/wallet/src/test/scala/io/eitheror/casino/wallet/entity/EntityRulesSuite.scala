@@ -164,3 +164,23 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(reply(kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 1, 0, Vector.empty, 0, 0, 0, t0)).replyValue),
       ("WALLET_ALREADY_OPEN", "Wallet already open"))
   }
+
+  // ── spec 022 FR-008a: a split charged from a reservation ───────────────────
+
+  test("a charge takes exactly the reservation, amount and unused together; one unit over is RESERVATION_SHORT") {
+    def reserved(id: String) =
+      val kit = EventSourcedTestKit.of(WalletEntity, id)
+      kit.call(WalletEntity.deposit)(deposit("seed", 10000, t0))
+      kit.call(WalletEntity.reserve)(Reserve("o1", 3000, t0))
+      kit
+    def charge(amount: Long, unused: Long, key: String = "t-1/ada") =
+      ChargeReservationToAccount(key, "o1", "pool", "m1", Purpose.Split, key, amount, unused, t0)
+    val over = reserved("charge-over/EUR")
+    assertEquals(over.call(WalletEntity.chargeReservationToAccount)(charge(2900, 101)).replyValue.code, Some("RESERVATION_SHORT"))
+    assertEquals((over.currentState.realBalance, over.currentState.reserved), (10000L, 3000L))
+    // Exactly the reservation: the amount leaves the real balance, the unused part is released, the reservation is gone.
+    val exact = reserved("charge-exact/EUR")
+    assertEquals(exact.call(WalletEntity.chargeReservationToAccount)(charge(2900, 100)).replyValue.code, None)
+    assertEquals((exact.currentState.realBalance, exact.currentState.reserved), (7100L, 0L))
+    assert(!exact.currentState.reservations.contains("o1"))
+  }

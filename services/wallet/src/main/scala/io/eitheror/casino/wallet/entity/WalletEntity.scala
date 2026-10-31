@@ -143,7 +143,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
         s.copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
 
       case e: MovedToAccount =>
-        s.copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
+        val drawn = e.orderId.fold(s)(o => s.reserving(o, s.reservations.get(o).fold(0L)(_.amount) - e.amount - e.unused, e.at))
+        drawn.copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
 
       case e: MovedFromAccount =>
         s.copy(realBalance = e.realAfter).withPools(e.depositAfter, e.convertedAfter).remember(e.key, e.digest, e.outcome)
@@ -738,6 +739,29 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
             s.restrictedBalance, s.reserved, c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
   }
 
+  /** A split from a reservation (FR-008a): `settle-debit`'s rule, with a non-player account as the other side. */
+  def chargeReservationToAccount(c: ChargeReservationToAccount): Effect[Outcome] = keyed(c, "charge-reservation-to-account") { digest =>
+    val s        = currentState
+    val required = Math.addExact(c.amount, c.unused)
+    s.reservations.get(c.orderId) match
+      case None => refuse(c, "charge-reservation-to-account", digest, Refusals.ReservationNotFound, Refusals.reservationNotFound(c.orderId),
+          Map("orderId" -> c.orderId))
+      case Some(r) if required > r.amount =>
+        refuse(c, "charge-reservation-to-account", digest, Refusals.ReservationShort, Refusals.reservationShort(required, r.amount),
+          Map("required" -> required.toString, "reserved" -> r.amount.toString))
+      case Some(_) =>
+        val txId     = transactionId(c.key)
+        val real     = s.realBalance - c.amount
+        val reserved = s.reserved - required
+        movePools(s, debit = c.amount) match
+          case Left(deny) => refuseDeny(c, "charge-reservation-to-account", digest, deny)
+          case Right((pools, parts)) =>
+            val outcome = pooled(ledgerOutcome("charge-reservation-to-account", c, txId, real, reserved), pools)
+            effects.persist(MovedToAccount(c.key, digest, txId, c.accountKind, c.accountName, c.purpose, c.reference, c.amount, real,
+              s.restrictedBalance, reserved, c.at, outcome, parts, pools.deposit, pools.converted, Some(c.orderId), c.unused))
+              .thenReply(_ => outcome)
+  }
+
   def creditFromAccount(c: CreditFromAccount): Effect[Outcome] = keyed(c, "credit-from-account") { digest =>
     val s = currentState
     if !s.created then refuse(c, "credit-from-account", digest, Refusals.WalletNotFound, Refusals.walletNotFound)
@@ -829,6 +853,8 @@ object WalletEntity
   given Serializer[SettleCredit]          = Codecs.serializer[SettleCredit]("wallet.settle-credit")
   given Serializer[DebitToAccount]        = Codecs.serializer[DebitToAccount]("wallet.debit-to-account")
   given Serializer[CreditFromAccount]     = Codecs.serializer[CreditFromAccount]("wallet.credit-from-account")
+  given Serializer[ChargeReservationToAccount] =
+    Codecs.serializer[ChargeReservationToAccount]("wallet.charge-reservation-to-account")
   given Serializer[Boolean]               = Codecs.serializer[Boolean]("wallet.exists")
   given Serializer[Outcome]               = Codecs.serializer[Outcome]("wallet.outcome")
   given Serializer[Option[Outcome]]       = Codecs.serializer[Option[Outcome]]("wallet.outcome-of")
@@ -867,6 +893,7 @@ object WalletEntity
   val settleCredit          = command("settle-credit")(_.settleCredit)
   val debitToAccount        = command("debit-to-account")(_.debitToAccount)
   val creditFromAccount     = command("credit-from-account")(_.creditFromAccount)
+  val chargeReservationToAccount = command("charge-reservation-to-account")(_.chargeReservationToAccount)
   val exists                = query("exists")(_.exists)
   val balance               = query("balance")(_.balance)
   val restrictedFundsStatus = query("restricted-funds-status")(_.restrictedFundsStatus)
@@ -891,6 +918,7 @@ object WalletEntity
     case c: SettleCredit       => Some(c.amount)
     case c: DebitToAccount     => Some(c.amount)
     case c: CreditFromAccount  => Some(c.amount)
+    case c: ChargeReservationToAccount => Some(c.amount)
     case _                     => None
 
   /** One round's bets as one funding split: legs summed, records in first-drawn order. */
