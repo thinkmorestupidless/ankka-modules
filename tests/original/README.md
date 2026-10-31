@@ -15,9 +15,10 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `merchant-driver/` | drives the original's `merchant-service` cashier for the behaviours the suite never reaches (spec 004); see *Recording the cashier directly* |
 | `ingest-driver/` | drives the original's cashier edge, the routes spec 006's `ingest` takes over, for what the suite never sends; see *Recording the cashier edge* |
 | `players-driver/` | drives the original's `casino-service` player, session and backoffice routes and its Keycloak for what spec 008's `players` takes over; see *Recording the players* |
+| `payouts-driver/` | drives the original's `casino-service` withdrawal routes (the request, the terminals, the destinations, the queue, the decisions and the internal outcome route) for what spec 007's `payouts` takes over (scenario 30); see *Recording the payouts* |
 | `gateway-driver/` | drives the original's `psp-gateway` against `psp-stub`, with a receiver standing in for merchant-service and casino-service (spec 005); see *Recording the gateway directly* |
 | `recorder/` | the transport `record_test.go` installs |
-| `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies |
+| `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies and `X-Internal-Secret` from headers |
 | `preflight/` | refuses to start while any outside system the original calls has no stub answering: psp-stub's nine ports, the game provider and, given `-receiver`, the gateway driver's receiver; given `-cashier`, also that the original's cashier route answers |
 
 ## Steps
@@ -276,3 +277,66 @@ realm's token step), so the recordings are moved to `tests/port/kyc/` afterwards
 (`IS_A player.registered`): the original's `kind-register-casino-functions` recipe registers it again
 with `IS_A Player`, a concept no twin carries, and the rollup then never runs. The run of 2026-10-31
 (T047) is in `tests/port/kyc/README.md`.
+
+## Recording the payouts
+
+`payouts-driver/` (scenario 30; spec 007 research R2) drives the original's `casino-service` withdrawal
+routes as the player site, the backoffice and psp-gateway do: the request and its gates, the terminal
+listing, the destinations, the queue and its filters, approve, reject, confirm and mark failed, and the
+internal outcome route. One scenario per scenario of `features/payouts/*.feature` the original can show;
+`NotDriven` says why the rest are not, `Marked` names the recordings of a declared divergence (plan.md,
+*Divergences*), which record the original and assert only what the port shares, and
+`go test ./original/payouts-driver/...` checks every name against the features offline.
+
+- Each scenario takes fresh players, registered, verified by the link the original would send, and
+  funded through wallet-service's internal deposit route (`setup:`). Its terminals are written to
+  substrate under UUID ids and appended to the brand's terminal index, as merchant-service and scenario
+  251 write them, and made inactive when the scenario ends. A brand's limits set by a scenario are put
+  back when it ends.
+- Identity status (`kyc_status`), deposit turnover and a payout's `NEEDS_REVIEW` are written where the
+  KYC rollup, the wallet and the reconciliation sweeper write them; psp-stub's Unity Finance is held
+  `pending` before an automated approval, so the scenario, not a webhook, settles the payout.
+- The run's tag is in every address it mints, and the queue's scenarios filter by it (`playerSearch`).
+  The original's queue reads at most 500 requests across every brand (research R1), so a stack with many
+  old requests can hide a run's own; clear old ones, or read the recording before trusting it.
+
+Its secrets and passwords come from the environment, never flags or files: `TEST_OPERATOR_EMAIL` and
+`TEST_OPERATOR_PASSWORD` (an operator holding `brand_admin` at the brand: the limits' route needs it),
+`EITHEROR_OUTSIDER_USER` and `EITHEROR_OUTSIDER_PASSWORD` (an operator of no brand), and
+`WALLET_SERVICE_INTERNAL_SECRET`, the original's internal secret, read from the recording worktree's
+environment (on the kind stack, casino-service's config). The outcome route takes it as it is in
+`X-Internal-Secret` and wallet-service's internal routes its HMAC of the brand; the driver records
+neither header, and the merge redacts `X-Internal-Secret` if a recording ever holds one.
+
+Scenario 251 (`scenario251_withdrawal_cap_lifecycle_e2e_test.go`, four tests) runs beside the driver
+from the original's own suite, unchanged, twice on fresh ids, and its recordings are merged the same way:
+
+```bash
+cd tests
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/payouts-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -timeout 60m -json ./original/payouts-driver/... \
+      -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -substrate-url http://localhost:9000 \
+      -wallet-url <wallet-service> -stub-url <psp-stub's Unity Finance> -brand spinvibe \
+      -operator-client casino-backoffice > /tmp/payouts-$run.json
+done
+go run ./original/merge -run1 /tmp/payouts-1 -run2 /tmp/payouts-2 -results1 /tmp/payouts-1.json -results2 /tmp/payouts-2.json -out port
+
+cd <the original's checkout>/tests/e2e
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/s251-$run EITHEROR_ORIGINAL_COMMIT=$(git rev-parse --short HEAD) \
+  EITHEROR_CASINO_URL=http://localhost:8091 EITHEROR_KEYCLOAK_URL=http://localhost:8180 \
+  EITHEROR_SUBSTRATE_URL=http://localhost:9000 EITHEROR_WALLET_URL=<wallet-service> \
+  EITHEROR_WALLET_INTERNAL_URL=<wallet-service> EITHEROR_WALLET_INTERNAL_SECRET=… \
+  TEST_OPERATOR_EMAIL=dev-operator TEST_OPERATOR_PASSWORD=… \
+    go test -tags e2e -count=1 -json -run 'TestScenario251_' ./... > /tmp/s251-$run.json
+done
+cd <this repository>/tests
+go run ./original/merge -run1 /tmp/s251-1 -run2 /tmp/s251-2 -results1 /tmp/s251-1.json -results2 /tmp/s251-2.json -out port
+```
+
+psp-gateway must be pointed at psp-stub (`compose.override.yml`'s settings) and read terminals from
+merchant-service, which serves the terminal's credentials the driver writes. The merge files scenario
+251 by the original's service it reached first (casino-service's routes, so `players/`), and its
+recordings are moved to `tests/port/payouts/` afterwards, as the KYC scenarios' were. Any gate the driver
+could not reach is listed, with its reason, in `tests/port/payouts/README.md`.
