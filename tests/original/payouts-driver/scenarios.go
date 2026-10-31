@@ -527,7 +527,10 @@ func terminals() []Def {
 				if n.error != "" {
 					s.WantField(r, "error", n.error)
 				}
-				s.Destinations("list the player's destinations", "")
+				s.Destinations("list the player's destinations", "", func(r Response) bool {
+					listed, _ := Saved(r, s.Value("destinationId"))
+					return listed == (n.error == "")
+				})
 			}})
 	}
 	defs = append(defs,
@@ -544,7 +547,11 @@ func terminals() []Def {
 				s.Want(s.Destination("save the second destination", "", FirstName, LastName, OtherIBAN, "secondId", true), http.StatusCreated)
 				s.Want(s.Casino("set the second as default", http.MethodPut, s.PlayerPath("")+"/payout-destinations/"+s.Value("secondId")+"/set-default",
 					map[string]any{"currency": Currency}, Player), http.StatusOK)
-				s.Want(s.Destinations("list the player's destinations", ""), http.StatusOK)
+				s.Want(s.Destinations("list the player's destinations", "", func(r Response) bool {
+					first, firstDefault := Saved(r, s.Value("firstId"))
+					second, secondDefault := Saved(r, s.Value("secondId"))
+					return first && second && secondDefault && !firstDefault
+				}), http.StatusOK)
 			}},
 		Def{Name: "deleting the default destination leaves it unoffered and no destination default", Requirement: "007/FR-013",
 			Run: func(t testing.TB, s *Session) {
@@ -552,7 +559,11 @@ func terminals() []Def {
 				s.Want(s.Destination("save the first destination", "", FirstName, LastName, IBAN, "firstId", true), http.StatusCreated)
 				s.Want(s.Destination("save the second destination", "", FirstName, LastName, OtherIBAN, "secondId", true), http.StatusCreated)
 				s.Want(s.Casino("delete the first", http.MethodDelete, s.PlayerPath("")+"/payout-destinations/"+s.Value("firstId")+"?currency=EUR", nil, Player), http.StatusNoContent)
-				s.Want(s.Destinations("list the player's destinations", ""), http.StatusOK)
+				s.Want(s.Destinations("list the player's destinations", "", func(r Response) bool {
+					first, _ := Saved(r, s.Value("firstId"))
+					second, _ := Saved(r, s.Value("secondId"))
+					return !first && second
+				}), http.StatusOK)
 			}},
 	)
 	return defs
