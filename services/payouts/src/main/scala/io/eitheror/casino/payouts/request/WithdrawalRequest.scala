@@ -66,13 +66,13 @@ final class WithdrawalRequest(@scala.annotation.unused context: EventSourcedEnti
   private def payable(s: RequestState) = s.status == Status.Approved || s.status == Status.AwaitingManualPayout
 
   def complete(c: Complete): Effect[RequestAnswer] = opened { s =>
-    if payable(s) then write(Completed(c.source, c.reference, c.note, c.at))
+    if payable(s) then write(Completed(c.source, c.reference, c.note, c.at, c.operatorId))
     else if s.status == Status.Completed || s.status == Status.Reversed then same
     else refuse(NotAwaitingPayout)
   }
 
   def fail(c: Fail): Effect[RequestAnswer] = opened { s =>
-    if payable(s) then write(Failed(c.source, c.reasonCode, c.note, c.at))
+    if payable(s) then write(Failed(c.source, c.reasonCode, c.note, c.at, c.operatorId))
     else if s.status == Status.Failed then same
     else refuse(NotAwaitingPayout)
   }
@@ -142,10 +142,10 @@ object WithdrawalRequest
       s.copy(payoutStatus = PayoutStatus.Initiated, providerReference = ref.orElse(s.providerReference), initiatedAt = Some(at))
     case OutcomeRecorded(r)        => s.copy(outcomes = s.outcomes :+ r)
     case MarkedNeedsReview(_, _)   => s.copy(payoutStatus = PayoutStatus.NeedsReview)
-    case Completed(_, ref, _, at)  =>
+    case Completed(_, ref, _, at, _) =>
       s.copy(status = Status.Completed, payoutStatus = PayoutStatus.Resolved, providerReference = ref.orElse(s.providerReference),
         settledAt = Some(at))
-    case Failed(_, _, _, at) =>
+    case Failed(_, _, _, at, _) =>
       s.copy(status = Status.Failed, payoutStatus = PayoutStatus.Resolved, settledAt = Some(at))
     case Reversed(_, ref, at)      => s.copy(status = Status.Reversed, providerReference = ref.orElse(s.providerReference), settledAt = Some(at))
     case ReferenceMismatched(_, _) => s

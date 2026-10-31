@@ -96,7 +96,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T018 `S/consumers/PlayersConsumer.scala`, `S/consumers/DepositsConsumer.scala` and
       `S/consumers/RequestsConsumer.scala`, with their `ConsumerTestKit` suites. A redelivery changes
       nothing, and a fact for a player with no record creates one.
-- [ ] T019 `S/facts/Facts.scala` and `S/facts/Publishers.scala` (`WithdrawalPublisher`, `AuditPublisher`,
+- [X] T019 `S/facts/Facts.scala` and `S/facts/Publishers.scala` (`WithdrawalPublisher`, `AuditPublisher`,
       `ConfigAuditPublisher`; contracts/facts.md), with `T/facts/PublishersSuite.scala`:
       - each event to its family or to none;
       - a rejection as `withdrawal_cancelled` by an operator;

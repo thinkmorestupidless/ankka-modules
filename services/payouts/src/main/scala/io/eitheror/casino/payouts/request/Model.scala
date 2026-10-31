@@ -127,9 +127,11 @@ object RequestEvent:
   final case class PayoutInitiated(answer: String, reference: Option[String], at: Instant)      extends RequestEvent
   final case class OutcomeRecorded(record: OutcomeRecord)                                       extends RequestEvent
   final case class MarkedNeedsReview(reason: String, at: Instant)                               extends RequestEvent
-  final case class Completed(source: Source, reference: Option[String], note: Option[Personal[String]], at: Instant)
-      extends RequestEvent
-  final case class Failed(source: Source, reasonCode: String, note: Option[Personal[String]], at: Instant) extends RequestEvent
+  /** `operatorId` names the operator who settled it by hand, for the audit; none from the gateway or a poll. */
+  final case class Completed(source: Source, reference: Option[String], note: Option[Personal[String]], at: Instant,
+      operatorId: Option[String] = None) extends RequestEvent
+  final case class Failed(source: Source, reasonCode: String, note: Option[Personal[String]], at: Instant,
+      operatorId: Option[String] = None) extends RequestEvent
   final case class Reversed(reasonCode: String, reference: Option[String], at: Instant)         extends RequestEvent
   final case class ReferenceMismatched(reference: String, at: Instant)                              extends RequestEvent
   final case class Erased(at: Instant)                                                          extends RequestEvent
@@ -143,8 +145,10 @@ final case class AwaitManual(reason: String, at: Instant)
 final case class Initiated(answer: String, reference: Option[String], at: Instant)
 final case class Record(record: OutcomeRecord)
 final case class NeedsReview(reason: String, at: Instant)
-final case class Complete(source: Source, reference: Option[String], note: Option[Personal[String]], at: Instant)
-final case class Fail(source: Source, reasonCode: String, note: Option[Personal[String]], at: Instant)
+final case class Complete(source: Source, reference: Option[String], note: Option[Personal[String]], at: Instant,
+    operatorId: Option[String] = None)
+final case class Fail(source: Source, reasonCode: String, note: Option[Personal[String]], at: Instant,
+    operatorId: Option[String] = None)
 final case class Reverse(reasonCode: String, reference: Option[String], at: Instant)
 final case class ReferenceMismatch(reference: String, at: Instant)
 final case class Erase(at: Instant)

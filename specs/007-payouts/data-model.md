@@ -55,8 +55,8 @@ the player asked, and a later deletion changes nothing in flight.
 | `Initiated(answer, reference)` | workflow | `approved` | `PayoutInitiated` (payout status `initiated`) | — |
 | `Record(outcome)` | workflow | not settled | `OutcomeRecorded` | — |
 | `NeedsReview(reason)` | workflow | `approved`, payout status `initiated` | `MarkedNeedsReview` | — |
-| `Complete(source, reference)` | workflow | `approved` or `awaiting_manual_payout` | `Completed` (payout status `resolved`) | `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
-| `Fail(source, reasonCode, note)` | workflow | `approved` or `awaiting_manual_payout` | `Failed` (payout status `resolved`) | `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
+| `Complete(source, reference, operatorId?)` | workflow | `approved` or `awaiting_manual_payout` | `Completed` (payout status `resolved`) | `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
+| `Fail(source, reasonCode, note, operatorId?)` | workflow | `approved` or `awaiting_manual_payout` | `Failed` (payout status `resolved`) | `WITHDRAWAL_NOT_AWAITING_PAYOUT` |
 | `Reverse(reasonCode)` | workflow | `completed` | `Reversed` | `WITHDRAWAL_NOT_IN_COMPLETED_STATE` |
 | `ReferenceMismatch(given)` | workflow | any | `ReferenceMismatched` (recorded, nothing moves) | — |
 | `Erase` | erasure route | any | `Erased` (every `Personal` blanked) | — |
@@ -202,7 +202,8 @@ player id is the subject's id.
 | `DepositsConsumer` | `money.transactions` | `deposit_confirmed` → `PlayerPayouts.Deposit` |
 | `RequestsConsumer` | `WithdrawalRequest` events | `Opened` → `Requested`; `Cancelled`, `Rejected`, `Failed`, `Reversed` → `Uncounted` |
 | `WithdrawalPublisher` | `WithdrawalRequest` events | → `casino.withdrawals` (contracts/facts.md) |
-| `AuditPublisher` | `WithdrawalRequest` and `PlayerPayouts` events | → `platform.audit` |
+| `AuditPublisher` | `WithdrawalRequest` events | → `platform.audit` |
+| `PlayerAuditPublisher` | `PlayerPayouts` events (the destinations) | → `platform.audit` |
 | `ConfigAuditPublisher` | `WithdrawalLimits` events | → `platform.audit` |
 
 ## Timers
