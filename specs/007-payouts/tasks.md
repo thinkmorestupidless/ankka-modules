@@ -206,7 +206,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - `pendingSettle` across the wallet's answer;
       - a completed workflow paused for a reversal.
       Test each step in `WithdrawalWorkflowSuite`.
-- [ ] T041 [US5] `S/api/OutcomeEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawals`, with
+- [X] T041 [US5] `S/api/OutcomeEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawals`, with
       `POST /{requestId}/outcome` admitted by the grant (R6) and passed to the workflow's `outcome`:
       - `REQUEST_NOT_FOUND`;
       - `REFERENCE_MISMATCH`, recorded;
