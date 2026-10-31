@@ -3,8 +3,9 @@ package io.eitheror.casino.kyc.it
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
-import io.eitheror.casino.kyc.Json
+import io.eitheror.casino.kyc.{Json, KycRuntime}
 import io.eitheror.casino.kyc.Json.*
+import io.eitheror.casino.kyc.consumers.PolicyFlagger
 import io.eitheror.casino.kyc.policy.Profiles
 import io.eitheror.casino.kyc.record.*
 
@@ -69,6 +70,14 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
     def order(query: String) = ids(queue(query)).filter(Set(first, second))
     assertEquals(order("filter=awaiting"), Vector(first, second))
     assertEquals(order("filter=awaiting&sort=newest"), Vector(second, first))
+
+  test("the policy flagger's searches find players over the amount, not verified or not cleared"):
+    val p = newPlayer(); flag(p)
+    def found(search: PolicyFlagger.Search) = KycRuntime.queue().find(search)
+    kit.eventually(s"$p over the threshold")(Option.when(found(PolicyFlagger.Search.Threshold("EUR", 200000)).contains(p))(()))
+    assert(found(PolicyFlagger.Search.Sof("EUR", 200000)).contains(p))
+    assert(!found(PolicyFlagger.Search.Threshold("EUR", 300000)).contains(p))
+    assert(!found(PolicyFlagger.Search.Threshold("GBP", 1)).contains(p))
 
   test("an unknown filter, or a flag reason that is not one, is invalid_filter"):
     for query <- Seq("filter=everything", "", "filter=flagged&reason=nope", "filter=awaiting&reason=window") do

@@ -66,8 +66,8 @@ final class KycQueueView extends View[KycEvent, QueueRow]:
     if rowState.isDefined && next.copy(updatedAt = row.updatedAt) == row then effects.ignore() else effects.updateRow(next)
 
 /**
- * The queue's queries (FR-035), each listing oldest first by its filter's time; `sort=newest` reverses it at the
- * route. A row's default values are not written (`KycCodecs.stored`), so a column at its default reads as null.
+ * The queue's queries (FR-035), each listing by its filter's time, oldest first and, for `sort=newest`, newest
+ * first. A row's default values are not written (`KycCodecs.stored`), so a column at its default reads as null.
  */
 object KycQueue extends View.Companion[KycQueueView, KycEvent, QueueRow](
       componentId = ComponentId("kyc-queue"),
@@ -76,24 +76,28 @@ object KycQueue extends View.Companion[KycQueueView, KycEvent, QueueRow](
     ):
   private def p(field: String) = s"payload::jsonb->>'$field'"
 
-  val awaiting = query("awaiting")(s"SELECT payload FROM $table WHERE (${p("awaiting")})::int > 0 ORDER BY ${p("oldestAwaitingAt")}")
+  /** A query by `order`, oldest first and newest first. */
+  private def both(name: String, where: String, order: String) =
+    (query(name)(s"SELECT payload FROM $table WHERE $where ORDER BY $order"),
+      query(s"$name-newest")(s"SELECT payload FROM $table WHERE $where ORDER BY $order DESC"))
 
-  val byStatus = query("by-status")(s"SELECT payload FROM $table WHERE COALESCE(${p("status")}, 'unverified') = :status ORDER BY ${p("updatedAt")}")
+  val (awaiting, awaitingNewest) = both("awaiting", s"(${p("awaiting")})::int > 0", p("oldestAwaitingAt"))
 
-  val ready = query("ready")(s"SELECT payload FROM $table WHERE ${p("readyAt")} IS NOT NULL ORDER BY ${p("readyAt")}")
+  val (byStatus, byStatusNewest) = both("by-status", s"COALESCE(${p("status")}, 'unverified') = :status", p("updatedAt"))
 
-  val flagged = query("flagged")(
-    s"SELECT payload FROM $table WHERE jsonb_exists(payload::jsonb->'flags', :reason) ORDER BY ${p("flaggedAt")}")
+  val (ready, readyNewest) = both("ready", s"${p("readyAt")} IS NOT NULL", p("readyAt"))
+
+  val (flagged, flaggedNewest) = both("flagged", s"jsonb_exists(payload::jsonb->'flags', :reason)", p("flaggedAt"))
 
   /** For `PolicyFlagger`: players not verified whose lifetime deposits in `currency` exceed `amount`. */
   val overThreshold = query("over-threshold")(
     s"SELECT payload FROM $table WHERE ${p("status")} IS DISTINCT FROM 'verified' " +
-      s"AND COALESCE(jsonb_extract_path_text(payload::jsonb, 'depositsByCurrency', :currency)::bigint, 0) > CAST(:amount AS bigint) ORDER BY row_key")
+      s"AND COALESCE(jsonb_extract_path_text(payload::jsonb, 'depositsByCurrency', :currency)::bigint, 0) > CAST(:amount AS bigint) AND row_key > :after ORDER BY row_key")
 
   /** For `PolicyFlagger`: players whose source of funds is not cleared and whose lifetime deposits in `currency` exceed `amount`. */
   val overSof = query("over-sof")(
     s"SELECT payload FROM $table WHERE ${p("sof")} IS DISTINCT FROM 'cleared' " +
-      s"AND COALESCE(jsonb_extract_path_text(payload::jsonb, 'depositsByCurrency', :currency)::bigint, 0) > CAST(:amount AS bigint) ORDER BY row_key")
+      s"AND COALESCE(jsonb_extract_path_text(payload::jsonb, 'depositsByCurrency', :currency)::bigint, 0) > CAST(:amount AS bigint) AND row_key > :after ORDER BY row_key")
 
   def create(ctx: ViewComponentContext) = new KycQueueView
 
@@ -104,12 +108,18 @@ object KycQueue extends View.Companion[KycQueueView, KycEvent, QueueRow](
     case Ready
     case Flagged(reason: Option[FlagReason])
 
-    def rows(queue: ViewQueries[QueueRow], limit: Int): Vector[QueueRow] = this match
-      case Awaiting          => queue.ask(awaiting, limit)
-      case ByStatus(s)       => queue.ask(byStatus, limit, "status" -> s.wire)
-      case Ready             => queue.ask(ready, limit)
-      case Flagged(Some(r))  => queue.ask(flagged, limit, "reason" -> r.wire)
-      case Flagged(None)     => FlagReason.values.toVector.flatMap(r => queue.ask(flagged, limit, "reason" -> r.wire)).distinctBy(_.playerId)
+    /** The first `limit` rows by the filter's time, oldest first or, `newest`, newest first. */
+    def rows(queue: ViewQueries[QueueRow], limit: Int, newest: Boolean): Vector[QueueRow] =
+      def pick[Q](oldest: Q, latest: Q) = if newest then latest else oldest
+      val found = this match
+        case Awaiting          => queue.ask(pick(awaiting, awaitingNewest), limit)
+        case ByStatus(s)       => queue.ask(pick(byStatus, byStatusNewest), limit, "status" -> s.wire)
+        case Ready             => queue.ask(pick(ready, readyNewest), limit)
+        case Flagged(Some(r))  => queue.ask(pick(flagged, flaggedNewest), limit, "reason" -> r.wire)
+        case Flagged(None)     =>
+          FlagReason.values.toVector.flatMap(r => queue.ask(pick(flagged, flaggedNewest), limit, "reason" -> r.wire)).distinctBy(_.playerId)
+      val sorted = found.sortBy(since(_).getOrElse(Instant.MAX))
+      (if newest then sorted.reverse else sorted).take(limit)
 
     def since(row: QueueRow): Option[Instant] = this match
       case Awaiting    => row.oldestAwaitingAt

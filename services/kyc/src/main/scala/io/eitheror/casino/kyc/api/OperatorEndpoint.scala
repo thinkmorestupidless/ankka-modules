@@ -74,8 +74,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
         case Some(filter) =>
           val queue = ctx.views.forView(KycQueue)
           val now   = ctx.now()
-          val rows  = filter.rows(queue, OperatorEndpoint.QueueLimit).sortBy(r => filter.since(r).getOrElse(now))
-          val shown = if request.query.raw("sort").contains("newest") then rows.reverse else rows
+          val shown = filter.rows(queue, OperatorEndpoint.QueueLimit, request.query.raw("sort").contains("newest"))
           ok(Json.obj("rows" -> Json.arr(shown.map(Render.queueRow(_, filter.since, now))*), "counts" -> Json.obj(KycQueue.counts(queue)*)))
     }
   }

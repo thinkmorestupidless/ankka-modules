@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime, ViewClient}
+import com.thinkmorestupidless.ankka.sdk.DeclaredQuery
 import io.eitheror.casino.kyc.api.{Ctx, OperatorEndpoint, PlayerEndpoint, PublicEndpoint, ServiceEndpoint}
 import io.eitheror.casino.kyc.consumers.{ClosureConsumer, DepositsConsumer, PolicyFlagger, ProfileConsumer, RegistrationConsumer}
 import io.eitheror.casino.kyc.consumers.PolicyFlagger.Search
@@ -16,6 +17,9 @@ import io.eitheror.casino.kyc.timers.{RecordTimers, WindowTimer}
 
 /** Every component of the service (plan.md's table), registered by the service and by its test kit alike. */
 object KycService:
+  /** How many players a policy flagger's search reads at a time. */
+  val SearchPage = 1000
+
 
   val descriptors: Seq[ComponentDescriptor] = Seq(
     KycRecord.descriptor,
@@ -43,9 +47,17 @@ object KycService:
     KycRuntime.timers = () => timers.timerScheduler
     KycRuntime.store = () => store
     val queue = views.forView(KycQueue)
+    /** Every player a search finds, a page at a time by player id. */
+    def all(search: DeclaredQuery, currency: String, amount: Long): Vector[String] =
+      Iterator.unfold(Option("")) { after =>
+        after.map { a =>
+          val page = queue.ask(search, SearchPage, "currency" -> currency, "amount" -> amount.toString, "after" -> a).map(_.playerId)
+          (page, Option.when(page.size == SearchPage)(page.last))
+        }
+      }.flatten.toVector
     KycRuntime.queue = () => {
-      case Search.Threshold(c, a) => queue.ask(KycQueue.overThreshold, 10_000, "currency" -> c, "amount" -> a.toString).map(_.playerId)
-      case Search.Sof(c, a)       => queue.ask(KycQueue.overSof, 10_000, "currency" -> c, "amount" -> a.toString).map(_.playerId)
+      case Search.Threshold(c, a) => all(KycQueue.overThreshold, c, a)
+      case Search.Sof(c, a)       => all(KycQueue.overSof, c, a)
     }
 
 @main def run(): Unit =
