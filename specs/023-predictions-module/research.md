@@ -296,3 +296,9 @@ the original*).
   catalogue with `exchange`'s prices and depth, which no one service's suite can run. Trevor chose to
   split it: the catalogue scenario is bound in `markets`, the prices and depth scenario in
   `exchange`; the joined read is the kind suite's (T043).
+- **T035, shares under sells.** The library's positions view keeps a holding's full `quantity`,
+  the shares resting under a sell among them (its `Position` counts `restingUnderSells` apart and
+  leaves `quantity` whole). R10's "the route adds them" is a field, not a sum: a position answers
+  `quantity` and `restingUnderSells`, the second taken from the player's resting sells. The
+  positions view keeps no sequence; the orders view's, over the same journal, stands for it in the
+  `stale` answer.
