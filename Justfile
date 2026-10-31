@@ -169,6 +169,29 @@ kyc-run brand="goldvibe":
       ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
       sbt -Dankka.local-services.players=http://127.0.0.1:9005 run
 
+# payouts' suites (spec 007; Docker for the integration kit). The contract is published first.
+payouts-test:
+    sbt contract/publishLocal
+    cd services/payouts && sbt test
+
+# payouts' integration, parity and feature suites only (Docker).
+payouts-it:
+    cd services/payouts && sbt "testOnly io.eitheror.casino.payouts.it.* io.eitheror.casino.payouts.port.* io.eitheror.casino.payouts.features.*"
+
+# payouts, locally on 9004 as brand goldvibe (`sbt schema && docker compose up -d` first, in services/payouts);
+# the wallet's local run on 9000 and psp-gateway's on 9001. Tokens are verified against the kind installation's
+# casino Keycloak.
+payouts-run brand="goldvibe":
+    cd services/payouts && CASINO_BRAND={{brand}} ANKKA_HTTP_PORT=9004 ANKKA_DB_PORT=5439 \
+      ANKKA_AUTH_ISSUERS=player,staff ANKKA_AUTH_REALM=casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}}/protocol/openid-connect/certs \
+      ANKKA_AUTH_PLAYER_AUDIENCE=casino-{{brand}} ANKKA_AUTH_PLAYER_CA=$HOME/.ankka/local-ca.crt \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror/protocol/openid-connect/certs \
+      ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
+      sbt -Dankka.local-services.wallet=http://127.0.0.1:9000 -Dankka.local-services.psp-gateway=http://127.0.0.1:9001 run
+
 # players' suites (spec 008; Docker for the integration kit). The contract is published first.
 players-test:
     sbt contract/publishLocal
