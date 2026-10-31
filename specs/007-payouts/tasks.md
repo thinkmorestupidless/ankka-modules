@@ -196,7 +196,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 7: US5, the payout is executed, reconciled and settled by hand (P1)
 
-- [ ] T039 [US5] Fail first: bind `features/payouts/settlement.feature` in
+- [X] T039 [US5] Fail first: bind `features/payouts/settlement.feature` in
       `T/features/SettlementFeatures.scala`.
 - [ ] T040 [US5] `WithdrawalWorkflow`, the payout half:
       - `pay` (`Approval`), `initiate` with every answer of R7's table, and `AwaitManual`;
