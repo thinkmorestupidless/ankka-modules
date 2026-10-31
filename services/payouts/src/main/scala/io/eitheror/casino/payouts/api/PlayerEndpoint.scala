@@ -75,12 +75,9 @@ object Requests:
     val amount = d.amount match
       case Amount.Whole(v) => v.toString
       case other           => other.toString
-    val fields = Vector(amount, d.currency, d.terminalId, d.destinationId, d.walletAddress, d.cryptoCurrency, d.payoutMethod,
-      d.mobile, d.bankAccount, d.institutionCode, d.transitNumber, d.confirmForfeit).map {
-      case o: Option[?] => o.fold("\u0000")(_.toString)
-      case v            => v.toString
-    }
-    HexFormat.of.formatHex(MessageDigest.getInstance("SHA-256").digest(fields.mkString("\u001f").getBytes(UTF_8)))
+    val fields: Vector[Option[String]] = Vector(Some(amount), d.currency, d.terminalId, d.destinationId, d.walletAddress,
+      d.cryptoCurrency, d.payoutMethod, d.mobile, d.bankAccount, d.institutionCode, d.transitNumber, Some(d.confirmForfeit.toString))
+    HexFormat.of.formatHex(MessageDigest.getInstance("SHA-256").digest(fields.map(_.getOrElse("\u0000")).mkString("\u001f").getBytes(UTF_8)))
 
   def ref(t: Terminal): TerminalRef =
     TerminalRef(t.id, t.subBrandId, t.name, t.gateway, t.scheme, t.supportsWithdrawal, t.hasStatus, t.reviewWindow)
