@@ -106,13 +106,13 @@ standing for the route's own turnover, bonus and clawback reads.
 | # | Check | Answer | Read from |
 |---|---|---|---|
 | 1 | token's player is the route's | 403 `player_id_mismatch` | the token |
-| 2 | amount a positive whole number | 422 `INVALID_AMOUNT` (the original's code and status) | the body |
-| 2a | amount, currency, terminal present; for a Gigadat terminal, `payoutMethod` with `mobile` (ETO) or `bankAccount`, `institutionCode` and `transitNumber` (ACH) | 400 naming the field | the body, and the listing for the terminal's gateway |
+| 2 | amount, currency, terminal present (W:213-217) | 400 naming the field | the body |
+| 2a | amount a positive whole number (W:219-220); for a Gigadat terminal, `payoutMethod` with `mobile` (ETO) or `bankAccount`, `institutionCode` and `transitNumber` (ACH) | 422 `INVALID_AMOUNT` (the original's code and status); 400 naming the field | the body, and the listing for the terminal's gateway |
 | 3 | player known | 404 `PLAYER_NOT_FOUND` | `PlayerPayouts` |
 | 4 | identity verified | 402 `WITHDRAWAL_BLOCKED_KYC` with `kycStatus` and the original's message | `PlayerPayouts` |
-| 5 | the preview's first refusal: available below the amount, then turnover (the wallet's order; *Found during implementation*) | 402 `INSUFFICIENT_FUNDS`; 402 `WITHDRAWAL_BLOCKED_TURNOVER`, no amount | the preview |
+| 5 | turnover, as the preview answers it (W:298-307) | 402 `WITHDRAWAL_BLOCKED_TURNOVER`, no amount | the preview |
 | 6 | weekly, then monthly limit | 402 `WITHDRAWAL_BLOCKED_WEEKLY_LIMIT` / `_MONTHLY_LIMIT` | `PlayerPayouts`, `WithdrawalLimits` |
-| 7 | forfeitable records: available below the amount | 402 `INSUFFICIENT_FUNDS` | the preview |
+| 7 | forfeitable records: available below the amount (W:775-795; the preview's shortfall with `confirmationRequired`) | 402 `INSUFFICIENT_FUNDS` | the preview |
 | 8 | forfeit would leave too little | 422 `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT` | the preview |
 | 9 | forfeit not confirmed | 402 `WITHDRAWAL_REQUIRES_BONUS_FORFEIT_CONFIRMATION` | the preview |
 | 10 | terminal eligible | 422 `TERMINAL_NOT_ELIGIBLE` | the terminal listing (R5) |
@@ -120,7 +120,7 @@ standing for the route's own turnover, bonus and clawback reads.
 | 12 | crypto address present | 422 `WALLET_ADDRESS_REQUIRED` | the listing |
 | 13 | coin in the terminal's list | 422 `CRYPTO_CURRENCY_NOT_SUPPORTED` with the list | the listing |
 | 14 | destination the player's and active | 422 `INVALID_PAYOUT_DESTINATION` | `PlayerPayouts` |
-| 15 | the hold | 409 `WITHDRAWAL_REQUEST_ALREADY_PENDING`; 402 `INSUFFICIENT_FUNDS`; 422 `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT` | the wallet |
+| 15 | the hold (W:622-652): the preview's other refusals here, then the hold's own | 409 `WITHDRAWAL_REQUEST_ALREADY_PENDING`; 402 `INSUFFICIENT_FUNDS`; 422 `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT` | the preview, then the wallet |
 
 **What the preview and the hold say:**
 
@@ -424,6 +424,18 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   answers the player's destinations as their own listing shows them, and each request with its money,
   statuses and times. The whole IBAN and the operators' reasons are left out, as kyc's part leaves out
   its objects. contracts/routes.md says so; `ErasureSuite` holds it.
+- **2026-10-31, R4's order restored where it had drifted** (settled with the user). Reading the original for
+  the driver (T052) found three places where R4 departed from `W:180-873`:
+  - presence was checked after the amount's value, where the original asks for amount, currency and
+    terminal first (W:213-220);
+  - a plain shortfall was refused straight after identity, where the original refuses it only at the hold,
+    after the limits and the terminal and destination checks (W:622-652);
+  - "already pending" was refused at the preview, where the original refuses it at the hold too (W:642).
+  `Gates` now answers each where the original does. A shortfall with forfeitable records stays at row 7,
+  as in the original (W:775-795): the wallet's refusal sets `confirmationRequired` exactly then. One case
+  is left, already declared above: a player both short and turnover-blocked is told they are short,
+  because the wallet's preview reports its first refusal only. `GatesSuite` (unit and integration) holds
+  the order; a follow-up for spec 002 is for the preview to report turnover as well.
 
 ## Design finished
 

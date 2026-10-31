@@ -68,11 +68,15 @@ class GatesSuite extends munit.FunSuite with LogCapturing:
     }
     assertEquals(kit.wallet.calls("").size, 0)
 
-  test("the preview's insufficient funds comes before a limit; the limit before the forfeit's refusals"):
+  test("a limit before the preview's shortfall, which waits for the terminal; the limit before the forfeit's refusals"):
     val (p, d) = player()
     put(s"""{"limits":{"EUR":{"weekly":1000}}}""")
     kit.wallet.previewFor(p, FakeWallet.preview(refusal = Some("INSUFFICIENT_FUNDS")))
+    refused(ask(p, d), 402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")
+    put("""{"limits":{}}""")
+    refused(ask(p, d, extra = Seq("terminalId" -> "t-none")), 422, "TERMINAL_NOT_ELIGIBLE")
     refused(ask(p, d), 402, "INSUFFICIENT_FUNDS")
+    put(s"""{"limits":{"EUR":{"weekly":1000}}}""")
     kit.wallet.previewFor(p, FakeWallet.preview(refusal = Some("WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT"), confirmationRequired = true))
     refused(ask(p, d), 402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")
     put("""{"limits":{}}""")
