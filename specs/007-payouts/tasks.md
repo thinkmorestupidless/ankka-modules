@@ -154,7 +154,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T029 [US2] `S/api/ConfigEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawal-config`: `GET /` and
       `PUT /`, with the admin role check (`brand_admin`, `resource_admin` or `platform_admin`; any other
       role is `forbidden`). Its refusals are 400s naming the field.
-- [ ] T030 [US2] `T/it/GatesSuite.scala` drives the endpoint through each gate in R4's order:
+- [X] T030 [US2] `T/it/GatesSuite.scala` drives the endpoint through each gate in R4's order:
       - the preview's 200 refusals and the hold's 409s, mapped to the original's statuses;
       - the hold's turnover refusal as 402;
       - a limit seen by the request made a second after the one before it (read-your-writes, R3);
