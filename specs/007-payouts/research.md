@@ -535,6 +535,8 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
 - **A deposit on kind** (specs 008 and 021): the dev-kind `INGEST_URL` must be reachable from a pod
   (`https://ingest-payments.127.0.0.1.sslip.io`, port 443), and the services' JVMs must trust the
   installation's CA; and the kind setup creates `casino-stubs`' `ankka-local-ca` ConfigMap.
+- **Spec 002 (`wallet`)**: `REQUEST_NOT_PENDING` on a hold's confirm or release could name how the hold
+  ended, so a caller tells a repeat from a hold settled the other way (review, 2026-10-31).
 - **Spec 013 (`affiliate-programme`)**: which of those kinds commission counts is its rule, not this
   service's.
 
