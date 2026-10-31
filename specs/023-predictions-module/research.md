@@ -285,3 +285,10 @@ the original*).
   services `/v1/casino/brands/<slug>/<service>`), and routes.md is rewritten to it.
 - **The review window** is 24 hours, ankka-predictions spec 002 FR-007's default, carried on every
   resolve, correct and void; it becomes a brand value when a brand asks for another.
+- **T017, the clients outside a component.** The running service's `services` (`AnkkaService.services`)
+  answer a call made outside any component's context, so the ports reach them through
+  `ExchangeRuntime.started`, which `Main` and the test kit call once the service is up
+  (`it/ServiceClientsSuite`). The ports are built before the start and read the clients per call.
+- **T020 and T027 together.** The ledger port's `settle` and `payout` were written with `reserve` and
+  `release`: the orders feature's sell scenario needs a held position, which a split trade makes, and
+  the library's settlement consumer settles it at once. `LedgerSuite` covers every row of R4.
