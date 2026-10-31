@@ -33,6 +33,7 @@ object Refusals:
 
   def required(field: String): Refusal = Refusal(400, "INVALID_REQUEST", s"$field is required", Vector("field" -> Text(field)))
 
+  /** The original's messages by KYC status (`WithdrawalRoutes.scala:252-256`); `submitted` takes its default, as there. */
   def kyc(status: String): Refusal =
     val message = status match
       case "unverified" => "Please verify your identity before withdrawing"
