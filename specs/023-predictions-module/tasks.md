@@ -26,7 +26,7 @@ Paths: `S/m` = `services/markets/src`, `S/x` = `services/exchange/src`, packages
 
 - [X] T005 Add the four topics and their families (contracts/facts.md) in `contract/src/main/scala/io/eitheror/casino/contract/facts/Markets.scala` and `Exchange.scala`, the player id as `Personal[String]`; list them in `Topics.brand`; regenerate `contract/schemas/` with `just schemas`; a contract suite asserts every family's personal fields are marked
 - [X] T006 [P] Add the seven configuration keys of R7 to `contract/keys.md`, and `markets` and `exchange` to its "Not yet built" table
-- [ ] T007 [P] Add the realm role `markets` to `brands/_realm/eitheror-operators.json` and a `Routes` helper `operatorWith(slug, roles*)` in `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala` (the brand role check plus one of the roles, else `forbidden` naming the first), with its suite in `contract/src/test/…/access/RoutesSuite.scala`
+- [X] T007 [P] Add the realm role `markets` to `brands/_realm/eitheror-operators.json` and a `Routes` helper `operatorHolding(slug, roles*)` in `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala` (the brand role check plus one of the roles, else `forbidden` naming the first), with its suite in `contract/src/test/…/access/RoutesSuite.scala`
 - [ ] T008 [P] Admit `exchange` on `players`' status route (`services/players/…/api/Endpoints.scala`), kyc's play-check (`services/kyc/…/api/ServiceEndpoint.scala`) and responsible-gambling's may-bet (`services/responsible-gambling/…/api/Endpoints.scala`); one ACL test each in the services' existing suites; run each service's `test`
 - [ ] T009 [P] `Settings.fromEnvironment` for each service: `S/m/main/…/markets/Settings.scala` (brand, categories, currencies, limits, fee rate, reasoning service) and `S/x/main/…/exchange/Settings.scala` (brand, gates, reasoning service), with suites for defaults and refusals of malformed values
 
@@ -38,7 +38,7 @@ suspends, resumes, resolves, corrects and voids a market; every change is a fact
 
 - [ ] T010 [US3] `MarketTerms` key-value entity (data-model) in `S/m/main/…/markets/terms/MarketTerms.scala`, with its unit suite
 - [ ] T011 [US3] The resolution port answering `Allow` (R6, contracts/ports.md) in `S/m/main/…/markets/Resolution.scala`; register `MarketsComponents` and `MarketTerms` in `Main.scala` with `ProjectionRuntime` and `TimerRuntime`
-- [ ] T012 [US3] `OperatorEndpoint` (contracts/routes.md, markets) in `S/m/main/…/markets/api/OperatorEndpoint.scala`: `operatorWith(slug, "markets", "platform_admin")`, the category and currency checks before the library (FR-013), drafted limits written to `MarketTerms` first, the library's refusals mapped to 400/409 with their names
+- [ ] T012 [US3] `OperatorEndpoint` (contracts/routes.md, markets) in `S/m/main/…/markets/api/OperatorEndpoint.scala`: `operatorHolding(slug, "markets", "platform_admin")`, the category and currency checks before the library (FR-013), drafted limits written to `MarketTerms` first, the library's refusals mapped to 400/409 with their names
 - [ ] T013 [US3] `MarketFactsPublisher` over the market entity onto `markets.events` in `S/m/main/…/markets/facts/MarketFactsPublisher.scala`
 - [ ] T014 [US3] Bind `features/predictions/lifecycle.feature` in `S/m/test/…/markets/features/LifecycleFeatures.scala` through `GherkinSuite`
 - [ ] T015 [US3] Integration suite over Postgres in `S/m/test/…/markets/it/LifecycleItSuite.scala`: the timers open and close a market on time after a restart; the facts appear once each
@@ -68,7 +68,7 @@ raised; the module reconciles. **Independent test**: `settlement.feature` bound 
 
 - [ ] T027 [US2] The ledger port's `settle` (direct, split, merge) and `payout` (R4) in `Ledger.scala`, one call per leg as the table says; extend `LedgerSuite.scala`
 - [ ] T028 [US2] `SettlementRetry` workflow (R5, data-model) in `S/x/main/…/exchange/retry/SettlementRetry.scala`: `start` as the claim, the backoff 1, 5, 15 min then hourly, an audit record at the first refusal and at the end; the port starts it before answering a refusal; its unit suite
-- [ ] T029 [US2] `OperatorEndpoint` in `S/x/main/…/exchange/api/OperatorEndpoint.scala`: `POST /exchange/retries/{key}/abandon` under `operatorWith(slug, "markets", "platform_admin")`
+- [ ] T029 [US2] `OperatorEndpoint` in `S/x/main/…/exchange/api/OperatorEndpoint.scala`: `POST /exchange/retries/{key}/abandon` under `operatorHolding(slug, "markets", "platform_admin")`
 - [ ] T030 [US2] The reconciliation (R12) in `S/x/main/…/exchange/reconcile/`: the `reconciliation` view over `money.transactions` and the exchange's events, a daily timed action and one at `Final`, one audit record per difference; `money.transactions` is the brand project's own topic, read with no grant; a unit suite feeding a deliberate difference
 - [ ] T031 [US2] Bind `features/predictions/settlement.feature` in `S/x/test/…/exchange/features/SettlementFeatures.scala`; the fee scenario ignored naming ankka-predictions spec 007
 - [ ] T032 [US2] Integration suite `S/x/test/…/exchange/it/SettlementItSuite.scala`: a restart between a trade and its settlement settles once; a refused settlement retries and succeeds under the same key; a final market pays every position from the pool
