@@ -59,7 +59,6 @@ curl -s localhost:9012/v1/casino/kyc-requirements/goldvibe
 |---|---|---|
 | `CASINO_BRAND` | — | required |
 | `KYC_MAX_UPLOAD_BYTES` | `5242880` | the largest document the brand takes |
-| `KYC_SUSPEND_RETRY` | `30s` | the wait before the window's suspend is asked again |
 | `ANKKA_S3_ENDPOINT`, `_PUBLIC_ENDPOINT`, `_REGION`, `_BUCKET`, `_ACCESS_KEY`, `_SECRET_KEY` | none | the bucket, written by the platform |
 
 The policy is not an environment setting: an operator sets it at `/v1/casino/backoffice/<slug>/kyc/policy`.

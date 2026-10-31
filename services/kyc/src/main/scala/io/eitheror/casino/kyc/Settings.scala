@@ -1,7 +1,6 @@
 package io.eitheror.casino.kyc
 
 import java.time.Duration
-import scala.util.Try
 
 /**
  * Where the service's bucket is and how to sign for it, as the platform gives it (`ANKKA_S3_*`,
@@ -12,17 +11,16 @@ final case class Bucket(endpoint: String, publicEndpoint: String, region: String
   override def toString: String = s"Bucket($endpoint, $publicEndpoint, $region, $name)"
 
 /**
- * What the service is told at start (research R18): the brand, the largest upload the brand takes, the
- * bucket, and the waits the stories name. The content types and the links' lifetimes are fixed (FR-005,
- * FR-008). The only secret is the bucket's credential, which the platform writes.
+ * What the service is told at start (research R18): the brand, the largest upload the brand takes and the
+ * bucket. The content types and the links' lifetimes are fixed (FR-005, FR-008). The only secret is the
+ * bucket's credential, which the platform writes.
  */
 final case class Settings(
     brand: String = "goldvibe",
     maxUploadBytes: Long = Settings.DefaultMaxUploadBytes,
     bucket: Option[Bucket] = None,
     uploadLink: Duration = Duration.ofHours(1),
-    viewLink: Duration = Duration.ofMinutes(15),
-    suspendRetry: Duration = Duration.ofSeconds(30)
+    viewLink: Duration = Duration.ofMinutes(15)
 )
 
 object Settings:
@@ -37,8 +35,7 @@ object Settings:
       max    <- env.get("KYC_MAX_UPLOAD_BYTES").map(_.trim).filter(_.nonEmpty)
                   .fold(Right(d.maxUploadBytes))(v => v.toLongOption.filter(_ > 0).toRight(s"KYC_MAX_UPLOAD_BYTES: '$v' is not a positive whole number"))
       bucket <- bucketOf(env)
-      retry  <- duration(env, "KYC_SUSPEND_RETRY", d.suspendRetry)
-    yield Settings(brand, max, bucket, suspendRetry = retry)
+    yield Settings(brand, max, bucket)
 
   /**
    * The bucket, when the platform gave one: all six variables, or none (a local run without a store,
@@ -53,21 +50,3 @@ object Settings:
         val v = values.map(_._2.get)
         Right(Some(Bucket(v(0), v(1), v(2), v(3), v(4), v(5))))
       case missing => Left(s"${missing.mkString(", ")}: not set, while the other ANKKA_S3_ variables are")
-
-  private def duration(env: Map[String, String], name: String, default: Duration): Either[String, Duration] =
-    env.get(name).fold(Right(default))(v => parseDuration(v).toRight(s"$name: '$v' is not a duration such as 30s, 24h or 500ms"))
-
-  private val Pattern = """(\d+)\s*(ms|s|m|h|d)""".r
-
-  def parseDuration(text: String): Option[Duration] =
-    text.trim match
-      case Pattern(n, unit) =>
-        Try(n.toLong).toOption.filter(_ > 0).map { v =>
-          unit match
-            case "ms" => Duration.ofMillis(v)
-            case "s"  => Duration.ofSeconds(v)
-            case "m"  => Duration.ofMinutes(v)
-            case "h"  => Duration.ofHours(v)
-            case _    => Duration.ofDays(v)
-        }
-      case _ => None

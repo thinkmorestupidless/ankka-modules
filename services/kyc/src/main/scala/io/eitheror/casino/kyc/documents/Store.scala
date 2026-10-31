@@ -55,6 +55,10 @@ object Store:
 
   def of(bucket: Option[Bucket]): Store = bucket.fold(Unavailable)(S3Store(_))
 
+  /** How long one request to the store, and one operation with its retries, may take before it is `storage_unavailable`. */
+  val AttemptTimeout: Duration = Duration.ofSeconds(5)
+  val CallTimeout: Duration    = Duration.ofSeconds(15)
+
 /**
  * The bucket through the AWS SDK as platform/object-storage.md configures it: path style, the
  * platform's region, checksums only when required, and Google's `<Generation>` read as `<VersionId>`.
@@ -73,7 +77,9 @@ final class S3Store(bucket: Bucket) extends Store:
       .forcePathStyle(true)
       .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
       .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
-      .overrideConfiguration(ClientOverrideConfiguration.builder().addExecutionInterceptor(GenerationAsVersionId).build())
+      .overrideConfiguration(
+        ClientOverrideConfiguration.builder().addExecutionInterceptor(GenerationAsVersionId)
+          .apiCallAttemptTimeout(Store.AttemptTimeout).apiCallTimeout(Store.CallTimeout).build())
       .credentialsProvider(credentials)
       .build()
 

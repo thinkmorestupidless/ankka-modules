@@ -187,7 +187,7 @@ final class Kit(base: Settings = Kit.Base):
 
 object Kit:
   // A small upload limit, so a scenario can pass it without sending megabytes.
-  val Base: Settings = Settings(brand = "goldvibe", maxUploadBytes = 64 * 1024, suspendRetry = JDuration.ofSeconds(1))
+  val Base: Settings = Settings(brand = "goldvibe", maxUploadBytes = 64 * 1024)
 
   /** Stands in for the token verifier: what is tested is what each audience's ACL decides once a token is verified. */
   val authenticate: Acl = Acl.Authenticate { context =>
