@@ -66,7 +66,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       counted as not VISA, and 1,000 reads in one order (SC-007).
 - [X] T010 [P] `S/player/Iban.scala` and `S/player/Names.scala` (pure: research R13), with their suites:
       `IbanValidator`'s and `PayoutDestinationRoutesSpec`'s cases; diacritics, case and spacing normalised.
-- [ ] T011 [P] `S/workflow/Approval.scala` (pure: automated or manual, and the gateway's fields per
+- [X] T011 [P] `S/workflow/Approval.scala` (pure: automated or manual, and the gateway's fields per
       provider, from `resolveApprovalOutcome`; research R7), with `T/workflow/ApprovalSuite.scala`: each
       gateway, and each missing field leading to manual payout.
 - [ ] T012 `S/request/Model.scala`, `S/player/Model.scala`, `S/limits/Model.scala`: states, events,
