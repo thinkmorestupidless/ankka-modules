@@ -17,6 +17,8 @@ final class FakeWallet(brand: String) extends FakeServer():
   private val holds    = TrieMap.empty[String, Answer]
   private val steps    = TrieMap.empty[(String, String), Answer]
   private val pending  = TrieMap.empty[String, String]
+  private val balances = TrieMap.empty[String, Long]
+  private val heldBy   = TrieMap.empty[String, Long]
   /** When set, every call answers this, as a wallet that is down or slow would. */
   @volatile var down: Option[Answer] = None
   @volatile var delayMillis: Long     = 0L
@@ -24,8 +26,12 @@ final class FakeWallet(brand: String) extends FakeServer():
   def previewFor(player: String, answer: ObjectNode): Unit = previews.update(player, Answer.ok(answer))
   def holdFor(requestId: String, answer: Answer): Unit     = holds.update(requestId, answer)
   def stepFor(requestId: String, step: String, answer: Answer): Unit = steps.update((requestId, step), answer)
+  /** The player's real balance: a preview of more is refused `INSUFFICIENT_FUNDS`, a hold takes from it, a release gives it back. */
+  def balanceFor(player: String, amount: Long): Unit = balances.update(player, amount)
+  def balance(player: String): Option[Long]         = balances.get(player)
   def reset(): Unit =
-    previews.clear(); holds.clear(); steps.clear(); pending.clear(); down = None; delayMillis = 0L; clearReceived()
+    previews.clear(); holds.clear(); steps.clear(); pending.clear(); balances.clear(); heldBy.clear(); down = None; delayMillis = 0L
+    clearReceived()
 
   def calls(step: String): Vector[Received] = received.filter(r => r.method == "POST" && r.path.endsWith(s"/holds$step"))
 
@@ -36,13 +42,22 @@ final class FakeWallet(brand: String) extends FakeServer():
     down.getOrElse {
       r.path.stripPrefix(Prefix).split('/').toVector match
         case Vector(player, _, "holds", "preview") if r.method == "GET" =>
-          previews.getOrElse(player, Answer.ok(FakeWallet.preview()))
+          val amount = r.query.get("amount").flatMap(_.toLongOption).getOrElse(0L)
+          previews.get(player).getOrElse {
+            if balances.get(player).exists(_ < amount) then Answer.ok(FakeWallet.preview(refusal = Some("INSUFFICIENT_FUNDS")))
+            else Answer.ok(FakeWallet.preview())
+          }
         case Vector(player, _, "holds") if r.method == "POST" =>
           val body = r.json.get
           val id   = body.textOr("key", "")
           holds.get(id).getOrElse {
             if pending.get(player).exists(_ != id) then FakeWallet.refusal("WITHDRAWAL_REQUEST_ALREADY_PENDING")
+            else if balances.get(player).exists(_ < body.long("amount").getOrElse(0L)) then FakeWallet.refusal("INSUFFICIENT_FUNDS")
             else
+              if !pending.get(player).contains(id) then
+                val amount = body.long("amount").getOrElse(0L)
+                balances.updateWith(player)(_.map(_ - amount)): Unit
+                heldBy.update(id, amount)
               pending.update(player, id)
               Answer.ok(Json.obj("paidAmount" -> body.long("amount").getOrElse(0L), "voidedAmount" -> 0L, "clawbackAmount" -> 0L,
                 "forfeited" -> Json.arr(), "txnId" -> s"txn-$id", "realBalance" -> 0L, "currency" -> "EUR"))
@@ -51,6 +66,7 @@ final class FakeWallet(brand: String) extends FakeServer():
           val id = r.json.get.textOr("requestId", "")
           steps.get((id, step)).getOrElse {
             if pending.get(player).contains(id) then pending.remove(player): Unit
+            if step == "release" then heldBy.remove(id).foreach(a => balances.updateWith(player)(_.map(_ + a)): Unit)
             Answer.ok(Json.obj("realBalance" -> 0L, "currency" -> "EUR"))
           }
         case _ => Answer(404, """{"error":"NOT_FOUND"}""")
