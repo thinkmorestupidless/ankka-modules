@@ -15,15 +15,18 @@ import scala.collection.concurrent.TrieMap
 final class FakeGateway extends FakeServer():
   private val listings  = TrieMap.empty[String, Vector[ObjectNode]]
   private val initiates = TrieMap.empty[String, Answer]
+  private val refusing  = TrieMap.empty[String, String]
   private val statuses  = TrieMap.empty[String, Answer]
   private val answered  = TrieMap.empty[String, Answer]
   @volatile var listingDown: Boolean = false
 
   def terminals(currency: String, rows: ObjectNode*): Unit = listings.update(currency, rows.toVector)
   def initiateFor(requestId: String, answer: Answer): Unit = initiates.update(requestId, answer)
+  /** Every payout to the terminal is rejected at initiation with `reason`, as a provider without the terminal's credentials does. */
+  def rejectAt(terminalId: String, reason: String): Unit  = refusing.update(terminalId, reason)
   def statusFor(requestId: String, answer: Answer): Unit   = statuses.update(requestId, answer)
   def reset(): Unit =
-    listings.clear(); initiates.clear(); statuses.clear(); answered.clear(); listingDown = false; clearReceived()
+    listings.clear(); initiates.clear(); refusing.clear(); statuses.clear(); answered.clear(); listingDown = false; clearReceived()
 
   def payouts: Vector[Received] = received.filter(r => r.method == "POST" && r.path == "/v1/payments/withdrawals")
   def statusReads(requestId: String): Vector[Received] =
@@ -35,7 +38,8 @@ final class FakeGateway extends FakeServer():
       else Answer.ok(Json.obj("terminals" -> Json.arr(listings.getOrElse(r.query.getOrElse("currency", ""), Vector.empty)*)))
     case ("POST", "/v1/payments/withdrawals") =>
       val id = r.json.get.textOr("requestId", "")
-      answered.getOrElseUpdate(id, initiates.getOrElse(id, FakeGateway.answer(id, "initiated", Some(s"ref-$id"))))
+      val refused = refusing.get(r.json.get.textOr("terminalId", "")).map(reason => FakeGateway.answer(id, "rejected", reason = Some(reason)))
+      answered.getOrElseUpdate(id, initiates.get(id).orElse(refused).getOrElse(FakeGateway.answer(id, "initiated", Some(s"ref-$id"))))
     case ("GET", path) if path.startsWith("/v1/payments/withdrawals/") =>
       val id = path.stripPrefix("/v1/payments/withdrawals/")
       statuses.getOrElse(id, FakeGateway.answer(id, "pending", Some(s"ref-$id")))

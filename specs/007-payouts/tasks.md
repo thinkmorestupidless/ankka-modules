@@ -256,7 +256,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       psp-gateway on psp-stub, the operator credentials from the user; twice on fresh ids. The merge
       redacts the secret. Copy the recordings to `tests/port/payouts/`. Its `README.md` names the gates
       the driver could not reach, and `tests/original/README.md` names the run.
-- [ ] T054 Un-ignore `ParitySuite`. Every recording replays through `WireTranslation`. Each marked
+- [X] T054 Un-ignore `ParitySuite`. Every recording replays through `WireTranslation`. Each marked
       divergence in `Parity.divergences` matches plan.md's *Divergences*. `CoverageSuite` names any route
       left unhit.
 

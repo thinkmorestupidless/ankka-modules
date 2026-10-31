@@ -1,22 +1,26 @@
 package io.eitheror.casino.payouts.port
 
-import java.nio.file.{Files, Path, Paths}
-import scala.jdk.CollectionConverters.*
+import io.eitheror.casino.contract.port.Recording
 
 /**
- * One test per recording in tests/port/payouts (constitution I), named after its file. The recordings are
- * made against a local original (T052–T053); until the replay is wired to them (T054), each is listed and
- * ignored, so a recording that arrives is seen and none is passed without being replayed.
+ * One test per recording in tests/port/payouts (constitution I), named after its file: each step replayed
+ * against the whole service and its answer compared field by field with the original's, a marked divergence
+ * excepted and required to still differ.
  */
 class ParitySuite extends munit.FunSuite:
-  private val root: Path      = Paths.get(sys.props.getOrElse("casino.root", "../..")).toAbsolutePath.normalize
-  private val directory: Path = root.resolve("tests/port/payouts")
+  override val munitTimeout = scala.concurrent.duration.Duration(300, "s")
 
-  private val found: Vector[Path] =
-    if !Files.isDirectory(directory) then Vector.empty
-    else Files.list(directory).iterator.asScala.filter(p => p.toString.endsWith(".json") && !p.getFileName.toString.startsWith("suite-result"))
-      .toVector.sorted
+  private val found = Parity.recordings()
 
-  if found.isEmpty then test("tests/port/payouts holds the recordings T052 makes".ignore) {}
+  if found.isEmpty then test("tests/port/payouts holds the recordings T053 makes".ignore) {}
 
-  found.foreach(path => test((path.getFileName.toString.stripSuffix(".json") + " (replayed from T054)").ignore) {})
+  found.foreach { path =>
+    val recording = Recording.load(path).fold(e => throw AssertionError(e), identity)
+    val diverges  = Parity.diverging(recording)
+    test(path.getFileName.toString.stripSuffix(".json") + diverges.map(d => s" (diverges: ${d.why})").mkString) {
+      val (marked, differences) = Parity.replay(recording).partition(Parity.divergence(recording)(_).isDefined)
+      assert(differences.isEmpty, differences.map(_.message).mkString("\n"))
+      diverges.foreach(d => assert(marked.exists(Parity.divergence(recording)(_).contains(d)),
+        s"${recording.scenario}: no longer differs from the original where ${d.why}"))
+    }
+  }
