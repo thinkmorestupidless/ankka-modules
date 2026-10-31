@@ -179,7 +179,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 6: US4, an operator reviews the queue and approves or rejects (P1)
 
-- [ ] T035 [US4] Fail first: bind `features/payouts/review.feature` in `T/features/ReviewFeatures.scala`.
+- [X] T035 [US4] Fail first: bind `features/payouts/review.feature` in `T/features/ReviewFeatures.scala`.
 - [X] T036 [US4] `S/api/OperatorEndpoint.scala` at `/v1/casino/brands/<slug>/withdrawal-requests`, with the
       finance-or-admin check (R6):
       - `GET /` with every filter and `stale`, and `GET /{requestId}`;

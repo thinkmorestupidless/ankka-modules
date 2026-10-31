@@ -110,6 +110,29 @@ abstract class PayoutsFeatures(file: String) extends GherkinSuite(s"../../featur
   protected def queue: WithdrawalQueue.Page =
     WithdrawalQueue.page(kit.views.forView(WithdrawalQueue), WithdrawalQueue.Filter(status = None, player = Some(player)), 1, 200)
 
+  /** A verified player's request of `amount` to the bank terminal, opened pending review; its id. */
+  protected def pending(amount: Long = 5000L, balance: Long = 10000L, to: Terminal = bank): String =
+    verified()
+    kit.wallet.balanceFor(player, balance)
+    terminals((Vector(bank) ++ Option.when(to != bank)(to))*)
+    val r = ask("amount" -> amount, "currency" -> currency, "terminalId" -> to.id, "destinationId" -> destination())
+    assertEquals(r.status, 201, r.text)
+    r.str("requestId")
+
+  // ── the operator's routes ────────────────────────────────────────────────────────────────────
+
+  protected def finance: String = s"brand_${kit.slug},brand_finance"
+
+  protected def operator(method: String, path: String, body: Option[String] = None, roles: String = finance,
+      subject: String = "op-1"): Reply =
+    last = kit.request(method, s"/v1/casino/brands/${kit.slug}/withdrawal-requests$path", body.orElse(Option.when(method == "POST")("{}")),
+      kit.asOperator(subject, roles))
+    last
+
+  protected def approve(id: String, roles: String = finance): Reply = operator("POST", s"/$id/approve", roles = roles)
+  protected def reject(id: String, reason: String): Reply =
+    operator("POST", s"/$id/reject", Some(Json.render(json("reason" -> reason))))
+
   // ── what happened ────────────────────────────────────────────────────────────────────────────
 
   protected def withdrawals: Vector[CasinoWithdrawalsFact] = kit.facts(CasinoWithdrawals).filter(_.playerId == player)
