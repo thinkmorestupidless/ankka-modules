@@ -187,7 +187,7 @@ and the `WITHDRAWAL_*` branches of `create-withdrawal-request.test.tl`.
 
 - added `features/payouts/requests.feature`: a player whose identity is not verified is refused telling them what to do
 - added `features/payouts/requests.feature`: a verified player passes the identity gate
-- added `features/payouts/requests.feature`: a request while deposit turnover is pending is refused naming what remains
+- added `features/payouts/requests.feature`: a request while deposit turnover is pending is refused as blocked by turnover
 - added `features/payouts/requests.feature`: a request whose clawback under a funds and winnings policy would leave real balance short is refused naming the most they could withdraw
 - added `features/payouts/requests.feature`: a request with a record that forfeits on withdrawal is refused until the player confirms the forfeit
 - added `features/payouts/requests.feature`: a request confirming the forfeit places the hold, forfeits the record and applies the clawback once
@@ -383,7 +383,8 @@ provider reference and status; the queue's needs-review set is visible at a glan
   rejected, failed and reversed requests do not. The usage MUST be read from `payouts`' own requests,
   so the check calls nothing and cannot fail open.
 - **FR-006**: The wallet's hold preview MUST then decide, with the wallet's own answers passed
-  through: blocked by turnover, naming the remaining amount; insufficient funds when the available
+  through: blocked by turnover (the wallet's preview names no amount remaining: 2026-10-31, research
+  *Found during implementation*); insufficient funds when the available
   amount (real balance less reserved, spec 022 FR-003) is below the amount; insufficient after bonus forfeit, naming the most withdrawable, when the
   clawback would leave real below the amount; requires bonus-forfeit confirmation, naming bonus
   balance, clawback and total forfeit, when any active record's policy forfeits on withdrawal and the

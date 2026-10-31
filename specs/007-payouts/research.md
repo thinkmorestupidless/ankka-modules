@@ -110,7 +110,7 @@ standing for the route's own turnover, bonus and clawback reads.
 | 2a | amount, currency, terminal present; for a Gigadat terminal, `payoutMethod` with `mobile` (ETO) or `bankAccount`, `institutionCode` and `transitNumber` (ACH) | 400 naming the field | the body, and the listing for the terminal's gateway |
 | 3 | player known | 404 `PLAYER_NOT_FOUND` | `PlayerPayouts` |
 | 4 | identity verified | 402 `WITHDRAWAL_BLOCKED_KYC` with `kycStatus` and the original's message | `PlayerPayouts` |
-| 5 | turnover | 402 `WITHDRAWAL_BLOCKED_TURNOVER`, the remaining amount | the preview |
+| 5 | the preview's first refusal: available below the amount, then turnover (the wallet's order; *Found during implementation*) | 402 `INSUFFICIENT_FUNDS`; 402 `WITHDRAWAL_BLOCKED_TURNOVER`, no amount | the preview |
 | 6 | weekly, then monthly limit | 402 `WITHDRAWAL_BLOCKED_WEEKLY_LIMIT` / `_MONTHLY_LIMIT` | `PlayerPayouts`, `WithdrawalLimits` |
 | 7 | forfeitable records: available below the amount | 402 `INSUFFICIENT_FUNDS` | the preview |
 | 8 | forfeit would leave too little | 422 `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT` | the preview |
@@ -343,7 +343,7 @@ The IBAN is held whole for the payout and shown as its last four (the original's
 **Erasure**:
 
 - `PlayerPayouts` and each `WithdrawalRequest` implement erasure by blanking those fields, as kyc's records do.
-- `ServiceEndpoint` serves `POST /v1/casino/brands/<slug>/payouts/erasure/{player}` for `players`' `ErasureWorkflow`, until ankka 042's `erase(subject)`.
+- `ServiceEndpoint` serves `POST /v1/casino/brands/<slug>/payouts/erasure/players/{player}` for `players`' `ErasureWorkflow`, until ankka 042's `erase(subject)`.
 - `players` already holds an erasure while a withdrawal is open (008 FR-037). Its `ErasureWorkflow.targets` gains `payouts` (*Elsewhere*).
 
 ## R13. Destinations
@@ -380,6 +380,22 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
 - **`brands/_realm/eitheror-operators.json`**: `brand_finance` is added (R6), settled with the user on 2026-10-31. This is done in this spec's build, since it is this repository's realm.
 - **Spec 001 `contracts/grants.md:24`** lists one of the three payout routes `payments` grants; the manifest and `Layout` have three. It is corrected here.
 - **The operator console**: brand configuration saves limits here and turnover terms to the wallet (R10). Amounts in minor units. Both are among spec 001's frontend changes.
+
+## Found during implementation
+
+- **2026-10-31, the turnover refusal names no amount** (settled with the user). The wallet's hold
+  preview (`services/wallet/.../WalletEntity.scala:531-542`) reports a turnover refusal by its code and
+  message only, and checks the available amount before turnover, as `Resolver.withdraw` does. payouts
+  passes the preview's first refusal through as R4's steps 5 and 7 in the wallet's order: insufficient
+  funds before turnover when both apply, and `WITHDRAWAL_BLOCKED_TURNOVER` with no `totalRemaining`. Both
+  are changes from the original, which named the remaining amount and checked turnover first; the
+  scenario and FR-006 are amended. The wallet was not changed.
+- **2026-10-31, the hold does not refuse an unconfirmed forfeit.** The wallet's hold reads
+  `playerConfirmed` nowhere; its preview says `confirmationRequired`. payouts refuses
+  `WITHDRAWAL_REQUIRES_BONUS_FORFEIT_CONFIRMATION` itself (R4 step 9) when the preview requires
+  confirmation and the request did not confirm.
+- **2026-10-31, the erasure route** is `POST /v1/casino/brands/<slug>/payouts/erasure/players/{playerId}`,
+  the path `players`' `ErasureWorkflow` calls on every target (settled with the user; contracts/routes.md).
 
 ## Design finished
 

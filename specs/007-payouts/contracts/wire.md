@@ -14,7 +14,7 @@ Abbreviations:
 
 The original's player routes take and answer decimals of major units. They become minor units with
 the currency's exponent: × 100 for EUR, GBP and CAD. The answer's `amount`, `forfeitedAmount`,
-`clawbackAmount`, `maxWithdrawable`, `totalForfeit`, `totalRemaining`, `limit`, `used` and `remaining`
+`clawbackAmount`, `maxWithdrawable`, `totalForfeit`, `limit`, `used` and `remaining`
 are translated back. A recorded decimal with more places than the exponent is a test failure, not a
 rounding.
 
