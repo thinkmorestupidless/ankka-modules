@@ -103,7 +103,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - approval emitting `withdrawal_approved` alone;
       - `amountCents` as the paid amount;
       - never a `Personal` value or free text on a fact or an audit record.
-- [ ] T020 `S/PayoutsService.scala` (registration), `S/api/Answers.scala` (refusal bodies), and the
+- [X] T020 `S/PayoutsService.scala` (registration), `S/api/Answers.scala` (refusal bodies), and the
       integration kit `T/it/Kit.scala`:
       - Postgres, with `FakeWallet` and `FakeGateway` under `localServices`;
       - `InMemoryBroker` for `casino.players`, `money.transactions`, `casino.withdrawals` and
