@@ -1,5 +1,8 @@
 package io.eitheror.casino.payouts.player
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
+import io.eitheror.casino.payouts.PayoutsCodecs
+
 /** A player's identity status, from the four KYC families of `casino.players` (data-model.md). */
 enum Kyc(val wire: String):
   case Unverified extends Kyc("unverified")
@@ -10,3 +13,4 @@ enum Kyc(val wire: String):
 
 object Kyc:
   def from(text: String): Option[Kyc] = values.find(_.wire == text)
+  given JsonValueCodec[Kyc]          = PayoutsCodecs.wire(values, _.wire)
