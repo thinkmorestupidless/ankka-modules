@@ -5,7 +5,7 @@ import io.eitheror.casino.contract.money.{Currency, MinorUnits}
 import io.eitheror.casino.payouts.limits.Pair
 import io.eitheror.casino.payouts.limits.LimitsEvent.LimitsSet
 import io.eitheror.casino.payouts.player.PlayerEvent
-import io.eitheror.casino.payouts.request.{Actor, RequestEvent, RequestState, Source}
+import io.eitheror.casino.payouts.request.{Actor, RequestEvent, RequestState, Source, Unanswered}
 import io.eitheror.casino.payouts.request.RequestEvent.*
 
 import java.time.Instant
@@ -72,7 +72,7 @@ object Facts:
 
   private def settledBy(source: Source, operatorId: Option[String]): Who = source match
     case Source.Operator => Who("operator", operatorId.getOrElse("operator"))
-    case Source.Poll     => Workflow
+    case Source.Poll | Source.Workflow => Workflow
     case _               => Gateway
 
   /** One record per audited event of a request (contracts/facts.md), with its amounts and its status after. */
@@ -93,10 +93,10 @@ object Facts:
       case e: AwaitingManualPayout =>
         Some(("payouts.awaiting_manual_payout", Workflow, Vector(status("awaiting_manual_payout")), Some(e.reason), e.at))
       case e: PayoutInitiated =>
-        Some(("payouts.initiated", Gateway, Vector(to("answer", e.answer), to("payoutStatus", "initiated")) ++
+        Some(("payouts.initiated", if Unanswered.All(e.answer) then Workflow else Gateway, Vector(to("answer", e.answer), to("payoutStatus", "initiated")) ++
           e.reference.map(to("providerReference", _)), None, e.at))
       case OutcomeRecorded(r) if r.source != Source.Operator =>
-        Some(("payouts.outcome_recorded", if r.source == Source.Poll then Workflow else Gateway,
+        Some(("payouts.outcome_recorded", if r.source == Source.Poll || r.source == Source.Workflow then Workflow else Gateway,
           Vector(to("source", r.source.wire), to("answer", r.answer)) ++ r.reference.map(to("providerReference", _)) ++ note(r.note),
           r.reasonCode, r.at))
       case e: MarkedNeedsReview =>

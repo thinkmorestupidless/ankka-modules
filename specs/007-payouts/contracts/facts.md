@@ -38,7 +38,7 @@ One record per event, naming the actor:
 | `Opened`, a player's `Cancelled`, `DestinationSaved`, `DefaultSet`, `DestinationDeleted` | the player |
 | `Approved`, `Rejected`, an operator's `Completed` or `Failed`, `LimitsSet` | the operator by id |
 | `PayoutInitiated`, `OutcomeRecorded` (gateway or outcome source), an outcome's `Completed`, `Failed` or `Reversed`, `ReferenceMismatched` | `psp-gateway` |
-| `OutcomeRecorded` (poll source: every final poll result, and a waiting one, `pending` or `unavailable`, the first time and at each change, FR-029), `MarkedNeedsReview`, `AwaitingManualPayout`, a poll's settlement | the workflow |
+| `OutcomeRecorded` (workflow source), `PayoutInitiated` answered `details_erased` or `initiation_unconfirmed`, `OutcomeRecorded` (poll source: every final poll result, and a waiting one, `pending` or `unavailable`, the first time and at each change, FR-029), `MarkedNeedsReview`, `AwaitingManualPayout`, a poll's settlement | the workflow |
 
 A record carries the request id, the action, the amounts, the statuses and the reason's code. Free text
 never goes on a record.

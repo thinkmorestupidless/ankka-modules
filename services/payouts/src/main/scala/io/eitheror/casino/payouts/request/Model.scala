@@ -51,7 +51,18 @@ enum Source(val wire: String):
   case Gateway  extends Source("gateway")
   case Outcome  extends Source("outcome")
   case Poll     extends Source("poll")
+  /** The workflow itself, with no answer from the gateway behind it. */
+  case Workflow extends Source("workflow")
   case Operator extends Source("operator")
+
+/**
+ * The initiations the workflow records itself, with no gateway answer behind them: the details erased before
+ * the call, and an initiation whose step failed with no answer recorded. Both are in doubt and wait.
+ */
+object Unanswered:
+  val DetailsErased         = "details_erased"
+  val InitiationUnconfirmed = "initiation_unconfirmed"
+  val All: Set[String]      = Set(DetailsErased, InitiationUnconfirmed)
 
 object Source:
   given JsonValueCodec[Source] = PayoutsCodecs.wire(values, _.wire)
