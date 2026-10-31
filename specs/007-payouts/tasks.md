@@ -85,7 +85,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - a second `Approve` or `Reject`, or a `Reject` after approval, is `REQUEST_NOT_PENDING` (R1);
       - a repeated command writes nothing;
       - `Erase` blanks the payee, the reasons and the notes.
-- [ ] T016 `S/terminals/TerminalCatalogue.scala` (key value) and `S/terminals/CatalogueTimer.scala`
+- [X] T016 `S/terminals/TerminalCatalogue.scala` (key value) and `S/terminals/CatalogueTimer.scala`
       (`terminals-<slug>`, every 60 s, one currency at a time; a failed refresh keeps the last list), with
       their kits.
 - [X] T017 [P] `S/clients/Wallet.scala` (trait + HTTP: preview, hold, release, confirm, reverse; keys
