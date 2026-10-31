@@ -53,7 +53,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 2: Foundational
 
-- [ ] T007 [P] `S/request/Gates.scala` and `S/request/Refusals.scala` (pure: research R4's table in its
+- [X] T007 [P] `S/request/Gates.scala` and `S/request/Refusals.scala` (pure: research R4's table in its
       order, each refusal's code, status and fields as in contracts/routes.md, and the KYC messages
       verbatim), with `T/request/GatesSuite.scala`: every row; when two apply, the earlier wins; zero, a
       negative or a decimal amount is 422 `INVALID_AMOUNT`. Write the suite first, and see it fail first.
