@@ -1,6 +1,8 @@
 package io.eitheror.casino.payouts.request
 
+import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import io.eitheror.casino.contract.personal.Personal
+import io.eitheror.casino.payouts.PayoutsCodecs
 
 /** Gigadat's two methods (R4 2a): an Interac e-Transfer to a mobile number, or a bank transfer. */
 enum Method(val wire: String):
@@ -9,6 +11,7 @@ enum Method(val wire: String):
 
 object Method:
   def from(text: String): Option[Method] = values.find(_.wire.equalsIgnoreCase(text.trim))
+  given JsonValueCodec[Method]          = PayoutsCodecs.wire(values, _.wire)
 
 /** A destination's holder names, as the destination stood when the player asked. */
 final case class Holder(givenName: Personal[String], familyName: Personal[String])

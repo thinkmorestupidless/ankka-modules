@@ -69,7 +69,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [X] T011 [P] `S/workflow/Approval.scala` (pure: automated or manual, and the gateway's fields per
       provider, from `resolveApprovalOutcome`; research R7), with `T/workflow/ApprovalSuite.scala`: each
       gateway, and each missing field leading to manual payout.
-- [ ] T012 `S/request/Model.scala`, `S/player/Model.scala`, `S/limits/Model.scala`: states, events,
+- [X] T012 `S/request/Model.scala`, `S/player/Model.scala`, `S/limits/Model.scala`: states, events,
       commands and refusals as data-model.md has them, `Personal` where it marks.
 - [ ] T013 `S/player/PlayerPayouts.scala`, with `T/player/PlayerPayoutsSuite.scala`
       (`EventSourcedTestKit`):
