@@ -55,7 +55,7 @@ ignores unknown fields accepts. Task T010 stays open until 002 decides.
 
 | Need | Expected path | Answer |
 |---|---|---|
-| account status at launch (008 FR-018) | `GET /v1/casino/brands/{brand}/players/{playerId}/account-status` | `{status}`; `suspended`, `self_excluded`, `blocked`, `closed` refuse the launch as `account_restricted` |
+| account status at launch (008 FR-018) | `GET /v1/casino/brands/{brand}/players/{playerId}/status` (008 routes.md) | `{status, displayName, verification}`, of which `status` is read; `suspended`, `self_excluded`, `blocked`, `closed` refuse the launch as `account_restricted` |
 | open a game session (008 FR-017) | `POST /v1/casino/brands/{brand}/players/{playerId}/game-sessions` with `{gameId, gameName?, gameCategory?, currency, demo, playerSessionId?}` | `{sessionId}`; a refusal or failure does not fail the launch (FR-009) |
 | recently played (FR-009) | `POST /v1/casino/brands/{brand}/players/{playerId}/recently-played` with `{gameId}` | 204; best effort |
 | profile fields for `player_profile`, `check` and the launch body | `GET /v1/casino/brands/{brand}/players/{playerId}/profile` | `{defaultCurrency, country, dateOfBirth, registeredAt, dailyDepositLimit?}`; 404 → `player_not_found` |
