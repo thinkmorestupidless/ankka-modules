@@ -52,9 +52,12 @@ type Config struct {
 	CasinoURL    string // the original's casino-service, e.g. http://localhost:8091
 	KeycloakURL  string // the original's Keycloak, e.g. http://localhost:8180
 	SubstrateURL string // the original's substrate, e.g. http://localhost:9000
-	WalletURL    string // the original's wallet-service, for deposits and the player's balance
-	StubURL      string // psp-stub's Unity Finance, whose control the automated payouts set
-	Brand        string // the original's seeded brand, whose realm is casino-<brand>
+	WalletURL    string // the original's wallet-service, for the player's balance
+	// WalletInternalURL is wallet-service's internal API (its port 9001), which serves `/internal/v1/wallet/*`:
+	// the deposits. The public port answers those 404.
+	WalletInternalURL string
+	StubURL           string // psp-stub's Unity Finance, whose control the automated payouts set
+	Brand             string // the original's seeded brand, whose realm is casino-<brand>
 	// SigningSecret is the original's EMAIL_TOKEN_SIGNING_SECRET, from which a verification link is
 	// minted as the original mints it (EmailVerificationTokenStore). Never written.
 	SigningSecret string
@@ -298,13 +301,16 @@ func (s *Session) Observe(name, service, method, path string, auth Auth, until f
 	}
 }
 
-func (s *Session) base(service string) string {
+func (s *Session) base(service, path string) string {
 	switch service {
 	case "keycloak":
 		return s.cfg.KeycloakURL
 	case "substrate":
 		return s.cfg.SubstrateURL
 	case "wallet":
+		if strings.HasPrefix(path, "/internal/") {
+			return s.cfg.WalletInternalURL
+		}
 		return s.cfg.WalletURL
 	case "psp-stub":
 		return s.cfg.StubURL
@@ -315,7 +321,7 @@ func (s *Session) base(service string) string {
 
 func (s *Session) call(name, service, method, path string, body any, auth Auth, extra map[string]string) Response {
 	s.t.Helper()
-	u, err := url.Parse(s.base(service) + path)
+	u, err := url.Parse(s.base(service, path) + path)
 	if err != nil {
 		s.t.Fatalf("%s: %v", name, err)
 	}

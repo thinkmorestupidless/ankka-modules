@@ -30,7 +30,8 @@ var (
 	casinoURL     = flag.String("casino-url", "http://localhost:8091", "the original's casino-service")
 	keycloakURL   = flag.String("keycloak-url", "http://localhost:8180", "the original's Keycloak")
 	substrateURL  = flag.String("substrate-url", envOr("EITHEROR_SUBSTRATE_URL", "http://localhost:9000"), "the original's substrate, which casino-service is pointed at")
-	walletURL     = flag.String("wallet-url", envOr("EITHEROR_WALLET_URL", "http://localhost:8081"), "the original's wallet-service")
+	walletURL     = flag.String("wallet-url", envOr("EITHEROR_WALLET_URL", "http://localhost:8092"), "the original's wallet-service (its NodePort)")
+	walletIntURL  = flag.String("wallet-internal-url", envOr("EITHEROR_WALLET_INTERNAL_URL", "http://localhost:19001"), "wallet-service's internal API (port-forward svc/wallet-service 19001:9001)")
 	stubURL       = flag.String("stub-url", "http://localhost:18108", "psp-stub's Unity Finance, which psp-gateway is pointed at")
 	brand         = flag.String("brand", envOr("EITHEROR_CASINO_BRAND_ID", "spinvibe"), "the original's seeded brand; its realm is casino-<brand>")
 	operatorRealm = flag.String("operator-realm", "eitheror", "the realm the backoffice signs operators in to")
@@ -66,18 +67,19 @@ func config(t *testing.T) Config {
 		t.Fatal("no WALLET_SERVICE_INTERNAL_SECRET: the outcome route and the wallet's deposit are signed with it")
 	}
 	return Config{
-		CasinoURL:      *casinoURL,
-		KeycloakURL:    *keycloakURL,
-		SubstrateURL:   *substrateURL,
-		WalletURL:      *walletURL,
-		StubURL:        *stubURL,
-		Brand:          *brand,
-		SigningSecret:  envOr("EMAIL_TOKEN_SIGNING_SECRET", "dev-email-token-secret"),
-		InternalSecret: secret,
-		OperatorToken:  token(*operatorUser, "TEST_OPERATOR_PASSWORD"),
-		OutsiderToken:  token(*outsiderUser, "EITHEROR_OUTSIDER_PASSWORD"),
-		RecordTo:       os.Getenv("EITHEROR_RECORD_TO"),
-		Commit:         os.Getenv("EITHEROR_ORIGINAL_COMMIT"),
-		Client:         client,
+		CasinoURL:         *casinoURL,
+		KeycloakURL:       *keycloakURL,
+		SubstrateURL:      *substrateURL,
+		WalletURL:         *walletURL,
+		WalletInternalURL: *walletIntURL,
+		StubURL:           *stubURL,
+		Brand:             *brand,
+		SigningSecret:     envOr("EMAIL_TOKEN_SIGNING_SECRET", "dev-email-token-secret"),
+		InternalSecret:    secret,
+		OperatorToken:     token(*operatorUser, "TEST_OPERATOR_PASSWORD"),
+		OutsiderToken:     token(*outsiderUser, "EITHEROR_OUTSIDER_PASSWORD"),
+		RecordTo:          os.Getenv("EITHEROR_RECORD_TO"),
+		Commit:            os.Getenv("EITHEROR_ORIGINAL_COMMIT"),
+		Client:            client,
 	}
 }

@@ -134,7 +134,7 @@ func record(t *testing.T, def Def) (recorder.Recording, string, *stub) {
 	srv := httptest.NewServer(o)
 	defer srv.Close()
 	dir := t.TempDir()
-	cfg := Config{CasinoURL: srv.URL, KeycloakURL: srv.URL, SubstrateURL: srv.URL, WalletURL: srv.URL, StubURL: srv.URL,
+	cfg := Config{CasinoURL: srv.URL, KeycloakURL: srv.URL, SubstrateURL: srv.URL, WalletURL: srv.URL, WalletInternalURL: srv.URL, StubURL: srv.URL,
 		Brand: "spinvibe", SigningSecret: signing, InternalSecret: internal, OperatorToken: operator, OutsiderToken: outsider,
 		RecordTo: dir, Commit: "abc1234", Patience: 50 * time.Millisecond}
 	run := &lenient{T: t}
