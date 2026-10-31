@@ -100,3 +100,109 @@
 - **Run:** `contract/publishLocal`, then the unit suites of request, limits, terminals, player, facts and clients, plus `WireTranslationSuite` and `ApprovalSuite`. 124 passed, 0 failed.
 - **Not run:** the integration, feature and parity suites, which need Docker and several minutes. The commit log says they are green on kind; that was not checked here.
 - **Not verified by running:** the two workflow findings (the retry after an erasure, a failed workflow after exhausted recovery) were confirmed by reading, not by a run. Each needs a fault-injection case in `PayoutFailureSuite` to prove.
+
+## Second round
+
+# Review: 007 payouts — the first round's fixes (5f86cb0...607cf67)
+
+**Verdict:** Approve with comments. Nothing blocks. The two should-fix items are small, and we expect them before merge or answered with a reason.
+**What it does:** It fixes the first round's findings:
+- A provider's reason text now reaches only the request's `Personal` note. Facts and audit records take a code.
+- Every step that calls an entity or the wallet fails over to a `recover` step that backs off and runs the step again. A `Manual` answer inside `initiate` is now in doubt, not awaiting manual payout.
+- A waiting poll is recorded the first time and at each change.
+- `stale` on its own means the approved requests.
+- The idempotency digest lists its fields.
+- The two questions are answered.
+**Should it exist:** yes, because each commit closes a finding of the first round, and nothing outside those findings is touched.
+**Read:**
+- Read in full: the whole diff, and the first round's report.
+- Opened outside the diff:
+  - `WithdrawalWorkflow.scala`, in full: `start`, every step and the commands, to check each position in `resumable` against the step that sets it.
+  - `request/WithdrawalRequest.scala`: the commands' guards, and whether a refusal is a reply or a throw. It is a reply.
+  - `facts/Facts.scala`: the audit actor for each source.
+  - `clients/Gateway.scala`: where each `Initiation` and `PayoutStatus` reason comes from.
+  - The `"error"` bodies of psp-gateway.
+  - ankka's `build/workflows.md`: a command that ends a pause removes its timer, so a stale `recover` timer cannot fire `waitStep` on a request that has moved on.
+- Not reviewed again: anything the first round covered and these commits leave alone.
+**Size:** 17 files, +370 −45. About 290 of those lines are Scala and 126 are docs. The size suits a fix round.
+
+## Resolutions of the first round
+
+- **Blocking (provider reason text on facts and audit): holds.**
+  - `ReasonCode.split` is applied at every place a provider's reason enters:
+    - the outcome route (`OutcomeEndpoint.scala:46`)
+    - the initiation's `rejected` and `in_doubt` answers (`WithdrawalWorkflow.scala:357-359, 371, 379`)
+    - the poll's `failed` and `reversed` answers (`:415, 422`)
+  - The fallback codes match `contracts/facts.md`. `OutcomeRecord.note` is blanked by `Erased` (`WithdrawalRequest.scala:154`), and the audit names the note without writing it (`Facts.scala:82`).
+  - The other reasons left unsplit are payouts' own words or the gateway's codes, not a provider's text: `Unreadable` (status words and transport errors), `Refused` (the gateway's `"error"` code) and `Unavailable` (logged, then recorded as `gateway_unavailable`).
+  - `LeakSuite` plants a holder's name through a rejection, a failed poll and an outcome-route reversal, and checks the facts, the log and the tables. The initiation's `in_doubt` and the poll's `reversed` are covered by `ReasonCodeSuite` alone.
+- **Should fix 1 (manual payout after an initiation may have reached a provider): holds.** Inside `initiate`, a `Manual` answer is now recorded in doubt and goes to the wait. Only `pay` parks a request for manual payout. The explanation that a 2 s client timeout cannot outlive a 30 s step is sound. See the second should-fix below for who the audit says gave that answer.
+- **Should fix 2 (a workflow failed with money moved): holds, with one gap.**
+  - `resumable` was checked against each step that sets its position:
+    - `start` sets Holding, `hold` sets Opening, the commands set Releasing, Approving and Confirming, `approve` sets Paying, `pay` sets Initiating, the waits set Waiting, the poll sets NeedsReview, and `confirm` sets Reversing.
+    - A step that throws commits no state, so `recover` reads the last position recorded.
+    - Every target is safe to run again: wallet steps behind the `money` set, entity commands that answer `same` to a repeat, and `initiate` replaced by the wait.
+  - The gap: the wait, reached after `initiate` failed before it recorded anything, can leave the request marked nowhere. That is the first should-fix below.
+- **Should fix 3 (waiting polls not recorded): holds.** `lastPoll` records a waiting answer the first time and at each change. The new `PayoutFailureSuite` case would fail if every poll were recorded, and also if none were. FR-029, facts.md and research.md agree with the code.
+- **Should fix 4 (`stale` alone answers nothing): holds.** `stale` is now parsed before `status`, `None if stale` gives `APPROVED`, and an explicit status still wins. `QueueFilterSuite` pins all three, and routes.md says the same.
+- **Nit 1 (`case _` read as a reversal; `Status2`): holds.** The match names `"reversed"` and refuses anything else with `UNRECOGNISED_OUTCOME`. The import is `GatewayStatus`.
+- **Nit 2 (digest of `Draft.toString`): holds as far as it goes.** The fields are listed and ordered, and `FingerprintSuite` tells an absent field from an empty one. The reason for keeping the personal fields (they sit only in the workflow's state, a named-gap table) is accepted.
+- **Question 1 (`REQUEST_NOT_PENDING` either way): answered, and the answer holds.** A workflow settles a hold in one direction only, and the follow-up for spec 002 is recorded in research.md.
+- **Question 2 (KYC `submitted`): answered, and the answer holds.** The comment cites the original.
+
+## Should fix
+
+- `services/payouts/src/main/scala/io/eitheror/casino/payouts/workflow/WithdrawalWorkflow.scala:393, 441` — issue (non-blocking) (if-minor): a request whose initiation failed before it recorded anything is marked needs review nowhere, though its money stays held.
+  - **How it happens:**
+    1. `initiate` throws before the gateway call on every one of its six attempts, for example because `WithdrawalRequest.get` or `PlayerPayouts.get` times out.
+    2. It fails over to `waitStep` with the step still `Initiating`. `recover` resumes that position the same way (`resumable(Initiating) = waitStep`).
+    3. Nothing has called `WithdrawalRequest.initiated`, so the request is `APPROVED` with payout status `none`.
+    4. The poll answers `no_record`, or the provider's window passes, and `reviewStep` calls `needsReview`.
+    5. `needsReview` writes only from `payoutStatus == Initiated` (`WithdrawalRequest.scala:64`), so it answers `same`.
+  - **What it breaks:** the workflow sits at `NeedsReview` while the request shows in neither the needs-review set, nor the default queue, nor `stale`, which wants `initiated`. An operator can settle it only if they find it.
+  - It needs an entity outage across six attempts, and the failover to `waitStep` came before this round. But this round adds a second way in, and it is the "nothing reconciles it" case the first round's second finding was about.
+  - **Suggestion:** at the top of `waitStepRun`, when the request's payout status is `None`, call `initiated("in_doubt")` first. The new `Manual` branch does this already. The alternative is to let `needsReview` accept `PayoutStatus.None` on an approved request.
+  Resolved: `waitStepRun` first marks an approved request with payout status none as initiated, answer `initiation_unconfirmed` (in doubt), so `no_record` or the window marks it needs review and it is listed. As with the first round's fix, no test injects the entity outage this needs. 8f2398b
+- `services/payouts/src/main/scala/io/eitheror/casino/payouts/workflow/WithdrawalWorkflow.scala:348-349` — issue (non-blocking) (if-minor): the `details_erased` in-doubt answer is recorded with `Source.Gateway`, so `platform.audit` records `psp-gateway` as having said `in_doubt` (`Facts.scala:98-99`). The paired `PayoutInitiated` is likewise audited as the gateway's (`Facts.scala:95`). In that run the gateway was not called.
+  - FR-029 asks the audit to name the actor. A compliance reader would take this as the gateway's answer.
+  - **Suggestion:** record the answer with `Source.Poll`, which the audit names as the workflow. Or add a `Source.Workflow("workflow")`: an additive wire value, with `settledBy` and the `OutcomeRecorded` actor mapping taught to read it.
+  Resolved: a new `Source.Workflow` (`workflow`, additive) for what the workflow records with no gateway answer behind it (`details_erased`, `initiation_unconfirmed`). `PayoutInitiated` with either answer, and `OutcomeRecorded` from that source, are audited as the workflow. `PublishersSuite` checks both; data-model.md and facts.md say so. 8f2398b
+
+## Nits
+
+- `services/payouts/src/main/scala/io/eitheror/casino/payouts/api/PlayerEndpoint.scala:78-82` — nitpick (non-blocking): the field list is inferred as `Vector[Any]` and taken apart by a runtime `case o: Option[?]`. That is the inferred-`Any` shape the Scala checklist warns about. A typed `Vector[Option[String]]`, with the amount and `confirmForfeit` wrapped as `Some(…toString)`, says the same and lets the compiler check it.
+  Resolved: `Vector[Option[String]]`. bae7cac
+
+## Questions
+
+- `services/payouts/src/main/scala/io/eitheror/casino/payouts/workflow/WithdrawalWorkflow.scala:504` — thought: `recover` now retries a deterministic fault, such as a `.get` on an absent `terminal`, `held` or `settle`, every 30 s without end.
+  - It logs at error each time, but it counts nothing. The ankka lifecycle reads `Paused`, not `Failed`.
+  - While the position is in `Flow.Busy` (Holding, Opening, Approving, Paying, Initiating), an operator's commands answer `BUSY` for as long as the fault lasts.
+  - That trade is better than a silent failed workflow, and the first round asked for it. Still, a counter or a gauge of workflows in `recover`, which an alert can watch, would turn "said loudly" into "seen". No change is needed for this spec if the logs are alerted on; say which.
+  Answered: the logs. Each `recover` logs at error with the request id and the position, and the installation alerts on service error logs. A gauge belongs with spec 015's operational views, not here.
+- `services/payouts/src/main/scala/io/eitheror/casino/payouts/request/ReasonCode.scala:12` — thought: the shape rule decides what may be published.
+  - Upper-case provider codes (`INSUFFICIENT_FUNDS`, `E1023`) become `provider_failed` on the fact, which loses information. A lower-case single token that is a name (`smith`) passes as a code.
+  - Both are unlikely to matter with the four providers' known reasons. If one of them sends upper-case codes, an allowlist per provider in psp-gateway, sending `code` apart from `message`, would serve better than widening the regex. That is a follow-up for spec 005, not this change.
+  Answered: agreed. It is a follow-up for spec 005: psp-gateway sends the provider's `code` apart from its `message`.
+
+## Praise
+
+- `services/payouts/src/main/scala/io/eitheror/casino/payouts/workflow/WithdrawalWorkflow.scala:549` — praise: `resumable` turns "where does a failed step pick up" into one table that can be checked, and `WithdrawalWorkflowSuite` pins it in both directions: every working position is resumed, and no paused or ended one is. Mapping `Initiating` to the wait rather than to `initiate` is exactly the duplicate-payout guard the spec needs.
+- `services/payouts/src/test/scala/io/eitheror/casino/payouts/it/PayoutFailureSuite.scala:98-113` — praise: the waiting-poll test drives pending, then unavailable, then pending, then completed, and asserts the exact sequence. It goes red under both wrong designs: recording every poll, and recording none.
+
+## Out of scope
+
+- note: on a case-insensitive file system (macOS) `specs/007-payouts/review.md` is also `REVIEW.md`, so the pr-review gather script reports this report as the repository's own review checklist. Name the report `review-report.md`, or name it in the speckit-review template, so that a later review does not read the last report as its rules.
+
+## Checks applied
+
+- **General groups applied:**
+  - Correctness, Design and scope, Error handling, Concurrency and state (workflow single-writer, pause timers).
+  - Security (personal data on facts, audit and logs).
+  - Data and migrations: `Flow.lastPoll`, an additive field with a default. `Source` is unchanged.
+  - Tests, Observability, API and compatibility (the queue's default when `stale` is given; the fingerprint, with no service deployed), Documentation, and Commit hygiene (one finding per commit, each naming the finding it resolves).
+- **General groups skipped:** Performance (no new queries or loops) and Dependencies (none changed).
+- **Language skills:** `pr-review-scala`, the bundled one, applied in its order. Totality: the `.get`s in steps, which feed the `recover` thought. Error handling: entity refusals are replies, not throws. Then tests and idioms.
+- **Project rules read:** `CLAUDE.md` at the repository and the workspace. There is no `REVIEW.md` other than this file (see Out of scope) and no `.claude/rules/`.
+- **Run:** `ReasonCodeSuite`, `FingerprintSuite` and `QueueFilterSuite`: 8 passed, 0 failed. They compile against the branch's main code.
+- **Not run:** `LeakSuite`, `PayoutFailureSuite` and `WithdrawalWorkflowSuite`, which need Docker and several minutes. The failover to `recover` is exercised by no test that injects a fault, so it is confirmed by reading.
