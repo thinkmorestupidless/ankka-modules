@@ -81,6 +81,35 @@ Feature: A verified player requests a withdrawal and the money is held
     When the player requests a withdrawal
     Then the identity gate passes
 
+  Scenario: a request that would pass the brand's weekly withdrawal limit is refused naming the limit, what was used and what remains
+    Given the brand's weekly withdrawal limit in "EUR" is "100000"
+    And the player is verified with a real balance of "200000"
+    And the player's withdrawal requests in the last seven days come to "80000"
+    When the player requests a withdrawal of "30000"
+    Then it is refused as past the weekly withdrawal limit, naming "100000", "80000" used and "20000" remaining
+    And nothing moves
+
+  Scenario: a request that would pass the brand's monthly withdrawal limit is refused naming the limit, what was used and what remains
+    Given the brand's monthly withdrawal limit in "EUR" is "300000"
+    And the player is verified with a real balance of "400000"
+    And the player's withdrawal requests this calendar month come to "290000"
+    When the player requests a withdrawal of "20000"
+    Then it is refused as past the monthly withdrawal limit, naming "300000", "290000" used and "10000" remaining
+    And nothing moves
+
+  Scenario Outline: a withdrawal request cancelled, rejected or failed does not count towards a withdrawal limit
+    Given the brand's weekly withdrawal limit in "EUR" is "100000"
+    And the player is verified with a real balance of "200000"
+    And a withdrawal request of "80000" this week that was <outcome>
+    When the player requests a withdrawal of "30000"
+    Then the withdrawal request is created pending review
+
+    Examples:
+      | outcome   |
+      | cancelled |
+      | rejected  |
+      | failed    |
+
   Scenario: a request while deposit turnover is pending is refused naming what remains
     Given deposit turnover pending of "25000"
     When the player requests a withdrawal
