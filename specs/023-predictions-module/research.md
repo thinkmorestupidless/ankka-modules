@@ -305,3 +305,9 @@ the original*).
 - **T039, the orders topic's key.** facts.feature and R9's table said `exchange.orders` was keyed
   by the player; FR-006, contracts/facts.md and the contract key every exchange topic by the
   market. Trevor settled it as the scenario's error: the step now says "keyed by the market".
+- **T040, core's range.** No release tag exists yet and spec 022 is on main, unreleased. Trevor
+  set predictions' dependency to `core` `>=0.4.0 <1.0.0`, taking the next tag after 022 to be
+  v0.4.0 or later, so no vendor pairs predictions with a core whose wallet lacks reservations,
+  splits and pool payments. `markets` and `exchange` were never in keys.md's "Not yet built"
+  table: their builds landed with T002 and T003. The services read `REASONING_SERVICE`; the
+  manifest names no such key until ankka-reasoning 0.2.0 (keys.md, R14), so nothing is mirrored.

@@ -182,8 +182,8 @@ positions.
 ### User Story 5 - Facts, the price stream and the reasoning mirror (Priority: P2)
 
 Every order, trade and price change is a fact on `exchange.orders`, `exchange.trades` and
-`exchange.prices`, keyed by the market as the contract says, carrying the player id as a
-personal field; `reporting` and the shared `audit` read them. When a brand's values name a
+`exchange.prices`, keyed by the market as the contract says, carrying the player id as a plain
+id (spec 001 FR-024); `reporting` and the shared `audit` read them. When a brand's values name a
 reasoning service, `markets` mirrors each approved market as a question with one hypothesis per
 outcome, and `exchange` writes a price observation per outcome at most once a minute; with no
 reasoning service named, nothing is mirrored and nothing fails.

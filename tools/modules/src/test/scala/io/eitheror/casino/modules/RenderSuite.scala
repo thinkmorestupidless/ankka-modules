@@ -31,7 +31,8 @@ class RenderSuite extends munit.FunSuite:
   private val keys    = Keys.load(Fixtures.root)
   private val values  = Values.load(Fixtures.root.resolve("brands/goldvibe/values.json"), Main.valuesView(Fixtures.root)).toOption.get
   private val modules = ModuleManifest.validateTree(Fixtures.root, ModuleManifest.ContractView.fromTree(Fixtures.root))._1
-  private val at      = Map("core" -> "0.1.0", "casino" -> "0.1.0", "engagement" -> "0.1.0", "reporting" -> "0.1.0", "support" -> "0.1.0")
+  private val at      = Map("core" -> "0.1.0", "casino" -> "0.1.0", "engagement" -> "0.1.0", "reporting" -> "0.1.0", "support" -> "0.1.0",
+    "predictions" -> "0.1.0")
 
   private val spec001: Vector[ServiceDescriptor] =
     fixture.path("descriptors").elements().asScala.toVector.map(n => readFromString[ServiceDescriptor](n.toString))
@@ -160,6 +161,17 @@ class RenderSuite extends munit.FunSuite:
     val p = plan(Vector("casino", "engagement", "support"))
     assertEquals(p.modules.map(_.name), Vector("core", "casino"))
     assertEquals(p.missing.toSet, Set("engagement" -> "push-provider-key", "support" -> "model-provider-key"))
+  }
+
+  test("a brand entitled to predictions and not casino runs markets and exchange on the core, and no game-provider (spec 023 SC-004)") {
+    val p = plan(Vector("predictions"))
+    assertEquals(p.held, Vector.empty)
+    assertEquals(p.modules.map(_.name), Vector("core", "predictions"))
+    val names = p.services.map(_.name).toSet
+    assert(Set("markets", "exchange").subsetOf(names), names.toString)
+    assert(!names.contains("game-provider") && !names.contains("rewards"), names.toString)
+    val exchange = p.services.find(_.name == "exchange").get.service.env.map(e => e.name -> e.value).toMap
+    assertEquals(exchange.get("PREDICTIONS_GATES"), Some(Some("play-gate,may-bet")))
   }
 
   test("core comes first and a module after its dependencies; a module that does not exist is named") {
