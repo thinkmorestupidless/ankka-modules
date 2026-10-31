@@ -139,7 +139,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       workflow's `cancel` → `release` cancelled, refusing `WITHDRAWAL_REQUEST_NOT_CANCELLABLE`.
 - [X] T026 [US1] `S/queue/WithdrawalQueue.scala` (the view of data-model.md, with no `Personal` column),
       with its suite: each query and filter, pages of 1–200, and `total`.
-- [ ] T027 [US1] `T/it/RequestSuite.scala`:
+- [X] T027 [US1] `T/it/RequestSuite.scala`:
       - a request holds, opens and is listed in the account and the queue;
       - `withdrawal_requested` is published;
       - a repeat with the same key answers the first;
