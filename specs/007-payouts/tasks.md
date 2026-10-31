@@ -126,7 +126,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       (`KEY_REUSED` on a different body), the `hold` step keyed by the request id, `open`, a pause for
       review, and `status`. A wallet refusal is recorded and ends the workflow. Transport failures are
       retried (R9). Test it with `T/workflow/WithdrawalWorkflowSuite.scala` (`WorkflowTestKit`).
-- [ ] T024 [US1] `S/api/PlayerEndpoint.scala` at `/v1/casino/brands/<slug>/players`:
+- [X] T024 [US1] `S/api/PlayerEndpoint.scala` at `/v1/casino/brands/<slug>/players`:
       `POST /{playerId}/withdrawal-requests` (contracts/routes.md):
       - `player_id_mismatch`; `MISSING_KEY`;
       - the request id as a name-based UUID of `<player>/<key>`;
@@ -134,7 +134,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - then `start`, polling `status` to a 2 s bound, then `503 SERVICE_UNAVAILABLE`;
       - on a hold, `PlayerPayouts.Requested` before the answer;
       - 201 with the forfeit fields.
-- [ ] T025 [US1] `PlayerEndpoint`: `GET /{playerId}/withdrawal-requests` (newest first, from
+- [X] T025 [US1] `PlayerEndpoint`: `GET /{playerId}/withdrawal-requests` (newest first, from
       `WithdrawalQueue.byPlayer`) and `DELETE /{playerId}/withdrawal-requests/{requestId}` through the
       workflow's `cancel` → `release` cancelled, refusing `WITHDRAWAL_REQUEST_NOT_CANCELLABLE`.
 - [X] T026 [US1] `S/queue/WithdrawalQueue.scala` (the view of data-model.md, with no `Personal` column),
