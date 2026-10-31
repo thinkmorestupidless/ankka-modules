@@ -32,7 +32,7 @@ object Terminals:
     // comma-joined, trimmed, upper-cased, without blanks or repeats; empty is no restriction.
     val coins = t.properties.get("supportedCurrencies").toVector.flatMap(_.split(',')).map(_.trim.toUpperCase)
       .filter(_.nonEmpty).distinct
-    Json.obj("id" -> t.id, "name" -> t.name, "scheme" -> t.scheme, "gateway" -> t.gateway,
+    Json.obj("id" -> t.id, "subBrandId" -> t.subBrandId, "name" -> t.name, "scheme" -> t.scheme, "gateway" -> t.gateway,
       "active" -> t.status.equalsIgnoreCase("active"), "supportsWithdrawal" -> t.supportsWithdrawal,
       "requiresPayoutDestination" -> t.requiresPayoutDestination, "coins" -> Json.arr(coins*),
       "hasStatus" -> entry.exists(_.hasStatus), "reviewWindow" -> entry.flatMap(_.reviewWindow).map(_.toString))

@@ -148,7 +148,7 @@ one gate.
   `GET /v1/payments/withdrawal-terminals` answer.
 - A recurring timer refreshes it every 60 seconds.
 - The request path and the listing read it. A request finding it empty (the first minutes after a deploy) reads the gateway once and stores the answer.
-- The gateway's answer carries everything eligibility needs: `id`, `name`, `scheme`, `gateway`, `active`, `supportsWithdrawal`, `requiresPayoutDestination`, `coins[]`, `hasStatus` and `reviewWindow` (`services/psp-gateway/.../payouts/Terminals.scala:29-38`).
+- The gateway's answer carries everything eligibility and the payout need: `id`, `subBrandId`, `name`, `scheme`, `gateway`, `active`, `supportsWithdrawal`, `requiresPayoutDestination`, `coins[]`, `hasStatus` and `reviewWindow` (`services/psp-gateway/.../payouts/Terminals.scala:29-38`).
 
 **Rationale** (settled with the user, 2026-10-31):
 
@@ -396,6 +396,11 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
   confirmation and the request did not confirm.
 - **2026-10-31, the erasure route** is `POST /v1/casino/brands/<slug>/payouts/erasure/players/{playerId}`,
   the path `players`' `ErasureWorkflow` calls on every target (settled with the user; contracts/routes.md).
+- **2026-10-31, the listing carries the terminal's sub-brand** (settled with the user). The gateway's
+  payout (R7) names `subBrandId`, which picks the credential, and the listing gave none. psp-gateway's
+  listing row gains `subBrandId`, additively (005 contracts/payouts.md); payouts holds it on the
+  catalogue and on the request's terminal and sends it, as the original read `sub_brand_id` off the
+  terminal (`W:1607`).
 
 ## Design finished
 
