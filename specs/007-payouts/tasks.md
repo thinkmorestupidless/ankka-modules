@@ -122,7 +122,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [ ] T022 [US1] Fail first (a saved destination is seeded on `PlayerPayouts` directly; saving one is US3's): bind the US1 scenarios of `features/payouts/requests.feature` (the request
       and its hold, already pending, the amount, destination required, crypto address and coin, a
       destination not the player's, insufficient funds) in `T/features/RequestsFeatures.scala`.
-- [ ] T023 [US1] `S/workflow/WithdrawalWorkflow.scala`, the request half: `start` as the atomic claim
+- [X] T023 [US1] `S/workflow/WithdrawalWorkflow.scala`, the request half: `start` as the atomic claim
       (`KEY_REUSED` on a different body), the `hold` step keyed by the request id, `open`, a pause for
       review, and `status`. A wallet refusal is recorded and ends the workflow. Transport failures are
       retried (R9). Test it with `T/workflow/WithdrawalWorkflowSuite.scala` (`WorkflowTestKit`).
