@@ -51,6 +51,7 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
     val a = newPlayer(); submit(a)
     val b = newPlayer(); flag(b)
     listedUnder("filter=awaiting", a); listedUnder("filter=flagged&reason=large_deposit", b)
+    listedUnder("filter=pending", a); listedUnder("filter=unverified", b)
     val q = queue("filter=awaiting")
     val counts = q.get("counts")
     for (filter, count) <- Seq("filter=awaiting" -> "awaiting", "filter=pending" -> "pending", "filter=unverified" -> "unverified",
