@@ -47,6 +47,10 @@ final class PlayerPayouts(@scala.annotation.unused context: EventSourcedEntityCo
     val s = currentState
     if s.erased then emit(Vector.empty) else emit(if s.known && s.email.contains(c.address) then Vector.empty else Vector(EmailSeen(c.address, c.at)))
 
+  def seeCurrency(c: SeeCurrency): Effect[PlayerAnswer] =
+    val code = c.code.trim.toUpperCase
+    emit(if currentState.currency.contains(code) then Vector.empty else Vector(CurrencySeen(code, c.at)))
+
   def seeClosed(c: SeeClosed): Effect[PlayerAnswer] =
     emit(if currentState.closed then Vector.empty else Vector(ClosedSeen(c.at)))
 
@@ -116,6 +120,7 @@ object PlayerPayouts
   given Serializer[SeeNames]          = PayoutsCodecs.serializer[SeeNames]("see-names")
   given Serializer[SeeEmail]          = PayoutsCodecs.serializer[SeeEmail]("see-email")
   given Serializer[SeeClosed]         = PayoutsCodecs.serializer[SeeClosed]("see-closed")
+  given Serializer[SeeCurrency]       = PayoutsCodecs.serializer[SeeCurrency]("see-currency")
   given Serializer[SeeDeposit]        = PayoutsCodecs.serializer[SeeDeposit]("see-deposit")
   given Serializer[SaveDestination]   = PayoutsCodecs.serializer[SaveDestination]("save-destination")
   given Serializer[SetDefault]        = PayoutsCodecs.serializer[SetDefault]("set-default")
@@ -130,6 +135,7 @@ object PlayerPayouts
   val seeNames          = command("see-names")(_.seeNames)
   val seeEmail          = command("see-email")(_.seeEmail)
   val seeClosed         = command("see-closed")(_.seeClosed)
+  val seeCurrency       = command("see-currency")(_.seeCurrency)
   val seeDeposit        = command("see-deposit")(_.seeDeposit)
   val saveDestination   = command("save-destination")(_.saveDestination)
   val setDefault        = command("set-default")(_.setDefault)
@@ -146,6 +152,7 @@ object PlayerPayouts
     case NamesSeen(names, _) => s.copy(known = true, names = Some(names))
     case EmailSeen(email, _) => s.copy(known = true, email = Some(email))
     case ClosedSeen(_)       => s.copy(known = true, closed = true)
+    case CurrencySeen(c, _)  => s.copy(known = true, currency = Some(c))
     case DepositSeen(gateway, scheme) =>
       s.copy(deposits = s.deposits.updated(gateway, s.deposits.getOrElse(gateway, Set.empty) ++ scheme))
     case DestinationSaved(d) =>

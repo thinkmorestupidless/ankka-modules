@@ -7,7 +7,7 @@ import io.eitheror.casino.payouts.player.*
 
 /**
  * `casino.players` into the player's payout record (data-model.md): the KYC status, the profile's names, the
- * primary email, and the account's closure. Each command writes nothing when the record already holds what it
+ * primary email, the registration's currency (the wallet's), and the account's closure. Each command writes nothing when the record already holds what it
  * says, so a redelivery changes nothing; a fact for a player with no record starts one.
  */
 final class PlayersConsumer(client: ComponentClient) extends Consumer[Option[CasinoPlayersFact], Nothing]:
@@ -22,6 +22,7 @@ final class PlayersConsumer(client: ComponentClient) extends Consumer[Option[Cas
             case c: SeeNames  => player.call(PlayerPayouts.seeNames).invoke(c): Unit
             case c: SeeEmail  => player.call(PlayerPayouts.seeEmail).invoke(c): Unit
             case c: SeeClosed => player.call(PlayerPayouts.seeClosed).invoke(c): Unit
+            case c: SeeCurrency => player.call(PlayerPayouts.seeCurrency).invoke(c): Unit
           }
           effects.done()
     case None =>
@@ -32,7 +33,7 @@ object PlayersConsumer extends Consumer.Companion[PlayersConsumer, Option[Casino
       ComponentId("payouts-players-consumer"), Read.from(CasinoPlayers)):
   def create(ctx: ConsumerContext) = new PlayersConsumer(ctx.componentClient)
 
-  type Command = SeeKyc | SeeNames | SeeEmail | SeeClosed
+  type Command = SeeKyc | SeeNames | SeeEmail | SeeClosed | SeeCurrency
 
   /**
    * The commands a fact makes, in order; none for a family this service does not read. The names are taken
@@ -40,7 +41,8 @@ object PlayersConsumer extends Consumer.Companion[PlayersConsumer, Option[Casino
    */
   def commands(fact: CasinoPlayersFact): Vector[Command] = fact match
     case f: PlayerRegistered =>
-      names(f.givenName, f.familyName, f) ++ f.email.map(SeeEmail(_, f.occurredAt)).toVector
+      names(f.givenName, f.familyName, f) ++ f.email.map(SeeEmail(_, f.occurredAt)).toVector ++
+        f.currency.filter(_.trim.nonEmpty).map(SeeCurrency(_, f.occurredAt)).toVector
     case f: PlayerProfileUpdated => names(f.givenName, f.familyName, f)
     case f: PlayerEmailChanged   => Vector(SeeEmail(f.email, f.occurredAt))
     case f: PlayerClosed         => Vector(SeeClosed(f.occurredAt))

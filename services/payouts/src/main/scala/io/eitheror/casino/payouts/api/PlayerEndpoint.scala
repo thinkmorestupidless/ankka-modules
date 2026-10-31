@@ -36,6 +36,15 @@ final class PlayerEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${
   get("/{playerId}/withdrawal-requests") { (p: String) => mine(p)(Requests.list(ctx, p)) }
   delete("/{playerId}/withdrawal-requests/{requestId}") { (p: String, r: String) => mine(p)(Requests.cancel(ctx, p, r)) }
 
+  get("/{playerId}/withdrawal-terminals") { (p: String) => mine(p)(Accounts.terminals(ctx, p, request.query.raw("currency"))) }
+
+  get("/{playerId}/payout-destinations") { (p: String) => mine(p)(Accounts.destinations(ctx, p)) }
+  postBody("/{playerId}/payout-destinations") { (p: String, text: String) => mine(p)(body(text)(Accounts.save(ctx, p, _))) }
+  putBody("/{playerId}/payout-destinations/{id}") { (p: String, id: String, text: String) =>
+    mine(p)(body(text)(Accounts.setDefault(ctx, p, id, _)))
+  }
+  delete("/{playerId}/payout-destinations/{id}") { (p: String, id: String) => mine(p)(Accounts.delete(ctx, p, id)) }
+
 /** The request routes' work, apart from the endpoint so a suite can read it. */
 object Requests:
 

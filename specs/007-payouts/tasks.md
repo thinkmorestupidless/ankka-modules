@@ -164,10 +164,10 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 - [X] T031 [US3] Fail first: bind `features/payouts/terminals.feature` in
       `T/features/TerminalsFeatures.scala`.
-- [ ] T032 [US3] `PlayerEndpoint`: `GET /{playerId}/withdrawal-terminals?currency=`. Eligibility is
+- [X] T032 [US3] `PlayerEndpoint`: `GET /{playerId}/withdrawal-terminals?currency=`. Eligibility is
       ranked from the catalogue, and the currency is the wallet's when absent. One rule serves the
       listing and the request (FR-010).
-- [ ] T033 [US3] `PlayerEndpoint`: `GET`, `POST /{playerId}/payout-destinations`,
+- [X] T033 [US3] `PlayerEndpoint`: `GET`, `POST /{playerId}/payout-destinations`,
       `PUT /{playerId}/payout-destinations/{id}` (`setAsDefault: true`) and `DELETE …/{id}`, with the refusals
       of contracts/routes.md. The IBAN is shown as its last four.
 - [ ] T034 [US3] `T/it/EligibilitySuite.scala`:

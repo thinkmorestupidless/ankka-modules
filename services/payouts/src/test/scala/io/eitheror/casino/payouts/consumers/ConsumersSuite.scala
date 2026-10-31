@@ -31,6 +31,7 @@ class ConsumersSuite extends munit.FunSuite with LogCapturing:
     case c: SeeNames  => kit.call(PlayerPayouts.seeNames)(c).events
     case c: SeeEmail  => kit.call(PlayerPayouts.seeEmail)(c).events
     case c: SeeClosed => kit.call(PlayerPayouts.seeClosed)(c).events
+    case c: SeeCurrency => kit.call(PlayerPayouts.seeCurrency)(c).events
 
   test("each KYC family is its status"):
     val facts = Vector[CasinoPlayersFact](PlayerKycSubmitted("p-1", "d-1", "identity_front", at),
@@ -39,10 +40,10 @@ class ConsumersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(facts.flatMap(PlayersConsumer.commands).collect { case SeeKyc(s, _) => s },
       Vector(Kyc.Submitted, Kyc.Pending, Kyc.Verified, Kyc.Rejected))
 
-  test("player_registered gives the names and the email; names only as a pair"):
+  test("player_registered gives the names, the email and the currency; names only as a pair"):
     assertEquals(PlayersConsumer.commands(registered("p-1")),
-      Vector(SeeNames(Personal("Ana"), Personal("Silva"), at), SeeEmail(Personal("ana@example.test"), at)))
-    assertEquals(PlayersConsumer.commands(registered("p-1", names = false, email = false)), Vector.empty)
+      Vector(SeeNames(Personal("Ana"), Personal("Silva"), at), SeeEmail(Personal("ana@example.test"), at), SeeCurrency("EUR", at)))
+    assertEquals(PlayersConsumer.commands(registered("p-1", names = false, email = false)), Vector(SeeCurrency("EUR", at)))
     val half = PlayerProfileUpdated("p-1", Vector("givenName"), Some(Personal("Ana")), None, None, None, None, None, None, None, at)
     assertEquals(PlayersConsumer.commands(half), Vector.empty)
 
@@ -54,8 +55,9 @@ class ConsumersSuite extends munit.FunSuite with LogCapturing:
   test("a fact for a player with no record starts one; its redelivery changes nothing"):
     val kit = EventSourcedTestKit.of(PlayerPayouts, "p-new")
     val first = (PlayersConsumer.commands(registered("p-new")) ++ PlayersConsumer.commands(verified("p-new"))).flatMap(apply(kit, _))
-    assertEquals(first.size, 3)
-    assertEquals((kit.currentState.known, kit.currentState.kyc, kit.currentState.email), (true, Kyc.Verified, Some(Personal("ana@example.test"))))
+    assertEquals(first.size, 4)
+    assertEquals((kit.currentState.known, kit.currentState.kyc, kit.currentState.email, kit.currentState.currency),
+      (true, Kyc.Verified, Some(Personal("ana@example.test")), Some("EUR")))
     val again = (PlayersConsumer.commands(registered("p-new")) ++ PlayersConsumer.commands(verified("p-new"))).flatMap(apply(kit, _))
     assertEquals(again, Vector.empty[PlayerEvent])
 
