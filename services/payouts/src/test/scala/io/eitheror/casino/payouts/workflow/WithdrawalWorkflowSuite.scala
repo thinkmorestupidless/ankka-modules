@@ -200,3 +200,11 @@ class WithdrawalWorkflowSuite extends munit.FunSuite with LogCapturing:
     kit.eventually("published")(kit.facts(io.eitheror.casino.contract.facts.CasinoWithdrawals).collectFirst {
       case f: io.eitheror.casino.contract.facts.WithdrawalFailed if f.payoutId == j.requestId => f.failureReason
     }.filter(_ == "manual_payout_failed"))
+
+  test("a step failed past its retries resumes where it was; an initiation resumes at the wait, never at a second payout"):
+    val working = Flow.Busy ++ Set(Flow.Releasing, Flow.Waiting, Flow.NeedsReview, Flow.Confirming, Flow.Reversing)
+    assertEquals(WithdrawalWorkflow.resumable.keySet, working)
+    assertEquals(WithdrawalWorkflow.resumable(Flow.Initiating), WithdrawalWorkflow.waitStep)
+    // A paused or ended position has nothing to run again.
+    Vector(Flow.Review, Flow.AwaitingManual, Flow.Completed, Flow.Released, Flow.Reversed, Flow.Refused)
+      .foreach(p => assert(!WithdrawalWorkflow.resumable.contains(p), p))
