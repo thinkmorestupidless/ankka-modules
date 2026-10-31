@@ -54,7 +54,8 @@ ETO/ACH, webhook only); the gateway's adapters are spec 005's, this spec sees on
   parks as awaiting manual payout, because a refusal at initiation means nothing reached the
   provider and a human can pay another way, while the player's money has already been taken. The
   release happens only when an operator marks the manual payout failed. Confirmed below as an open
-  product question, since the plan said otherwise.
+  product question, since the plan said otherwise. *(Superseded 2026-10-25: a rejection releases the
+  hold; FR-018.)*
 - Q: The affiliate notifications the original sends (a withdrawal at approval, a reversal on failure
   or chargeback)? → A: Gone. `payouts` emits `casino.withdrawals` facts and the brand's `attribution`
   service derives spec 012's four withdrawal kinds from them; which of them commission counts is spec
@@ -96,7 +97,7 @@ Settled with specs 008–011 once they existed.
   rejected, submitted and pending (FR-003); "under review" is answered for a document pending or an
   account set pending.
 
-### Note from spec 005 (2026-10-18), not yet clarified here
+### Note from spec 005 (2026-10-18), read into FR-018 on 2026-10-31
 
 - The gateway's payout answers are spec 005's `contracts/payouts.md`: `initiated`, `completed`,
   `rejected`, `in_doubt` and `already_initiated`, the original's words. FR-018 reads all but
@@ -114,6 +115,19 @@ The markers left open for product and regulatory decisions, settled with Trevor 
   operator's act (FR-018).
 - Q: May a suspended, self-excluded or closed account withdraw? → A: Yes, as the original, gated by
   identity and funds: the money is the player's (FR-005, Assumptions).
+
+### Session 2026-10-31
+
+- Q: The original refuses a request that would pass the brand's weekly (rolling seven days) or monthly
+  (UTC calendar month) withdrawal limit (`WithdrawalLimitChecker`, `withdrawal-config`); this spec had
+  none. Port them? → A: Ported, per currency: `payouts` serves `withdrawal-config`'s two limits (the
+  turnover terms there stay the wallet's, spec 002 FR-004a) and counts usage from its own requests, so
+  there is no outside read to fail open on; the original's EUR only becomes a limit per currency
+  (FR-005a, FR-005b).
+- Q: Saving a destination matches the holder's names to the profile (FR-013), and `payouts` calls only
+  the wallet and the gateway. Where do the profile's names come from? → A: A view of `payouts`' own,
+  from `player_registered` and `player_profile_updated` on `casino.players` (spec 009's addition), the
+  names `Personal` and erased with the player (FR-003).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -144,9 +158,12 @@ and `create-withdrawal-request.test.tl`; the Playwright `withdrawal-us1-new-dest
 
 ---
 
-### User Story 2 - A player is blocked by identity, turnover or a bonus in play (Priority: P1)
+### User Story 2 - A player is blocked by identity, turnover, a withdrawal limit or a bonus in play (Priority: P1)
 
-The gates before the hold, each telling the player exactly why and what to do next.
+The gates before the hold, each telling the player exactly why and what to do next. A brand may set
+a weekly and a monthly withdrawal limit per currency; a request that would pass one is refused.
+
+An admin of the brand reads and sets the limits.
 
 **Why this priority**: regulatory (identity), commercial (turnover) and the one gate that takes money
 from the player (forfeiting a bonus), so the wording and the order matter.
@@ -164,6 +181,9 @@ and the `WITHDRAWAL_*` branches of `create-withdrawal-request.test.tl`.
 - added `features/payouts/requests.feature`: a request confirming the forfeit places the hold, forfeits the record and applies the clawback once
 - added `features/payouts/requests.feature`: a request with a record under a funds policy requires confirmation naming a clawback of zero
 - added `features/payouts/requests.feature`: a request above real balance alone with restricted funds in play is refused as insufficient funds, not as insufficient after forfeit
+- added `features/payouts/requests.feature`: a request that would pass the brand's weekly withdrawal limit is refused naming the limit, what was used and what remains
+- added `features/payouts/requests.feature`: a request that would pass the brand's monthly withdrawal limit is refused naming the limit, what was used and what remains
+- added `features/payouts/requests.feature`: a withdrawal request cancelled, rejected or failed does not count towards a withdrawal limit
 
 ---
 
@@ -224,9 +244,9 @@ completed, initiated, in doubt, or rejected. Completed confirms the hold. Initia
 wait: the provider's outcome arrives on the granted outcome route, or the workflow polls status
 after 30 minutes and every 5 minutes until the provider's answer is final, or, for a provider with
 no status to ask, the request is marked needs review after the provider's window. Rejected at
-initiation, or a terminal without automated payout, parks the request awaiting manual payout, where
-an operator confirms the payout or marks it failed. Nothing in doubt is ever offered for manual
-payment.
+initiation releases the hold and tells the player to try another terminal. A terminal without
+automated payout parks the request awaiting manual payout, where an operator confirms the payout or
+marks it failed. Nothing in doubt is ever offered for manual payment.
 
 **Why this priority**: the duplicate payout is the costliest mistake in the system; the original's
 rule that "ambiguous means in doubt, never manual" is the heart of this story.
@@ -304,7 +324,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
   player routes under `/v1/casino/brands/{brand}/players/{player}/withdrawal-requests`,
   `/withdrawal-terminals` and `/payout-destinations` for the brand's player realm, refusing a token
   whose player is not the route's; brand routes under `/v1/casino/brands/{brand}/withdrawal-requests`
-  for the operator realm with a finance or admin role naming the brand; and one route for a payout's
+  for the operator realm with a finance or admin role naming the brand, and
+  `/v1/casino/brands/{brand}/withdrawal-config` for an admin role naming the brand (the original admits
+  `brand_admin`, `resource_admin` and `platform_admin`, not finance); and one route for a payout's
   outcome, granted to `payments`/`psp-gateway` under ankka 040 (spec 001 FR-016) and admitted by that
   identity alone. Every route keeps its `{brand}` segment and refuses any other brand (spec 001
   FR-005).
@@ -315,8 +337,10 @@ provider reference and status; the queue's needs-review set is visible at a glan
   call no other service.
 - **FR-003**: `payouts` MUST build its own views from `casino.players` (identity verified, rejected,
   submitted and pending — spec 009 FR-030's `player_kyc_verified`, `player_kyc_rejected`,
-  `player_kyc_submitted`, `player_kyc_pending`; account closed) and `money.transactions` (the
-  gateway and scheme of every confirmed deposit), and MUST NOT query another service's store (constitution IV).
+  `player_kyc_submitted`, `player_kyc_pending`; account closed; the given and family names
+  `player_registered` and `player_profile_updated` carry, kept `Personal` for FR-013's match) and
+  `money.transactions` (the gateway and scheme of every confirmed deposit), and MUST NOT query another
+  service's store (constitution IV).
 
 **The request**
 
@@ -330,9 +354,22 @@ provider reference and status; the queue's needs-review set is visible at a glan
   review and rejected; the terminal is not eligible (FR-012); the terminal requires a destination and
   none is named; a crypto terminal has no wallet address; the coin named is not in the terminal's
   list, naming the list; the destination is not the player's own and active.
+- **FR-005a**: A brand MAY set, per currency, a weekly and a monthly withdrawal limit in minor units;
+  none set, or zero, is no limit. The admin route of FR-001 MUST read and set them (`GET` and `PUT
+  withdrawal-config`), refusing a negative or decimal amount naming the field, and MUST record each
+  change to `platform.audit` with the operator. The brand's deposit turnover terms the original keeps
+  on the same route are the wallet's (spec 002 FR-004a), not this service's.
+- **FR-005b**: After the hold preview finds no turnover pending (FR-006), and before its other answers,
+  a request MUST be refused when the player's requests in the request's currency created in the last
+  seven days (rolling), plus the amount, exceed the weekly limit, as the original's
+  `WITHDRAWAL_BLOCKED_WEEKLY_LIMIT` naming the limit, the amount used and what remains; else the same
+  for the current UTC calendar month and the monthly limit (`WITHDRAWAL_BLOCKED_MONTHLY_LIMIT`). A
+  request counts while pending review, approved, awaiting manual payout or completed; cancelled,
+  rejected, failed and reversed requests do not. The usage MUST be read from `payouts`' own requests,
+  so the check calls nothing and cannot fail open.
 - **FR-006**: The wallet's hold preview MUST then decide, with the wallet's own answers passed
-  through: blocked by turnover, naming the remaining amount; insufficient funds when real balance
-  alone is below the amount; insufficient after bonus forfeit, naming the most withdrawable, when the
+  through: blocked by turnover, naming the remaining amount; insufficient funds when the available
+  amount (real balance less reserved, spec 022 FR-003) is below the amount; insufficient after bonus forfeit, naming the most withdrawable, when the
   clawback would leave real below the amount; requires bonus-forfeit confirmation, naming bonus
   balance, clawback and total forfeit, when any active record's policy forfeits on withdrawal and the
   player has not confirmed. A funds-only policy MUST require confirmation with a clawback of zero; a
@@ -390,7 +427,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
   the gateway with the request id as the idempotency key, the amount, currency, terminal, destination
   or address and coin, or Gigadat fields; otherwise the request MUST be awaiting manual payout.
 - **FR-018**: The gateway's answer MUST be read as: *completed* — confirm the hold and complete;
-  *initiated* with a provider reference — record it and wait; *rejected* — release the hold as a
+  *initiated* with a provider reference, or *already initiated* (the provider already holds the
+  request; spec 005 *Clarifications*, 2026-10-19) — record it and wait; *rejected*, including a
+  provider's refusal of the gateway's credentials (`unauthorised`) — release the hold as a
   withdrawal return with reason `provider_rejected` (FR-023) and tell the player to try another
   terminal (**change from the original**, which parks the request for a manual payout);
   *in doubt*, an unreachable gateway, an unparseable answer or an unrecognised status — record what
@@ -458,6 +497,10 @@ provider reference and status; the queue's needs-review set is visible at a glan
   flag and status (`active`, `deleted`); one event sourced entity per player.
 - **Eligibility view**: per player, the gateways and schemes of confirmed deposits, from
   `money.transactions`; per player, identity status and account status, from `casino.players`.
+- **Withdrawal limits**: per brand, a weekly and a monthly limit per currency (FR-005a); one entity
+  per brand.
+- **Name view**: per player, the given and family names from `casino.players`, `Personal`, for the
+  destination match (FR-013).
 - **Queue view**: the brand's requests by status, payout status, player, identity status, method,
   amount and age, from request events.
 - **Withdrawal notifier**: the consumer that shapes request events into `casino.withdrawals`.
@@ -500,6 +543,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
 - Amounts on the player's route are minor units, not a decimal of major units (spec 001 FR-026); the
   `bonusForfeited`, `forfeitedAmount` and `clawbackAmount` fields of the reply are minor units too.
 - Reasons and review notes are `Personal`; the original stored them in the clear on the twin.
+- Withdrawal limits are per currency, not EUR only with every other currency let through; their usage
+  is counted from `payouts`' own requests, not a fan-out over the wallet twin's edges, so nothing fails
+  open (FR-005b). The turnover terms the original's `withdrawal-config` also carried are the wallet's.
 - The withdrawal activity-log events written to a twin become `platform.audit` records.
 - Dropped as stubs: `turnover-override` and `deposit-records` routes under the withdrawal file belong
   to spec 002's reads and spec 008, not here.
@@ -514,7 +560,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
   `reverse-withdrawal-request.test.tl`, `mark-withdrawal-awaiting-payout.test.tl`.
 - Scala: `WithdrawalRoutesSpec`, `WithdrawalTerminalRoutesSpec`, `PayoutDestinationRoutesSpec`,
   `PayoutReconciliationSweeperSpec`.
-- Playwright: `withdrawal-us1-new-destination.spec.ts`, `withdrawal-us2-saved-destination.spec.ts`.
+- Playwright: `withdrawal-us1-new-destination.spec.ts`, `withdrawal-us2-saved-destination.spec.ts`,
+  `58-brand-config-withdrawal-limits.spec.ts`.
+- Scala: `WithdrawalLimitChecker`'s spec and `BrandConfigRoutesSpec`'s `withdrawal-config` cases.
 - The gateway's own payout handler and adapter tests (`TestPayoutHandler*`, `TestMorphosisPayout_*`,
   `TestGigadatPayout*`, `TestMorphosisWithdrawalWebhook_*`) are spec 005's recordings; this spec's
   parity tests drive `payouts` against a scripted gateway that answers as those tests prove the real
@@ -566,6 +614,7 @@ provider reference and status; the queue's needs-review set is visible at a glan
 
 - The gateway's provider adapters, their credentials and their webhooks (spec 005).
 - Deposits, deposit turnover's definition and overrides (specs 002, 004).
-- Responsible-gambling limits on withdrawals, which the original does not have (spec 010 may add).
+- A player's own responsible-gambling limits on withdrawals, which the original does not have (spec
+  010 may add); the brand's withdrawal limits are in scope (FR-005a).
 - The affiliate commission consequence of a withdrawal (spec 013).
 - The operator console and the player frontend, which change base URLs and the amount's units.
