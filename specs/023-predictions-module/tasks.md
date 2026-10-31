@@ -36,12 +36,12 @@ Paths: `S/m` = `services/markets/src`, `S/x` = `services/exchange/src`, packages
 suspends, resumes, resolves, corrects and voids a market; every change is a fact on
 `markets.events`. **Independent test**: `lifecycle.feature` bound in `markets`.
 
-- [ ] T010 [US3] `MarketTerms` key-value entity (data-model) in `S/m/main/…/markets/terms/MarketTerms.scala`, with its unit suite
-- [ ] T011 [US3] The resolution port answering `Allow` (R6, contracts/ports.md) in `S/m/main/…/markets/Resolution.scala`; register `MarketsComponents` and `MarketTerms` in `Main.scala` with `ProjectionRuntime` and `TimerRuntime`
-- [ ] T012 [US3] `OperatorEndpoint` (contracts/routes.md, markets) in `S/m/main/…/markets/api/OperatorEndpoint.scala`: `operatorHolding(slug, "markets", "platform_admin")`, the category and currency checks before the library (FR-013), drafted limits written to `MarketTerms` first, the library's refusals mapped to 400/409 with their names
-- [ ] T013 [US3] `MarketFactsPublisher` over the market entity onto `markets.events` in `S/m/main/…/markets/facts/MarketFactsPublisher.scala`
-- [ ] T014 [US3] Bind `features/predictions/lifecycle.feature` in `S/m/test/…/markets/features/LifecycleFeatures.scala` through `GherkinSuite`
-- [ ] T015 [US3] Integration suite over Postgres in `S/m/test/…/markets/it/LifecycleItSuite.scala`: the timers open and close a market on time after a restart; the facts appear once each
+- [X] T010 [US3] `MarketTerms` key-value entity (data-model) in `S/m/main/…/markets/terms/MarketTerms.scala`, with its unit suite
+- [X] T011 [US3] The resolution port answering `Allow` (R6, contracts/ports.md) in `S/m/main/…/markets/Resolution.scala`; register `MarketsComponents` and `MarketTerms` in `Main.scala` with `ProjectionRuntime` and `TimerRuntime`
+- [X] T012 [US3] `OperatorEndpoint` (contracts/routes.md, markets) in `S/m/main/…/markets/api/OperatorEndpoint.scala`: `operatorHolding(slug, "markets", "platform_admin")`, the category and currency checks before the library (FR-013), drafted limits written to `MarketTerms` first, the library's refusals mapped to 400/409 with their names
+- [X] T013 [US3] `MarketFactsPublisher` over the market entity onto `markets.events` in `S/m/main/…/markets/facts/MarketFactsPublisher.scala`
+- [X] T014 [US3] Bind `features/predictions/lifecycle.feature` in `S/m/test/…/markets/features/LifecycleFeatures.scala` through `GherkinSuite`
+- [X] T015 [US3] Integration suite over Postgres in `S/m/test/…/markets/it/LifecycleItSuite.scala`: the timers open and close a market on time after a restart; the facts appear once each
 
 ## Phase 4: User Story 1 — an order passes the gates and is funded (P1)
 
