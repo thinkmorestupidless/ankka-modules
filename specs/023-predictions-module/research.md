@@ -261,3 +261,11 @@ the original*).
 ## Design finished
 
 2026-10-31: analyze reported nothing above LOW.
+
+## Found during implementation
+
+- **T002–T003, the eviction.** sbt's early-semver check refuses the contract's ankka 0.13.0 evicted to
+  0.14.2. The two builds lift it for ankka's artifacts alone (`libraryDependencySchemes`, `Always`),
+  as R1 planned; T001 passed the contract's suites on 0.14.2, and these services' suites run its
+  classes there. ankka-predictions v0.1.0 is not on Maven Central (the release's signing failed), so
+  the builds resolve it from `~/.ivy2/local` (`sbt publishLocal` at the tag) until it is.
