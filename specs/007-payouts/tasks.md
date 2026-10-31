@@ -88,7 +88,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 - [ ] T016 `S/terminals/TerminalCatalogue.scala` (key value) and `S/terminals/CatalogueTimer.scala`
       (`terminals-<slug>`, every 60 s, one currency at a time; a failed refresh keeps the last list), with
       their kits.
-- [ ] T017 [P] `S/clients/Wallet.scala` (trait + HTTP: preview, hold, release, confirm, reverse; keys
+- [X] T017 [P] `S/clients/Wallet.scala` (trait + HTTP: preview, hold, release, confirm, reverse; keys
       `<id>/<step>`; refusals read as research R9 says) and `S/clients/Gateway.scala` (trait + HTTP:
       listing, initiate, status; every answer of research R7 and R8 decoded, an unreadable body as
       `Unreadable`), with `T/it/FakeWallet.scala` and `T/it/FakeGateway.scala` (each answer scriptable per
