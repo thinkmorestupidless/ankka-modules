@@ -19,7 +19,7 @@ final class RegistrationConsumer(client: ComponentClient) extends Consumer[Optio
       val policy = client.forEventSourcedEntity(EntityId(KycRuntime.settings.brand)).call(PolicyEntity.get).invoke()
       val record = client.forEventSourcedEntity(EntityId(f.playerId))
       record.call(KycRecord.setDeadline).invoke(RegistrationConsumer.command(f, policy)): Unit
-      ProfileConsumer.registered(f, policy.required, KycRuntime.now()).foreach(record.call(KycRecord.registeredProfile).invoke(_): Unit)
+      ProfileConsumer.registered(f, policy.required, f.occurredAt).foreach(record.call(KycRecord.registeredProfile).invoke(_): Unit)
       effects.done()
     case Some(_) => effects.ignore()
     case None =>

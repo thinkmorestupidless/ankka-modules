@@ -39,7 +39,7 @@ final class ProfileConsumer(client: ComponentClient) extends Consumer[Option[Cas
     case Some(f: PlayerProfileUpdated) =>
       val policy = client.forEventSourcedEntity(EntityId(KycRuntime.settings.brand)).call(PolicyEntity.get).invoke()
       client.forEventSourcedEntity(EntityId(f.playerId)).call(KycRecord.profileChanged)
-        .invoke(ProfileConsumer.command(f, policy.required, KycRuntime.now())): Unit
+        .invoke(ProfileConsumer.command(f, policy.required, f.occurredAt)): Unit
       effects.done()
     case Some(_) => effects.ignore()
     case None =>

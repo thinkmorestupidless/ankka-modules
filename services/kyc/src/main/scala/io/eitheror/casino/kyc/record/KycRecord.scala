@@ -157,7 +157,9 @@ final class KycRecord(@scala.annotation.unused context: EventSourcedEntityContex
 
   def profileChanged(c: ProfileChanged): Effect[KycAnswer] =
     val s = currentState
-    if !c.requiredChanged && c.present == s.profile.present && c.adultFrom.map(_.reveal) == s.profile.adultFrom.map(_.reveal) then emit(Vector.empty)
+    val seen = c.requiredChanged && s.profile.changedAt.exists(!_.isBefore(c.at))
+    if (!c.requiredChanged || seen) && c.present == s.profile.present && c.adultFrom.map(_.reveal) == s.profile.adultFrom.map(_.reveal) then
+      emit(Vector.empty)
     else
       emit(withDerivation(Vector(ProfileUpdated(c.present, c.adultFrom, c.requiredChanged, c.at)), Trigger.Profile, c.policyRequired, c.at))
 
@@ -321,7 +323,7 @@ object KycRecord
       val d = s.deposits.getOrElse(e.currency, Deposits())
       s.copy(playerId = e.playerId, deposits = s.deposits + (e.currency -> Deposits(d.total + e.amount, e.ordinal)))
     case e: ProfileUpdated =>
-      s.copy(profile = ProfileFacts(e.present, e.adultFrom, if e.requiredChanged then Some(e.at) else s.profile.changedAt))
+      s.copy(profile = ProfileFacts(e.present, e.adultFrom, if e.requiredChanged then Some(s.profile.changedAt.fold(e.at)(t => if t.isAfter(e.at) then t else e.at)) else s.profile.changedAt))
     case e: DeadlineSet         => s.copy(playerId = e.playerId, deadline = Some(Deadline(e.deadline, e.migrated)))
     case e: DeadlineHandled     => s.copy(deadline = s.deadline.map(d => if d.at == e.deadline then d.copy(handled = true, suspend = e.suspend) else d))
     case e: SuspensionRequested => s.copy(deadline = s.deadline.map(d => if d.at == e.deadline then d.copy(suspensionRequested = true) else d))

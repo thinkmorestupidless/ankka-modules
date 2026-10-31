@@ -270,6 +270,20 @@ class KycRecordSuite extends munit.FunSuite with LogCapturing:
     assertEquals(changed.events.last, StatusChanged(Status.Verified, Status.Unverified, Actor.System, "profile_changed", None, later(10)))
     assertEquals(kit.currentState.documents.head.review.map(_.outcome), Some(Outcome.Approved))
 
+  test("ProfileChanged: a change read again, or read after a later verification, leaves the account verified"):
+    val kit = fresh
+    completeProfile(kit, requiredChanged = true, when = later(1)): Unit
+    upload(kit, Category.IdentityFront, "d-1", later(5)): Unit
+    review(kit, "d-1", Outcome.Approved, when = later(6)): Unit
+    assertEquals(kit.currentState.status, Status.Verified)
+    assertEquals(completeProfile(kit, requiredChanged = true, when = later(1)).events, ev())
+    val late = fresh
+    verified(late)
+    completeProfile(late, requiredChanged = true, when = later(-10)): Unit
+    assertEquals(late.currentState.status, Status.Verified)
+    completeProfile(late, requiredChanged = true, when = later(-20)): Unit
+    assertEquals(late.currentState.profile.changedAt, Some(later(-10)))
+
   // The window
 
   test("SetDeadline: registration plus the window, once; a policy with no window sets none"):
