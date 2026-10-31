@@ -61,7 +61,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       calendar month, the counting statuses; FR-005b), with `T/limits/LimitsSuite.scala`:
       `WithdrawalLimitChecker`'s cases per currency, each window at its edges, and zero or none as no
       limit.
-- [ ] T009 [P] `S/terminals/Eligibility.scala` (pure: research R5's rule and ranking), with
+- [X] T009 [P] `S/terminals/Eligibility.scala` (pure: research R5's rule and ranking), with
       `T/terminals/EligibilitySuite.scala`: `WithdrawalTerminalEligibility`'s cases, an unrecorded scheme
       counted as not VISA, and 1,000 reads in one order (SC-007).
 - [ ] T010 [P] `S/player/Iban.scala` and `S/player/Names.scala` (pure: research R13), with their suites:
