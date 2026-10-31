@@ -130,7 +130,10 @@ final class PlayerEndpoint(components: ExchangeComponents, clients: EndpointClie
           case PlacementOutcome.Refused(r) => refused(r)
           case PlacementOutcome.Running    => pending(request)
       }
-    catch case e: CommandError if e.code == ErrorCode.Timeout => pending(request)
+    catch
+      case e: CommandError if e.code == ErrorCode.Timeout => pending(request)
+      // The placement runs under the market and the order: another order under its id is the id reused.
+      case e: CommandError if e.code == ErrorCode.Conflict => refused(Refusals.id(request.order.order))
 
   private def pending(request: PlaceOrder) =
     refusal(503, "pending", "The order is still being placed; ask again with the same order", "order" -> request.order.order.value)

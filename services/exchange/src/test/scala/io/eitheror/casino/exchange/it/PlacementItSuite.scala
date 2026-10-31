@@ -70,3 +70,17 @@ class PlacementItSuite extends munit.FunSuite with LogCapturing:
       .call(io.eitheror.casino.exchange.terms.MarketTerms.get).invoke()
     assertEquals(terms.currency, "EUR")
   }
+
+  test("a repeat of an order, sent later, is answered as the first; another order under its id is refused naming the id") {
+    val m = market()
+    kit.wallet.real.put("ada", 1000L)
+    val first = kit.place("ada", m, "o5", "buy", "yes", 2, 60)
+    assertEquals(first.status, 200, first.text)
+    Thread.sleep(5)
+    val again = kit.place("ada", m, "o5", "buy", "yes", 2, 60)
+    assertEquals((again.status, again.text), (first.status, first.text))
+    val other = kit.place("ada", m, "o5", "buy", "yes", 3, 60)
+    assertEquals(other.status, 409, other.text)
+    assertEquals((other.str("error"), other.str("id")), ("id", "o5"))
+    assertEquals(kit.wallet.calls("reservations").map(_._1), Vector(s"$m/o5"))
+  }
