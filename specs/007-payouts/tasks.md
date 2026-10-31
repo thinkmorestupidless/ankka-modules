@@ -71,7 +71,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       gateway, and each missing field leading to manual payout.
 - [X] T012 `S/request/Model.scala`, `S/player/Model.scala`, `S/limits/Model.scala`: states, events,
       commands and refusals as data-model.md has them, `Personal` where it marks.
-- [ ] T013 `S/player/PlayerPayouts.scala`, with `T/player/PlayerPayoutsSuite.scala`
+- [X] T013 `S/player/PlayerPayouts.scala`, with `T/player/PlayerPayoutsSuite.scala`
       (`EventSourcedTestKit`):
       - every row of data-model.md's table;
       - deposits deduplicated by ordinal;
