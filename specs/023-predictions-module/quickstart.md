@@ -8,7 +8,7 @@ ankka-predictions v0.1.0 on Maven Central.
    and the integration kit. Every scenario of `features/predictions/` passes but the two fee
    scenarios (ignored naming ankka-predictions spec 007) and the mirroring one (ignored naming
    ankka-reasoning 0.2.0).
-3. The module: `just modules validate --all`; `just modules render <slug>` shows `markets` and
+3. The module: `just modules validate --all`; `just modules render <slug> --modules predictions` shows `markets` and
    `exchange` for a brand entitled to `predictions`.
 4. SC-002: `just service exchange "testOnly *PlacementPerfSuite"` prints the median and p99.
 5. SC-003, on purpose only, against kind (`--context kind-…`): `just it` runs ankka-predictions'
