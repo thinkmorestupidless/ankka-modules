@@ -1,0 +1,358 @@
+{
+  "scenario": "a VISA terminal is absent for a player who never deposited by VISA",
+  "requirement": "007/FR-011",
+  "recorded_at": "2026-10-31T15:12:55.031832Z",
+  "original": {
+    "commit": "e7d8f2de"
+  },
+  "runs": 2,
+  "service": "payouts",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "d45247f9-cd95-3f47-bed8-40bc4276ddcf",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "d45247f9-cd95-3f47-bed8-40bc4276ddcf",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: deposit to the player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+        "service": "wallet",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Internal-Brand-Id": "spinvibe"
+        },
+        "body": {
+          "amount": "100.00",
+          "paymentRef": "{deposit}",
+          "pspId": "payouts-driver-psp",
+          "scheme": "card",
+          "terminalId": "payouts-driver"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "realBalance": "100.00",
+          "txnId": "transaction/6d75e6b5-40b4-4203-8d8e-e247b0e01d62"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player's deposit turnover pending is 0.00",
+      "request": {
+        "method": "POST",
+        "path": "/twins/wallet/{walletTwin}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "deposit_turnover_pending": 0
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "wallet/3d2e5e77-07b9-3336-b32b-da0c14b83fb9"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the terminal payouts driver visa",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal/{visaTerminal}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "gateway": "payouts-driver-visa",
+          "id": "{visaTerminal}",
+          "name": "payouts driver visa",
+          "requiresPayoutDestination": false,
+          "scheme": "VISA",
+          "status": "active",
+          "supportsWithdrawal": true
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal/6f52bda7-1cb4-469b-a595-566307f67e90"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the brand's terminal index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8"
+        }
+      }
+    },
+    {
+      "name": "setup: add the terminal to the brand's index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8|{visaTerminal}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a"
+        }
+      }
+    },
+    {
+      "name": "list the player's terminals",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/players/{playerId}/withdrawal-terminals",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "terminals": [
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-08a77ff8"
+            },
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-1a5d967f"
+            },
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-24a557eb"
+            },
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-5a0904a0"
+            },
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-7c51f1ad"
+            },
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-9266f5ca"
+            },
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-c2b8434c"
+            },
+            {
+              "gateway": "s251-manual",
+              "name": "s251 manual payout",
+              "requiresPayoutDestination": false,
+              "scheme": "",
+              "supportsWithdrawal": true,
+              "terminalId": "s251-terminal-fc55a302"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "setup: retire the terminal payouts driver visa",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal/{visaTerminal}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "inactive"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal/6f52bda7-1cb4-469b-a595-566307f67e90"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the brand's terminal index",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "customer_id": "dev",
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8|6f52bda7-1cb4-469b-a595-566307f67e90"
+        }
+      },
+      "vary": {
+        "$.ids": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: take the terminal out of the brand's index",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f|s251-terminal-24a557eb|s251-terminal-7c51f1ad|s251-terminal-fc55a302|s251-terminal-9266f5ca|s251-terminal-08a77ff8"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a"
+        }
+      }
+    }
+  ]
+}

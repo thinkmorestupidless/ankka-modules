@@ -337,6 +337,10 @@ go run ./original/merge -run1 /tmp/s251-1 -run2 /tmp/s251-2 -results1 /tmp/s251-
 
 psp-gateway must be pointed at psp-stub (`compose.override.yml`'s settings) and read terminals from
 merchant-service, which serves the terminal's credentials the driver writes. The merge files scenario
-251 by the original's service it reached first (casino-service's routes, so `players/`), and its
+251 by the original's service it reached first (the operator's sign-in, so `realm/`), and its
 recordings are moved to `tests/port/payouts/` afterwards, as the KYC scenarios' were. Any gate the driver
 could not reach is listed, with its reason, in `tests/port/payouts/README.md`.
+
+The run of 2026-10-31 (casino-service at the original's `e7d8f2de`, the rest of the stack at `a78decf1`)
+made `tests/port/payouts/`: the driver's 56 and scenario 251's four, every one `pass` on both runs. Its
+README says where that run differed from these steps.

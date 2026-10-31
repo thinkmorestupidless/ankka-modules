@@ -252,7 +252,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       `features/payouts/` that the original can reach, in the shape of `tests/original/players-driver`,
       with the outcome route signed by the original's internal secret read from the recording worktree's
       environment and never written to a file here. Add scenario 251 to the run list.
-- [ ] T053 The recording run (it needs the user; research R2, quickstart §3): the original on kind,
+- [X] T053 The recording run (it needs the user; research R2, quickstart §3): the original on kind,
       psp-gateway on psp-stub, the operator credentials from the user; twice on fresh ids. The merge
       redacts the secret. Copy the recordings to `tests/port/payouts/`. Its `README.md` names the gates
       the driver could not reach, and `tests/original/README.md` names the run.
