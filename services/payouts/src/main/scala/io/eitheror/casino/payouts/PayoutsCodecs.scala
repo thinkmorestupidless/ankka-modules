@@ -49,6 +49,12 @@ object PayoutsRuntime:
   @volatile var settings: Settings = Settings()
   @volatile var now: () => Instant = () => Instant.now()
 
+  /** The neighbours, made from the component's service clients; a suite sets fakes. */
+  @volatile var wallet: com.thinkmorestupidless.ankka.sdk.ServiceClients => clients.Wallet =
+    services => clients.Wallet.http(services, settings)
+  @volatile var gateway: com.thinkmorestupidless.ankka.sdk.ServiceClients => clients.Gateway =
+    services => clients.Gateway.http(services, settings)
+
   @volatile var timers: () => com.thinkmorestupidless.ankka.sdk.TimerScheduler =
     () => throw IllegalStateException("the timers are not wired: PayoutsService sets PayoutsRuntime.timers at start")
 
