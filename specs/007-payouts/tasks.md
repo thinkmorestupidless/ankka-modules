@@ -276,7 +276,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - a request held and approved;
       - the stub's outcome delivered through the core module's grant;
       - `withdrawal_completed` read by `attribution`.
-- [ ] T059 Close research: *Findings* with dates; the cross-spec follow-ups (the `casino.players`
+- [X] T059 Close research: *Findings* with dates; the cross-spec follow-ups (the `casino.players`
       readers' rebuild, the frontends, 012, 013) written; `just features` green; `just payouts-test` and
       `just payouts-it` green.
 

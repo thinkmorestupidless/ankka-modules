@@ -509,6 +509,9 @@ Nothing new: 040 (the grants, as built), 042 (`Personal`, erasure) as for 008, 0
     `casino-stubs` namespace had no `ankka-local-ca` ConfigMap, so the stub's callbacks failed TLS until
     it was created from `~/.ankka/local-ca.crt`; and a stub restarted loses its sessions, so a payout
     initiated before the restart stays `INITIATED` (Cozeni is never polled, as in the original).
+- **2026-10-31, closing** (T059): `just features` 0 findings in 1146 scenarios and 24 specs;
+  `just payouts-test` 347 passed, 15 ignored (the coverage rows no recording has); `just payouts-it` 218
+  passed, 15 ignored.
 
 ## Follow-ups
 
