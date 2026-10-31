@@ -37,9 +37,9 @@ class WireTranslationSuite extends munit.FunSuite:
 
   test("a refusal's limit figures back in decimals"):
     val r = tr("POST", "/v1/casino/brands/goldvibe/players/p-1/withdrawal-requests", Some("""{"amount":"10","currency":"EUR"}"""))
-    val observed = body("""{"error":"WITHDRAWAL_EXCEEDS_WEEKLY_LIMIT","message":"m","limit":100000,"used":95000,"remaining":5000,"currency":"EUR"}""")
+    val observed = body("""{"error":"WITHDRAWAL_EXCEEDS_WEEKLY_LIMIT","message":"m","weeklyLimit":100000,"weeklyUsed":95000,"weeklyRemaining":5000,"currency":"EUR"}""")
     val (status, out) = answer(r, 422, observed, None)
-    assertEquals((status, out.map(_.get("remaining").decimalValue.toPlainString)), (422, Some("50")))
+    assertEquals((status, out.map(_.get("weeklyRemaining").decimalValue.toPlainString)), (422, Some("50")))
 
   test("the player's list compares only the pending rows"):
     val r        = tr("GET", "/v1/casino/brands/goldvibe/players/p-1/withdrawal-requests")
@@ -94,10 +94,10 @@ class WireTranslationSuite extends munit.FunSuite:
 
   test("the config: the EUR limits per currency in minor units, the turnover fields dropped, and back"):
     val r = tr("PUT", "/v1/casino/brands/goldvibe/withdrawal-config",
-      Some("""{"weeklyLimitEur":1000,"monthlyLimitEur":"2500.50","turnoverMultiplier":3,"turnoverEnabled":true}"""))
+      Some("""{"weeklyWithdrawalLimitEur":1000,"monthlyWithdrawalLimitEur":"2500.50","withdrawalTurnoverMultiplier":3,"withdrawalTurnoverDefinition":"gross_wagered"}"""))
     assertEquals(r.body.map(Json.render), Some("""{"limits":{"EUR":{"weekly":100000,"monthly":250050}}}"""))
     val (_, out) = answer(r, 200, body("""{"limits":{"EUR":{"weekly":100000,"monthly":null}}}"""), None)
-    assertEquals(out.map(Json.render), Some("""{"weeklyLimitEur":1000}"""))
+    assertEquals(out.map(Json.render), Some("""{"weeklyWithdrawalLimitEur":1000}"""))
 
   test("the outcome: the internal route as payments/psp-gateway, the secret dropped"):
     val r = tr("POST", "/internal/v1/casino/withdrawal-requests/orig-r/outcome", Some("""{"outcome":"completed","providerReference":"uf-1"}"""))

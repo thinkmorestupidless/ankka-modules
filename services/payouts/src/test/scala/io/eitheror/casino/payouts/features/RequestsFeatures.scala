@@ -232,16 +232,16 @@ class RequestsFeatures extends PayoutsFeatures("requests.feature"):
     counted(a.toLong, kit.now().atZone(ZoneOffset.UTC).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS).toInstant): Unit
   }
 
-  private def pastLimit(code: String, limit: String, used: String, remaining: String): Unit =
+  private def pastLimit(code: String, word: String, limit: String, used: String, remaining: String): Unit =
     val body = refusedWith(402, code)
-    assertEquals((body.long("limit"), body.long("used"), body.long("remaining")),
+    assertEquals((body.long(s"${word}Limit"), body.long(s"${word}Used"), body.long(s"${word}Remaining")),
       (Some(limit.toLong), Some(used.toLong), Some(remaining.toLong)))
 
   Then("it is refused as past the weekly withdrawal limit, naming {string}, {string} used and {string} remaining") {
-    (l: String, u: String, r: String) => pastLimit("WITHDRAWAL_BLOCKED_WEEKLY_LIMIT", l, u, r)
+    (l: String, u: String, r: String) => pastLimit("WITHDRAWAL_BLOCKED_WEEKLY_LIMIT", "weekly", l, u, r)
   }
   Then("it is refused as past the monthly withdrawal limit, naming {string}, {string} used and {string} remaining") {
-    (l: String, u: String, r: String) => pastLimit("WITHDRAWAL_BLOCKED_MONTHLY_LIMIT", l, u, r)
+    (l: String, u: String, r: String) => pastLimit("WITHDRAWAL_BLOCKED_MONTHLY_LIMIT", "monthly", l, u, r)
   }
 
   private def closedUnpaid(amount: String): Unit =

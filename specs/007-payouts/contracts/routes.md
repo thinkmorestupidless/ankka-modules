@@ -33,7 +33,8 @@ Each R4 refusal carries its own fields:
 
 - `WITHDRAWAL_BLOCKED_KYC`: `kycStatus`;
 - `WITHDRAWAL_BLOCKED_TURNOVER`: no amount (the wallet's preview names none; research *Found during implementation*);
-- `_WEEKLY_LIMIT` and `_MONTHLY_LIMIT`: `limit`, `used`, `remaining`, `currency`;
+- `_WEEKLY_LIMIT`: `weeklyLimit`, `weeklyUsed`, `weeklyRemaining`, `currency`; `_MONTHLY_LIMIT` the same with
+  `monthly`: the original's names, which its player site reads (research, *Found during implementation*);
 - `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT`: `maxWithdrawable`, `totalForfeit`;
 - `WITHDRAWAL_REQUIRES_BONUS_FORFEIT_CONFIRMATION`: `bonusBalance`, `clawbackAmount`, `totalForfeit`;
 - `CRYPTO_CURRENCY_NOT_SUPPORTED`: `supported`.

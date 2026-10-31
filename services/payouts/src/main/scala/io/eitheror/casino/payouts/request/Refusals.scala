@@ -45,8 +45,10 @@ object Refusals:
     val (code, word) = block match
       case _: Block.Weekly  => ("WITHDRAWAL_BLOCKED_WEEKLY_LIMIT", "weekly")
       case _: Block.Monthly => ("WITHDRAWAL_BLOCKED_MONTHLY_LIMIT", "monthly")
+    // The original's names (weeklyLimit, weeklyUsed, …), which its player site reads.
     Refusal(402, code, s"the amount would exceed the $word withdrawal limit",
-      Vector("limit" -> Num(block.limit), "used" -> Num(block.used), "remaining" -> Num(block.remaining), "currency" -> Text(currency)))
+      Vector(s"${word}Limit" -> Num(block.limit), s"${word}Used" -> Num(block.used), s"${word}Remaining" -> Num(block.remaining),
+        "currency" -> Text(currency)))
 
   def afterForfeit(maxWithdrawable: Long, totalForfeit: Long): Refusal =
     Refusal(422, "WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT", "insufficient real balance after bonus forfeiture",
