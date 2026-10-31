@@ -46,6 +46,6 @@ The record names that a note or reason was given. It never carries the note's te
 | Topic | Family | Fields read |
 |---|---|---|
 | `money.transactions` | `deposit_confirmed` | `playerId, currency, amountCents, depositOrdinal, transactionId` |
-| `casino.players` | `player_registered` | `playerId, registeredAt` |
+| `casino.players` | `player_registered` | `playerId, registeredAt`, and the profile fields it carries (presence and the adult date only, as `player_profile_updated`'s) |
 | `casino.players` | `player_profile_updated` | `changedFields`, and the eight completeness fields (presence, and the date of birth to an age date) |
 | `casino.players` | `player_closed` | `playerId` |

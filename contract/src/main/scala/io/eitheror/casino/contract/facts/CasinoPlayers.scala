@@ -18,10 +18,17 @@ sealed trait CasinoPlayersFact extends Fact:
 
 // ── from players ───────────────────────────────────────────────────────────
 
-/** Carries the tag, click id and bonus code as presented, unverified, so attribution binds from facts (spec 012). */
+/**
+ * Carries the tag, click id and bonus code as presented, unverified, so attribution binds from facts (spec 012),
+ * and the profile the player registered with, as `player_profile_updated` carries a later one, so `kyc` judges
+ * completeness from registration on (spec 009 FR-016).
+ */
 @named("player_registered")
 final case class PlayerRegistered(playerId: String, registeredAt: Instant, btag: Option[String], clickId: Option[String],
-    bonusCode: Option[String], country: Option[String], currency: Option[String], vipTier: Option[String], occurredAt: Instant)
+    bonusCode: Option[String], country: Option[String], currency: Option[String], vipTier: Option[String], occurredAt: Instant,
+    givenName: Option[Personal[String]] = None, familyName: Option[Personal[String]] = None,
+    dateOfBirth: Option[Personal[String]] = None, telephone: Option[Personal[String]] = None,
+    addressLine: Option[Personal[String]] = None, city: Option[Personal[String]] = None, postCode: Option[Personal[String]] = None)
     extends CasinoPlayersFact
 
 @named("player_logged_in")

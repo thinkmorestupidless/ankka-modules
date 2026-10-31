@@ -59,15 +59,19 @@ object ProfileConsumer extends Consumer.Companion[ProfileConsumer, Option[Casino
       "addressLine" -> ProfileField.AddressLine1, "postCode" -> ProfileField.PostalCode) ++ ProfileField.values.map(f => f.wire -> f)
 
   def command(f: PlayerProfileUpdated, policyRequired: Vector[Category], at: Instant): ProfileChanged =
-    val values: Map[ProfileField, Option[String]] = Map(
-      ProfileField.FirstName    -> f.givenName.map(_.reveal),
-      ProfileField.LastName     -> f.familyName.map(_.reveal),
-      ProfileField.DateOfBirth  -> f.dateOfBirth.map(_.reveal),
-      ProfileField.Phone        -> f.telephone.map(_.reveal),
-      ProfileField.AddressLine1 -> f.addressLine.map(_.reveal),
-      ProfileField.City         -> f.city.map(_.reveal),
-      ProfileField.PostalCode   -> f.postCode.map(_.reveal),
-      ProfileField.Country      -> f.country
-    )
-    val presence = Completeness.facts(values)
-    ProfileChanged(f.playerId, presence.present, presence.adultFrom, f.changedFields.exists(Names.contains), policyRequired, at)
+    changed(f.playerId, Vector(f.givenName, f.familyName, f.dateOfBirth, f.telephone, f.addressLine, f.city, f.postCode).map(_.map(_.reveal)),
+      f.country, f.changedFields.exists(Names.contains), policyRequired, at)
+
+  /** The profile `player_registered` carries, as a first profile: no required field changed; none when it carries no field. */
+  def registered(f: PlayerRegistered, policyRequired: Vector[Category], at: Instant): Option[ProfileChanged] =
+    val c = changed(f.playerId, Vector(f.givenName, f.familyName, f.dateOfBirth, f.telephone, f.addressLine, f.city, f.postCode).map(_.map(_.reveal)),
+      f.country, false, policyRequired, at)
+    Option.when(c.present.nonEmpty)(c)
+
+  /** The seven personal fields in `ProfileField`'s order before the country. */
+  private def changed(playerId: String, personal: Vector[Option[String]], country: Option[String], requiredChanged: Boolean,
+      policyRequired: Vector[Category], at: Instant): ProfileChanged =
+    val fields = Vector(ProfileField.FirstName, ProfileField.LastName, ProfileField.DateOfBirth, ProfileField.Phone,
+      ProfileField.AddressLine1, ProfileField.City, ProfileField.PostalCode)
+    val presence = Completeness.facts(fields.zip(personal).toMap + (ProfileField.Country -> country))
+    ProfileChanged(playerId, presence.present, presence.adultFrom, requiredChanged, policyRequired, at)

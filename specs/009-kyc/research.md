@@ -377,6 +377,61 @@ in 010. No secret.
     resume started one.
   - `modules apply` exited 1 after about ten minutes both times, after its changes were made; the services
     were Ready. The reason was not kept (008 T046's token lapse while waiting is the likely one).
+- **T047, the recordings (2026-10-31).** Scenarios 28 and 29 against the original at `a78decf1` on its
+  KinD stack, twice: 35 of 37 pass on both runs, two skip on both (`tests/port/kyc/README.md`). The
+  first run failed the five tests that wait for the rollup: the original's `kind-register-casino-functions`
+  recipe registers `casino/kyc-status-rollup` again with `IS_A Player`, a concept no twin carries, over
+  the chart's `IS_A player.registered`, so the rollup never ran. Registered as the chart (and production)
+  does, it ran. Four tests differed between runs only in Keycloak's admin steps and were recorded twice
+  more. The presigned addresses' credential and signature are redacted.
+- **T048, the replay (2026-10-31).** All 35 recordings replay (`ParitySuite`); `CoverageSuite` checks
+  each was made on two runs and every marked divergence is a row of plan.md, reached. What it found:
+  - `WireTranslation` answered the policy's required types where the original lists only those an
+    operator set for the player (its `kyc_required_doc_types`, `[]` until set), and `reviewStatus` in
+    capitals; both corrected in its row.
+  - The threshold refusal named no `kycStatus`, which the original's does (`CasinoServiceMain.scala:470`);
+    the endpoint now names it on every `DEPOSIT_BLOCKED_KYC*` refusal (`gates.feature`'s step checks it).
+  - The original's reviews and the reads straight after a confirm answered the status before its rollup
+    ran; this service derives with the change. Three rows were added to plan.md's *Divergences* (the
+    status derived with its change, each category's current document, `player_id_mismatch` for another
+    player's id), each marked at the steps where the original differed.
+  - **Decided by the person**: `player_registered` carries the registration's profile. `kyc` learnt the
+    profile only from `player_profile_updated`, which `players` publishes on an edit, so the names, date of
+    birth and country given at registration never reached it and a player was incomplete until an edit
+    (scenario 28 named four missing fields, kyc eight). Asked: `players` sending the profile fact at
+    registration too; `player_registered` carrying it; or marking it. Answer: `player_registered`
+    carries it. `casino-contract` adds the seven `Personal` profile fields to `player_registered`
+    (optional, additive), `players` fills them from the registration, and `RegistrationConsumer` gives
+    them to the record as its first profile facts, unless an edit was read first (`registeredProfile`).
+
+## Follow-ups (2026-10-31)
+
+What this spec leaves to others, each where its owner will look:
+
+- **Spec 008 (`players`)**: done on this branch: the deposit check's `currency`, the suspend under its
+  deadline, `kyc` in the erasure and the export (T050), and the registration's profile on
+  `player_registered` (T048). Open: `ActivityView` reading `player_kyc_pending`, if the activity list
+  should show it.
+- **Spec 007 (payouts)**: its identity gate reads the status families (`player_kyc_verified`,
+  `player_kyc_rejected`, `player_kyc_pending`) from `casino.players`, not a call.
+- **Spec 014 (engagement)**: the review and status messages are sent from the same families and
+  `player_kyc_review_required`; kyc sends nothing itself.
+- **Spec 015 (reporting)**: the counts come from the families and the queue's figures, never from the
+  documents.
+- **Spec 019 (migration)**: writes each player's opening event (documents, status, mode, required
+  categories, deadline as `migrated`) and copies the objects under `subjects/<player>/kyc/`; a past
+  deadline only flags (FR-025).
+- **The vendor's manifest schema**: `objectStorageOrigins`, so a page can upload straight to the bucket
+  (R7); until then the player site proxies the signed `PUT` and `GET`.
+- **Every service's image** on an installation is rebuilt on this branch's `casino-contract`: the
+  `casino.players` schema gained the profile fields, and an image on the older contract is refused at
+  start (`cannot start ankka projections`). `game-provider`, `ingest`, `psp-gateway`, `merchant` and the
+  simulator still pin `0.2.0-SNAPSHOT` in their builds rather than reading `CASINO_VERSION`.
+- **The original**: its `kind-register-casino-functions` recipe registers `casino/kyc-status-rollup`
+  with `IS_A Player`, a concept no twin carries, over the chart's correct registration
+  (`tests/original/README.md`). Not ours to fix; noted for whoever next runs it on kind.
+- **SC-002 (T054)**: the Playwright KYC suites (28–33, 50) against the kind brand wait for the
+  frontends' base-URL move (008's T077 waits on the same move); not run.
 
 ## Design finished
 

@@ -144,31 +144,37 @@ object WireTranslation:
           (status, observed.map(o => Json.obj("playerId" -> player, "kycStatus" -> o.text("status"), "approvedBy" -> o.text("by"),
             "approvedAt" -> o.text("at"), "reason" -> body.flatMap(_.text("reason")))))
         case Row.Policy            => (status, observed.map(withoutNulls))
-        case Row.DepositCheck | Row.PlayCheck => gate(request.row, status, observed)
+        case Row.DepositCheck | Row.PlayCheck => gate(request.row, status, observed, recorded)
         case Row.View | Row.Requirements      => (status, observed)
     (s, narrowed(recorded, shaped))
 
-  /** A gate's refusal is a 200 here and the original's 403; its allowance is the original's 2xx, compared by status. */
-  private def gate(row: Row, status: Int, observed: Option[JsonNode]): (Int, Option[JsonNode]) =
+  /**
+   * A gate's refusal is a 200 here and the original's 403; its allowance is the original's 2xx, compared by
+   * status, its body being what the original's route did next (the deposit, the launch), not this service's.
+   */
+  private def gate(row: Row, status: Int, observed: Option[JsonNode], recorded: Option[JsonNode]): (Int, Option[JsonNode]) =
     observed.filter(_.bool("allowed").contains(false)) match
       case Some(o) =>
         val error = if row == Row.PlayCheck then o.text("error") else o.text("code")
         (403, Some(Json.obj("error" -> error, "kycStatus" -> o.text("kycStatus"), "message" -> o.text("message"))))
-      case None => (status, None)
+      case None => (status, recorded)
 
-  /** The player's read as the original's list: every document, the categories required of them, the status. */
+  /**
+   * The player's read as the original's list: every document, the categories an operator required of this
+   * player (the original's `kyc_required_doc_types`, empty until one is set; the policy's are not listed),
+   * the status.
+   */
   private def documents(o: JsonNode, ctx: Context): JsonNode =
     val categories = o.objects("categories")
     val docs       = categories.flatMap(c => Option(c.get("document")).filter(_.isObject)) ++ o.objects("other")
-    val ofPlayer   = categories.filter(_.bool("requiredOfPlayer").contains(true))
-    val required   = (if ofPlayer.nonEmpty then ofPlayer else categories.filter(_.bool("requiredByPolicy").contains(true))).flatMap(_.text("category"))
+    val required   = categories.filter(_.bool("requiredOfPlayer").contains(true)).flatMap(_.text("category"))
     Json.obj("documents" -> Json.arr(docs.map(document(_, ctx))*), "requiredDocTypes" -> required, "kycStatus" -> o.text("status"))
 
   private def document(d: JsonNode, ctx: Context): JsonNode =
-    val status = d.text("status").map(_.toUpperCase)
+    val status = d.text("status")
     val reason = d.text("reasonCode")
     Json.obj("key" -> d.text("documentId").map(ctx.keyOf), "docType" -> d.text("category"), "uploadedAt" -> d.text("uploadedAt"),
-      "reviewStatus" -> status, "status" -> status, "rejectReason" -> reason, "rejectionReason" -> reason,
+      "reviewStatus" -> status.map(_.toLowerCase), "status" -> status.map(_.toUpperCase), "rejectReason" -> reason, "rejectionReason" -> reason,
       "reviewedAt" -> d.text("reviewedAt"))
 
   private def reviewed(o: JsonNode, ctx: Context): JsonNode =

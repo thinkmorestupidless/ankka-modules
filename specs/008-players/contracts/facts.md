@@ -11,7 +11,7 @@ disagree, the contract wins.
 
 | Event | Family | Payload |
 |---|---|---|
-| `Registered` | `player_registered` | `player_id`, `registered_at`, `country`, `currency`, `vip_tier` (none), `btag`, `click_id`, `bonus_code` — the last three as presented and unverified |
+| `Registered` | `player_registered` | `player_id`, `registered_at`, `country`, `currency`, `vip_tier` (none), `btag`, `click_id`, `bonus_code` — the last three as presented and unverified; and the registration's profile as `player_profile_updated` carries one, as `Personal`: `given_name`, `family_name`, `date_of_birth`, `telephone`, `address_line`, `city`, `post_code`, each present when registered (spec 009, research *Findings* T048) |
 | `SignedIn` | `player_logged_in` | `player_id`, `session_id` |
 | `PlayerSessionEntity.Ended` | `player_logged_out` | `player_id`, `session_id`, `close_reason` |
 | `Suspended` | `player_suspended` | `player_id`, `previous_value`, `new_value`, `actor`, `actor_id`, `reason` |

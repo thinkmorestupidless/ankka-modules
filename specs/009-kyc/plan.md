@@ -268,6 +268,9 @@ Unchanged:
 | The reviewer is recorded; an unknown document is 404; the approval's answer carries the status after | FR-010 | `KycRecordSuite`; scenario 28's review recordings, marked |
 | A policy save reads `CUSTOM` and is validated; unset fields are `null` | FR-027 | `PolicySuite`; scenario 29's policy recordings, marked |
 | Switching to automatic recomputes at once | FR-015 | `KycRecordSuite`; scenario 28's mode recording, marked if it differs |
+| The status is derived with the change that causes it | FR-012 | `KycRecordSuite`; scenario 28's reads right after a confirm, marked: the original's rollup ran after its answer, so its suite read the status before it |
+| The player's read shows each category's current document | FR-036 | `DocumentsSuite`; scenario 28's replacement recording, marked: the original listed the rejected document beside its replacement |
+| Another player's id is `player_id_mismatch` | FR-002, contracts/routes.md | `DocumentsSuite`; scenario 28's view by another player, marked: the original answered `forbidden` |
 | `PUT status pending` is `player_kyc_pending` (reason `agent`); required categories publish `player_kyc_pending` | FR-014, FR-017 | `PublishersSuite`; the recordings' facts are not replayed |
 | One player view route; every issue an event and an audit record | FR-037 | `DocumentsSuite`; `WireTranslation` maps both original routes |
 | Any change of a required profile field counts, not only the player's own | R1, R11 | `KycRecordSuite`; no recording |

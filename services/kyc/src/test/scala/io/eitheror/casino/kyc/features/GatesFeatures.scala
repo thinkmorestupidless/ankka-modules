@@ -86,6 +86,8 @@ class GatesFeatures extends KycFeatures("gates.feature"):
 
   Then("it refuses with {string}") { (code: String) =>
     assertEquals((answer.json.bool("allowed"), answer.str("code")), (Some(false), code), answer.text)
+    // The original's threshold refusal names the status, as its verification refusal does (CasinoServiceMain.scala:470).
+    if code == "DEPOSIT_BLOCKED_KYC_THRESHOLD" then assertEquals(answer.str("kycStatus"), state().status.wire)
   }
 
   Then("the player is flagged for review with reason {string}") { (reason: String) =>

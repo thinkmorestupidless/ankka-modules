@@ -177,7 +177,7 @@ Lists are oldest first by the filter's time unless `sort=newest`.
 |---|---|---|
 | `DepositsConsumer` | `money.transactions` `deposit_confirmed` | `CountDeposit` with the policy |
 | `ProfileConsumer` | `casino.players` `player_profile_updated` | `ProfileChanged` |
-| `RegistrationConsumer` | `casino.players` `player_registered` | `SetDeadline` with the policy |
+| `RegistrationConsumer` | `casino.players` `player_registered` | `SetDeadline` with the policy; `ProfileChanged` from the profile it carries, as `registeredProfile` (nothing once an edit was read) |
 | `ClosureConsumer` | `casino.players` `player_closed` | `Close` |
 | `RecordTimers` | `KycRecord` events | sets and cancels `kyc-window-<player>` |
 | `PolicyFlagger` | `PolicyEntity` events | `FlagForPolicy` for each row of `overThreshold` |

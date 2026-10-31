@@ -6,11 +6,19 @@
     {
       "additionalProperties": true,
       "properties": {
+        "address_line": {
+          "type": "string",
+          "x-personal": true
+        },
         "bonus_code": {
           "type": "string"
         },
         "btag": {
           "type": "string"
+        },
+        "city": {
+          "type": "string",
+          "x-personal": true
         },
         "click_id": {
           "type": "string"
@@ -21,6 +29,18 @@
         "currency": {
           "type": "string"
         },
+        "date_of_birth": {
+          "type": "string",
+          "x-personal": true
+        },
+        "family_name": {
+          "type": "string",
+          "x-personal": true
+        },
+        "given_name": {
+          "type": "string",
+          "x-personal": true
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -28,9 +48,17 @@
         "player_id": {
           "type": "string"
         },
+        "post_code": {
+          "type": "string",
+          "x-personal": true
+        },
         "registered_at": {
           "format": "date-time",
           "type": "string"
+        },
+        "telephone": {
+          "type": "string",
+          "x-personal": true
         },
         "type": {
           "const": "player_registered"

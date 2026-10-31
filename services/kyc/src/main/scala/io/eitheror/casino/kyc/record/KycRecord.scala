@@ -161,6 +161,13 @@ final class KycRecord(@scala.annotation.unused context: EventSourcedEntityContex
     else
       emit(withDerivation(Vector(ProfileUpdated(c.present, c.adultFrom, c.requiredChanged, c.at)), Trigger.Profile, c.policyRequired, c.at))
 
+  /**
+   * The profile a player registered with, unless the record already knows one: `player_profile_updated` carries
+   * every field the player holds, so a registration read after an edit adds nothing (R11).
+   */
+  def registeredProfile(c: ProfileChanged): Effect[KycAnswer] =
+    if currentState.profile.present.nonEmpty then emit(Vector.empty) else profileChanged(c)
+
   /** The deadline at registration plus the window, once; a policy with no window sets none (FR-025). */
   def setDeadline(c: SetDeadline): Effect[KycAnswer] =
     (currentState.deadline, c.windowDays) match
@@ -248,6 +255,7 @@ object KycRecord
   val depositCheck        = command("deposit-check")(_.depositCheck)
   val countDeposit        = command("count-deposit")(_.countDeposit)
   val profileChanged      = command("profile-changed")(_.profileChanged)
+  val registeredProfile   = command("registered-profile")(_.registeredProfile)
   val setDeadline         = command("set-deadline")(_.setDeadline)
   val windowLapsed        = command("window-lapsed")(_.windowLapsed)
   val suspensionRequested = command("suspension-requested")(_.suspensionRequested)

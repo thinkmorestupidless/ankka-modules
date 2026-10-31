@@ -195,7 +195,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
 - [X] T047 The recording run (needs the user; research R2, quickstart §3): apply `e2e-recording.patch` and
       `e2e-rg-kyc.patch` to a local checkout of the original, run scenarios 28 and 29 against the local
       stack, copy the recordings to `tests/port/kyc/`; `tests/original/README.md` names the run
-- [ ] T048 Un-ignore `ParitySuite`; every recording replays through `WireTranslation`; each marked divergence
+- [X] T048 Un-ignore `ParitySuite`; every recording replays through `WireTranslation`; each marked divergence
       in `Parity.divergences` matches plan.md's *Divergences*; `CoverageSuite` names any unhit
 
 ## Phase 11: Polish and cross-cutting

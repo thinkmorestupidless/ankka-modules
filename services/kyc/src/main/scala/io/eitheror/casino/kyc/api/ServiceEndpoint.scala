@@ -30,7 +30,7 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
             val g = a.gate.getOrElse(Gates.Allowed)
             if g.allowed then ok(Json.obj("allowed" -> true))
             else ok(Json.obj("allowed" -> false, "code" -> g.code, "message" -> g.message,
-              "kycStatus" -> Option.when(g.code.contains("DEPOSIT_BLOCKED_KYC"))(a.state.status.wire)))
+              "kycStatus" -> Option.when(g.code.exists(_.startsWith("DEPOSIT_BLOCKED_KYC")))(a.state.status.wire)))
           case _ => refusal(400, "invalid_body", "playerId and a whole, non-negative amount in minor units are required")
       }
     }

@@ -45,10 +45,10 @@ class WireTranslationSuite extends munit.FunSuite:
         | "document":{"documentId":"d-1","category":"identity","status":"rejected","uploadedAt":"t1","reviewedAt":"t2","reasonCode":"blurry"}},
         |{"category":"proof_of_address","requiredByPolicy":false,"requiredOfPlayer":false}]}""".stripMargin
     assertEquals(answered(r, 200, ours)._2, Some(
-      s"""{"documents":[{"key":"$key","docType":"identity","uploadedAt":"t1","reviewStatus":"REJECTED","status":"REJECTED",""" +
-        """"rejectReason":"blurry","rejectionReason":"blurry","reviewedAt":"t2"}],"requiredDocTypes":["identity"],"kycStatus":"pending"}"""))
+      s"""{"documents":[{"key":"$key","docType":"identity","uploadedAt":"t1","reviewStatus":"rejected","status":"REJECTED",""" +
+        """"rejectReason":"blurry","rejectionReason":"blurry","reviewedAt":"t2"}],"requiredDocTypes":[],"kycStatus":"pending"}"""))
 
-  test("the types required of the player, when any, are the required types rather than the policy's"):
+  test("the required types are those required of the player, never the policy's, as the original's kyc_required_doc_types"):
     val ours = """{"status":"unverified","categories":[{"category":"identity","requiredByPolicy":true,"requiredOfPlayer":false},
       |{"category":"proof_of_address","requiredByPolicy":false,"requiredOfPlayer":true}]}""".stripMargin
     assertEquals(answered(req("GET", s"$base/documents"), 200, ours)._2,
@@ -125,7 +125,7 @@ class WireTranslationSuite extends munit.FunSuite:
       Caller.Players, Some("""{"playerId":"p-1","amount":2550,"currency":"GBP"}""")))
     assertEquals(answered(r, 200, """{"allowed":false,"code":"DEPOSIT_BLOCKED_KYC","message":"m","kycStatus":"pending"}"""),
       (403, Some("""{"error":"DEPOSIT_BLOCKED_KYC","kycStatus":"pending","message":"m"}""")))
-    assertEquals(answered(r, 200, """{"allowed":true}"""), (200, None))
+    assertEquals(answered(r, 200, """{"allowed":true}""", recorded = """{"ok":true}"""), (200, Some("""{"ok":true}""")))
 
   test("the launch is the play check, as game-provider, for the player signed in; a refusal is the original's 403"):
     val r = req("POST", "/v1/casino/sessions/spinvibe/launch", """{"gameId":"g-1"}""")

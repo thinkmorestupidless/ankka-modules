@@ -2,9 +2,10 @@ package io.eitheror.casino.kyc.consumers
 
 import com.thinkmorestupidless.ankka.core.effect.ConsumerEffect
 import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, EventSourcedTestKit, LogCapturing}
-import io.eitheror.casino.contract.facts.{PlayerClosed, PlayerLoggedIn, PlayerRegistered}
+import io.eitheror.casino.contract.facts.{PlayerClosed, PlayerLoggedIn, PlayerProfileUpdated, PlayerRegistered}
+import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.kyc.policy.Profiles
-import io.eitheror.casino.kyc.record.{KycEvent, KycRecord}
+import io.eitheror.casino.kyc.record.{KycEvent, KycRecord, ProfileField}
 import io.eitheror.casino.kyc.record.KycEvent.*
 
 import java.time.{Duration, Instant}
@@ -25,6 +26,24 @@ class RegistrationConsumerSuite extends munit.FunSuite with LogCapturing:
     val first = kit.call(KycRecord.setDeadline)(RegistrationConsumer.command(registered(), Profiles.Ukgc))
     assertEquals(first.events, Vector[KycEvent](DeadlineSet("p-1", at.plus(Duration.ofDays(3)), false, at)))
     assertEquals(kit.call(KycRecord.setDeadline)(RegistrationConsumer.command(registered(), Profiles.Mga)).events, Vector.empty[KycEvent])
+
+  test("a registration's profile is the record's first profile facts; one with no field gives none"):
+    val full = registered().copy(givenName = Some(Personal("Ada")), familyName = Some(Personal("Lovelace")),
+      dateOfBirth = Some(Personal("1990-01-02")))
+    val c = ProfileConsumer.registered(full, Vector.empty, at).get
+    assertEquals(c.present, Set(ProfileField.FirstName, ProfileField.LastName, ProfileField.DateOfBirth, ProfileField.Country))
+    assertEquals(c.adultFrom.map(_.reveal.toString), Some("2008-01-02"))
+    assert(!c.requiredChanged, "a registration changes no required field")
+    assertEquals(ProfileConsumer.registered(registered().copy(country = None), Vector.empty, at), None)
+
+  test("a registration read after an edit changes nothing: the edit carried every field held"):
+    val kit  = EventSourcedTestKit.of(KycRecord, "p-1")
+    val edit = PlayerProfileUpdated("p-1", Vector("telephone"), Some(Personal("Ada")), Some(Personal("Lovelace")), Some(Personal("1990-01-02")),
+      Some(Personal("+447700900123")), None, None, None, Some("MT"), at)
+    kit.call(KycRecord.profileChanged)(ProfileConsumer.command(edit, Vector.empty, at)): Unit
+    val reg = ProfileConsumer.registered(registered().copy(givenName = Some(Personal("Ada"))), Vector.empty, at).get
+    assertEquals(kit.call(KycRecord.registeredProfile)(reg).events, Vector.empty[KycEvent])
+    assert(kit.currentState.profile.present.contains(ProfileField.Phone))
 
   test("a registration under a policy with no window sets no deadline"):
     val kit = EventSourcedTestKit.of(KycRecord, "p-1")

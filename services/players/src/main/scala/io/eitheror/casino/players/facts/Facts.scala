@@ -29,8 +29,10 @@ object Facts:
   def players(playerId: String, sequence: Long, event: PlayerEvent): Option[Published[f.CasinoPlayersFact]] =
     val fact: Option[f.CasinoPlayersFact] = event match
       case e: Registered =>
+        def personal(field: String) = e.profile.get(field).map(Personal(_))
         Some(f.PlayerRegistered(playerId, e.at, e.registration.tag, e.registration.clickId, e.registration.bonusCode,
-          e.profile.get("country"), Some(e.currency).filter(_.nonEmpty), None, e.at))
+          e.profile.get("country"), Some(e.currency).filter(_.nonEmpty), None, e.at, personal("firstName"), personal("lastName"),
+          personal("dateOfBirth"), personal("phone"), personal("addressLine1"), personal("city"), personal("postalCode")))
       case e: Suspended =>
         Some(f.PlayerSuspended(playerId, e.previous, Status.Suspended, Actor.Operator, e.actorId, Some(e.reason), e.at))
       case e: Reinstated =>
