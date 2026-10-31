@@ -499,7 +499,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
   currency MUST be the wallet's; the hold, release, confirm and reverse MUST carry the request id as
   their key (spec 001 FR-017, constitution II).
 - **FR-029**: Every request, decision, payout call, outcome, poll result and manual settlement MUST
-  be written to `platform.audit` naming the actor (player, operator by id, gateway, or the workflow).
+  be written to `platform.audit` naming the actor (player, operator by id, gateway, or the workflow). A
+  poll whose answer leaves the payout waiting (`pending`, or the gateway unavailable) is written the first
+  time and whenever the answer changes, not at every poll (settled 2026-10-31, research.md).
 
 ### Key Entities
 

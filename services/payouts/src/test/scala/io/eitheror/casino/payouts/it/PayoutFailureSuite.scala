@@ -3,7 +3,7 @@ package io.eitheror.casino.payouts.it
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.payouts.Json
 import io.eitheror.casino.payouts.Json.*
-import io.eitheror.casino.payouts.request.{PayoutStatus, Status}
+import io.eitheror.casino.payouts.request.{PayoutStatus, Source, Status}
 import io.eitheror.casino.payouts.workflow.Flow
 
 import scala.concurrent.duration.*
@@ -94,3 +94,20 @@ class PayoutFailureSuite extends munit.FunSuite with LogCapturing:
     val r  = scene.approve(id)
     assertEquals((r.status, r.str("status")), (200, "AWAITING_MANUAL_PAYOUT"), r.text)
     assertEquals(kit.gateway.payouts.count(_.json.exists(_.text("requestId").contains(id))), 0)
+
+  test("a waiting answer is recorded the first time and at each change, not at every poll (FR-029)"):
+    val id = scene.request(scene.player())
+    kit.gateway.initiateFor(id, FakeGateway.answer(id, "initiated", Some(s"ref-$id")))
+    kit.gateway.statusFor(id, FakeGateway.answer(id, "pending"))
+    assertEquals(scene.approve(id).status, 200)
+    def readsAtLeast(n: Int) = kit.eventually(s"asked $n times", 30.seconds)(Option.when(kit.gateway.statusReads(id).size >= n)(()))
+    readsAtLeast(3)
+    kit.gateway.statusFor(id, Answer(500, "{}"))
+    readsAtLeast(kit.gateway.statusReads(id).size + 2)
+    kit.gateway.statusFor(id, FakeGateway.answer(id, "pending"))
+    readsAtLeast(kit.gateway.statusReads(id).size + 2)
+    kit.gateway.statusFor(id, FakeGateway.answer(id, "completed", Some(s"ref-$id")))
+    scene.at(id, Flow.Completed)
+    val polls = scene.state(id).outcomes.filter(_.source == Source.Poll)
+    assertEquals(polls.map(_.answer), Vector("pending", "unavailable", "pending", "completed"))
+    assertEquals(polls.find(_.answer == "unavailable").flatMap(_.reasonCode), Some("gateway_unavailable"))
