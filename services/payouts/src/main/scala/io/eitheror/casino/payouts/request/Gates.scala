@@ -84,9 +84,11 @@ object Gates:
     val d = in.draft
     for
       key      <- d.key.toRight(Refusals.MissingKey)
-      amount   <- amountOf(d.amount)
+      // The original asks for all three before it reads the amount (W:213-220).
+      _        <- Either.cond(d.amount != Amount.Absent, (), Refusals.required("amount"))
       currency <- currencyOf(d.currency)
       tid      <- d.terminalId.toRight(Refusals.required("terminalId"))
+      amount   <- amountOf(d.amount)
       method   <- gigadat(d, in.terminals.find(_.id == tid))
       standing <- in.standing.toRight(Refusals.PlayerNotFound)
       _        <- Either.cond(standing.kyc == Kyc.Verified, (), Refusals.kyc(standing.kyc.wire))
@@ -94,12 +96,14 @@ object Gates:
       _        <- previewRefusal(preview)
       _        <- Limits.check(in.limits(currency.code), standing.recent, currency, amount, in.now)
                     .map(Refusals.limit(_, currency.code)).toLeft(())
+      _        <- Either.cond(!(short(preview) && preview.confirmationRequired), (), Refusals.Insufficient)
       _        <- Either.cond(!preview.refusal.contains(AfterForfeit), (),
                     Refusals.afterForfeit(preview.mostWithdrawable, preview.totalForfeit))
       _        <- Either.cond(!preview.confirmationRequired || d.confirmForfeit, (),
                     Refusals.confirmForfeit(preview.bonusBalance, preview.clawback, preview.totalForfeit))
       terminal <- Eligibility.resolve(tid, in.terminals, standing.deposits).toRight(Refusals.terminalNotEligible(tid))
       payee    <- payeeOf(d, terminal, standing, method)
+      _        <- holdRefusal(preview)
     yield Passed(key, amount, currency, terminal, payee, preview, d.confirmForfeit)
 
   private def amountOf(a: Amount): Either[Refusal, Long] = a match
@@ -127,12 +131,26 @@ object Gates:
             yield ()
       yield Some(method)
 
-  /** The preview's refusals answered here; the forfeit's is answered after the limits (R4 rows 5, 8). */
+  private val AlreadyPending = "WITHDRAWAL_REQUEST_ALREADY_PENDING"
+
+  private def short(p: Preview) = p.refusal.contains("INSUFFICIENT_FUNDS")
+
+  /**
+   * The preview's refusals where the original asks them (R4): turnover here, after identity (W:298); a
+   * shortfall with forfeitable records after the limits (W:775-795, `confirmationRequired` is set exactly
+   * then); the forfeit's after the limits too (rows 8, 9); and the rest at the hold, after the terminal and
+   * destination checks, where the original's wallet refused them (W:622-652).
+   */
   private def previewRefusal(p: Preview): Either[Refusal, Unit] = p.refusal match
-    case None | Some(AfterForfeit)                     => Right(())
-    case Some("WITHDRAWAL_REQUEST_ALREADY_PENDING")    => Left(Refusals.AlreadyPending)
-    case Some(code) if WalletCodes.contains(code)      => Left(WalletCodes(code))
-    case Some(code)                                    => Left(Refusal(409, code, "the wallet refused the withdrawal"))
+    case None | Some(AfterForfeit) | Some(AlreadyPending) => Right(())
+    case Some("INSUFFICIENT_FUNDS")                      => Right(())
+    case Some(code) if WalletCodes.contains(code)        => Left(WalletCodes(code))
+    case Some(code)                                      => Left(Refusal(409, code, "the wallet refused the withdrawal"))
+
+  private def holdRefusal(p: Preview): Either[Refusal, Unit] = p.refusal match
+    case Some(AlreadyPending) => Left(Refusals.AlreadyPending)
+    case _ if short(p)        => Left(Refusals.Insufficient)
+    case _                    => Right(())
 
   private def payeeOf(d: Draft, t: Terminal, standing: Standing, method: Option[Method]): Either[Refusal, Payee] =
     val coin = d.cryptoCurrency.map(_.toUpperCase)

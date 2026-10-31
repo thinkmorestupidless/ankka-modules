@@ -47,8 +47,10 @@ class GatesSuite extends munit.FunSuite:
     for a <- Vector(Amount.Whole(0L), Amount.Whole(-1L), Amount.NotWhole) do
       assertEquals(code(run(draft.copy(amount = a))), Left((422, "INVALID_AMOUNT")), a)
 
-  test("2. an invalid amount comes before a missing currency or terminal"):
-    assertEquals(code(run(draft.copy(amount = Amount.Whole(0L), currency = None, terminalId = None))), Left((422, "INVALID_AMOUNT")))
+  test("2a before 2: a missing currency or terminal comes before an invalid amount, as the original asks (W:213-220)"):
+    assertEquals(code(run(draft.copy(amount = Amount.Whole(0L), currency = None))), Left((400, "INVALID_REQUEST")))
+    assertEquals(code(run(draft.copy(amount = Amount.NotWhole, terminalId = None))), Left((400, "INVALID_REQUEST")))
+    assertEquals(code(run(draft.copy(amount = Amount.Whole(0L)))), Left((422, "INVALID_AMOUNT")))
 
   test("2a. amount, currency and terminal present, each refusal naming its field"):
     def field(r: Either[Refusal, Passed]) = r.left.toOption.flatMap(_.fields.collectFirst { case ("field", Field.Text(f)) => f })
@@ -89,14 +91,27 @@ class GatesSuite extends munit.FunSuite:
       assertEquals((r.status, r.code, r.message, r.fields), (402, "WITHDRAWAL_BLOCKED_KYC", message, Vector("kycStatus" -> Field.Text(kyc.wire))))
     assertEquals(previewed, 0)
 
-  test("5. the preview's first refusal: insufficient funds and turnover are 402, turnover naming no amount"):
+  test("5. the preview's refusals are 402: insufficient funds, and turnover naming no amount"):
     assertEquals(code(run(preview = Right(Preview(Some("INSUFFICIENT_FUNDS"))))), Left((402, "INSUFFICIENT_FUNDS")))
     val turnover = run(preview = Right(Preview(Some("WITHDRAWAL_BLOCKED_TURNOVER")))).left.toOption.get
     assertEquals((turnover.status, turnover.code, turnover.fields), (402, "WITHDRAWAL_BLOCKED_TURNOVER", Vector.empty))
 
-  test("5. a request already pending is 409 at once, before the limits"):
-    assertEquals(code(run(limits = Pair(Some(1L)), preview = Right(Preview(Some("WITHDRAWAL_REQUEST_ALREADY_PENDING"))))),
-      Left((409, "WITHDRAWAL_REQUEST_ALREADY_PENDING")))
+  test("15. a request already pending is 409 at the hold, after the limits and the terminal (W:642)"):
+    val pending = Right(Preview(Some("WITHDRAWAL_REQUEST_ALREADY_PENDING")))
+    assertEquals(code(run(limits = Pair(Some(1L)), preview = pending)), Left((402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")))
+    assertEquals(code(run(draft.copy(terminalId = Some("t-none")), preview = pending)), Left((422, "TERMINAL_NOT_ELIGIBLE")))
+    assertEquals(code(run(preview = pending)), Left((409, "WITHDRAWAL_REQUEST_ALREADY_PENDING")))
+
+  test("15. a plain shortfall is refused at the hold, after the limits and the terminal checks (W:622-652)"):
+    val short = Right(Preview(Some("INSUFFICIENT_FUNDS")))
+    assertEquals(code(run(limits = Pair(Some(1L)), preview = short)), Left((402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")))
+    assertEquals(code(run(draft.copy(terminalId = Some("t-none")), preview = short)), Left((422, "TERMINAL_NOT_ELIGIBLE")))
+    assertEquals(code(run(draft.copy(destinationId = Some("d-none")), preview = short)), Left((422, "INVALID_PAYOUT_DESTINATION")))
+
+  test("7. a shortfall with forfeitable records is refused after the limits, before the terminal (W:775-795)"):
+    val short = Right(Preview(Some("INSUFFICIENT_FUNDS"), confirmationRequired = true))
+    assertEquals(code(run(limits = Pair(Some(1L)), preview = short)), Left((402, "WITHDRAWAL_BLOCKED_WEEKLY_LIMIT")))
+    assertEquals(code(run(draft.copy(terminalId = Some("t-none")), preview = short)), Left((402, "INSUFFICIENT_FUNDS")))
 
   test("5. a wallet not found, or not answering, is the preview's refusal"):
     assertEquals(code(run(preview = Left(Refusals.WalletNotFound))), Left((404, "WALLET_NOT_FOUND")))
