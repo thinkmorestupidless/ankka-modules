@@ -304,6 +304,22 @@ func (s *Session) Observe(name, service, method, path string, auth Auth, until f
 	}
 }
 
+// Eventually makes a compared read again, for up to the run's patience, until `until` holds, and keeps only
+// its last answer: the original's queue is read off substrate's GraphQL projection, which follows a write by
+// moments. A read that never settles is kept as answered, for the scenario's own check to report.
+func (s *Session) Eventually(read func() Response, until func(Response) bool) Response {
+	s.t.Helper()
+	deadline := time.Now().Add(s.cfg.Patience)
+	for {
+		r := read()
+		if until(r) || time.Now().After(deadline) {
+			return r
+		}
+		s.rec.Steps = s.rec.Steps[:len(s.rec.Steps)-1]
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
 func (s *Session) base(service, path string) string {
 	switch service {
 	case "keycloak":
