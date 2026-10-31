@@ -1,0 +1,47 @@
+package io.eitheror.casino.exchange.ports
+
+import com.thinkmorestupidless.predictions.exchange.*
+import com.thinkmorestupidless.predictions.exchange.components.{LedgerAnswer, LedgerPort, Money}
+
+/**
+ * The ledger port (research R4): each call to the wallet route the table names, under the key it
+ * names, in the market's currency. An explicit split or merge is not offered (FR-016).
+ */
+final class Ledger(wallet: () => WalletClient, currency: MarketId => String) extends LedgerPort:
+  def reserve(market: MarketId, order: OrderId, money: Money): LedgerAnswer =
+    wallet().reserve(money.owner.value, currency(market), order.value, money.amount)
+
+  def release(market: MarketId, order: OrderId, ordinal: Int, money: Money): LedgerAnswer =
+    if money.amount == 0 then LedgerAnswer.Done
+    else wallet().release(money.owner.value, currency(market), order.value, ordinal, money.amount)
+
+  def settle(market: MarketId, trade: TradeId, through: Through, legs: Vector[Leg]): LedgerAnswer =
+    val c = currency(market)
+    val w = wallet()
+    through match
+      case Through.Direct =>
+        (legs.find(_.side == Side.Buy), legs.find(_.side == Side.Sell)) match
+          case (Some(buy), Some(sell)) => w.settle(trade.value, c, buy.owner.value, buy.order.value, sell.owner.value, buy.charge, buy.released)
+          case _                       => LedgerAnswer.Refused("a direct trade has a buy and a sell")
+      case Through.Split =>
+        Ledger.each(legs.filter(_.side == Side.Buy))(l =>
+          w.split(market.value, Ledger.key(trade, l), c, l.owner.value, l.charge, l.order.value, l.released))
+      case Through.Merge =>
+        Ledger.each(legs.filter(_.side == Side.Sell))(l => w.merge(market.value, Ledger.key(trade, l), c, l.owner.value, l.paid))
+
+  def charge(market: MarketId, key: SetKey, money: Money): LedgerAnswer = LedgerAnswer.Refused(Ledger.NotOffered)
+  def pay(market: MarketId, key: SetKey, money: Money): LedgerAnswer    = LedgerAnswer.Refused(Ledger.NotOffered)
+
+  def payout(market: MarketId, key: PositionKey, money: Money): LedgerAnswer =
+    if money.amount == 0 then LedgerAnswer.Done
+    else wallet().payment(market.value, key.value, currency(market), money.owner.value, money.amount)
+
+object Ledger:
+  val NotOffered = "not offered"
+
+  /** A leg's own key: the trade and the leg's owner, which never repeat in a trade (spec 005 FR-009). */
+  def key(trade: TradeId, leg: Leg): String = s"${trade.value}/${leg.owner.value}"
+
+  /** Every leg's call in turn, stopping at the first that is not done; a retry repeats the done ones under their keys. */
+  def each(legs: Vector[Leg])(call: Leg => LedgerAnswer): LedgerAnswer =
+    legs.iterator.map(call).find(_ != LedgerAnswer.Done).getOrElse(LedgerAnswer.Done)
