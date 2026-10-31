@@ -262,7 +262,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 11: Polish and cross-cutting
 
-- [ ] T055 [P] `services/payouts/README.md`: purpose, routes by endpoint (with a pointer to
+- [X] T055 [P] `services/payouts/README.md`: purpose, routes by endpoint (with a pointer to
       contracts/routes.md), settings, the two calls out, the `just` recipes, and what is verified where.
 - [ ] T056 [P] On `players`: add `payouts` to `ErasureWorkflow.targets`
       (`services/players/src/main/scala/io/eitheror/casino/players/erasure/ErasureWorkflow.scala`), and
