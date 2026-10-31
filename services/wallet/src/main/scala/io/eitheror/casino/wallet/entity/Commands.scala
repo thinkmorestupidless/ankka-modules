@@ -27,9 +27,17 @@ object MoneyCommand:
    * The same rule over any command's fields: an account's money commands and a flow's start, which
    * are not wallet commands, are digested exactly as a wallet's (spec 022 research R4, R7).
    */
-  def digestOf(wireName: String, command: Product): String =
+  def digestOf(wireName: String, command: Product): String = digestOf(wireName, command, Set.empty)
+
+  /**
+   * As above, leaving out each `(field, value)` in `unset`: a field added to a stored start with a
+   * default is left out while it holds that default, so a request sent before it existed keeps its
+   * digest (spec 022 research, Amendment 2026-10-31).
+   */
+  def digestOf(wireName: String, command: Product, unset: Set[(String, String)]): String =
     Digest.of(
-      ("command" -> wireName) +: command.productElementNames.zip(command.productIterator.map(_.toString)).filterNot((n, _) => NotPayload(n)).toVector
+      ("command" -> wireName) +: command.productElementNames.zip(command.productIterator.map(_.toString))
+        .filterNot((n, v) => NotPayload(n) || unset((n, v))).toVector
     )
 
 /**

@@ -266,9 +266,9 @@ final class ServiceEndpoint(
 
   /** A move as its flow: claimed under the caller's key, then answered from the flow (research R4). */
   private def move(kind: String, name: String, currency: String, direction: String, purpose: String, player: String, amount: Long,
-      k: String, reference: String): Respond[Bytes] =
+      k: String, reference: String, orderId: Option[String] = None, unused: Long = 0L): Respond[Bytes] =
     val accountId = s"$kind/$name/$currency"
-    val start     = AccountMoveStart(accountId, direction, purpose, player, amount, k, reference, principal.subject, clock())
+    val start     = AccountMoveStart(accountId, direction, purpose, player, amount, k, reference, principal.subject, clock(), orderId, unused)
     val flow      = client.forWorkflow(AccountMoveWorkflow.id(accountId, k))
     val o = Flows.answer(flow.call(AccountMoveWorkflow.start).invoke(start): Unit, {
       val s = flow.call(AccountMoveWorkflow.status).invoke()
@@ -282,21 +282,32 @@ final class ServiceEndpoint(
     accountKind(kind).flatMap(k => Either.cond(k == AccountState.Pool, k,
       Wire.refusal("INVALID_REQUEST", "splits, merges and resolution payments are on a pool account"))).fold(identity, _ => answer)
 
+  /** Only a split is charged from a reservation (FR-008a); a merge or a clearing move naming an order is a mistake. */
+  private def noOrder(r: AccountMoveRequest): Either[Respond[Bytes], Unit] =
+    Either.cond(r.orderId.isEmpty && r.unused.isEmpty, (), Wire.refusal("INVALID_REQUEST", "only a split is charged from a reservation"))
+
+  /** A split's order and unused part: `unused` only with an order, and an order named by a key. */
+  private def charged(r: AccountMoveRequest): Either[Respond[Bytes], (Option[String], Long)] =
+    (r.orderId, r.unused) match
+      case (None, None)    => Right((None, 0L))
+      case (None, Some(_)) => Left(Wire.refusal("INVALID_REQUEST", "unused is released from an order's reservation; name the order"))
+      case (Some(o), u)    => for k <- key(Some(o)); v <- u.fold(Right(0L))(amount) yield (Some(k), v)
+
   private val ownProject = if project.isEmpty then brand else project
 
   withAcl(Routes.serviceNamed(ownProject)) {
     postBody("/accounts/{kind}/{name}/splits") { (kind: String, name: String, r: AccountMoveRequest) =>
       onPool(kind) {
         Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m))
-          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount) yield (k, a))
-          .fold(identity, (k, a) => move(kind, name, r.currency, AccountMoveWorkflow.ToAccount, Purpose.Split, r.player, a, k, k))
+          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount); c <- charged(r) yield (k, a, c))
+          .fold(identity, (k, a, c) => move(kind, name, r.currency, AccountMoveWorkflow.ToAccount, Purpose.Split, r.player, a, k, k, c._1, c._2))
       }
     }
 
     postBody("/accounts/{kind}/{name}/merges") { (kind: String, name: String, r: AccountMoveRequest) =>
       onPool(kind) {
         Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m))
-          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount) yield (k, a))
+          .flatMap(_ => for k <- key(r.key); a <- positive(r.amount); _ <- noOrder(r) yield (k, a))
           .fold(identity, (k, a) => move(kind, name, r.currency, AccountMoveWorkflow.FromAccount, Purpose.Merge, r.player, a, k, k))
       }
     }
@@ -326,7 +337,7 @@ final class ServiceEndpoint(
         case _                   => Left(Wire.refusal("INVALID_REQUEST", "direction is to-wallet or from-wallet"))
       accountKind(kind)
         .flatMap(_ => Currency.from(r.currency).left.map(m => Wire.refusal("INVALID_REQUEST", m)))
-        .flatMap(_ => for d <- direction; k <- key(r.key); a <- positive(r.amount) yield (d, k, a))
+        .flatMap(_ => for d <- direction; k <- key(r.key); a <- positive(r.amount); _ <- noOrder(r) yield (d, k, a))
         .fold(identity, (d, k, a) => move(kind, name, r.currency, d, Purpose.Clearing, r.player, a, k, k))
     }
   }

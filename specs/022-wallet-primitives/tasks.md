@@ -424,7 +424,7 @@ ankka-predictions `notes/casino-requests.md` item 9; research.md "Amendment 2026
       `MovedToAccount` with its replay drawing the order's reservation down; a case in
       `EveryCommandIdempotentSuite`, the rules in `EntityRulesSuite`, the command in `InvariantsSuite`'s
       generator (SC-003)
-- [ ] T057 In `M/accounts/AccountMoveWorkflow.scala` add `orderId` and `unused` to `AccountMoveStart`,
+- [X] T057 In `M/accounts/AccountMoveWorkflow.scala` add `orderId` and `unused` to `AccountMoveStart`,
       left out of its digest while unset, and call the new command from `debit-wallet` when the order
       is set; in `M/api/ServiceEndpoint.scala` and `M/wire/Wire.scala` take `orderId` and `unused` on
       `/splits` only (`INVALID_REQUEST` for `unused` without `orderId`)

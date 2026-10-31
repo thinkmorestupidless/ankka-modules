@@ -110,7 +110,7 @@ final case class ReleaseReservationRequest(orderId: Option[String], sequence: Op
 final case class SettlementRequest(tradeId: Option[String], currency: String, buyer: String, orderId: String, seller: String,
     amount: AmountText, unused: Option[AmountText] = None)
 final case class AccountMoveRequest(key: Option[String], currency: String, player: String, amount: AmountText,
-    direction: Option[String] = None)
+    direction: Option[String] = None, orderId: Option[String] = None, unused: Option[AmountText] = None)
 final case class ResolutionPaymentRequest(positionId: Option[String], currency: String, player: String, amount: AmountText)
 final case class CreditLineRequest(currency: String, creditLine: AmountText)
 
