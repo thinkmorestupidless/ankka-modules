@@ -77,7 +77,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
       - deposits deduplicated by ordinal;
       - requests older than 32 days dropped;
       - `Erase` blanks every `Personal` value and keeps the rest.
-- [ ] T014 `S/limits/WithdrawalLimits.scala`, with its kit: `Set`, its refusals, and `LimitsSet` carrying
+- [X] T014 `S/limits/WithdrawalLimits.scala`, with its kit: `Set`, its refusals, and `LimitsSet` carrying
       before and after.
 - [ ] T015 `S/request/WithdrawalRequest.scala`, with `T/request/WithdrawalRequestSuite.scala`
       (`EventSourcedTestKit`):
