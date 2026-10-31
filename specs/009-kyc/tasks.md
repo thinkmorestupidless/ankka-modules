@@ -207,7 +207,7 @@ Paths: `S` = `services/kyc/src/main/scala/io/eitheror/casino/kyc/`,
       export gain `kyc` (R15); `FakeKyc` answers the shapes of contracts/routes.md; its suites green
 - [X] T051 Quickstart §6: the service run locally on 9012, the two gates answered by `curl`, an upload
       offered, put and confirmed with a real player token from kind
-- [ ] T052 Quickstart §7 on `kind-ankka` (never production; `--context kind-…`): the image built and
+- [X] T052 Quickstart §7 on `kind-ankka` (never production; `--context kind-…`): the image built and
       loaded, `just modules apply goldvibe --installation dev-kind --modules core --allow-unbuilt`; the bucket
       in `ankka services get kyc`; under UKGC a deposit refused through `players` and a launch through
       `game-provider`

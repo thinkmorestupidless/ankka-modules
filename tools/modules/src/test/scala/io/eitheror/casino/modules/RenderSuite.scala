@@ -52,7 +52,7 @@ class RenderSuite extends munit.FunSuite:
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
    * spec 012 T073; both OOM-killed).
    */
-  private val NewSizes = Map("players" -> "medium", "attribution" -> "medium")
+  private val NewSizes = Map("players" -> "medium", "attribution" -> "medium", "kyc" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
     BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)

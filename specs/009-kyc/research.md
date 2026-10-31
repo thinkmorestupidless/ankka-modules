@@ -358,6 +358,25 @@ in 010. No secret.
   took `{` as the bucket id, and `kyc-run` swallowed that failure inside `eval` and started with no bucket
   (`503 storage_unavailable`); it now stops. On kind, the sign-in was first refused `rg_unavailable`:
   `responsible-gambling` there answers slowly (connections 0.3–1.1 s, OOM-killed once today).
+- **T052, the kind run (2026-10-31).** goldvibe's core and casino applied on `kind-ankka` by the modules
+  tool (`attribution` paused for room, `rewards` paused, no image); `ankka services get kyc` shows the
+  bucket `goldvibe.kyc` on Garage with its address. An operator with `brand_goldvibe` and
+  `brand_compliance` set the UKGC profile; then, for a player made on kind and not verified: a deposit
+  through `players` `403 DEPOSIT_BLOCKED_KYC` naming kyc, a launch through `game-provider`
+  `403 PLAY_BLOCKED_KYC` with `kycStatus: unverified`; an upload signed for
+  `storage.127.0.0.1.sslip.io`, put (`200`) and confirmed (`pending`), and the player in the operator's
+  `awaiting` queue. No address, token or signature in kyc's log. What the run found:
+  - The modules tool dropped `exposeObjectStorage`, so kyc had no `ANKKA_S3_PUBLIC_ENDPOINT` and would not
+    start (fixed, `RenderSuite`).
+  - kyc at `small` (512Mi) was OOM-killed; the core gives it `medium`, as players, wallet and attribution.
+  - `game-provider` asked `players` for `/account-status` (003's contract), which `players` never served
+    (008 serves `/status`): every launch was `service_unavailable`. Fixed in 003's client and contract.
+  - An image built against an older `casino-contract` crash-loops once the tool declares the topic again
+    (`cannot start ankka projections`, a schema digest mismatch): every service on kind is rebuilt from
+    this branch's contract. Two instances from different revisions each waited to be seeded; pause and
+    resume started one.
+  - `modules apply` exited 1 after about ten minutes both times, after its changes were made; the services
+    were Ready. The reason was not kept (008 T046's token lapse while waiting is the likely one).
 
 ## Design finished
 

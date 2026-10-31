@@ -179,6 +179,9 @@
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/kyc:0.0.0",
         "expose": true,
         "runtime": "0.13.0",
+        "resources": {
+          "instanceType": "medium"
+        },
         "provisionObjectStorage": true,
         "exposeObjectStorage": true,
         "env": [
