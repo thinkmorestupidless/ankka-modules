@@ -62,7 +62,10 @@ object Operator:
     def opt(name: String) = q(name).map(_.trim).filter(_.nonEmpty)
     def number(name: String, default: Int) = opt(name).fold[Either[String, Int]](Right(default))(v => v.toIntOption.toRight(name))
     for
+      stale <- opt("stale").fold[Either[String, Boolean]](Right(false))(v => v.toBooleanOption.toRight("stale"))
+      // A stale request was approved and is waiting on its payout, so `stale` alone means the approved ones.
       status <- opt("status") match
+        case None if stale                         => Right(Some(Status.Approved.wire))
         case None                                  => Right(Some(Status.PendingReview.wire))
         case Some(v) if v.equalsIgnoreCase("ALL")  => Right(None)
         case Some(v) => Status.from(v).map(s => Some(s.wire)).toRight("status")
@@ -70,7 +73,6 @@ object Operator:
         PayoutStatus.from(v).map(p => Some(p.wire)).toRight("payoutStatus"))
       kyc <- opt("kyc").fold[Either[String, Option[String]]](Right(None))(v => Kyc.from(v.toLowerCase).map(k => Some(k.wire)).toRight("kyc"))
       band <- opt("amountRange").fold[Either[String, Option[String]]](Right(None))(v => Either.cond(Bands(v), Some(v), "amountRange"))
-      stale <- opt("stale").fold[Either[String, Boolean]](Right(false))(v => v.toBooleanOption.toRight("stale"))
       page <- number("page", 1)
       size <- number("pageSize", 50)
       _    <- Either.cond(page >= 1, (), "page")

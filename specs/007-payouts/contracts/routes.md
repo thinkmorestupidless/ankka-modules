@@ -49,7 +49,7 @@ ACL: `Routes.operator(slug)`. The handler also checks a role: `brand_admin`, `br
 
 | Method and path | Body | Answer | Refusals |
 |---|---|---|---|
-| `GET /` | query `status` (default `PENDING_REVIEW`; `ALL`), `payoutStatus`, `kyc`, `method`, `amountRange` (`lt500`, `500to5000`, `gt5000`), `playerSearch`, `stale` (initiated over 24 h ago), `page`, `pageSize` (1–200, default 50) | `{requests: [row], total, page, pageSize}` | 400 naming the parameter |
+| `GET /` | query `status` (default `PENDING_REVIEW`, or `APPROVED` with `stale`; `ALL`), `payoutStatus`, `kyc`, `method`, `amountRange` (`lt500`, `500to5000`, `gt5000`), `playerSearch`, `stale` (initiated over 24 h ago), `page`, `pageSize` (1–200, default 50) | `{requests: [row], total, page, pageSize}` | 400 naming the parameter |
 | `GET /{requestId}` | — | the request: every field of `WithdrawalRequest` but `Personal` ones beyond the IBAN's last four and the holder's names | 404 `REQUEST_NOT_FOUND` |
 | `POST /{requestId}/approve` | — | `{requestId, status, payoutStatus}` once the payout is decided (parked for manual payout, or initiated), as the original answered, or at the 2 s bound | 404; 409 `REQUEST_NOT_PENDING` |
 | `POST /{requestId}/reject` | `{reason?}` | `{requestId, status: "REJECTED", payoutStatus, refundedAmount, voidedReturnedAmount}` | 404; 409 `REQUEST_NOT_PENDING` |
