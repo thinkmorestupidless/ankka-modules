@@ -52,13 +52,17 @@ class QueueSuite extends munit.FunSuite with LogCapturing:
     val b = newPlayer(); flag(b)
     listedUnder("filter=awaiting", a); listedUnder("filter=flagged&reason=large_deposit", b)
     listedUnder("filter=pending", a); listedUnder("filter=unverified", b)
-    val q = queue("filter=awaiting")
-    val counts = q.get("counts")
-    for (filter, count) <- Seq("filter=awaiting" -> "awaiting", "filter=pending" -> "pending", "filter=unverified" -> "unverified",
+    val filters = Seq("filter=awaiting" -> "awaiting", "filter=pending" -> "pending", "filter=unverified" -> "unverified",
         "filter=verified" -> "verified", "filter=rejected" -> "rejected", "filter=ready" -> "ready",
         "filter=flagged&reason=large_deposit" -> "largeDeposit", "filter=sof" -> "sourceOfFunds",
         "filter=flagged&reason=threshold" -> "threshold", "filter=flagged&reason=window" -> "window")
-    do assertEquals(queue(filter).objects("rows").size.toLong, counts.get(count).asLong, s"$filter against $count")
+    // The view may still be projecting the earlier tests' players between one read and the next: the counts and
+    // the rows are read again until a pass agrees, and the last pass is the one asserted.
+    def pass() =
+      val counts = queue("filter=awaiting").get("counts")
+      filters.map((filter, count) => (filter, count, queue(filter).objects("rows").size.toLong, counts.get(count).asLong))
+    val agreed = scala.util.Try(kit.eventually("the counts and the rows agree")(Some(pass()).filter(_.forall(r => r._3 == r._4))))
+    for (filter, count, rows, counted) <- agreed.getOrElse(pass()) do assertEquals(rows, counted, s"$filter against $count")
     assert(ids(queue("filter=pending")).contains(a))
     assert(ids(queue("filter=unverified")).contains(b))
     assert(ids(queue("filter=flagged")).contains(b))
