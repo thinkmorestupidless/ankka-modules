@@ -53,6 +53,8 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 019 | all | the Spinvibe migration | — |
 | 020 | `tools` | game-provider-simulator: ST8's protocol, scripted, for parity and failure tests | Scala |
 | 021 | all | core and modules: module manifests in ankka-vendor's format, a brand's values, the modules tool (amends 001) | — |
+| 022 | brand | wallet primitives: reservations, settlement, payouts and non-player accounts | Scala |
+| 023 | brand | the predictions module: `markets` and `exchange` on ankka-predictions' libraries (built) | Scala |
 
 ## Working here
 

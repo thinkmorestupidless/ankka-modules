@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-21
 
-**Status**: Draft
+**Status**: Built
 
 **Input**: User description: "The `predictions` module: two services, `markets` and `exchange`,
 in a brand's project, composed from thinkmorestupidless's private libraries `markets` and
