@@ -37,6 +37,6 @@ object RequestsConsumer extends Consumer.Companion[RequestsConsumer, RequestEven
       Some(Left(o.playerId -> CountRequest(Counted(o.requestId, o.amount, Currency.unsafe(o.currency), o.at), PayoutsRuntime.now())))
     case Cancelled(_, _, at) => Some(Right(Uncount(requestId, at)))
     case Rejected(_, _, at)  => Some(Right(Uncount(requestId, at)))
-    case Failed(_, _, _, at) => Some(Right(Uncount(requestId, at)))
+    case f: Failed           => Some(Right(Uncount(requestId, f.at)))
     case Reversed(_, _, at)  => Some(Right(Uncount(requestId, at)))
     case _                   => None
