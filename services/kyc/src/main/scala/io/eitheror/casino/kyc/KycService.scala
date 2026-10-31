@@ -20,7 +20,6 @@ object KycService:
   /** How many players a policy flagger's search reads at a time. */
   val SearchPage = 1000
 
-
   val descriptors: Seq[ComponentDescriptor] = Seq(
     KycRecord.descriptor,
     PolicyEntity.descriptor,

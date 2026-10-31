@@ -295,6 +295,14 @@ class KycRecordSuite extends munit.FunSuite with LogCapturing:
     completeProfile(late, requiredChanged = true, when = later(-20)): Unit
     assertEquals(late.currentState.profile.changedAt, Some(later(-10)))
 
+  test("ProfileChanged: a change read late is recorded at its own time, and the status it causes at the reading"):
+    val kit = fresh
+    verified(kit)
+    val read = kit.call(KycRecord.profileChanged)(
+      ProfileChanged(player, ProfileField.values.toSet, adult, true, identity, later(30), Some(later(5))))
+    assertEquals(read.events.last, StatusChanged(Status.Verified, Status.Unverified, Actor.System, "profile_changed", None, later(30)))
+    assertEquals(kit.currentState.profile.changedAt, Some(later(5)))
+
   // The window
 
   test("SetDeadline: registration plus the window, once; a policy with no window sets none"):

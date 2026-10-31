@@ -34,6 +34,11 @@ class ProfileConsumerSuite extends munit.FunSuite with LogCapturing:
     assert(!ProfileConsumer.command(fact(Vector("nickname", "email")), Vector.empty, at).requiredChanged)
     assert(!ProfileConsumer.command(fact(), Vector.empty, at).requiredChanged)
 
+  test("the change is timed by the fact, the derivation by when it is read"):
+    val read = at.plusSeconds(3600)
+    val c    = ProfileConsumer.command(fact(Vector("city")), Vector.empty, read)
+    assertEquals((c.changedAt, c.at, c.changeTime), (Some(at), read, at))
+
   test("no value is kept: the command holds presence and the adult date only"):
     val text = ProfileConsumer.command(fact(Vector("city")), Vector.empty, at).toString
     Seq("Ada", "Lovelace", "London", "N1 1AA", "+447700900000", "2 New Street", "1990-02-28").foreach(v => assert(!text.contains(v), text))

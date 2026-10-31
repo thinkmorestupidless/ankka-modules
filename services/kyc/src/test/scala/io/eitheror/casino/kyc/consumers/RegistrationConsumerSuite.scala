@@ -34,6 +34,7 @@ class RegistrationConsumerSuite extends munit.FunSuite with LogCapturing:
     assertEquals(c.present, Set(ProfileField.FirstName, ProfileField.LastName, ProfileField.DateOfBirth, ProfileField.Country))
     assertEquals(c.adultFrom.map(_.reveal.toString), Some("2008-01-02"))
     assert(!c.requiredChanged, "a registration changes no required field")
+    assertEquals(ProfileConsumer.registered(full, Vector.empty, at.plusSeconds(60)).flatMap(_.changedAt), Some(at))
     assertEquals(ProfileConsumer.registered(registered().copy(country = None), Vector.empty, at), None)
 
   test("a registration read after an edit changes nothing: the edit carried every field held"):

@@ -164,11 +164,11 @@ final class KycRecord(@scala.annotation.unused context: EventSourcedEntityContex
 
   def profileChanged(c: ProfileChanged): Effect[KycAnswer] =
     val s = currentState
-    val seen = c.requiredChanged && s.profile.changedAt.exists(!_.isBefore(c.at))
+    val seen = c.requiredChanged && s.profile.changedAt.exists(!_.isBefore(c.changeTime))
     if (!c.requiredChanged || seen) && c.present == s.profile.present && c.adultFrom.map(_.reveal) == s.profile.adultFrom.map(_.reveal) then
       emit(Vector.empty)
     else
-      emit(withDerivation(Vector(ProfileUpdated(c.present, c.adultFrom, c.requiredChanged, c.at)), Trigger.Profile, c.policyRequired, c.at))
+      emit(withDerivation(Vector(ProfileUpdated(c.present, c.adultFrom, c.requiredChanged, c.changeTime)), Trigger.Profile, c.policyRequired, c.at))
 
   /**
    * The profile a player registered with, unless the record already knows one: `player_profile_updated` carries

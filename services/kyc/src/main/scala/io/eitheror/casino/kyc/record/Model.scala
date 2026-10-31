@@ -250,7 +250,9 @@ final case class DismissFlag(reason: String, note: String, operatorId: String, a
 final case class DepositCheck(playerId: String, policy: Policy, currency: Option[String], amount: Long, at: Instant)
 final case class CountDeposit(playerId: String, currency: String, amount: Long, ordinal: Int, policy: Policy, at: Instant)
 final case class ProfileChanged(playerId: String, present: Set[ProfileField], adultFrom: Option[Personal[LocalDate]], requiredChanged: Boolean,
-    policyRequired: Vector[Category], at: Instant)
+    policyRequired: Vector[Category], at: Instant, changedAt: Option[Instant] = None):
+  /** When the profile changed: the fact's time, which a redelivery or lag does not move; else the command's. */
+  def changeTime: Instant = changedAt.getOrElse(at)
 final case class SetDeadline(playerId: String, registeredAt: Instant, windowDays: Option[Int], at: Instant)
 final case class WindowLapsed(deadline: Instant, suspendOnExpiry: Boolean, at: Instant)
 final case class RequestedSuspension(deadline: Instant, at: Instant)

@@ -32,14 +32,15 @@ object Read:
 
 /**
  * `player_profile_updated` into `ProfileChanged` (R11): which of the eight fields are present, the day the
- * player turns eighteen, and whether a required field changed. No field's value is kept or logged.
+ * player turns eighteen, and whether a required field changed. No field's value is kept or logged. The change is
+ * timed by the fact and the status by when it is read, so a fact read late or twice cannot undo a later verification.
  */
 final class ProfileConsumer(client: ComponentClient) extends Consumer[Option[CasinoPlayersFact], Nothing]:
   def onMessage(fact: Option[CasinoPlayersFact]): Effect = fact match
     case Some(f: PlayerProfileUpdated) =>
       val policy = client.forEventSourcedEntity(EntityId(KycRuntime.settings.brand)).call(PolicyEntity.get).invoke()
       client.forEventSourcedEntity(EntityId(f.playerId)).call(KycRecord.profileChanged)
-        .invoke(ProfileConsumer.command(f, policy.required, f.occurredAt)): Unit
+        .invoke(ProfileConsumer.command(f, policy.required, KycRuntime.now())): Unit
       effects.done()
     case Some(_) => effects.ignore()
     case None =>
@@ -60,18 +61,18 @@ object ProfileConsumer extends Consumer.Companion[ProfileConsumer, Option[Casino
 
   def command(f: PlayerProfileUpdated, policyRequired: Vector[Category], at: Instant): ProfileChanged =
     changed(f.playerId, Vector(f.givenName, f.familyName, f.dateOfBirth, f.telephone, f.addressLine, f.city, f.postCode).map(_.map(_.reveal)),
-      f.country, f.changedFields.exists(Names.contains), policyRequired, at)
+      f.country, f.changedFields.exists(Names.contains), policyRequired, at, f.occurredAt)
 
   /** The profile `player_registered` carries, as a first profile: no required field changed; none when it carries no field. */
   def registered(f: PlayerRegistered, policyRequired: Vector[Category], at: Instant): Option[ProfileChanged] =
     val c = changed(f.playerId, Vector(f.givenName, f.familyName, f.dateOfBirth, f.telephone, f.addressLine, f.city, f.postCode).map(_.map(_.reveal)),
-      f.country, false, policyRequired, at)
+      f.country, false, policyRequired, at, f.occurredAt)
     Option.when(c.present.nonEmpty)(c)
 
   /** The seven personal fields in `ProfileField`'s order before the country. */
   private def changed(playerId: String, personal: Vector[Option[String]], country: Option[String], requiredChanged: Boolean,
-      policyRequired: Vector[Category], at: Instant): ProfileChanged =
+      policyRequired: Vector[Category], at: Instant, changedAt: Instant): ProfileChanged =
     val fields = Vector(ProfileField.FirstName, ProfileField.LastName, ProfileField.DateOfBirth, ProfileField.Phone,
       ProfileField.AddressLine1, ProfileField.City, ProfileField.PostalCode)
     val presence = Completeness.facts(fields.zip(personal).toMap + (ProfileField.Country -> country))
-    ProfileChanged(playerId, presence.present, presence.adultFrom, requiredChanged, policyRequired, at)
+    ProfileChanged(playerId, presence.present, presence.adultFrom, requiredChanged, policyRequired, at, Some(changedAt))
