@@ -27,10 +27,6 @@ class SettlementFeatures extends ExchangeFeatures("settlement.feature"):
     super.beforeEach(context)
     trades = Map.empty
 
-  Given("the play gate and the bet gate allow {string} and {string}") { (a: String, b: String) =>
-    Seq(a, b).foreach { p => kit.gates.kyc.remove(p); kit.gates.rg.remove(p) }
-  }
-
   Then("trade {string} is settled through the wallet from order {string} of {string} to {string} for {string}") {
     (t: String, o: String, buyer: String, seller: String, amount: String) =>
       val (key, body) = kit.eventually(s"the settlement of $o") {

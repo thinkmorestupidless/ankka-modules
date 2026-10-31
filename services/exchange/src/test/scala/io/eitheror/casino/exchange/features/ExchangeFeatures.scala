@@ -46,6 +46,12 @@ abstract class ExchangeFeatures(file: String) extends GherkinSuite(s"../../featu
   Given("the play gate allows {string}") { (p: String) => kit.gates.kyc.remove(p): Unit }
   Given("the bet gate allows {string}") { (p: String) => kit.gates.rg.remove(p): Unit }
 
+  Given("the play gate and the bet gate allow {string}") { (p: String) => kit.gates.kyc.remove(p); kit.gates.rg.remove(p): Unit }
+
+  Given("the play gate and the bet gate allow {string} and {string}") { (a: String, b: String) =>
+    Seq(a, b).foreach { p => kit.gates.kyc.remove(p); kit.gates.rg.remove(p) }
+  }
+
   protected def place(p: String, side: String, o: String, n: String, outcome: String, m: String, price: String): Reply =
     made()
     last = kit.place(p, id(m), o, side, outcome, n.toLong, price.toLong)
