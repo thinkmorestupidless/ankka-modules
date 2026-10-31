@@ -43,6 +43,18 @@ into a reasoning service, and erasure. A brand entitled to it trades; a brand bo
   a purpose `fee`, by an amendment to spec 022; charged from the taker's reservation as a split
   is (spec 022 FR-008a).
 - Q: Do the 39 proposed predictions terms in the glossary stand? → A: All accepted as defined.
+- Q: (found in planning) Where does the taker fee's rule live, given the library reserves only an
+  order's cost and does not name a trade's taker? → A: In the exchange library: ankka-predictions
+  spec 007 adds the fee to `Open`, the reservation and a trade's legs; this module supplies the
+  rate and moves the fee.
+- Q: (found in planning) Do players get explicit split and merge in this version? → A: No; complete
+  sets arise only from pool matching, charged from reservations. The library's explicit split
+  charges from available money after it is recorded; a request asks for one funded by a
+  reservation first.
+- Q: (found in planning) How do loss limits apply to orders, when no caller of `may-bet` knows a
+  player's losses from trading? → A: `responsible-gambling` works them out itself from
+  `money.transactions`, trades, fees and resolution payments included (an amendment to spec 010);
+  `exchange` sends no sums.
 
 ## Context
 
@@ -200,6 +212,11 @@ topic either way; observations only with.
 - The casino's `may-bet` with a cost rather than a bet: spec 010 is asked for a stake of the
   order's cost; whether a reservation counts while it rests is spec 022's clarification.
 
+## Changes from the original
+
+The original (`eitheror-platform`) has no prediction markets: everything in this module is new
+(constitution I). No recording exists to replay, and none is made.
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -262,10 +279,13 @@ topic either way; observations only with.
   position its draft sets, else the brand's values' defaults; a draft MAY set either.
 - **FR-015**: With a taker fee rate above 0 in the brand's values (0 by default, in basis
   points), each trade's taker MUST pay ⌈rate × contracts × price × (100 − price) / 1,000,000⌉
-  minor units, moved from the taker's order reservation into the brand's fee account keyed by
-  the trade; the maker pays nothing. A buy order MUST reserve, beside its cost,
-  ⌈rate × contracts × 2,500 / 1,000,000⌉, the most its fee can be; what a fill does not use is
-  released with the order. The fee account is spec 022's, amended with the kind `fee`.
+  minor units into the brand's fee account keyed by the trade; the maker pays nothing. A buy
+  order MUST reserve, beside its cost, ⌈rate × contracts × 2,500 / 1,000,000⌉, the most its fee
+  can be; what a fill does not use is released with the order. The rule is the exchange
+  library's (ankka-predictions spec 007); `exchange` opens each book with the brand's rate and
+  makes the fee's move. The fee account is spec 022's, amended with the kind `fee`.
+- **FR-016**: Players MUST NOT be offered an explicit split or merge in this version; a complete
+  set is split or merged only by a trade through the pool.
 
 ### Key Entities
 
@@ -315,7 +335,9 @@ topic either way; observations only with.
 ## Dependencies
 
 - ankka-predictions spec 004 and its libraries; spec 021 (the module model), spec 022 (the
-  wallet), with an amendment adding the account kind `fee` and the purpose `fee`; specs 008, 009, 010 (the gates), 015 (reporting), 018 (audit).
+  wallet), with an amendment adding the account kind `fee` and the purpose `fee`;
+  ankka-predictions spec 007 (the taker fee) and the release that carries it; spec 010 amended
+  so `responsible-gambling` works out a player's losses itself; specs 008, 009, 010 (the gates), 015 (reporting), 018 (audit).
 - ankka-predictions `notes/casino-requests.md` item 9: a trade matched through the pool charges
   each buyer's reservation into the market's pool account, as spec 022 FR-008a's split charged
   from a reservation; a trade through a merge is one merge per selling leg (spec 022 FR-008).
