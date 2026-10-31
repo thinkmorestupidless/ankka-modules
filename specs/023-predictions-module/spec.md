@@ -15,6 +15,15 @@ catalogue players read, the facts on the contract's topics, the price stream, th
 into a reasoning service, and erasure. A brand entitled to it trades; a brand bound to a pool
 (spec 024) runs the module without its own books."
 
+## Clarifications
+
+### Session 2026-10-31
+
+- Q: Does approving a market need a second operator, and may the drafter approve? → A: No second
+  operator; the drafter may approve, for now.
+- Q: Which of the play gate, `may-bet` and limits apply to an order under a DCM? → A: Not yet
+  known; the DCM's requirements are still to be learned. Left open.
+
 ## Context
 
 Decision 0055 makes eitheror the owner of the prediction market and this repository its home, as
@@ -161,9 +170,11 @@ topic either way; observations only with.
 - The gates under a Designated Contract Market: the first licence (Assumptions) is not a
   gambling licence. [NEEDS CLARIFICATION: which of `kyc`'s play gate and `responsible-gambling`'s
   `may-bet` and limits apply to an order under a DCM, where a prediction market is a derivatives
-  contract and not a bet; `players` (account active) and KYC itself apply either way]
-- Four-eyes approval: carried from ankka-predictions spec 002. [NEEDS CLARIFICATION: whether
-  approving a market needs a second operator, and whether the drafter may approve]
+  contract and not a bet; `players` (account active) and KYC itself apply either way. Deferred
+  (Trevor, 2026-10-31): the DCM's requirements are not yet known]
+- Approval: one operator with the `markets` permission approves a draft, and the operator who
+  drafted it may (Trevor, 2026-10-31). Four-eyes approval, carried from ankka-predictions spec 002,
+  is not required for now.
 - The casino's `may-bet` with a cost rather than a bet: spec 010 is asked for a stake of the
   order's cost; whether a reservation counts while it rests is spec 022's clarification.
 
