@@ -248,7 +248,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 10: The recordings and parity
 
-- [ ] T052 Write `tests/original/payouts-driver` (scenario 30): one test per scenario of
+- [X] T052 Write `tests/original/payouts-driver` (scenario 30): one test per scenario of
       `features/payouts/` that the original can reach, in the shape of `tests/original/players-driver`,
       with the outcome route signed by the original's internal secret read from the recording worktree's
       environment and never written to a file here. Add scenario 251 to the run list.

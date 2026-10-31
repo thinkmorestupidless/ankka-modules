@@ -134,6 +134,22 @@ func TestCredentialsAreRedacted(t *testing.T) {
 	}
 }
 
+func TestTheInternalSecretsHeaderIsRedactedAndOtherHeadersKept(t *testing.T) {
+	outcome := recorder.Step{
+		Request: recorder.Request{Method: "POST", Path: "/internal/v1/casino/withdrawal-requests/{requestId}/outcome",
+			Headers: map[string]string{"X-Internal-Secret": "dev-wallet-secret", "x-internal-secret": "again", "Content-Type": "application/json"}},
+		Response: recorder.Response{Status: 200, Body: json.RawMessage(`{"ok":true}`)},
+	}
+	r := recorder.Recording{Scenario: "TestS", Steps: []recorder.Step{outcome}}
+	h := Merge(r, r).Steps[0].Request.Headers
+	if h["X-Internal-Secret"] != "<redacted>" || h["x-internal-secret"] != "<redacted>" || h["Content-Type"] != "application/json" {
+		t.Fatalf("headers: %v", h)
+	}
+	if r.Steps[0].Request.Headers["X-Internal-Secret"] != "dev-wallet-secret" {
+		t.Fatal("the merge changed the run it was given")
+	}
+}
+
 func TestRepeatedReadsCollapseToTheLast(t *testing.T) {
 	poll := func(resp string) recorder.Step { return step("/twins/grant-1", ``, resp) }
 	act := recorder.Step{Request: recorder.Request{Method: "POST", Path: "/spin"}, Response: recorder.Response{Status: 200}}
