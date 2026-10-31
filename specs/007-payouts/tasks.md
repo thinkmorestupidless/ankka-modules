@@ -162,7 +162,7 @@ Build with `CASINO_VERSION=0.2.0-007-SNAPSHOT`.
 
 ## Phase 5: US3, the player is offered the terminals they may withdraw to (P2)
 
-- [ ] T031 [US3] Fail first: bind `features/payouts/terminals.feature` in
+- [X] T031 [US3] Fail first: bind `features/payouts/terminals.feature` in
       `T/features/TerminalsFeatures.scala`.
 - [ ] T032 [US3] `PlayerEndpoint`: `GET /{playerId}/withdrawal-terminals?currency=`. Eligibility is
       ranked from the catalogue, and the currency is the wallet's when absent. One rule serves the

@@ -81,7 +81,7 @@ abstract class PayoutsFeatures(file: String) extends GherkinSuite(s"../../featur
   /** The gateway lists `terminals` in the currency, and the catalogue holds them now (the timer would within a minute). */
   protected def terminals(ts: Terminal*): Unit =
     kit.gateway.terminals(currency, ts.map(t => FakeGateway.terminal(t.id, t.gateway, t.name, t.scheme, t.active,
-      t.requiresPayoutDestination, t.coins))*)
+      t.requiresPayoutDestination, t.coins, withdrawals = t.supportsWithdrawal))*)
     kit.components.forKeyValueEntity(EntityId(kit.slug)).call(TerminalCatalogue.refresh)
       .invoke(Refresh(currency, ts.toVector, kit.now())): Unit
 
