@@ -15,6 +15,7 @@ import java.util.UUID
 class PublishersSuite extends munit.FunSuite:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
+  override def beforeEach(context: BeforeEach): Unit = kit.reset()
 
   test("an operator's award is bonus_granted and audited; its revoke bonus_cancelled and audited, the reason named only"):
     val id = s"pub-${UUID.randomUUID().toString.take(8)}"

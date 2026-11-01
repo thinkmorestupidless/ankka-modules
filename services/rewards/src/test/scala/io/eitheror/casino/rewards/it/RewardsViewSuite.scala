@@ -19,6 +19,7 @@ import java.util.UUID
 class RewardsViewSuite extends munit.FunSuite:
   private lazy val kit = SharedKit.kit
   override def munitTimeout = scala.concurrent.duration.Duration(180, "s")
+  override def beforeEach(context: BeforeEach): Unit = kit.reset()
 
   private val tag   = UUID.randomUUID().toString.take(6)
   /** Now, so no reward's deadline is already past and no timer fires during a test. */
