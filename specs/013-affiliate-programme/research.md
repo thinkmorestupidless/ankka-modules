@@ -354,3 +354,8 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   deposit and charged its payment fee twice; the original counts it once (`depositCount: 1` in
   `tests/port/attribution/`'s first-deposit recording). The `first-deposit` fact decides CPA only; the
   `deposit` fact counts the deposit and writes its payment fee. data-model.md's kind table says so now.
+- **The recordings are made last** (T034, asked 2026-11-01). The original's kind stack was down when
+  T034 came up, and rebuilding it needs the person's hands. The person chose to defer the recording to
+  the end of the build, before the review: the routes exist by then, so each recording is replayed at
+  once. Until then ParitySuite's thirteen-recordings check is red.
+
