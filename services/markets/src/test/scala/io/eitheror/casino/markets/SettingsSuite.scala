@@ -7,9 +7,11 @@ class SettingsSuite extends munit.FunSuite:
     "PREDICTIONS_MAX_ORDER_COST" -> "100000", "PREDICTIONS_MAX_POSITION" -> "10000"
   )
 
-  test("the brand's values, with no taker fee when the values name none") {
+  test("the brand's values, with no taker fee when the values name none, and a fee above 0 refused until the library charges one") {
     assertEquals(Settings.fromEnvironment(env), Right(Settings("goldvibe", Vector("politics", "sports"), Vector("EUR", "USD"), 100000, 10000, 0)))
-    assertEquals(Settings.fromEnvironment(env + ("PREDICTIONS_TAKER_FEE_BPS" -> "700")).map(_.takerFeeBps), Right(700))
+    assertEquals(Settings.fromEnvironment(env + ("PREDICTIONS_TAKER_FEE_BPS" -> "0")).map(_.takerFeeBps), Right(0))
+    val fee = Settings.fromEnvironment(env + ("PREDICTIONS_TAKER_FEE_BPS" -> "700"))
+    assert(fee.left.exists(_.contains("waits on ankka-predictions 0.2.0")), fee.toString)
   }
 
   test("a value that cannot be read is refused naming its variable") {

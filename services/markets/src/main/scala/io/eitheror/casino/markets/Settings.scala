@@ -28,8 +28,11 @@ object Settings:
       named(name).map(_.split(',').toVector.map(_.trim).filter(_.nonEmpty)).filterOrElse(_.nonEmpty, s"$name: names nothing")
     def positive(name: String): Either[String, Long] =
       named(name).flatMap(v => v.toLongOption.filter(_ > 0).toRight(s"$name: '$v' is not a positive whole number"))
+    // The library charges no fee before ankka-predictions spec 007 (R8): a rate above 0 would be
+    // accepted and charged by nothing, so it is refused until the fee lands.
     val fee = env.get("PREDICTIONS_TAKER_FEE_BPS").map(_.trim).filter(_.nonEmpty).fold(Right(0)) { v =>
       v.toIntOption.filter(b => b >= 0 && b <= 10_000).toRight(s"PREDICTIONS_TAKER_FEE_BPS: '$v' is not a rate from 0 to 10000 basis points")
+        .filterOrElse(_ == 0, s"PREDICTIONS_TAKER_FEE_BPS: '$v': the taker fee waits on ankka-predictions 0.2.0 (spec 007); only 0 is charged")
     }
     for
       brand      <- named("CASINO_BRAND")
