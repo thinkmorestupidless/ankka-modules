@@ -199,6 +199,8 @@ object PlayerEvent:
   final case class DuplicateCheckEnded(outcome: String, at: Instant)                               extends PlayerEvent
   /** A weak signal's block of the no-deposit offers, persisted with the `weak` end in one change (FR-035). */
   final case class NoDepositBlocked(signals: Set[String], at: Instant)                             extends PlayerEvent
+  /** An operator lifted the block (spec 011 FR-036); a fraud case's dismissal does not. */
+  final case class NoDepositBlockCleared(actorId: String, at: Instant)                             extends PlayerEvent
   final case class KycVerified(at: Instant)                                                        extends PlayerEvent
   final case class KycWithdrawn(at: Instant)                                                       extends PlayerEvent
   final case class WithdrawalOpened(withdrawalId: String, at: Instant)                             extends PlayerEvent
@@ -264,6 +266,7 @@ final case class FlagDuplicate(caseId: String, linked: Set[String], signals: Set
 final case class ClearDuplicate(caseId: String, actorId: Option[String], at: Instant)
 /** The check's end: its outcome, and for a weak one the signals that block the no-deposit offers. */
 final case class EndDuplicateCheck(outcome: String, weakSignals: Set[String], at: Instant)
+final case class ClearNoDepositBlock(actorId: String, at: Instant)
 final case class Withdrawal(withdrawalId: String, at: Instant)
 final case class FileErasure(correlationId: String, holdUntil: Instant, at: Instant)
 final case class SendResetLink(operatorId: String, at: Instant)

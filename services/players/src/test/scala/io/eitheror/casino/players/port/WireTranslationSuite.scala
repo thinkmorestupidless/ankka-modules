@@ -44,7 +44,7 @@ class WireTranslationSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("the operator's player actions move under the operator prefix") {
-    Seq("suspend", "reinstate", "vip-tier", "pot-vip", "reset-password", "date-of-birth", "clear-suspect-flag",
+    Seq("suspend", "reinstate", "vip-tier", "pot-vip", "reset-password", "date-of-birth", "clear-suspect-flag", "clear-no-deposit-block",
       "sessions/s-1/force-end", "sessions/force-end-all").foreach { action =>
       assertEquals(path("PATCH", s"/v1/casino/goldvibe/players/p-1/$action"), s"/v1/casino/backoffice/goldvibe/players/p-1/$action")
     }

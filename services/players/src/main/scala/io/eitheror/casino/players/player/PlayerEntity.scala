@@ -95,6 +95,8 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       case e: DuplicateCheckEnded =>
         s.copy(duplicateCheck = Some(s.duplicateCheck.getOrElse(DuplicateCheck(e.at)).copy(outcome = Some(e.outcome), endedAt = Some(e.at))))
       case e: NoDepositBlocked => s.copy(noDepositBlock = Some(NoDepositBlock(e.signals, e.at)))
+      case e: NoDepositBlockCleared =>
+        s.copy(noDepositBlock = s.noDepositBlock.map(_.copy(clearedBy = Some(e.actorId), clearedAt = Some(e.at))))
       case _: KycVerified            => s.copy(kycVerified = true)
       case _: KycWithdrawn            => s.copy(kycVerified = false)
       case e: WithdrawalOpened        => s.copy(withdrawalsOpen = s.withdrawalsOpen + e.withdrawalId)
@@ -364,6 +366,11 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       if c.outcome == CheckOutcome.Weak then effects.persistAll(Seq(ended, NoDepositBlocked(c.weakSignals, c.at))).thenReply(_ => Done.changed)
       else effects.persist(ended).thenReply(_ => Done.changed)
 
+  /** An operator's lifting of the no-deposit block (spec 011 FR-036); none held is no event. */
+  def clearNoDepositBlock(c: ClearNoDepositBlock): Effect[Done] =
+    if !currentState.noDepositBlocked then effects.reply(Done.unchanged)
+    else effects.persist(NoDepositBlockCleared(c.actorId, c.at)).thenReply(_ => Done.changed)
+
   def kycVerified(c: At): Effect[Done] =
     if currentState.kycVerified then effects.reply(Done.unchanged) else effects.persist(KycVerified(c.at)).thenReply(_ => Done.changed)
 
@@ -440,6 +447,7 @@ object PlayerEntity
   given Serializer[FlagDuplicate]         = PlayersCodecs.serializer[FlagDuplicate]("flag-duplicate")
   given Serializer[ClearDuplicate]        = PlayersCodecs.serializer[ClearDuplicate]("clear-duplicate")
   given Serializer[EndDuplicateCheck]     = PlayersCodecs.serializer[EndDuplicateCheck]("end-duplicate-check")
+  given Serializer[ClearNoDepositBlock]   = PlayersCodecs.serializer[ClearNoDepositBlock]("clear-no-deposit-block")
   given Serializer[Withdrawal]            = PlayersCodecs.serializer[Withdrawal]("withdrawal")
   given Serializer[FileErasure]           = PlayersCodecs.serializer[FileErasure]("file-erasure")
   given Serializer[SendResetLink]         = PlayersCodecs.serializer[SendResetLink]("send-reset-link")
@@ -487,6 +495,7 @@ object PlayerEntity
   val clearDuplicate        = command("clear-duplicate")(_.clearDuplicate)
   val startDuplicateCheck   = command("start-duplicate-check")(_.startDuplicateCheck)
   val endDuplicateCheck     = command("end-duplicate-check")(_.endDuplicateCheck)
+  val clearNoDepositBlock   = command("clear-no-deposit-block")(_.clearNoDepositBlock)
   val kycVerified           = command("kyc-verified")(_.kycVerified)
   val kycWithdrawn          = command("kyc-withdrawn")(_.kycWithdrawn)
   val withdrawalOpened      = command("withdrawal-opened")(_.withdrawalOpened)

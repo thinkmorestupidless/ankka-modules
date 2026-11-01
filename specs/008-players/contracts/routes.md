@@ -95,6 +95,7 @@ logged (001 FR-023).
 | `GET /players/{playerId}/messages`, `POST /players/{playerId}/messages` | `MessagesView`; `MessageEntity.Created` (origin `operator`), merge tags rendered | 200; 201; 422 `unknown_merge_tag` + `tag`; 422 `category_required`; 422 `marketing_suppressed`; 422 `account_closed`; 404 `player_not_found` |
 | `GET /merge-tags`, `POST /messages/preview` | the merge tags; a render | 200; 422; 404 |
 | `POST /players/{playerId}/clear-suspect-flag` | `ClearDuplicate` | 200 |
+| `POST /players/{playerId}/clear-no-deposit-block` (spec 011 FR-036) | `ClearNoDepositBlock` with the operator; the handler asks for `brand_admin`, `resource_admin`, `brand_compliance`, `compliance_officer`, `fraud_analyst` or `platform_admin` | 200 `{playerId, blockCleared: true}`, also when nothing was blocked, as the original; 403 `forbidden`; 404 `player_not_found` |
 | `GET /fraud-cases?status`, `PATCH /fraud-cases/{caseId}/review`, `PATCH /fraud-cases/{caseId}/dismiss` `{notes}` | `FraudCasesView`; `FraudCaseEntity` | 200 `{status, reviewedBy}`, and `reviewNotes` on dismiss; 404 `case_not_found` |
 | `POST /players/{playerId}/activity-export`, `GET /exports/{exportId}` | `ExportWorkflow` for the player | 202 `{exportId}`; 200; 409; 404; 410 |
 | `POST /players/{playerId}/erasure` | `ErasureWorkflow` | 202; 409 `not_closed` |

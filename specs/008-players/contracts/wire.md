@@ -13,7 +13,7 @@ here is the plan's reading of the Scala; the driver's recordings confirm or corr
 | `/v1/casino/players/{brand}/emails…` | `/v1/casino/players/{brand}/{player}/emails` for the list and add; `/v1/casino/players/{brand}/emails/{address}/…` and `/emails/verify` unchanged |
 | `/v1/casino/players/{brand}/email-change` | `/v1/casino/players/{brand}/{player}/email-change`; `/email-change/verify` unchanged |
 | `/v1/casino/sessions/{brand}?playerId={player}` | `/v1/casino/sessions/{brand}/players/{player}` |
-| `/v1/casino/{brand}/players/{player}/suspend` (and `reinstate`, `vip-tier`, `pot-vip`, `reset-password`, `date-of-birth`, `clear-suspect-flag`, `sessions/…/force-end`, `sessions/force-end-all`) | `/v1/casino/backoffice/{brand}/players/{player}/…` |
+| `/v1/casino/{brand}/players/{player}/suspend` (and `reinstate`, `vip-tier`, `pot-vip`, `reset-password`, `date-of-birth`, `clear-suspect-flag`, `clear-no-deposit-block` (spec 011), `sessions/…/force-end`, `sessions/force-end-all`) | `/v1/casino/backoffice/{brand}/players/{player}/…` |
 | `/v1/casino/{brand}/brand-config` | `/v1/casino/backoffice/{brand}/brand-config` |
 | `/v1/casino/backoffice/{brand}/players/{player}/activity-export` | unchanged; the response body gains `missing` and the other services' parts (FR-040; the recorded fields are compared, the added ones ignored) |
 | `/v1/casino/brands/{brand}/merge-tags`, `/messages/preview` | `/v1/casino/backoffice/{brand}/merge-tags`, `…/messages/preview` |

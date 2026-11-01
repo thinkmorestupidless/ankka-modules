@@ -387,6 +387,18 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing:
     assert(!strong.currentState.noDepositBlocked)
   }
 
+  test("ClearNoDepositBlock (spec 011 FR-036) lifts the block with the operator and the time, keeping its signals; again is no event") {
+    val kit = registered
+    assert(!kit.call(PlayerEntity.clearNoDepositBlock)(ClearNoDepositBlock("op-1", at)).persisted, "nothing to clear")
+    kit.call(PlayerEntity.startDuplicateCheck)(At(at)): Unit
+    kit.call(PlayerEntity.endDuplicateCheck)(EndDuplicateCheck(CheckOutcome.Weak, Set("email_variant"), at)): Unit
+    assertEquals(kit.call(PlayerEntity.clearNoDepositBlock)(ClearNoDepositBlock("op-1", later(5))).events,
+      Vector(NoDepositBlockCleared("op-1", later(5))))
+    assertEquals(kit.currentState.noDepositBlock, Some(NoDepositBlock(Set("email_variant"), at, Some("op-1"), Some(later(5)))))
+    assert(!kit.currentState.noDepositBlocked)
+    assert(!kit.call(PlayerEntity.clearNoDepositBlock)(ClearNoDepositBlock("op-2", later(6))).persisted)
+  }
+
   // ── erasure ───────────────────────────────────────────────────────────────
 
   test("FileErasure refuses not_closed") {
