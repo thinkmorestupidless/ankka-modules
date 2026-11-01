@@ -110,7 +110,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T015 [P] `p-test/brands/BrandProgrammeSuite.scala`, `PlanSuite.scala` (key value kits): every
   command of data-model.md; `setGgrSource` takes effect from a named day; then `p/brands/BrandProgramme.scala`,
   `p/brands/Plan.scala`
-- [ ] T016 [P] `p-test/accounts/AffiliateSuite.scala` (event sourced kit): every command, the identity
+- [X] T016 [P] `p-test/accounts/AffiliateSuite.scala` (event sourced kit): every command, the identity
   stored only as `Sealed`, `close` and `erased`; then `p/accounts/Affiliate.scala`
 - [ ] T017 [P] `p-test/accounts/MembershipSuite.scala`: every allowed transition and every refused one
   naming the status (FR-002), an operator's suspension standing over an ancestor's reactivation
