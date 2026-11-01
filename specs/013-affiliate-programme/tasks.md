@@ -115,7 +115,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T017 [P] `p-test/accounts/MembershipSuite.scala`: every allowed transition and every refused one
   naming the status (FR-002), an operator's suspension standing over an ancestor's reactivation
   (FR-029), `activateInvited`, `revShareOverride`; then `p/accounts/Membership.scala`
-- [ ] T018 [P] `p-test/intake/FactInboxSuite.scala`: `claim` once, `duplicate` after; then
+- [X] T018 [P] `p-test/intake/FactInboxSuite.scala`: `claim` once, `duplicate` after; then
   `p/intake/FactInbox.scala`
 - [ ] T019 [P] `p-test/players/PlayerAttributionSuite.scala`: every row of data-model.md's kind table,
   including the lifetime guard, a first deposit below the minimum leaving it unset, the other GGR source
