@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients}
 import io.eitheror.casino.rewards.{RewardsRuntime, Settings}
 import io.eitheror.casino.rewards.clients.{GameProvider, Wallet}
+import io.eitheror.casino.rewards.codes.{CodeDocument, CodeDocumentState}
 import io.eitheror.casino.rewards.offers.{OfferBook, OfferBookState}
 import io.eitheror.casino.rewards.player.{PlayerRewards, PlayerRewardsState}
 import io.eitheror.casino.rewards.reward.{Reward, RewardState}
@@ -28,6 +29,8 @@ final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
   def reward(id: String)           = components.forEventSourcedEntity(EntityId(id))
   def rewardState(id: String): RewardState = reward(id).call(Reward.get).invoke()
   def step(id: String): StepState  = components.forWorkflow(EntityId(id)).call(WalletStep.status).invoke()
+  /** The programme's code document as last fetched (`codes-<slug>`, research R13). */
+  def codeDocument: CodeDocumentState = components.forKeyValueEntity(EntityId(slug)).call(CodeDocument.get).invoke()
 
   /**
    * The programme's codes for the brand, against which a code must be unique (FR-003). The code document is read with

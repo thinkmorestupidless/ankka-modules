@@ -41,6 +41,8 @@ final class OffersEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${
     a.refusal.fold(ok(Json.obj("status" -> "deactivated")))(r => refused(r))
   }
 
+  get("/code-document") { () => ok(Offers.codeDocument(ctx)) }
+
   putBody("/order") { (text: String) =>
     body(text) { b =>
       val a = ctx.book.call(OfferBook.reorder).invoke(ReorderOffers(b.strings("orderedOfferIds"), by, ctx.now()))
@@ -51,6 +53,16 @@ final class OffersEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${
 /** The offer routes' work, apart from the endpoint so a suite can read it. */
 object Offers:
   def refuse(code: String, fields: (String, Any)*): Reply = Answers.Offers.refuse(code, fields*)
+
+  /**
+   * `GET /code-document` (FR-021): the copy's time, its entries, and whether it is stale, past the staleness bound from
+   * its fetch or never fetched. A service with no document to read is inert: nothing fetched, and not stale.
+   */
+  def codeDocument(ctx: Ctx): JsonNode =
+    val d       = ctx.codeDocument
+    val entries = d.entries.toVector.sortBy(_._1).map((code, e) => Json.obj("code" -> code, "offerId" -> e.offerId, "tag" -> e.tag))
+    Json.obj("fetchedAt" -> d.fetchedAt.map(_.toString), "entries" -> Json.arr(entries*),
+      "stale" -> (ctx.settings.codeDocumentUrl.isDefined && d.stale(ctx.now(), ctx.settings.codesStaleAfter)))
 
   /** The amounts of a body, the spin configurations' too, each whole minor units (FR-032). */
   private def whole(b: JsonNode): Either[Reply, Unit] =

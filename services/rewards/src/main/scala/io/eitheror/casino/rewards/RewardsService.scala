@@ -20,7 +20,9 @@ object RewardsService:
     player.PlayerRewards.descriptor,
     consumers.MoneyConsumer.descriptor,
     consumers.IndexConsumer.descriptor,
-    consumers.PlayersConsumer.descriptor
+    consumers.PlayersConsumer.descriptor,
+    codes.CodeDocument.descriptor,
+    codes.CodesTimer.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
@@ -30,10 +32,14 @@ object RewardsService:
     clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients))
   )
 
-  /** Once the service has started: the timers reachable from the components, and the wallet steps wired to `Reward`. */
+  /**
+   * Once the service has started: the timers reachable from the components, the wallet steps wired to `Reward`, and the
+   * programme's code document refreshed by `codes-<slug>` when there is one to read.
+   */
   def started(timers: TimerRuntime): Unit =
     RewardsRuntime.timers = () => timers.timerScheduler
     steps.Wiring.install()
+    codes.CodesRefresh.schedule(timers.timerScheduler)
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
