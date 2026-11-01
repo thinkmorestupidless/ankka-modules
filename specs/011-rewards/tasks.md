@@ -18,7 +18,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
 
 ## Phase 1: Setup
 
-- [ ] T001 The contract additions (contracts/facts.md; research R11), every new field `Option` with a
+- [X] T001 The contract additions (contracts/facts.md; research R11), every new field `Option` with a
       default of `None`:
       - `contract/src/main/scala/io/eitheror/casino/contract/facts/Others.scala`: `source`, `code`,
         `tag` on every `casino.rewards` reward family; `reason` on `BonusCancelled`; `amountCents`,

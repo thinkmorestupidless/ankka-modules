@@ -495,6 +495,54 @@
     {
       "additionalProperties": true,
       "properties": {
+        "award_id": {
+          "type": "string"
+        },
+        "converted_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "deposit_pool_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "real_balance_after": {
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "restricted_balance_after": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "transaction_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "restricted_funds_closed"
+        }
+      },
+      "required": ["type", "player_id", "currency", "transaction_id", "award_id", "reason", "real_balance_after", "restricted_balance_after", "occurred_at"],
+      "title": "restricted_funds_closed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
         "actor_id": {
           "type": "string"
         },
