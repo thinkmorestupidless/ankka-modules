@@ -83,7 +83,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `periodEnd(period, zone)`, `Range.parse` with the original's grammar of `S/ReportingRange.scala`: a
   month, a month range, a day range, all time) with `p-test/periods/PeriodsSuite.scala` (zone edges,
   a bet at 23:30 local)
-- [ ] T009 [P] Implement `p/sealing/Sealing.scala` (AES-256-GCM `seal(identity, key, affiliate)` and
+- [X] T009 [P] Implement `p/sealing/Sealing.scala` (AES-256-GCM `seal(identity, key, affiliate)` and
   `open`, a fresh 96-bit nonce per seal, the affiliate id as associated data; `Sealed.erased`) and
   `p/sealing/Digest.scala` (HMAC-SHA256 of the lowercased, trimmed email) with
   `p-test/sealing/SealingSuite.scala` (round trip; a tampered byte, another affiliate's id and another
