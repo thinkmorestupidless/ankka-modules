@@ -410,3 +410,17 @@ behaviour unless it says otherwise.
 - **The revoke reason** (T026, T029): kept in the `Revoked` event alone; the audit names the field with
   no value, as payouts'. `bonus_cancelled.amountCents` is the clawback.
 - **Whole amounts** (T030, FR-032): refused 400 `amount_not_minor_units` naming the field, game-provider's code.
+- **The award path** (T036): a no-deposit select starts `<reward>/award` and polls the step up to the
+  request bound: awarded `{ok: true}`, the wallet's refusal 409 `{error: code}`, no answer 503. An
+  award answered after the reward ended (cancelled or expired while in flight) starts
+  `<reward>/cancel`, so the wallet's record does not stay open; the reward keeps its ending.
+- **Two selections at once** (spec edge case): a select while another selection is pending is refused
+  409 `ACTIVE_BONUS_CONFLICT`, in `PlayerRewards`, not the evaluator. The original allowed several; the
+  spec and the `state` route's single `selected` do not.
+- **Activation sizes the award** (T036): a deposit match is sized at the deposit; `Activated` carries
+  the amount, multiplier, maximum convertible and currency the wallet awarded.
+- **Offer create order** (T035): the offer's own fields, then spin values, then the game's
+  eligibility, then codes. A provider that is unconfigured or unreachable lets a spin value through;
+  a game that cannot be looked up is 503 `service_unavailable`. A missing `type` is `DEPOSIT_MATCH`.
+- **A deposit** (T033) is evaluated at the fact's `occurredAt`, in the offer's currency else the
+  deposit's; source, code and tag are fixed at targeting.

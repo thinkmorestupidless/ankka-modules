@@ -152,24 +152,24 @@ the publishers green under their suites.
 **Goal**: a deposit match from creation to restricted funds at the wallet.
 **Independent test**: `offers.feature`'s US1 scenarios through the kit with `FakeWallet`.
 
-- [ ] T031 [US1] Bind `features/rewards/offers.feature` in `T/features/OffersFeatures.scala`
+- [X] T031 [US1] Bind `features/rewards/offers.feature` in `T/features/OffersFeatures.scala`
       (`GherkinSuite`); it fails first.
-- [ ] T032 [US1] `S/offers/Model.scala` and `S/offers/OfferBook.scala`: data-model.md's commands and
+- [X] T032 [US1] `S/offers/Model.scala` and `S/offers/OfferBook.scala`: data-model.md's commands and
       queries. `T/offers/OfferBookSuite.scala` first.
-- [ ] T033 [US1] `S/player/Model.scala` and `S/player/PlayerRewards.scala`: `Target`, `Select`,
+- [X] T033 [US1] `S/player/Model.scala` and `S/player/PlayerRewards.scala`: `Target`, `Select`,
       `Deselect`, `DepositConfirmed`, `Claim`, `RewardChanged`, each evaluating with `Evaluator` and
       reserving the reward id in one event. `T/player/PlayerRewardsSuite.scala` first, including two
       selections at once.
-- [ ] T034 [US1] `S/consumers/MoneyConsumer.scala` (`deposit_confirmed` → `PlayerRewards`; the reward
+- [X] T034 [US1] `S/consumers/MoneyConsumer.scala` (`deposit_confirmed` → `PlayerRewards`; the reward
       families → `Reward` by `awardId`) and `S/consumers/IndexConsumer.scala`; `ConsumerTestKit`
       suites.
-- [ ] T035 [US1] `S/api/OffersEndpoint.scala` (`/offers`, `Routes.operatorHolding` with the three
+- [X] T035 [US1] `S/api/OffersEndpoint.scala` (`/offers`, `Routes.operatorHolding` with the three
       roles): list, one, create (the provider's spin-value and game checks first, then `OfferBook`),
       edit, delete, `PUT /order`; audit records.
-- [ ] T036 [US1] `S/api/RewardsEndpoint.scala` (`/rewards`): `state`, `select`, `deselect`; the
+- [X] T036 [US1] `S/api/RewardsEndpoint.scala` (`/rewards`): `state`, `select`, `deselect`; the
       award path: `Claimed` → `WalletStep(<reward>/award)` → the endpoint polls the step's state, as
       payouts' request route; the pending timer.
-- [ ] T037 [US1] `T/it/DepositSuite.scala`: a confirming deposit activates the pending reward with the
+- [X] T037 [US1] `T/it/DepositSuite.scala`: a confirming deposit activates the pending reward with the
       wallet's ordinal; below minimum stays pending with the reason; a deposit after the window
       expires it; an offer no longer live expires it; the same deposit twice awards once.
 
