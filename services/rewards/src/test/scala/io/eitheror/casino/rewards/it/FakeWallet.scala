@@ -11,8 +11,9 @@ import scala.collection.concurrent.TrieMap
  * The brand's wallet's routes rewards calls, as spec 002 built them and research R6 amends them: the six award
  * routes and the two reads. A small model stands behind the defaults: an award opens a record named by its key, a
  * forfeit, a cancel or a close ends the named record, and the reads list what is open. A key answered once answers
- * the same again, as the wallet's idempotency does. Any answer is scriptable per key (`answerFor`) or per route
- * (`routeAnswer`), and a record can be put at pending cap or given a baseline-less origin.
+ * the same again while it is among the 1,000 most recent, as the wallet's idempotency does. Any answer is scriptable
+ * per key (`answerFor`) or per route (`routeAnswer`), and a record can be put at pending cap or given a baseline-less
+ * origin.
  */
 final class FakeWallet(brand: String) extends FakeServer():
   /** One open record: `grantRef` is the award's key. */
@@ -24,6 +25,7 @@ final class FakeWallet(brand: String) extends FakeServer():
   private val scripted = TrieMap.empty[String, Answer]
   private val byRoute  = TrieMap.empty[String, Answer]
   private val answered = TrieMap.empty[(String, String), Answer]
+  private val recent   = java.util.concurrent.ConcurrentLinkedQueue[(String, String)]()
 
   /** The answer for the call keyed `key`, whatever the route. */
   def answerFor(key: String, answer: Answer): Unit = scripted.update(key, answer)
@@ -46,7 +48,7 @@ final class FakeWallet(brand: String) extends FakeServer():
     alter(player, currency, grantRef)(_.copy(winnings = amount))
 
   def reset(): Unit =
-    records.clear(); real.clear(); scripted.clear(); byRoute.clear(); answered.clear()
+    records.clear(); real.clear(); scripted.clear(); byRoute.clear(); answered.clear(); recent.clear()
     resetServer()
 
   /** Every call to the route, in order (`awards`, `awards/cancel`, …). */
@@ -73,11 +75,24 @@ final class FakeWallet(brand: String) extends FakeServer():
               val body = r.json.collect { case o: ObjectNode => o }.getOrElse(Json.obj())
               body.text("key") match
                 case None => FakeWallet.refusal("MISSING_KEY", 400)
-                case Some(key) =>
-                  answered.getOrElseUpdate((route, key), scripted.getOrElse(key, command(player, currency, route, key, body)))
+                case Some(key) => keyed(route, key)(scripted.getOrElse(key, command(player, currency, route, key, body)))
             case _ => FakeWallet.notFound
         }
       case _ => FakeWallet.notFound
+
+  /**
+   * A key answered once answers the same again while it is among the wallet's 1,000 most recent (spec Dependencies);
+   * past them the command is carried out afresh, as the wallet's would be.
+   */
+  private def keyed(route: String, key: String)(fresh: => Answer): Answer = synchronized {
+    answered.getOrElse((route, key), {
+      val a = fresh
+      answered.update((route, key), a)
+      recent.add((route, key))
+      while recent.size > FakeWallet.RecentKeys do Option(recent.poll()).foreach(answered.remove)
+      a
+    })
+  }
 
   private def command(player: String, currency: String, route: String, key: String, body: JsonNode): Answer =
     val wallet = (player, currency)
@@ -148,6 +163,9 @@ final class FakeWallet(brand: String) extends FakeServer():
       "currency" -> currency, "primary" -> primary.map(p => Json.obj("recordId" -> p.grantRef, "grantRef" -> p.grantRef)))
 
 object FakeWallet:
+  /** The keys the wallet remembers (spec Dependencies). */
+  val RecentKeys = 1000
+
   def refusal(code: String, status: Int = 409): Answer =
     Answer.json(status, Json.obj("error" -> code, "message" -> code, "details" -> Json.obj()))
 
