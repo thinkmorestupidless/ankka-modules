@@ -30,7 +30,7 @@ Views:
 |---|---|---|---|
 | `orders-by-owner` | order | market, owner, outcome, side, price, quantity, filled, state (`resting`, `filled`, `cancelled`, `expired`), sequence | the exchange's events |
 | `trades-by-owner` | trade/owner | market, owner, outcome, side, price, quantity, through, at | `TradeMade` legs |
-| `reconciliation` | market/family | the wallet's sum, the exchange's sum, the last fact seen | `money.transactions` and the exchange's events |
+| `reconciliation` | family/market/key, one entity each | the wallet's sum, the exchange's sum, the sources counted (an exchange sequence, a wallet transaction, a refused placement); a view of the unbalanced keys; per market its checks | `money.transactions`, the exchange's events and the placements |
 
 The gate's refusal reasons (FR-002): `account: <status>`, `play gate: <code>`, `bet gate:
 <decision>`, each `<gate>: unavailable` when the gate cannot answer.

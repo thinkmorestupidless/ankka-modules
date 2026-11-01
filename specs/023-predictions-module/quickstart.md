@@ -1,7 +1,8 @@
 # Quickstart: checking the predictions module
 
 Prerequisites: Docker; the contract published (`CASINO_VERSION=<unique> sbt contract/publishLocal`);
-ankka-predictions v0.1.0 on Maven Central.
+ankka-predictions v0.1.1 where sbt resolves it (Maven Central once tagged; until then
+`sbt publishLocal` in that repository, with `PREDICTIONS_VERSION` naming the version published).
 
 1. The contract on 0.14.2: `cd contract && sbt -DankkaVersion=0.14.2 test` passes (R1).
 2. Each service: `just service markets test`, `just service exchange test`: unit, bound features

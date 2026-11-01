@@ -204,9 +204,9 @@ topic either way; observations only with.
 
 ### Edge Cases
 
-- Erasure: orders, trades and positions carry the player id as a personal field (spec 001
-  FR-023); erasure marks it and leaves amounts, ids and times; a resting order of an erased
-  player is cancelled first, and an open position stands until the market is final.
+- Erasure: the player id is a pseudonym, not a personal field (spec 001 FR-024, FR-006 here);
+  erasure cancels the erased player's resting orders first, records the erasure, and leaves
+  amounts, ids and times; an open position stands until the market is final.
 - A market closes while orders rest: every order is cancelled and its reservation released, as
   the library's close says; the facts say why.
 - A brand bound to a pool is spec 024's, not this spec's: here every brand runs its own books.
@@ -266,8 +266,9 @@ The original (`eitheror-platform`) has no prediction markets: everything in this
   approved market as a question with one hypothesis per outcome and the market venue named for the
   brand, and `exchange` MUST write one price observation per outcome at most once a minute; with
   none named, nothing MUST be mirrored and nothing refused.
-- **FR-008**: Erasure MUST mark the player id on orders, trades and positions, cancel the
-  player's resting orders first, and leave positions to pay or void as the market does.
+- **FR-008**: Erasure MUST cancel the player's resting orders first, record the erasure, and
+  leave positions to pay or void as the market does (amended 2026-11-01: the player id is a
+  pseudonym, FR-006, so there is no personal field on the exchange's facts to mark).
 - **FR-009**: The module's manifest MUST depend on `core` at the version that carries spec 022
   FR-008a, declare its four topics and declare no grant within the brand; the grants to and from
   a pool instance are spec 024's.

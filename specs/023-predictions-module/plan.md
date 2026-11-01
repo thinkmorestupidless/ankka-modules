@@ -24,7 +24,7 @@ rate of 0. Decisions are in [research.md](research.md).
 rest of the repository stays on 0.13.0 (constitution VI).
 
 **Primary Dependencies**: `com.thinkmorestupidless %% ankka-predictions-markets-components` and
-`…-exchange-components` at v0.1.0, then v0.2.0 (spec 007); `ankka-sdk`, `ankka-http`,
+`…-exchange-components` at v0.1.1 (found in implementation: owners' commands at the book's time and the market's own clock), then v0.2.0 (spec 007); `ankka-sdk`, `ankka-http`,
 `ankka-auth-oidc`, `ankka-testkit` 0.14.2; `io.eitheror:casino-contract`, which gains the four
 topics, their families and the keys (R9, R15).
 
@@ -66,7 +66,7 @@ feature files.
 | II. Money is exact, the wallet is the ledger | `Long` minor units; one keyed call per movement; no balance kept elsewhere | Pass: R4; the exchange's pool is the library's figure, reconciled against the wallet's facts, never a second ledger (R12) |
 | III. A brand is a project | keys without brand; shared projects by grant | Pass: ids are the market, the order and the player; no shared project in this version (FR-010 moved to spec 024) |
 | IV. Commands over HTTP, facts over topics | | Pass: `markets` drives `exchange` over HTTP (R2); gates and wallet over HTTP; four topics by consumers (R9) |
-| V. Personal data marked, erasure honoured | | Pass: the player id is `Personal` on every fact; `exchange`'s erasure handler (R13) |
+| V. Personal data marked, erasure honoured | | Pass: the facts carry no personal field (the player id is a pseudonym, spec 001 FR-024, FR-006); `exchange`'s erasure handler cancels resting orders and records the erasure (R13) |
 | VI. Scala by default | | Pass; the two services on ankka 0.14.2 with a reason (R1) |
 | VII. Specs in the domain's words | | Pass: 0 findings; 39 terms accepted at clarify |
 | Workflow: `just features` before plan | | Pass |

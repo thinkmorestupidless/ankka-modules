@@ -97,7 +97,11 @@ an unreachable wallet throws (the library retries: placement with backoff within
 ## R5. A settlement the wallet refuses
 
 **Decision**: the library's settlement consumer logs any answer but `Done` and skips the event
-(`Settlement.scala:43-51`), so FR-003's "recorded, retried and raised" is the port's. On a
+(`Settlement.scala:43-51`), so FR-003's "recorded, retried and raised" is the port's. A split or
+merge sends every leg, each under its own key, and a refused leg has its own retry. A release the
+wallet refuses (`RESERVATION_NOT_FOUND`, say) is not retried: FR-003 names settlements, and a
+release that did not happen leaves the order's reservation held, which the reconciliation (R12)
+reports as a difference on its `release` key. On a
 `Refused` or `Insufficient` from `settle`, `payout` or the fee, the port starts a
 `SettlementRetry` workflow keyed by the call's own key, before it answers. Its `start` is the
 claim (a second start is the same retry); it writes a `platform.audit` record on the first
@@ -151,8 +155,9 @@ trade) is written in ankka-predictions spec 007, released as v0.2.0, with `Open`
 and a leg carrying its fee. This module sends the rate at open and makes the fee's move in the
 ledger port, into the brand's fee account (`fee/fees/<currency>`), which spec 022 is amended to
 allow (kind `fee`, purpose `fee`; charged from the taker's reservation for a buy, from available
-for a sell just credited). Until v0.2.0, the module builds on v0.1.0 with the rate 0, and the two
-fee scenarios are ignored naming spec 007.
+for a sell just credited). Until v0.2.0, the module builds on v0.1.x with the rate 0: `markets` refuses
+a rate above 0 at start, naming the release it waits on, and the two fee scenarios are ignored
+naming spec 007.
 
 **Rationale**: SC-001 (no settlement rule here); the library reserves only an amount and does not
 name the taker, so the rule cannot be had outside it without duplicating the matcher's knowledge.
@@ -166,7 +171,7 @@ schemas by `just schemas`:
 |---|---|---|---|
 | `markets.events` | market | `market_drafted` … `market_final`, one per market event | `MarketFactsPublisher` over `market` |
 | `exchange.orders` | market | `order_placed`, `order_cancelled`, `order_expired`, `order_filled` | `OrderFactsPublisher` over `exchange` |
-| `exchange.trades` | market | `trade_made` (legs with each player as `Personal`), `position_paid`, `remainder_kept` | `TradeFactsPublisher` over `exchange` |
+| `exchange.trades` | market | `trade_made` (legs naming each player by the pseudonym), `position_paid`, `remainder_kept` | `TradeFactsPublisher` over `exchange` |
 | `exchange.prices` | market | `prices_changed` (last price per outcome, the sequence) | `PriceFactsPublisher` over `exchange` |
 
 Every topic is keyed by the market (FR-006). The player id is a plain id, as on every topic
@@ -204,18 +209,30 @@ bet gate, which is the safe reading.
 ## R12. Reconciliation
 
 **Decision**: FR-011 as a view and a timer in `exchange`. A consumer of `money.transactions`
-(a topic of the same project, so no grant) sums per market and family: reservations and releases
+(a topic of the same project, so no grant) sums per market, family and key: reservations and releases
 by order (the order's market from `orders-by-owner`), settlement debits and credits, splits and
 merges (`account_debit` and `account_credit` on `pool/<market>`), payments, fees. A timed action
 daily, and at `Final`, compares them with the exchange's own sums (from its events) and writes one
 `platform.audit` record per difference naming the market, the family, the key and both figures.
 Nothing corrects a difference.
 
+*Found in review:* each key is its own key-value entity (`exchange-tally-key`, its two sums and
+the few sources that moved it, each counted once in one write), so no value grows with the
+market's history; a view lists a market's unbalanced keys, and the check reads it. A daily check
+runs while the market trades, so a move whose wallet fact is still in flight is reported, marked
+`check: daily`; the final check, ten minutes after finality, is the one that stands. The wallet's
+side finds a reservation's or a settlement's market by the order or the trade the exchange
+indexed, and throws back a fact it cannot place: today only `exchange` makes those calls. Spec 024
+(a pool calling the wallet from another service) must index its own ids or carry the market on
+the fact.
+
 ## R13. Erasure
 
 **Decision**: `exchange` serves `POST /erasure/players/{player}` (admitted to `players`): it
 cancels the player's resting orders (from `orders-by-owner`), which releases their reservations,
-and marks the player's `Personal` fields; positions stand until the market is final. `players`'
+and records the erasure (`ErasedEntity`, so a later order of the player is refused); the facts
+carry no personal field to mark (the player id is a pseudonym, T005 below); positions stand until
+the market is final. `players`'
 `ErasureWorkflow.targets` gains `exchange`. `markets` holds no player data and is not a target.
 
 ## R14. The reasoning mirror
@@ -258,7 +275,7 @@ the original*).
 | Prerequisite | Needed by | Without it |
 |---|---|---|
 | the contract on ankka 0.14.2 (R1) | everything | a repository bump first |
-| ankka-predictions spec 007, v0.2.0 | the taker fee | build on v0.1.0 with rate 0; two scenarios ignored |
+| ankka-predictions spec 007, v0.2.0 | the taker fee | build on v0.1.x with rate 0, a rate above 0 refused; two scenarios ignored |
 | spec 022 amended: account kind and purpose `fee` | the fee's move | as above |
 | spec 010 amended: losses folded in `responsible-gambling` | loss limits on orders | a limited player is refused `unavailable` |
 | ankka-reasoning 0.2.0 | the mirror | nothing mirrored; one scenario ignored |
