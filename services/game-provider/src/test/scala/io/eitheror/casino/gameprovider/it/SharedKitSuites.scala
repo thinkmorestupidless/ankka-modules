@@ -1,6 +1,7 @@
 package io.eitheror.casino.gameprovider.it
 
 import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.http.{Caller, LocalCallers}
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.gameprovider.{Json, Metrics}
 import io.eitheror.casino.gameprovider.Json.*
@@ -222,6 +223,23 @@ class RewardsEndpointSuite extends SharedKitSuite:
     val ok = kit.request("GET", s"/v1/casino/brands/${kit.brand}/game-provider/st8/spin-values?gameCodes=$run-a&gameCodes=$run-b&currency=EUR")
     assertEquals(ok.json.strings("values"), Vector("0.05", "1.00"))
     assertEquals(kit.st8.offerRequests.last.query.get("game_codes"), Some(s"$run-a,$run-b"))
+  }
+
+  test("a game's bonus types, for rewards alone; an unknown game is game_not_found (spec 011 G1)") {
+    val code = s"$run-fs"
+    kit.testKit.componentClient.forKeyValueEntity(EntityId(Game.entityId("st8", code))).call(Game.upsert)
+      .invoke(UpsertGame("st8", code, GameFields("Free Spins", "d", "D", "slots", bonusTypes = Vector("free_spins", "bonus_buy")), kit.clock)): Unit
+    kit.eventually("the game in the view")(kit.testKit.service.viewClient.forView(Catalogue).get(s"st8/$code"))
+    CatalogueReads.shared(kit.testKit.service.viewClient, kit.brand, kit.testKit.componentClient).invalidate()
+    def game(gameCode: String, caller: String) =
+      kit.request("GET", s"/v1/casino/brands/${kit.brand}/game-provider/st8/games/$gameCode", None, Seq(LocalCallers.header(Caller.Service("local", caller))))
+
+    val found = game(code, "rewards")
+    assertEquals(found.status, 200, found.text)
+    assertEquals((found.json.text("gameCode"), found.json.strings("bonusTypes")), (Some(code), Vector("free_spins", "bonus_buy")))
+    assertEquals(game(code, "players").status, 403, "another service of the project is refused")
+    val unknown = game(s"$run-nope", "rewards")
+    assertEquals((unknown.status, unknown.json.text("error")), (404, Some("game_not_found")))
   }
 
   test("make-known answers no content and the profile then answers") {
