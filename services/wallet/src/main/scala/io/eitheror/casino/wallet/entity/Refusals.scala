@@ -19,6 +19,8 @@ object Refusals:
   val RequestNotCancellable  = "WITHDRAWAL_REQUEST_NOT_CANCELLABLE"
   val WithdrawalNotCompleted = "WITHDRAWAL_NOT_IN_COMPLETED_STATE"
   val ReasonRequired         = "REASON_REQUIRED"
+  /** The original's revoke code when a reclaim has no pre-bonus baseline (`BR:1012-1023`). */
+  val MissingBaseline        = "MISSING_BASELINE"
 
   // spec 022: reservations, settlement, non-player accounts (data-model.md)
   val ReservationNotFound          = "RESERVATION_NOT_FOUND"
@@ -37,6 +39,7 @@ object Refusals:
   val reasonRequired    = "A reason must be supplied for a manual balance adjustment"
 
   def roundNotFound(round: String): String           = s"No open bet found for round $round"
+  def missingBaseline(grant: String): String         = s"Grant $grant has no pre-bonus baseline to reclaim against"
   def grantNotFound(grant: String): String           = s"Grant $grant not found"
   def grantNotActive(grant: String): String          = s"Grant $grant is not active"
   def requestNotPending(request: String): String     = s"Request $request is not the pending request"

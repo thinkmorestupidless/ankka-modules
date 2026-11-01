@@ -92,7 +92,16 @@ object Award:
 
 final case class ForfeitAward(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand
 
-final case class CancelAward(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand
+/**
+ * `requireBaseline`: an operator's reclaim (spec 011 W4), refused `MISSING_BASELINE` when the record
+ * has no clawback baseline, where a player's cancel closes it with none (FR-017).
+ */
+final case class CancelAward(key: String, grantRef: Option[String], at: Instant, requireBaseline: Boolean = false)
+    extends MoneyCommand
+
+object CancelAward:
+  /** Left out of the digest while unset, so a cancel sent before the field was added keeps its digest. */
+  val Unset: Set[(String, String)] = Set("requireBaseline" -> "false")
 
 /** `grantRef` names the award whose pending cap closes (spec 011 W2); without it the first closes. */
 final case class ClosePendingCap(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand

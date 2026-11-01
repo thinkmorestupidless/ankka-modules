@@ -445,20 +445,25 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           restricted, c.at, outcome, s.depositPool, s.convertedPool)).thenReply(_ => outcome)
   }
 
-  def cancelAward(c: CancelAward): Effect[Outcome] = keyed(c, "cancel") { digest =>
+  def cancelAward(c: CancelAward): Effect[Outcome] = keyed(c, "cancel", CancelAward.Unset) { digest =>
     val s = currentState
     // The baseline: the named award's, else the primary active record's, else the latest award's (FR-017).
     val source = c.grantRef.flatMap(s.recordByGrant)
       .orElse(s.openRecords.find(_.status == Status.Active).flatMap(r => s.record(r.id)))
       .orElse(s.records.maxByOption(_.awardedAt))
     // A named secondary that has funded no stake produced no winnings: real balance grew from the
-    // primary's play, so it claws back nothing (spec 011 W3, the original's unused secondary).
+    // primary's play, so it claws back nothing (spec 011 W3, the original's unused secondary). An
+    // operator's reclaim claws back from the baseline regardless, as the original's revoke did.
     val primary = s.openRecords.find(_.status == Status.Active)
-    val unusedSecondary = c.grantRef.exists(g =>
+    val unusedSecondary = !c.requireBaseline && c.grantRef.exists(g =>
       s.openRecords.find(r => r.grantRef == g && r.status == Status.Active).exists(r => !primary.exists(_.id == r.id) && r.releasedProgress == 0))
     val clawback = if unusedSecondary then 0L else Clawback.of(source.flatMap(_.baseline), s.realBalance, s.totalDeposits)
     Resolver.cancelRecord(s.fundingWallet, s.openRecords, clawback, c.grantRef) match
       case Left(deny) => refuseDeny(c, "cancel", digest, deny)
+      // A reclaim with no baseline is uncomputable: refused, not a silent clawback of 0 (spec 011 W4).
+      case Right(_) if c.requireBaseline && source.flatMap(_.baseline).isEmpty =>
+        val grant = c.grantRef.orElse(source.map(_.grantRef)).getOrElse("")
+        refuse(c, "cancel", digest, Refusals.MissingBaseline, Refusals.missingBaseline(grant), Map("grantRef" -> grant))
       case Right(plan) =>
         val restricted = s.withUpdates(plan.recordUpdates).restrictedBalance
         val txId       = transactionId(c.key)

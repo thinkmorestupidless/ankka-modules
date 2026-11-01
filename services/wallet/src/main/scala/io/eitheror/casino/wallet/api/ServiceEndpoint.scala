@@ -107,8 +107,9 @@ final class ServiceEndpoint(
     money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.forfeit).invoke(ForfeitAward(k, r.grantRef, clock()))))
   }
 
-  postBody("/wallets/{player}/{currency}/awards/cancel") { (player: String, currency: String, r: GrantRequest) =>
-    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.cancel).invoke(CancelAward(k, r.grantRef, clock()))))
+  postBody("/wallets/{player}/{currency}/awards/cancel") { (player: String, currency: String, r: CancelRequest) =>
+    money(currency)(key(r.key).map(k =>
+      wallet(player, currency).call(WalletEntity.cancel).invoke(CancelAward(k, r.grantRef, clock(), r.requireBaseline))))
   }
 
   postBody("/wallets/{player}/{currency}/awards/close-pending-cap") { (player: String, currency: String, r: GrantRequest) =>
@@ -424,6 +425,7 @@ object ServiceEndpoint:
   given JsonValueCodec[LossRequest]           = Codecs.make[LossRequest]
   given JsonValueCodec[ProviderCreditRequest] = Codecs.make[ProviderCreditRequest]
   given JsonValueCodec[AwardRequest]          = Codecs.make[AwardRequest]
+  given JsonValueCodec[CancelRequest]         = Codecs.make[CancelRequest]
   given JsonValueCodec[GrantRequest]          = Codecs.make[GrantRequest]
   given JsonValueCodec[KeyRequest]            = Codecs.make[KeyRequest]
   given JsonValueCodec[HoldRequest]           = Codecs.make[HoldRequest]

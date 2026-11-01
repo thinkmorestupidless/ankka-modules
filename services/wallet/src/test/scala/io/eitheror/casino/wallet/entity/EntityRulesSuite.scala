@@ -174,8 +174,8 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
       Vector(active("rf-1", "g-1", 0, 300), active("rf-2", "g-2", 1, 0), active("rf-3", "g-3", 2, 100)), 0, 0, 0, t0)): Unit
     kit
 
-  private def cancelOf(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], grant: String) =
-    kit.call(WalletEntity.cancel)(CancelAward(s"c-$grant", Some(grant), t0)).replyValue
+  private def cancelOf(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], grant: String, requireBaseline: Boolean = false) =
+    kit.call(WalletEntity.cancel)(CancelAward(s"c-$grant", Some(grant), t0, requireBaseline)).replyValue
 
   test("W3: a cancel naming a secondary with no release progress claws back nothing and still closes it (BR:2919-2925)") {
     val kit     = threeActive("w3-unused/EUR")
@@ -186,6 +186,37 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
   test("W3: the primary, or a secondary with release progress, claws back from its baseline") {
     assertEquals(cancelOf(threeActive("w3-primary/EUR"), "g-1").clawbackApplied, Some(500L))
     assertEquals(cancelOf(threeActive("w3-played/EUR"), "g-3").clawbackApplied, Some(500L))
+  }
+
+  // ── a reclaim needs a baseline (spec 011 W4) ────────────────────────────────
+
+  test("W4: a cancel that requires a baseline is refused MISSING_BASELINE when the named record has none, and moves nothing") {
+    val kit     = threeActive("w4-none/EUR", baselines = false)
+    val outcome = cancelOf(kit, "g-1", requireBaseline = true)
+    assertEquals(outcome.code, Some("MISSING_BASELINE"))
+    assertEquals((kit.currentState.realBalance, kit.currentState.openRecords.size), (1500L, 3))
+    assertEquals(io.eitheror.casino.wallet.wire.Wire.status("MISSING_BASELINE"), 409)
+    // A repeat under the key is refused the same way.
+    assertEquals(cancelOf(kit, "g-1", requireBaseline = true).code, Some("MISSING_BASELINE"))
+  }
+
+  test("W4: without the requirement a record with no baseline closes with no clawback, as before (FR-017)") {
+    val outcome = cancelOf(threeActive("w4-player/EUR", baselines = false), "g-1")
+    assertEquals((outcome.code, outcome.clawbackApplied, outcome.forfeited), (None, Some(0L), Vector("rf-1")))
+  }
+
+  test("W4: with a baseline the reclaim claws back from it; a grant not open is GRANT_NOT_OPEN before the baseline is asked") {
+    assertEquals(cancelOf(threeActive("w4-ok/EUR"), "g-1", requireBaseline = true).clawbackApplied, Some(500L))
+    assertEquals(cancelOf(threeActive("w4-closed/EUR", baselines = false), "g-z", requireBaseline = true).code, Some("GRANT_NOT_OPEN"))
+  }
+
+  test("W4: a reclaim of an unused secondary claws back from its baseline, as the original's revoke did (BR:1024-1041)") {
+    assertEquals(cancelOf(threeActive("w4-secondary/EUR"), "g-2", requireBaseline = true).clawbackApplied, Some(500L))
+  }
+
+  test("W4: a cancel that does not require a baseline keeps the digest it had before the field was added") {
+    val before = io.eitheror.casino.contract.money.Digest.of(Vector("command" -> "cancel", "grantRef" -> "Some(g-1)"))
+    assertEquals(MoneyCommand.digestOf("cancel", CancelAward("c-1", Some("g-1"), t0), CancelAward.Unset), before)
   }
 
   // ── personal data (FR-033) ──────────────────────────────────────────────────

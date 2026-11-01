@@ -89,7 +89,8 @@ the Go guest or the route carries. Status and code are the original's.
 | `GRANT_NOT_OPEN` | 409 | `Grant <grant> is not open` | Go close.go (code) |
 | `GRANT_NOT_FOUND` | 404 | `Grant <grant> not found` | route (code only) |
 | `GRANT_NOT_ACTIVE` | 409 | `Grant <grant> is not active` | route |
-| `NOT_PENDING_CAP` | 409 | `No CONVERTED_PENDING_CAP bonus to close` | Go close.go |
+| `NOT_PENDING_CAP` | 409 | `No CONVERTED_PENDING_CAP bonus to close` | Go close.go; also a close naming a grant whose record is not pending cap (spec 011 W2) |
+| `MISSING_BASELINE` | 409 | `Grant <grant> has no pre-bonus baseline to reclaim against` (details `grantRef`) | the original's revoke (`BonusRoutes.scala:1012-1023`, code only); a cancel with `requireBaseline` (spec 011 W4) |
 | `WITHDRAWAL_REQUEST_ALREADY_PENDING` | 409 | `A withdrawal request is already pending review` | Go withdraw |
 | `WITHDRAWAL_BLOCKED_TURNOVER` | 409 | `Deposit turnover requirements not yet met` | Go withdraw |
 | `WITHDRAWAL_INSUFFICIENT_AFTER_BONUS_FORFEIT` | 409 | `insufficient real balance after bonus forfeiture` | Go withdraw (lowercase, verbatim) |
