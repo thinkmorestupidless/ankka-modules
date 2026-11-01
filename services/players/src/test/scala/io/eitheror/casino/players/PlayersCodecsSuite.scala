@@ -64,6 +64,7 @@ class PlayersCodecsSuite extends munit.FunSuite with LogCapturing:
     roundTrip(FraudCaseEvent.Dismissed("op-1", at, Personal("notes")), FraudCaseEntity.eventSerializer)
     roundTrip(FraudCaseEvent.NotesErased(at), FraudCaseEntity.eventSerializer)
     roundTrip(LookupIndexState(Set("p-1", "p-2")), LookupIndexEntity.stateSerializer)
+    roundTrip(LookupIndexState(recent = Map("p-3" -> at)), LookupIndexEntity.stateSerializer)
     roundTrip(BrandConfig("Gold", features = Map("x" -> true), retentionDays = Some(30)), BrandConfigEntity.stateSerializer)
     roundTrip(CurrencyConfig(Vector("EUR"), Some("EUR")), CurrencyConfigEntity.stateSerializer)
     roundTrip(AllowList(Set("GB")), AllowListEntity.stateSerializer)
