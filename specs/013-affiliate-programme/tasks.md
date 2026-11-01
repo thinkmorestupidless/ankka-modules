@@ -107,7 +107,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### The entities (tests first, then the entity)
 
-- [ ] T015 [P] `p-test/brands/BrandProgrammeSuite.scala`, `PlanSuite.scala` (key value kits): every
+- [X] T015 [P] `p-test/brands/BrandProgrammeSuite.scala`, `PlanSuite.scala` (key value kits): every
   command of data-model.md; `setGgrSource` takes effect from a named day; then `p/brands/BrandProgramme.scala`,
   `p/brands/Plan.scala`
 - [ ] T016 [P] `p-test/accounts/AffiliateSuite.scala` (event sourced kit): every command, the identity
