@@ -93,9 +93,14 @@ class ReadsFeatures extends KycFeatures("reads.feature"):
     val (listedAs, absent) = Expected(filter)
     val expected           = players(listedAs)
     val others             = absent.map(players)
+    def agrees(q: JsonNode) = q.get("counts").get(count).asLong == rowsOf(q).size.toLong
     val q = eventually(s"$expected under '$filter'")(Some(queueRead(query)).filter(q => ids(q)(expected) && (ids(q) & others).isEmpty))
-    assertEquals(q.get("counts").get(count).asLong, rowsOf(q).size.toLong, q.get("counts").toString)
-    rowsOf(q).find(_.text("playerId").contains(expected)).get
+    // The view may still be projecting other scenarios' players between the count and the rows: read again until
+    // they agree, and the last read is the one asserted.
+    val settled = scala.util.Try(eventually("the count and the rows agree")(Some(queueRead(query)).filter(agrees))).getOrElse(q)
+    assertEquals(settled.get("counts").get(count).asLong, rowsOf(settled).size.toLong, settled.get("counts").toString)
+    assert(ids(settled)(expected) && (ids(settled) & others).isEmpty, settled.toString)
+    rowsOf(settled).find(_.text("playerId").contains(expected)).get
 
   // ── one player ────────────────────────────────────────────────────────────────────────────────
 
