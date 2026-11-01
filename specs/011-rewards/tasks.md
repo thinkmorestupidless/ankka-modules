@@ -102,7 +102,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
 - [X] T018 `S/RewardsService.scala`: `descriptors`, `endpoints(authenticate)`, `started(timers)`,
       `@main run` with Kafka when `ANKKA_KAFKA_BOOTSTRAP_SERVERS` is set, else `InMemoryBroker`;
       `TimerRuntime`; `HttpServer.of(… Oidc.authenticate())`.
-- [ ] T019 [P] Pure `S/reward/Transitions.scala`: the ten states and the original's table; refusal
+- [X] T019 [P] Pure `S/reward/Transitions.scala`: the ten states and the original's table; refusal
       `INVALID_TRANSITION(from, to)`; a repeat a no-op. `T/reward/TransitionsSuite.scala` first, with
       `RewardStatusSpec`'s cases.
 - [ ] T020 [P] Pure `S/offers/OfferRules.scala` and `S/offers/Codes.scala`: create and edit checks
@@ -113,7 +113,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
       thirteen rules in order, the two modes, the anchors, `computeBonusAmount` in minor units, half
       up. `T/eligibility/EvaluatorSuite.scala` and `AmountsSuite.scala` first, with
       `EligibilityEvaluatorSpec`'s cases.
-- [ ] T022 [P] Pure `S/reward/Settlement.scala`: counting a round once, completion at
+- [X] T022 [P] Pure `S/reward/Settlement.scala`: counting a round once, completion at
       `max(used, seen) >= count`, the destination, zero pays nothing, `CLOSED` or `EXPIRED` at expiry,
       the late round. `T/reward/SettlementSuite.scala` first, with the `settle_free_spins_round` and
       `finalize_free_spins_grant` handler tables.
