@@ -99,7 +99,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
       reads `CASINO_BRAND`, `REWARDS_CODE_DOCUMENT_URL`) and `S/RewardsCodecs.scala` (`stored`,
       `serializer`, `row`, `wire`, and a `RewardsRuntime` holder for settings, clock, client factories
       and timers, swapped by suites), as `PayoutsCodecs`.
-- [ ] T018 `S/RewardsService.scala`: `descriptors`, `endpoints(authenticate)`, `started(timers)`,
+- [X] T018 `S/RewardsService.scala`: `descriptors`, `endpoints(authenticate)`, `started(timers)`,
       `@main run` with Kafka when `ANKKA_KAFKA_BOOTSTRAP_SERVERS` is set, else `InMemoryBroker`;
       `TimerRuntime`; `HttpServer.of(… Oidc.authenticate())`.
 - [ ] T019 [P] Pure `S/reward/Transitions.scala`: the ten states and the original's table; refusal
