@@ -79,7 +79,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Pure packages (tests beside each)
 
-- [ ] T008 [P] Implement `p/periods/Periods.scala` (research R14: `periodOf(instant, zone)`,
+- [X] T008 [P] Implement `p/periods/Periods.scala` (research R14: `periodOf(instant, zone)`,
   `periodEnd(period, zone)`, `Range.parse` with the original's grammar of `S/ReportingRange.scala`: a
   month, a month range, a day range, all time) with `p-test/periods/PeriodsSuite.scala` (zone edges,
   a bet at 23:30 local)
