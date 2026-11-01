@@ -147,6 +147,13 @@ class SessionsSuite extends munit.FunSuite with LogCapturing:
 
   private def game(id: String) = kit.components.forEventSourcedEntity(EntityId(id)).call(GameSessionEntity.get).invoke()
 
+  /**
+   * Today's minutes are a UTC day's: a test that plays half an hour from after 23:00 would cross midnight and
+   * count none of it, so the kit's clock is moved to the small hours first.
+   */
+  private def clearOfMidnight(): Unit =
+    if kit.now().atZone(java.time.ZoneOffset.UTC).getHour == 23 then kit.advance(java.time.Duration.ofHours(2))
+
   /** A signed-in player: the player, the token and the player session. */
   private def signedIn(): (String, String, String) =
     val (email, id) = kit.activePlayer()
@@ -194,6 +201,7 @@ class SessionsSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("the limit: 30 minutes with 25 played today sets the timer at 5; firing ends it limit; reached is 403 with the minutes") {
+    clearOfMidnight()
     val (id, token, ps) = signedIn()
     val first = launch(id, Some(ps)).str("sessionId")
     kit.advance(java.time.Duration.ofMinutes(25))
@@ -213,6 +221,7 @@ class SessionsSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("a new limit under the minutes played ends the open game session at once") {
+    clearOfMidnight()
     val (id, _, ps) = signedIn()
     val gs = launch(id, Some(ps)).str("sessionId")
     kit.advance(java.time.Duration.ofMinutes(25))
