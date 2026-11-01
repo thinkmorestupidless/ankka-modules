@@ -131,7 +131,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
 - [ ] T026 `S/reward/Model.scala` and `S/reward/Reward.scala`: data-model.md's state, commands and
       events through `Transitions`; the timers set and cancelled per research R10 (`S/reward/Clocks.scala`).
       `T/reward/RewardSuite.scala` (`EventSourcedTestKit`) first: every row of the command table.
-- [ ] T027 `S/steps/WalletStep.scala`: the workflow of research R5 (claim on `start`, retry until the
+- [X] T027 `S/steps/WalletStep.scala`: the workflow of research R5 (claim on `start`, retry until the
       wallet answers, deliver to `Reward`); `NO_ACTIVE_BONUS` and `NOT_PENDING_CAP` on a timer's step
       move the reward without money. `T/it/WalletStepSuite.scala` first: every wallet answer, a
       transport failure, a repeat start.

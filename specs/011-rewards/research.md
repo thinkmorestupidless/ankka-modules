@@ -399,3 +399,7 @@ behaviour unless it says otherwise.
   domain, no variant under 6 characters. A registration with no tokens ends clear; the kill switch
   ends skipped.
 - **Clearing a block not held** (T015): answers 200, as the original, and records nothing.
+- **The wallet step's retries** (T027): every 4xx with a code is an answer, delivered once; only no
+  answer, a 5xx or a 4xx without a code is retried, from 1 s doubling to 10 minutes, without limit. A
+  repeat start answers the first state, whatever its body. Delivery is at least once, so `Reward` takes
+  one answer per step id.
