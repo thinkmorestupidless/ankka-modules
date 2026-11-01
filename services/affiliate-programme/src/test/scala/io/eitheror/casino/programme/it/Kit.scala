@@ -9,7 +9,11 @@ import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock, TimerP
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.{AffiliatesAttribution, AttributionFact}
 import io.eitheror.casino.programme.{ProgrammeService, Settings}
-import io.eitheror.casino.programme.brands.Seeding
+import com.thinkmorestupidless.ankka.core.EntityId
+import io.eitheror.casino.programme.accounts.*
+import io.eitheror.casino.programme.brands.{CreatePlan, Plan, Seeding}
+import io.eitheror.casino.programme.links.{CreateLink, Link}
+import io.eitheror.casino.programme.sealing.{Digest, Identity, Sealing}
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -113,6 +117,35 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     val topic = s"${brand.getOrElse(fact.brand)}/${AffiliatesAttribution.name}"
     Await.result(broker.publish(topic, Some(fact.key), writeToArray(fact)(using AttributionFact.given_JsonValueCodec_AttributionFact),
       Metadata.empty.set(Metadata.CeSubject, fact.key).set(Metadata.CeType, AffiliatesAttribution.contractName)), 10.seconds): Unit
+
+  // ── setup through the components, for what a scenario starts from ───────────────────────────────
+
+  /** A plan at a brand, as a manager would make it; answers its id. */
+  def plan(brand: String, name: String, planType: String = Plan.Cpa, cpa: Long = 0, currency: String = "EUR", revShareBp: Int = 0,
+      minimumDeposit: Long = 0, carryover: Boolean = false): String =
+    components.forKeyValueEntity(Plan.entityId(brand, Plan.idOf(brand, name)))
+      .call(Plan.createPlan).invoke(CreatePlan(brand, name, planType, cpa, currency, revShareBp, minimumDeposit, carryover, "kit", now)): Unit
+    Plan.idOf(brand, name)
+
+  /** An account with an active membership at `brand` on `plan`, its identity sealed as the routes seal it. */
+  def affiliate(id: String, brand: String, plan: String, email: Option[String] = None, parent: Option[String] = None): String =
+    val address = email.getOrElse(s"$id@example.com")
+    val store   = Secrets(secrets)
+    val key     = store.dataKey(id).fold(e => throw AssertionError(e.reason), identity)
+    val sealedId = Sealing.seal(Identity(id, None, address, None, None, None, None), key, id)
+    val digest  = Digest.of(address, store.emailIndexKey.fold(e => throw AssertionError(e.reason), identity))
+    components.forEventSourcedEntity(EntityId(id)).call(Affiliate.createAccount)
+      .invoke(CreateAffiliate(id, sealedId, digest, parent, 0, AccountFields(), "kit", now)): Unit
+    val m = components.forEventSourcedEntity(Membership.entityId(id, brand))
+    m.call(Membership.applyFor).invoke(Apply(id, brand, Application(now, None, "kit", parent))): Unit
+    m.call(Membership.approve).invoke(Approve(plan, "kit", now)): Unit
+    id
+
+  /** A link of an affiliate's at a brand, under the id given (a legacy btag, in a replay). */
+  def link(id: String, affiliate: String, brand: String): String =
+    components.forKeyValueEntity(EntityId(id)).call(Link.createLink)
+      .invoke(CreateLink(id, affiliate, brand, None, None, Map.empty, Vector.empty, None, None, "kit", now)): Unit
+    id
 
   /** Polls until `f` answers, as a view's or consumer's effect must be waited for. */
   def eventually[A](what: String, within: FiniteDuration = 20.seconds)(f: => Option[A]): A =
