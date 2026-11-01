@@ -13,9 +13,14 @@ import java.time.Instant
  * A claim reserved (data-model.md `Claimed`): the reward it is for, the evaluator's decision, how the reward was given
  * (source, code, tag), and the deposit's payment when a deposit made it. The caller opens the reward with it and starts
  * `WalletStep(<reward>/award)`.
+ *
+ * `replaces` names the reward this claim stands in for: one whose award the wallet refused (`BONUS_ALREADY_ACTIVE`, say).
+ * The wallet names its record by the award's key, the reward id, and answers a key it has seen with its first outcome,
+ * so a reward's award can be asked once only; a claim after a refusal is therefore made under a fresh reward id, which
+ * takes the refused reward's place (its source, code, tag and selection), and the refused one is retired.
  */
 final case class Claim(rewardId: String, offerId: String, decision: Decision, source: Source, code: Option[String] = None,
-    tag: Option[String] = None, paymentRef: Option[String] = None, at: Instant)
+    tag: Option[String] = None, paymentRef: Option[String] = None, at: Instant, replaces: Option[String] = None)
 
 /**
  * A reward the player holds, as this record knows it: its offer, its state as `IndexConsumer` last reported it, the
@@ -47,7 +52,8 @@ final case class DepositSeen(amount: Long, currency: String, ordinal: Int, payme
  * What this service knows of one player (data-model.md `PlayerRewards`): what the evaluator reads (FR-008) and the
  * rewards held, with the offers made visible to them and the last deposit. `currency` is the player's wallet currency
  * as last seen (a deposit's, or the registration's), FR-007's last choice. `payments` are the recent deposits' payment
- * references, so a deposit reported twice is recorded once. No personal value is held: the player is named by id.
+ * references, so a deposit reported twice is recorded once. `retired` are rewards a later claim replaced (`Claim.replaces`):
+ * their reports are no longer read. No personal value is held: the player is named by id.
  */
 final case class PlayerRewardsState(
     registeredAt: Option[Instant] = None,
@@ -59,7 +65,8 @@ final case class PlayerRewardsState(
     currency: Option[String] = None,
     rewards: Map[String, HeldReward] = Map.empty,
     lastDeposit: Option[DepositSeen] = None,
-    payments: Vector[String] = Vector.empty
+    payments: Vector[String] = Vector.empty,
+    retired: Set[String] = Set.empty
 ):
   /** The evaluator's view of the player (FR-008); segments and the tier rank are dormant (research R4). */
   def snapshot: PlayerSnapshot =
@@ -69,6 +76,10 @@ final case class PlayerRewardsState(
   /** The reward of the offer the player may select, if any. */
   def unclaimed(offerId: String): Option[(String, HeldReward)] =
     rewards.toVector.sortBy(_._2.openedAt).find((_, h) => h.offerId == offerId && h.unclaimed)
+
+  /** A pending selection other than `rewardId`, being claimed or not: a second selection is refused while one is held. */
+  def otherPending(rewardId: String): Option[String] =
+    rewards.toVector.collectFirst { case (id, h) if id != rewardId && h.status == RewardStatus.Pending => id }
 
   /** The player's first pending selection (research R4: the deposit-confirm path takes the first). */
   def pending: Option[(String, HeldReward)] =

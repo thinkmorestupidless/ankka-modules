@@ -146,10 +146,11 @@ class PlayerRewardsSuite extends munit.FunSuite:
     val refused = kit.call(PlayerRewards.rewardChanged)(RewardChanged(id, "o-free", RewardStatus.Available, false, awardRefused = true, at))
     assertEquals(refused.events.size, 1)
     assert(!kit.currentState.rewards(id).claiming)
-    select(kit, freeBonus): Unit
-    kit.call(PlayerRewards.rewardChanged)(RewardChanged(id, "o-free", RewardStatus.Active, false, false, at)): Unit
-    assertEquals((kit.currentState.rewards(id).status, kit.currentState.rewards(id).claiming), (RewardStatus.Active, false))
-    assertEquals(kit.call(PlayerRewards.rewardChanged)(RewardChanged(id, "o-free", RewardStatus.Active, false, false, at)).events.toVector,
+    // Claimed again, under a fresh id (the wallet answers the refused key with its refusal).
+    val again = select(kit, freeBonus).replyValue.outcome.asInstanceOf[Outcome.Claimed].claim.rewardId
+    kit.call(PlayerRewards.rewardChanged)(RewardChanged(again, "o-free", RewardStatus.Active, false, false, at)): Unit
+    assertEquals((kit.currentState.rewards(again).status, kit.currentState.rewards(again).claiming), (RewardStatus.Active, false))
+    assertEquals(kit.call(PlayerRewards.rewardChanged)(RewardChanged(again, "o-free", RewardStatus.Active, false, false, at)).events.toVector,
       Vector.empty)
 
   test("a reward the record never made is added when reported"):
@@ -217,3 +218,49 @@ class PlayerRewardsSuite extends munit.FunSuite:
     assert(r.replyValue.outcome.isInstanceOf[Outcome.Claimed], r.replyValue.outcome.toString)
     fact(kit, PlayerChange.CheckEnded("clear"), Some(true)): Unit
     assert(kit.currentState.detectionOn)
+
+  // ── two selections at once, and a claim after the wallet refused (T040) ───────────────────
+
+  test("a second selection while one is pending is ACTIVE_BONUS_CONFLICT and writes nothing; the first may be selected again"):
+    val kit    = record
+    val other  = matchOffer.copy(id = "o-match-2")
+    val first  = pendingOn(kit)
+    target(kit, other): Unit
+    target(kit, freeBonus.copy(maxConcurrentGrants = None)): Unit
+    val r = select(kit, other)
+    assertEquals((r.replyValue.outcome.asInstanceOf[Outcome.Declined].reason, r.events.toVector), ("ACTIVE_BONUS_CONFLICT", Vector.empty))
+    assertEquals(select(kit, freeBonus.copy(maxConcurrentGrants = None)).replyValue.outcome.asInstanceOf[Outcome.Declined].reason,
+      "ACTIVE_BONUS_CONFLICT")
+    assertEquals(select(kit, matchOffer).replyValue.outcome, Outcome.Selected(first))
+    kit.call(PlayerRewards.deselect)(Deselect(at)): Unit
+    assert(select(kit, other).replyValue.outcome.isInstanceOf[Outcome.Selected])
+
+  test("a claim after the wallet refused the award is made under a fresh id replacing the refused reward"):
+    val kit = record
+    val id  = target(kit, freeBonus, Source.PlayerCode)
+    select(kit, freeBonus): Unit
+    kit.call(PlayerRewards.rewardChanged)(RewardChanged(id, "o-free", RewardStatus.Available, false, awardRefused = true, at)): Unit
+    val r = select(kit, freeBonus)
+    val Outcome.Claimed(claim) = r.replyValue.outcome: @unchecked
+    assertNotEquals(claim.rewardId, id)
+    assertEquals((claim.replaces, claim.source), (Some(id), Source.PlayerCode))
+    val s = kit.currentState
+    assertEquals((s.rewards.keySet, s.retired), (Set(claim.rewardId), Set(id)))
+    assert(s.rewards(claim.rewardId).claiming)
+    // The retired reward's own reports (its expiry) are not read.
+    assertEquals(kit.call(PlayerRewards.rewardChanged)(RewardChanged(id, "o-free", RewardStatus.Expired, false, false, at)).events.toVector,
+      Vector.empty)
+    assertEquals(kit.currentState.snapshot.rewards.size, 1)
+
+  test("a deposit after the wallet refused the pending reward's award claims it under a fresh id, still pending until awarded"):
+    val kit = record
+    val id  = pendingOn(kit)
+    confirm(kit, deposit(5000L)): Unit
+    kit.call(PlayerRewards.rewardChanged)(RewardChanged(id, "o-match", RewardStatus.Pending, false, awardRefused = true, at)): Unit
+    assertEquals(kit.currentState.pending.map(_._1), Some(id))
+    val again = confirm(kit, deposit(4000L, "pay-2", 2))
+    val Outcome.Claimed(claim) = again.replyValue.outcome: @unchecked
+    assertEquals((claim.replaces, claim.decision.amount, claim.paymentRef), (Some(id), 4000L, Some("pay-2")))
+    val held = kit.currentState.rewards(claim.rewardId)
+    assertEquals((held.status, held.selectedAt), (RewardStatus.Pending, Some(at)))
+    assertEquals(confirm(kit, deposit(4000L, "pay-2", 2)).replyValue.outcome, Outcome.Claimed(claim))

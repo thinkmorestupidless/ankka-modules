@@ -46,6 +46,8 @@ enum ExpireReason(val wire: String):
   case WageringWindowExpired  extends ExpireReason("wagering_window_expired")
   case PendingExpired         extends ExpireReason("pending_expired")
   case FreeSpinsExpiredUnused extends ExpireReason(Settlement.ExpiredUnused)
+  /** A reward whose award the wallet refused, replaced by a later claim under a fresh id (`player.Claim.replaces`). */
+  case Superseded             extends ExpireReason("superseded")
 
 object ExpireReason:
   given JsonValueCodec[ExpireReason] = RewardsCodecs.wire(values, _.wire)

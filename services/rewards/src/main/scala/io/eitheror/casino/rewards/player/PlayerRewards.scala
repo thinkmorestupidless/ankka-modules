@@ -41,7 +41,8 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
 
   /**
    * The player's selection (FR-011; `BR` `/select`). Only an offer the player holds a reward of may be selected
-   * (`offer_not_visible`; `ALREADY_CLAIMED` once it is claimed). A no-deposit offer is evaluated at once, its code
+   * (`offer_not_visible`; `ALREADY_CLAIMED` once it is claimed), and only while no other selection is pending: a second
+   * is `ACTIVE_BONUS_CONFLICT` (the edge case "two selections at once", decided here, not by the evaluator). A no-deposit offer is evaluated at once, its code
    * already verified when it was made visible and no minimum enforced, and claimed; a deposit offer moves to pending,
    * unevaluated, as the original's: the deposit evaluates it.
    */
@@ -51,13 +52,14 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
       case None =>
         val claimed = s.rewards.values.exists(h => h.offerId == c.offer.id && h.claim.isDefined)
         answer(Outcome.Refused(if claimed then AlreadyClaimed else OfferNotVisible))
+      case Some((id, _)) if s.otherPending(id).isDefined => answer(Outcome.Declined(Some(id), Decline.ActiveBonusConflict.reason))
       case Some((id, held)) if c.offer.noDepositRequired =>
         val request = Request(Mode.Standard, Anchor.registration(s.registeredAt, c.at), c.walletCurrency, detection = s.detectionOn,
           codeVerifiedAtTargeting = true, enforceMinDeposit = Some(false))
         Evaluator.evaluate(c.offer, s.snapshot, c.walletOpen, request, c.at) match
           case Left(d)         => answer(Outcome.Declined(Some(id), d.reason))
           case Right(decision) =>
-            val claim = Claim(id, c.offer.id, decision, held.source, held.code, held.tag, None, c.at)
+            val claim = reserve(id, held, Claim(id, c.offer.id, decision, held.source, held.code, held.tag, None, c.at))
             write(Outcome.Claimed(claim), Claimed(claim))
       case Some((id, held)) if held.status == RewardStatus.Pending => answer(Outcome.Selected(id))
       case Some((id, _))                                           => write(Outcome.Selected(id), RewardSelected(id, c.at))
@@ -93,7 +95,8 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
                 deposit = Some(Deposit(d.amount, currency, d.ordinal)), detection = s.detectionOn, codeVerifiedAtTargeting = true)
               Evaluator.evaluate(offer, s.snapshot, c.walletOpen, request, c.at) match
                 case Right(decision) =>
-                  val claim = Claim(p.rewardId, offer.id, decision, held.source, held.code, held.tag, Some(d.paymentRef), c.at)
+                  val claim = reserve(p.rewardId, held,
+                    Claim(p.rewardId, offer.id, decision, held.source, held.code, held.tag, Some(d.paymentRef), c.at))
                   write(Outcome.Claimed(claim), recorded, Claimed(claim))
                 case Left(Decline.ClaimWindowExpired) =>
                   write(Outcome.Expired(p.rewardId), recorded, PendingExpired(p.rewardId, c.at))
@@ -114,15 +117,19 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
       case Right(decision) =>
         val held = s.unclaimed(c.offer.id)
         val id   = held.fold(newRewardId())(_._1)
-        val claim = Claim(id, c.offer.id, decision, c.source, c.code, c.tag, None, c.at)
+        val claim = held.fold(Claim(id, c.offer.id, decision, c.source, c.code, c.tag, None, c.at))((_, h) =>
+          reserve(id, h, Claim(id, c.offer.id, decision, c.source, c.code, c.tag, None, c.at)))
         val made  = Option.when(held.isEmpty)(OfferMadeVisible(id, c.offer.id, c.source, c.code, c.tag, c.at)).toSeq
         write(Outcome.Claimed(claim), (made :+ Claimed(claim))*)
 
-  /** The reward's state from its own events (`IndexConsumer`); a report that changes nothing writes nothing. */
+  /**
+   * The reward's state from its own events (`IndexConsumer`); a report that changes nothing writes nothing, and a
+   * report of a reward a later claim replaced is not read.
+   */
   def rewardChanged(c: RewardChanged): Effect[PlayerAnswer] =
     val before = currentState.rewards.get(c.rewardId)
     val after  = indexed(before, c.offerId, c.status, c.providerFailed, c.awardRefused, c.at)
-    if before.contains(after) then answer(Outcome.Idle)
+    if currentState.retired.contains(c.rewardId) || before.contains(after) then answer(Outcome.Idle)
     else write(Outcome.Idle, RewardIndexed(c.rewardId, c.offerId, c.status, c.providerFailed, c.awardRefused, c.at))
 
   /**
@@ -169,6 +176,13 @@ object PlayerRewards
   /** A reward id: reserved in the event that makes the reward, so a replay holds the same one. */
   private def newRewardId(): String = UUID.randomUUID().toString
 
+  /**
+   * The claim on a reward the player holds: under its own id the first time; once a claim of it has been answered
+   * without an award (the wallet refused it), under a fresh id replacing it (`Claim.replaces`).
+   */
+  private def reserve(id: String, held: HeldReward, claim: Claim): Claim =
+    if held.claim.isEmpty then claim else claim.copy(rewardId = newRewardId(), replaces = Some(id))
+
   /** A reward as an index report leaves it: a claim ends once the wallet answered (the reward moved, or refused it). */
   private def indexed(before: Option[HeldReward], offerId: String, status: RewardStatus, providerFailed: Boolean,
       awardRefused: Boolean, at: Instant): HeldReward =
@@ -204,8 +218,11 @@ object PlayerRewards
       s.copy(lastDeposit = Some(d), currency = Some(d.currency),
         payments = (s.payments :+ d.paymentRef).takeRight(PlayerRewardsState.PaymentsKept))
     case Claimed(claim) =>
-      s.copy(rewards = s.rewards.updatedWith(claim.rewardId)(h =>
-        Some(h.getOrElse(HeldReward(claim.offerId, openedAt = claim.at)).copy(claim = Some(claim), claiming = true, lastDecline = None))))
+      val held = claim.replaces.flatMap(s.rewards.get).orElse(s.rewards.get(claim.rewardId))
+        .getOrElse(HeldReward(claim.offerId, openedAt = claim.at))
+      val rest = claim.replaces.fold(s.rewards)(s.rewards - _)
+      s.copy(rewards = rest.updated(claim.rewardId, held.copy(claim = Some(claim), claiming = true, lastDecline = None)),
+        retired = s.retired ++ claim.replaces)
     case PendingExpired(id, _)        => onReward(s, id)(_.copy(status = RewardStatus.Expired))
     case DeclineRecorded(id, why, _)  => onReward(s, id)(_.copy(lastDecline = Some(why)))
     case RewardIndexed(id, offerId, status, failed, refused, at) =>
