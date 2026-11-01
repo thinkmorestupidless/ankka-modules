@@ -3,6 +3,7 @@ package io.eitheror.casino.wallet.entity
 import com.thinkmorestupidless.ankka.core.Codecs
 import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
+import io.eitheror.casino.wallet.funding.{Record, Status}
 
 import java.time.{Duration, Instant}
 
@@ -93,6 +94,42 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     kit.call(WalletEntity.deposit)(deposit("d-1", 1000, t0, multiplier = 1))
     assertEquals(kit.call(WalletEntity.previewHold)(PreviewHold(500)).replyValue.refusal, Some("WITHDRAWAL_BLOCKED_TURNOVER"))
     assertEquals(kit.call(WalletEntity.previewHold)(PreviewHold(5000)).replyValue.refusal, Some("INSUFFICIENT_FUNDS"))
+  }
+
+  // ── an award's concurrency limit (spec 011 W1) ──────────────────────────────
+
+  private def awardUnder(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], key: String,
+      requested: Option[Int], brand: Option[Int]): Outcome =
+    kit.call(WalletEntity.award)(Award(key, "bonus", 1000, 1, 2000, 0, None, Rules(), Award.limit(requested, brand), t0)).replyValue
+
+  private def oneActive(id: String) =
+    val kit = EventSourcedTestKit.of(WalletEntity, id)
+    kit.call(WalletEntity.deposit)(deposit("d-1", 10000, t0))
+    assert(awardUnder(kit, "g-1", None, None).accepted)
+    kit
+
+  test("W1: the award's own limit is the limit, over the brand's") {
+    val refused = oneActive("w1-body/EUR")
+    assertEquals(awardUnder(refused, "g-2", Some(1), None).code, Some("BONUS_ALREADY_ACTIVE"))
+    val allowed = oneActive("w1-body2/EUR")
+    assert(awardUnder(allowed, "g-2", Some(2), Some(1)).accepted)
+    assertEquals(allowed.currentState.openRecords.count(_.status == Status.Active), 2)
+  }
+
+  test("W1: with no limit on the award the brand's applies, and with neither there is none") {
+    val brand = oneActive("w1-brand/EUR")
+    assertEquals(awardUnder(brand, "g-2", None, Some(1)).code, Some("BONUS_ALREADY_ACTIVE"))
+    val none = oneActive("w1-none/EUR")
+    assert(awardUnder(none, "g-2", None, None).accepted)
+    assert(awardUnder(none, "g-3", None, None).accepted)
+    assertEquals(none.currentState.openRecords.count(_.status == Status.Active), 3)
+  }
+
+  test("W1: the limit counts active records only, so a pending cap does not hold an award back") {
+    val kit    = EventSourcedTestKit.of(WalletEntity, "w1-cap/EUR")
+    val capped = AwardedRecord(Record("rf-cap", "g-cap", Status.ConvertedPendingCap, remainingAllowance = 100), "bonus", None, t0, None)
+    kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 10000, 0, Vector(capped), 0, 0, 0, t0)): Unit
+    assert(awardUnder(kit, "g-1", Some(1), None).accepted)
   }
 
   // ── personal data (FR-033) ──────────────────────────────────────────────────

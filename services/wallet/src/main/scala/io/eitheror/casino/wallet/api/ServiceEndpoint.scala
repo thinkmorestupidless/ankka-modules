@@ -99,7 +99,7 @@ final class ServiceEndpoint(
         val rules = Rules(r.maxStake, r.maxStakeEnforcement, r.contributionDefault, r.contributionOverrides, r.scopeInclude,
           r.scopeExclude, r.scopeViolationMode, r.fundingOrder, r.winAllocation, r.releaseProgressScope, r.forfeitOnWithdrawal)
         wallet(player, currency).call(WalletEntity.award).invoke(Award(k, r.bonusRef.getOrElse(""), a, r.wageringMultiplier, r.maxWin,
-          r.priority.getOrElse(0L), r.expiresAt, rules, brandConfig.maxConcurrentAwards, clock()))
+          r.priority.getOrElse(0L), r.expiresAt, rules, Award.limit(r.maxConcurrentGrants, brandConfig.maxConcurrentAwards), clock()))
     }
   }
 

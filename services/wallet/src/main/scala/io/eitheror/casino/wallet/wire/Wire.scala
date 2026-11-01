@@ -44,7 +44,8 @@ final case class AwardRequest(key: Option[String], bonusRef: Option[String] = No
     maxWin: Long = 0L, priority: Option[Long] = None, expiresAt: Option[java.time.Instant] = None, maxStake: Option[Long] = None,
     maxStakeEnforcement: String = "", contributionDefault: Option[Long] = None, contributionOverrides: Map[String, Long] = Map.empty,
     scopeInclude: Set[String] = Set.empty, scopeExclude: Set[String] = Set.empty, scopeViolationMode: String = "",
-    fundingOrder: String = "", winAllocation: String = "", releaseProgressScope: String = "", forfeitOnWithdrawal: String = "")
+    fundingOrder: String = "", winAllocation: String = "", releaseProgressScope: String = "", forfeitOnWithdrawal: String = "",
+    maxConcurrentGrants: Option[Int] = None)
 final case class GrantRequest(key: Option[String], grantRef: Option[String] = None)
 final case class KeyRequest(key: Option[String])
 final case class HoldRequest(key: Option[String], amount: AmountText, playerConfirmed: Boolean = false)
