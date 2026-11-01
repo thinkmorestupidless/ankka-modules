@@ -58,4 +58,4 @@ operator   POST /retries/{key}                        {"abandon": true, "reason"
 | `it/*ItSuite` | the integration kit over Postgres, with fake gates and wallet: placement, retries, settlement over a restart, reconciliation, the read routes, erasure |
 | `reads/ReadRowsSuite`, `reconcile/TallySuite`, `facts/*Suite` | the rows, the tally and the facts, unit by unit |
 | `NoRulesSuite` | SC-001: no source outside `ports/` and `api/` builds a domain command or applies the domain |
-| `perf/PlacementPerfSuite` | SC-002: three seconds at 200 orders a second by default, figures printed; `EXCHANGE_PERF=1` runs ten and asserts the median and p99 |
+| `perf/PlacementPerfSuite` | SC-002: three seconds at 20 orders a second by default, figures printed; `EXCHANGE_PERF=1` runs ten at 200 a second and asserts the median and p99 |
