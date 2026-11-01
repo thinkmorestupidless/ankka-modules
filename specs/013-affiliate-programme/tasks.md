@@ -170,7 +170,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `p/api/OperatorEndpoint.scala` (`/v1/affiliates`), `PortalEndpoint.scala` (`/v1/my`),
   `JoinEndpoint.scala` (`/v1/join`), `ProgrammeEndpoint.scala` (`/v1/programme`) with their ACLs
   (research R12); register everything so far in `p/ProgrammeService.scala`
-- [ ] T031 Write `p-test/it/Kit.scala` (after `services/attribution/src/test/.../it/Kit.scala`: Postgres,
+- [X] T031 Write `p-test/it/Kit.scala` (after `services/attribution/src/test/.../it/Kit.scala`: Postgres,
   `InMemoryBroker` carrying `affiliates.attribution` of `goldvibe` and `silvervibe`, `MovableClock`,
   staff and affiliate token stubs with roles), `FakeCustomerIo.scala`, `FakeKeycloak.scala`,
   `WebhookSender.scala` (signs as a brand), `PostbackReceiver.scala`, and `Facts.scala` (builders for

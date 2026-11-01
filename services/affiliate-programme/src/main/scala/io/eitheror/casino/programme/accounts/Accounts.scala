@@ -15,9 +15,7 @@ object Accounts extends View.Companion[AccountsView, Affiliate.Event, AffiliateS
       source = ChangeSource.eventsOf(Affiliate),
       rowSerializer = AffiliateCodecs.state
     ):
-  val byId      = query("by-id")(s"SELECT payload FROM $table WHERE row_key = :id")
   val childrenOf = query("children-of")(s"SELECT payload FROM $table WHERE payload::jsonb->>'parent' = :parent ORDER BY row_key")
-  /** Every account, for the network walk (FR-028); the walk reads the parent of each, so the rows are small. */
-  val all = query("all")(s"SELECT payload FROM $table ORDER BY row_key")
+  // One account is the view's own `get`, and every account (the network walk, FR-028) its own `all`.
 
   def create(ctx: ViewComponentContext) = new AccountsView
