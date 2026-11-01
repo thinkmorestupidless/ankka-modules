@@ -66,7 +66,7 @@ the recording driver, and the original's commission cases as failing tests.
   answers; `NotDriven` names the feature scenarios the original cannot show (hosted brands, webhooks,
   per-currency payouts, encryption); `tests/port/programme/README.md` names what the directory will hold;
   fix `tests/port/README.md`'s stale "not recorded yet" for attribution
-- [ ] T007 [P] Lift the original's `CommissionEngineSpec` and `CommissionFormulasSpec` cases
+- [X] T007 [P] Lift the original's `CommissionEngineSpec` and `CommissionFormulasSpec` cases
   (`S/../test/scala/io/eitheror/affiliate/`) into `p-test/commission/OriginalCasesSuite.scala`, amounts in
   minor units, the per-period guard cases marked as change 2; they fail until T010
 
