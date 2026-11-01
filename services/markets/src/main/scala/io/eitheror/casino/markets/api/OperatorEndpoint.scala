@@ -1,10 +1,10 @@
 package io.eitheror.casino.markets.api
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.core.{CommandError, EntityId}
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint}
 import com.thinkmorestupidless.predictions.markets.*
-import com.thinkmorestupidless.predictions.markets.components.MarketsComponents
+import com.thinkmorestupidless.predictions.markets.components.{MarketsComponents, Refused}
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.markets.{Json, MarketsRuntime}
 import io.eitheror.casino.markets.Json.*
@@ -56,13 +56,7 @@ final class OperatorEndpoint(components: MarketsComponents, clients: EndpointCli
       command match
         case "change" =>
           OperatorEndpoint.definition(b).fold(field, d =>
-            offered(d).getOrElse(limits(b).fold(field, t =>
-              // Once the change is taken; a limit the change leaves out keeps the drafted one.
-              answer(OperatorEndpoint.send(components, clients.componentClient, id, MarketCommand.Change(operator, d, now))) { _ =>
-                val was = terms(id).call(MarketTerms.get).invoke()
-                terms(id).call(MarketTerms.set).invoke(Terms(t.maxOrderCost.orElse(was.maxOrderCost), t.maxPosition.orElse(was.maxPosition))): Unit
-                current(id)
-              })))
+            offered(d).getOrElse(limits(b).fold(field, t => changed(id, d, t))))
         case "approve"    => run(MarketCommand.Approve(operator, now))
         case "open"       => run(MarketCommand.Open(now))
         case "suspend"    => reason(MarketCommand.Suspend(operator, _, now))
@@ -83,6 +77,31 @@ final class OperatorEndpoint(components: MarketsComponents, clients: EndpointCli
   }
 
   get("/{market}") { (id: String) => current(id) }
+
+  /**
+   * A change, and the limits it names. The book reads a market's limits once, when it opens, so a
+   * change naming a limit is refused once the market is past approval; before that, a limit the change
+   * leaves out keeps the drafted one, and a change of the limits alone (the library's `no change` to
+   * the definition) is taken, which also sets them again when a draft's write of them failed.
+   */
+  private def changed(id: String, d: Definition, t: Terms): Reply =
+    val named = t.maxOrderCost.nonEmpty || t.maxPosition.nonEmpty
+    val state = market(id).call(components.market.get).invoke().state
+    def write(): Reply =
+      if named then
+        val was = terms(id).call(MarketTerms.get).invoke()
+        terms(id).call(MarketTerms.set).invoke(Terms(t.maxOrderCost.orElse(was.maxOrderCost), t.maxPosition.orElse(was.maxPosition))): Unit
+      current(id)
+    if named && !OperatorEndpoint.LimitsSettable(state) then
+      val word = MarketState.word(state)
+      refusal(409, "state", s"state: a market's limits are fixed when its book opens, and it is $word", "state" -> word)
+    else
+      try
+        OperatorEndpoint.send(components, clients.componentClient, id, MarketCommand.Change(operator, d, now)): Unit
+        write()
+      catch
+        case e: CommandError if named && Refused.unapply(e).exists(_.reason == "no change") => write()
+        case e: CommandError                                                                  => refused(e)
 
   /** The market as it stands, with its record, in the library's JSON; 404 when nothing was drafted under the id. */
   private def current(id: String): Reply =
@@ -105,6 +124,9 @@ final class OperatorEndpoint(components: MarketsComponents, clients: EndpointCli
     for cost <- one("maxOrderCost"); position <- one("maxPosition") yield Terms(cost, position)
 
 object OperatorEndpoint:
+  /** The states in which a market's book has not opened, so its limits may still change. */
+  val LimitsSettable: Set[MarketState] = Set(MarketState.Draft, MarketState.Approved)
+
   /** A command to the market under its own handler; the events it led to. */
   def send(c: MarketsComponents, client: com.thinkmorestupidless.ankka.sdk.ComponentClient, id: String, command: MarketCommand): Vector[MarketEvent] =
     val market = client.forEventSourcedEntity(EntityId(id))

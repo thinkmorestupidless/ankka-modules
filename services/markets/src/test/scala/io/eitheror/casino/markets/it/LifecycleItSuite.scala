@@ -107,4 +107,29 @@ class LifecycleItSuite extends munit.FunSuite with LogCapturing:
     val changed = kit.json("POST", kit.operatorPath(s"/$market/change"), Json.obj((base.map { case ("description", _) => "description" -> "Limits, changed"; case f => f } :+ ("maxOrderCost" -> 7000L))*), kit.asOperator())
     assertEquals(changed.status, 200, changed.text)
     assertEquals((limits.maxOrderCost, limits.maxPosition), (Some(7000L), Some(50L)))
+    val alone = kit.json("POST", kit.operatorPath(s"/$market/change"), Json.obj((base.map { case ("description", _) => "description" -> "Limits, changed"; case f => f } :+ ("maxPosition" -> 40L))*), kit.asOperator())
+    assertEquals(alone.status, 200, alone.text)
+    assertEquals((limits.maxOrderCost, limits.maxPosition), (Some(7000L), Some(40L)))
+  }
+
+  test("a change naming a limit is refused once the market's book has opened") {
+    val market = "limits-3"
+    val start  = kit.now()
+    val base = Vector[(String, Any)](
+      "question"           -> "Will the book keep its limits?",
+      "description"        -> "Open",
+      "category"           -> "politics",
+      "outcomes"           -> Vector("yes", "no"),
+      "currency"           -> "EUR",
+      "openTime"           -> start.plusSeconds(2).toString,
+      "close"              -> start.plus(JDuration.ofDays(2)).toString,
+      "expectedResolution" -> start.plus(JDuration.ofDays(3)).atZone(ZoneOffset.UTC).toLocalDate.toString,
+      "criteria"           -> "As reported",
+      "authority"          -> "The authority"
+    )
+    assertEquals(kit.json("POST", kit.operatorPath("/drafts"), Json.obj((("market" -> market) +: base)*), kit.asOperator()).status, 200)
+    assertEquals(kit.json("POST", kit.operatorPath(s"/$market/approve"), Json.obj(), kit.asOperator()).status, 200)
+    kit.eventually("open", 60.seconds)(Option.when(kit.market(market).state == MarketState.Open)(()))
+    val r = kit.json("POST", kit.operatorPath(s"/$market/change"), Json.obj((base :+ ("maxPosition" -> 40L))*), kit.asOperator())
+    assertEquals((r.status, r.str("error"), r.str("state")), (409, "state", "open"), r.text)
   }
