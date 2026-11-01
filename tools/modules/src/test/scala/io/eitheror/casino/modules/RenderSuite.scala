@@ -15,8 +15,8 @@ import scala.jdk.CollectionConverters.*
  *  - E1: the three identity keys spec 001 did not render (`PLAYER_SITE_BASE`, `KEYCLOAK_ISSUER_BASE`,
  *    `KEYCLOAK_JWKS_BASE`) are named by every service (contracts/module-manifests.md);
  *  - the modules' own keys are new env: `KYC_MAX_UPLOAD_BYTES` on kyc, and on game-provider
- *    `ST8_OPERATOR_ID`, `ST8_API_KEY`, `GAME_PROVIDER_MODE`; a secret one is a `secretKeyRef` to
- *    `tenant-values`;
+ *    `ST8_OPERATOR_ID`, `ST8_API_KEY`, `GAME_PROVIDER_MODE`, and on rewards
+ *    `REWARDS_CODE_DOCUMENT_URL` (spec 011 R13); a secret one is a `secretKeyRef` to `tenant-values`;
  *  - `SUPPORT_AGENT_ENABLED` is gone: `support` is a module and being entitled is the switch;
  *  - E2: the three `psp-gateway` routes and the erasure grant are not received by the core's manifest:
  *    `shared/payments/manifest.json` makes them per brand in local mode;
@@ -44,6 +44,8 @@ class RenderSuite extends munit.FunSuite:
     // spec 023 R13: the erasure targets the brand's modules add.
     "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS") ++ PlayersSecrets),
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
+    // spec 011 R13: the programme's code document.
+    "rewards"       -> Set("REWARDS_CODE_DOCUMENT_URL"),
     "engagement"    -> Set("PUSH_PROVIDER_KEY"),
     "support-agent" -> Set("MODEL_PROVIDER_KEY"),
     // spec 012 plan research R12, R7, R5, R3, R10, R15: attribution's own settings.

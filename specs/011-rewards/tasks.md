@@ -32,7 +32,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
       - `specs/001-brands-and-projects/contracts/topics.md`: the new families on their topics;
       - then `just schemas` (the diff shows optional fields and new families only), `just test` green,
         `sbt contract/publishLocal`.
-- [ ] T002 Add `REWARDS_CODE_DOCUMENT_URL` (research R13) to `contract/keys.md`, to
+- [X] T002 Add `REWARDS_CODE_DOCUMENT_URL` (research R13) to `contract/keys.md`, to
       `modules/casino/module.json`'s `configuration[]` (empty default) and to the `rewards` service's
       `env[]`; `just modules render goldvibe` shows it. `just test` green.
 - [ ] T003 Run `ankka init` for the service at `services/rewards/`, in the shape of `services/payouts/`:
