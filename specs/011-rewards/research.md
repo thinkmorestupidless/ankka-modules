@@ -365,3 +365,30 @@ None.
 ## Design finished
 
 2026-11-01: analyze reported nothing above LOW.
+
+## Found during implementation
+
+Readings taken where the spec, the research and the original left a choice, each the original's
+behaviour unless it says otherwise.
+
+- **Status wire names** (T019): the original's upper-case names (`ACTIVE`, `CONVERTED_PENDING_CAP`, …);
+  `casino.rewards` carries no status field, so nothing outside the service reads them.
+- **Free rounds settled with nothing won** (T022): completion closes the reward (`free_spins_finalised`);
+  expiry with nothing accumulated expires it (`free_spins_expired_unused`), even when rounds were played.
+- **The late round** (T022, FR-024): a new round after payment is paid once under `late-<round>` and
+  changes neither the finalised amount nor `free_spins_settled`. A revoked, cancelled or forfeited
+  reward counts no round.
+- **Code uniqueness** (T020): checked against the brand's other active offers; matching uses live
+  offers. A code of an inactive offer may be reused.
+- **Role on create** (T020): `role_already_assigned` is checked on edit only, as FR-002.
+- **Edit checks** (T020): the original's order, including `spin_value_required`; an edit skips the
+  create's amount and multiplier checks; only codes new to the offer are checked for being in use.
+- **W3 and a reclaim** (T009): a reclaim (`requireBaseline`) claws back from the baseline and does not
+  take the unused-secondary rule, which was the player's cancel's alone (`BR:2919-2925`, `BR:1024-1041`).
+- **`MISSING_BASELINE` order** (T010): after the open-grant check, so a grant that is not open is
+  `GRANT_NOT_OPEN`.
+- **W1's limit** (T007): used as sent; only the brand config refuses a limit below 1.
+- **The programme's document** (T023): fetched with `java.net.http.HttpClient` (ankka's service clients
+  reach services by name only), bounded by the request bound and 1 MiB, no redirects.
+- **G1's catalogue** (T012): the provider's enabled games in the feed, as the player's single-game read;
+  the brand's overrides do not apply.
