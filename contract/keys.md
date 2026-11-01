@@ -84,7 +84,8 @@ render it.
 The predictions module's keys (spec 023 R7): `predictions-categories` and `predictions-currencies`
 are comma lists, and a brand that runs the module names at least one of each; the two limits are
 minor units and shares. `predictions-taker-fee-bps` is `0` and `predictions-gates` is
-`play-gate,may-bet` when a brand writes none. The reasoning mirror's key is added with the mirror,
+`play-gate,may-bet` when a brand writes none; a fee above `0` stops `markets` at start until
+ankka-predictions 0.2.0 charges one (R8). The reasoning mirror's key is added with the mirror,
 when ankka-reasoning 0.2.0 is cut (R14).
 
 ## Not yet built

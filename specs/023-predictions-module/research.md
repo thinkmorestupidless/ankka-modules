@@ -210,7 +210,7 @@ bet gate, which is the safe reading.
 
 **Decision**: FR-011 as a view and a timer in `exchange`. A consumer of `money.transactions`
 (a topic of the same project, so no grant) sums per market, family and key: reservations and releases
-by order (the order's market from `orders-by-owner`), settlement debits and credits, splits and
+by order (the order's market from an index the exchange writes as it places and trades, `MarketOfEntity`), settlement debits and credits, splits and
 merges (`account_debit` and `account_credit` on `pool/<market>`), payments, fees. A timed action
 daily, and at `Final`, compares them with the exchange's own sums (from its events) and writes one
 `platform.audit` record per difference naming the market, the family, the key and both figures.
