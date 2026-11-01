@@ -67,14 +67,15 @@ class ExchangeDriverSuite extends munit.FunSuite:
 
   private def send(status: Option[(Int, String)]) = calls(status).send("m 1", "open", io.eitheror.casino.markets.Json.obj())
 
-  test("a 2xx is done, and so is a repeat the book refuses as its state") {
+  test("a 2xx is done, and so is a redelivery the book refuses as its state or out of order") {
     assertEquals(send(Some(200 -> "{}")), Driven.Done)
     assertEquals(send(Some(409 -> """{"error":"state"}""")), Driven.Done)
+    assertEquals(send(Some(409 -> """{"error":"out of order"}""")), Driven.Done)
   }
 
   test("any other refusal is raised with its code; a 5xx or no answer throws, so the event comes again") {
     assertEquals(send(Some(400 -> """{"error":"limit"}""")), Driven.Refused(400, "limit"))
-    assertEquals(send(Some(409 -> """{"error":"out of order"}""")), Driven.Refused(409, "out of order"))
+    assertEquals(send(Some(409 -> """{"error":"outcome"}""")), Driven.Refused(409, "outcome"))
     intercept[IllegalStateException](send(Some(503 -> "{}")))
     intercept[ServiceUnanswered](send(None))
   }

@@ -20,7 +20,10 @@ enum Driven:
 
 /**
  * `exchange`'s service route for a market's book (contracts/routes.md), as `markets` calls it. An
- * exchange that cannot be reached, or answers 5xx, throws, so the event is delivered again.
+ * exchange that cannot be reached, or answers 5xx, throws, so the event is delivered again. A
+ * market's events reach the driver in order, so the book refuses one as `state` (applied) or `out of
+ * order` (older than a later one it applied) only on redelivery, which ankka makes of every change
+ * since a consumer's last saved offset; both are done.
  */
 final class ExchangeCalls(services: ServiceClients, brand: String):
   private def segment(s: String) = URLEncoder.encode(s, UTF_8).replace("+", "%20")
@@ -29,12 +32,14 @@ final class ExchangeCalls(services: ServiceClients, brand: String):
     val path = s"/v1/casino/brands/$brand/exchange/markets/${segment(market)}/$command"
     val r = services(ExchangeCalls.Service).request("POST", path, Some(Json.render(body).getBytes(UTF_8)), Some("application/json"), Nil)
     val error = Json.parse(String(r.body, UTF_8)).flatMap(n => Option(n.get("error"))).map(_.asText).getOrElse("")
-    if r.status / 100 == 2 || (r.status == 409 && error == "state") then Driven.Done
+    if r.status / 100 == 2 || (r.status == 409 && ExchangeCalls.Applied(error)) then Driven.Done
     else if r.status >= 500 then throw IllegalStateException(s"exchange answered $command on $market with ${r.status}")
     else Driven.Refused(r.status, error)
 
 object ExchangeCalls:
   val Service = "exchange"
+  /** The book's refusals of a command it has applied, or that a later one it applied supersedes. */
+  val Applied: Set[String] = Set("state", "out of order")
 
 /**
  * The library's market drives the exchange's book (spec 023 R2): at `Opened` the book opens with the
