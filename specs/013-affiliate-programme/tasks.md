@@ -144,7 +144,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   (sums by type per period range equal the facts' sum; settled facts carry their payout)
 - [X] T025 [P] Implement the views `p/accounts/Accounts.scala`, `p/accounts/Memberships.scala`,
   `p/players/Players.scala`, `p/settlement/Payouts.scala`, `p/intake/Inbox.scala` with a view suite each
-- [ ] T026 [P] Implement `p/accounts/Secrets.scala` (`dataKey(affiliate)` created once and cached 60 s,
+- [X] T026 [P] Implement `p/accounts/Secrets.scala` (`dataKey(affiliate)` created once and cached 60 s,
   `destroy(affiliate)`, `emailIndexKey`, `brandSecret(slug, name)`; as `m/security/Secrets.scala`) with
   `p-test/accounts/SecretsSuite.scala` over `InMemorySecretStore`
 - [ ] T027 Implement `p/intake/Intake.scala` (contracts/inbound.md *Intake*), `p/intake/BrandConsumers.scala`
