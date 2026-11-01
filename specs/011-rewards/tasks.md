@@ -54,19 +54,19 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
 
 **Neighbours** (research R6, R9). Each with its suite written first.
 
-- [ ] T007 Wallet W1 in `services/wallet/`: `AwardRequest.maxConcurrentGrants: Option[Int]` in
+- [X] T007 Wallet W1 in `services/wallet/`: `AwardRequest.maxConcurrentGrants: Option[Int]` in
       `wire/Wire.scala`; `api/ServiceEndpoint.scala` passes it to `Award.maxConcurrentAwards` when present,
       else the brand config's; suite cases in `EntitySuite` (limit from the body; body absent → the
       brand's; neither → none).
-- [ ] T008 Wallet W2: `ClosePendingCap.grantRef: Option[String]` (route body `GrantRequest`);
+- [X] T008 Wallet W2: `ClosePendingCap.grantRef: Option[String]` (route body `GrantRequest`);
       `funding/Resolver.closePendingCap` closes the named record, `NOT_PENDING_CAP` when it is not
       pending cap; the first otherwise, as now. Suite cases with two pending-cap records.
-- [ ] T009 Wallet W3: in `entity/WalletEntity.cancelAward`, a named record that is not primary and has
+- [X] T009 Wallet W3: in `entity/WalletEntity.cancelAward`, a named record that is not primary and has
       no release progress claws back 0 (`BR:2919-2925`). Suite case.
-- [ ] T010 Wallet W4: `CancelAward.requireBaseline: Boolean = false`; refused `MISSING_BASELINE`
+- [X] T010 Wallet W4: `CancelAward.requireBaseline: Boolean = false`; refused `MISSING_BASELINE`
       (409, `entity/Refusals.scala`, `wire/Wire.scala` status table) when the named record has no
       baseline. Suite cases.
-- [ ] T011 Wallet W5: `publish/Facts.scala` publishes `restricted_funds_closed` for `PendingCapClosed`
+- [X] T011 Wallet W5: `publish/Facts.scala` publishes `restricted_funds_closed` for `PendingCapClosed`
       (reason `cap_expired`) and for each cap draw that closes a record (reason `cap_exhausted`);
       `FactsSuite` cases. Update `specs/002-wallet/contracts/routes.md` and `facts.md` for W1 to W5,
       and `just wallet-test` green.
