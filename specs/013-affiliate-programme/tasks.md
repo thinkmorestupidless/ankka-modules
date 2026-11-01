@@ -45,7 +45,7 @@ the recording driver, and the original's commission cases as failing tests.
   (Scala 3.9.0, `ankkaVersion = "0.13.0"`, the six ankka modules, `casino-contract` at
   `CASINO_VERSION`), `service.json` (runtime `0.13.0`, its database and secret store), `README.md` (a
   stub naming the components of plan.md), `p/ProgrammeService.scala` registering nothing yet
-- [ ] T002 [P] Add `Routes.affiliateManager()` (issuer `staff`; any of `affiliate_manager`,
+- [X] T002 [P] Add `Routes.affiliateManager()` (issuer `staff`; any of `affiliate_manager`,
   `brand_admin`, `platform_admin`) and `Routes.brandsOf(principal): BrandSet` (`brand_<slug>` roles;
   `platform_admin` is every brand) to `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`,
   with cases in `contract/src/test/scala/io/eitheror/casino/contract/access/RoutesSuite.scala`
