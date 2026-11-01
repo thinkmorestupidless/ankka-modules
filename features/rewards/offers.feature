@@ -101,3 +101,23 @@ Feature: An operator creates an offer, a player claims it, and offers are target
     When they read their reward state
     Then the active reward's balance, wagering requirement and release progress are shown as the wallet reports them
     And their history of rewards is shown
+
+  Scenario: targeting an offer of free rounds, or of a deposit match with free rounds, is refused
+    Given an offer of a deposit match with free rounds
+    When the brand's engagement targets it at a player
+    Then it is refused as "free_spins_offer_not_targetable"
+
+  Scenario: an operator deleting an offer deactivates it and keeps the rewards already given
+    Given an offer with rewards given
+    When an operator deletes it
+    Then the offer is listed as not active
+    And the rewards already given are unchanged
+
+  Scenario: an operator giving a free bonus with no offer awards restricted funds with the amount and wagering they set
+    When an operator gives a player a free bonus of "2000" at a wagering multiplier of "5"
+    Then the wallet is asked to award "2000" as restricted funds with a wagering requirement of "10000"
+    And the reward is active, with a wagering window of "30" days
+
+  Scenario: an operator giving free rounds with no offer creates them at the game provider
+    When an operator gives a player "10" free rounds on an eligible game
+    Then the game provider is asked to create "10" rounds under the reward's id

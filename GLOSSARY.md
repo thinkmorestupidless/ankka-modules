@@ -887,7 +887,7 @@ How long a selection waits for its confirming deposit; past it the reward is exp
 The days a reward's restricted funds may be wagered before the reward expires.
 
 ### cap window
-The days a converted reward waits for its cap before the pending cap is closed.
+The days a converted reward waits for its cap before the pending cap is closed: the offer's wagering window days counted from the conversion, 30 when the offer sets none.
 
 ### activation baseline
 The real balance recorded when a reward activated, from which a player's own cancellation computes the clawback: real winnings since activation less deposits since, floored at zero; with no baseline the clawback is zero.

@@ -16,11 +16,12 @@ what terms."
 Today a reward lives in three places. The offer is a twin an operator edits through 3,516 lines of
 `BonusRoutes`; the grant is a `bonus-claims/<id>` twin in ten states kept by `RewardGrantStore`
 (feature 216) with an immutable `RewardEvent` log beside it; and the money is a restricted-funds
-record the wallet holds. Five TL functions and four Go capabilities orchestrate the rest: a daily
+record the wallet holds. Six TL functions and their Go capabilities orchestrate the rest: a daily
 cadence scan expires grants, settles free-rounds rounds and finalises expired free-rounds grants;
-two more fan each reward event out to Customer.io and Kafka. One evaluator (feature 218) decides
-eligibility for every path — a player's selection, a code, a deposit that confirms, a Customer.io
-campaign, an operator's manual award — with twelve decline reasons the frontend names.
+one sets the cap clock at conversion; two more fan each reward event out to Customer.io and Kafka.
+One evaluator (feature 218) decides eligibility for every path — a player's selection, a code, a
+deposit that confirms, a Customer.io campaign, an operator's manual award — with fourteen decline
+reasons the frontend names.
 
 The service this spec describes keeps every rule the original enforces and moves the orchestration
 inside one service: the offer and the grant are its entities, the evaluator is its code, expiry is a
@@ -130,6 +131,31 @@ Answered with the original as it runs on 2026-11-01, which changed since this sp
   rule and is left to a follow-up on spec 008.
 - Q: The glossary's 23 proposed terms from specs 021, 023 and 025? → A: Accepted as written.
 
+### Session 2026-11-01 (planning)
+
+Asked while planning, after the original was read whole (research R1).
+
+- Q: Codes are exact and case-sensitive in the original; keep the spec's trimmed, any-case match?
+  → A: Keep it, named under *Changes from the original*. Brand and programme codes then agree (the
+  original's affiliate side already matched in any case), and uniqueness is in any case too.
+- Q: Free-rounds winnings paying to real balance: the original's credit lands on the primary open
+  reward's restricted funds when one is open. As the original, or always real? → A: As the original:
+  the wallet's provider credit under the reward's id (FR-024).
+- Q: Which of the original's routes that no requirement named are carried? → A: The operator's two
+  awards with no offer (a free bonus, and free rounds), FR-017. Dropped and named under *Changes*:
+  the player's `/claim` (a bonus sized from a deposit amount the player states), the unused
+  `/offers/eligible` list, and the `/promo-code` store and read (written, never read back); the
+  preview stays (FR-020).
+- Q: Correct the spec to the original where it contradicts it? → A: Yes, all: every conversion
+  waits in converted pending cap; a loss or an operator's adjustment to zero forfeits; free rounds
+  the game provider fails are cancelled and no longer listed; the target route refuses a deposit
+  match with free rounds too; spin values not configured are an empty list; deleting an offer
+  deactivates it; the award route's declines are the reason alone; an unknown spin value goes ahead;
+  the game provider's free-rounds read is served (FR-014, FR-017, FR-022, FR-022b, FR-023 to FR-026).
+  Also read in the original and applied: the claim window from a selection is the offer's days when
+  it sets them, else 3 (the 3 days are fixed in that no brand sets them); a maximum of claims of 0 is
+  no limit; the player's cancel answers in lower case.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - An operator creates an offer and a player claims it (Priority: P1)
@@ -230,7 +256,8 @@ state in step, sets the clocks, and tells the player and the operators.
 **Acceptance Scenarios**:
 
 - added `features/rewards/lifecycle.feature`: a conversion with a cap puts the reward in converted pending cap and sets a cap timer for the cap window
-- added `features/rewards/lifecycle.feature`: a conversion with no cap closes the reward as completed
+- added `features/rewards/lifecycle.feature`: a conversion with no maximum convertible amount still waits in converted pending cap
+- added `features/rewards/lifecycle.feature`: a reward whose restricted funds are lost in play is forfeited
 - added `features/rewards/lifecycle.feature`: a cap deadline passing closes the record on the wallet and the reward
 - added `features/rewards/lifecycle.feature`: a reward past its claim deadline or wagering window is forfeited on the wallet and expired
 - added `features/rewards/lifecycle.feature`: a player switching a second open reward to primary reorders the records on the wallet and records the switch
@@ -240,8 +267,11 @@ state in step, sets the clocks, and tells the player and the operators.
 - added `features/rewards/lifecycle.feature`: a cancel naming no active reward is refused as a conflict
 - added `features/rewards/lifecycle.feature`: an operator revoking a reward as forfeit forfeits the record and leaves real balance untouched
 - added `features/rewards/lifecycle.feature`: an operator revoking a reward as reclaim forfeits the record and applies the clawback
+- added `features/rewards/lifecycle.feature`: an operator revoking as reclaim a reward whose record has no baseline is refused
+- added `features/rewards/lifecycle.feature`: an operator revoking free rounds not yet played cancels them at the game provider
+- added `features/rewards/lifecycle.feature`: an operator revoking free rounds already played out is refused
 - added `features/rewards/lifecycle.feature`: an operator revoking a reward with no mode is refused
-- added `features/rewards/lifecycle.feature`: a record an operator adjusted to zero closes the reward
+- added `features/rewards/lifecycle.feature`: a record an operator adjusted to zero forfeits the reward
 - added `features/rewards/lifecycle.feature`: a record an operator adjusted but not to zero leaves the reward active
 
 ---
@@ -262,16 +292,22 @@ bonus routes, `scenario_free_spins_customerio`, `scenario_free_spins_stacking`.
 - added `features/rewards/free-rounds.feature`: free rounds given on an eligible game at an offered spin value are created at the game provider and live with the offer's expiry
 - added `features/rewards/free-rounds.feature`: a spin value the game provider does not offer is refused naming the values it does
 - added `features/rewards/free-rounds.feature`: a game that is not eligible is refused
-- added `features/rewards/free-rounds.feature`: free rounds the game provider does not confirm within the time allowed are voided and the player is told nothing was given
+- added `features/rewards/free-rounds.feature`: free rounds the game provider does not confirm within the time allowed are cancelled and no longer listed to the player
+- added `features/rewards/free-rounds.feature`: free rounds given while the game provider has not yet confirmed them are answered as processing
 - added `features/rewards/free-rounds.feature`: a round settled with a win uses one round and accumulates the win
 - added `features/rewards/free-rounds.feature`: the same round settling again changes nothing
 - added `features/rewards/free-rounds.feature`: the last round settling under an offer paying to real balance credits the accumulated amount to real balance
+- added `features/rewards/free-rounds.feature`: winnings paying to real balance while a reward is active land on the active reward's restricted funds
+- added `features/rewards/free-rounds.feature`: the last round settling with nothing won pays nothing and completes the reward
 - added `features/rewards/free-rounds.feature`: the last round settling under an offer paying to restricted funds awards the accumulated amount with the offer's multiplier and cap
 - added `features/rewards/free-rounds.feature`: winnings awarded as restricted funds while a reward is already active stack beside it
-- added `features/rewards/free-rounds.feature`: free rounds past their expiry with rounds unused are expired and whatever accumulated is paid in full
+- added `features/rewards/free-rounds.feature`: free rounds past their expiry with something won are paid in full and completed
+- added `features/rewards/free-rounds.feature`: free rounds past their expiry with nothing won are expired
 - added `features/rewards/free-rounds.feature`: a round taken before expiry that settles late is still honoured
 - added `features/rewards/free-rounds.feature`: an operator asking a game's spin values in a currency is answered the game provider's values sorted
-- added `features/rewards/free-rounds.feature`: an operator asking spin values on a brand with no free rounds set up is answered not configured
+- added `features/rewards/free-rounds.feature`: an operator asking spin values on a brand with no free rounds set up is answered with none, as not configured
+- added `features/rewards/free-rounds.feature`: free rounds given when the game provider cannot say which spin values it offers go ahead
+- added `features/rewards/free-rounds.feature`: a launch naming no free rounds is given the player's oldest free rounds for that game
 
 ---
 
@@ -295,6 +331,10 @@ operator, read the backoffice lists.
 - added `features/rewards/offers.feature`: an operator reading a player's rewards sees every reward with its state, face value, source and clocks
 - added `features/rewards/offers.feature`: an operator reading the brand's rewards sees them across players, filterable by state
 - added `features/rewards/offers.feature`: a player reading their reward state sees the active reward's balance, requirement and progress and their history
+- added `features/rewards/offers.feature`: targeting an offer of free rounds, or of a deposit match with free rounds, is refused
+- added `features/rewards/offers.feature`: an operator deleting an offer deactivates it and keeps the rewards already given
+- added `features/rewards/offers.feature`: an operator giving a free bonus with no offer awards restricted funds with the amount and wagering they set
+- added `features/rewards/offers.feature`: an operator giving free rounds with no offer creates them at the game provider
 
 ---
 
@@ -320,9 +360,10 @@ and `reporting` learn of it without a call.
 - **A deposit confirming while the offer is deactivated.** The pending grant is evaluated against
   the offer as it was snapshotted; an offer no longer live expires the selection.
 - **The wallet refuses an award** (`BONUS_ALREADY_ACTIVE` with the maximum concurrent grants set).
-  The grant stays pending, the player is told, and the deposit is not withheld.
-- **The provider is down at grant time.** The grant is created pending provisioning; the workflow
-  retries, then voids on timeout; the player is told nothing was granted.
+  The grant stays pending with the reason recorded, and the deposit is not withheld.
+- **The provider is down at grant time.** The grant is active with its provisioning processing; the
+  workflow asks again every 30 seconds, up to 50 times, then cancels it as `provider_failed`; the
+  player's free rounds no longer list it and it does not count as a claim.
 - **A round settles for a grant this service does not know.** The fact is ignored and recorded as
   unmatched for an operator.
 - **A code typed with surrounding spaces or mixed case.** Trimmed and matched case-insensitively.
@@ -344,17 +385,24 @@ and `reporting` learn of it without a call.
   wagering multiplier, wagering window days, maximum convertible amount, maximum claims per player,
   excluded offer ids, conflicting offer ids, maximum concurrent grants, redemption codes, segment,
   tier floor, role, no-deposit flag, currency, priority order, notification template and field map,
-  and the free-rounds fields (game, provider, count, spin value, winnings destination, expiry days),
-  each named as the original names it.
+  the free-rounds fields (game, game name, provider, count, spin value or a spin value per currency,
+  winnings destination, expiry days), and the bet-time rules the wallet applies (maximum stake and
+  its enforcement, contributions, scope, funding order, win allocation, forfeit on withdrawal, and
+  forfeit on cancel), each named as the original names it.
 - **FR-002**: Creation and edit MUST apply the original's validation and name the first failure:
   `bonus_amount_required` (a maximum value above zero unless pure free rounds),
   `wagering_multiplier_required` (unless pure free rounds paying real balance),
   `invalid_payload_type`, `max_concurrent_grants_invalid` (below one; absent is no limit), `currency_required` (free
   rounds), `game_id_required`, `spin_count_required`, `spin_value_required`,
-  `max_convertible_amount_required` (destination restricted funds), `code_already_in_use`.
+  `max_convertible_amount_required` (destination restricted funds), `spin_configurations_invalid`,
+  `spin_value_not_offered` with the allowed values, `game_not_eligible`, `duplicate_code_in_request`,
+  `code_already_in_use`; an edit applies `invalid_payload_type`, `max_concurrent_grants_invalid`,
+  `spin_configurations_invalid`, the spin-value check when the game, currency or value changes,
+  `role_already_assigned`, and the code checks when the codes change.
 - **FR-003**: A redemption code MUST be unique across the brand's offers and the programme's code
   document for the brand, regardless of case; an operator MUST be able to list, create, edit,
-  deactivate, delete and reorder offers, each change recorded in the audit (spec 001 FR-036).
+  delete (which deactivates: nothing is removed) and reorder offers, each change recorded in the
+  audit (spec 001 FR-036).
 - **FR-004**: The player's eligible list MUST show the offers the player holds a grant for when any
   is available or pending, and otherwise the offers made visible to them by a code or a campaign;
   each with its terms and the reason it is visible, in the brand's priority order.
@@ -366,17 +414,20 @@ and `reporting` learn of it without a call.
   registration), weak duplicate signal (a no-deposit offer), suspected duplicate (these three
   skipped when the brand turns detection off), open grant maximum (the player's open grants, or the
   wallet's open records if more, at or above the offer's maximum concurrent grants; no limit when
-  the offer sets none), conflicting grant, maximum claims, excluded by prior offer, redemption code
-  (skipped when verified at targeting), minimum deposit, deposit number, claim window (from
-  registration when the offer sets days, else 3 days from selection), segment, tier floor; and MUST
+  the offer sets none), conflicting grant, maximum claims (0 is no limit; a terminal grant counts as
+  a claim, one cancelled as `provider_failed` does not), excluded by prior offer, redemption code
+  (skipped when verified at targeting), minimum deposit, deposit number, claim window (at a
+  confirming deposit, from the selection: the offer's days, else 3; on every other path, from
+  registration and only when the offer sets days), segment, tier floor; and MUST
   decline with exactly the reasons `ELIGIBILITY_CHECK_UNAVAILABLE`, `NO_DEPOSIT_OFFER_BLOCKED`,
   `SUSPECTED_DUPLICATE`, `ACTIVE_BONUS_CONFLICT`, `CONFLICTING_GRANT`, `MAX_CLAIMS_REACHED`,
   `EXCLUDED_BY_PRIOR_OFFER`, `INVALID_CODE`, `BELOW_MIN_DEPOSIT`, `DEPOSIT_NUMBER_MISMATCH`,
   `CLAIM_WINDOW_EXPIRED`, `SEGMENT_MISMATCH`, `VIP_TIER_TOO_LOW`, `ALREADY_CLAIMED`.
 - **FR-006**: An operator override MUST apply only the first four rules.
-- **FR-007**: The amount MUST be the deposit × percentage capped at the maximum value for a deposit
-  match, the fixed maximum value for a no-deposit offer, and the deposit's currency, or the offer's
-  when it carries one, or the player's wallet currency; all in minor units.
+- **FR-007**: The amount MUST be the deposit × percentage capped at the maximum value when the offer
+  has a percentage and there is a deposit, else the fixed maximum value; in the offer's currency when
+  it carries one, else the deposit's, else the player's wallet currency; all in minor units, a
+  fraction of a minor unit rounded half up.
 - **FR-008**: The evaluator MUST read the player's flags, tier, segment and registration time from
   the service's own view over `casino.players`, and the player's open grants and wallet open count
   from its own grants and the wallet's balance read; it MUST NOT query another service's store.
@@ -406,23 +457,44 @@ and `reporting` learn of it without a call.
   snapshot; and MUST mark the grant active only after the wallet confirms. A wallet refusal is
   recorded on the grant with its reason. The wallet records the clawback baseline on its record at
   that award (spec 002 FR-015a); this service holds none.
-- **FR-014**: Each grant MUST be told of its record's conversion, forfeit, cancel and zeroing from
-  `money.transactions` and move state accordingly, setting the cap timer from the wagering window
-  days at conversion.
-- **FR-015**: Timers MUST fire the claim deadline and the wagering window (wallet forfeit of the
-  grant's record, state `EXPIRED`), the cap deadline (wallet close pending cap, state `CLOSED`) and
-  the pending-selection window; each MUST be a no-op on a grant already terminal or a wallet answer
-  of `NO_ACTIVE_BONUS` or `NOT_PENDING_CAP`.
+- **FR-014**: Each grant MUST be told of its record's conversion, forfeit, cancel, zeroing and close
+  from `money.transactions` and move state as the original does: every conversion to
+  `CONVERTED_PENDING_CAP`, with the cap timer at the conversion plus the wagering window days (30
+  when the offer sets none); a record taken to zero by a loss or a zero win to `FORFEITED`
+  (`bonus_exhausted`), by an operator's adjustment to `FORFEITED` (`admin_adjust_emptied`); a pending
+  cap closed by real balance reaching zero, by a payout exhausting the cap, or at the cap deadline to
+  `CLOSED` (`real_balance_zero`, `cap_exhausted`, `cap_expired`). `PAUSED` is declared and never
+  written, as in the original.
+- **FR-015**: Timers MUST fire the claim deadline (the award plus the wagering window days, 30 when
+  the offer sets none) and the wagering window (wallet forfeit of the grant's record, state
+  `EXPIRED`, reason `claim_expired` or `wagering_window_expired`), the cap deadline (wallet close
+  pending cap of the grant's record, state `CLOSED`, reason `cap_expired`) and the pending-selection
+  window (state `EXPIRED`, no wallet command); each MUST be a no-op on a grant already terminal, and
+  a wallet answer of `NO_ACTIVE_BONUS` or `NOT_PENDING_CAP` moves the grant as the timer would and
+  moves no money.
 - **FR-016**: A player MUST be able to switch an open grant to primary (the wallet's switch, then
   the record), cancel their active grant or a named grant they hold (the wallet's cancel, which
-  computes and applies the clawback, spec 002 FR-017), and read their state and history; an explicit empty
-  grant reference MUST be refused as `grant_not_found`, no active grant as `NO_ACTIVE_BONUS`.
+  computes and applies the clawback, spec 002 FR-017; nothing is clawed back for a named grant that
+  is not primary and has no release progress), and read their state and history (the newest 20
+  closed grants); an explicit empty grant reference, or a grant they do not hold open, MUST be
+  refused as `grant_not_found`, no active grant as `no_active_bonus`, a switch without a grant as
+  `grantRef_required`, a switch the wallet refuses as `switch_failed`.
 - **FR-017**: An operator MUST be able to award an offer manually with an optional deposit amount
-  (operator override), and revoke an active grant as `forfeit` or `reclaim`, with `INVALID_MODE`,
+  (operator override); award with no offer a free bonus (amount, wagering multiplier, optional
+  maximum convertible amount, currency; a 30-day wagering window; offer id `manual:<uuid>`, type
+  `MANUAL`) or free rounds (game, provider, count, spin value, maximum convertible amount, wagering
+  multiplier, winnings destination, expiry and wagering window days), refusing `bonusAmount and
+  wager are required` and FR-002's free-rounds codes; and revoke an active grant as `forfeit` (the
+  wallet's forfeit, nothing clawed back) or `reclaim` (the wallet's cancel with its clawback,
+  refused as `MISSING_BASELINE` when the record has none), state `REVOKED`, with `INVALID_MODE`,
   `CLAIM_NOT_FOUND` (including a grant of another brand) and `NO_ACTIVE_BONUS` as the original
-  answers; both recorded with the actor in the audit and on the grant.
-- **FR-018**: Every command to the wallet MUST carry the grant id as its key, and a repeat MUST not
-  award, forfeit or claw back twice.
+  answers. Revoking free rounds MUST cancel them at the game provider first, refusing
+  `FREE_SPINS_FINISHED` once played out and `PROVIDER_UNAVAILABLE` when it cannot be reached, and
+  forfeit what they accumulated. Each is recorded with the actor in the audit and on the grant.
+- **FR-018**: The award MUST carry the grant id as its key (the wallet's record is named by it) and
+  the offer id as its bonus reference; every later command to the wallet MUST carry the grant id as
+  the grant it names and `<grant id>/<step>` as its key; a repeat MUST not award, forfeit or claw
+  back twice.
 
 **Codes and targeting**
 
@@ -434,35 +506,49 @@ and `reporting` learn of it without a call.
   as a public client (spec 001 FR-016) on a refresh bound and serve from the last fetched copy when the
   programme is unreachable, reporting staleness in status.
 - **FR-022**: Two service routes MUST let `engagement` (spec 014 FR-018) target an offer at a player
-  (the *target route*, recording the source as a campaign and refusing a free-spins offer as
-  `free_spins_offer_not_targetable`) and award an offer to a player on a campaign's behalf (the
+  (the *target route*, by the offer's role, recording the source as a campaign, refusing an offer of
+  free rounds or of a deposit match with free rounds as `free_spins_offer_not_targetable` and an
+  unknown role as `role_not_found`) and award an offer to a player on a campaign's behalf (the
   *award route*, source `customerio_webhook`, re-resolving a stale offer by its role once, answering
-  `alreadyProcessed` when the player holds a claim of the offer, and `offer_not_found`,
-  `ineligible: <reason>`, `spin_value_not_offered` or `game_not_eligible` as the evaluator decides,
-  and a retryable unavailable answer while the player's duplicate check is in progress, as the
-  original's webhook answers 503 for the campaign to retry);
+  `alreadyProcessed` when the player holds a claim of the offer, `offer_not_found` or
+  `offer_not_active`, the decline's reason alone as the error, `spin_value_not_offered` or
+  `game_not_eligible` as the evaluator decides, and a retryable unavailable answer for
+  `ELIGIBILITY_CHECK_UNAVAILABLE`, as the original's webhook answers 503 for the campaign to retry);
   both MUST be idempotent per player and offer and MUST size a deposit match from the wallet's
   facts, never from the caller.
 - **FR-022a**: A read route MUST answer, for a player, their grants with state, offer name,
   wagering requirement, progress and expiry, served to the player and to `support-agent` by identity
   within the project (spec 017 FR-009 `get_active_bonuses`).
+- **FR-022b**: A service route MUST answer `game-provider` (spec 003 FR-025), for a player and a game,
+  the player's oldest live free rounds on that game, or `no_eligible_grant`.
 
 **Free rounds**
 
-- **FR-023**: Granting free rounds MUST check the game is eligible and the spin value is one the
-  provider offers in the currency (through `game-provider`), refusing `game_not_eligible` or
-  `spin_value_not_offered` with the allowed values; and MUST run a workflow that creates the
-  provider bonus under the grant id, polls until confirmed or a timeout, and on timeout or
-  rejection voids the grant and tells the player.
+- **FR-023**: Granting free rounds MUST resolve the spin value for the player's currency (an offer
+  with a spin value per currency refuses `currency_not_configured`, an unreadable currency
+  `player_currency_unresolved`), check the game is eligible and the spin value is one the provider
+  offers in the currency (through `game-provider`), refusing `game_not_eligible`, or
+  `spin_value_not_offered` with the allowed values only when the provider names its values (not
+  configured, or unreachable, goes ahead); and MUST run a workflow that makes the player known to
+  the provider, creates the provider bonus under the grant id with the expiry as its duration, and
+  answers once the creation answers (`active`, `processing` or `not_configured`; a rejection is
+  `provider_rejected`); a processing bonus is polled every 30 seconds up to 50 times, and a rejection
+  or the last poll cancels the grant as `provider_failed`, after which the player's free rounds no
+  longer list it.
 - **FR-024**: Each `round_settled` fact naming a grant MUST count one round and add the win to the
-  accumulated winnings exactly once per round; on reaching the count, or on expiry with rounds
-  unused, the full accumulated amount MUST be credited as real money (destination real balance) or
-  awarded as restricted funds with the offer's multiplier and maximum convertible amount
-  (destination restricted funds), uncapped at this point, and the grant finalised; a round that
-  settles after expiry MUST still be honoured.
+  accumulated winnings exactly once per round; on reaching the count, or on expiry, the full
+  accumulated amount MUST be credited through the wallet's provider credit under the grant id
+  (destination real balance: it lands on the primary open grant's restricted funds when one is
+  open, else on real balance, as the original's credit does) or awarded as restricted funds with
+  the offer's multiplier and maximum convertible amount, ahead of every open record and with a
+  30-day claim deadline (destination restricted funds), uncapped at this point; nothing won calls
+  no wallet. The grant is then `CLOSED`, or `EXPIRED` when it expired with nothing won. A round that
+  settles after finalisation MUST still be paid, to the same destination under its own key.
 - **FR-025**: Free-rounds expiry MUST be a timer at the offer's days (default 30) from grant.
 - **FR-026**: An operator MUST be able to list a game's spin values in a currency as the provider
-  offers them, sorted, or `not_configured`.
+  offers them, distinct and sorted, with the source; a brand with no free rounds set up is an empty
+  list with the source `not_configured`, and a provider that cannot be reached is
+  `provider_unavailable`.
 
 **Facts and cost**
 
@@ -470,7 +556,9 @@ and `reporting` learn of it without a call.
   families spec 001 FR-011 lists — `bonus_granted`, `bonus_cancelled`, `bonus_forfeited`,
   `bonus_completed`, `grant_expired`, `free_spins_granted`, `free_spins_settled` — keyed by the
   player id, carrying grant, offer id, offer name, offer type, amount, currency, source, code and
-  tag, once per transition, so `reporting` (spec 015 FR-009) reports per offer without a call; and
+  tag, once per transition (`bonus_completed` once per grant: at its conversion, or at its close
+  when it never converted; `bonus_cancelled` for a cancel and a revoke, with the reason), so
+  `reporting` (spec 015 FR-009) reports per offer without a call; and
   `bonus_code_entered` (code, outcome: matched, invalid, ineligible) once per code a player enters,
   which `engagement` (spec 014 FR-006) turns into `promo_code_entered`.
 - **FR-028**: Bonus cost MUST be carried on `bonus_granted` (the awarded amount) and
@@ -508,7 +596,9 @@ and `reporting` learn of it without a call.
   balance read; face values MUST be displayed in major units with the currency.
 - **FR-031**: Player routes MUST require the brand's player realm; operator routes the brand's
   operator roles (`brand_admin`, `resource_admin`, `platform_admin`); service routes the calling
-  service's identity (spec 001 FR-020), admitting `engagement`, `game-provider` and `payouts`.
+  service's identity (spec 001 FR-020), admitting `engagement`, `game-provider`, `payouts` and
+  `support-agent`; the brand's list of grants admits any operator of the brand, as the original's
+  does.
 - **FR-032**: Every amount MUST be a whole number of minor units; a decimal MUST be refused naming
   the amount (spec 001 FR-026).
 - **FR-033**: The service holds no personal data: a grant carries the player id (spec 001 FR-024),
@@ -557,32 +647,59 @@ and `reporting` learn of it without a call.
 - Cashback, loyalty points and a VIP programme are not built: they do not exist in the original.
 - Dropped as stubs or migration tooling: the offer-concurrency backfill job and the
   retire-legacy-refs pre-flight.
+- Dropped as unused or unsafe (settled while planning): the player's `/claim` (it sized a bonus
+  from a deposit amount the player stated), the `/offers/eligible` list no frontend reads, and the
+  `/promo-code` store and read (written, never read back by any grant path).
+- Codes are trimmed and matched in any case, and unique in any case; the original matched them
+  exactly on the casino side. An edit may change an offer's codes, with the same checks as
+  creation; the original's edit could not.
+- An affiliate's code from the programme's document selects the offer it names, with the source
+  `affiliate_code` and the programme's tag; the original only recorded attribution from it.
+- The deposit number is the wallet's deposit ordinal per player and currency (reconciliation 2);
+  the original counted deposits across currencies.
+- A confirming deposit expires a selection whose offer is no longer live; the original awarded it.
+- A decline at a confirming deposit, and a wallet refusal, are recorded on the grant; the original
+  only logged them.
+- The target and award routes are idempotent per player and offer; the original's target made a
+  second available grant.
+- Bonus cost is on every `bonus_granted` and `free_spins_settled`; the original sent it only from a
+  confirming deposit, and the affiliate service refused it (no `transactionId`).
+- `bonus_code_entered` with its outcome, `free_spins_granted`, `free_spins_settled` and
+  `grant_expired` are new facts: the original sent Customer.io and Kafka only the granted, cancelled
+  and completed events.
+- A round that settles after the free rounds were finalised is paid; the original skipped it.
+- The player's eligible list is in the brand's priority order; the original's was unordered.
 
 ## Recordings
 
-The Go end-to-end suite, run against the original and recorded by ankka-port:
+None is recorded yet (`tests/port/` has no `rewards/`); research R2 says how each is made. The Go
+end-to-end suite, run against the original on its kind stack and recorded by ankka-port:
 `TestScenario21_*` (OfferValidation, CleanGrantEveryPath, CodeMinDepositDepositNumberWindow,
 Concurrency_ActiveBonusConflict, ConflictsWith, MaxClaimsAndExclusion,
-SuspectedDuplicate_RefusedOnEveryPath); `TestScenario16_RewardGrant_*`
-(TargetSelectActivateForfeit, LegacyStatusStillTransitions) and `scenario16_bonus_triggers`;
-`TestScenario19_BonusWageringCompletesToRealMoney`; `TestScenario23_RewardGrantExpiry`;
-`TestScenario244_*` (CancelWithBaselineClawsBackOnlyWinnings, CancelWithNoBonusIsConflict,
-CancelWithoutBaselineSucceedsWithZeroClawback, ConversionRecordsActivationBaseline,
-DepositMatchCancelStillWorks); `TestScenario245_*` (PartialBonusAdjustLeavesRecordActive,
-ZeroedBonusClosesRecordAndGrant); `TestScenario18_MultiAccountDetection_BonusBlock`;
-`TestScenarioFreeSpinsPlay_*` (BonusBalanceDestination, RealBalanceDestination,
-StacksOnActiveBonus, CustomerIOGrant), `scenario_free_spins_customerio`,
-`scenario_free_spins_stacking`; `TestScenario9_CasinoRF_BonusExpiryCheck` and
-`_BonusWageringProgress`; the bonus parts of `TestScenario7_CasinoGate3_FullPlayerJourney` and
-`TestScenario11_*`.
+SuspectedDuplicate_RefusedOnEveryPath; their `/claim` steps are marked as not carried);
+`TestScenario16_RewardGrant_TargetSelectActivateForfeit` (`_LegacyStatusStillTransitions` exercises
+legacy shapes that are not carried, and is kept only for its revoke);
+`TestScenario19_BonusWageringCompletesToRealMoney`; `TestScenario23_RewardGrantExpiry` (its own
+cadence recipe); `TestScenario244_*` (CancelWithBaselineClawsBackOnlyWinnings,
+CancelWithNoBonusIsConflict, CancelWithoutBaselineSucceedsWithZeroClawback,
+ConversionRecordsActivationBaseline, DepositMatchCancelStillWorks); `TestScenario245_*`
+(PartialBonusAdjustLeavesRecordActive, ZeroedBonusClosesRecordAndGrant);
+`TestScenario_BonusBust_LosingRoundForfeitsGrant`; `TestScenario254_*` (LossSettlementPromotesNext,
+ZeroWinPromotesNext); `TestScenario18_MultiAccountDetection_BonusBlock`;
+`TestScenarioFreeSpinsPlay_*` (BonusBalanceDestination, RealBalanceDestination, StacksOnActiveBonus,
+CustomerIOGrant, MultiCurrencyGrant), re-recorded rather than taken from spec 003's of 2026-10-10.
+The #730 gates (FR-034 to FR-036) have no end-to-end test in the original: a driver,
+`tests/original/rewards-driver/`, records them, one scenario per feature scenario.
 
-Playwright, the frontend oracle: `34-bonus-wagering-config` (brand contribution rates),
-`39-bonus-lifecycle` (claim, wagering to real, cancel with clawback), `43-bonus-revoke-and-decline-reasons`
-(a blocked grant names its reason; cancelling the revoke dialog moves no money).
+Playwright, the frontend oracle: `39-bonus-lifecycle` (claim, wagering to real, cancel with
+clawback) and `43-bonus-revoke-and-decline-reasons` (a blocked grant names its reason; cancelling
+the revoke dialog moves no money). `34-bonus-wagering-config` stubs its route in the page and is the
+wallet's (spec 002), not a recording here.
 
-Unit fixtures replayed against the entity and evaluator: `EligibilityEvaluator`'s suites,
-`RewardGrantStoreSpec`, `RewardStatusSpec`, `RewardGrantSpec`, and the capability tables under
-`award_bonus`, `expire_reward_grant`, `settle_free_spins_round`, `finalize_free_spins_grant`.
+Unit fixtures replayed against the entity and evaluator: `EligibilityEvaluatorSpec`,
+`BonusGrantServiceSpec`, `RewardLifecycleSpec`, `RewardGrantStoreSpec`, `RewardStatusSpec`,
+`RewardGrantSpec`, and the capability tables under `reward-grant-expiry`, `settle-free-spins-round`
+and `finalize-expired-free-spins-grant`.
 
 ## Assumptions
 
@@ -600,7 +717,8 @@ Unit fixtures replayed against the entity and evaluator: `EligibilityEvaluator`'
 - The programme (spec 013 FR-023a) publishes a code document per brand beside its key document:
   code text, offer id, signed tag (settled at reconciliation 2).
 - An offer sets its maximum concurrent grants, one or more, or none for no limit; the wallet
-  enforces the same number at award (settled 2026-11-01).
+  enforces the same number at award, sent on the award as the original's wallet takes it (settled
+  2026-11-01; the wallet's award gains the field, research R6).
 - Free-rounds winnings are awarded or credited uncapped at finalisation (amendment 2026-08-23),
   with the maximum convertible amount applying when the restricted funds convert (settled
   2026-11-01).
@@ -622,7 +740,12 @@ Unit fixtures replayed against the entity and evaluator: `EligibilityEvaluator`'
   wallet commands is this service's own (a workflow per grant, started as the atomic claim, is the
   shape spec 003 uses), and a repeat older than the wallet's recent keys is answered from that record,
   never resent to the wallet.
-- Spec 003 game-provider: FR-025 bonus routes; `round_settled` carrying the grant.
+- Spec 003 game-provider: FR-025 bonus routes; `round_settled` carrying the grant; amended here by a
+  service read of a game's bonus types, for FR-023's game check (research R6).
+- Spec 002 wallet, amended here (research R6): the award's maximum concurrent grants; the grant
+  named on close pending cap; no clawback on a cancel naming an unused secondary record; a cancel
+  that requires a baseline (`MISSING_BASELINE`); and a `restricted_funds_closed` fact for every
+  pending cap closed.
 - Spec 008 players: `casino.players` fields the evaluator reads; amended here by FR-034 to FR-036
   with the duplicate check and the weak signal (the original's #730).
 - Spec 012 attribution: `bonus-cost` from `bonus_granted` and `free_spins_settled`; the code and tag
