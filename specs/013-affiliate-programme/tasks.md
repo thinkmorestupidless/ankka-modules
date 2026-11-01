@@ -99,7 +99,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   the programme would serve
 - [X] T012 [P] Implement `p/network/Network.scala` (`ancestors(start, parentOf)` visiting each once,
   ending on a cycle; `wouldCycle(child, newParent, parentOf)`) with `p-test/network/NetworkSuite.scala`
-- [ ] T013 [P] Implement `p/postbacks/Macros.scala` (`{event}`, `{clickid}`, `{payout}` default `0`,
+- [X] T013 [P] Implement `p/postbacks/Macros.scala` (`{event}`, `{clickid}`, `{payout}` default `0`,
   `{status}` default `ok`, percent-encoded, as `S/Postback.scala:15-25`) and `p/csv/Export.scala`
   (contracts/routes.md *The export*), with suites
 - [ ] T014 [P] Implement `p/Settings.scala` (the env of T004, parsed and validated; `PROGRAMME_BRANDS`
