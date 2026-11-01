@@ -14,15 +14,16 @@ import scala.jdk.CollectionConverters.*
  * orders a second for the brand, the gates and the wallet included, each neighbour answering in a fixed
  * 5 ms. Buys that do not cross, across 20 books, each a player's own, timed at the player's route.
  *
- * Three seconds by default, the figures printed; with `EXCHANGE_PERF=1` (`just exchange-perf`) ten
- * seconds and the bounds asserted, since a shared CI runner's timings are not the service's.
+ * 20 orders a second for three seconds by default, the figures printed; with `EXCHANGE_PERF=1` (`just
+ * exchange-perf`) 200 a second for ten seconds and the bounds asserted, since a shared CI runner's
+ * timings are not the service's: at 200 a second one queues until the neighbours' calls time out.
  */
 class PlacementPerfSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 600.seconds
 
   private val perf    = sys.env.get("EXCHANGE_PERF").contains("1")
   private val seconds = if perf then 10 else 3
-  private val rate    = sys.env.get("EXCHANGE_PERF_RATE").flatMap(_.toIntOption).getOrElse(200)
+  private val rate    = sys.env.get("EXCHANGE_PERF_RATE").flatMap(_.toIntOption).getOrElse(if perf then 200 else 20)
   private val latency = sys.env.get("EXCHANGE_PERF_LATENCY_MS").flatMap(_.toLongOption).getOrElse(5L)
 
   private lazy val kit = Kit()
