@@ -297,9 +297,20 @@ A person or company that sends players to a brand and is paid commission for wha
 An issuer of tags and reader of facts: the programme, another installation's programme, or a third party. A brand knows a network by its id, its key document, its revocation list and the pseudonym key it holds for it.
 
 ### programme
-The installation's own affiliate network, shared by every brand: it issues tags, publishes its key document, revocation list and legacy tag document, reads every brand's facts, turns them into commission and pays affiliates. It knows a player only by a pseudonym.
+The installation's own affiliate network, shared by every brand and by every hosted brand: it issues tags, publishes its key document, revocation list and legacy tag document, reads every brand's facts, turns them into commission and pays affiliates. It knows a player only by a pseudonym.
 
 Avoid: affiliate service, affiliate-service
+
+### hosted brand
+A brand of another company that an operator of the installation has added to the programme under a contract signed outside the platform. It delivers facts over the feed, as any brand elsewhere does, and its managers see nothing of other brands.
+
+Avoid: tenant, customer brand
+
+### usage report
+The programme's account of one brand's calendar month, for invoicing outside the platform: facts received, active memberships, commission recorded and commission paid, each per currency. It holds no fee.
+
+### GGR source
+A brand's programme setting naming which GGR facts fold into NGR: daily (`ggr-daily` and `ggr-adjustment`, the default) or rounds (`ggr-round`). Facts of the other kind are recorded for reconciliation; a change takes effect from the next reporting day.
 
 ### tag
 The value an affiliate's link or bonus code carries to a brand, signed by the network that issued it, naming the network, the affiliate, the link, a campaign, up to five sub-ids, the signing key and when it was issued. A brand verifies it with the network's key document and asks the network nothing.
