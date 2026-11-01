@@ -175,7 +175,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   staff and affiliate token stubs with roles), `FakeCustomerIo.scala`, `FakeKeycloak.scala`,
   `WebhookSender.scala` (signs as a brand), `PostbackReceiver.scala`, and `Facts.scala` (builders for
   the fourteen kinds)
-- [ ] T032 [P] Write `p-test/features/GherkinSuite.scala` binding `features/programme/*.feature` on the
+- [X] T032 [P] Write `p-test/features/GherkinSuite.scala` binding `features/programme/*.feature` on the
   kit, every step pending until its story binds it
 - [ ] T033 [P] Write `p-test/port/Translate.scala` (contracts/recording.md: money, ids, player ids to
   pseudonyms, the brand as a filter, the reshaped routes) and `p-test/port/ParitySuite.scala`, one test
