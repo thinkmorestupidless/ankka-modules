@@ -70,7 +70,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
       (reason `cap_expired`) and for each cap draw that closes a record (reason `cap_exhausted`);
       `FactsSuite` cases. Update `specs/002-wallet/contracts/routes.md` and `facts.md` for W1 to W5,
       and `just wallet-test` green.
-- [ ] T012 [P] `game-provider` G1: `GET /v1/casino/brands/<slug>/game-provider/{provider}/games/{gameCode}`
+- [X] T012 [P] `game-provider` G1: `GET /v1/casino/brands/<slug>/game-provider/{provider}/games/{gameCode}`
       in `services/game-provider/src/main/scala/io/eitheror/casino/gameprovider/api/Endpoints.scala`,
       `withAcl(Routes.serviceOf("rewards"))`, answering `{gameCode, bonusTypes}` from the catalogue or
       404 `game_not_found`; suite case; `specs/003-game-provider/contracts/routes.md` updated;
