@@ -41,7 +41,7 @@ the outbound seams and the kit are foundational.
 **Purpose**: the build, the contract and realm additions, the manifest and the tool, the recipes and CI,
 the recording driver, and the original's commission cases as failing tests.
 
-- [ ] T001 Create `services/affiliate-programme/` on `services/attribution/`'s template: `build.sbt`
+- [X] T001 Create `services/affiliate-programme/` on `services/attribution/`'s template: `build.sbt`
   (Scala 3.9.0, `ankkaVersion = "0.13.0"`, the six ankka modules, `casino-contract` at
   `CASINO_VERSION`), `service.json` (runtime `0.13.0`, its database and secret store), `README.md` (a
   stub naming the components of plan.md), `p/ProgrammeService.scala` registering nothing yet
