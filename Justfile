@@ -196,6 +196,29 @@ payouts-run brand="goldvibe":
       ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
       sbt -Dankka.local-services.wallet=http://127.0.0.1:9000 -Dankka.local-services.psp-gateway=http://127.0.0.1:9001 run
 
+# rewards' suites (spec 011; Docker for the integration kit). The contract is published first.
+rewards-test:
+    sbt contract/publishLocal
+    cd services/rewards && sbt test
+
+# rewards' integration, parity and feature suites only (Docker).
+rewards-it:
+    cd services/rewards && sbt -Dit=true "testOnly io.eitheror.casino.rewards.it.* io.eitheror.casino.rewards.port.* io.eitheror.casino.rewards.features.*"
+
+# rewards, locally on 9008 as brand goldvibe (`sbt schema && docker compose up -d` first, in services/rewards);
+# the wallet's local run on 9000, game-provider's on 9009 and players' on 9003. Tokens are verified against
+# the kind installation's casino Keycloak.
+rewards-run brand="goldvibe":
+    cd services/rewards && CASINO_BRAND={{brand}} ANKKA_HTTP_PORT=9008 ANKKA_DB_PORT=5441 \
+      ANKKA_AUTH_ISSUERS=player,staff ANKKA_AUTH_REALM=casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}}/protocol/openid-connect/certs \
+      ANKKA_AUTH_PLAYER_AUDIENCE=casino-{{brand}} ANKKA_AUTH_PLAYER_CA=$HOME/.ankka/local-ca.crt \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror/protocol/openid-connect/certs \
+      ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
+      sbt -Dankka.local-services.wallet=http://127.0.0.1:9000 -Dankka.local-services.game-provider=http://127.0.0.1:9009 -Dankka.local-services.players=http://127.0.0.1:9003 run
+
 # players' suites (spec 008; Docker for the integration kit). The contract is published first.
 players-test:
     sbt contract/publishLocal
