@@ -433,7 +433,7 @@ What a brand spent on a player's rewards: emitted as a fact when restricted fund
 A deposit the player's payment provider took back; emitted as a fact and folded into NGR.
 
 ### reward
-One player's taking of an offer: pending on a selection until the confirming deposit, then active once awarded as restricted funds or created as free rounds at the game provider; then converted pending cap, completed, cancelled, forfeited, revoked, expired or voided. Every transition is a fact.
+One player's taking of an offer: pending on a selection until the confirming deposit, then active once awarded as restricted funds or created as free rounds at the game provider; then converted pending cap, completed, cancelled (also when the game provider fails free rounds), forfeited, revoked or expired. Every transition is a fact.
 
 Avoid: grant, bonus grant, bonus instance
 

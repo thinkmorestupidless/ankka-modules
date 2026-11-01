@@ -199,7 +199,8 @@ the publishers green under their suites.
 - [ ] T042 [US3] Bind `features/rewards/codes.feature` in `T/features/CodesFeatures.scala`.
 - [ ] T043 [US3] `S/codes/CodeDocument.scala` (key value) and `S/codes/CodesTimer.scala`
       (`codes-<slug>`, every 5 minutes, inert with no URL; a failure keeps the last copy; staleness
-      reported after 15 minutes). Suite with `FakeProgramme`.
+      reported after 15 minutes) and `OffersEndpoint`'s `GET /code-document` (`{fetchedAt, entries,
+      stale}`). Suite with `FakeProgramme`.
 - [ ] T044 [US3] `RewardsEndpoint`: `POST /{playerId}/codes` (brand codes first, then the document;
       `invalid_code`; source `player_code` or `affiliate_code` with the tag) and
       `POST /{playerId}/codes/preview`; each entry publishes `bonus_code_entered` with its outcome.
@@ -243,7 +244,8 @@ the publishers green under their suites.
       `player_currency_unresolved`), G1's game check (`game_not_eligible`), the spin-value check
       (refused only on a known mismatch), then `FreeRounds`; the route answers after `create`.
 - [ ] T055 [US5] `S/consumers/RoundsConsumer.scala`: `round_settled` with `freeRoundsGrant` →
-      `Reward.RoundSettled`; an unknown reward recorded as unmatched on the view. Suite.
+      `Reward.RoundSettled`; an unknown reward → `PlayerRewards.RoundUnmatched`, shown in
+      `GET /reward-grants?playerId=` as `unmatchedRounds`. Suite.
 - [ ] T056 [US5] Finalisation: on the last round and at `rounds-<reward>`, `Settlement` decides;
       `WalletStep credit` (provider credit) or `winnings` (award at `min(open) − 1`, 30-day expiry);
       nothing won calls nothing; a late round paid under `late-<round>`. `T/it/SettlementItSuite.scala`

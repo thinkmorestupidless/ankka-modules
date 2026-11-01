@@ -205,8 +205,8 @@ limit then contradicts it); read the restricted funds to learn of a close (a pol
   as `BR:3888`); the rest the three admin roles.
 - `/reward-campaigns` — `CampaignEndpoint`, `Routes.serviceOf("engagement")`.
 
-`payouts` (FR-031) calls nothing here today: the wallet's hold answers what it forfeits. Its
-admission is kept for spec 007's follow-up and costs nothing.
+`payouts` calls nothing here: the wallet's hold answers what it forfeits, so FR-031 no longer
+admits it (amended at analysis).
 
 Carried with no requirement before (settled 2026-11-01): the operator's free bonus and free rounds
 with no offer (`BR:3363-3565`). Dropped: `/claim`, `/offers/eligible`, `/promo-code` store and read.
@@ -238,7 +238,8 @@ same id (`BonusBook.scala:29,37-38`).
 positive total goes to the destination (R5's `credit` or `winnings`), zero calls no wallet; then
 `CLOSED`, or `EXPIRED` at expiry with nothing won. A round after finalisation pays its own win under
 `late-<round>` (FR-024, a change). A round for a reward this service does not know is recorded as
-unmatched on the view (edge case).
+unmatched on `PlayerRewards` (the fact names the player) and shown in the operator's list of the
+player's rewards (edge case).
 
 **Real balance** (settled 2026-11-01): the wallet's provider credit, which lands on the primary open
 record when one is open, else on real balance (`services/wallet/.../funding/Resolver.scala:480-487`),
@@ -327,8 +328,8 @@ name; `LeakSuite` checks the published facts and the logs.
 **Decision**: `CodeDocument` (key value, id = slug) holds the last fetched document and its time;
 `codes-<slug>` refreshes it every 5 minutes from `REWARDS_CODE_DOCUMENT_URL`, a key added to
 `contract/keys.md` and `modules/casino/module.json`'s `configuration[]`, empty until spec 013
-publishes one (inert, settled 2026-11-01). A fetch failure keeps the last copy; `GET /rewards/…`
-status reports its age when older than 15 minutes.
+publishes one (inert, settled 2026-11-01). A fetch failure keeps the last copy; the operator's
+`GET /offers/code-document` answers its age and `stale` past 15 minutes.
 
 ## R14. Local run and CI
 
@@ -343,6 +344,10 @@ status reports its age when older than 15 minutes.
 Nothing new. A workflow test kit would spare `WalletStep` and `FreeRounds` the shared kit; 0.13 has
 none, as payouts found.
 
+## Declined remediations
+
+None.
+
 ## Elsewhere
 
 - **Spec 002 wallet**: closing a pending cap when real balance reaches zero is not built (R6).
@@ -356,3 +361,7 @@ none, as payouts found.
   a baseline (W4).
 - **Spec 003 game-provider**: its `contracts/routes.md` names `serviceOf("rewards")` for the bonus
   routes; as built they admit `Routes.service()`.
+
+## Design finished
+
+2026-11-01: analyze reported nothing above LOW.

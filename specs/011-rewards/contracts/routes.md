@@ -37,6 +37,7 @@ ACL `Routes.operatorHolding(slug, "brand_admin", "resource_admin", "platform_adm
 | `PATCH /{offerId}` | any of the fields | `offer` | data-model.md's edit order; 409 `role_already_assigned` |
 | `DELETE /{offerId}` | — | `{status: "deactivated"}` | 404 `offer_not_found` |
 | `PUT /order` | `{orderedOfferIds}` | `{updated: n}` | — |
+| `GET /code-document` | — | `{fetchedAt, entries, stale}` (FR-021; `stale` past 15 minutes) | — |
 | `GET /free-rounds/spin-values?gameId=&currency=` | — | `{gameId, currency, values, source: "st8" \| "not_configured"}` | 502 `provider_unavailable` |
 
 ## `RewardAdminEndpoint`: `/v1/casino/brands/<slug>/reward-grants`
@@ -46,7 +47,7 @@ ACL `Routes.operator(slug)`; every route but `GET /` checks the three admin role
 
 | Method and path | Body | Answer | Refusals |
 |---|---|---|---|
-| `GET /?search=&status=&offerId=&playerId=&page=&pageSize=` | — | `{items: [{rewardId, playerId, offerId, offerName, type, status, faceValue, freeSpins, currency, wageringRequirement, wageredAmount, grantedAt, expiresAt, source}], total, page, pageSize}`; with `playerId`, every reward of the player, newest first, with `isPrimary` | 400 naming `pageSize` (1–200) |
+| `GET /?search=&status=&offerId=&playerId=&page=&pageSize=` | — | `{items: [{rewardId, playerId, offerId, offerName, type, status, faceValue, freeSpins, currency, wageringRequirement, wageredAmount, grantedAt, expiresAt, source}], total, page, pageSize}`; with `playerId`, every reward of the player, newest first, with `isPrimary`, and the player's `unmatchedRounds` | 400 naming `pageSize` (1–200) |
 | `GET /{rewardId}` | — | the reward with its free-rounds part | 404 `CLAIM_NOT_FOUND` |
 | `POST /{playerId}` | `{offerId, depositAmount?}`; or `{type: "FREE_SPINS", gameId, provider, spinCount, spinValue, maxConvertibleAmount, wageringMultiplier, winningsDestination, freeSpinsExpiryDays, wageringWindowDays}`; or `{bonusAmount, wager, maxConvertibleAmount?, currency}` | funds: `{status: "granted", bonusAmount, wageringRequired}`; free rounds: `{status: "granted", grantId, type: "FREE_SPINS", providerStatus}` | 404 `offer_not_found`; 422 `currency_not_configured` + `playerCurrency`, `player_currency_unresolved`, `game_not_eligible`, `spin_value_not_offered` + `allowedValues`; 409 `{status: "ineligible", reason}`; 502 `provider_rejected` + `grantId`; 400 `bonusAmount and wager are required` and FR-002's free-rounds codes |
 | `POST /{rewardId}/revoke` | `{mode: "forfeit" \| "reclaim", reason?}` | `{status: "revoked", mode, clawbackApplied, newRealBalance}`; free rounds `{status: "revoked", mode, clawbackApplied: 0, freeSpins: true}` | 400 `INVALID_MODE`; 404 `CLAIM_NOT_FOUND`; 409 `NO_ACTIVE_BONUS`, `MISSING_BASELINE`, `FREE_SPINS_FINISHED` + `grantStatus`; 503 `PROVIDER_UNAVAILABLE`, `service_unavailable` |

@@ -49,7 +49,8 @@ Wire names are camelCase; stored types go through `RewardsCodecs` (manifests `re
 **State**: `registeredAt`, `checkInProgress: Option[Instant]`, `noDepositBlocked: Boolean`,
 `suspectedDuplicate: Boolean`, `tier: Option[String]`, `detectionOn: Boolean`,
 `rewards: Map[RewardId, Held(offerId, status, providerFailed)]`, `visible: Map[OfferId, Visibility(source: targeted | code, campaign, at)]`,
-`lastDeposit: Option[Deposit(amount, currency, ordinal, paymentRef)]`, `codesEntered: Vector[(code, outcome, at)]`.
+`lastDeposit: Option[Deposit(amount, currency, ordinal, paymentRef)]`, `codesEntered: Vector[(code, outcome, at)]`,
+`unmatchedRounds: Vector[(roundId, grantRef, winCents, at)]`.
 
 **Commands** (each runs `Evaluator` over the state, then reserves or declines in one event):
 
@@ -63,6 +64,7 @@ Wire names are camelCase; stored types go through `RewardsCodecs` (manifests `re
 | `Claim(offer, mode, deposit?, source)` | award route, operator award | `Claimed(rewardId, decision)` or the decline |
 | `PlayerFact(fact)` | `PlayersConsumer` | `RegistrationRecorded`, `CheckStarted`, `CheckEnded`, `NoDepositBlocked`, `BlockCleared`, `FlagChanged`, `TierChanged` |
 | `RewardChanged(rewardId, status, providerFailed)` | `IndexConsumer` | `RewardIndexed` |
+| `RoundUnmatched(round)` | `RoundsConsumer` | `RoundUnmatched` (once per round id) |
 
 `Claimed` carries the `Decision`: amount, wagering requirement, maximum convertible, currency, the
 rule snapshot, the source, code and tag. The command's caller then starts `WalletStep(<reward>/award)`
@@ -125,7 +127,7 @@ at most 50), `cancel`. Research R8.
 
 Row per reward from `Reward` events: `rewardId`, `playerId`, `offerId`, `offerName`, `type`,
 `status`, `faceValue`, `currency`, `source`, `freeRounds(spinsRemaining, gameId, providerStatus)`,
-`grantedAt`, `expiresAt`, `closedAt`, `unmatchedRounds`. Queries: by player (newest first; closed
+`grantedAt`, `expiresAt`, `closedAt`. Queries: by player (newest first; closed
 only, top 20, for history); by brand with `search` (player id, reward id, offer id, offer name),
 `status` (`all` is none), `offerId`, `page`, `pageSize` (1–200, default 25); the oldest `ACTIVE`
 free rounds for a player and game with `providerStatus` not failed.
@@ -136,7 +138,7 @@ free rounds for a player and game with `providerStatus` not failed.
 |---|---|---|
 | `PlayersConsumer` | `casino.players` | `player_registered`, the four check families, `player_fraud_flagged` / `_cleared`, `vip_tier_changed` → `PlayerRewards.PlayerFact` |
 | `MoneyConsumer` | `money.transactions` | `deposit_confirmed` → `PlayerRewards.DepositConfirmed`; `restricted_funds_converted`, `_forfeited` (reason `loss`, `adjustment`), `_closed` → `Reward` by `awardId`; reasons `forfeit`, `cancel`, `hold` are this service's own commands or payouts', recorded from the step's answer or as `Forfeited` |
-| `RoundsConsumer` | `casino.rounds` | `round_settled` with `freeRoundsGrant` → `Reward.RoundSettled` |
+| `RoundsConsumer` | `casino.rounds` | `round_settled` with `freeRoundsGrant` → `Reward.RoundSettled`; a reward not known → `PlayerRewards.RoundUnmatched` |
 | `IndexConsumer` | `Reward` events | → `PlayerRewards.RewardChanged` |
 | `RewardsPublisher` | `Reward` events | → `casino.rewards` (research R11) |
 | `CodesPublisher` | `PlayerRewards` events | `CodeEntered` → `bonus_code_entered` |

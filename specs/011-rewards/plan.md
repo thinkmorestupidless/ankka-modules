@@ -128,7 +128,7 @@ programme's code document is read as a public client (spec 001 FR-016).
 | Item | Count |
 |---|---|
 | Player routes | 11 at `/v1/casino/brands/<slug>/rewards` (state, free rounds, select, deselect, enter code, preview code, cancel, switch, history, grants read, eligible free rounds) |
-| Operator routes | 7 at `/offers` (list, one, create, edit, delete, reorder, spin values); 4 at `/reward-grants` (award, revoke, the list of the brand or of one player, one) |
+| Operator routes | 8 at `/offers` (list, one, create, edit, delete, reorder, code document, spin values); 4 at `/reward-grants` (award, revoke, the list of the brand or of one player, one) |
 | Service routes | 2 at `/reward-campaigns` (target, award); 2 at `/rewards` by `withAcl` (grants read for `support-agent`, eligible free rounds for `game-provider`) |
 | Event sourced entities | 3 (`OfferBook`, `Reward`, `PlayerRewards`) |
 | Key value entities | 1 (`CodeDocument`) |

@@ -116,8 +116,9 @@ Answered with the original as it runs on 2026-11-01, which changed since this sp
 - Q: Are free-rounds winnings awarded or credited uncapped at finalisation? → A: Yes, as the original
   (amendment 2026-08-23): the maximum convertible amount applies when the restricted funds convert,
   not when the rounds finish.
-- Q: Is the pending selection's claim window 3 days? → A: Yes, 3 days from selection, fixed; from
-  registration only when the offer sets its days. No brand setting.
+- Q: Is the pending selection's claim window 3 days? → A: Yes, 3 days from selection by default,
+  the offer's days when it sets them (amended at analysis, 2026-11-01, to the original's
+  `EligibilityEvaluator`); from registration only when the offer sets its days. No brand setting.
 - Q: Affiliate codes and the campaign routes, with the programme (013) and engagement (014) not built?
   → A: Built now, inert until used: the code document client and the target and award routes are
   built against the contract and tested with fakes; an affiliate code matches nothing until the
@@ -191,7 +192,7 @@ release requirement at amount × multiplier.
 Every path to a grant — selection, a code, a confirming deposit, a campaign, an operator's award —
 asks the same evaluator. A player declined is told the one reason the original names.
 
-**Why this priority**: the twelve reasons are frontend contract and the eligibility matrix is the
+**Why this priority**: the fourteen reasons are frontend contract and the eligibility matrix is the
 largest recording.
 
 **Independent Test**: `TestScenario21_*` against each path.
@@ -364,8 +365,8 @@ and `reporting` learn of it without a call.
 - **The provider is down at grant time.** The grant is active with its provisioning processing; the
   workflow asks again every 30 seconds, up to 50 times, then cancels it as `provider_failed`; the
   player's free rounds no longer list it and it does not count as a claim.
-- **A round settles for a grant this service does not know.** The fact is ignored and recorded as
-  unmatched for an operator.
+- **A round settles for a grant this service does not know.** The fact moves nothing and is recorded
+  as unmatched on the player, shown in the operator's list of the player's grants.
 - **A code typed with surrounding spaces or mixed case.** Trimmed and matched case-insensitively.
 - **A player erased.** The grant's facts stay; no field in a grant is personal (FR-033).
 - **The programme's code document unreachable.** The last fetched document serves; an entry older
@@ -504,7 +505,8 @@ and `reporting` learn of it without a call.
 - **FR-020**: A preview of a code MUST answer the offer's terms and select nothing.
 - **FR-021**: The service MUST fetch the programme's code document for the brand (spec 013 FR-023a)
   as a public client (spec 001 FR-016) on a refresh bound and serve from the last fetched copy when the
-  programme is unreachable, reporting staleness in status.
+  programme is unreachable, reporting the copy's age, and that it is stale past 15 minutes, on an
+  operator read.
 - **FR-022**: Two service routes MUST let `engagement` (spec 014 FR-018) target an offer at a player
   (the *target route*, by the offer's role, recording the source as a campaign, refusing an offer of
   free rounds or of a deposit match with free rounds as `free_spins_offer_not_targetable` and an
@@ -596,8 +598,8 @@ and `reporting` learn of it without a call.
   balance read; face values MUST be displayed in major units with the currency.
 - **FR-031**: Player routes MUST require the brand's player realm; operator routes the brand's
   operator roles (`brand_admin`, `resource_admin`, `platform_admin`); service routes the calling
-  service's identity (spec 001 FR-020), admitting `engagement`, `game-provider`, `payouts` and
-  `support-agent`; the brand's list of grants admits any operator of the brand, as the original's
+  service's identity (spec 001 FR-020), admitting `engagement`, `game-provider` and
+  `support-agent` (`payouts` calls nothing here: the wallet's hold answers what it forfeits); the brand's list of grants admits any operator of the brand, as the original's
   does.
 - **FR-032**: Every amount MUST be a whole number of minor units; a decimal MUST be refused naming
   the amount (spec 001 FR-026).
@@ -627,13 +629,13 @@ and `reporting` learn of it without a call.
   any repeat of any command, fact or timer.
 - **SC-004**: Every grant transition appears exactly once on `casino.rewards`, and `attribution`
   can compute bonus cost from the topic alone.
-- **SC-005**: A free-rounds grant whose provider never confirms is voided within the timeout and
+- **SC-005**: A free-rounds grant whose provider never confirms is cancelled within the timeout and
   leaves no record at the wallet.
 - **SC-006**: The service makes no call to an affiliate system, Customer.io or Kafka directly.
 
 ## Changes from the original
 
-- The five TL functions, four Go capabilities, the daily cadence scan and the Customer.io and Kafka
+- The six TL functions, their Go capabilities, the daily cadence scan and the Customer.io and Kafka
   fan-outs are gone: timers per clock, a consumer per topic, and one fact stream.
 - The grant and reward-event twins become one entity whose events are the log; the `bonus_claim_refs`
   index, the pre-flight retire route, the legacy status synonyms and the major-unit face-value
@@ -722,8 +724,8 @@ and `finalize-expired-free-spins-grant`.
 - Free-rounds winnings are awarded or credited uncapped at finalisation (amendment 2026-08-23),
   with the maximum convertible amount applying when the restricted funds convert (settled
   2026-11-01).
-- The claim window for a pending selection is 3 days from selection, fixed; from registration
-  only when the offer sets days (settled 2026-11-01).
+- The claim window for a pending selection is the offer's days from selection, else 3; from
+  registration only when the offer sets days (settled 2026-11-01, amended at analysis).
 - The programme (spec 013) and `engagement` (spec 014) are not built: the code document client and
   the target and award routes are built and tested against fakes, and are inert until those land
   (settled 2026-11-01).
