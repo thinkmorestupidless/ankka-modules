@@ -112,7 +112,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `p/brands/Plan.scala`
 - [X] T016 [P] `p-test/accounts/AffiliateSuite.scala` (event sourced kit): every command, the identity
   stored only as `Sealed`, `close` and `erased`; then `p/accounts/Affiliate.scala`
-- [ ] T017 [P] `p-test/accounts/MembershipSuite.scala`: every allowed transition and every refused one
+- [X] T017 [P] `p-test/accounts/MembershipSuite.scala`: every allowed transition and every refused one
   naming the status (FR-002), an operator's suspension standing over an ancestor's reactivation
   (FR-029), `activateInvited`, `revShareOverride`; then `p/accounts/Membership.scala`
 - [ ] T018 [P] `p-test/intake/FactInboxSuite.scala`: `claim` once, `duplicate` after; then
