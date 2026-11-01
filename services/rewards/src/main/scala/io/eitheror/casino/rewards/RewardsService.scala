@@ -11,7 +11,8 @@ object RewardsService:
     steps.WalletStep.descriptor,
     reward.Reward.descriptor,
     reward.RewardClocks.descriptor,
-    reward.ClockTimer.descriptor
+    reward.ClockTimer.descriptor,
+    reads.RewardsView.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
