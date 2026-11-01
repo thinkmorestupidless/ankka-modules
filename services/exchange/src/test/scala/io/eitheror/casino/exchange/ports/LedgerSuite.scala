@@ -82,16 +82,27 @@ class LedgerSuite extends munit.FunSuite:
     assert(s.calls(1)._4.contains("\"amount\":400") && s.calls(1)._4.contains("\"key\":\"m1/t3/bob\""), s.calls(1)._4)
   }
 
-  test("a leg the wallet refuses stops the trade at it, is handed to the retry, and is answered as refused") {
+  test("a leg the wallet refuses is handed to its retry, every other leg is still sent, and the trade is answered as refused") {
     val (l, s) = ledger((_, _) => Some(409 -> """{"error":"RESERVATION_SHORT"}"""))
     val legs = Vector(leg("ada", "o1", Side.Buy, charge = 600), leg("bob", "o2", Side.Buy, charge = 400))
     assertEquals(l.settle(m, TradeId("t4"), Through.Split, legs), LedgerAnswer.Refused("RESERVATION_SHORT"))
-    assertEquals(s.calls.size, 1)
+    assertEquals(s.calls.size, 2)
     import scala.jdk.CollectionConverters.*
     val handed = retried.asScala.toVector
-    assertEquals(handed.map(_._1.key), Vector("m1/t4/ada"))
-    assertEquals(handed.map(_._2), Vector(LedgerAnswer.Refused("RESERVATION_SHORT")))
-    assertEquals(handed.head._1.path, s.calls.head._3)
+    assertEquals(handed.map(_._1.key), Vector("m1/t4/ada", "m1/t4/bob"))
+    assertEquals(handed.map(_._2).distinct, Vector(LedgerAnswer.Refused("RESERVATION_SHORT")))
+    assertEquals(handed.map(_._1.path), s.calls.map(_._3))
+  }
+
+  test("a first leg refused does not keep the second from the pool: only the refused one is retried") {
+    val n = java.util.concurrent.atomic.AtomicInteger()
+    val (l, s) = ledger((_, _) =>
+      if n.getAndIncrement() == 0 then Some(409 -> """{"error":"RESERVATION_SHORT"}""") else Some(200 -> """{"txnId":"t"}"""))
+    val legs = Vector(leg("ada", "o1", Side.Sell, paid = 600), leg("bob", "o2", Side.Sell, paid = 400))
+    assertEquals(l.settle(m, TradeId("t5"), Through.Merge, legs), LedgerAnswer.Refused("RESERVATION_SHORT"))
+    assertEquals(s.calls.map(c => "\"key\":\"([^\"]*)\"".r.findFirstMatchIn(c._4).map(_.group(1))), Vector(Some("m1/t5/ada"), Some("m1/t5/bob")))
+    import scala.jdk.CollectionConverters.*
+    assertEquals(retried.asScala.toVector.map(_._1.key), Vector("m1/t5/ada"))
   }
 
   test("a payout the wallet cannot fund is handed to the retry; a reservation it refuses is not") {

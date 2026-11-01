@@ -63,6 +63,10 @@ object Ledger:
   /** A leg's own key: the trade and the leg's owner, which never repeat in a trade (spec 005 FR-009). */
   def key(market: MarketId, trade: TradeId, leg: Leg): String = s"${Ledger.trade(market, trade)}/${leg.owner.value}"
 
-  /** Every leg's call in turn, stopping at the first that is not done; a retry repeats the done ones under their keys. */
+  /**
+   * Every leg's call, each sent whatever the others answered: the library passes a trade the port
+   * refuses, so a leg not sent now would never be. Each refused leg is handed to its own retry (by
+   * `kept`, under its own key), and the trade is answered with the first refusal.
+   */
   def each(legs: Vector[Leg])(call: Leg => LedgerAnswer): LedgerAnswer =
-    legs.iterator.map(call).find(_ != LedgerAnswer.Done).getOrElse(LedgerAnswer.Done)
+    legs.map(call).find(_ != LedgerAnswer.Done).getOrElse(LedgerAnswer.Done)
