@@ -45,13 +45,14 @@ final class Neighbours(services: ServiceClients, brand: String):
       case Reply.Answered(s, _, text) => Gate.Unavailable(s"play check answered $s: ${text.take(200)}")
       case Reply.Unreachable(reason)  => Gate.Unavailable(reason)
 
-  /** Whether the player may stake `amount` now (010 FR-010): refused by RG's decision. */
+  /** Whether the player may stake `amount` now (010 FR-010): refused by RG's decision, each named as RG names it. */
   def mayBet(player: String, currency: String, amount: Long): Gate =
     rg.post(NeighbourPaths.mayBet(brand), Json.obj("playerId" -> player, "currency" -> currency, "amount" -> amount)) match
       case Reply.Answered(s, Some(b), _) if s / 100 == 2 =>
         b.text("decision") match
           case Some("allowed")                                 => Gate.Allowed
-          case Some(d @ ("locked" | "excluded" | "cooling_off")) => Gate.Refused(d)
+          case Some(d @ ("excluded" | "cooling_off" | "spending_limit")) => Gate.Refused(d)
+          case Some("unavailable")                               => Gate.Unavailable("responsible-gambling answered unavailable")
           case other                                           => Gate.Unavailable(s"may-bet answered no decision it knows: $other")
       case Reply.Answered(s, _, text) => Gate.Unavailable(s"may-bet answered $s: ${text.take(200)}")
       case Reply.Unreachable(reason)  => Gate.Unavailable(reason)

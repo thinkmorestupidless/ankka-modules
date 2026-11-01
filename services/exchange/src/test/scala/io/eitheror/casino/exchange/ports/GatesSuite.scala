@@ -54,6 +54,8 @@ class GatesSuite extends munit.FunSuite:
 
   test("the bet gate refuses by RG's decision") {
     assertEquals(ask({ case `bet` => Some(200 -> """{"decision":"cooling_off"}""") })._1, GateAnswer.Refused("bet gate: cooling_off"))
+    assertEquals(ask({ case `bet` => Some(200 -> """{"decision":"spending_limit"}""") })._1, GateAnswer.Refused("bet gate: spending_limit"))
+    assertEquals(ask({ case `bet` => Some(200 -> """{"decision":"unavailable"}""") })._1, GateAnswer.Refused("bet gate: unavailable"))
   }
 
   test("each gate fails closed: unreachable, a 5xx or an answer it cannot read is unavailable") {

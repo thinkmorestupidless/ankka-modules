@@ -18,9 +18,11 @@ import Answers.*
 /**
  * `/v1/casino/brands/<slug>/exchange` (contracts/routes.md): `markets` drives a market's book. Open
  * writes the book's terms (its currency and outcomes) before the library opens it with its unit and
- * limits. Each command carries the market event's own time, so a redelivered command is refused by the
- * library as `state` or `out of order`, which `markets` takes as done. `players` erases a player
- * here (R13): their resting orders cancelled, the player marked, the certificate answered.
+ * limits. Each command carries the market event's own time, which the book orders by the market's
+ * clock (ankka-predictions 0.1.1): a redelivered command it has applied is refused as `state`, which
+ * `markets` takes as done; one older than the market's last command is `out of order`, which `markets`
+ * raises. `players` erases a player here (R13): their resting orders cancelled, the erasure
+ * recorded, the certificate answered.
  */
 final class ServiceEndpoint(components: ExchangeComponents, clients: EndpointClients)
     extends HttpEndpoint(s"/v1/casino/brands/${ExchangeRuntime.settings.brand}/exchange"):
