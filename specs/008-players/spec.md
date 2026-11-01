@@ -553,7 +553,9 @@ store and `payments` for a personal field; fetch the response.
   `player_fraud_flagged`, `player_fraud_cleared`, `player_message_created`, `player_message_read`,
   `player_message_deleted`; keyed by the player id as subject, with the field names of the original's
   JSON schemas (previous_value, new_value, actor, actor_id, reason; previous_tier, new_tier;
-  session_id). The last seven families are additions to 001 FR-011.
+  session_id). The last seven families are additions to 001 FR-011. Spec 011 FR-034 to FR-036 add
+  `player_duplicate_check_started`, `player_duplicate_check_ended`, `player_no_deposit_blocked` and
+  `player_no_deposit_block_cleared`.
 
 **Multi-account detection and fraud cases**
 
@@ -562,6 +564,14 @@ store and `payments` for a personal field; fetch the response.
   date of birth together, and the device fingerprint; MUST flag every match and the new player as
   suspected duplicates linked to each other; MUST open one fraud case naming the signals; and MUST do
   nothing when the brand's kill switch is on or no signal is present. (Source: `MultiAccountDetector`.)
+  Amended by spec 011 FR-034 to FR-036 (the original's #730): the check is marked in progress from
+  registration until the detector has run or the kill switch skipped it, and its start and its end
+  with the outcome (`strong`, `weak`, `clear`, `skipped`) are published; an email-variant token and the
+  registration's network address join the two above; a pair is also strong on an email variant with a
+  registration from the same address within 24 hours, or with three or more registrations from the new
+  player's address within 24 hours; an email variant alone, or a comparison that fails, is weak and
+  only blocks the new player's no-deposit offers, which an operator with a fraud or compliance role
+  clears; the address's rate alone does nothing.
 - **FR-037**: A fraud case MUST be reviewed or dismissed by an operator with the brand's role;
   dismissal MUST clear the flag on every linked player and produce `player_fraud_cleared`; an operator
   MUST also clear one player's flag directly. `player_fraud_flagged` MUST be produced on a flag so
@@ -716,7 +726,8 @@ spec 001 FR-033), not recorded.
   009 (produces the KYC families; the deposit check FR-043 asks; the suspend command it calls), 010
   (`may-log-in` at sign-in and for the realm; `may-deposit` as FR-043's pre-check; `rg_limit_applied`
   for the session timer; the status commands for exclusion and reinstatement), 011 (withholds
-  bonuses on `player_fraud_flagged`; reads tier and flags), 012 (reads `player_registered` and
+  bonuses on `player_fraud_flagged`; reads tier and flags; amends FR-036 with the duplicate check and
+  the weak signal, FR-034 to FR-036 there), 012 (reads `player_registered` and
   `player_closed`), 014 (sends the emails; honours consent facts), 006 (the cashier route FR-043
   calls under the merchant key).
 - ankka 022 (realm verification), 032 (recurring timer, session timers), 038 (realm credential, webhook

@@ -4,22 +4,15 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.players.config.{BrandConfig, BrandConfigEntity}
 import io.eitheror.casino.players.fraud.{FraudCaseEntity, FraudCaseStatus, FraudCasesView}
-import io.eitheror.casino.players.player.{PlayerEntity, PlayerState}
-import io.eitheror.casino.players.registration.RegistrationWorkflow
+import io.eitheror.casino.players.player.{CheckOutcome, PlayerEntity, PlayerState}
+import io.eitheror.casino.players.registration.{RegistrationRuntime, RegistrationWorkflow}
 
 import java.util.UUID
 import scala.concurrent.duration.*
 
 /** features/players/duplicates.feature (T063). */
 class DuplicatesFeatures extends PlayersFeatures("duplicates.feature"):
-  protected def pending = Vector(
-    "a registration is marked as under a duplicate check until the detector has run",
-    "a registration whose email is a variant of a player's from the same address flags both as suspected duplicates",
-    "a registration whose email is a variant of a player's, with nothing else, blocks only its no-deposit offers",
-    "a registration whose comparison fails blocks only its no-deposit offers",
-    "registrations from one address at the rate the detector counts, with nothing else, change nothing",
-    "an operator clearing a player's no-deposit block lifts it and records who and when"
-  ).map(_ -> "spec 011 T016 (pending)").toMap
+  protected def pending = Map.empty
 
   private var first   = ""
   private var second  = ""
@@ -115,3 +108,99 @@ class DuplicatesFeatures extends PlayersFeatures("duplicates.feature"):
     assertEquals((indexRows, player(second).fraud), (indexAt, None))
   }
   Then("no fraud case opens") { () => assertEquals(FraudCasesView.ofPlayer(kit.views, second), Vector.empty) }
+
+  // ── spec 011 FR-034 to FR-036: the check, the email variant, the address, the no-deposit block ─────
+
+  /**
+   * The scenario's email made the test's own: a prefix of letters unique to it before the local part, so
+   * its variants stay variants of each other and of nothing an earlier scenario registered.
+   */
+  private def own(email: String) = s"$prefix$email"
+  private var prefix  = ""
+  private var address = ""
+  private var third   = Vector.empty[String]
+  private def from(email: String): String =
+    val r = kit.registerFrom(Some(address), "email" -> own(email))
+    assertEquals(r.status, 201, r.text)
+    r.str("playerId")
+  private def ended(id: String) =
+    kit.eventually(s"$id's duplicate check ended", 30.seconds)(player(id).duplicateCheck.filter(!_.inProgress))
+  private def fact[A](what: String)(pf: PartialFunction[CasinoPlayersFact, A]): A =
+    kit.eventually(what)(kit.facts(CasinoPlayers).collectFirst(pf))
+  private def setUp(): Unit =
+    prefix = UUID.randomUUID().toString.take(8).map(c => if c.isDigit then ('g' + (c - '0')).toChar else c)
+    address = s"10.${scala.util.Random.nextInt(256)}.${scala.util.Random.nextInt(256)}.${scala.util.Random.nextInt(256)}"
+    third = Vector.empty
+
+  When("a player registers at a brand with duplicate detection on") { () => setUp(); second = registered() }
+  Then("the player's duplicate check is in progress until the brand has compared them with its players") { () =>
+    val c = ended(second)
+    assertEquals(c.outcome, Some(CheckOutcome.Clear))
+    assert(!c.endedAt.get.isBefore(c.startedAt), c.toString)
+  }
+  Then("the start and the end of the check are each a fact") { () =>
+    val started = fact("player_duplicate_check_started") { case f: PlayerDuplicateCheckStarted if f.playerId == second => f }
+    val done    = fact("player_duplicate_check_ended") { case f: PlayerDuplicateCheckEnded if f.playerId == second => f }
+    assertEquals(started.registeredAt, player(second).registeredAt.get)
+    assertEquals(done.outcome, CheckOutcome.Clear)
+    assert(!done.occurredAt.isBefore(started.occurredAt))
+  }
+
+  Given("a player registered with the email {string} from an address") { (email: String) => setUp(); first = from(email) }
+  When("another registers with {string} from the same address within a day") { (email: String) =>
+    second = from(email); caseId = RegistrationWorkflow.caseOf(second)
+  }
+  Then("a fraud case opens") { () => assertEquals(theCase.status, FraudCaseStatus.Open) }
+
+  Given("a player registered with the email {string}") { (email: String) => setUp(); first = registered("email" -> own(email)) }
+  When("another registers with {string} and nothing else in common") { (email: String) => second = registered("email" -> own(email)) }
+  Then("the new player's no-deposit offers are blocked") { () =>
+    assert(kit.eventually("the block", 30.seconds)(Option.when(player(second).noDepositBlocked)(true)))
+    fact("player_no_deposit_blocked") { case f: PlayerNoDepositBlocked if f.playerId == second => f }: Unit
+    assertEquals(fact("player_duplicate_check_ended") { case f: PlayerDuplicateCheckEnded if f.playerId == second => f }.outcome,
+      CheckOutcome.Weak)
+  }
+  Then("neither player is flagged as a suspected duplicate") { () =>
+    ended(second): Unit
+    assertEquals((player(first).fraud, player(second).fraud, player(first).noDepositBlock), (None, None, None))
+  }
+
+  Given("the comparison cannot be made when a player registers") { () =>
+    setUp()
+    RegistrationRuntime.lookup = (_, _, _) => throw IllegalStateException("the index is unavailable (feature)")
+    second = registered((identity :+ ("email" -> own("cannot.compare@gmail.com")))*)
+  }
+  When("the duplicate check ends") { () => assertEquals(ended(second).outcome, Some(CheckOutcome.Weak)) }
+
+  Given("three players registered from one address within a day, with nothing else in common") { () =>
+    setUp()
+    third = Vector.fill(3) {
+      val r = kit.registerFrom(Some(address))
+      assertEquals(r.status, 201, r.text)
+      r.str("playerId")
+    }
+  }
+  When("the duplicate check ends for the third") { () => assertEquals(ended(third.last).outcome, Some(CheckOutcome.Clear)) }
+  Then("no player is flagged and no offer is blocked") { () =>
+    third.foreach(id => assertEquals((ended(id).outcome, player(id).fraud, player(id).noDepositBlock), (Some(CheckOutcome.Clear), None, None)))
+  }
+
+  Given("a player whose no-deposit offers are blocked") { () =>
+    setUp()
+    first = registered("email" -> own("grace.hopper@gmail.com"))
+    second = registered("email" -> own("gracehopper1@gmail.com"))
+    kit.eventually("the block", 30.seconds)(Option.when(player(second).noDepositBlocked)(())): Unit
+  }
+  When("an operator with a fraud or compliance role clears the block") { () =>
+    val r = kit.request("POST", kit.operatorPath(s"/players/$second/clear-no-deposit-block"), Some("{}"),
+      kit.asOperator(roles = s"brand_${kit.slug},fraud_analyst", subject = "op-8"))
+    assertEquals((r.status, r.json.get("blockCleared").asBoolean), (200, true), r.text)
+  }
+  Then("the block is lifted with the operator and the time recorded") { () =>
+    val b = player(second).noDepositBlock.get
+    assertEquals((b.active, b.clearedBy), (false, Some("op-8")))
+    assert(b.clearedAt.isDefined)
+  }
+  Then("a fact says so") { () =>
+    assertEquals(fact("player_no_deposit_block_cleared") { case f: PlayerNoDepositBlockCleared if f.playerId == second => f }.actorId, "op-8")
+  }
