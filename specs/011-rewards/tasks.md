@@ -128,19 +128,19 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
       `localServices`, `InMemoryBroker`, `TimerRuntime(200.millis)`, a settable clock, callers
       `asPlayer`, `asOperator(roles)`, `asService(name)`, `facts(topic)`, `publish`, `timerExists`,
       `fireTimer`, `eventually`, as payouts'.
-- [ ] T026 `S/reward/Model.scala` and `S/reward/Reward.scala`: data-model.md's state, commands and
+- [X] T026 `S/reward/Model.scala` and `S/reward/Reward.scala`: data-model.md's state, commands and
       events through `Transitions`; the timers set and cancelled per research R10 (`S/reward/Clocks.scala`).
       `T/reward/RewardSuite.scala` (`EventSourcedTestKit`) first: every row of the command table.
 - [X] T027 `S/steps/WalletStep.scala`: the workflow of research R5 (claim on `start`, retry until the
       wallet answers, deliver to `Reward`); `NO_ACTIVE_BONUS` and `NOT_PENDING_CAP` on a timer's step
       move the reward without money. `T/it/WalletStepSuite.scala` first: every wallet answer, a
       transport failure, a repeat start.
-- [ ] T028 `S/reads/RewardsView.scala`: data-model.md's row and queries. `T/it/RewardsViewSuite.scala`.
-- [ ] T029 `S/facts/Facts.scala` (pure event → fact, research R11) and `S/facts/Publishers.scala`
+- [X] T028 `S/reads/RewardsView.scala`: data-model.md's row and queries. `T/it/RewardsViewSuite.scala`.
+- [X] T029 `S/facts/Facts.scala` (pure event → fact, research R11) and `S/facts/Publishers.scala`
       (`RewardsPublisher`, `CodesPublisher`, `AuditPublisher`). `T/facts/FactsSuite.scala` first:
       every event to at most one family; the close after conversion publishes nothing; no `Personal`
       value on a fact.
-- [ ] T030 `S/api/Answers.scala`: refusals as `{error, …}` with the status table of contracts/routes.md;
+- [X] T030 `S/api/Answers.scala`: refusals as `{error, …}` with the status table of contracts/routes.md;
       the original's shapes (`{status: "ineligible", reason}`, `{valid: false, error}`); amounts
       refused when not whole (FR-032).
 

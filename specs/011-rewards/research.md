@@ -403,3 +403,10 @@ behaviour unless it says otherwise.
   answer, a 5xx or a 4xx without a code is retried, from 1 s doubling to 10 minutes, without limit. A
   repeat start answers the first state, whatever its body. Delivery is at least once, so `Reward` takes
   one answer per step id.
+- **The reward's one deadline** (T026): `expiresAt` is the current state's deadline (pending, claim,
+  rounds, then cap); `wagering-` is set only when it differs from the claim deadline. Rounds count only
+  while `ACTIVE`. Finalisation writes `FreeRoundsFinalised` and the ending together; the payment
+  follows, keyed, so a repeat answers the same payment.
+- **The revoke reason** (T026, T029): kept in the `Revoked` event alone; the audit names the field with
+  no value, as payouts'. `bonus_cancelled.amountCents` is the clawback.
+- **Whole amounts** (T030, FR-032): refused 400 `amount_not_minor_units` naming the field, game-provider's code.
