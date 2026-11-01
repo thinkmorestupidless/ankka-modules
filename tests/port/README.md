@@ -5,10 +5,17 @@ What the rebuilt services' parity tests replay (spec 001 FR-029 to FR-032). Made
 
 ## attribution (spec 012, T006)
 
-Not recorded yet. `attribution/README.md` says what the directory will hold: the suite's four affiliate
-scenarios, recorded with the affiliate service installed, and the eight recordings of
-`tests/original/attribution-driver/`. It also says how they are run and how `ParitySuite` translates them
+Recorded 2026-10-28 from the original at `a78decf1`, on its own KinD stack with the affiliate service
+installed, twice, on fresh ids: twelve recordings, the suite's four affiliate scenarios and eight by
+`tests/original/attribution-driver/`, each `pass` on both runs. `attribution/README.md` says how they were
+made and how `ParitySuite` translates them
 (`services/attribution/src/test/scala/io/eitheror/casino/attribution/port/Translate.scala`).
+
+## programme (spec 013, T006)
+
+Not recorded yet. `programme/README.md` says what the directory will hold: thirteen recordings by
+`tests/original/programme-driver/`, one per driver scenario of
+`specs/013-affiliate-programme/contracts/recording.md`, how they are made, and the marked divergences.
 
 ## game-provider (spec 003, T015)
 

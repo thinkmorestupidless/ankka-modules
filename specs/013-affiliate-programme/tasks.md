@@ -60,7 +60,7 @@ the recording driver, and the original's commission cases as failing tests.
 - [X] T005 [P] Add to `justfile` the recipes `programme-test`, `programme-it`, `programme-parity`,
   `programme-run` (as `attribution-test`, `attribution-it`); add the `affiliate-programme` filter and job
   to `.github/workflows/ci.yml` (push over SSH: the token has no workflow scope)
-- [ ] T006 [P] Write `tests/original/programme-driver/` (Go, as `tests/original/attribution-driver/`,
+- [X] T006 [P] Write `tests/original/programme-driver/` (Go, as `tests/original/attribution-driver/`,
   its recorder reused): the thirteen scenarios of contracts/recording.md, each driving the original's
   routes with a staff token for `brand_spinvibe` and an affiliate token, and recording requests and
   answers; `NotDriven` names the feature scenarios the original cannot show (hosted brands, webhooks,
