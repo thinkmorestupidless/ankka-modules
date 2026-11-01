@@ -392,3 +392,10 @@ behaviour unless it says otherwise.
   reach services by name only), bounded by the request bound and 1 MiB, no redirects.
 - **G1's catalogue** (T012): the provider's enabled games in the feed, as the player's single-game read;
   the brand's overrides do not apply.
+- **The duplicate check's rules** (T014, FR-035): an email variant is strong when the matched player
+  registered from the same address within 24 hours, or the address has 3 or more registrations in 24
+  hours; a variant alone is weak; the address rate alone is clear. A strong outcome does not block
+  no-deposit offers, as the original. Normalisation as `MultiAccountDetector`: digits stripped on every
+  domain, no variant under 6 characters. A registration with no tokens ends clear; the kill switch
+  ends skipped.
+- **Clearing a block not held** (T015): answers 200, as the original, and records nothing.

@@ -75,19 +75,19 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
       `withAcl(Routes.serviceOf("rewards"))`, answering `{gameCode, bonusTypes}` from the catalogue or
       404 `game_not_found`; suite case; `specs/003-game-provider/contracts/routes.md` updated;
       `just service game-provider test` green.
-- [ ] T013 `players` FR-035 tokens: `registration/LookupTokens.scala` gains `emailVariant` and
+- [X] T013 `players` FR-035 tokens: `registration/LookupTokens.scala` gains `emailVariant` and
       `address` (HMAC under `players-lookup-key`); the email-variant normalisation as
       `MultiAccountDetector.scala`'s, with its spec's cases in a new `EmailVariantSuite`;
       `LookupIndexEntity` keeps per address token the registrations of the last 24 hours.
-- [ ] T014 `players` FR-034, FR-035: `RegistrationWorkflow` records `DuplicateCheckStarted` before
+- [X] T014 `players` FR-034, FR-035: `RegistrationWorkflow` records `DuplicateCheckStarted` before
       `matchStep`; the step's outcome (strong, weak, clear, skipped) and `DuplicateCheckEnded` are one
       event on the player; a failed match after its retries ends `weak`; a weak outcome sets
       `noDepositBlocked`. The strong and weak rules of research R9. Suite cases per rule.
-- [ ] T015 `players` FR-036: `POST /v1/casino/backoffice/<slug>/players/{playerId}/clear-no-deposit-block`
+- [X] T015 `players` FR-036: `POST /v1/casino/backoffice/<slug>/players/{playerId}/clear-no-deposit-block`
       (`Routes.operator` plus the six roles in the handler; `forbidden` otherwise), answering
       `{playerId, blockCleared: true}`, recording the operator and time; the operator profile shows
       `noDepositOfferBlocked`; a fraud case's dismissal leaves the block. Suite cases.
-- [ ] T016 `players` facts: `facts/Facts.scala` publishes the four new families; `FactsSuite` cases;
+- [X] T016 `players` facts: `facts/Facts.scala` publishes the four new families; `FactsSuite` cases;
       bind the six FR-034 to FR-036 scenarios of `features/players/duplicates.feature` in the players
       feature suite; amend `specs/008-players/spec.md` (FR-036 references FR-034 to FR-036 of spec
       011) and its `contracts/facts.md`; `just service players test` green.
