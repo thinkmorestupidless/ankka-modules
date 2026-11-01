@@ -153,7 +153,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `BrandProgramme.seed` per slug, the first signing key when none), with
   `p-test/intake/IntakeKitSuite.scala` (consumer kit: a duplicate, a mismatched brand, a click, a
   first deposit)
-- [ ] T028 Implement `p/ledger/ToLedger.scala` (consumer over `PlayerAttribution`, data-model.md
+- [X] T028 Implement `p/ledger/ToLedger.scala` (consumer over `PlayerAttribution`, data-model.md
   *Consumers*; fraud flags and postbacks are added by US6 and US7) with
   `p-test/ledger/ToLedgerSuite.scala`; `Intake`'s refusals `revoked_link` and `not_a_member` and
   `PlayerAttribution`'s disagreements (FR-011, data-model.md) with cases in `IntakeKitSuite`
