@@ -1,0 +1,106 @@
+# Routes
+
+Research R11, R12. Every route of the original is listed with its fate; paths are the original's unless
+marked. Bodies and answers are the original's (`S/AffiliateRoutes.scala`, `S/OperatorRoutes.scala`)
+with money in minor units and a `brand` and `currency` on every figure. Refusals keep the original's
+codes (`409 email_already_registered`, `409 must be X, currently Y`, `404 account_not_found`, …); new
+ones are listed at the end.
+
+## `/v1/affiliates` (`OperatorEndpoint`)
+
+Admits `Routes.affiliateManager()` and checks the path's `{brand}` against `brandsOf(principal)`;
+`managers` routes admit `brand_admin` and `platform_admin` only, as the original. Three routes are
+public by `withAcl(Routes.public)`.
+
+| Original # | Method and path | Notes |
+|---|---|---|
+| P7 | `POST /{brand}/apply` | public; FR-003; `201 {affiliateId, status: "pending"}` |
+| P5 | `POST /{brand}/forgot-password` | public; always `200`; 30-minute token; 5-minute dedupe |
+| P6 | `POST /accept-invitation` | public; `{token, password, mode}`; the token claimed once |
+| O1–O3 | `GET /{brand}/managers`, `POST /{brand}/managers`, `POST /{brand}/managers/{user}/reset-password` | FR-031 |
+| new | `DELETE /{brand}/managers/{user}` | change 16: removes `affiliate_manager` and `brand_<slug>` |
+| O4–O6 | `GET`, `POST /{brand}/commission-plans`; `PATCH /{brand}/commission-plans/{plan}` | + `cpaCurrency` (change 11) |
+| O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9); create active with a membership |
+| O9, O10 | `GET /{brand}/accounts/{aff}/network-health`, `/network` | |
+| O11–O13 | `POST /{brand}/network/{sub}/{approve|suspend|reactivate}` | **reshaped** from `accounts/{aff}/network/{sub}/…` (two parameters) |
+| O14, O15 | `POST /{brand}/accounts/{aff}/approve`, `/reject` | FR-002 |
+| O16–O18 | `POST /{brand}/accounts/{aff}/resend-invitation`, `/reset-password`, `/update-email` | update-email re-seals and moves the email index |
+| O19 | `PATCH /{brand}/accounts/{aff}/status` | **not served**: `404` (change 13) |
+| O20, O21 | `GET`, `PATCH /{brand}/accounts/{aff}` | `revShareOverride` is the membership's at `{brand}` |
+| new | `POST /{brand}/accounts/{aff}/close`, `POST /{brand}/accounts/{aff}/erasure` | FR-037: close disables sign-in; erasure files the hold |
+| O22 | `GET /{brand}/accounts/{aff}/revenue` | |
+| O23, O24 | `GET`, `POST /{brand}/accounts/{aff}/notes` | |
+| O25 | `GET /{brand}/accounts/{aff}/audit` | |
+| O26 | `GET /{brand}/accounts/{aff}/players` | pseudonyms, never a player id |
+| O27 | `GET /{brand}/accounts/{aff}/sub-affiliates` | |
+| O28 | `POST /{brand}/accounts/{aff}/adjustments` | `{type, amount, currency, reason}`; FR-022 |
+| O29–O34 | `GET /{brand}/accounts/{aff}/view/{page}` | `page` ∈ `dashboard`, `stats`, `commission`, `links`, `payouts`, `notifications`; `commission` takes `?period=` (**reshaped** from `view/commission/{period}`) |
+| O35, O36 | `GET`, `POST /{brand}/tracking-links` | the link gains a signed tag |
+| O37–O39 | `GET /{brand}/revenue`, `/revenue/by-campaign`, `/revenue/geo` | per currency |
+| O40 | `POST /{brand}/payouts/close?period=` | starts or rejoins the `Close` workflow; answers when it ends or after 10 s with `202` and the workflow's id |
+| O41 | `GET /{brand}/payouts` | |
+| O42 | `PATCH /{brand}/payouts/{payout}/status` | `{status, overrideCommission?, reason?}`; the figure as an adjustment (FR-019) |
+| new | `GET /{brand}/payouts/export?period=` | FR-021: `text/csv` (below) |
+| O43, O44 | `GET`, `PUT /{brand}/settings` | + `ggrSource`, `reportingZone`, sender configuration |
+| O45, O46 | `GET`, `PUT /{brand}/programme` | + terms, contact, description, default plan |
+| O47 | `POST /{brand}/messages` | |
+| O48, O49 | `GET /{brand}/fraud-flags`, `PATCH /{brand}/fraud-flags/{flag}/dismiss` | |
+| O50–O52 | `GET`, `POST /{brand}/creatives`, `DELETE /{brand}/creatives/{id}` | an address, not a file |
+
+## `/v1/my` (`PortalEndpoint`)
+
+Admits `Routes.affiliate()`; the target is the caller (`eitheror_scope_id`) or a descendant, else
+`404 account_not_found` (the original's). Every read takes `?brand=` (absent: every brand the account
+has a membership at), and every figure is per brand and currency.
+
+| Original # | Paths under `/{affiliate}` |
+|---|---|
+| M1–M5 | `revenue`, `revenue/{period}/breakdown`, `revenue/by-campaign`, `deductions/{period}`, `payouts` |
+| M6–M10 | `account` (`GET`, `PATCH`), `plan`, `available-plans`, `programme` (these three need `?brand=`) |
+| M11, M12 | `tracking-links` (`GET`, `POST` with `brand`) |
+| M13–M16 | `network-health`, `network`, `network/{sub}` (`GET`, `PATCH`) |
+| M17–M19 | `network/{sub}/{approve|suspend|reactivate}`, the membership named by `?brand=` |
+| M20, M21 | `sub-affiliates/invite` (`brands` in the body), `sub-affiliates` |
+| M22–M27 | `creatives`, `players`, `notifications`, `notifications/read-all`, `events`, `events/account` |
+| M28–M30 | `bonus-codes` (`GET`, `POST`), `bonus-codes/{code}` (`DELETE`) |
+| M31–M33 | `invite-links` (`GET`, `POST`), `invite-links/{link}` (`DELETE`) |
+| M34, M35 | `first-login`, `last-login` |
+| new | `postbacks`: the last outcome per event (FR-036) |
+
+## `/v1/join` (`JoinEndpoint`), public
+
+`GET /{token}?brandId=`, `POST /{token}?brandId=` (P3, P4): the invite link; `429 too_many_requests`
+past 50 an hour.
+
+## `/v1/programme` (`ProgrammeEndpoint`)
+
+| Method and path | Admits | Notes |
+|---|---|---|
+| `GET /documents/keys`, `/documents/revocations`, `/documents/legacy-tags`, `/documents/codes/{brand}` | public | spec 012's shapes; `Cache-Control: max-age=<cacheSeconds>` |
+| `POST /inbound/{brand}` | public, HMAC | [inbound.md](inbound.md) |
+| `GET`, `POST /brands`; `PATCH /brands/{brand}` | `platform_admin` | FR-040; `POST` answers the webhook secret once |
+| `GET /brands/{brand}/usage?month=` | `platform_admin` | FR-042 |
+| `POST /imports/{brand}` | `platform_admin` | FR-039 |
+
+## Not served
+
+The click (`POST /v1/track/click`, spec 012's), `/health` (the runtime's readiness), the eight
+`notify/*` routes and the eight other internal routes (research R1), and `PATCH accounts/{aff}/status`.
+
+## New refusals
+
+`409 not_a_member` (an affiliate acting at a brand with no membership), `403 brand_not_held` (a brand
+the caller's roles do not cover), `409 status_transition` (naming the status), `409 payout_paid`,
+`404 brand_unknown` (inbound or documents for a brand the programme does not serve), `409 erased`.
+
+## The export
+
+`GET /v1/affiliates/{brand}/payouts/export?period=` answers `text/csv`, one row per approved payout,
+the header:
+
+```text
+affiliateId,displayName,email,paymentMethod,brand,currency,period,cpa,revShare,override,adjustments,total,approvedBy,approvedAt
+```
+
+Amounts in minor units. Every export writes an `AuditEntry` `payment_details_read` with the actor, the
+brand, the period and the affiliates listed (FR-021).

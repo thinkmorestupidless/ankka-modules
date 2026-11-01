@@ -17,10 +17,11 @@ Feature: A period closes and affiliates are paid
     And no payout is written
     And the facts carry forward to the next close
 
-  Scenario: approving a pending payout records the override figure the manager chose
-    Given a pending payout
-    When a manager approves it, optionally overriding the override figure
-    Then the payout is approved with the figure recorded
+  Scenario: approving a pending payout with another override figure writes the difference as an adjustment the payout claims
+    Given a pending payout whose claimed override is "5000"
+    When a manager approves it with an override figure of "3000"
+    Then an adjustment fact of "-2000" is written and claimed by the payout
+    And the payout is approved with a total that is the fold of everything it claims
 
   Scenario: a late fact swept into an approved payout reverts it to pending and supersedes the approval
     Given an approved payout

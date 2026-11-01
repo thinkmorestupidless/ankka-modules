@@ -302,7 +302,7 @@ The installation's own affiliate network, shared by every brand and by every hos
 Avoid: affiliate service, affiliate-service
 
 ### hosted brand
-A brand of another company that an operator of the installation has added to the programme under a contract signed outside the platform. It delivers facts over the feed, as any brand elsewhere does, and its managers see nothing of other brands.
+A brand of another company that an operator of the installation has added to the programme under a contract signed outside the platform. It posts its facts to the programme's network webhook, as any brand elsewhere does, and its managers see nothing of other brands.
 
 Avoid: tenant, customer brand
 
@@ -538,7 +538,7 @@ An affiliate and every affiliate below them; what an affiliate sees and acts wit
 Avoid: network tree, downline
 
 ### invitation
-A parent's one-use offer to a sub, by email or invite link, which creates the sub pending under the parent on the parent's plan unless it says otherwise.
+A parent's offer to a sub: by email, used once, which makes the sub active at once at each brand the parent names; or by invite link, serving until revoked, which creates the sub pending for the parent to approve. Either puts the sub on the parent's plan unless it says otherwise.
 
 ### operator invitation
 The shared payments' one-use offer to a new operator, who accepts it and sets a password to become active at their level.

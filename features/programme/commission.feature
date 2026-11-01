@@ -49,6 +49,12 @@ Feature: A brand's facts become commission
       | daily  | ggr-daily | ggr-round |
       | rounds | ggr-round | ggr-daily |
 
+  Scenario: a GGR day from before the player's binding is recorded and folds nothing
+    Given a player bound by a late bonus code
+    When a "ggr-daily" fact marked as before the binding arrives
+    Then it is recorded on the player
+    And it folds into no NGR and writes no fee or commission fact
+
   Scenario: without negative carryover a negative period floors RevShare at zero and the next period starts fresh
     Given an attributed player on a plan without negative carryover
     When a period's NGR is negative

@@ -40,6 +40,11 @@ Feature: An affiliate works several brands from one account
     When they apply to brand "B" again
     Then the application is accepted
 
+  Scenario: a status change outside the membership's transitions is refused
+    Given a rejected membership at brand "A"
+    When a manager sets it to suspended
+    Then it is refused, naming the membership's status
+
   Scenario: an application from an email with a pending or active membership at that brand is refused as a duplicate
     Given an applicant whose email already has a pending or active membership at brand "B"
     When they apply to brand "B"
