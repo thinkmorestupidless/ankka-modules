@@ -47,3 +47,36 @@ Feature: A duplicate account is detected and reviewed
     Given a registration without names or date of birth and without a device fingerprint
     When it succeeds
     Then nothing is compared
+
+  Scenario: a registration is marked as under a duplicate check until the detector has run
+    When a player registers at a brand with duplicate detection on
+    Then the player's duplicate check is in progress until the brand has compared them with its players
+    And the start and the end of the check are each a fact
+
+  Scenario: a registration whose email is a variant of a player's from the same address flags both as suspected duplicates
+    Given a player registered with the email "ada.lovelace@gmail.com" from an address
+    When another registers with "adalovelace7@gmail.com" from the same address within a day
+    Then both are flagged as suspected duplicates linked to each other
+    And a fraud case opens
+
+  Scenario: a registration whose email is a variant of a player's, with nothing else, blocks only its no-deposit offers
+    Given a player registered with the email "ada.lovelace@gmail.com"
+    When another registers with "ada.lovelace+promo@gmail.com" and nothing else in common
+    Then the new player's no-deposit offers are blocked
+    And neither player is flagged as a suspected duplicate
+
+  Scenario: a registration whose comparison fails blocks only its no-deposit offers
+    Given the comparison cannot be made when a player registers
+    When the duplicate check ends
+    Then the new player's no-deposit offers are blocked
+
+  Scenario: registrations from one address at the rate the detector counts, with nothing else, change nothing
+    Given three players registered from one address within a day, with nothing else in common
+    When the duplicate check ends for the third
+    Then no player is flagged and no offer is blocked
+
+  Scenario: an operator clearing a player's no-deposit block lifts it and records who and when
+    Given a player whose no-deposit offers are blocked
+    When an operator with a fraud or compliance role clears the block
+    Then the block is lifted with the operator and the time recorded
+    And a fact says so

@@ -103,6 +103,33 @@ Settled with specs 008–011 once they existed.
   so the bonus report groups by offer from facts.
 - Q: What does `support-agent` read? → A: A player's grants through FR-022a, by identity.
 
+### Session 2026-11-01
+
+Answered with the original as it runs on 2026-11-01, which changed since this spec was written.
+
+- Q: Maximum concurrent grants: one, or set by the offer? → A: Set by the offer. The original
+  accepts any `max_concurrent_grants` of one or more since its feature 220 and reads an absent value
+  as no limit since 236 (a welcome bonus was blocking free rounds a brand's marketing had sent);
+  `ACTIVE_BONUS_CONFLICT` is declined once the player's open grants, or the wallet's open records if
+  more, reach the offer's number. Only a value below one is `max_concurrent_grants_invalid`.
+- Q: Are free-rounds winnings awarded or credited uncapped at finalisation? → A: Yes, as the original
+  (amendment 2026-08-23): the maximum convertible amount applies when the restricted funds convert,
+  not when the rounds finish.
+- Q: Is the pending selection's claim window 3 days? → A: Yes, 3 days from selection, fixed; from
+  registration only when the offer sets its days. No brand setting.
+- Q: Affiliate codes and the campaign routes, with the programme (013) and engagement (014) not built?
+  → A: Built now, inert until used: the code document client and the target and award routes are
+  built against the contract and tested with fakes; an affiliate code matches nothing until the
+  programme publishes a document, and the routes wait for `engagement`.
+- Q: The original's no-deposit gates of 2026-10-29 (#730, ClickUp 869fj3w46)? → A: Carried over in
+  this spec, with the signals they read: `ELIGIBILITY_CHECK_UNAVAILABLE` while the player's duplicate
+  check is in progress, `NO_DEPOSIT_OFFER_BLOCKED` on a weak duplicate signal, both for no-deposit
+  offers only; `players` gains the email-variant signal and the registration address's rate,
+  publishes the check and the block, and lets an operator clear the block (FR-034 to FR-036,
+  amending spec 008). #730's device tracking at login is not a reward
+  rule and is left to a follow-up on spec 008.
+- Q: The glossary's 23 proposed terms from specs 021, 023 and 025? → A: Accepted as written.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - An operator creates an offer and a player claims it (Priority: P1)
@@ -148,11 +175,24 @@ largest recording.
 - added `features/rewards/eligibility.feature`: a player flagged as a suspected duplicate is refused on any path
 - added `features/rewards/eligibility.feature`: the duplicate rule is skipped on a brand that turned duplicate detection off
 - added `features/rewards/eligibility.feature`: a player with an active reward claiming another offer is refused
+- added `features/rewards/eligibility.feature`: an offer allowing two open rewards is claimed beside one the player holds
+- added `features/rewards/eligibility.feature`: an offer setting no maximum of open rewards is claimed beside any the player holds
+- added `features/rewards/eligibility.feature`: a no-deposit offer claimed while the player's duplicate check is in progress is refused for now
+- added `features/rewards/eligibility.feature`: a duplicate check still in progress ten minutes after registration no longer refuses
+- added `features/rewards/eligibility.feature`: a no-deposit offer claimed by a player with a weak duplicate signal is refused
+- added `features/rewards/eligibility.feature`: a deposit offer is not refused for a duplicate check in progress or a weak duplicate signal
+- added `features/rewards/eligibility.feature`: an award by the brand's engagement during the duplicate check is answered to try again later
+- added `features/players/duplicates.feature`: a registration is marked as under a duplicate check until the detector has run
+- added `features/players/duplicates.feature`: a registration whose email is a variant of a player's from the same address flags both as suspected duplicates
+- added `features/players/duplicates.feature`: a registration whose email is a variant of a player's, with nothing else, blocks only its no-deposit offers
+- added `features/players/duplicates.feature`: a registration whose comparison fails blocks only its no-deposit offers
+- added `features/players/duplicates.feature`: registrations from one address at the rate the detector counts, with nothing else, change nothing
+- added `features/players/duplicates.feature`: an operator clearing a player's no-deposit block lifts it and records who and when
 - added `features/rewards/eligibility.feature`: an offer that conflicts with one the player holds open is refused
 - added `features/rewards/eligibility.feature`: an offer claimed the maximum times per player is refused on the next claim
 - added `features/rewards/eligibility.feature`: an offer excluded by one the player already claimed is refused
 - added `features/rewards/eligibility.feature`: a claim that fails one rule is refused with that rule's reason
-- added `features/rewards/eligibility.feature`: an operator's award proceeds past every rule but the duplicate flag and the active reward conflict
+- added `features/rewards/eligibility.feature`: an operator's award proceeds past every rule but the duplicate checks and the open reward maximum
 - added `features/rewards/eligibility.feature`: an offer code verified when the offer was targeted is not demanded again when the deposit confirms
 
 ---
@@ -309,7 +349,7 @@ and `reporting` learn of it without a call.
 - **FR-002**: Creation and edit MUST apply the original's validation and name the first failure:
   `bonus_amount_required` (a maximum value above zero unless pure free rounds),
   `wagering_multiplier_required` (unless pure free rounds paying real balance),
-  `invalid_payload_type`, `max_concurrent_grants_invalid` (above one), `currency_required` (free
+  `invalid_payload_type`, `max_concurrent_grants_invalid` (below one; absent is no limit), `currency_required` (free
   rounds), `game_id_required`, `spin_count_required`, `spin_value_required`,
   `max_convertible_amount_required` (destination restricted funds), `code_already_in_use`.
 - **FR-003**: A redemption code MUST be unique across the brand's offers and the programme's code
@@ -321,15 +361,19 @@ and `reporting` learn of it without a call.
 
 **Eligibility**
 
-- **FR-005**: One evaluator MUST decide every path, applying in order: suspected duplicate (skipped
-  when the brand turns detection off), active grant conflict, conflicting grant, maximum claims,
-  excluded by prior offer, redemption code (skipped when verified at targeting), minimum deposit,
-  deposit number, claim window (from registration when the offer sets days, else from selection
-  with a default of 3 days), segment, tier floor; and MUST decline with exactly the reasons
+- **FR-005**: One evaluator MUST decide every path, applying in order: duplicate check in progress
+  (a no-deposit offer, while the player's check is in progress and no more than 10 minutes since
+  registration), weak duplicate signal (a no-deposit offer), suspected duplicate (these three
+  skipped when the brand turns detection off), open grant maximum (the player's open grants, or the
+  wallet's open records if more, at or above the offer's maximum concurrent grants; no limit when
+  the offer sets none), conflicting grant, maximum claims, excluded by prior offer, redemption code
+  (skipped when verified at targeting), minimum deposit, deposit number, claim window (from
+  registration when the offer sets days, else 3 days from selection), segment, tier floor; and MUST
+  decline with exactly the reasons `ELIGIBILITY_CHECK_UNAVAILABLE`, `NO_DEPOSIT_OFFER_BLOCKED`,
   `SUSPECTED_DUPLICATE`, `ACTIVE_BONUS_CONFLICT`, `CONFLICTING_GRANT`, `MAX_CLAIMS_REACHED`,
   `EXCLUDED_BY_PRIOR_OFFER`, `INVALID_CODE`, `BELOW_MIN_DEPOSIT`, `DEPOSIT_NUMBER_MISMATCH`,
   `CLAIM_WINDOW_EXPIRED`, `SEGMENT_MISMATCH`, `VIP_TIER_TOO_LOW`, `ALREADY_CLAIMED`.
-- **FR-006**: An operator override MUST apply only the first two rules.
+- **FR-006**: An operator override MUST apply only the first four rules.
 - **FR-007**: The amount MUST be the deposit × percentage capped at the maximum value for a deposit
   match, the fixed maximum value for a no-deposit offer, and the deposit's currency, or the offer's
   when it carries one, or the player's wallet currency; all in minor units.
@@ -394,7 +438,9 @@ and `reporting` learn of it without a call.
   `free_spins_offer_not_targetable`) and award an offer to a player on a campaign's behalf (the
   *award route*, source `customerio_webhook`, re-resolving a stale offer by its role once, answering
   `alreadyProcessed` when the player holds a claim of the offer, and `offer_not_found`,
-  `ineligible: <reason>`, `spin_value_not_offered` or `game_not_eligible` as the evaluator decides);
+  `ineligible: <reason>`, `spin_value_not_offered` or `game_not_eligible` as the evaluator decides,
+  and a retryable unavailable answer while the player's duplicate check is in progress, as the
+  original's webhook answers 503 for the campaign to retry);
   both MUST be idempotent per player and offer and MUST size a deposit match from the wallet's
   facts, never from the caller.
 - **FR-022a**: A read route MUST answer, for a player, their grants with state, offer name,
@@ -433,6 +479,27 @@ and `reporting` learn of it without a call.
 - **FR-029**: Notifications (`bonus_granted`, `bonus_cancelled`, `bonus_completed` triggers) MUST
   reach Customer.io through `engagement` consuming `casino.rewards`, carrying the grant id so a
   campaign can name it; this service sends nothing itself.
+
+**Duplicate signals (amends spec 008)**
+
+- **FR-034**: `players` MUST mark a newly registered player's duplicate check in progress until its
+  detector has run, or was skipped by the brand's kill switch, and MUST publish the start and the end
+  on `casino.players`; a check never ended is not honoured after 10 minutes from registration.
+- **FR-035**: The detector (spec 008 FR-036) MUST add an email-variant signal (the email's local part
+  lower-cased, with a `+` tag, Gmail's dots and its digits removed, matching another player's) and
+  MUST read the registration's address. A pair is strong when it shares the identity or device
+  signal, or an email variant together with either a registration from the same address within 24
+  hours or three or more registrations from the new player's address within 24 hours; a strong pair
+  MUST flag both and open a fraud case as spec 008 FR-036 does. An email variant alone, or a lookup that
+  fails, is a weak signal and MUST only block the new player's no-deposit offers, published on
+  `casino.players`; an address's rate alone MUST do nothing. The outcome and the end of the check
+  MUST be one change, so the check never ends before the outcome is recorded. The email and the
+  address MUST be matched as lookup tokens, as spec 008's other signals are, never kept in the clear.
+- **FR-036**: An operator with `brand_admin`, `resource_admin`, `brand_compliance`,
+  `compliance_officer`, `fraud_analyst` or `platform_admin` MUST be able to clear a player's
+  no-deposit block, recorded with the operator and the time and published on `casino.players`; the
+  player's profile read MUST show the block as it shows the suspected-duplicate flag. A fraud case's
+  dismissal does not clear it, as in the original.
 
 **Reads, identity and data**
 
@@ -488,9 +555,8 @@ and `reporting` learn of it without a call.
 - The programme's bonus codes are matched from its published document, not from an
   `affiliate-bonus-codes-<brand>` namespace this service writes.
 - Cashback, loyalty points and a VIP programme are not built: they do not exist in the original.
-- Dropped as stubs or migration tooling: the offer-concurrency backfill job, the retire-legacy-refs
-  pre-flight, `max_concurrent_grants` values above one (the routes refuse them today; the wallet
-  supports more — see Assumptions).
+- Dropped as stubs or migration tooling: the offer-concurrency backfill job and the
+  retire-legacy-refs pre-flight.
 
 ## Recordings
 
@@ -533,15 +599,16 @@ Unit fixtures replayed against the entity and evaluator: `EligibilityEvaluator`'
 - `engagement` (spec 014) owns the Customer.io webhook and calls FR-022's routes.
 - The programme (spec 013 FR-023a) publishes a code document per brand beside its key document:
   code text, offer id, signed tag (settled at reconciliation 2).
-- The original forces maximum concurrent grants to one at the routes while the wallet enforces any
-  number. [NEEDS CLARIFICATION: keep the limit at one, or let an offer set it now that the wallet
-  supports it?]
+- An offer sets its maximum concurrent grants, one or more, or none for no limit; the wallet
+  enforces the same number at award (settled 2026-11-01).
 - Free-rounds winnings are awarded or credited uncapped at finalisation (amendment 2026-08-23),
-  with the maximum convertible amount applying only at withdrawal. [NEEDS CLARIFICATION: confirm
-  this is the intended product rule rather than an incident-time fix to keep.]
-- The claim window for a pending selection defaults to 3 days from selection; from registration
-  only when the offer sets days. [NEEDS CLARIFICATION: is 3 days the product default, and should a
-  brand be able to change it?]
+  with the maximum convertible amount applying when the restricted funds convert (settled
+  2026-11-01).
+- The claim window for a pending selection is 3 days from selection, fixed; from registration
+  only when the offer sets days (settled 2026-11-01).
+- The programme (spec 013) and `engagement` (spec 014) are not built: the code document client and
+  the target and award routes are built and tested against fakes, and are inert until those land
+  (settled 2026-11-01).
 - TL is not carried over; the timers here are ankka timers (spec 001 Assumptions).
 
 ## Dependencies
@@ -556,7 +623,8 @@ Unit fixtures replayed against the entity and evaluator: `EligibilityEvaluator`'
   shape spec 003 uses), and a repeat older than the wallet's recent keys is answered from that record,
   never resent to the wallet.
 - Spec 003 game-provider: FR-025 bonus routes; `round_settled` carrying the grant.
-- Spec 008 players: `casino.players` fields the evaluator reads.
+- Spec 008 players: `casino.players` fields the evaluator reads; amended here by FR-034 to FR-036
+  with the duplicate check and the weak signal (the original's #730).
 - Spec 012 attribution: `bonus-cost` from `bonus_granted` and `free_spins_settled`; the code and tag
   on the facts.
 - Spec 013 programme: the per-brand code document (amendment).
