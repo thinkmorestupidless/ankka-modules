@@ -7,8 +7,8 @@ val ankkaVersion = "0.14.2"
 
 // ankka-predictions' components (spec 023 R1). Their pin is ankka 0.14.2, hence this service's; the
 // contract, built on 0.13.0, is evicted to it (T001 proved it on 0.14.2). 0.1.1 carries the placement
-// fixes SC-002 and SC-003 found (research.md); it waits on its tag, so until then PREDICTIONS_VERSION
-// names a local publish of the library's branch.
+// fixes SC-002 and SC-003 found (research.md), from Maven Central once tagged; until then
+// PREDICTIONS_VERSION names a local publish of the library's main.
 val predictionsVersion = sys.env.getOrElse("PREDICTIONS_VERSION", "0.1.1")
 
 // The casino's contract (facts, money, route classes, personal markers, the recording replayer),
