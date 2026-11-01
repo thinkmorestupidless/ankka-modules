@@ -132,7 +132,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `p/settlement/Payout.scala`
 - [X] T022 [P] `p-test/accounts/EmailIndexSuite.scala`, `TokenSuite.scala` (claim once, expiry); then
   `p/accounts/EmailIndex.scala`, `p/accounts/Token.scala`
-- [ ] T023 [P] `p-test/links/SigningKeysSuite.scala` (never retire the last; `withdrawLegacy` once) and
+- [X] T023 [P] `p-test/links/SigningKeysSuite.scala` (never retire the last; `withdrawLegacy` once) and
   `p-test/links/LinkSuite.scala`; then `p/links/SigningKeys.scala` and `p/links/Link.scala` (signed by
   `TagSigner`; the routes are US5's); `p/activity/AuditEntry.scala` and `p/comms/Notification.scala`
   (key value, with suites): every story's actions write an `AuditEntry` (FR-005) from here on
