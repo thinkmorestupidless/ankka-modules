@@ -46,6 +46,9 @@
         "name": "affiliate"
       },
       {
+        "name": "affiliate_manager"
+      },
+      {
         "name": "resource_owner"
       },
       {
