@@ -35,19 +35,19 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
 - [X] T002 Add `REWARDS_CODE_DOCUMENT_URL` (research R13) to `contract/keys.md`, to
       `modules/casino/module.json`'s `configuration[]` (empty default) and to the `rewards` service's
       `env[]`; `just modules render goldvibe` shows it. `just test` green.
-- [ ] T003 Run `ankka init` for the service at `services/rewards/`, in the shape of `services/payouts/`:
+- [X] T003 Run `ankka init` for the service at `services/rewards/`, in the shape of `services/payouts/`:
       `build.sbt` on `casino-contract` and ankka 0.13.0, Scala 3.9.0, munit, munit-scalacheck,
       postgresql, test `-Dcasino.root` and `CASINO_BRAND=goldvibe`, fork, `dockerExposedPorts := Seq(9000)`,
       the `schema` task; `service.json` (`rewards`, runtime 0.13.0); `docker-compose.yml` (Postgres
       on 5441); `src/main/resources/application.conf` (`ankka.service.name = rewards`,
       `ankka.service-client.timeout = 2s`); `README.md` (components, suites, local run).
-- [ ] T004 Remove the `rewards` row from `contract/keys.md`'s "Not yet built" table in the same
+- [X] T004 Remove the `rewards` row from `contract/keys.md`'s "Not yet built" table in the same
       commit as `services/rewards/build.sbt`; `ModuleManifestSuite` green (`just test`).
-- [ ] T005 [P] `justfile`: `rewards-test`, `rewards-it`, `rewards-run brand="goldvibe"` (HTTP 9008,
+- [X] T005 [P] `justfile`: `rewards-test`, `rewards-it`, `rewards-run brand="goldvibe"` (HTTP 9008,
       Postgres 5441, both issuers, `-Dankka.local-services.wallet=http://127.0.0.1:9000
       -Dankka.local-services.game-provider=http://127.0.0.1:9009
       -Dankka.local-services.players=http://127.0.0.1:9003`), as `payouts-run`.
-- [ ] T006 [P] `.github/workflows/ci.yml`: a `rewards` paths filter (`*build`, `services/rewards/**`,
+- [X] T006 [P] `.github/workflows/ci.yml`: a `rewards` paths filter (`*build`, `services/rewards/**`,
       `features/rewards/**`, `tests/port/rewards/**`) and a job as payouts', with a `-Dit=true` step.
 
 ## Phase 2: Foundational
