@@ -38,8 +38,12 @@ final class OperatorEndpoint(components: MarketsComponents, clients: EndpointCli
       b.text("market").fold(field("market")) { id =>
         OperatorEndpoint.definition(b).fold(field, d =>
           offered(d).getOrElse(limits(b).fold(field, t =>
-            terms(id).call(MarketTerms.set).invoke(t): Unit
-            answer(market(id).call(components.market.draft).invoke(MarketCommand.Draft(MarketId(id), operator, d, now)))(_ => current(id)))))
+            // The limits are the market's once the library has taken the draft: a refused draft under
+            // another market's id leaves that market's limits as they were.
+            answer(market(id).call(components.market.draft).invoke(MarketCommand.Draft(MarketId(id), operator, d, now))) { _ =>
+              terms(id).call(MarketTerms.set).invoke(t): Unit
+              current(id)
+            })))
       }
     }
   }
@@ -53,8 +57,12 @@ final class OperatorEndpoint(components: MarketsComponents, clients: EndpointCli
         case "change" =>
           OperatorEndpoint.definition(b).fold(field, d =>
             offered(d).getOrElse(limits(b).fold(field, t =>
-              terms(id).call(MarketTerms.set).invoke(t): Unit
-              run(MarketCommand.Change(operator, d, now)))))
+              // Once the change is taken; a limit the change leaves out keeps the drafted one.
+              answer(OperatorEndpoint.send(components, clients.componentClient, id, MarketCommand.Change(operator, d, now))) { _ =>
+                val was = terms(id).call(MarketTerms.get).invoke()
+                terms(id).call(MarketTerms.set).invoke(Terms(t.maxOrderCost.orElse(was.maxOrderCost), t.maxPosition.orElse(was.maxPosition))): Unit
+                current(id)
+              })))
         case "approve"    => run(MarketCommand.Approve(operator, now))
         case "open"       => run(MarketCommand.Open(now))
         case "suspend"    => reason(MarketCommand.Suspend(operator, _, now))
