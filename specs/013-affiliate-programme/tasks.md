@@ -97,7 +97,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `EdDSA`, `typ eo-tag`, `net programme`, at most 1,024 characters) with `p-test/tags/TagSignerSuite.scala`
   verifying each signed tag with a copy of `a/tag/Tag.scala`'s verification against the key document
   the programme would serve
-- [ ] T012 [P] Implement `p/network/Network.scala` (`ancestors(start, parentOf)` visiting each once,
+- [X] T012 [P] Implement `p/network/Network.scala` (`ancestors(start, parentOf)` visiting each once,
   ending on a cycle; `wouldCycle(child, newParent, parentOf)`) with `p-test/network/NetworkSuite.scala`
 - [ ] T013 [P] Implement `p/postbacks/Macros.scala` (`{event}`, `{clickid}`, `{payout}` default `0`,
   `{status}` default `ok`, percent-encoded, as `S/Postback.scala:15-25`) and `p/csv/Export.scala`
