@@ -349,3 +349,8 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   close claims nothing and carries the facts forward; a payout re-closed after a negative late fact can
   hold earlier claims, and these are released too, so every fact it held carries forward with the rest.
   Overrides for an ended period are dated its last millisecond, as the original's backfill does.
+- **A first deposit is counted once** (T033). Spec 012 emits a `first-deposit` and a `deposit` for a
+  player's first deposit (`features/attribution/facts.feature`), so counting both double-counted the
+  deposit and charged its payment fee twice; the original counts it once (`depositCount: 1` in
+  `tests/port/attribution/`'s first-deposit recording). The `first-deposit` fact decides CPA only; the
+  `deposit` fact counts the deposit and writes its payment fee. data-model.md's kind table says so now.

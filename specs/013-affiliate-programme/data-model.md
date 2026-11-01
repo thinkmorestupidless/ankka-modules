@@ -82,8 +82,8 @@ Command `apply(fact)` answers what it recorded: `Bound`, `Duplicate`, `Unattribu
 | Kind | Recorded |
 |---|---|
 | `registration` | the binding once; a second is `Duplicate` (FR-010) |
-| `first-deposit` | totals; when unguarded and at or above the plan's minimum (passed in by the caller), the guard and `FirstDeposit(true)`; below it, totals only and the guard stays unset |
-| `deposit` | totals |
+| `first-deposit` | when unguarded and at or above the plan's minimum (passed in by the caller), the guard and `FirstDeposit(true)`; below it, the guard stays unset. No totals: the brand also emits a `deposit` for the same deposit (spec 012), which counts it |
+| `deposit` | totals and the payment fee; with the guard unset and at or above the minimum, also the guard and `FirstDeposit(true)` |
 | `ggr-daily`, `ggr-adjustment`, `ggr-round` | `Ngr` when the kind is the brand's GGR source (passed in), else `Ignored(other_source)` recorded for reconciliation; `beforeBinding` true: `BeforeBinding` |
 | `bonus-cost`, `chargeback` | `Ngr`; the fraud counters |
 | `withdrawal-completed` | total up, reference kept |

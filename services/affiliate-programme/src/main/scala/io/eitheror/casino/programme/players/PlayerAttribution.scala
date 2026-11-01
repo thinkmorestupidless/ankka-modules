@@ -125,8 +125,9 @@ object PlayerAttribution extends EventSourcedEntity.Companion[PlayerAttribution,
         case Outcome.Bound =>
           base.copy(binding = e.binding, country = f.country, clickId = f.clickId)
         case Outcome.FirstDeposit(q) =>
-          val d = base.deposits.getOrElse(currency, DepositTotals()).add(f.amount, f.occurredAt)
-          base.copy(deposits = base.deposits.updated(currency, d), guard = if q then Some(Guard(f.factId, f.occurredAt)) else base.guard)
+          // A brand emits a `first-deposit` and a `deposit` for the same deposit (spec 012): the `deposit` counts it.
+          val counted = if f.kind == PlayerFact.Deposit then base.deposits.updated(currency, base.deposits.getOrElse(currency, DepositTotals()).add(f.amount, f.occurredAt)) else base.deposits
+          base.copy(deposits = counted, guard = if q then Some(Guard(f.factId, f.occurredAt)) else base.guard)
         case Outcome.Deposit =>
           base.copy(deposits = base.deposits.updated(currency, base.deposits.getOrElse(currency, DepositTotals()).add(f.amount, f.occurredAt)))
         case Outcome.Ngr("bonus-cost", _) => base.copy(fraud = base.fraud.copy(bonusCosts = base.fraud.bonusCosts + 1))

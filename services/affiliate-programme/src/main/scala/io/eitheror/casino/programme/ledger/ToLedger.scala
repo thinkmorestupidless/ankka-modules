@@ -6,7 +6,7 @@ import io.eitheror.casino.programme.Wiring
 import io.eitheror.casino.programme.accounts.{Membership, MembershipState}
 import io.eitheror.casino.programme.brands.{BrandProgramme, BrandState, Plan, PlanState}
 import io.eitheror.casino.programme.commission.Window
-import io.eitheror.casino.programme.players.{Outcome, PlayerAttribution}
+import io.eitheror.casino.programme.players.{Outcome, PlayerAttribution, PlayerFact}
 
 import java.time.Instant
 
@@ -46,8 +46,9 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
       lazy val m     = calls.membership(b.affiliate, f.brand)
       lazy val plan  = m.plan.map(calls.plan(f.brand, _)).filter(_.exists)
       def account(currency: String) = CommissionAccount.entityId(b.affiliate, f.brand, currency)
+      // Once per deposit: the brand's `deposit` fact, never the `first-deposit` it also emits for the first.
       def paymentFee(): Unit =
-        f.currency.foreach { c =>
+        f.currency.filter(_ => f.kind == PlayerFact.Deposit).foreach { c =>
           calls.recordPaymentFee(account(c), RecordPaymentFee(f.factId, f.amount, brand.fees.payment, f.occurredAt, brand.reportingZone, now()))
         }
       e.outcome match

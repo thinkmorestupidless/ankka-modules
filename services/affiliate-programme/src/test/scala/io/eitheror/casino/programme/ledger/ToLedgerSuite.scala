@@ -43,9 +43,10 @@ class ToLedgerSuite extends munit.FunSuite with LogCapturing:
     PlayerAttribution.Applied(PlayerFact(kind, id, at, "goldvibe", "ps-1", "aff-1", "lnk-1", currency = Some(currency), amount = amount), binding, o)
   private def writer(c: Calls) = LedgerWriter(c, () => at.plusSeconds(60))
 
-  test("a qualifying first deposit writes CPA in the plan's currency and the payment fee in the deposit's") {
+  test("a qualifying first deposit writes CPA in the plan's currency; its deposit fact the payment fee, once") {
     val c = calls()
-    writer(c).write(applied(PlayerFact.FirstDeposit, "d-1", 2_000, "USD", Outcome.FirstDeposit(true)))
+    writer(c).write(applied(PlayerFact.FirstDeposit, "fd-1", 2_000, "USD", Outcome.FirstDeposit(true)))
+    writer(c).write(applied(PlayerFact.Deposit, "d-1", 2_000, "USD", Outcome.Deposit))
     assertEquals(c.facts("aff-1/goldvibe/EUR").map(f => (f.id, f.kind, f.amount)), Vector(("cpa/goldvibe/ps-1", FactType.Cpa, 5_000L)))
     assertEquals(c.sums("aff-1/goldvibe/USD").amount(FactType.PaymentFee), 40L)
   }

@@ -48,11 +48,19 @@ class PlayerAttributionSuite extends munit.FunSuite with LogCapturing:
   test("a first deposit at the minimum qualifies once, for life; a later one does not") {
     val k = bound
     assertEquals(apply(k, fact(PlayerFact.FirstDeposit, 2000, currency = "USD")).replyValue, Outcome.FirstDeposit(true))
+    assertEquals(apply(k, fact(PlayerFact.Deposit, 2000, currency = "USD")).replyValue, Outcome.Deposit)
     assertEquals(apply(k, fact(PlayerFact.Deposit, 9000, currency = "USD")).replyValue, Outcome.Deposit)
     assertEquals(apply(k, fact(PlayerFact.FirstDeposit, 9000)).replyValue, Outcome.FirstDeposit(false))
     val s = state(k)
     assertEquals((s.deposits("USD").count, s.deposits("USD").sum, s.deposits("USD").second.map(_.amount)), (2, 11_000L, Some(9000L)))
     assert(s.guard.isDefined)
+  }
+
+  test("a first deposit's two facts count it once: the deposit fact counts, the first-deposit fact does not") {
+    val k = bound
+    apply(k, fact(PlayerFact.FirstDeposit, 2000)): Unit
+    apply(k, fact(PlayerFact.Deposit, 2000)): Unit
+    assertEquals((state(k).deposits("EUR").count, state(k).deposits("EUR").sum), (1, 2000L))
   }
 
   test("a first deposit below the minimum leaves the guard unset, so a later deposit at the minimum qualifies") {

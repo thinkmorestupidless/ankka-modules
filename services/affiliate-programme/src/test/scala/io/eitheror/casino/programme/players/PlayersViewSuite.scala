@@ -1,6 +1,5 @@
 package io.eitheror.casino.programme.players
 
-
 import java.time.Instant
 
 class PlayersViewSuite extends munit.FunSuite:
@@ -13,7 +12,8 @@ class PlayersViewSuite extends munit.FunSuite:
   test("a row lists the binding, the first deposit and the totals, and forgets the country on closing") {
     val events = Vector(
       PlayerAttribution.Applied(fact(PlayerFact.Registration, "r"), binding, Outcome.Bound),
-      PlayerAttribution.Applied(fact(PlayerFact.FirstDeposit, "d1", 2_000), binding, Outcome.FirstDeposit(true)),
+      PlayerAttribution.Applied(fact(PlayerFact.FirstDeposit, "fd1", 2_000), binding, Outcome.FirstDeposit(true)),
+      PlayerAttribution.Applied(fact(PlayerFact.Deposit, "d1", 2_000), binding, Outcome.Deposit),
       PlayerAttribution.Applied(fact(PlayerFact.Deposit, "d2", 500), binding, Outcome.Deposit)
     )
     val row = events.foldLeft(PlayerRow())(PlayerRow.next)
