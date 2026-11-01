@@ -49,6 +49,10 @@ object MoneyConsumer extends Consumer.Companion[MoneyConsumer, Option[MoneyTrans
     case "adjustment" => Some(ForfeitReason.AdminAdjustEmptied)
     case _            => None
 
+  /** W5's reasons for a pending cap the wallet closed (FR-014); the free rounds' finalisation is this service's own. */
+  def closeReason(reason: String): Option[CloseReason] =
+    CloseReason.from(reason).filterNot(_ == CloseReason.FreeSpinsFinalised)
+
   def change(fact: MoneyTransactionsMessage): Option[Change] = fact match
     case f: DepositConfirmed =>
       Some(Change.Deposit(f.playerId,
@@ -56,5 +60,5 @@ object MoneyConsumer extends Consumer.Companion[MoneyConsumer, Option[MoneyTrans
     case f: RestrictedFundsConverted => Some(Change.ToReward(f.awardId, reward.Convert(f.occurredAt)))
     case f: RestrictedFundsForfeited =>
       forfeitReason(f.reason).map(r => Change.ToReward(f.awardId, reward.Forfeit(r, Some(f.amountCents.value), f.occurredAt)))
-    case f: RestrictedFundsClosed => CloseReason.from(f.reason).map(r => Change.ToReward(f.awardId, reward.Close(r, f.occurredAt)))
+    case f: RestrictedFundsClosed => closeReason(f.reason).map(r => Change.ToReward(f.awardId, reward.Close(r, f.occurredAt)))
     case _                        => None

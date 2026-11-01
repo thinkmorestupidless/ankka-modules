@@ -33,9 +33,21 @@ class ConsumersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(MoneyConsumer.change(RestrictedFundsClosed("p-1", Eur, "t-1", "r-1", "cap_exhausted", SignedMinorUnits(0), m(0), at)),
       Some(MoneyConsumer.Change.ToReward("r-1", reward.Close(CloseReason.CapExhausted, at))))
 
+  test("every close reason of W5 closes the reward with it"):
+    for reason <- CloseReason.values.toVector.filterNot(_ == CloseReason.FreeSpinsFinalised) do
+      assertEquals(MoneyConsumer.change(RestrictedFundsClosed("p-1", Eur, "t-1", "r-1", reason.wire, SignedMinorUnits(0), m(0), at)),
+        Some(MoneyConsumer.Change.ToReward("r-1", reward.Close(reason, at))), reason.wire)
+
+  test("an operator's adjustment is not read: only the forfeit it leaves at zero moves the reward"):
+    val adjusted = AdminAdjusted("p-1", Eur, "t-1", SignedMinorUnits(-200), "restricted", "goodwill", "op-1", SignedMinorUnits(0), m(800), at)
+    assertEquals(MoneyConsumer.change(adjusted), None)
+    assertEquals(MoneyConsumer.change(forfeited("adjustment")).collect { case MoneyConsumer.Change.ToReward(_, f: reward.Forfeit) => f.reason },
+      Some(ForfeitReason.AdminAdjustEmptied))
+
   test("a forfeit this service or payouts asked for, a close it does not know, and other families are not read"):
     for reason <- Vector("forfeit", "cancel", "hold") do assertEquals(MoneyConsumer.change(forfeited(reason)), None, reason)
-    assertEquals(MoneyConsumer.change(RestrictedFundsClosed("p-1", Eur, "t-1", "r-1", "mystery", SignedMinorUnits(0), m(0), at)), None)
+    for reason <- Vector("mystery", CloseReason.FreeSpinsFinalised.wire) do
+      assertEquals(MoneyConsumer.change(RestrictedFundsClosed("p-1", Eur, "t-1", "r-1", reason, SignedMinorUnits(0), m(0), at)), None, reason)
     assertEquals(MoneyConsumer.change(BetPlaced("p-1", Eur, "t-1", "rd-1", "g-1", m(100), "real", SignedMinorUnits(0), m(0), at)), None)
 
   test("a fact that cannot be read, and a family not read, are ignored"):
