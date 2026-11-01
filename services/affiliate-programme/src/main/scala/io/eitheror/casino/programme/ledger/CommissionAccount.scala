@@ -50,8 +50,11 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
 
   sealed trait Event
   final case class FactWritten(fact: LedgerFact, reason: Option[String] = None, by: Option[String] = None) extends Event
-  final case class FactsClaimed(payoutId: String, ids: Set[String], figures: Claim.Figures) extends Event
-  final case class FactsReleased(payoutId: String) extends Event
+  /** `newly` counts, by period, the facts this claim took that were unclaimed before (the `Unsettled` view's figure). */
+  final case class FactsClaimed(payoutId: String, ids: Set[String], figures: Claim.Figures, newly: Map[String, Int] = Map.empty)
+      extends Event
+  /** `periods` counts, by period, the facts the payout held and gives back. */
+  final case class FactsReleased(payoutId: String, periods: Map[String, Int] = Map.empty) extends Event
   final case class PayoutPaid(payoutId: String) extends Event
   /** A source's earnings in a period moved: its ancestors' overrides are recomputed from it (FR-015). */
   final case class EarningsChanged(period: String, earnings: Long) extends Event
@@ -66,9 +69,9 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
         claims = f.settledBy.fold(s.claims)(p => s.claims.updated(p, s.claims.getOrElse(p, Set.empty) + f.id)),
         written = (s.written :+ f.id).takeRight(MaxWritten)
       )
-    case FactsClaimed(p, ids, _) =>
+    case FactsClaimed(p, ids, _, _) =>
       s.copy(unsettled = s.unsettled.map(f => if ids(f.id) then f.copy(settledBy = Some(p)) else f), claims = s.claims.updated(p, ids))
-    case FactsReleased(p) =>
+    case FactsReleased(p, _) =>
       s.copy(unsettled = s.unsettled.map(f => if f.settledBy.contains(p) then f.copy(settledBy = None) else f), claims = s.claims - p)
     case PayoutPaid(p) =>
       s.copy(unsettled = s.unsettled.filterNot(_.settledBy.contains(p)), paid = s.paid + p, claims = s.claims - p)
@@ -207,10 +210,15 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
           val ids   = facts.map(_.id).toSet
           val reply = Closing(claimed = true, figures, ids.size)
           if ids == prior then effects.reply(reply)
-          else effects.persist(FactsClaimed(c.payoutId, ids, figures)).thenReply(_ => reply)
+          else
+            val newly = facts.filterNot(f => prior(f.id)).groupMapReduce(_.period)(_ => 1)(_ + _)
+            effects.persist(FactsClaimed(c.payoutId, ids, figures, newly)).thenReply(_ => reply)
         case Claim.Outcome.BelowThreshold(figures) =>
           val reply = Closing(claimed = false, figures, 0)
-          if prior.isEmpty then effects.reply(reply) else effects.persist(FactsReleased(c.payoutId)).thenReply(_ => reply)
+          if prior.isEmpty then effects.reply(reply)
+          else
+            val held = s.unsettled.filter(_.settledBy.contains(c.payoutId)).groupMapReduce(_.period)(_ => 1)(_ + _)
+            effects.persist(FactsReleased(c.payoutId, held)).thenReply(_ => reply)
 
   def markPaid(payoutId: String): Effect[AccountState] =
     if currentState.paid(payoutId) then effects.reply(currentState)

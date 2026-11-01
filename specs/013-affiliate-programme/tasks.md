@@ -139,7 +139,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### The ledger's views, the secrets, the pipeline
 
-- [ ] T024 Implement `p/ledger/Ledger.scala` and `p/ledger/Unsettled.scala` (views over
+- [X] T024 Implement `p/ledger/Ledger.scala` and `p/ledger/Unsettled.scala` (views over
   `CommissionAccount`, the declared queries of data-model.md) with `p-test/ledger/LedgerViewSuite.scala`
   (sums by type per period range equal the facts' sum; settled facts carry their payout)
 - [ ] T025 [P] Implement the views `p/accounts/Accounts.scala`, `p/accounts/Memberships.scala`,
