@@ -117,7 +117,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   (FR-029), `activateInvited`, `revShareOverride`; then `p/accounts/Membership.scala`
 - [X] T018 [P] `p-test/intake/FactInboxSuite.scala`: `claim` once, `duplicate` after; then
   `p/intake/FactInbox.scala`
-- [ ] T019 [P] `p-test/players/PlayerAttributionSuite.scala`: every row of data-model.md's kind table,
+- [X] T019 [P] `p-test/players/PlayerAttributionSuite.scala`: every row of data-model.md's kind table,
   including the lifetime guard, a first deposit below the minimum leaving it unset, the other GGR source
   recorded as `Ignored(other_source)`, `beforeBinding` recorded, withdrawals never below zero, a
   reversal with no completed withdrawal ignored, `player-closed` forgetting country and click; then

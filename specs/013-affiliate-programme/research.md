@@ -336,3 +336,12 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
 ## Design finished
 
 2026-11-01: analyze reported nothing above LOW.
+
+## Found during implementation
+
+- **A later deposit pays CPA while the guard is unset** (T019). data-model.md's kind table records a
+  `deposit` as totals only, but commission.feature says a first deposit below the minimum leaves the
+  guard unset "so a later deposit that meets the minimum deposit pays CPA". The scenario governs: a
+  `deposit` at or above the plan's minimum, with the guard unset, answers `FirstDeposit(true)` and sets
+  the guard; once set, every deposit is `Deposit`. A plan that pays no CPA passes no minimum and never
+  qualifies, so the guard stays unset until one does.
