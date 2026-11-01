@@ -53,6 +53,12 @@ object Facts:
           )
         }
 
+    // Spec 011 W5: every pending cap the wallet closes, so `rewards` closes the reward waiting on it.
+    def closed(txId: String, recordId: String, reason: String, updates: Vector[RecordUpdate], realAfter: Long,
+        restrictedAfter: Long, depositAfter: Long, convertedAfter: Long, at: java.time.Instant, id: String): Published[f.MoneyTransactionsMessage] =
+      Published(f.RestrictedFundsClosed(playerId, currency, txId, grantOf(updates, recordId), reason, real(realAfter),
+        units(restrictedAfter), at, dep(depositAfter), dep(convertedAfter)), id)
+
     event match
       case e: DepositConfirmed =>
         one(f.DepositConfirmed(playerId, currency, e.transactionId, units(e.amount), e.key, e.depositOrdinal, real(e.realAfter),
@@ -106,7 +112,13 @@ object Facts:
           units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(held.deposit), part(held.converted),
           part(e.voidedParts.deposit), part(e.voidedParts.converted)), e.transactionId) ++
           forfeited(e.transactionId, e.forfeits, "hold", e.clawback, e.clawbackParts, e.recordUpdates, e.realAfter,
-            e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at)
+            e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at) ++
+          e.capDraws.filter(_.closes).map(d => closed(e.transactionId, d.recordId, "cap_exhausted", e.recordUpdates, e.realAfter,
+            e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at, s"${e.transactionId}/${d.recordId}"))
+
+      case e: PendingCapClosed =>
+        Vector(closed(e.transactionId, e.recordId, "cap_expired", e.recordUpdates, e.realAfter, e.restrictedAfter, e.depositAfter,
+          e.convertedAfter, e.at, e.transactionId))
 
       case e: HoldReleased =>
         one(f.HoldReleased(playerId, currency, e.transactionId, e.requestId, units(e.amount), real(e.realAfter),
@@ -166,7 +178,7 @@ object Facts:
           real(e.realAfter), units(e.restrictedAfter), units(e.reservedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
           part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
 
-      case _: WalletOpenedFromMigration | _: PendingCapClosed | _: PrimarySwitched | _: HoldConfirmed | _: TurnoverOverrideSet |
+      case _: WalletOpenedFromMigration | _: PrimarySwitched | _: HoldConfirmed | _: TurnoverOverrideSet |
           _: CommandRefused =>
         Vector.empty
 

@@ -483,7 +483,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
       case Right(plan) =>
         val txId    = transactionId(c.key)
         val outcome = accepted("close-pending-cap", c, Some(txId), s.realBalance, s.restrictedBalance).copy(closedRecordId = plan.closedRecords.headOption)
-        effects.persist(PendingCapClosed(c.key, digest, txId, plan.closedRecords.head, plan.recordUpdates, c.at, outcome)).thenReply(_ => outcome)
+        effects.persist(PendingCapClosed(c.key, digest, txId, plan.closedRecords.head, plan.recordUpdates, c.at, outcome,
+          s.realBalance, s.restrictedBalance, s.depositPool, s.convertedPool)).thenReply(_ => outcome)
   }
 
   def switchPrimary(c: SwitchPrimary): Effect[Outcome] = keyed(c, "switch") { digest =>
