@@ -72,6 +72,7 @@ Commands and the transitions they allow (FR-002): `apply` (none → pending; rej
 | `fraud` | bonus-cost count, chargeback count |
 | `beforeBinding` | `Vector[(reportingDay, currency, ggr)]` recorded, never folded |
 | `seen` | the last 1,000 fact ids (a second guard behind `FactInbox`) |
+| `disagreements` | facts whose affiliate or link differs from the binding: fact id, what it named (edge case; commission follows the binding) |
 | `closed` | `Option[(category, at)]` |
 
 Command `apply(fact)` answers what it recorded: `Bound`, `Duplicate`, `Unattributed(reason)`,
@@ -90,7 +91,11 @@ Command `apply(fact)` answers what it recorded: `Bound`, `Duplicate`, `Unattribu
 | `withdrawal-requested`, `withdrawal-failed` | nothing changes (commission.feature) |
 | `player-closed` | country and click forgotten; amounts kept |
 
-Every kind but `registration` and `click` on an unbound player is `Unattributed(no_attribution)`.
+Every kind but `registration` and `click` on an unbound player is `Unattributed(no_attribution)`. A
+fact naming another affiliate or link than the binding is applied to the binding and recorded as a
+disagreement. `Intake` refuses before the player is touched, recording `Unattributed(revoked_link)`
+when the binding's link is revoked and `Unattributed(not_a_member)` when the bound affiliate holds no
+membership at the brand (FR-011).
 
 ### `CommissionAccount`: id `<affiliate>/<brand>/<currency>`
 
@@ -130,7 +135,7 @@ status (settlement.feature).
 | Entity | Id | Holds | Commands |
 |---|---|---|---|
 | `FactInbox` | `<brand>/<factId>` | the fact, channel, received at, outcome | `claim(fact, channel)` → `new` or `duplicate`; `outcome(o)` |
-| `BrandProgramme` | brand slug | origin (`here`, `elsewhere`, `hosted`), fees (bp), fraud thresholds, payout cycle, reporting zone, GGR source and its change day, default plan, programme page, sender configuration (region, transactional ids), retired, counts of duplicates and mismatches | `seed`, `add`, `update`, `setGgrSource(source, fromDay)`, `retire`, `countDuplicate`, `countMismatch`, `get` |
+| `BrandProgramme` | brand slug | origin (`here`, `elsewhere`, `hosted`), fees (bp), fraud thresholds, payout cycle, reporting zone, GGR source and its change day, default plan, programme page, sender configuration (region, transactional ids), retired (a retired brand refuses applications and status changes; closes, payouts and reads continue), counts of duplicates and mismatches | `seed`, `add`, `update`, `setGgrSource(source, fromDay)`, `retire`, `countDuplicate`, `countMismatch`, `get` |
 | `Plan` | `<brand>/<planId>` | name, type, CPA amount and currency, RevShare bp, minimum deposit, window, status | `create` (refused `plan_already_exists` by name), `update`, `get` |
 | `EmailIndex` | HMAC of the email | affiliate id | `claim(affiliate)` (refused when another holds it), `release`, `get` |
 | `Link` | link id | affiliate, brand, campaign, landing path, utm, sub-ids, signed tag, legacy btag, revoked | `create`, `revoke`, `get` |
@@ -138,7 +143,7 @@ status (settlement.feature).
 | `InviteLink` | token | affiliate, brand(s), plan, status, applications this hour | `create`, `use(at)` (refused past 50 an hour), `revoke` |
 | `Token` | SHA-256 of the token | user, purpose (`invite`, `reset`), expires, used | `issue`, `claim(at)` once |
 | `ClickRecord` | `<brand>/<factId>` | link, click id, device, country, at | `record` |
-| `SigningKeys` | `programme` | kids with public keys, made, retired | `add`, `retire` (never the last) |
+| `SigningKeys` | `programme` | kids with public keys, made, retired; `legacyWithdrawnAt` | `add`, `retire` (never the last), `withdrawLegacy(by, at)` once |
 | `FraudFlag` | `<brand>/<pseudonym>/<reason>` | affiliate, reason, raised, dismissed by and why | `raise` once, `dismiss` |
 | `Notification` | uuid | affiliate, type, body, read | `write`, `read` |
 | `Note`, `Creative`, `AuditEntry` | uuid | as the original (`S/AffiliateTwins.scala`) | `write` (creative also `delete`) |
@@ -149,7 +154,8 @@ status (settlement.feature).
 - `Close`, id `<brand>/<period>`: step `page(cursor)` reads 50 accounts from `Unsettled`, for each calls
   `Payout.get` (skips a paid one), `CommissionAccount.close`, `Payout.open`; transitions to itself until
   the page is empty; answers the payouts written (`{period, created, payouts}` as the original).
-- `Erasure`, id the affiliate id: `hold` pauses until the retention end, `destroy` deletes the data key,
+- `Erasure`, id the affiliate id: `hold` pauses until the retention end (filing day plus
+  `PROGRAMME_RETENTION_DAYS`, default 1825 as `players`, spec 008), `destroy` deletes the data key,
   `release` the email index, `realm` deletes the realm user, `record` writes `Affiliate.erased`.
 - `Postback`, id `<factId>/<affiliate>`: `send`, then a timer-driven retry schedule to 24 hours (R13).
 - `EmailSend`, id uuid: up to three attempts over five minutes.
@@ -167,7 +173,7 @@ status (settlement.feature).
 | `Payouts` | `Payout` | one per payout | by brand and period; by affiliate; approved by brand and period |
 | `LinkStats` | `ClickRecord`, `PlayerAttribution` | clicks and registrations per link | by affiliate; by link |
 | `Codes` | `BonusCode` | live codes per brand | the code document |
-| `Revocations`, `LegacyTags` | `Link`, `Affiliate` | revoked links and affiliates; imported legacy tags | the two documents |
+| `Revocations`, `LegacyTags` | `Link`, `Affiliate` | revoked links, and affiliates whose account is closed or erased; imported legacy tags, until withdrawn | the two documents |
 | `Inbox` | `FactInbox` | received, duplicates, unattributed, mismatched per brand and day | the usage report; operator counts |
 | `Activity` | `AuditEntry`, `Notification`, `Note`, `FraudFlag`, `PostbackOutcome` | one row per entry, typed | by affiliate and brand |
 

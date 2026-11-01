@@ -45,6 +45,7 @@ public by `withAcl(Routes.public)`.
 | O45, O46 | `GET`, `PUT /{brand}/programme` | + terms, contact, description, default plan |
 | O47 | `POST /{brand}/messages` | |
 | O48, O49 | `GET /{brand}/fraud-flags`, `PATCH /{brand}/fraud-flags/{flag}/dismiss` | |
+| new | `GET /{brand}/unattributed` | facts recorded unattributed, mismatched or disagreeing, with the reason (FR-011, edge cases), from `Inbox` and `Players` |
 | O50–O52 | `GET`, `POST /{brand}/creatives`, `DELETE /{brand}/creatives/{id}` | an address, not a file |
 
 ## `/v1/my` (`PortalEndpoint`)
@@ -78,6 +79,7 @@ past 50 an hour.
 |---|---|---|
 | `GET /documents/keys`, `/documents/revocations`, `/documents/legacy-tags`, `/documents/codes/{brand}` | public | spec 012's shapes; `Cache-Control: max-age=<cacheSeconds>` |
 | `POST /inbound/{brand}` | public, HMAC | [inbound.md](inbound.md) |
+| `POST /documents/legacy-tags/withdraw` | `platform_admin` | FR-026: once every brand with imported tags reports its transition ended in its own key document; the document answers `404` after |
 | `GET`, `POST /brands`; `PATCH /brands/{brand}` | `platform_admin` | FR-040; `POST` answers the webhook secret once |
 | `GET /brands/{brand}/usage?month=` | `platform_admin` | FR-042 |
 | `POST /imports/{brand}` | `platform_admin` | FR-039 |

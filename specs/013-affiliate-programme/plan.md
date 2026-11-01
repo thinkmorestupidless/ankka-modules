@@ -70,8 +70,8 @@ operator surface.
 
 | Item | Count |
 |---|---|
-| Original routes ported | 93 of 110 (7 public, 35 portal, 51 operator); 17 not served (research R1) |
-| New routes | 13 (manager revoke, close, erasure, export, postbacks, 4 documents, inbound, brands ×3, usage, import) |
+| Original routes ported | 91 of 110 (5 public, 35 portal, 51 operator); 19 not served (research R1) |
+| New routes | 17 (manager revoke, close, erasure, export, unattributed, postbacks, 4 documents, legacy withdrawal, inbound, brands ×3, usage, import) |
 | Event sourced entities | 5: `Affiliate`, `Membership`, `PlayerAttribution`, `CommissionAccount`, `Payout` |
 | Key value entities | 16 (data-model.md) |
 | Workflows | 5: `Close`, `Erasure`, `Postback`, `EmailSend`, `Import` |

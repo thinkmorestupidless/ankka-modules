@@ -132,8 +132,10 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `p/settlement/Payout.scala`
 - [ ] T022 [P] `p-test/accounts/EmailIndexSuite.scala`, `TokenSuite.scala` (claim once, expiry); then
   `p/accounts/EmailIndex.scala`, `p/accounts/Token.scala`
-- [ ] T023 [P] `p-test/links/SigningKeysSuite.scala` (never retire the last); then
-  `p/links/SigningKeys.scala`
+- [ ] T023 [P] `p-test/links/SigningKeysSuite.scala` (never retire the last; `withdrawLegacy` once) and
+  `p-test/links/LinkSuite.scala`; then `p/links/SigningKeys.scala` and `p/links/Link.scala` (signed by
+  `TagSigner`; the routes are US5's); `p/activity/AuditEntry.scala` and `p/comms/Notification.scala`
+  (key value, with suites): every story's actions write an `AuditEntry` (FR-005) from here on
 
 ### The ledger's views, the secrets, the pipeline
 
@@ -153,10 +155,13 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   first deposit)
 - [ ] T028 Implement `p/ledger/ToLedger.scala` (consumer over `PlayerAttribution`, data-model.md
   *Consumers*; fraud flags and postbacks are added by US6 and US7) with
-  `p-test/ledger/ToLedgerSuite.scala`
+  `p-test/ledger/ToLedgerSuite.scala`; `Intake`'s refusals `revoked_link` and `not_a_member` and
+  `PlayerAttribution`'s disagreements (FR-011, data-model.md) with cases in `IntakeKitSuite`
 - [ ] T029 [P] Implement the outbound seams: `p/comms/CustomerIo.scala` (trait and `HttpClient` client,
   `POST /v1/send/email` as `S/AffiliateInviteEmailService.scala:311-391`), `p/comms/EmailSend.scala`
-  (workflow, three attempts over five minutes, failure recorded), `p/accounts/KeycloakAdmin.scala` (after
+  (workflow, three attempts over five minutes, failure recorded), `p/comms/Communications.scala`
+  (consumer over `Membership`: application received, approved, rejected, a sub pending to its parent;
+  each a `Notification` and an `EmailSend`; US7 adds the rest), `p/accounts/KeycloakAdmin.scala` (after
   `m/operators/KeycloakAdmin.scala`: create user with the attributes of `S/NetworkTree.scala:225-328`,
   assign and remove realm roles, find by email, reset password, update email, delete user)
 - [ ] T030 Implement `p/api/Access.scala` (the path's `{brand}` against `brandsOf`, after
@@ -232,7 +237,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [ ] T045 [US1] `p/accounts/Provisioning.scala` (consumer over `Membership`): the realm user and the
   roles `affiliate` and `brand_<slug>` on activation (research R11), the brand role removed when no
   membership there is active or suspended; a default link on activation (as `S/NetworkTree.scala:178-212`,
-  the `Link` of US5 created with `campaign default`)
+  T023's `Link` created with `campaign default`)
 - [ ] T046 [US1] Revenue reads with the brand as a filter, per brand and currency, never summed across
   currencies: portal M1–M5 and operator O22, O37–O39 in `p/api/PortalEndpoint.scala` and
   `OperatorEndpoint.scala`, over `Ledger`; portal M6–M10 (`account`, `plan`, `available-plans`,
@@ -299,13 +304,14 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Implementation
 
-- [ ] T062 [US5] `p/links/Link.scala`, `p/links/BonusCode.scala` (one wins a concurrent claim; revoke
-  frees the text) with suites; portal M11, M12, M28–M30; operator O35, O36
+- [ ] T062 [US5] `p/links/BonusCode.scala` (one wins a concurrent claim; revoke frees the text) with its
+  suite; portal M11, M12, M28–M30; operator O35, O36 over T023's `Link`
 - [ ] T063 [US5] `p/players/ClickRecord.scala` and `p/links/LinkStats.scala` (click counts from click facts
   only, FR-024)
-- [ ] T064 [US5] The views `p/links/Codes.scala`, `Revocations.scala`, `LegacyTags.scala`, the
-  `Revocations` timed action, and the four document routes of `ProgrammeEndpoint` (contracts/inbound.md
-  *The documents*)
+- [ ] T064 [US5] The views `p/links/Codes.scala`, `Revocations.scala` (closed and erased affiliates
+  included), `LegacyTags.scala`, the `Revocations` timed action, the four document routes of
+  `ProgrammeEndpoint` (contracts/inbound.md *The documents*) and the legacy withdrawal route
+  (contracts/routes.md)
 - [ ] T065 [US5] Parity: `links and codes`
 
 ---
@@ -329,8 +335,9 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   manager, group and tags in the endpoint (research R9); creating an account active with a membership
 - [ ] T070 [US6] `p/activity/FraudFlag.scala` raised by `ToLedger` when a player's counters cross the
   brand's thresholds; O48, O49
-- [ ] T071 [US6] `p/activity/Note.scala`, `Creative.scala`, `AuditEntry.scala`, the `Activity` view; O23–O25,
-  O47, O50–O52; every audited action of FR-005 writes an `AuditEntry`
+- [ ] T071 [US6] `p/activity/Note.scala`, `Creative.scala`, the `Activity` view; O23–O25, O47, O50–O52;
+  `GET /{brand}/unattributed` (contracts/routes.md); a retired brand refusing applications and status
+  changes (data-model.md `BrandProgramme`)
 - [ ] T072 [US6] O29–O34, the read-only view (`view/{page}`, `commission` with `?period=`)
 - [ ] T073 [US6] Parity: `plans`, `managers`, `fraud flags`, `notes, messages, creatives, settings,
   programme page`, `read-only view`
@@ -349,8 +356,8 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Implementation
 
-- [ ] T076 [US7] `p/comms/Communications.scala` (consumer over `Membership`, `Payout`, `FraudFlag`) and
-  `p/comms/Notification.scala`; portal M24, M25
+- [ ] T076 [US7] Extend `p/comms/Communications.scala` over `Payout` and `FraudFlag` and the invitation
+  and password happenings; portal M24, M25
 - [ ] T077 [US7] `p/comms/Postback.scala` (workflow after `a/carriers/Delivery.scala`, the retry by timer),
   `PostbackOutcome`, queued by `ToLedger` for registration, first deposit, deposit and RevShare; the
   portal's `postbacks` route
@@ -370,7 +377,8 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Implementation
 
-- [ ] T082 [US8] `p/accounts/Erasure.scala` (workflow: hold, destroy the key, release the email index,
+- [ ] T082 [US8] `p/accounts/Erasure.scala` (workflow: hold to the filing day plus
+  `PROGRAMME_RETENTION_DAYS`, added to `p/Settings.scala` and the manifest, default 1825; destroy the key, release the email index,
   delete the realm user, record) with its kit suite; the close and erasure routes; O18 update-email
   re-sealing and moving the index
 - [ ] T083 [US8] O26 and M23 show pseudonyms, countries and figures only; a `player-closed` fact's effect
@@ -425,8 +433,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [ ] T095 Quickstart §6: `just programme-run`, the walk-through it describes
 - [ ] T096 Quickstart §7 on kind: `shared/programme` beside `brands/goldvibe`, the grant consumed, a hosted
   brand's webhook landing; settle research R20's second item (a removed brand's component)
-- [ ] T097 Record what changed at implementation in research.md *Changed at implementation*; tick the
-  spec table in `CLAUDE.md` if it gains a status column
+- [ ] T097 Record what changed at implementation in research.md *Changed at implementation*
 
 ---
 
@@ -438,14 +445,14 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   needs.
 - **Foundational (2)**: after Setup; blocks every story. T008–T014 together (T010 makes T007 pass);
   T015–T023 together after T014; T024, T025 after T020, T021, T016, T017, T019; T026 after T014; T027
-  after T015, T018, T019, T026; T028 after T020, T027; T029 after T014; T030 after T025, T026; T031
+  after T015, T018, T019, T026; T028 after T020, T027; T029 after T014, T017, T023; T030 after T025, T026; T031
   after T027–T030; T032, T033 after T031. T034 needs T006, the original's kind stack and Docker, and
   gates every parity task.
 - **US2 (3)**: after Foundational. The MVP.
 - **US1 (4)**: after US2 (revenue reads need the ledger).
 - **US3 (5)**: after US1 (memberships and the portal's access).
 - **US4 (6)**: after US2; can run beside US1 and US3.
-- **US5 (7)**: after US1 (T045's default link); beside US3 and US4.
+- **US5 (7)**: after US1; beside US3 and US4.
 - **US6 (8)**: after US1; T070 after US2's `ToLedger`.
 - **US7 (9)**: after US1 and US4 (payout happenings).
 - **US8 (10)**: after US1.

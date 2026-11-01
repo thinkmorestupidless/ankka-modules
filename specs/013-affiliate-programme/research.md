@@ -332,3 +332,7 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
    restart per brand (R3); a calendar timer is not needed here.
 
 ## Declined remediations
+
+## Design finished
+
+2026-11-01: analyze reported nothing above LOW.
