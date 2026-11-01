@@ -36,6 +36,15 @@ final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 
   post("/{playerId}/deselect") { (p: String) => mine(p)(Selection.deselect(ctx, p)) }
 
+  // The lifecycle (US4): the cancel's body may be empty, which cancels the primary.
+  postBody("/{playerId}/cancel") { (p: String, text: String) =>
+    mine(p)(body(if text.isBlank then "{}" else text)(PlayerLifecycle.cancel(ctx, p, _)))
+  }
+
+  postBody("/{playerId}/switch") { (p: String, text: String) => mine(p)(body(text)(PlayerLifecycle.switch(ctx, p, _))) }
+
+  get("/{playerId}/history") { (p: String) => mine(p)(PlayerLifecycle.history(ctx, p)) }
+
 /** The selection routes' work (FR-011, FR-013). */
 object Selection:
   private def refuse(code: String): Reply = Answers.Rewards.refuse(code)
