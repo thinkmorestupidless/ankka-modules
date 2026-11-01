@@ -33,6 +33,8 @@ class EligibilityFeatures extends RewardsFeatures("eligibility.feature"):
 
   override def beforeEach(context: BeforeEach): Unit =
     super.beforeEach(context)
+    // The switch read last is the brand's until a check fact reads it again: a scenario turning it off leaves it read.
+    io.eitheror.casino.rewards.consumers.Detection.forget()
     claims = Vector.empty
     claim = () => throw AssertionError("no claim set up")
     offerId = ""

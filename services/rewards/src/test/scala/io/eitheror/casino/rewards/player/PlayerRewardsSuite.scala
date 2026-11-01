@@ -172,3 +172,48 @@ class PlayerRewardsSuite extends munit.FunSuite:
   test("the provisional opening is the offer's fixed amount in the currency given"):
     val o = Openings.provisional(matchOffer, "p-1", Eur, Source.PlayerCode, None, None)
     assertEquals((o.decision.amount, o.decision.currency, o.offerId, o.playerId), (50000L, Eur, "o-match", "p-1"))
+
+  // ── the player's standing from casino.players (T039, research R9) ─────────────────────────
+
+  private def fact(kit: Kit, change: PlayerChange, detection: Option[Boolean] = None) =
+    kit.call(PlayerRewards.playerFact)(PlayerFact(change, detection, at))
+
+  test("the registration, the check and its block, the flag and the tier are recorded; a fact repeated writes nothing"):
+    val kit = record
+    val reg = at.minusSeconds(300)
+    assertEquals(fact(kit, PlayerChange.Registered(reg, Some("EUR"))).events.toVector, Vector(RegistrationRecorded(reg, Some("EUR"), at)))
+    assertEquals(fact(kit, PlayerChange.CheckStarted(reg)).events.toVector, Vector(CheckStarted(reg, at)))
+    assertEquals(fact(kit, PlayerChange.CheckStarted(reg)).events.toVector, Vector.empty)
+    assertEquals(fact(kit, PlayerChange.Blocked).events.toVector, Vector(NoDepositBlocked(at)))
+    assertEquals(fact(kit, PlayerChange.Flag(true)).events.toVector, Vector(FlagChanged(true, at)))
+    assertEquals(fact(kit, PlayerChange.Tier("gold")).events.toVector, Vector(TierChanged("gold", at)))
+    val s = kit.currentState
+    assertEquals((s.registeredAt, s.currency, s.checkInProgress, s.noDepositBlocked, s.suspectedDuplicate, s.tier),
+      (Some(reg), Some("EUR"), Some(at), true, true, Some("gold")))
+    assertEquals((s.snapshot.checkInProgress, s.snapshot.noDepositBlocked, s.snapshot.suspectedDuplicate), (true, true, true))
+    assertEquals(fact(kit, PlayerChange.CheckEnded("weak")).events.toVector, Vector(CheckEnded("weak", at)))
+    assertEquals(fact(kit, PlayerChange.CheckEnded("weak")).events.toVector, Vector.empty)
+    assertEquals(fact(kit, PlayerChange.BlockCleared).events.toVector, Vector(BlockCleared(at)))
+    assertEquals(fact(kit, PlayerChange.Flag(false)).events.toVector, Vector(FlagChanged(false, at)))
+    assertEquals((kit.currentState.checkInProgress, kit.currentState.noDepositBlocked, kit.currentState.suspectedDuplicate),
+      (None, false, false))
+
+  test("a check started before the registration is seen sets the registration time; the registration's currency is the last choice"):
+    val kit = record
+    val reg = at.minusSeconds(60)
+    fact(kit, PlayerChange.CheckStarted(reg)): Unit
+    assertEquals(kit.currentState.registeredAt, Some(reg))
+    confirm(kit, deposit(5000L)): Unit
+    fact(kit, PlayerChange.Registered(reg, Some("GBP"))): Unit
+    assertEquals(kit.currentState.currency, Some("EUR"))
+
+  test("the detection switch a fact carries is kept; none carried leaves it"):
+    val kit = record
+    assertEquals(fact(kit, PlayerChange.Flag(true), Some(false)).events.toVector, Vector(DetectionChanged(false, at), FlagChanged(true, at)))
+    assertEquals(fact(kit, PlayerChange.Tier("gold")).events.toVector, Vector(TierChanged("gold", at)))
+    assert(!kit.currentState.detectionOn)
+    target(kit, freeBonus): Unit
+    val r = select(kit, freeBonus)
+    assert(r.replyValue.outcome.isInstanceOf[Outcome.Claimed], r.replyValue.outcome.toString)
+    fact(kit, PlayerChange.CheckEnded("clear"), Some(true)): Unit
+    assert(kit.currentState.detectionOn)

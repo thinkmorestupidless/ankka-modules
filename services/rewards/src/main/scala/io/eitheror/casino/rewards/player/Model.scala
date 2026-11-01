@@ -104,6 +104,18 @@ object PlayerEvent:
   final case class RewardIndexed(rewardId: String, offerId: String, status: RewardStatus, providerFailed: Boolean,
       awardRefused: Boolean, at: Instant) extends PlayerEvent
 
+  // The player's standing from `casino.players` (research R9; data-model.md `PlayerFact`).
+  /** `currency` is the registration's, FR-007's last choice while no deposit has named one. */
+  final case class RegistrationRecorded(registeredAt: Instant, currency: Option[String], at: Instant) extends PlayerEvent
+  final case class CheckStarted(registeredAt: Instant, at: Instant)                   extends PlayerEvent
+  final case class CheckEnded(outcome: String, at: Instant)                           extends PlayerEvent
+  final case class NoDepositBlocked(at: Instant)                                      extends PlayerEvent
+  final case class BlockCleared(at: Instant)                                          extends PlayerEvent
+  final case class FlagChanged(suspectedDuplicate: Boolean, at: Instant)             extends PlayerEvent
+  final case class TierChanged(tier: String, at: Instant)                             extends PlayerEvent
+  /** The brand's duplicate detection as `players` last answered it, carried by a fact (research R9). */
+  final case class DetectionChanged(on: Boolean, at: Instant)                         extends PlayerEvent
+
 /** What a command came to, for its caller to act on (open the reward, select it, start the award, expire it). */
 sealed trait Outcome
 object Outcome:
@@ -146,6 +158,24 @@ final case class PendingOffer(rewardId: String, offer: Option[Offer])
 /** An award of the offer on another path (the award route, an operator's award): evaluated in `mode`, then reserved. */
 final case class ClaimOffer(offer: Offer, operator: Boolean, deposit: Option[io.eitheror.casino.rewards.eligibility.Deposit],
     source: Source, code: Option[String], tag: Option[String], walletOpen: Int, walletCurrency: Currency, at: Instant)
+
+/** A change of the player's standing as `casino.players` reports it (research R9), for `PlayerFact`. */
+sealed trait PlayerChange
+object PlayerChange:
+  final case class Registered(registeredAt: Instant, currency: Option[String]) extends PlayerChange
+  final case class CheckStarted(registeredAt: Instant)                          extends PlayerChange
+  final case class CheckEnded(outcome: String)                                  extends PlayerChange
+  case object Blocked                                                           extends PlayerChange
+  case object BlockCleared                                                      extends PlayerChange
+  /** A fraud flag raised (`true`) or cleared: the suspected duplicate of rule 3. */
+  final case class Flag(suspected: Boolean)                                     extends PlayerChange
+  final case class Tier(name: String)                                           extends PlayerChange
+
+/**
+ * A fact of the player's from `PlayersConsumer`: the change, and the brand's detection switch as last read, when it was
+ * read (research R9: at start and on each check fact).
+ */
+final case class PlayerFact(change: PlayerChange, detection: Option[Boolean], at: Instant)
 
 final case class RewardChanged(rewardId: String, offerId: String, status: RewardStatus, providerFailed: Boolean, awardRefused: Boolean,
     at: Instant)

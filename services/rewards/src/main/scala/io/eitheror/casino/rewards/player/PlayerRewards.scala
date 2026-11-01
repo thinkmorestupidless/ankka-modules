@@ -125,6 +125,15 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
     if before.contains(after) then answer(Outcome.Idle)
     else write(Outcome.Idle, RewardIndexed(c.rewardId, c.offerId, c.status, c.providerFailed, c.awardRefused, c.at))
 
+  /**
+   * The player's standing from `casino.players` (`PlayersConsumer`, research R9): the registration, the duplicate check
+   * and its block, the fraud flag, the tier, and the brand's detection switch the fact carries. Only what changes is
+   * written, so a fact delivered twice writes nothing the second time.
+   */
+  def playerFact(c: PlayerFact): Effect[PlayerAnswer] =
+    val events = PlayerRewards.factEvents(currentState, c)
+    if events.isEmpty then answer(Outcome.Idle) else write(Outcome.Idle, events*)
+
   def get: ReadOnlyEffect[PlayerRewardsState] = effects.reply(currentState)
 
 object PlayerRewards
@@ -141,6 +150,7 @@ object PlayerRewards
   given Serializer[DepositConfirmed]   = RewardsCodecs.serializer[DepositConfirmed]("player-deposit-confirmed")
   given Serializer[ClaimOffer]         = RewardsCodecs.serializer[ClaimOffer]("player-claim")
   given Serializer[RewardChanged]      = RewardsCodecs.serializer[RewardChanged]("player-reward-changed")
+  given Serializer[PlayerFact]         = RewardsCodecs.serializer[PlayerFact]("player-fact")
 
   def create(context: EventSourcedEntityContext) = new PlayerRewards(context)
 
@@ -150,6 +160,7 @@ object PlayerRewards
   val depositConfirmed = command("deposit-confirmed")(_.depositConfirmed)
   val claim            = command("claim")(_.claim)
   val rewardChanged    = command("reward-changed")(_.rewardChanged)
+  val playerFact       = command("player-fact")(_.playerFact)
   val get              = query("get")(_.get)
 
   val OfferNotVisible = "offer_not_visible"
@@ -165,6 +176,20 @@ object PlayerRewards
     val answered = awardRefused || !(status == RewardStatus.Available || status == RewardStatus.Pending)
     h.copy(status = status, providerFailed = providerFailed, claiming = h.claiming && !answered,
       selectedAt = if status == RewardStatus.Pending then h.selectedAt else if status == RewardStatus.Available then None else h.selectedAt)
+
+  /** What a player's fact writes on the record as it stands: nothing that is already so. */
+  def factEvents(s: PlayerRewardsState, c: PlayerFact): Vector[PlayerEvent] =
+    val detection = c.detection.filter(_ != s.detectionOn).map(DetectionChanged(_, c.at)).toVector
+    val change: Option[PlayerEvent] = c.change match
+      case PlayerChange.Registered(at, currency) =>
+        Option.when(!s.registeredAt.contains(at) || (s.currency.isEmpty && currency.isDefined))(RegistrationRecorded(at, currency, c.at))
+      case PlayerChange.CheckStarted(registeredAt) => Option.when(s.checkInProgress.isEmpty)(CheckStarted(registeredAt, c.at))
+      case PlayerChange.CheckEnded(outcome)        => Option.when(s.checkInProgress.isDefined)(CheckEnded(outcome, c.at))
+      case PlayerChange.Blocked                    => Option.when(!s.noDepositBlocked)(NoDepositBlocked(c.at))
+      case PlayerChange.BlockCleared               => Option.when(s.noDepositBlocked)(BlockCleared(c.at))
+      case PlayerChange.Flag(on)                   => Option.when(s.suspectedDuplicate != on)(FlagChanged(on, c.at))
+      case PlayerChange.Tier(name)                 => Option.when(!s.tier.contains(name))(TierChanged(name, c.at))
+    detection ++ change
 
   private def onReward(s: PlayerRewardsState, id: String)(f: HeldReward => HeldReward): PlayerRewardsState =
     s.copy(rewards = s.rewards.updatedWith(id)(_.map(f)))
@@ -185,3 +210,11 @@ object PlayerRewards
     case DeclineRecorded(id, why, _)  => onReward(s, id)(_.copy(lastDecline = Some(why)))
     case RewardIndexed(id, offerId, status, failed, refused, at) =>
       s.copy(rewards = s.rewards.updated(id, indexed(s.rewards.get(id), offerId, status, failed, refused, at)))
+    case RegistrationRecorded(at, currency, _) => s.copy(registeredAt = Some(at), currency = s.currency.orElse(currency))
+    case CheckStarted(registeredAt, at)        => s.copy(checkInProgress = Some(at), registeredAt = s.registeredAt.orElse(Some(registeredAt)))
+    case CheckEnded(_, _)                      => s.copy(checkInProgress = None)
+    case NoDepositBlocked(_)                   => s.copy(noDepositBlocked = true)
+    case BlockCleared(_)                       => s.copy(noDepositBlocked = false)
+    case FlagChanged(on, _)                    => s.copy(suspectedDuplicate = on)
+    case TierChanged(tier, _)                  => s.copy(tier = Some(tier))
+    case DetectionChanged(on, _)               => s.copy(detectionOn = on)

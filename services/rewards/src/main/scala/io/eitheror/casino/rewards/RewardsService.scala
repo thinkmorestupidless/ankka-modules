@@ -19,7 +19,8 @@ object RewardsService:
     facts.OfferAuditPublisher.descriptor,
     player.PlayerRewards.descriptor,
     consumers.MoneyConsumer.descriptor,
-    consumers.IndexConsumer.descriptor
+    consumers.IndexConsumer.descriptor,
+    consumers.PlayersConsumer.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
