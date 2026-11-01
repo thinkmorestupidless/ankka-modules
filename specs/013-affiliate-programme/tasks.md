@@ -157,7 +157,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   *Consumers*; fraud flags and postbacks are added by US6 and US7) with
   `p-test/ledger/ToLedgerSuite.scala`; `Intake`'s refusals `revoked_link` and `not_a_member` and
   `PlayerAttribution`'s disagreements (FR-011, data-model.md) with cases in `IntakeKitSuite`
-- [ ] T029 [P] Implement the outbound seams: `p/comms/CustomerIo.scala` (trait and `HttpClient` client,
+- [X] T029 [P] Implement the outbound seams: `p/comms/CustomerIo.scala` (trait and `HttpClient` client,
   `POST /v1/send/email` as `S/AffiliateInviteEmailService.scala:311-391`), `p/comms/EmailSend.scala`
   (workflow, three attempts over five minutes, failure recorded), `p/comms/Communications.scala`
   (consumer over `Membership`: application received, approved, rejected, a sub pending to its parent;
