@@ -127,7 +127,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   catch-up on the next NGR fact once it is true (FR-016); `recomputeOverride` deltas; `close` claiming
   up to the end plus earlier claims, below threshold claiming nothing, refused for a paid payout;
   `markPaid`; a snapshot at 500 events; then `p/ledger/CommissionAccount.scala`
-- [ ] T021 [P] `p-test/settlement/PayoutSuite.scala`: `open`, the approved-to-pending revert recording
+- [X] T021 [P] `p-test/settlement/PayoutSuite.scala`: `open`, the approved-to-pending revert recording
   the superseded approval, every refused transition naming the status, paid never changing; then
   `p/settlement/Payout.scala`
 - [X] T022 [P] `p-test/accounts/EmailIndexSuite.scala`, `TokenSuite.scala` (claim once, expiry); then
