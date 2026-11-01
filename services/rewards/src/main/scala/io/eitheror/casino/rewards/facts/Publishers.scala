@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.audit.{AuditCompanion, AuditConsumer}
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.rewards.RewardsRuntime
+import io.eitheror.casino.rewards.offers.{OfferBook, OfferEvent}
 import io.eitheror.casino.rewards.reward.{Reward, RewardEvent, RewardState}
 
 /** The reward as it stands: its opening's fixed part (player, offer, amount, currency, source) is what a fact reads. */
@@ -33,7 +34,7 @@ object RewardsPublisher extends Consumer.Companion[RewardsPublisher, RewardEvent
 
 /**
  * An operator's actions on a reward on `platform.audit` (`Facts.audit`). The offer book's records are a second audit
- * consumer over `OfferBook`'s events, `OfferAuditPublisher`, added with `OfferBook` (task T032).
+ * consumer over `OfferBook`'s events, `OfferAuditPublisher`.
  */
 final class AuditPublisher(client: ComponentClient) extends AuditConsumer[RewardEvent]:
   protected def audit(change: RewardEvent): Option[AuditRecord] = change match
@@ -44,3 +45,12 @@ final class AuditPublisher(client: ComponentClient) extends AuditConsumer[Reward
 
 object AuditPublisher extends AuditCompanion[AuditPublisher, RewardEvent]("rewards-audit-publisher", ChangeSource.eventsOf(Reward)):
   def create(ctx: ConsumerContext) = new AuditPublisher(ctx.componentClient)
+
+/** The offer book's changes on `platform.audit` (`Facts.offerAudit`): every `OfferBook` event is an operator's. */
+final class OfferAuditPublisher extends AuditConsumer[OfferEvent]:
+  protected def audit(change: OfferEvent): Option[AuditRecord] =
+    Some(Facts.offerAudit(RewardsRuntime.settings.brand, messageContext.subject, messageContext.sequenceNumber, change).fact)
+
+object OfferAuditPublisher
+    extends AuditCompanion[OfferAuditPublisher, OfferEvent]("rewards-offer-audit-publisher", ChangeSource.eventsOf(OfferBook)):
+  def create(ctx: ConsumerContext) = new OfferAuditPublisher

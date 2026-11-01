@@ -134,3 +134,54 @@ object Offer:
     def encodeKey(x: Currency, out: JsonWriter): Unit = out.writeKey(x.code)
 
   given JsonValueCodec[Offer] = RewardsCodecs.stored[Offer]
+
+// ── the offer book (data-model.md `OfferBook`) ───────────────────────────
+
+/**
+ * A brand's offers (data-model.md `OfferBook`), keyed by the slug: every offer by id, and the brand's order. The code
+ * and role indexes are read from the offers, so they never drift from them: codes of live offers only, roles of
+ * active ones. An offer is never removed: a delete deactivates it.
+ */
+final case class OfferBookState(offers: Map[String, Offer] = Map.empty, order: Vector[String] = Vector.empty):
+  def offer(id: String): Option[Offer] = offers.get(id)
+
+  /** Every offer in the brand's order. */
+  def list: Vector[Offer] = order.flatMap(offers.get)
+
+  /** The live offer holding a code, in `Codes.normalise`'s form (FR-019's first match). */
+  def byCode(code: String, now: Instant): Option[Offer] =
+    val n = Codes.normalise(code)
+    list.find(o => o.live(now) && o.redemptionCodes.exists(c => Codes.normalise(c.code) == n))
+
+  /** The active offer holding a role (at most one, FR-002 `role_already_assigned`). */
+  def byRole(role: String): Option[Offer] = list.find(o => o.active && o.role.contains(role))
+
+  /** The live offers' codes, normalised, each to its offer. */
+  def liveCodes(now: Instant): Map[String, String] =
+    list.filter(_.live(now)).flatMap(o => o.redemptionCodes.map(c => Codes.normalise(c.code) -> o.id)).toMap
+
+/** What happened to a brand's offers; `by` is the operator, for the audit (FR-003). */
+sealed trait OfferEvent
+object OfferEvent:
+  final case class OfferCreated(offer: Offer, by: String)                           extends OfferEvent
+  /** `changed`: the fields the edit named, for the audit. */
+  final case class OfferEdited(offer: Offer, changed: Vector[String], by: String)  extends OfferEvent
+  final case class OfferDeactivated(offerId: String, by: String, at: Instant)      extends OfferEvent
+  final case class OffersReordered(order: Vector[String], by: String, at: Instant) extends OfferEvent
+
+/** A create: the draft as read, the programme's codes (FR-003), and the operator. A repeat under the same id answers the offer. */
+final case class CreateOffer(draft: Draft, programmeCodes: Set[String], by: String)
+
+/**
+ * An edit: the body as sent, read here against the offer it edits (`Bodies.patch`), so a field cleared (`null`) is told
+ * apart from one not named on its way to the entity.
+ */
+final case class EditOffer(id: String, body: String, programmeCodes: Set[String], by: String, at: Instant)
+
+final case class DeactivateOffer(id: String, by: String, at: Instant)
+
+/** The ids in their new order; ids not of the brand are ignored (data-model.md). */
+final case class ReorderOffers(ids: Vector[String], by: String, at: Instant)
+
+/** What a command answers: the offer it is about, the refusal, and how many offers a reorder placed. */
+final case class OfferAnswer(offer: Option[Offer] = None, refusal: Option[Refusal] = None, updated: Int = 0)

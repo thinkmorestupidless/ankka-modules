@@ -2,6 +2,7 @@ package io.eitheror.casino.rewards.facts
 
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.money.MinorUnits
+import io.eitheror.casino.rewards.offers.{Bodies, Offer, OfferEvent}
 import io.eitheror.casino.rewards.reward.{RewardEvent, RewardState, RewardStatus, Source}
 import io.eitheror.casino.rewards.reward.RewardEvent.*
 
@@ -85,8 +86,7 @@ object Facts:
 
   /**
    * The operator's actions on a reward (contracts/facts.md): an operator's award, once the wallet confirmed it, and a
-   * revoke with its mode and the reason named as personal. The offer book's audit (created, edited, deactivated,
-   * reordered) is `offerAudit`, added with `OfferBook` (task T032), beside this one.
+   * revoke with its mode and the reason named as personal. The offer book's audit is `offerAudit`, below.
    */
   def audit(brand: String, rewardId: String, sequence: Long, event: RewardEvent, s: RewardState): Option[Published[f.AuditRecord]] =
     val id     = s"audit/reward/$rewardId/$sequence"
@@ -103,3 +103,28 @@ object Facts:
             e.reason.map(_ => named("reason")),
           Some(e.mode.wire), e.at))
       case _ => None
+
+  /**
+   * The offer book's changes (FR-003; contracts/facts.md): created, edited (the fields the edit named, with their new
+   * values: an offer holds no personal value), deactivated, and reordered, each with the operator. `slug` is the book's
+   * id; the record id is `audit/offers/<slug>/<seq>`, so a redelivered event is the same record.
+   */
+  def offerAudit(brand: String, slug: String, sequence: Long, event: OfferEvent): Published[f.AuditRecord] =
+    val id = s"audit/offers/$slug/$sequence"
+    def offerRecord(action: String, operator: String, kind: String, subject: String, changes: Vector[f.AuditChange], at: Instant) =
+      Published(f.AuditRecord(recordId = id, brand = brand, service = "rewards", action = action, actorKind = "operator",
+        actorId = operator, approverId = None, subjectKind = kind, subjectId = subject, outcome = "accepted", reasonCode = None,
+        changes = changes, correlationId = id, causationId = id, recordClass = "operator", occurredAt = at), id)
+    def value(o: Offer, field: String): Option[String] =
+      Option(Bodies.render(o).get(field)).filterNot(_.isNull).map(n => if n.isValueNode then n.asText else n.toString)
+    event match
+      case OfferEvent.OfferCreated(o, by) =>
+        offerRecord("rewards.offer_created", by, "offer", o.id,
+          Vector(to("name", o.name), to("type", o.offerType.wire), to("active", "true")), o.createdAt)
+      case OfferEvent.OfferEdited(o, changed, by) =>
+        offerRecord("rewards.offer_edited", by, "offer", o.id, changed.map(field => f.AuditChange(field, None, value(o, field))),
+          o.updatedAt)
+      case OfferEvent.OfferDeactivated(offerId, by, at) =>
+        offerRecord("rewards.offer_deactivated", by, "offer", offerId, Vector(f.AuditChange("active", Some("true"), Some("false"))), at)
+      case OfferEvent.OffersReordered(order, by, at) =>
+        offerRecord("rewards.offers_reordered", by, "offer-book", slug, Vector(to("order", order.mkString(","))), at)

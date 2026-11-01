@@ -14,7 +14,9 @@ object RewardsService:
     reward.ClockTimer.descriptor,
     reads.RewardsView.descriptor,
     facts.RewardsPublisher.descriptor,
-    facts.AuditPublisher.descriptor
+    facts.AuditPublisher.descriptor,
+    offers.OfferBook.descriptor,
+    facts.OfferAuditPublisher.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
