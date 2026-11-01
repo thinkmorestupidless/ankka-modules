@@ -1,6 +1,6 @@
 package io.eitheror.casino.exchange.reconcile
 
-import com.thinkmorestupidless.ankka.core.{Codecs, ComponentId, Serializer}
+import com.thinkmorestupidless.ankka.core.{Codecs, ComponentId, EntityId, Serializer}
 import com.thinkmorestupidless.ankka.sdk.*
 import com.thinkmorestupidless.predictions.exchange.*
 import io.eitheror.casino.contract.facts as f
@@ -15,45 +15,50 @@ final case class Difference(family: String, key: String, wallet: Long, exchange:
 final case class Check(seq: Int, at: Instant, last: Boolean, differences: Vector[Difference])
 
 /**
- * One market's two sides of the money (research R12, data-model.md *reconciliation*): per family and
- * key, the sum the exchange's events and placements say moved and the sum the wallet's facts say did.
- * Each side is counted once: the exchange's by its journal's sequence, the wallet's by its transaction
- * id, a refused placement by its order.
+ * One money key of one market (research R12, data-model.md *reconciliation*): the sum the exchange's
+ * events and placements say moved under it, the sum the wallet's facts say did, and the sources
+ * already counted: an exchange event by its journal's sequence (`x/<seq>`), a wallet fact by its
+ * transaction id (`w/<id>`), a refused placement by its order (`r/<order>`). A key is moved by a few
+ * sources only (an order's placement, its fills and its end), so its state stays small however long
+ * the market trades, and each source is counted once in one write.
  */
-final case class Tally(
-    exchange: Map[String, Long] = Map.empty,
-    wallet: Map[String, Long] = Map.empty,
-    exchangeSeq: Long = 0,
-    transactions: Set[String] = Set.empty,
-    refused: Set[String] = Set.empty,
-    checks: Int = 0,
-    check: Option[Check] = None
-):
-  def differences: Vector[Difference] =
-    (exchange.keySet ++ wallet.keySet).toVector.sorted.flatMap { k =>
-      val (w, x) = (wallet.getOrElse(k, 0L), exchange.getOrElse(k, 0L))
-      Option.when(w != x) {
-        val (family, key) = k.splitAt(k.indexOf('|'))
-        Difference(family, key.drop(1), w, x)
-      }
-    }
+final case class KeyTally(market: String = "", family: String = "", key: String = "", wallet: Long = 0, exchange: Long = 0,
+    sources: Set[String] = Set.empty):
+  def balanced: Boolean = wallet == exchange
 
-final case class ExchangeMoves(seq: Long, moves: Map[String, Long])
+final case class KeyMove(market: String, family: String, key: String, source: String, wallet: Long, exchange: Long)
+
+/** A market's checks; the keys and their sums are the key tallies', read through [[UnbalancedKeys]] when a check falls due. */
+final case class Tally(checks: Int = 0, check: Option[Check] = None)
+
 final case class RefusedPlacement(order: String, cost: Long)
-final case class WalletMoves(transaction: String, moves: Map[String, Long])
-final case class CheckNow(at: Instant, last: Boolean)
+final case class CheckNow(at: Instant, last: Boolean, differences: Vector[Difference] = Vector.empty)
 
 object Tally:
-  given Serializer[Tally]            = Codecs.serializer[Tally]("exchange-tally")
-  given Serializer[ExchangeMoves]    = Codecs.serializer[ExchangeMoves]("exchange-tally-exchange")
+  given Serializer[Tally]            = Codecs.serializer[Tally]("exchange-tally-checks")
+  given Serializer[KeyTally]         = Codecs.serializer[KeyTally]("exchange-tally-key")
+  given Serializer[KeyMove]          = Codecs.serializer[KeyMove]("exchange-tally-key-move")
   given Serializer[RefusedPlacement] = Codecs.serializer[RefusedPlacement]("exchange-tally-refused")
-  given Serializer[WalletMoves]      = Codecs.serializer[WalletMoves]("exchange-tally-wallet")
   given Serializer[CheckNow]         = Codecs.serializer[CheckNow]("exchange-tally-check")
 
-  def add(to: Map[String, Long], moves: Map[String, Long]) =
-    moves.foldLeft(to) { case (m, (k, v)) => m.updated(k, m.getOrElse(k, 0L) + v) }
+  /** A move's `family|key` split in two. */
+  def split(familyKey: String): (String, String) =
+    val i = familyKey.indexOf('|')
+    (familyKey.take(i), familyKey.drop(i + 1))
+
+  /** The keys whose two sides differ, in key order. */
+  def differences(keys: Vector[KeyTally]): Vector[Difference] =
+    keys.filterNot(_.balanced).sortBy(k => (k.family, k.key)).map(k => Difference(k.family, k.key, k.wallet, k.exchange))
 
   private def k(family: String, key: String) = s"$family|$key"
+
+  /** One source's moves onto each key it names; each key counts the source once, so a redelivery moves nothing. */
+  def record(client: ComponentClient, market: String, source: String, moves: Map[String, Long], exchange: Boolean): Unit =
+    moves.foreach { (familyKey, amount) =>
+      val (family, key) = split(familyKey)
+      client.forKeyValueEntity(EntityId(KeyTallyEntity.id(market, family, key))).call(KeyTallyEntity.moved)
+        .invoke(KeyMove(market, family, key, source, if exchange then 0 else amount, if exchange then amount else 0)): Unit
+    }
 
   /** What an exchange event moved, by family and key, as the ledger port moves it (R4): under the market's ids. */
   def moves(market: MarketId, event: ExchangeEvent): Map[String, Long] =
@@ -98,41 +103,60 @@ object Tally:
 
   def refusedMoves(r: RefusedPlacement): Map[String, Long] = Map(k("reservation", r.order) -> r.cost, k("release", r.order) -> r.cost)
 
+final class KeyTallyEntity(@scala.annotation.unused context: KeyValueEntityContext) extends KeyValueEntity[KeyTally]:
+  def emptyState: KeyTally = KeyTally()
+
+  def moved(m: KeyMove): Effect[KeyTally] =
+    val k = currentState
+    if k.sources(m.source) then effects.reply(k)
+    else
+      effects.updateState(KeyTally(m.market, m.family, m.key, k.wallet + m.wallet, k.exchange + m.exchange, k.sources + m.source))
+        .thenReplyState
+
+  def get: ReadOnlyEffect[KeyTally] = effects.reply(currentState)
+
+object KeyTallyEntity extends KeyValueEntity.Companion[KeyTallyEntity, KeyTally](ComponentId("exchange-tally-key"), Tally.given_Serializer_KeyTally):
+  import Tally.given_Serializer_KeyMove
+  def create(context: KeyValueEntityContext) = new KeyTallyEntity(context)
+
+  /** A key tally's id: the family, the market and the key (an entity id holds no `|`; neither a family nor a market holds a `/`). */
+  def id(market: String, family: String, key: String) = s"$family/$market/$key"
+
+  val moved = command("moved")(_.moved)
+  val get   = query("get")(_.get)
+
+/** Each key tally as a row, so a check finds a market's unbalanced keys without holding them all in one value. */
+final class UnbalancedKeysView extends View[KeyTally, KeyTally]:
+  def onChange(k: KeyTally): Effect = effects.updateRow(k)
+
+object UnbalancedKeys extends View.Companion[UnbalancedKeysView, KeyTally, KeyTally](
+      componentId = ComponentId("exchange-unbalanced-keys"),
+      source = ChangeSource.stateOf(KeyTallyEntity),
+      rowSerializer = Tally.given_Serializer_KeyTally
+    ):
+  def create(ctx: ViewComponentContext) = new UnbalancedKeysView
+
+  /** A market's keys whose wallet side differs from its exchange side; a side the row leaves out is 0. */
+  val of = query("of-market")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'market' = :market " +
+      "AND COALESCE((payload::jsonb->>'wallet')::bigint, 0) <> COALESCE((payload::jsonb->>'exchange')::bigint, 0) ORDER BY row_key")
+
+/** A market's checks: each one numbered and kept with its differences, for the audit consumer. */
 final class TallyEntity(@scala.annotation.unused context: KeyValueEntityContext) extends KeyValueEntity[Tally]:
-  import Tally.{add, refusedMoves}
   def emptyState: Tally = Tally()
-
-  def exchanged(m: ExchangeMoves): Effect[Tally] =
-    if m.seq <= currentState.exchangeSeq then effects.reply(currentState)
-    else effects.updateState(currentState.copy(exchange = add(currentState.exchange, m.moves), exchangeSeq = m.seq, check = None)).thenReplyState
-
-  def refusedPlacement(r: RefusedPlacement): Effect[Tally] =
-    if currentState.refused(r.order) then effects.reply(currentState)
-    else
-      effects.updateState(currentState.copy(exchange = add(currentState.exchange, refusedMoves(r)), refused = currentState.refused + r.order,
-        check = None)).thenReplyState
-
-  def walletMoved(m: WalletMoves): Effect[Tally] =
-    if currentState.transactions(m.transaction) then effects.reply(currentState)
-    else
-      effects.updateState(currentState.copy(wallet = add(currentState.wallet, m.moves), transactions = currentState.transactions + m.transaction,
-        check = None)).thenReplyState
 
   def checkNow(c: CheckNow): Effect[Tally] =
     val n = currentState.checks + 1
-    effects.updateState(currentState.copy(checks = n, check = Some(Check(n, c.at, c.last, currentState.differences)))).thenReplyState
+    effects.updateState(currentState.copy(checks = n, check = Some(Check(n, c.at, c.last, c.differences)))).thenReplyState
 
   def get: ReadOnlyEffect[Tally] = effects.reply(currentState)
 
-object TallyEntity extends KeyValueEntity.Companion[TallyEntity, Tally](ComponentId("exchange-tally"), Tally.given_Serializer_Tally):
-  import Tally.{given_Serializer_ExchangeMoves, given_Serializer_RefusedPlacement, given_Serializer_WalletMoves, given_Serializer_CheckNow}
+object TallyEntity extends KeyValueEntity.Companion[TallyEntity, Tally](ComponentId("exchange-tally-checks"), Tally.given_Serializer_Tally):
+  import Tally.given_Serializer_CheckNow
   def create(context: KeyValueEntityContext) = new TallyEntity(context)
 
-  val exchanged        = command("exchanged")(_.exchanged)
-  val refusedPlacement = command("refused-placement")(_.refusedPlacement)
-  val walletMoved      = command("wallet-moved")(_.walletMoved)
-  val checkNow         = command("check")(_.checkNow)
-  val get              = query("get")(_.get)
+  val checkNow = command("check")(_.checkNow)
+  val get      = query("get")(_.get)
 
 /** Which market an order or a trade belongs to, for the wallet's facts that name only the order or the trade. */
 final case class MarketOf(market: String = "")

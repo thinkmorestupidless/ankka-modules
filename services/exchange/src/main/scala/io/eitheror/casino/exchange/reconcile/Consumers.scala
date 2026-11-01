@@ -20,7 +20,7 @@ object Checks:
   @volatile var afterFinal: FiniteDuration = 10.minutes
 
 /**
- * The exchange's side, from its journal: each event's moves onto the market's tally, the orders and
+ * The exchange's side, from its journal: each event's moves onto its keys' tallies, the orders and
  * trades it names indexed to the market, and the checks scheduled at the opening and the finality.
  */
 final class ExchangeTally(context: ConsumerContext, timers: () => TimerScheduler) extends Consumer[ExchangeEvent, Nothing]:
@@ -36,10 +36,7 @@ final class ExchangeTally(context: ConsumerContext, timers: () => TimerScheduler
         timers().delete(Checks.daily(market))
         timers().createSingleTimer(Checks.last(market), Checks.afterFinal, Reconcile.last.deferred(market))
       case _ => ()
-    val moves = Tally.moves(MarketId(market), event)
-    if moves.nonEmpty then
-      context.componentClient.forKeyValueEntity(EntityId(market)).call(TallyEntity.exchanged)
-        .invoke(ExchangeMoves(messageContext.sequenceNumber, moves)): Unit
+    Tally.record(context.componentClient, market, s"x/${messageContext.sequenceNumber}", Tally.moves(MarketId(market), event), exchange = true)
     effects.done()
 
 final class ExchangeTallyCompanion(timers: () => TimerScheduler)
@@ -59,8 +56,8 @@ final class PlacementTally(context: ConsumerContext) extends Consumer[PlacementS
       context.componentClient.forKeyValueEntity(EntityId(s"order/$order")).call(MarketOfEntity.set).invoke(MarketOf(market)): Unit
       state.outcome match
         case PlacementOutcome.Refused(_) if state.reserved && r.order.side == Side.Buy =>
-          context.componentClient.forKeyValueEntity(EntityId(market)).call(TallyEntity.refusedPlacement)
-            .invoke(RefusedPlacement(order, r.order.quantity * r.order.price)): Unit
+          Tally.record(context.componentClient, market, s"r/$order", Tally.refusedMoves(RefusedPlacement(order, r.order.quantity * r.order.price)),
+            exchange = true)
         case _ => ()
     }
     effects.done()
@@ -71,7 +68,7 @@ final class PlacementTallyCompanion(placement: PlacementWorkflow)
 
 /**
  * The wallet's side, from `money.transactions` (the brand project's own topic, so no grant): each fact
- * of the exchange's onto its market's tally. A fact naming an order or trade not yet indexed is
+ * of the exchange's onto its keys' tallies. A fact naming an order or trade not yet indexed is
  * thrown back, so it comes again once the exchange's consumers have caught up.
  */
 final class WalletTally(context: ConsumerContext) extends Consumer[Option[f.MoneyTransactionsMessage], Nothing]:
@@ -85,8 +82,7 @@ final class WalletTally(context: ConsumerContext) extends Consumer[Option[f.Mone
             if m.isEmpty then throw IllegalStateException(s"$id is not yet known to the exchange") else m,
           identity
         )
-        context.componentClient.forKeyValueEntity(EntityId(market)).call(TallyEntity.walletMoved)
-          .invoke(WalletMoves(x.transactionId, moves)): Unit
+        Tally.record(context.componentClient, market, s"w/${x.transactionId}", moves, exchange = false)
         effects.done()
       case Some(_) => effects.ignore()
 
@@ -103,15 +99,24 @@ object WalletTally
         TopicOptions(Some(f.MoneyTransactions.contract), None, false))):
   def create(ctx: ConsumerContext) = new WalletTally(ctx)
 
-/** A market's check when its timer falls due. */
+/**
+ * A market's check when its timer falls due: its unbalanced keys, read from the keys' view, kept as
+ * the market's next check. The view trails the keys by moments, and a check runs daily or ten minutes
+ * after finality, so a key it has not yet seen is in the next one.
+ */
 final class Reconcile(context: TimedActionContext) extends TimedAction:
   def check(market: String, last: Boolean): Effect =
-    context.componentClient.forKeyValueEntity(EntityId(market)).call(TallyEntity.checkNow).invoke(CheckNow(ExchangeRuntime.now(), last)): Unit
+    context.componentClient.forKeyValueEntity(EntityId(market)).call(TallyEntity.checkNow)
+      .invoke(CheckNow(ExchangeRuntime.now(), last, Reconcile.differences(market))): Unit
     effects.done()
 
 object Reconcile extends TimedAction.Companion[Reconcile](ComponentId("exchange-reconcile")):
   import com.thinkmorestupidless.ankka.core.Serializers.given
   def create(context: TimedActionContext) = new Reconcile(context)
+
+  /** A market's differences now: its keys whose two sides differ, as the keys' view has them. */
+  def differences(market: String): Vector[Difference] =
+    Tally.differences(ExchangeRuntime.views.forView(UnbalancedKeys).ask(UnbalancedKeys.of, "market" -> market))
   val daily = handler[String]("daily")(a => m => a.check(m, last = false))
   val last  = handler[String]("final")(a => m => a.check(m, last = true))
 

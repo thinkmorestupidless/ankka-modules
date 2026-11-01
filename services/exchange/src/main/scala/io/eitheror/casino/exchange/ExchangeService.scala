@@ -44,7 +44,7 @@ final class ExchangeService(timers: TimerRuntime, settings: Settings):
   val components: ExchangeComponents = ExchangeComponents(ExchangePorts(ledger, gates, ExchangeService.LedgerPatience))
 
   val descriptors: Seq[ComponentDescriptor] = components.descriptors ++ Seq(MarketTerms.descriptor, SettlementRetry.descriptor, RetryAudit.descriptor, TallyEntity.descriptor,
-      MarketOfEntity.descriptor, ExchangeTallyCompanion(() => timers.timerScheduler).descriptor,
+      KeyTallyEntity.descriptor, UnbalancedKeys.descriptor, MarketOfEntity.descriptor, ExchangeTallyCompanion(() => timers.timerScheduler).descriptor,
       PlacementTallyCompanion(components.placement).descriptor, WalletTally.descriptor, Reconcile.descriptor, ReconcileAudit.descriptor,
       OrderRows.descriptor, TradeRows.descriptor, ErasedEntity.descriptor, OrderFactsPublisher.descriptor, TradeFactsPublisher.descriptor,
       PriceFactsPublisher.descriptor) ++
@@ -82,6 +82,6 @@ object ExchangeService:
     .withExtension(timers)
     .withExtension(HttpServer.of(exchange.endpoints(() => Oidc.authenticate())*))
     .start(name = "exchange")
-  ExchangeRuntime.started(() => (service.services, service.componentClient))
+  ExchangeRuntime.started(() => (service.services, service.componentClient, service.viewClient))
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

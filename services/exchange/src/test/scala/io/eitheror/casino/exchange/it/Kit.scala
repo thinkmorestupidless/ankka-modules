@@ -49,7 +49,7 @@ final class Kit(val base: Settings = Kit.Base):
     localServices = Map("players" -> gates.address, "kyc" -> gates.address, "responsible-gambling" -> gates.address,
       "wallet" -> wallet.address)
   )
-  ExchangeRuntime.started(() => (testKit.service.services, testKit.service.componentClient))
+  ExchangeRuntime.started(() => (testKit.service.services, testKit.service.componentClient, testKit.service.viewClient))
 
   def components = testKit.componentClient
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
@@ -65,7 +65,7 @@ final class Kit(val base: Settings = Kit.Base):
     wallet.reset()
     clockOffset = JDuration.ZERO
     ExchangeRuntime.wire(settings, () => now())
-    ExchangeRuntime.started(() => (testKit.service.services, testKit.service.componentClient))
+    ExchangeRuntime.started(() => (testKit.service.services, testKit.service.componentClient, testKit.service.viewClient))
 
   def book(market: String): Exchange = components.forEventSourcedEntity(EntityId(market)).call(exchange.components.exchange.get).invoke()
 

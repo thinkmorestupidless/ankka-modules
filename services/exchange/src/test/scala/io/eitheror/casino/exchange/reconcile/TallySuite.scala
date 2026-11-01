@@ -49,7 +49,7 @@ class TallySuite extends munit.FunSuite:
   }
 
   test("a check names each key whose two sides differ, and only those") {
-    val t = Tally(exchange = Map("split|t2/ada" -> 600L, "split|t2/bob" -> 400L, "release|o9" -> 50L),
-      wallet = Map("split|t2/ada" -> 600L, "split|t2/bob" -> 399L))
-    assertEquals(t.differences, Vector(Difference("release", "o9", 0, 50), Difference("split", "t2/bob", 399, 400)))
+    val keys = Vector(KeyTally("m", "split", "t2/bob", wallet = 399, exchange = 400), KeyTally("m", "split", "t2/ada", wallet = 600, exchange = 600),
+      KeyTally("m", "release", "o9", exchange = 50))
+    assertEquals(Tally.differences(keys), Vector(Difference("release", "o9", 0, 50), Difference("split", "t2/bob", 399, 400)))
   }
