@@ -47,11 +47,22 @@ object RewardsCodecs:
 
 /**
  * What the components and the endpoints share that is the service's: the settings, the clock, the timers,
- * and the neighbours (added with the clients). A suite wires its own, with a clock it moves and fakes.
+ * and the neighbours. A suite wires its own, with a clock it moves and fakes.
  */
 object RewardsRuntime:
   @volatile var settings: Settings = Settings()
   @volatile var now: () => Instant = () => Instant.now()
+
+  /** The neighbours, made from the component's service clients; a suite sets fakes. */
+  @volatile var wallet: com.thinkmorestupidless.ankka.sdk.ServiceClients => clients.Wallet =
+    services => clients.Wallet.http(services, settings)
+  @volatile var gameProvider: com.thinkmorestupidless.ankka.sdk.ServiceClients => clients.GameProvider =
+    services => clients.GameProvider.http(services, settings)
+  @volatile var players: com.thinkmorestupidless.ankka.sdk.ServiceClients => clients.Players =
+    services => clients.Players.http(services, settings)
+  /** The programme is fetched at an absolute address, not through the service clients (research R13). */
+  @volatile var programme: com.thinkmorestupidless.ankka.sdk.ServiceClients => clients.Programme =
+    _ => clients.Programme.http(settings)
 
   @volatile var timers: () => com.thinkmorestupidless.ankka.sdk.TimerScheduler =
     () => throw IllegalStateException("the timers are not wired: RewardsService sets RewardsRuntime.timers at start")
