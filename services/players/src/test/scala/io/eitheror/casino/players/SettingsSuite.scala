@@ -67,7 +67,7 @@ class SettingsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(Settings.fromEnvironment(brand).map(_.erasureTargets), Right(Vector.empty))
     assert(Settings.fromEnvironment(brand + ("ERASURE_TARGETS" -> "exchange")).left.exists(_.startsWith("ERASURE_TARGETS")))
     val names = erasure.ErasureWorkflow.targets("goldvibe", set.erasureTargets).map(_.name)
-    assertEquals(names, Vector("wallet", "responsible-gambling", "kyc", "merchant", "exchange"))
+    assertEquals(names, Vector("wallet", "responsible-gambling", "kyc", "payouts", "merchant", "exchange"))
     assertEquals(erasure.ErasureWorkflow.targets("goldvibe", set.erasureTargets).last.target.prefix, "/v1/casino/brands/goldvibe/exchange")
     assert(!erasure.ExportWorkflow.targets("goldvibe").exists(_.name == "exchange"))
   }
