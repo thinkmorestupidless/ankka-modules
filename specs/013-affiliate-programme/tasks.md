@@ -88,7 +88,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `p/sealing/Digest.scala` (HMAC-SHA256 of the lowercased, trimmed email) with
   `p-test/sealing/SealingSuite.scala` (round trip; a tampered byte, another affiliate's id and another
   key all fail; two seals of one identity differ)
-- [ ] T010 [P] Implement `p/commission/` (`Ngr`, `Fees.on(amount, bp)` unfloored, `RevShare.delta(window,
+- [X] T010 [P] Implement `p/commission/` (`Ngr`, `Fees.on(amount, bp)` unfloored, `RevShare.delta(window,
   sums, emitted, bp)` HALF_UP on NGR floored at zero, `Override.delta(earnings, bp, emitted)`,
   `Claim.select(unsettled, periodEnd, priorClaims, threshold)`) until T007 passes, with
   `p-test/commission/CommissionSuite.scala` for what the original's cases do not cover (currency
