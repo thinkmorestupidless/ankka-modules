@@ -122,7 +122,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   recorded as `Ignored(other_source)`, `beforeBinding` recorded, withdrawals never below zero, a
   reversal with no completed withdrawal ignored, `player-closed` forgetting country and click; then
   `p/players/PlayerAttribution.scala`
-- [ ] T020 [P] `p-test/ledger/CommissionAccountSuite.scala`: each record command idempotent on its fact
+- [X] T020 [P] `p-test/ledger/CommissionAccountSuite.scala`: each record command idempotent on its fact
   id; RevShare over both windows; fees per GGR fact; no payable fact when `payable` is false and the
   catch-up on the next NGR fact once it is true (FR-016); `recomputeOverride` deltas; `close` claiming
   up to the end plus earlier claims, below threshold claiming nothing, refused for a paid payout;

@@ -3,7 +3,7 @@ package io.eitheror.casino.programme
 import com.github.plokhotnyuk.jsoniter_scala.core.{JsonReader, JsonValueCodec, JsonWriter}
 import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
 import com.thinkmorestupidless.ankka.core.Serializer
-import io.eitheror.casino.programme.commission.{FactType, LedgerFact, Window}
+import io.eitheror.casino.programme.commission.{FactType, LedgerFact, Sums, Window}
 import io.eitheror.casino.programme.sealing.Sealed
 
 /**
@@ -48,6 +48,18 @@ object ProgrammeCodecs:
         case s          => in.decodeError(s"no window $s")
     def encodeValue(x: Window, out: JsonWriter): Unit = out.writeVal(x.toString.toLowerCase)
     def nullValue: Window = null
+
+  /** Sums as a list of their cells: a map keyed by a case class has no JSON object form. */
+  final case class SumCell(period: String, tpe: FactType, source: Option[String], amount: Long, count: Long)
+
+  private val sumCells: JsonValueCodec[Vector[SumCell]] = stored[Vector[SumCell]]
+
+  given JsonValueCodec[Sums] = new JsonValueCodec[Sums]:
+    def decodeValue(in: JsonReader, default: Sums): Sums =
+      Sums(sumCells.decodeValue(in, Vector.empty).map(c => Sums.Key(c.period, c.tpe, c.source) -> Sums.Cell(c.amount, c.count)).toMap)
+    def encodeValue(x: Sums, out: JsonWriter): Unit =
+      sumCells.encodeValue(x.cells.toVector.map((k, c) => SumCell(k.period, k.tpe, k.source, c.amount, c.count)), out)
+    def nullValue: Sums = Sums()
 
   given Serializer[LedgerFact] = serializer[LedgerFact]("LedgerFact")
   given Serializer[Sealed]     = serializer[Sealed]("Sealed")

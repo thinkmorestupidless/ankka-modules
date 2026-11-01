@@ -345,3 +345,7 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   `deposit` at or above the plan's minimum, with the guard unset, answers `FirstDeposit(true)` and sets
   the guard; once set, every deposit is `Deposit`. A plan that pays no CPA passes no minimum and never
   qualifies, so the guard stays unset until one does.
+- **A close below the threshold releases what the payout held** (T020). settlement.feature says such a
+  close claims nothing and carries the facts forward; a payout re-closed after a negative late fact can
+  hold earlier claims, and these are released too, so every fact it held carries forward with the rest.
+  Overrides for an ended period are dated its last millisecond, as the original's backfill does.
