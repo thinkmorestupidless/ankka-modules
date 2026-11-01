@@ -102,7 +102,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T013 [P] Implement `p/postbacks/Macros.scala` (`{event}`, `{clickid}`, `{payout}` default `0`,
   `{status}` default `ok`, percent-encoded, as `S/Postback.scala:15-25`) and `p/csv/Export.scala`
   (contracts/routes.md *The export*), with suites
-- [ ] T014 [P] Implement `p/Settings.scala` (the env of T004, parsed and validated; `PROGRAMME_BRANDS`
+- [X] T014 [P] Implement `p/Settings.scala` (the env of T004, parsed and validated; `PROGRAMME_BRANDS`
   slugs `[a-z0-9-]`) and `p/ProgrammeCodecs.scala` (every stored type, as `w/WalletCodecs.scala`)
 
 ### The entities (tests first, then the entity)
