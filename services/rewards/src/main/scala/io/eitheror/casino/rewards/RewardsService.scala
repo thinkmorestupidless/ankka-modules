@@ -7,7 +7,12 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionR
 
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
 object RewardsService:
-  val descriptors: Seq[ComponentDescriptor] = Seq(steps.WalletStep.descriptor)
+  val descriptors: Seq[ComponentDescriptor] = Seq(
+    steps.WalletStep.descriptor,
+    reward.Reward.descriptor,
+    reward.RewardClocks.descriptor,
+    reward.ClockTimer.descriptor
+  )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq()
