@@ -42,3 +42,16 @@ class WiringSuite extends munit.FunSuite:
       .isInstanceOf[Landing.Idle])
     assert(Wiring.move(req(WalletCall.Forfeit), WalletAnswer.Forfeited(clients.Forfeited(Vector.empty, money)), at).isInstanceOf[Landing.Idle])
     assert(Wiring.move(req(WalletCall.Switch(1)), WalletAnswer.Refused(404, "GRANT_NOT_FOUND", ""), at).isInstanceOf[Landing.Idle])
+
+  test("a revoke's answer moves nothing on delivery: the route records it, with the clawback and the reason"):
+    val reclaim = req(WalletCall.Revoke(RevokeMode.Reclaim))
+    assertEquals(reclaim.id, "r-1/revoke-reclaim")
+    val answer = WalletAnswer.Cancelled(clients.Cancelled(250L, Vector("r-1"), Balances(900L, 0L)))
+    assert(Wiring.move(reclaim, answer, at).isInstanceOf[Landing.Idle])
+    val reason = Some(io.eitheror.casino.contract.personal.Personal("why"))
+    assertEquals(Wiring.revoked(RevokeMode.Reclaim, "op-1", reason, answer, at),
+      Right(reward.Revoke(RevokeMode.Reclaim, "op-1", reason, 250L, at) -> 900L))
+    assertEquals(Wiring.revoked(RevokeMode.Forfeit, "op-1", None, WalletAnswer.Forfeited(clients.Forfeited(Vector("r-1"), money)), at),
+      Right(reward.Revoke(RevokeMode.Forfeit, "op-1", None, 0L, at) -> 0L))
+    assertEquals(Wiring.revoked(RevokeMode.Reclaim, "op-1", None, WalletAnswer.Refused(409, "MISSING_BASELINE", ""), at),
+      Left("MISSING_BASELINE"))

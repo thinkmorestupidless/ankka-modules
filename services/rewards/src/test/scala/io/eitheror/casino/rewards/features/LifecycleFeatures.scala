@@ -89,6 +89,9 @@ class LifecycleFeatures extends RewardsFeatures("lifecycle.feature"):
     assertEquals(kit.slug, slug)
     subject = player
     rewardId = activeReward(subject, noDeposit("maxConvertibleAmount" -> MaxConvertible))
+    // The player has won 12.00 of real balance since the award, which a clawback takes back.
+    kit.wallet.realFor(subject, "EUR", 5000L)
+    kit.wallet.winningsSince(subject, "EUR", rewardId, 1200L)
   }
 
   Given("the reward is active") { () => assertEquals(state().status, RewardStatus.Active) }
@@ -201,16 +204,12 @@ class LifecycleFeatures extends RewardsFeatures("lifecycle.feature"):
 
   // ── the player's cancel ─────────────────────────────────────────────────────────────────────
 
+  // The background's record has its baseline, and the winnings since it.
   Given("the wallet's record has a baseline from its award") { () =>
-    kit.wallet.realFor(subject, "EUR", 5000L)
-    kit.wallet.winningsSince(subject, "EUR", rewardId, 1200L)
+    assert(kit.wallet.open(subject, "EUR").exists(r => r.grantRef == rewardId && r.baseline && r.winnings > 0))
   }
 
-  Given("the wallet's record has no baseline") { () =>
-    kit.wallet.realFor(subject, "EUR", 5000L)
-    kit.wallet.winningsSince(subject, "EUR", rewardId, 1200L)
-    kit.wallet.noBaseline(subject, "EUR", rewardId)
-  }
+  Given("the wallet's record has no baseline") { () => kit.wallet.noBaseline(subject, "EUR", rewardId) }
 
   Given("a reward id the player does not hold") { () => rewardId = openedActive(newPlayer(), priority = 1) }
 

@@ -6,7 +6,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.rewards.{RewardsCodecs, RewardsRuntime}
 import io.eitheror.casino.rewards.clients.{AwardTerms, Called, Wallet}
-import io.eitheror.casino.rewards.reward.Ending
+import io.eitheror.casino.rewards.reward.{Ending, RevokeMode}
 
 import scala.concurrent.duration.*
 
@@ -28,6 +28,13 @@ object WalletCall:
   /** `requireBaseline` on an operator's reclaim (W4). */
   @named("cancel") final case class Cancel(requireBaseline: Boolean = false) extends WalletCall:
     def step = "cancel"
+  /**
+   * An operator's revoke (FR-017): `forfeit` the wallet's forfeit, `reclaim` its cancel with `requireBaseline` (W4).
+   * Its own step for each mode, apart from the timers' `forfeit` and the player's `cancel`, so a refused revoke
+   * (`MISSING_BASELINE`, or a record not open) never stands for those steps, nor a reclaim refused for a later forfeit.
+   */
+  @named("revoke") final case class Revoke(mode: RevokeMode) extends WalletCall:
+    def step = s"revoke-${mode.wire}"
   @named("close-cap") case object CloseCap extends WalletCall:
     def step = "close-cap"
   /** The player's `n`th switch to this reward. */
@@ -159,6 +166,9 @@ final class WalletStep(context: WorkflowContext) extends Workflow[StepState]:
       case WalletCall.LateAward(_, t) => wallet.award(player, currency, key, WalletStep.below(wallet, player, currency, t)).map(WalletAnswer.Awarded(_))
       case WalletCall.Forfeit        => wallet.forfeit(player, currency, key, r.rewardId).map(WalletAnswer.Forfeited(_))
       case WalletCall.Cancel(base)   => wallet.cancel(player, currency, key, r.rewardId, base).map(WalletAnswer.Cancelled(_))
+      case WalletCall.Revoke(RevokeMode.Forfeit) => wallet.forfeit(player, currency, key, r.rewardId).map(WalletAnswer.Forfeited(_))
+      case WalletCall.Revoke(RevokeMode.Reclaim) =>
+        wallet.cancel(player, currency, key, r.rewardId, requireBaseline = true).map(WalletAnswer.Cancelled(_))
       case WalletCall.CloseCap       => wallet.closePendingCap(player, currency, key, r.rewardId).map(WalletAnswer.CapClosed(_))
       case WalletCall.Switch(_)      => wallet.switch(player, currency, key, r.rewardId).map(WalletAnswer.Switched(_))
       case WalletCall.Credit(amount, reason, actor) =>

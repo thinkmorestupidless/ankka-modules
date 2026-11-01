@@ -2,6 +2,7 @@ package io.eitheror.casino.rewards.steps
 
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
+import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.rewards.RewardsRuntime
 import io.eitheror.casino.rewards.clients.AwardTerms
 import io.eitheror.casino.rewards.reward
@@ -52,14 +53,30 @@ object Wiring:
           case Some(Ending.Expire(reason)) => Landing.Expire(reward.Expire(reason, at))
           case Some(Ending.Close(reason))  => Landing.Close(reward.Close(reason, at))
           case None if request.call == WalletCall.CloseCap => Landing.Close(reward.Close(CloseReason.CapExpired, at))
-          // An operator's revoke in `forfeit` mode is the revoke route's to record (task T061).
           case None => Landing.Idle("forfeit_not_by_timer")
       case (WalletCall.Cancel(false), A.Cancelled(c)) =>
         Landing.Cancel(reward.Cancel(CancelReason.PlayerCancel, c.clawbackAmount, at))
       case (_: WalletCall.Switch, A.Switched(s)) =>
         Landing.Switch(reward.Switch(switchNumber(request.call), s.priority, at))
+      // The revoke route records the revoke, with the operator's reason, which no step holds (`revoked`).
+      case (_: WalletCall.Revoke, _)  => Landing.Idle("revoke_recorded_by_route")
       case (_, A.Refused(_, code, _)) => Landing.Idle(s"refused_$code")
       case _                          => Landing.Idle("nothing_to_move")
+
+  /**
+   * What an operator's revoke step answered (FR-017): the revoke to record, with the clawback the wallet applied and the
+   * real balance after it; or the wallet's refusal code. The reason is the route's, held by the `Revoked` event alone
+   * (research R12), so it is never part of the step: the route records the revoke once the step answers, and a revoke
+   * asked again after the request bound answers from the step and records it then.
+   */
+  def revoked(mode: RevokeMode, by: String, reason: Option[Personal[String]], answer: WalletAnswer, at: Instant)
+      : Either[String, (reward.Revoke, Long)] =
+    answer match
+      case WalletAnswer.Forfeited(f) => Right(reward.Revoke(mode, by, reason, 0L, at) -> f.balances.realBalance)
+      case WalletAnswer.Cancelled(c) => Right(reward.Revoke(mode, by, reason, c.clawbackAmount, at) -> c.balances.realBalance)
+      case WalletAnswer.Refused(_, code, _) => Left(code)
+      case WalletAnswer.NotOpen(code)       => Left(code)
+      case other                            => Left(s"unexpected_${other.getClass.getSimpleName}")
 
   private def switchNumber(call: WalletCall): Int = call match
     case WalletCall.Switch(n) => n
