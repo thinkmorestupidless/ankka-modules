@@ -174,20 +174,22 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
   /**
    * Spec 025 FR-001, FR-012: the two pools sum to real balance and the deposit pool is never
    * negative, after every event; and no command was refused for a drifted pair, which would mean the
-   * wallet wrote one. `negativeDebit` admits the one other refusal: a bet funded proportionally on a
-   * negative real balance has a negative real leg, which the original's `debit` refuses as well.
+   * wallet wrote one. `negativeLeg` admits the other refusals: a bet funded proportionally on a
+   * negative real balance has a negative real leg, which the original's `debit` refuses as well; and
+   * when an allow-negative bet takes such a leg, a win on its round has a negative real share, which
+   * the original's `credit` refuses as a negative credit.
    */
-  private def checkPools(s: WalletState, where: String, negativeDebit: Boolean = false): Unit =
+  private def checkPools(s: WalletState, where: String, negativeLeg: Boolean = false): Unit =
     assertEquals(s.depositPool + s.convertedPool, s.realBalance, s"deposit + converted == real balance $where: ${s.pools}")
     assert(s.depositPool >= 0, s"deposit pool below zero $where: ${s.pools}")
     val drifted = s.seen.seen.values.map(_.outcome)
       .filter(_.code.contains(io.eitheror.casino.wallet.funding.Codes.PoolsInvariant))
-      .filterNot(o => negativeDebit && o.message.exists(_.endsWith("negative debit")))
+      .filterNot(o => negativeLeg && o.message.exists(m => m.endsWith("negative debit") || m.endsWith("negative credit")))
     assert(drifted.isEmpty, s"a command was refused POOLS_INVARIANT $where: $drifted")
 
   /** With correction debits, real balance and the converted pool may go negative; the pools still hold. */
   private def checkWithCorrections(s: WalletState, seenBefore: Set[String], where: String): Unit =
-    checkPools(s, where, negativeDebit = sawCorrection)
+    checkPools(s, where, negativeLeg = sawCorrection)
     assert(s.convertedPool >= 0 || sawCorrection, s"converted pool negative with no correction debit $where")
     assert(seenBefore.subsetOf(s.seen.seen.keySet), s"a seen key was forgotten $where")
 
@@ -245,6 +247,22 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
     val r = kit.call(WalletEntity.placeBet)(PlaceBet("neg-bet", "r2", "slot", "s1", "prov", "slots", 1000, allowNegative = false, BetSwitches(), t0))
     assertEquals(r.replyValue.code, Some(io.eitheror.casino.wallet.funding.Codes.PoolsInvariant))
     assertEquals(r.replyValue.message, Some("real-money pools: negative debit"))
+    assertEquals(kit.currentState.pools, before)
+  }
+
+  // Found by the correction property on 2026-11-01: real -5228 after a correction debit, a
+  // proportional record of 2565, then an allow-negative bet of 1524 on r2, whose real leg is negative
+  // and is taken. A win on r2 has a negative real share, and the original's pools `credit` refuses a
+  // negative credit; so does the rebuild.
+  test("a win on an allow-negative bet's negative real leg is refused POOLS_INVARIANT, as the original's credit refuses it") {
+    val kit = EventSourcedTestKit.of(WalletEntity, "inv/EUR")
+    kit.call(WalletEntity.deposit)(Deposit("seed", 5000, "psp", "t1", "psp", "card", TurnoverTerms(0, "gross_wagered"), t0))
+    sawCorrection = false
+    run(kit, List(CorrectionS(5228, 4), AwardS(2565, 3, "cancel_promotion", "proportional"), CorrectionS(1524, 2)), checkWithCorrections)
+    val before = kit.currentState.pools
+    val r = kit.call(WalletEntity.creditWin)(CreditWin("neg-win", "r2", 5438, t0))
+    assertEquals(r.replyValue.code, Some(io.eitheror.casino.wallet.funding.Codes.PoolsInvariant))
+    assertEquals(r.replyValue.message, Some("real-money pools: negative credit"))
     assertEquals(kit.currentState.pools, before)
   }
 
