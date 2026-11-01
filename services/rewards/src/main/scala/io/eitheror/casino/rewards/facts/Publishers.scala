@@ -15,8 +15,7 @@ private def rewardOf(client: ComponentClient, rewardId: String): RewardState =
 /**
  * `Reward`'s families on `casino.rewards`, keyed by the player, `ce-id` `<reward>/<seq>` (contracts/facts.md).
  *
- * `bonus_code_entered` comes from `PlayerRewards`' code entries through `CodesPublisher`, added with `PlayerRewards`
- * (tasks T033 and T044); `Facts` gains its mapping then.
+ * `bonus_code_entered` comes from `PlayerRewards`' code entries through `CodesPublisher`.
  */
 final class RewardsPublisher(client: ComponentClient) extends Consumer[RewardEvent, CasinoRewardsFact]:
   def onMessage(event: RewardEvent): Effect =

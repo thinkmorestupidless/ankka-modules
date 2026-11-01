@@ -264,3 +264,57 @@ class PlayerRewardsSuite extends munit.FunSuite:
     val held = kit.currentState.rewards(claim.rewardId)
     assertEquals((held.status, held.selectedAt), (RewardStatus.Pending, Some(at)))
     assertEquals(confirm(kit, deposit(4000L, "pay-2", 2)).replyValue.outcome, Outcome.Claimed(claim))
+
+  // ── a code entered (FR-019) ─────────────────────────────────────────────
+
+  private def enter(kit: Kit, code: String, found: Option[CodeFound], open: Int = 0) =
+    kit.call(PlayerRewards.enterCode)(EnterCode(code, found, open, Eur, at))
+
+  private val coded = matchOffer.copy(id = "o-coded", redemptionCodes = Vector(io.eitheror.casino.rewards.offers.RedemptionCode("WELCOME")))
+
+  test("a code naming nothing live is invalid_code, recorded invalid and nothing made visible"):
+    val kit = record
+    val r   = enter(kit, " nope ", None)
+    assertEquals(r.replyValue.outcome, Outcome.Refused("invalid_code"))
+    assertEquals(r.events.toVector, Vector(CodeEntered("nope", CodeOutcome.Invalid, at)))
+    assertEquals(kit.currentState.rewards, Map.empty)
+
+  test("a brand code matched makes its offer visible with the code as entered, trimmed, in the same write"):
+    val kit = record
+    val r   = enter(kit, " welcome ", Some(CodeFound(coded, Source.PlayerCode)))
+    val Outcome.Visible(id, true) = r.replyValue.outcome: @unchecked
+    assertEquals(r.events.toVector, Vector(CodeEntered("welcome", CodeOutcome.Matched, at),
+      OfferMadeVisible(id, "o-coded", Source.PlayerCode, Some("welcome"), None, at)))
+    // Entered again while held: the same reward, recorded again.
+    val again = enter(kit, "WELCOME", Some(CodeFound(coded, Source.PlayerCode)))
+    assertEquals((again.replyValue.outcome, again.events.toVector),
+      (Outcome.Visible(id, fresh = false), Vector(CodeEntered("WELCOME", CodeOutcome.Matched, at))))
+
+  test("an affiliate code is verified by the programme's document: the offer need not carry it; the tag is kept"):
+    val kit = record
+    val r   = enter(kit, "AFF100", Some(CodeFound(coded, Source.AffiliateCode, Some("tag-1"))))
+    val Outcome.Visible(id, true) = r.replyValue.outcome: @unchecked
+    assertEquals(kit.currentState.rewards(id), HeldReward("o-coded", source = Source.AffiliateCode, code = Some("AFF100"),
+      tag = Some("tag-1"), openedAt = at))
+
+  test("a decline is ineligible, recorded so; another offer's selection pending is ACTIVE_BONUS_CONFLICT"):
+    val kit = record
+    val r   = enter(kit, "x", Some(CodeFound(freeBonus, Source.PlayerCode)), open = 1)
+    assertEquals(r.replyValue.outcome, Outcome.Declined(None, "ACTIVE_BONUS_CONFLICT"))
+    assertEquals(r.events.toVector, Vector(CodeEntered("x", CodeOutcome.Ineligible, at)))
+    val other = record
+    pendingOn(other): Unit
+    assertEquals(enter(other, "welcome", Some(CodeFound(coded, Source.PlayerCode))).replyValue.outcome,
+      Outcome.Declined(None, "ACTIVE_BONUS_CONFLICT"))
+
+  test("no minimum deposit is asked of a code"):
+    val kit = record
+    assert(enter(kit, "welcome", Some(CodeFound(coded.copy(minDepositAmount = Some(1_000_000L)), Source.PlayerCode)))
+      .replyValue.outcome.isInstanceOf[Outcome.Visible])
+
+  test("bonus_code_entered from a code entry only, with its outcome"):
+    import io.eitheror.casino.contract.facts.BonusCodeEntered
+    import io.eitheror.casino.rewards.facts.CodesPublisher
+    assertEquals(CodesPublisher.fact("p-1", CodeEntered("AFF100", CodeOutcome.Matched, at)),
+      Some(BonusCodeEntered("p-1", "AFF100", at, Some("matched"))))
+    assertEquals(CodesPublisher.fact("p-1", RewardSelected("r-1", at)), None)

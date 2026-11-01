@@ -14,6 +14,7 @@ object RewardsService:
     reward.ClockTimer.descriptor,
     reads.RewardsView.descriptor,
     facts.RewardsPublisher.descriptor,
+    facts.CodesPublisher.descriptor,
     facts.AuditPublisher.descriptor,
     offers.OfferBook.descriptor,
     facts.OfferAuditPublisher.descriptor,

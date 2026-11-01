@@ -6,7 +6,7 @@ import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.rewards.RewardsCodecs
 import io.eitheror.casino.rewards.eligibility.*
 import io.eitheror.casino.rewards.player.PlayerEvent.*
-import io.eitheror.casino.rewards.reward.RewardStatus
+import io.eitheror.casino.rewards.reward.{RewardStatus, Source}
 
 import java.time.Instant
 import java.util.UUID
@@ -63,6 +63,34 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
             write(Outcome.Claimed(claim), Claimed(claim))
       case Some((id, held)) if held.status == RewardStatus.Pending => answer(Outcome.Selected(id))
       case Some((id, _))                                           => write(Outcome.Selected(id), RewardSelected(id, c.at))
+
+  /**
+   * A code entered (FR-019; `BR` `/enter-code`): recorded with what it came to, in the same event as the reward it makes
+   * visible. A code that names no live offer is `invalid_code`. One that does is evaluated as the original's entry is,
+   * the code given, no minimum enforced, an affiliate's code verified by the programme's document; a decline (or a
+   * selection already pending of another offer, as `select`'s) is `ineligible`. Matched, the offer is made visible
+   * (a reward already held of it is kept, with its source), and the caller selects it.
+   */
+  def enterCode(c: EnterCode): Effect[PlayerAnswer] =
+    val s    = currentState
+    val code = c.code.trim
+    def entered(outcome: String) = CodeEntered(code, outcome, c.at)
+    c.found match
+      case None => write(Outcome.Refused(InvalidCode), entered(CodeOutcome.Invalid))
+      case Some(f) =>
+        val held = s.unclaimed(f.offer.id)
+        val request = Request(Mode.Standard, Anchor.registration(s.registeredAt, c.at), c.walletCurrency, Some(code),
+          detection = s.detectionOn, codeVerifiedAtTargeting = f.source == Source.AffiliateCode, enforceMinDeposit = Some(false))
+        val decided =
+          if s.otherPending(held.fold("")(_._1)).isDefined then Left(Decline.ActiveBonusConflict.reason)
+          else Evaluator.evaluate(f.offer, s.snapshot, c.walletOpen, request, c.at).left.map(_.reason)
+        (decided, held) match
+          case (Left(reason), _)         => write(Outcome.Declined(held.map(_._1), reason), entered(CodeOutcome.Ineligible))
+          case (Right(_), Some((id, _))) => write(Outcome.Visible(id, fresh = false), entered(CodeOutcome.Matched))
+          case (Right(_), None) =>
+            val id = newRewardId()
+            write(Outcome.Visible(id, fresh = true), entered(CodeOutcome.Matched),
+              OfferMadeVisible(id, f.offer.id, f.source, Some(code), f.tag, c.at))
 
   /** Every pending selection back to available (FR-011). */
   def deselect(c: Deselect): Effect[PlayerAnswer] =
@@ -158,6 +186,7 @@ object PlayerRewards
   given Serializer[ClaimOffer]         = RewardsCodecs.serializer[ClaimOffer]("player-claim")
   given Serializer[RewardChanged]      = RewardsCodecs.serializer[RewardChanged]("player-reward-changed")
   given Serializer[PlayerFact]         = RewardsCodecs.serializer[PlayerFact]("player-fact")
+  given Serializer[EnterCode]          = RewardsCodecs.serializer[EnterCode]("player-enter-code")
 
   def create(context: EventSourcedEntityContext) = new PlayerRewards(context)
 
@@ -168,10 +197,13 @@ object PlayerRewards
   val claim            = command("claim")(_.claim)
   val rewardChanged    = command("reward-changed")(_.rewardChanged)
   val playerFact       = command("player-fact")(_.playerFact)
+  val enterCode        = command("enter-code")(_.enterCode)
   val get              = query("get")(_.get)
 
   val OfferNotVisible = "offer_not_visible"
   val AlreadyClaimed  = Decline.AlreadyClaimed.reason
+  /** A code no live offer carries and the programme's document does not hold (FR-019), never the evaluator's `INVALID_CODE`. */
+  val InvalidCode     = "invalid_code"
 
   /** A reward id: reserved in the event that makes the reward, so a replay holds the same one. */
   private def newRewardId(): String = UUID.randomUUID().toString
@@ -235,3 +267,4 @@ object PlayerRewards
     case FlagChanged(on, _)                    => s.copy(suspectedDuplicate = on)
     case TierChanged(tier, _)                  => s.copy(tier = Some(tier))
     case DetectionChanged(on, _)               => s.copy(detectionOn = on)
+    case CodeEntered(_, _, _)                  => s

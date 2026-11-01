@@ -53,12 +53,14 @@ class PathsSuite extends munit.FunSuite:
           assertEquals((r.status, r.str("status"), r.str("reason")), (409, "ineligible", reason), s"code: ${r.text}")
         case Path.Deposit =>
           val offerId = paths.depositMatch(fields*)
+          def awards  = kit.wallet.calls("awards").filter(_.path.contains(s"/wallets/$p/")).size
+          val before  = awards
           val c       = paths.viaDeposit(p, offerId, deposit, ordinal)
           assertEquals(c.refusal, Some(reason), "deposit")
           val r = paths.rewardOf(p, offerId)
           if reason == "CLAIM_WINDOW_EXPIRED" then assertEquals((r.status, r.terminationReason), (RewardStatus.Expired, Some("pending_expired")))
           else assertEquals((r.status, r.lastDecline), (RewardStatus.Pending, Some(reason)))
-          assertEquals(kit.wallet.calls("awards").filter(_.path.contains(s"/wallets/$p/")), Vector.empty)
+          assertEquals(awards, before, "the deposit was awarded nothing")
     }
 
   private val all = Seq(Path.Select, Path.Code, Path.Deposit)

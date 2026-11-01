@@ -127,6 +127,12 @@ object PlayerEvent:
   /** The brand's duplicate detection as `players` last answered it, carried by a fact (research R9). */
   final case class DetectionChanged(on: Boolean, at: Instant)                         extends PlayerEvent
 
+  /**
+   * A code the player entered (FR-019; data-model.md `CodeEntered`), trimmed as entered, and what it came to:
+   * `matched`, `invalid` or `ineligible` (`CodeOutcome`). `bonus_code_entered` is published from it (`CodesPublisher`).
+   */
+  final case class CodeEntered(code: String, outcome: String, at: Instant) extends PlayerEvent
+
 /** What a command came to, for its caller to act on (open the reward, select it, start the award, expire it). */
 sealed trait Outcome
 object Outcome:
@@ -169,6 +175,21 @@ final case class PendingOffer(rewardId: String, offer: Option[Offer])
 /** An award of the offer on another path (the award route, an operator's award): evaluated in `mode`, then reserved. */
 final case class ClaimOffer(offer: Offer, operator: Boolean, deposit: Option[io.eitheror.casino.rewards.eligibility.Deposit],
     source: Source, code: Option[String], tag: Option[String], walletOpen: Int, walletCurrency: Currency, at: Instant)
+
+/** What a code entered came to, as `bonus_code_entered` names it (contracts/facts.md). */
+object CodeOutcome:
+  val Matched    = "matched"
+  val Invalid    = "invalid"
+  val Ineligible = "ineligible"
+
+/** The offer a code entered names, as the caller found it (`Codes.find`): how it is given, and the programme's tag. */
+final case class CodeFound(offer: Offer, source: Source, tag: Option[String] = None)
+
+/**
+ * A code the player entered (FR-019): `found` is the live offer it names, none when it names nothing live. `walletOpen`
+ * and `walletCurrency` are read by the caller, as for `Select`.
+ */
+final case class EnterCode(code: String, found: Option[CodeFound], walletOpen: Int, walletCurrency: Currency, at: Instant)
 
 /** A change of the player's standing as `casino.players` reports it (research R9), for `PlayerFact`. */
 sealed trait PlayerChange

@@ -84,21 +84,25 @@ object Offers:
       _     <- providerChecks(ctx.gameProvider, offer, None, game = true)
     yield draft
     result.fold(identity, { draft =>
-      val a = ctx.book.call(OfferBook.add).invoke(CreateOffer(draft, ctx.programmeCodes, by))
-      a.refusal.fold(created(Bodies.render(a.offer.get)))(r => refused(r))
+      ctx.programme.fold(unavailable) { programme =>
+        val a = ctx.book.call(OfferBook.add).invoke(CreateOffer(draft, programme.codes, by))
+        a.refusal.fold(created(Bodies.render(a.offer.get)))(r => refused(r))
+      }
     })
 
   def edit(ctx: Ctx, id: String, b: JsonNode, text: String, by: String): Reply =
     val book = ctx.offers
+    // An edit is checked against the copy as it stands: the contract answers 503 for a create only.
+    val programme = ctx.programme.getOrElse(ctx.codeDocument).codes
     val result = for
       _        <- whole(b)
       existing <- book.offer(id).toRight(refuse("offer_not_found"))
       patch    <- Bodies.patch(b, existing).left.map(invalid)
-      edited   <- OfferRules.edit(id, patch, book.offers.values, ctx.programmeCodes, ctx.now()).left.map(r => refused(r))
+      edited   <- OfferRules.edit(id, patch, book.offers.values, programme, ctx.now()).left.map(r => refused(r))
       _        <- if patch.touchesSpins then providerChecks(ctx.gameProvider, edited, Some(existing), game = false) else Right(())
     yield ()
     result.fold(identity, { _ =>
-      val a = ctx.book.call(OfferBook.edit).invoke(EditOffer(id, text, ctx.programmeCodes, by, ctx.now()))
+      val a = ctx.book.call(OfferBook.edit).invoke(EditOffer(id, text, programme, by, ctx.now()))
       a.refusal.fold(ok(Bodies.render(a.offer.get)))(r => refused(r))
     })
 

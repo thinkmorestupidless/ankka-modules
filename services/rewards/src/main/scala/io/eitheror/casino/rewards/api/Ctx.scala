@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients}
 import io.eitheror.casino.rewards.{RewardsRuntime, Settings}
 import io.eitheror.casino.rewards.clients.{GameProvider, Wallet}
-import io.eitheror.casino.rewards.codes.{CodeDocument, CodeDocumentState}
+import io.eitheror.casino.rewards.codes.{CodeDocument, CodeDocumentState, CodesRefresh}
 import io.eitheror.casino.rewards.offers.{OfferBook, OfferBookState}
 import io.eitheror.casino.rewards.player.{PlayerRewards, PlayerRewardsState}
 import io.eitheror.casino.rewards.reward.{Reward, RewardState}
@@ -33,7 +33,14 @@ final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
   def codeDocument: CodeDocumentState = components.forKeyValueEntity(EntityId(slug)).call(CodeDocument.get).invoke()
 
   /**
-   * The programme's codes for the brand, against which a code must be unique (FR-003). The code document is read with
-   * `CodeDocument` (task T043); until then there is none.
+   * The programme's code document for the brand (research R13): with no document to read, an empty one; else the copy
+   * `codes-<slug>` last fetched, and when none ever was, one fetched now. None when it cannot be read and none was
+   * fetched (`503 service_unavailable` on an offer's create, contracts/routes.md).
    */
-  def programmeCodes: Set[String] = Set.empty
+  def programme: Option[CodeDocumentState] =
+    settings.codeDocumentUrl match
+      case None => Some(CodeDocumentState())
+      case Some(url) =>
+        val d = codeDocument
+        if d.fetchedAt.isDefined then Some(d)
+        else Option.when(CodesRefresh.run(components, RewardsRuntime.programme(clients.services), slug, url, now()))(codeDocument)

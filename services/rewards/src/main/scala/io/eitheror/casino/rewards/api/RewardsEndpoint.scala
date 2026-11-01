@@ -45,6 +45,10 @@ final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 
   get("/{playerId}/history") { (p: String) => mine(p)(PlayerLifecycle.history(ctx, p)) }
 
+  postBody("/{playerId}/codes") { (p: String, text: String) => mine(p)(body(text)(Codes.enter(ctx, p, _))) }
+
+  postBody("/{playerId}/codes/preview") { (p: String, text: String) => mine(p)(body(text)(Codes.preview(ctx, _))) }
+
 /** The selection routes' work (FR-011, FR-013). */
 object Selection:
   private def refuse(code: String): Reply = Answers.Rewards.refuse(code)
@@ -58,7 +62,12 @@ object Selection:
           case None        => refuse(PlayerRewards.OfferNotVisible)
           case Some(offer) => selectOffer(ctx, playerId, offer)
 
-  private def selectOffer(ctx: Ctx, playerId: String, offer: Offer): Reply =
+  /**
+   * The player's selection of a live offer they hold a reward of. A code's entry selects through here too, answering
+   * its own shapes: `declined` for a decline or the wallet's refusal, `success` in place of the selection's answer.
+   */
+  def selectOffer(ctx: Ctx, playerId: String, offer: Offer, declined: String => Reply = refusal(409, _),
+      success: Option[Reply] = None): Reply =
     val now   = ctx.now()
     val state = ctx.playerState(playerId)
     val held  = state.unclaimed(offer.id)
@@ -71,14 +80,21 @@ object Selection:
         val answer = ctx.player(playerId).call(PlayerRewards.select).invoke(player.Select(offer, open, walletCurrency, now))
         answer.outcome match
           case Outcome.Refused(code)      => refuse(code)
-          case Outcome.Declined(_, reason) => refusal(409, reason)
+          case Outcome.Declined(_, reason) => declined(reason)
           case o @ Outcome.Selected(id) =>
             Flows.act(ctx.components, playerId, Some(offer), o, now): Unit
-            val expiresAt = ctx.rewardState(id).expiresAt
-            ok(Json.obj("ok" -> true, "expiresAt" -> expiresAt.map(_.toString)))
+            success.getOrElse {
+              val expiresAt = ctx.rewardState(id).expiresAt
+              ok(Json.obj("ok" -> true, "expiresAt" -> expiresAt.map(_.toString)))
+            }
           case o: Outcome.Claimed =>
-            Flows.act(ctx.components, playerId, Some(offer), o, now).fold(unavailable)(awarded(ctx, _))
-          case _ => okTrue
+            Flows.act(ctx.components, playerId, Some(offer), o, now).fold(unavailable)(awarded(ctx, _, declined, success.getOrElse(okTrue)))
+          case _ => success.getOrElse(okTrue)
+
+  /** FR-007's wallet currency for the offer and the player as they stand, the euro when none is known. */
+  def walletCurrency(ctx: Ctx, offer: Offer, playerId: String): Currency =
+    val state = ctx.playerState(playerId)
+    currency(ctx, offer, state, state.unclaimed(offer.id).map(_._1)).getOrElse(Currency.unsafe("EUR"))
 
   /**
    * The player's wallet currency (FR-007): the offer's, else the player's as last seen, else the one the reward was
@@ -90,7 +106,7 @@ object Selection:
       .orElse(rewardId.map(ctx.rewardState).map(_.currency).filter(_.nonEmpty).flatMap(c => Currency.from(c).toOption))
 
   /** The award step's answer, waited for up to the request bound: awarded is `{ok: true}`, the wallet's refusal 409. */
-  def awarded(ctx: Ctx, r: StepRequest): Reply =
+  def awarded(ctx: Ctx, r: StepRequest, refused: String => Reply = refusal(409, _), done: Reply = okTrue): Reply =
     val until = System.nanoTime() + ctx.settings.requestBound.toNanos
     def poll(): Option[StepState] =
       val s = ctx.step(r.id)
@@ -98,9 +114,9 @@ object Selection:
       else if System.nanoTime() > until then None
       else { Thread.sleep(10); poll() }
     poll().flatMap(_.answer) match
-      case Some(WalletAnswer.Awarded(_))           => okTrue
-      case Some(WalletAnswer.Refused(_, code, _))  => refusal(409, code)
-      case Some(_)                                 => okTrue
+      case Some(WalletAnswer.Awarded(_))           => done
+      case Some(WalletAnswer.Refused(_, code, _))  => refused(code)
+      case Some(_)                                 => done
       case None                                    => unavailable
 
   def deselect(ctx: Ctx, playerId: String): Reply =

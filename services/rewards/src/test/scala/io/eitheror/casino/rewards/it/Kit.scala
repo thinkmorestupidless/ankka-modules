@@ -39,6 +39,13 @@ final class Kit(base: Settings = Kit.Base):
   val provider  = FakeGameProvider(slug)
   val players   = FakePlayers(slug)
   val programme = FakeProgramme()
+
+  /**
+   * The brand's programme publishes a document with no codes, so offers can be created (a document never fetched is
+   * `503` on a create); a suite publishes its own.
+   */
+  private def noCodes(): Unit = programme.documentFor(slug, 0L, Instant.now())
+  noCodes()
   val broker    = InMemoryBroker()
 
   /** The kit's settings: the programme's document is the fake's unless the suite named one. */
@@ -95,6 +102,7 @@ final class Kit(base: Settings = Kit.Base):
     provider.reset()
     players.reset()
     programme.reset()
+    noCodes()
     clockOffset = JDuration.ZERO
     rewire()
 
