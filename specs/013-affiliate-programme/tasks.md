@@ -164,7 +164,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   each a `Notification` and an `EmailSend`; US7 adds the rest), `p/accounts/KeycloakAdmin.scala` (after
   `m/operators/KeycloakAdmin.scala`: create user with the attributes of `S/NetworkTree.scala:225-328`,
   assign and remove realm roles, find by email, reset password, update email, delete user)
-- [ ] T030 Implement `p/api/Access.scala` (the path's `{brand}` against `brandsOf`, after
+- [X] T030 Implement `p/api/Access.scala` (the path's `{brand}` against `brandsOf`, after
   `services/game-provider-simulator/.../api/Access.scala:22-28`; the portal's self-or-descendant check
   through the `Accounts` view, `404 account_not_found` otherwise) and the four endpoint shells
   `p/api/OperatorEndpoint.scala` (`/v1/affiliates`), `PortalEndpoint.scala` (`/v1/my`),
