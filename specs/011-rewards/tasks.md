@@ -117,14 +117,14 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
       `max(used, seen) >= count`, the destination, zero pays nothing, `CLOSED` or `EXPIRED` at expiry,
       the late round. `T/reward/SettlementSuite.scala` first, with the `settle_free_spins_round` and
       `finalize_free_spins_grant` handler tables.
-- [ ] T023 [P] `S/clients/Neighbour.scala`, `S/clients/Wallet.scala` (trait + `Http`: the six award
+- [X] T023 [P] `S/clients/Neighbour.scala`, `S/clients/Wallet.scala` (trait + `Http`: the six award
       routes, `restricted-funds`, `balance`), `S/clients/GameProvider.scala` (known, create, get,
       cancel, spin values, game), `S/clients/Players.scala` (brand config), `S/clients/Programme.scala`
       (the document), each returning `Reply`; contracts/routes.md's *Calls out*.
-- [ ] T024 [P] `T/it/FakeServer.scala`, `T/it/FakeWallet.scala`, `T/it/FakeGameProvider.scala`,
+- [X] T024 [P] `T/it/FakeServer.scala`, `T/it/FakeWallet.scala`, `T/it/FakeGameProvider.scala`,
       `T/it/FakePlayers.scala`, `T/it/FakeProgramme.scala`: scriptable answers, `down`, `delayMillis`,
       a record of every call.
-- [ ] T025 `T/it/Kit.scala` and `SharedKit`: `AnkkaTestKit.start` over Postgres with the fakes under
+- [X] T025 `T/it/Kit.scala` and `SharedKit`: `AnkkaTestKit.start` over Postgres with the fakes under
       `localServices`, `InMemoryBroker`, `TimerRuntime(200.millis)`, a settable clock, callers
       `asPlayer`, `asOperator(roles)`, `asService(name)`, `facts(topic)`, `publish`, `timerExists`,
       `fireTimer`, `eventually`, as payouts'.
