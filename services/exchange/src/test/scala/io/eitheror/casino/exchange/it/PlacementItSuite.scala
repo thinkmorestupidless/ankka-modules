@@ -84,3 +84,19 @@ class PlacementItSuite extends munit.FunSuite with LogCapturing:
     assertEquals((other.str("error"), other.str("id")), ("id", "o5"))
     assertEquals(kit.wallet.calls("reservations").map(_._1), Vector(s"$m/o5"))
   }
+
+  test("a suspend that reaches the book behind live orders suspends it; a redelivered one older than a resume is refused") {
+    val m = market()
+    val suspendAt = kit.now()
+    kit.wallet.real.put("ada", 1000L)
+    Thread.sleep(5)
+    assertEquals(kit.place("ada", m, "o6", "buy", "yes", 1, 60).status, 200)
+    def send(command: String, at: java.time.Instant) =
+      kit.json("POST", kit.servicePath(s"/markets/$m/$command"), io.eitheror.casino.exchange.Json.obj("at" -> at.toString), kit.asService("markets"))
+    val suspended = send("suspend", suspendAt)
+    assertEquals(suspended.status, 200, suspended.text)
+    assertEquals(kit.book(m).state, com.thinkmorestupidless.predictions.exchange.ExchangeState.Suspended)
+    assertEquals(send("resume", kit.now()).status, 200)
+    val again = send("suspend", suspendAt)
+    assertEquals((again.status, again.str("error")), (409, "out of order"), again.text)
+  }
