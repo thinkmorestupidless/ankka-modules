@@ -159,8 +159,10 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
    * first outcome and persists nothing; with another digest it is `KEY_REUSED`, recorded under a
    * synthetic key so the original key's outcome is untouched; a new key is decided by `decide`.
    */
-  private def keyed(command: MoneyCommand, wireName: String)(decide: String => Effect[Outcome]): Effect[Outcome] =
-    keyedWithDigest(command, wireName, MoneyCommand.digest(wireName, command))(decide)
+  /** `unset`: fields added to a command later, left out of the digest while they hold their default. */
+  private def keyed(command: MoneyCommand, wireName: String, unset: Set[(String, String)] = Set.empty)(
+      decide: String => Effect[Outcome]): Effect[Outcome] =
+    keyedWithDigest(command, wireName, MoneyCommand.digestOf(wireName, command, unset))(decide)
 
   private def keyedWithDigest(command: MoneyCommand, wireName: String, digest: String)(decide: String => Effect[Outcome]): Effect[Outcome] =
     currentState.seen.check(Key.unsafe(command.key), digest) match
@@ -464,9 +466,9 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           .thenReply(_ => outcome)
   }
 
-  def closePendingCap(c: ClosePendingCap): Effect[Outcome] = keyed(c, "close-pending-cap") { digest =>
+  def closePendingCap(c: ClosePendingCap): Effect[Outcome] = keyed(c, "close-pending-cap", ClosePendingCap.Unset) { digest =>
     val s = currentState
-    Resolver.closePendingCap(s.fundingWallet, s.openRecords) match
+    Resolver.closePendingCap(s.fundingWallet, s.openRecords, c.grantRef) match
       case Left(deny) => refuseDeny(c, "close-pending-cap", digest, deny)
       case Right(plan) =>
         val txId    = transactionId(c.key)

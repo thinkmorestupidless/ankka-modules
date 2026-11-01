@@ -111,8 +111,8 @@ final class ServiceEndpoint(
     money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.cancel).invoke(CancelAward(k, r.grantRef, clock()))))
   }
 
-  postBody("/wallets/{player}/{currency}/awards/close-pending-cap") { (player: String, currency: String, r: KeyRequest) =>
-    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.closePendingCap).invoke(ClosePendingCap(k, clock()))))
+  postBody("/wallets/{player}/{currency}/awards/close-pending-cap") { (player: String, currency: String, r: GrantRequest) =>
+    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.closePendingCap).invoke(ClosePendingCap(k, r.grantRef, clock()))))
   }
 
   /** The grant to make primary rides in the body: a handler takes at most two path parameters. */

@@ -94,7 +94,12 @@ final case class ForfeitAward(key: String, grantRef: Option[String], at: Instant
 
 final case class CancelAward(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand
 
-final case class ClosePendingCap(key: String, at: Instant) extends MoneyCommand
+/** `grantRef` names the award whose pending cap closes (spec 011 W2); without it the first closes. */
+final case class ClosePendingCap(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand
+
+object ClosePendingCap:
+  /** Left out of the digest while unset, so a close sent before the grant was added keeps its digest. */
+  val Unset: Set[(String, String)] = Set("grantRef" -> "None")
 
 final case class SwitchPrimary(key: String, grantRef: String, at: Instant) extends MoneyCommand
 

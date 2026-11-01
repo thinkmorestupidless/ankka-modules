@@ -96,7 +96,7 @@ class InvariantsSuite extends ScalaCheckSuite with LogCapturing:
         case AwardS(a, m, p, o) => Award(key, s"bonus-$i", a, m, a * 2, i.toLong, None, Rules(forfeitOnWithdrawal = p, fundingOrder = o), None, at)
         case ForfeitS         => ForfeitAward(key, None, at)
         case CancelS          => CancelAward(key, None, at)
-        case CloseCapS        => ClosePendingCap(key, at)
+        case CloseCapS        => ClosePendingCap(key, None, at)
         case HoldS(a)         => Hold(key, a, playerConfirmed = true, at)
         case ReleaseS(as)     => Release(key, pending, as, at)
         case ConfirmS         => Confirm(key, pending, at)

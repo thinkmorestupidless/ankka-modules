@@ -132,6 +132,36 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     assert(awardUnder(kit, "g-1", Some(1), None).accepted)
   }
 
+  // ── closing a pending cap by its grant (spec 011 W2) ────────────────────────
+
+  private def twoCapped(id: String) =
+    val kit = EventSourcedTestKit.of(WalletEntity, id)
+    def capped(rf: String, grant: String, priority: Long) =
+      AwardedRecord(Record(rf, grant, Status.ConvertedPendingCap, priority = priority, remainingAllowance = 100), "bonus", None, t0, None)
+    kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 1000, 0, Vector(capped("rf-1", "g-1", 1), capped("rf-2", "g-2", 2)), 0, 0, 0, t0)): Unit
+    kit
+
+  test("W2: with two pending caps a close naming the second closes the second, and the first stays waiting") {
+    val kit     = twoCapped("w2-named/EUR")
+    val outcome = kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", Some("g-2"), t0)).replyValue
+    assertEquals(outcome.closedRecordId, Some("rf-2"))
+    assertEquals(kit.currentState.openRecords.map(_.id), Vector("rf-1"))
+  }
+
+  test("W2: a close naming no grant closes the first, as before; one naming a closed grant is NOT_PENDING_CAP") {
+    val kit = twoCapped("w2-first/EUR")
+    assertEquals(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", None, t0)).replyValue.closedRecordId, Some("rf-1"))
+    assertEquals(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-2", Some("g-1"), t0)).replyValue.code, Some("NOT_PENDING_CAP"))
+    assertEquals(kit.currentState.openRecords.map(_.id), Vector("rf-2"))
+  }
+
+  test("W2: a close naming no grant keeps the digest it had before the grant was added, so a retry is a repeat") {
+    // Before W2 the command's payload was empty: key and time are never digested.
+    val before = io.eitheror.casino.contract.money.Digest.of(Vector("command" -> "close-pending-cap"))
+    assertEquals(MoneyCommand.digestOf("close-pending-cap", ClosePendingCap("cp-1", None, t0), ClosePendingCap.Unset), before)
+    assertNotEquals(MoneyCommand.digestOf("close-pending-cap", ClosePendingCap("cp-1", Some("g-1"), t0), ClosePendingCap.Unset), before)
+  }
+
   // ── personal data (FR-033) ──────────────────────────────────────────────────
 
   test("an adjustment's reason is held as Personal in the event, and the category is not personal") {
@@ -167,7 +197,7 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     kit.call(WalletEntity.confirm)(Confirm("cf-1", "w-2", t0))
     kit.call(WalletEntity.reverse)(Reverse("rv-1", "w-2", t0))
     kit.call(WalletEntity.setTurnoverOverride)(SetTurnoverOverride(Some(TurnoverTerms(2, "gross_wagered")), "op", t0))
-    kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", t0))
+    kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", None, t0))
     val events = kit.allEvents
     events.foreach(e => assertEquals(serializer.fromBytes(serializer.toBytes(e)), e))
     val kinds = events.map(_.getClass.getSimpleName).toSet
@@ -191,7 +221,7 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(reply(kit.call(WalletEntity.award)(Award("g", " ", 1, 1, 1, 0, None, Rules(), None, t0)).replyValue),
       ("MISSING_BONUS_REF", "bonus_ref is required"))
     assertEquals(reply(kit.call(WalletEntity.forfeit)(ForfeitAward("f", None, t0)).replyValue), ("NO_ACTIVE_BONUS", "No active bonus to forfeit"))
-    assertEquals(reply(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp", t0)).replyValue),
+    assertEquals(reply(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp", None, t0)).replyValue),
       ("NOT_PENDING_CAP", "No CONVERTED_PENDING_CAP bonus to close"))
     assertEquals(reply(kit.call(WalletEntity.switchPrimary)(SwitchPrimary("s", "zz", t0)).replyValue), ("GRANT_NOT_FOUND", "Grant zz not found"))
     assertEquals(reply(kit.call(WalletEntity.hold)(Hold("h", 5000, true, t0)).replyValue), ("INSUFFICIENT_FUNDS", "Insufficient real balance for withdrawal"))
