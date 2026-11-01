@@ -61,7 +61,7 @@ class OffersFeatures extends RewardsFeatures("offers.feature"):
   // ── the player ─────────────────────────────────────────────────────────────────────────────
 
   /** The offer made visible to the player, as a campaign or a code does (US6, US3). */
-  private def target(id: String): Unit = Scene.target(kit, player, id)
+  private def target(id: String): Unit = Scene.target(kit, player, id): Unit
 
   private def select(id: String): Unit =
     last = kit.json("POST", kit.rewardsPath(s"/$player/select"), json("offerId" -> id), kit.asPlayer(player))
