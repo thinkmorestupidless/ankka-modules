@@ -36,6 +36,7 @@ jobs:
       simulator: ${{ steps.filter.outputs.simulator }}
       responsible-gambling: ${{ steps.filter.outputs.responsible-gambling }}
       kyc: ${{ steps.filter.outputs.kyc }}
+      payouts: ${{ steps.filter.outputs.payouts }}
     steps:
       - uses: dorny/paths-filter@v3
         if: github.event_name == 'pull_request'
@@ -102,6 +103,11 @@ jobs:
               - services/kyc/**
               - features/kyc/**
               - tests/port/kyc/**
+            payouts:
+              - *build
+              - services/payouts/**
+              - features/payouts/**
+              - tests/port/payouts/**
 
   check:
     runs-on: ubuntu-latest
@@ -345,6 +351,26 @@ jobs:
         run: sbt contract/publishLocal
       - name: kyc's suites
         working-directory: services/kyc
+        run: sbt test
+
+  # payouts (spec 007): its own sbt build against the contract published from this commit; its integration
+  # suites start Postgres in Docker.
+  payouts:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.payouts == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: payouts' suites
+        working-directory: services/payouts
         run: sbt test
 
   # The integration suites, on a kind installation of ankka. Manual only: it takes the time a full

@@ -1,0 +1,234 @@
+{
+  "scenario": "setting a second destination as default makes the first no longer default",
+  "requirement": "007/FR-013",
+  "recorded_at": "2026-10-31T15:42:44.396598Z",
+  "original": {
+    "commit": "e7d8f2de"
+  },
+  "runs": 2,
+  "service": "payouts",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "firstName": "A.",
+          "language": "en",
+          "lastName": "Example",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "921911be-f486-3dfa-84c6-73c20a762239",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "921911be-f486-3dfa-84c6-73c20a762239",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: save the first destination",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/players/{playerId}/payout-destinations",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "firstName": "A.",
+          "iban": "DE89370400440532013000",
+          "label": "payouts driver",
+          "lastName": "Example"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "currency": "EUR",
+          "ibanLastFour": "3000",
+          "id": "payout-destination/63eb447d-0702-4fd9-ab33-18e5de3b1995",
+          "isDefault": true,
+          "scheme": "eubanking"
+        }
+      },
+      "capture": {
+        "firstId": "$.id"
+      },
+      "vary": {
+        "$.id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: save the second destination",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/players/{playerId}/payout-destinations",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "firstName": "A.",
+          "iban": "GB82WEST12345698765432",
+          "label": "payouts driver",
+          "lastName": "Example"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "currency": "EUR",
+          "ibanLastFour": "5432",
+          "id": "payout-destination/73cbad16-e396-4e63-a837-5c5fb2833956",
+          "isDefault": true,
+          "scheme": "eubanking"
+        }
+      },
+      "capture": {
+        "secondId": "$.id"
+      },
+      "vary": {
+        "$.id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "set the second as default",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/casino/brands/spinvibe/players/{playerId}/payout-destinations/{secondId}/set-default",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "destinationId": "payout-destination/73cbad16-e396-4e63-a837-5c5fb2833956",
+          "isDefault": true
+        }
+      },
+      "vary": {
+        "$.destinationId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "list the player's destinations",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/players/{playerId}/payout-destinations",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "destinations": [
+            {
+              "createdAt": "2026-10-31T15:42:44.999595386Z",
+              "currency": "EUR",
+              "ibanLastFour": "3000",
+              "id": "payout-destination/63eb447d-0702-4fd9-ab33-18e5de3b1995",
+              "isDefault": false,
+              "label": "payouts driver",
+              "scheme": "eubanking"
+            },
+            {
+              "createdAt": "2026-10-31T15:42:45.056906235Z",
+              "currency": "EUR",
+              "ibanLastFour": "5432",
+              "id": "payout-destination/73cbad16-e396-4e63-a837-5c5fb2833956",
+              "isDefault": false,
+              "label": "payouts driver",
+              "scheme": "eubanking"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.destinations[0].createdAt": "differs between two runs of the original",
+        "$.destinations[0].id": "differs between two runs of the original",
+        "$.destinations[1].createdAt": "differs between two runs of the original",
+        "$.destinations[1].id": "differs between two runs of the original"
+      }
+    }
+  ]
+}

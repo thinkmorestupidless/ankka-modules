@@ -1,0 +1,2872 @@
+{
+  "scenario": "TestScenario251_ReversedPayoutRestoresCap",
+  "requirement": "007/FR-020",
+  "recorded_at": "2026-10-31T15:10:26.964416Z",
+  "original": {
+    "brand": "",
+    "commit": "e7d8f2de"
+  },
+  "runs": 2,
+  "service": "realm",
+  "steps": [
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "19ed70c2-6fd3-4d6c-b54d-a507132fc7a9",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/eitheror-terminal/0cad9d3d-3318-3b04-b1a4-4a25515e7cda",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal/0cad9d3d-3318-3b04-b1a4-4a25515e7cda",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "gateway": "s251-manual",
+          "id": "s251-terminal-24a557eb",
+          "name": "s251 manual payout",
+          "scheme": "",
+          "status": "active",
+          "supportsWithdrawal": "true"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal/0cad9d3d-3318-3b04-b1a4-4a25515e7cda"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+      "request": {
+        "method": "GET",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [],
+          "properties": {
+            "customer_id": "dev",
+            "ids": "|cfg_0c628563|s251-terminal-c2b8434c|s251-terminal-5a0904a0|s251-terminal-1a5d967f"
+          }
+        }
+      },
+      "capture": {
+        "c0": "$.properties.ids"
+      },
+      "vary": {
+        "$.properties.ids": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+      "request": {
+        "method": "POST",
+        "path": "/twins/eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "ids": "{c0}|s251-terminal-24a557eb"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "eitheror-terminal-index/adecbe44-0588-3743-b915-885a0f34177a"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "email": "bonus-e2e-b0ff3bad@example.com",
+          "firstName": "Bonus",
+          "lastName": "E2E",
+          "password": "\u003credacted\u003e",
+          "username": "bonus-e2e-b0ff3bad"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c1": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli\u0026grant_type=password\u0026password=\u003credacted\u003e\u0026username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "\u003credacted\u003e",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "\u003credacted\u003e",
+          "scope": "profile email",
+          "session_state": "47c6f755-eaea-4a74-9ff2-af83c73538cd",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=bonus-e2e-b0ff3bad%40example.com\u0026exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "createdTimestamp": 1793459427088,
+            "disableableCredentialTypes": [],
+            "email": "bonus-e2e-b0ff3bad@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "Bonus",
+            "id": "8d1e68e2-46a0-47d2-b0e4-48b429527130",
+            "lastName": "E2E",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "bonus-e2e-b0ff3bad@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c2": "$[0].email",
+        "c3": "$[0].id"
+      },
+      "vary": {
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/8d1e68e2-46a0-47d2-b0e4-48b429527130",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c3}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/8d1e68e2-46a0-47d2-b0e4-48b429527130",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c3}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/17ee0c4e-f900-30ba-959e-8952ef423ebd"
+            ]
+          },
+          "createdTimestamp": 1793459427088,
+          "disableableCredentialTypes": [],
+          "email": "bonus-e2e-b0ff3bad@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "Bonus",
+          "id": "8d1e68e2-46a0-47d2-b0e4-48b429527130",
+          "lastName": "E2E",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "bonus-e2e-b0ff3bad@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c2}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": null,
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{c1}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "kyc_status": "verified"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/grant/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{c1}",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonusAmount": "10.00",
+          "currency": "EUR",
+          "maxConvertibleAmount": "250.00",
+          "wager": "1"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusAmount": "10.00",
+          "status": "granted",
+          "wageringRequired": "10.00"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/bonus-claims",
+      "request": {
+        "method": "GET",
+        "path": "/twins/bonus-claims",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "total": 41,
+          "twins": [
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:08.710465379Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/c11c313c-d28d-4e4b-a95c-1f1768f96524",
+                "granted_at": "2026-10-31T14:01:08.710465379Z",
+                "last_event_ref": "reward-events-spinvibe/de80b31c-6146-4dad-8dab-896f85b57590",
+                "offer_id": "manual:9c62ed57-7517-433d-9e0e-a78346856f61",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:9c62ed57-7517-433d-9e0e-a78346856f61",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "51caed5e-964d-3e70-8e0c-115479889a3c",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/c11c313c-d28d-4e4b-a95c-1f1768f96524",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/c11c313c-d28d-4e4b-a95c-1f1768f96524"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:29.197873207Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/3b7a22ef-5f6c-4bde-80ed-0e3c0a652e3b",
+                "granted_at": "2026-10-31T14:01:29.197873207Z",
+                "last_event_ref": "reward-events-spinvibe/104b25b8-d0ae-4bca-ac89-ff647afe3c57",
+                "offer_id": "manual:ea99c2c6-5a24-4ba1-8755-b3f90d270882",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:ea99c2c6-5a24-4ba1-8755-b3f90d270882",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "7bdd3606-1080-3230-b88b-3526b75eae22",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/3b7a22ef-5f6c-4bde-80ed-0e3c0a652e3b",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T14:01:30.448457431Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/3b7a22ef-5f6c-4bde-80ed-0e3c0a652e3b"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:31.840462080Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/250c4eb1-bd35-4293-a70b-dcf5d07c9c74",
+                "granted_at": "2026-10-31T14:01:31.840462080Z",
+                "last_event_ref": "reward-events-spinvibe/692fb4f1-6c17-4703-84f6-4ae2dce3476a",
+                "offer_id": "manual:f6867865-3f36-47d5-9263-1caec910c7e8",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:f6867865-3f36-47d5-9263-1caec910c7e8",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "4aee27db-795a-3eee-8152-9b9366e046fe",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/250c4eb1-bd35-4293-a70b-dcf5d07c9c74",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T14:01:32.872972527Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/250c4eb1-bd35-4293-a70b-dcf5d07c9c74"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:34.854417177Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/2c680ea8-447a-4c39-9adf-785fe2692c6e",
+                "granted_at": "2026-10-31T14:01:34.854417177Z",
+                "last_event_ref": "reward-events-spinvibe/73598a34-c272-41c1-95b6-1759b94d96bc",
+                "offer_id": "manual:ac50624e-eb61-439f-9922-0fcaa0d63082",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:ac50624e-eb61-439f-9922-0fcaa0d63082",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "882e95ed-4170-34e5-b6bc-ee545b16efab",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/2c680ea8-447a-4c39-9adf-785fe2692c6e",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/2c680ea8-447a-4c39-9adf-785fe2692c6e"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:38.672186601Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/9b26669c-eb8e-40f1-8d80-4900e59f5e24",
+                "granted_at": "2026-10-31T14:01:38.672186601Z",
+                "last_event_ref": "reward-events-spinvibe/69060969-0f4c-4f47-b7ae-82043727bf3d",
+                "offer_id": "manual:104db968-cff9-4f1d-bdb0-9ac1d6b5f5f5",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:104db968-cff9-4f1d-bdb0-9ac1d6b5f5f5",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "2cebe53c-250b-31bc-9ddf-f5ff34af4cd6",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/9b26669c-eb8e-40f1-8d80-4900e59f5e24",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/9b26669c-eb8e-40f1-8d80-4900e59f5e24"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:53.317223773Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/2e869af2-0494-4cbc-9306-a5324ad3ca00",
+                "granted_at": "2026-10-31T14:01:53.317223773Z",
+                "last_event_ref": "reward-events-spinvibe/d4870fb0-c011-46b3-8282-b5b151ea5609",
+                "offer_id": "manual:5d8ab461-b9c8-4e3a-b6d9-77c17f765176",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:5d8ab461-b9c8-4e3a-b6d9-77c17f765176",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "89639aea-a9aa-3c54-9938-3c44ff39049b",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/2e869af2-0494-4cbc-9306-a5324ad3ca00",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T14:01:54.429110261Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/2e869af2-0494-4cbc-9306-a5324ad3ca00"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:50.701326080Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/1186952c-2fe6-41fc-a844-3a5939d0c1d2",
+                "granted_at": "2026-10-31T14:01:50.701326080Z",
+                "last_event_ref": "reward-events-spinvibe/95585d9b-16b8-4feb-a3c9-0023e6ffef89",
+                "offer_id": "manual:448ac710-3544-49a7-b20f-32396788fb7e",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:448ac710-3544-49a7-b20f-32396788fb7e",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "6febd73b-5f0d-3aa1-a348-b6207650032d",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/1186952c-2fe6-41fc-a844-3a5939d0c1d2",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T14:01:51.966874218Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/1186952c-2fe6-41fc-a844-3a5939d0c1d2"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:01:56.322381057Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/df854076-e244-4ebb-993f-fc41224aecb2",
+                "granted_at": "2026-10-31T14:01:56.322381057Z",
+                "last_event_ref": "reward-events-spinvibe/30567a08-aadc-499a-91fa-1554f432221a",
+                "offer_id": "manual:0e40bc21-7496-403b-adf7-1b95ee827ca6",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:0e40bc21-7496-403b-adf7-1b95ee827ca6",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "2d3ad8cf-40c8-33f2-b6fa-0df07e02ce75",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/df854076-e244-4ebb-993f-fc41224aecb2",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/df854076-e244-4ebb-993f-fc41224aecb2"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:39:23.171055359Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/afcce437-f0dd-467a-9026-5d794782df76",
+                "granted_at": "2026-10-31T14:39:23.171055359Z",
+                "last_event_ref": "reward-events-spinvibe/568a4789-6f0d-4a1f-97cd-18ae997cba7c",
+                "offer_id": "manual:cba7b3ae-0432-4f78-a26d-cf1995f65daa",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:cba7b3ae-0432-4f78-a26d-cf1995f65daa",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "1cb4946a-975f-3c89-8556-0f3ba74b9223",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/afcce437-f0dd-467a-9026-5d794782df76",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/afcce437-f0dd-467a-9026-5d794782df76"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:39:24.040003369Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/a1d88252-c5ca-44dd-b70a-4db5a5701ede",
+                "granted_at": "2026-10-31T14:39:24.040003369Z",
+                "last_event_ref": "reward-events-spinvibe/2e92be77-f7a9-4c63-97c4-095e784d3de9",
+                "offer_id": "manual:740932dc-fde5-44f4-a75d-e18c580e9c2a",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:740932dc-fde5-44f4-a75d-e18c580e9c2a",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "7cb3c1b0-00f9-3bd5-971b-a44160b47922",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/a1d88252-c5ca-44dd-b70a-4db5a5701ede",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "FORFEITED",
+                "terminated_at": "2026-10-31T14:39:24.337133383Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/a1d88252-c5ca-44dd-b70a-4db5a5701ede"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 3000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:39:25.025323594Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/53aac195-97ee-49b4-923a-0d1e489259a2",
+                "granted_at": "2026-10-31T14:39:25.025323594Z",
+                "last_event_ref": "reward-events-spinvibe/60808773-dec7-4762-9ec9-4fe55a31b6dd",
+                "offer_id": "manual:626cabbd-bb73-45c8-8087-93f94f2e4e26",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:626cabbd-bb73-45c8-8087-93f94f2e4e26",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "133275a8-61ac-3ef9-a124-069ef06cbdf1",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/53aac195-97ee-49b4-923a-0d1e489259a2",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/53aac195-97ee-49b4-923a-0d1e489259a2"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:57:18.238799503Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/d446c819-fc28-4a9f-b774-de10e83c3aa6",
+                "granted_at": "2026-10-31T14:57:18.238799503Z",
+                "last_event_ref": "reward-events-spinvibe/4eb85537-f751-4963-b6a5-b1bd8fb11e15",
+                "offer_id": "manual:d797b531-31e2-4ce9-ab32-11eb9156699e",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:d797b531-31e2-4ce9-ab32-11eb9156699e",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "f592c4c5-fb94-3348-b6ec-7a26a46dbf3f",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/d446c819-fc28-4a9f-b774-de10e83c3aa6",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/d446c819-fc28-4a9f-b774-de10e83c3aa6"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:57:19.229628506Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/b99f3d26-9dbe-4a4f-9af3-a508824ff721",
+                "granted_at": "2026-10-31T14:57:19.229628506Z",
+                "last_event_ref": "reward-events-spinvibe/bed90793-2610-4ef0-8b98-187f6352286d",
+                "offer_id": "manual:194ac6e6-8dd9-49a7-9d25-c882e469f990",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:194ac6e6-8dd9-49a7-9d25-c882e469f990",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "d47f465a-5ba3-35c7-bb32-e696f2dece02",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/b99f3d26-9dbe-4a4f-9af3-a508824ff721",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/b99f3d26-9dbe-4a4f-9af3-a508824ff721"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 3000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T14:57:20.075395366Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/c682453c-4986-48b0-b2c5-092062127ab1",
+                "granted_at": "2026-10-31T14:57:20.075395366Z",
+                "last_event_ref": "reward-events-spinvibe/17ad6f40-02f0-4729-822e-7b6266627b44",
+                "offer_id": "manual:d791b748-bea3-425e-bf5d-93fddfec8572",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:d791b748-bea3-425e-bf5d-93fddfec8572",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "18a89c07-1b74-3b9b-ba02-0aea5105be78",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/c682453c-4986-48b0-b2c5-092062127ab1",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/c682453c-4986-48b0-b2c5-092062127ab1"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:01:29.619420065Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/b76b1951-0714-4748-aaf2-100a816a2cbf",
+                "granted_at": "2026-10-31T15:01:29.619420065Z",
+                "last_event_ref": "reward-events-spinvibe/a421513d-c727-41c6-a72e-2048ba06d77c",
+                "offer_id": "manual:099c7dd7-5145-43a2-96bf-da488751ad39",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:099c7dd7-5145-43a2-96bf-da488751ad39",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "fd3204ad-20a4-304b-ac46-21a01b77ce42",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/b76b1951-0714-4748-aaf2-100a816a2cbf",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/b76b1951-0714-4748-aaf2-100a816a2cbf"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:01:30.567669560Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/9e022af8-0193-436e-99bd-0b9b8ee4a444",
+                "granted_at": "2026-10-31T15:01:30.567669560Z",
+                "last_event_ref": "reward-events-spinvibe/40f3da79-7ab6-4403-8dc0-c6326eaf3b23",
+                "offer_id": "manual:459882dd-2c1b-42fb-a638-df30dd6dfd07",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:459882dd-2c1b-42fb-a638-df30dd6dfd07",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "dbf7ef60-ba05-377a-95a7-8979f2b753bc",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/9e022af8-0193-436e-99bd-0b9b8ee4a444",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "FORFEITED",
+                "terminated_at": "2026-10-31T15:01:30.816235068Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/9e022af8-0193-436e-99bd-0b9b8ee4a444"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 3000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:01:31.615392970Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/756c91a1-a620-402c-84a7-6622afd86df8",
+                "granted_at": "2026-10-31T15:01:31.615392970Z",
+                "last_event_ref": "reward-events-spinvibe/5b73aeb9-504c-4bdd-8cec-7f6ec046361e",
+                "offer_id": "manual:f733fa8a-b662-4f22-a454-9c279232a6d7",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:f733fa8a-b662-4f22-a454-9c279232a6d7",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "5b726888-2247-327f-a8a1-79f8cdc626de",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/756c91a1-a620-402c-84a7-6622afd86df8",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/756c91a1-a620-402c-84a7-6622afd86df8"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:02:28.714724941Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/912a211a-0b94-446e-bb26-34e8c48d578f",
+                "granted_at": "2026-10-31T15:02:28.714724941Z",
+                "last_event_ref": "reward-events-spinvibe/c2f1cd9a-02e9-454b-87db-0ef5b933c99d",
+                "offer_id": "manual:88954adb-6b44-4235-828f-befe554e1f66",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:88954adb-6b44-4235-828f-befe554e1f66",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "589ba572-9afc-3e96-bd75-40f95a3a263c",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/912a211a-0b94-446e-bb26-34e8c48d578f",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/912a211a-0b94-446e-bb26-34e8c48d578f"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:02:29.493948450Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/6b94cc7f-c462-4268-b78a-1aa3dc886905",
+                "granted_at": "2026-10-31T15:02:29.493948450Z",
+                "last_event_ref": "reward-events-spinvibe/ccc72e17-2b21-4604-9662-eb03a61aadc0",
+                "offer_id": "manual:026a7747-74af-43fe-809c-662d6e184e10",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:026a7747-74af-43fe-809c-662d6e184e10",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "caec9e6b-d8c2-3fe3-8d26-3605bea401d8",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/6b94cc7f-c462-4268-b78a-1aa3dc886905",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "FORFEITED",
+                "terminated_at": "2026-10-31T15:02:29.732655808Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/6b94cc7f-c462-4268-b78a-1aa3dc886905"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 3000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:02:30.503024707Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/c27f310a-4ea6-48c5-a392-7044e1309069",
+                "granted_at": "2026-10-31T15:02:30.503024707Z",
+                "last_event_ref": "reward-events-spinvibe/f3f55b57-1bc1-4d6e-9b25-e23ed10292cc",
+                "offer_id": "manual:0beb7ece-94db-4440-9fa1-452c64ee401f",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:0beb7ece-94db-4440-9fa1-452c64ee401f",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "ee023952-4311-3e7a-a1d7-91be9f52c40f",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/c27f310a-4ea6-48c5-a392-7044e1309069",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/c27f310a-4ea6-48c5-a392-7044e1309069"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:07.423675055Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/452790f2-6c0c-47e3-9eea-4df679a892dc",
+                "granted_at": "2026-10-31T15:03:07.423675055Z",
+                "last_event_ref": "reward-events-spinvibe/e2de3621-2d7f-4710-bc43-3c2371a976dc",
+                "offer_id": "manual:15174ef0-162f-48f8-9f82-d3bece2f077f",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:15174ef0-162f-48f8-9f82-d3bece2f077f",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "3b98d63c-607a-3e7c-a118-945eabcb99ea",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/452790f2-6c0c-47e3-9eea-4df679a892dc",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/452790f2-6c0c-47e3-9eea-4df679a892dc"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:22.146441694Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/90f0f58c-2e1e-448d-9c3f-ce2f6fb3c57d",
+                "granted_at": "2026-10-31T15:03:22.146441694Z",
+                "last_event_ref": "reward-events-spinvibe/9b3f173f-cde7-42c3-bbf1-30424293b832",
+                "offer_id": "manual:3d95efb9-3c50-4246-acb5-9b49eeee79ff",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:3d95efb9-3c50-4246-acb5-9b49eeee79ff",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "19272ca8-5100-3727-9a1c-c3204db398ec",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/90f0f58c-2e1e-448d-9c3f-ce2f6fb3c57d",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T15:03:23.595331401Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/90f0f58c-2e1e-448d-9c3f-ce2f6fb3c57d"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:25.415980393Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/d0b85ff5-5a4f-4820-94d7-727237898b9b",
+                "granted_at": "2026-10-31T15:03:25.415980393Z",
+                "last_event_ref": "reward-events-spinvibe/c655b64a-5419-4ddf-a9d6-5ac7bf143e71",
+                "offer_id": "manual:393a6ad7-9616-486a-b7a5-2c0b62112e8e",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:393a6ad7-9616-486a-b7a5-2c0b62112e8e",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "4835415d-2a1c-35f9-9c74-cb1eba084d8f",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/d0b85ff5-5a4f-4820-94d7-727237898b9b",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T15:03:27.252406263Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/d0b85ff5-5a4f-4820-94d7-727237898b9b"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:29.333155296Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/ddc99bd0-d1e5-49cc-a6a2-05ce0d7feb70",
+                "granted_at": "2026-10-31T15:03:29.333155296Z",
+                "last_event_ref": "reward-events-spinvibe/c7a46247-7a85-4d31-bfbd-550b657925eb",
+                "offer_id": "manual:bbe34dce-fcf5-46e3-9a5b-4ad214b808f3",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:bbe34dce-fcf5-46e3-9a5b-4ad214b808f3",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "2e47ddbc-03c2-371f-93cd-ebf2e1bc3b11",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/ddc99bd0-d1e5-49cc-a6a2-05ce0d7feb70",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/ddc99bd0-d1e5-49cc-a6a2-05ce0d7feb70"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:33.291090157Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/a49174fb-1fa2-4d14-9de6-1ca47b768f88",
+                "granted_at": "2026-10-31T15:03:33.291090157Z",
+                "last_event_ref": "reward-events-spinvibe/b2478ce7-f3fb-4360-b69b-9be60343281f",
+                "offer_id": "manual:bdb4cd0c-8481-4184-adfc-d35e53d7a171",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:bdb4cd0c-8481-4184-adfc-d35e53d7a171",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "4108720e-1776-3ea1-a420-9ec9859f7e2f",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/a49174fb-1fa2-4d14-9de6-1ca47b768f88",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/a49174fb-1fa2-4d14-9de6-1ca47b768f88"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:45.027563958Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/bc0869ba-79e0-41f0-9596-e7d201c1cfe0",
+                "granted_at": "2026-10-31T15:03:45.027563958Z",
+                "last_event_ref": "reward-events-spinvibe/fb1708e2-4441-44e4-9a20-c5d426232bd2",
+                "offer_id": "manual:12e08469-fb50-4b0a-92b8-f03f6c8a38a1",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:12e08469-fb50-4b0a-92b8-f03f6c8a38a1",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "91a40754-08a2-3450-8e11-8d9df8ded710",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/bc0869ba-79e0-41f0-9596-e7d201c1cfe0",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/bc0869ba-79e0-41f0-9596-e7d201c1cfe0"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:47.025491220Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/ec8bc666-31dc-4928-8135-57ef6522fe53",
+                "granted_at": "2026-10-31T15:03:47.025491220Z",
+                "last_event_ref": "reward-events-spinvibe/5b419ccb-3cb8-4400-88b9-2d4556b7349d",
+                "offer_id": "manual:caf70c4b-81fe-4e07-ad1b-26bd9a1dbfc2",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:caf70c4b-81fe-4e07-ad1b-26bd9a1dbfc2",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "74408123-4970-36a5-8d1e-d981e494030c",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/ec8bc666-31dc-4928-8135-57ef6522fe53",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T15:03:49.372577900Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/ec8bc666-31dc-4928-8135-57ef6522fe53"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:03:51.221190896Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/fba39513-b099-4e62-ac36-91404c4c68a6",
+                "granted_at": "2026-10-31T15:03:51.221190896Z",
+                "last_event_ref": "reward-events-spinvibe/f6a2e8e4-0e37-46c1-8bd6-d48933bbd5c8",
+                "offer_id": "manual:5a217009-790c-45ff-b569-0efe1b43fa1a",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:5a217009-790c-45ff-b569-0efe1b43fa1a",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "35d06e18-7c65-3a56-bd93-18bd5026a269",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/fba39513-b099-4e62-ac36-91404c4c68a6",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/fba39513-b099-4e62-ac36-91404c4c68a6"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:04:30.239422577Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/539299d9-fe6a-4179-9c34-d6a1df72d778",
+                "granted_at": "2026-10-31T15:04:30.239422577Z",
+                "last_event_ref": "reward-events-spinvibe/6dad9545-7b7a-4c67-a9ef-cf533cf69d3d",
+                "offer_id": "manual:b3538978-2314-4772-87a0-e75f6fef7c13",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:b3538978-2314-4772-87a0-e75f6fef7c13",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "4179093d-0d7b-3cee-9b34-507104fff100",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/539299d9-fe6a-4179-9c34-d6a1df72d778",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/539299d9-fe6a-4179-9c34-d6a1df72d778"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:04:31.203287756Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/22196b56-1c05-4c8b-afd9-67f6af4e3f5f",
+                "granted_at": "2026-10-31T15:04:31.203287756Z",
+                "last_event_ref": "reward-events-spinvibe/009828c3-1c15-496f-8b05-d213b1f934bd",
+                "offer_id": "manual:fdffcede-7609-4f1c-900b-9346957672ba",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:fdffcede-7609-4f1c-900b-9346957672ba",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "821dbf9f-6209-3543-9f58-2824bed7ad2c",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/22196b56-1c05-4c8b-afd9-67f6af4e3f5f",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "FORFEITED",
+                "terminated_at": "2026-10-31T15:04:31.498144055Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/22196b56-1c05-4c8b-afd9-67f6af4e3f5f"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 3000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:04:32.192913956Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/4bf36c9e-244e-4516-8995-190bccec55e1",
+                "granted_at": "2026-10-31T15:04:32.192913956Z",
+                "last_event_ref": "reward-events-spinvibe/db000464-2507-42b5-83de-e7a626c9a4e1",
+                "offer_id": "manual:be7bdf76-591d-495b-adda-dbc152832742",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:be7bdf76-591d-495b-adda-dbc152832742",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "dc8d89e7-1984-386a-9717-0b818e50ce57",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/4bf36c9e-244e-4516-8995-190bccec55e1",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/4bf36c9e-244e-4516-8995-190bccec55e1"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:07:53.848495684Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/a304d44e-cf12-40f6-927a-edeaf253a026",
+                "granted_at": "2026-10-31T15:07:53.848495684Z",
+                "last_event_ref": "reward-events-spinvibe/cf36eb76-3488-47e6-8e79-ecdd2054437d",
+                "offer_id": "manual:d985932d-7918-4922-ad74-b85f68bab1d5",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:d985932d-7918-4922-ad74-b85f68bab1d5",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "f08e269d-7464-3217-befb-f225e20a0bb3",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/a304d44e-cf12-40f6-927a-edeaf253a026",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/a304d44e-cf12-40f6-927a-edeaf253a026"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:07:54.908814481Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/4d60948a-0baa-4cb4-8a33-6b1652d4dc51",
+                "granted_at": "2026-10-31T15:07:54.908814481Z",
+                "last_event_ref": "reward-events-spinvibe/383f198c-2549-40a5-b46f-58a9af6c42e6",
+                "offer_id": "manual:19ef57c6-6700-45b8-b460-d8da96f4d76d",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:19ef57c6-6700-45b8-b460-d8da96f4d76d",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "c07ddd92-01b7-326c-bf31-bae7fac89a85",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/4d60948a-0baa-4cb4-8a33-6b1652d4dc51",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "FORFEITED",
+                "terminated_at": "2026-10-31T15:07:55.183060406Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/4d60948a-0baa-4cb4-8a33-6b1652d4dc51"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 3000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:07:55.950480717Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/613344e6-3702-4781-ae50-c04dd98f37ff",
+                "granted_at": "2026-10-31T15:07:55.950480717Z",
+                "last_event_ref": "reward-events-spinvibe/8aec78f1-ffc0-4113-b947-c412c3569d51",
+                "offer_id": "manual:25e5deef-272b-4437-9304-84691ed1afaa",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:25e5deef-272b-4437-9304-84691ed1afaa",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "40e90a3e-68ec-363e-9b74-94bc7fde9455",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/613344e6-3702-4781-ae50-c04dd98f37ff",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/613344e6-3702-4781-ae50-c04dd98f37ff"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:09:13.388599296Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/d3e4bed3-f2ce-4f9b-882e-e72d54ea2ca9",
+                "granted_at": "2026-10-31T15:09:13.388599296Z",
+                "last_event_ref": "reward-events-spinvibe/78794376-8a0b-4d00-94a6-cb0cc0b02ab3",
+                "offer_id": "manual:f88588b9-3ff7-4327-bff3-ef1390fc4f9e",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:f88588b9-3ff7-4327-bff3-ef1390fc4f9e",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "a05e7c20-cc7f-3776-8fdd-62d4bba14972",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/d3e4bed3-f2ce-4f9b-882e-e72d54ea2ca9",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "FORFEITED",
+                "terminated_at": "2026-10-31T15:09:13.713864802Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/d3e4bed3-f2ce-4f9b-882e-e72d54ea2ca9"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 10000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:09:12.205719047Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/948463c7-bb8c-488e-b3b2-b856bb175f00",
+                "granted_at": "2026-10-31T15:09:12.205719047Z",
+                "last_event_ref": "reward-events-spinvibe/8590af01-399c-4a70-b119-c17031a29ae3",
+                "offer_id": "manual:19a24d84-7d98-49f6-812f-843b93c26155",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:19a24d84-7d98-49f6-812f-843b93c26155",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "de62996e-46ca-3ec9-ad8a-a8b8146c5fb9",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/948463c7-bb8c-488e-b3b2-b856bb175f00",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/948463c7-bb8c-488e-b3b2-b856bb175f00"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 3000,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:09:16.433809782Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/c4d20bf5-fc47-423f-a408-b64144af8212",
+                "granted_at": "2026-10-31T15:09:16.433809782Z",
+                "last_event_ref": "reward-events-spinvibe/7c125e57-854e-415e-9e85-2a8971e08b1d",
+                "offer_id": "manual:d45428bc-c506-49ab-9013-2dcc0eb8bc10",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:d45428bc-c506-49ab-9013-2dcc0eb8bc10",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "26b3ac1d-1fd4-35ec-b888-f1049c2d2e40",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/c4d20bf5-fc47-423f-a408-b64144af8212",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/c4d20bf5-fc47-423f-a408-b64144af8212"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:10:08.551265486Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/28d94cba-1474-4577-9dfb-dd8de6c80518",
+                "granted_at": "2026-10-31T15:10:08.551265486Z",
+                "last_event_ref": "reward-events-spinvibe/3edea0be-98ca-43c5-b7ab-6412dbc18efc",
+                "offer_id": "manual:7769be9b-9b67-4596-81a5-f4acd9158c85",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:7769be9b-9b67-4596-81a5-f4acd9158c85",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "35e282a0-6b2f-3694-93b4-cb5e6c36dac4",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/28d94cba-1474-4577-9dfb-dd8de6c80518",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CONVERTED_PENDING_CAP",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/28d94cba-1474-4577-9dfb-dd8de6c80518"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:10:22.044771600Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/494e6a7e-7daa-46c1-b1f6-7cc7d58baed7",
+                "granted_at": "2026-10-31T15:10:22.044771600Z",
+                "last_event_ref": "reward-events-spinvibe/87c0a6b4-4025-4360-b928-7dfb1eba0873",
+                "offer_id": "manual:2b75b2a5-eead-4458-bdf4-496c4f3772b2",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:2b75b2a5-eead-4458-bdf4-496c4f3772b2",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "1f445bd7-1261-3ffb-8f8e-248faf97f5bf",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/494e6a7e-7daa-46c1-b1f6-7cc7d58baed7",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T15:10:23.025096112Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/494e6a7e-7daa-46c1-b1f6-7cc7d58baed7"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:10:24.529532Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/2fee6abe-8156-4b13-b305-d6d7718fb75c",
+                "granted_at": "2026-10-31T15:10:24.529532Z",
+                "last_event_ref": "reward-events-spinvibe/7869b048-e966-4e05-b4d8-8650a9c57d0e",
+                "offer_id": "manual:0bd750c1-210f-44ec-8fd4-43a18477236e",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:0bd750c1-210f-44ec-8fd4-43a18477236e",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "48876584-754f-356c-8718-665bbbfa357d",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/2fee6abe-8156-4b13-b305-d6d7718fb75c",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "CLOSED",
+                "terminated_at": "2026-10-31T15:10:25.679298673Z",
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/2fee6abe-8156-4b13-b305-d6d7718fb75c"
+            },
+            {
+              "properties": {
+                "activation_real_balance": 0,
+                "activation_total_deposits": 0,
+                "brand_id": "spinvibe",
+                "brand_ref": "spinvibe",
+                "cap_expires_at": null,
+                "clawback_applied": false,
+                "currency": "EUR",
+                "expires_at": "2026-11-30T15:10:28.081185113Z",
+                "face_value": 1000,
+                "free_spins_grant_ref": null,
+                "grant_id": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+                "granted_at": "2026-10-31T15:10:28.081185113Z",
+                "last_event_ref": "reward-events-spinvibe/3e1fc66b-9653-46fc-9098-8b903a7c25aa",
+                "offer_id": "manual:8dc4ac77-4706-4fc9-85d8-747f486a5074",
+                "offer_name": "Free Bonus",
+                "offer_ref": "manual:8dc4ac77-4706-4fc9-85d8-747f486a5074",
+                "payload_type": "bonus_funds",
+                "payment_ref": "",
+                "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+                "priority": 0,
+                "release_requirement": 1000,
+                "released_progress": 0,
+                "restricted_funds_ref": "restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+                "revoke_mode": null,
+                "revoked_by": null,
+                "source": "operator_manual",
+                "status": "ACTIVE",
+                "terminated_at": null,
+                "type": "MANUAL",
+                "wagering_expires_at": null
+              },
+              "twinId": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.total": "differs between two runs of the original",
+        "$.twins": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+      "request": {
+        "method": "GET",
+        "path": "/twins/restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "restricted-funds"
+          ],
+          "properties": {
+            "balance": 1000,
+            "brand_ref": "spinvibe",
+            "closed_at": null,
+            "contribution_default": null,
+            "contribution_overrides": null,
+            "created_at": "2026-10-31T15:10:28.102135303Z",
+            "currency": "EUR",
+            "deposits_since_release": null,
+            "expires_at": "2026-11-30T15:10:28.081185113Z",
+            "forfeit_on_withdrawal": null,
+            "funding_order": null,
+            "grant_ref": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+            "granted_at": "2026-10-31T15:10:28.081185113Z",
+            "max_convertible_amount": 25000,
+            "max_stake": null,
+            "max_stake_enforcement": null,
+            "migrated_at": null,
+            "open_round_count": 0,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "priority": 0,
+            "release_requirement": 1000,
+            "released_progress": 0,
+            "remaining_allowance": null,
+            "rules_snapshot_at": "2026-10-31T15:10:28.081185113Z",
+            "scope_exclude": null,
+            "scope_include": null,
+            "scope_violation_mode": null,
+            "snapshot_complete": false,
+            "status": "ACTIVE",
+            "updated_at": "2026-10-31T15:10:28.102135303Z",
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+            "win_allocation": null
+          }
+        }
+      },
+      "capture": {
+        "c4": "$.properties.wallet_ref"
+      },
+      "vary": {
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.expires_at": "differs between two runs of the original",
+        "$.properties.grant_ref": "differs between two runs of the original",
+        "$.properties.granted_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.rules_snapshot_at": "differs between two runs of the original",
+        "$.properties.updated_at": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/bonus/status",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/bonus/status",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "10.00",
+          "bonusStatus": "ACTIVE",
+          "currency": "EUR",
+          "maxWin": "250.00",
+          "restrictedFunds": [
+            {
+              "balance": "10.00",
+              "grantRef": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+              "id": "restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+              "maxConvertibleAmount": "250.00",
+              "priority": 0,
+              "releaseRequirement": "10.00",
+              "releasedProgress": "0.00",
+              "status": "ACTIVE"
+            }
+          ],
+          "wageredAmount": "0.00",
+          "wageringRequirement": "10.00"
+        }
+      },
+      "capture": {
+        "c5": "$.restrictedFunds[0].id"
+      },
+      "vary": {
+        "$.restrictedFunds[0].grantRef": "differs between two runs of the original",
+        "$.restrictedFunds[0].id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/bet",
+      "request": {
+        "method": "POST",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/bet",
+        "service": "wallet",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "5.00",
+          "gameId": "s251-slot",
+          "gameType": "slots",
+          "provider": "s251-provider",
+          "roundId": "b0ff3bad-conv-a",
+          "sessionId": "868eb427-e22c-45da-ac4f-8905890567ae"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "5.00",
+          "currency": "EUR",
+          "fundedDepositAmount": "0.00",
+          "fundedRealAmount": "0.00",
+          "realBalance": "0.00",
+          "txnId": "transaction/1167db39-e24d-4888-b817-2d1c14a3682d",
+          "walletType": "bonus"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/win",
+      "request": {
+        "method": "POST",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/win",
+        "service": "wallet",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "20.00",
+          "roundId": "b0ff3bad-conv-a"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "25.00",
+          "currency": "EUR",
+          "realBalance": "0.00",
+          "txnId": "transaction/6ec9a2ec-57cd-4883-877b-7f0437e123f5",
+          "walletType": "bonus",
+          "wonDepositAmount": "0.00",
+          "wonRealAmount": "0.00"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/bet",
+      "request": {
+        "method": "POST",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/bet",
+        "service": "wallet",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "5.00",
+          "gameId": "s251-slot",
+          "gameType": "slots",
+          "provider": "s251-provider",
+          "roundId": "b0ff3bad-conv-b",
+          "sessionId": "259f49c8-86f4-4368-9770-fd063f3014e7"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "fundedDepositAmount": "0.00",
+          "fundedRealAmount": "0.00",
+          "realBalance": "20.00",
+          "txnId": "transaction/c51dab1d-35b6-4726-8dea-b0a48bd84b57",
+          "walletType": "bonus"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/bonus/status",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/bonus/status",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "bonusStatus": "CONVERTED_PENDING_CAP",
+          "currency": "EUR",
+          "restrictedFunds": [
+            {
+              "balance": "0.00",
+              "depositsSinceRelease": "0.00",
+              "grantRef": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+              "id": "restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+              "maxConvertibleAmount": "0.00",
+              "priority": 0,
+              "releaseRequirement": "0.00",
+              "releasedProgress": "0.00",
+              "remainingAllowance": "250.00",
+              "status": "CONVERTED_PENDING_CAP"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.restrictedFunds[0].grantRef": "differs between two runs of the original",
+        "$.restrictedFunds[0].id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+      "request": {
+        "method": "GET",
+        "path": "/twins/{c5}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "restricted-funds"
+          ],
+          "properties": {
+            "balance": 0,
+            "brand_ref": "spinvibe",
+            "closed_at": null,
+            "contribution_default": null,
+            "contribution_overrides": null,
+            "created_at": "2026-10-31T15:10:28.102135303Z",
+            "currency": "EUR",
+            "deposits_since_release": 0,
+            "expires_at": "2026-11-30T15:10:28.081185113Z",
+            "forfeit_on_withdrawal": null,
+            "funding_order": null,
+            "grant_ref": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+            "granted_at": "2026-10-31T15:10:28.081185113Z",
+            "max_convertible_amount": 0,
+            "max_stake": null,
+            "max_stake_enforcement": null,
+            "migrated_at": null,
+            "open_round_count": 1,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "priority": 0,
+            "release_requirement": 0,
+            "released_progress": 0,
+            "remaining_allowance": 25000,
+            "rules_snapshot_at": "2026-10-31T15:10:28.081185113Z",
+            "scope_exclude": null,
+            "scope_include": null,
+            "scope_violation_mode": null,
+            "snapshot_complete": false,
+            "status": "CONVERTED_PENDING_CAP",
+            "updated_at": "2026-10-31T15:10:28.873625839Z",
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+            "win_allocation": null
+          }
+        }
+      },
+      "vary": {
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.expires_at": "differs between two runs of the original",
+        "$.properties.grant_ref": "differs between two runs of the original",
+        "$.properties.granted_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.rules_snapshot_at": "differs between two runs of the original",
+        "$.properties.updated_at": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/balance",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "convertedPoolBalance": "20.00",
+          "currency": "EUR",
+          "depositPoolBalance": "0.00",
+          "realBalance": "20.00"
+        }
+      }
+    },
+    {
+      "name": "POST /twins/casino-payments/80fdce41-05b8-4557-8f42-8f0c2979c539",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-payments/80fdce41-05b8-4557-8f42-8f0c2979c539",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "100.00",
+          "currency": "EUR",
+          "customer_ref": "spinvibe:{c1}",
+          "payment_type": "deposit",
+          "psp_transaction_id": "s16-psp-b0ff3bad-d1"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-payments/80fdce41-05b8-4557-8f42-8f0c2979c539"
+        }
+      },
+      "capture": {
+        "c6": "$.twinId"
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-payments/80fdce41-05b8-4557-8f42-8f0c2979c539/concept",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c6}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "payment.captured"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/balance",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "convertedPoolBalance": "20.00",
+          "currency": "EUR",
+          "depositPoolBalance": "100.00",
+          "realBalance": "120.00"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+      "request": {
+        "method": "GET",
+        "path": "/twins/{c5}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "restricted-funds"
+          ],
+          "properties": {
+            "balance": 0,
+            "brand_ref": "spinvibe",
+            "closed_at": null,
+            "contribution_default": null,
+            "contribution_overrides": null,
+            "created_at": "2026-10-31T15:10:28.102135303Z",
+            "currency": "EUR",
+            "deposits_since_release": 10000,
+            "expires_at": "2026-11-30T15:10:28.081185113Z",
+            "forfeit_on_withdrawal": null,
+            "funding_order": null,
+            "grant_ref": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+            "granted_at": "2026-10-31T15:10:28.081185113Z",
+            "max_convertible_amount": 0,
+            "max_stake": null,
+            "max_stake_enforcement": null,
+            "migrated_at": null,
+            "open_round_count": 1,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "priority": 0,
+            "release_requirement": 0,
+            "released_progress": 0,
+            "remaining_allowance": 25000,
+            "rules_snapshot_at": "2026-10-31T15:10:28.081185113Z",
+            "scope_exclude": null,
+            "scope_include": null,
+            "scope_violation_mode": null,
+            "snapshot_complete": false,
+            "status": "CONVERTED_PENDING_CAP",
+            "updated_at": "2026-10-31T15:10:29.290807829Z",
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+            "win_allocation": null
+          }
+        }
+      },
+      "vary": {
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.expires_at": "differs between two runs of the original",
+        "$.properties.grant_ref": "differs between two runs of the original",
+        "$.properties.granted_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.rules_snapshot_at": "differs between two runs of the original",
+        "$.properties.updated_at": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+      "request": {
+        "method": "GET",
+        "path": "/twins/{c4}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "wallet"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "brand_ref": "spinvibe",
+            "converted_pool_balance": 2000,
+            "currency": "EUR",
+            "deposit_pool_balance": 10000,
+            "deposit_turnover_pending": 10000,
+            "open_restricted_funds_refs": "restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c|",
+            "open_rounds": "transaction/c51dab1d-35b6-4726-8dea-b0a48bd84b57|",
+            "pending_deposit_record_refs": "|deposit-record/ea06cea9-a73f-4300-8ac3-9e278ec17834|",
+            "player_id": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "pools_stamped_at": "2026-10-31T15:10:27.338162253Z",
+            "processed_payment_refs": "||",
+            "real_balance": 12000,
+            "restricted_balance": 0
+          }
+        }
+      },
+      "vary": {
+        "$.properties.open_restricted_funds_refs": "differs between two runs of the original",
+        "$.properties.open_rounds": "differs between two runs of the original",
+        "$.properties.pending_deposit_record_refs": "differs between two runs of the original",
+        "$.properties.player_id": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.pools_stamped_at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c4}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "deposit_turnover_pending": "0"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/brands/spinvibe/players/17ee0c4e-f900-30ba-959e-8952ef423ebd/withdrawal-requests",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/players/{c1}/withdrawal-requests",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "110.00",
+          "currency": "EUR",
+          "terminalId": "s251-terminal-24a557eb"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "amount": 110,
+          "bonusForfeited": false,
+          "clawbackAmount": 0,
+          "createdAt": "2026-10-31T15:10:29.515101946Z",
+          "currency": "EUR",
+          "forfeitedAmount": 0,
+          "requestId": "d495d2ab-b6b0-44a5-83ba-82815d02c7a7",
+          "status": "PENDING_REVIEW",
+          "terminalId": "s251-terminal-24a557eb"
+        }
+      },
+      "capture": {
+        "c7": "$.requestId",
+        "c8": "$.terminalId"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.requestId": "differs between two runs of the original",
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/brands/spinvibe/withdrawal-requests/d495d2ab-b6b0-44a5-83ba-82815d02c7a7/approve",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/withdrawal-requests/{c7}/approve",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "requestId": "d495d2ab-b6b0-44a5-83ba-82815d02c7a7",
+          "status": "AWAITING_MANUAL_PAYOUT"
+        }
+      },
+      "vary": {
+        "$.requestId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/withdrawal-request/d495d2ab-b6b0-44a5-83ba-82815d02c7a7",
+      "request": {
+        "method": "GET",
+        "path": "/twins/withdrawal-request/{c7}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "withdrawal-request"
+          ],
+          "properties": {
+            "amount": 11000,
+            "approved_at": "2026-10-31T15:10:29.710439508Z",
+            "approved_by": "dev-operator@eitheror.io",
+            "balance_after_reservation": 1000,
+            "balance_before": 12000,
+            "brand_ref": "spinvibe",
+            "cap_draws": "|restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c:10000:1000:0|",
+            "clawback_amount": 0,
+            "created_at": "2026-10-31T15:10:29.515101946Z",
+            "currency": "EUR",
+            "destination_id": "",
+            "forfeited_amount": 0,
+            "from_converted_amount": 1000,
+            "from_deposit_amount": 10000,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "psp_id": "s251-manual",
+            "requested_amount": 11000,
+            "resolved_at": "2026-10-31T15:10:29.710439508Z",
+            "resolved_by": "dev-operator@eitheror.io",
+            "status": "AWAITING_MANUAL_PAYOUT",
+            "terminal_id": "s251-terminal-24a557eb",
+            "voided_amount": 0,
+            "voided_from_converted_amount": 0,
+            "voided_from_deposit_amount": 0,
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8"
+          }
+        }
+      },
+      "vary": {
+        "$.properties.approved_at": "differs between two runs of the original",
+        "$.properties.cap_draws": "differs between two runs of the original",
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.resolved_at": "differs between two runs of the original",
+        "$.properties.terminal_id": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/brands/spinvibe/withdrawal-requests/d495d2ab-b6b0-44a5-83ba-82815d02c7a7/confirm-payout",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/withdrawal-requests/{c7}/confirm-payout",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "requestId": "d495d2ab-b6b0-44a5-83ba-82815d02c7a7",
+          "status": "COMPLETED"
+        }
+      },
+      "vary": {
+        "$.requestId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/withdrawal-request/d495d2ab-b6b0-44a5-83ba-82815d02c7a7",
+      "request": {
+        "method": "GET",
+        "path": "/twins/withdrawal-request/{c7}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "withdrawal-request"
+          ],
+          "properties": {
+            "amount": 11000,
+            "applied_cap_draws": "|restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c:10000:1000:0|",
+            "approved_at": "2026-10-31T15:10:29.710439508Z",
+            "approved_by": "dev-operator@eitheror.io",
+            "balance_after_reservation": 1000,
+            "balance_before": 12000,
+            "brand_ref": "spinvibe",
+            "cap_draws": "|restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c:10000:1000:0|",
+            "clawback_amount": 0,
+            "created_at": "2026-10-31T15:10:29.515101946Z",
+            "currency": "EUR",
+            "destination_id": "",
+            "forfeited_amount": 0,
+            "from_converted_amount": 1000,
+            "from_deposit_amount": 10000,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "psp_id": "s251-manual",
+            "requested_amount": 11000,
+            "resolved_at": "2026-10-31T15:10:29.775628974Z",
+            "resolved_by": "dev-operator@eitheror.io",
+            "status": "COMPLETED",
+            "terminal_id": "s251-terminal-24a557eb",
+            "voided_amount": 0,
+            "voided_from_converted_amount": 0,
+            "voided_from_deposit_amount": 0,
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8"
+          }
+        }
+      },
+      "vary": {
+        "$.properties.applied_cap_draws": "differs between two runs of the original",
+        "$.properties.approved_at": "differs between two runs of the original",
+        "$.properties.cap_draws": "differs between two runs of the original",
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.resolved_at": "differs between two runs of the original",
+        "$.properties.terminal_id": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+      "request": {
+        "method": "GET",
+        "path": "/twins/{c5}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "restricted-funds"
+          ],
+          "properties": {
+            "balance": 0,
+            "brand_ref": "spinvibe",
+            "closed_at": null,
+            "contribution_default": null,
+            "contribution_overrides": null,
+            "created_at": "2026-10-31T15:10:28.102135303Z",
+            "currency": "EUR",
+            "deposits_since_release": 0,
+            "expires_at": "2026-11-30T15:10:28.081185113Z",
+            "forfeit_on_withdrawal": null,
+            "funding_order": null,
+            "grant_ref": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+            "granted_at": "2026-10-31T15:10:28.081185113Z",
+            "max_convertible_amount": 0,
+            "max_stake": null,
+            "max_stake_enforcement": null,
+            "migrated_at": null,
+            "open_round_count": 1,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "priority": 0,
+            "release_requirement": 0,
+            "released_progress": 0,
+            "remaining_allowance": 24000,
+            "rules_snapshot_at": "2026-10-31T15:10:28.081185113Z",
+            "scope_exclude": null,
+            "scope_include": null,
+            "scope_violation_mode": null,
+            "snapshot_complete": false,
+            "status": "CONVERTED_PENDING_CAP",
+            "updated_at": "2026-10-31T15:10:29.775628974Z",
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+            "win_allocation": null
+          }
+        }
+      },
+      "vary": {
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.expires_at": "differs between two runs of the original",
+        "$.properties.grant_ref": "differs between two runs of the original",
+        "$.properties.granted_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.rules_snapshot_at": "differs between two runs of the original",
+        "$.properties.updated_at": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/balance",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "convertedPoolBalance": "10.00",
+          "currency": "EUR",
+          "depositPoolBalance": "0.00",
+          "realBalance": "10.00"
+        }
+      }
+    },
+    {
+      "name": "POST /internal/v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/reverse-withdrawal-request",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/wallet/spinvibe/{c1}/EUR/reverse-withdrawal-request",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": 11000,
+          "currency": "EUR",
+          "current_request_status": "COMPLETED",
+          "request_id": "withdrawal-request/{c7}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "requestId": "withdrawal-request/d495d2ab-b6b0-44a5-83ba-82815d02c7a7",
+          "status": "REVERSED"
+        }
+      },
+      "vary": {
+        "$.requestId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/withdrawal-request/d495d2ab-b6b0-44a5-83ba-82815d02c7a7",
+      "request": {
+        "method": "GET",
+        "path": "/twins/withdrawal-request/{c7}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "withdrawal-request"
+          ],
+          "properties": {
+            "amount": 11000,
+            "applied_cap_draws": "|restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c:10000:1000:0|",
+            "approved_at": "2026-10-31T15:10:29.710439508Z",
+            "approved_by": "dev-operator@eitheror.io",
+            "balance_after_reservation": 1000,
+            "balance_after_return": 12000,
+            "balance_before": 12000,
+            "brand_ref": "spinvibe",
+            "cap_draws": "|restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c:10000:1000:0|",
+            "clawback_amount": 0,
+            "created_at": "2026-10-31T15:10:29.515101946Z",
+            "currency": "EUR",
+            "destination_id": "",
+            "forfeited_amount": 0,
+            "from_converted_amount": 1000,
+            "from_deposit_amount": 10000,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "psp_id": "s251-manual",
+            "requested_amount": 11000,
+            "resolved_at": "2026-10-31T15:10:29.775628974Z",
+            "resolved_by": "dev-operator@eitheror.io",
+            "reversed_at": "2026-10-31T15:10:29.850859864Z",
+            "status": "REVERSED",
+            "terminal_id": "s251-terminal-24a557eb",
+            "voided_amount": 0,
+            "voided_from_converted_amount": 0,
+            "voided_from_deposit_amount": 0,
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8"
+          }
+        }
+      },
+      "vary": {
+        "$.properties.applied_cap_draws": "differs between two runs of the original",
+        "$.properties.approved_at": "differs between two runs of the original",
+        "$.properties.cap_draws": "differs between two runs of the original",
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.resolved_at": "differs between two runs of the original",
+        "$.properties.reversed_at": "differs between two runs of the original",
+        "$.properties.terminal_id": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+      "request": {
+        "method": "GET",
+        "path": "/twins/{c5}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "restricted-funds"
+          ],
+          "properties": {
+            "balance": 0,
+            "brand_ref": "spinvibe",
+            "closed_at": null,
+            "contribution_default": null,
+            "contribution_overrides": null,
+            "created_at": "2026-10-31T15:10:28.102135303Z",
+            "currency": "EUR",
+            "deposits_since_release": 10000,
+            "expires_at": "2026-11-30T15:10:28.081185113Z",
+            "forfeit_on_withdrawal": null,
+            "funding_order": null,
+            "grant_ref": "bonus-claims/24a9f859-fe29-4ebf-b2fa-b0389154693c",
+            "granted_at": "2026-10-31T15:10:28.081185113Z",
+            "max_convertible_amount": 0,
+            "max_stake": null,
+            "max_stake_enforcement": null,
+            "migrated_at": null,
+            "open_round_count": 1,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "priority": 0,
+            "release_requirement": 0,
+            "released_progress": 0,
+            "remaining_allowance": 25000,
+            "rules_snapshot_at": "2026-10-31T15:10:28.081185113Z",
+            "scope_exclude": null,
+            "scope_include": null,
+            "scope_violation_mode": null,
+            "snapshot_complete": false,
+            "status": "CONVERTED_PENDING_CAP",
+            "updated_at": "2026-10-31T15:10:29.850859864Z",
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+            "win_allocation": null
+          }
+        }
+      },
+      "vary": {
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.expires_at": "differs between two runs of the original",
+        "$.properties.grant_ref": "differs between two runs of the original",
+        "$.properties.granted_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.rules_snapshot_at": "differs between two runs of the original",
+        "$.properties.updated_at": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/17ee0c4e-f900-30ba-959e-8952ef423ebd/EUR/balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c1}/EUR/balance",
+        "service": "wallet"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "convertedPoolBalance": "20.00",
+          "currency": "EUR",
+          "depositPoolBalance": "100.00",
+          "realBalance": "120.00"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8",
+      "request": {
+        "method": "GET",
+        "path": "/twins/{c4}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "wallet"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "brand_ref": "spinvibe",
+            "converted_pool_balance": 2000,
+            "currency": "EUR",
+            "deposit_pool_balance": 10000,
+            "deposit_turnover_pending": "0",
+            "open_restricted_funds_refs": "restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c|",
+            "open_rounds": "transaction/c51dab1d-35b6-4726-8dea-b0a48bd84b57|",
+            "pending_deposit_record_refs": "|deposit-record/ea06cea9-a73f-4300-8ac3-9e278ec17834|",
+            "pending_withdrawal_request_ref": null,
+            "player_id": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "pools_stamped_at": "2026-10-31T15:10:27.338162253Z",
+            "processed_payment_refs": "||",
+            "real_balance": 12000,
+            "restricted_balance": 0
+          }
+        }
+      },
+      "vary": {
+        "$.properties.open_restricted_funds_refs": "differs between two runs of the original",
+        "$.properties.open_rounds": "differs between two runs of the original",
+        "$.properties.pending_deposit_record_refs": "differs between two runs of the original",
+        "$.properties.player_id": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.pools_stamped_at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/brands/spinvibe/players/17ee0c4e-f900-30ba-959e-8952ef423ebd/withdrawal-requests",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/brands/spinvibe/players/{c1}/withdrawal-requests",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "110.00",
+          "currency": "EUR",
+          "terminalId": "{c8}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "amount": 110,
+          "bonusForfeited": false,
+          "clawbackAmount": 0,
+          "createdAt": "2026-10-31T15:10:29.974957114Z",
+          "currency": "EUR",
+          "forfeitedAmount": 0,
+          "requestId": "70eafe09-4aa9-4a93-8d0d-db0b63de3f02",
+          "status": "PENDING_REVIEW",
+          "terminalId": "s251-terminal-24a557eb"
+        }
+      },
+      "capture": {
+        "c9": "$.requestId"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.requestId": "differs between two runs of the original",
+        "$.terminalId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/withdrawal-request/70eafe09-4aa9-4a93-8d0d-db0b63de3f02",
+      "request": {
+        "method": "GET",
+        "path": "/twins/withdrawal-request/{c9}?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "withdrawal-request"
+          ],
+          "properties": {
+            "amount": 11000,
+            "balance_after_reservation": 1000,
+            "balance_before": 12000,
+            "brand_ref": "spinvibe",
+            "cap_draws": "|restricted-funds/24a9f859-fe29-4ebf-b2fa-b0389154693c:10000:1000:0|",
+            "clawback_amount": 0,
+            "created_at": "2026-10-31T15:10:29.974957114Z",
+            "currency": "EUR",
+            "destination_id": "",
+            "forfeited_amount": 0,
+            "from_converted_amount": 1000,
+            "from_deposit_amount": 10000,
+            "player_ref": "17ee0c4e-f900-30ba-959e-8952ef423ebd",
+            "psp_id": "s251-manual",
+            "requested_amount": 11000,
+            "status": "PENDING_REVIEW",
+            "terminal_id": "s251-terminal-24a557eb",
+            "voided_amount": 0,
+            "voided_from_converted_amount": 0,
+            "voided_from_deposit_amount": 0,
+            "wallet_ref": "wallet/1f07f2ec-f5c3-3b4a-9d95-b027670805b8"
+          }
+        }
+      },
+      "vary": {
+        "$.properties.cap_draws": "differs between two runs of the original",
+        "$.properties.created_at": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.terminal_id": "differs between two runs of the original",
+        "$.properties.wallet_ref": "differs between two runs of the original"
+      }
+    }
+  ]
+}

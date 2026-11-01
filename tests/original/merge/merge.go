@@ -217,12 +217,26 @@ var jwt = regexp.MustCompile(`^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*
 
 var formSecret = regexp.MustCompile(`(^|&)(password|client_secret|refresh_token)=[^&]*`)
 
-// Redact replaces every secret in the steps' request and response bodies.
+// secretHeaders are the request headers a recording never keeps the value of: a driver sends the
+// original's internal secret in one and records it nowhere, and this holds if one ever does.
+var secretHeaders = map[string]bool{"x-internal-secret": true}
+
+// Redact replaces every secret in the steps' request and response bodies and request headers.
 func Redact(r recorder.Recording) recorder.Recording {
 	steps := make([]recorder.Step, len(r.Steps))
 	for i, s := range r.Steps {
 		s.Request.Body = redactBody(s.Request.Body)
 		s.Response.Body = redactBody(s.Response.Body)
+		if len(s.Request.Headers) > 0 {
+			headers := make(map[string]string, len(s.Request.Headers))
+			for k, v := range s.Request.Headers {
+				if secretHeaders[strings.ToLower(k)] {
+					v = redacted
+				}
+				headers[k] = v
+			}
+			s.Request.Headers = headers
+		}
 		steps[i] = s
 	}
 	r.Steps = steps

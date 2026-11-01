@@ -1,0 +1,242 @@
+{
+  "TestScenario251_ReversedPayoutRestoresCap": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario251_US1_AllowanceExhaustingPayoutClosesGrant": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario251_US1_CancelledRequestsDoNotConsumeCap": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario251_US2_RealBalanceZeroClosesCap": [
+    "pass",
+    "pass"
+  ],
+  "a Gigadat request missing its method fields is accepted and parked for manual payment at approval": [
+    "pass",
+    "pass"
+  ],
+  "a VISA terminal is absent for a player who never deposited by VISA": [
+    "pass",
+    "pass"
+  ],
+  "a VISA terminal is present for a player who deposited by VISA": [
+    "pass",
+    "pass"
+  ],
+  "a completed request the provider reports charged back is reversed and the amount returns": [
+    "pass",
+    "pass"
+  ],
+  "a destination is saved only in a name that matches the player's [A. Example]": [
+    "pass",
+    "pass"
+  ],
+  "a destination is saved only in a name that matches the player's [B. Other]": [
+    "pass",
+    "pass"
+  ],
+  "a destination that is not the player's own is refused as invalid [a destination that is another player's]": [
+    "pass",
+    "pass"
+  ],
+  "a destination that is not the player's own is refused as invalid [a destination the player deleted]": [
+    "pass",
+    "pass"
+  ],
+  "a player cancelling an approved request is refused as not cancellable": [
+    "pass",
+    "pass"
+  ],
+  "a player cancels a request pending review and the amount returns": [
+    "pass",
+    "pass"
+  ],
+  "a player lists their requests newest first with amount, terminal, time and status": [
+    "pass",
+    "pass"
+  ],
+  "a player whose identity is not verified is refused telling them what to do [not submitted]": [
+    "pass",
+    "pass"
+  ],
+  "a player whose identity is not verified is refused telling them what to do [rejected]": [
+    "pass",
+    "pass"
+  ],
+  "a player whose identity is not verified is refused telling them what to do [under review]": [
+    "pass",
+    "pass"
+  ],
+  "a provider's outcome reporting a request awaiting manual payment completed wins over the manual path": [
+    "pass",
+    "pass"
+  ],
+  "a queue filtered by payment status needs review shows only those requests": [
+    "pass",
+    "pass"
+  ],
+  "a queue filtered by status pending review shows only pending requests": [
+    "pass",
+    "pass"
+  ],
+  "a request above real balance alone with restricted funds in play is refused as insufficient funds, not as insufficient after forfeit": [
+    "pass",
+    "pass"
+  ],
+  "a request above real balance is refused as insufficient funds and nothing moves": [
+    "pass",
+    "pass"
+  ],
+  "a request by a verified player with nothing pending holds the amount and is listed pending review": [
+    "pass",
+    "pass"
+  ],
+  "a request confirming the forfeit places the hold, forfeits the record and applies the clawback once": [
+    "pass",
+    "pass"
+  ],
+  "a request rejected at initiation returns the money and tells the player to try another terminal": [
+    "pass",
+    "pass"
+  ],
+  "a request that would pass the brand's monthly withdrawal limit is refused naming the limit, what was used and what remains": [
+    "pass",
+    "pass"
+  ],
+  "a request that would pass the brand's weekly withdrawal limit is refused naming the limit, what was used and what remains": [
+    "pass",
+    "pass"
+  ],
+  "a request to a crypto terminal is refused when no address is supplied": [
+    "pass",
+    "pass"
+  ],
+  "a request to a crypto terminal naming a coin it does not support is refused naming the coins it supports": [
+    "pass",
+    "pass"
+  ],
+  "a request to a terminal that requires a destination is refused when none is named": [
+    "pass",
+    "pass"
+  ],
+  "a request to a terminal without automated withdrawal payment awaits manual payment with the money held": [
+    "pass",
+    "pass"
+  ],
+  "a request while deposit turnover is pending is refused as blocked by turnover": [
+    "pass",
+    "pass"
+  ],
+  "a request with a record that forfeits on withdrawal is refused until the player confirms the forfeit": [
+    "pass",
+    "pass"
+  ],
+  "a reversal for a request not completed is refused as not completed": [
+    "pass",
+    "pass"
+  ],
+  "a second request while one is pending review is refused and nothing moves": [
+    "pass",
+    "pass"
+  ],
+  "a terminal of a payment provider the player deposited with is listed first, in the same order on every read": [
+    "pass",
+    "pass"
+  ],
+  "a terminal that is inactive or does not pay withdrawals is absent and a request naming it is refused [does not pay withdrawals]": [
+    "pass",
+    "pass"
+  ],
+  "a terminal that is inactive or does not pay withdrawals is absent and a request naming it is refused [is inactive]": [
+    "pass",
+    "pass"
+  ],
+  "a verified player passes the identity gate": [
+    "pass",
+    "pass"
+  ],
+  "a withdrawal request cancelled, rejected or failed does not count towards a withdrawal limit [cancelled]": [
+    "pass",
+    "pass"
+  ],
+  "a withdrawal request cancelled, rejected or failed does not count towards a withdrawal limit [failed]": [
+    "pass",
+    "pass"
+  ],
+  "a withdrawal request cancelled, rejected or failed does not count towards a withdrawal limit [rejected]": [
+    "pass",
+    "pass"
+  ],
+  "an amount that is zero, negative or a decimal is refused naming the amount [-100]": [
+    "pass",
+    "pass"
+  ],
+  "an amount that is zero, negative or a decimal is refused naming the amount [0]": [
+    "pass",
+    "pass"
+  ],
+  "an initiated withdrawal payment whose outcome arrives as completed completes the request": [
+    "pass",
+    "pass"
+  ],
+  "an initiated withdrawal payment whose outcome arrives as failed returns the held amount and fails the request": [
+    "pass",
+    "pass"
+  ],
+  "an operator confirms a manual payment and the hold is confirmed [approved and marked needs review]": [
+    "pass",
+    "pass"
+  ],
+  "an operator confirms a manual payment and the hold is confirmed [awaiting manual payment]": [
+    "pass",
+    "pass"
+  ],
+  "an operator marks a manual payment failed and the amount returns [approved and marked needs review]": [
+    "pass",
+    "pass"
+  ],
+  "an operator marks a manual payment failed and the amount returns [awaiting manual payment]": [
+    "pass",
+    "pass"
+  ],
+  "an operator rejects a pending request with a reason, the held amount returns and the reason is recorded": [
+    "pass",
+    "pass"
+  ],
+  "an operator whose roles name another brand is refused this brand's queue": [
+    "pass",
+    "pass"
+  ],
+  "an operator with a finance or admin role approves a pending request and the withdrawal payment is pursued": [
+    "pass",
+    "pass"
+  ],
+  "confirming or failing a manual payment for a request in any other state is refused as not awaiting payment [confirms the manual payment]": [
+    "pass",
+    "pass"
+  ],
+  "confirming or failing a manual payment for a request in any other state is refused as not awaiting payment [marks the manual payment failed with a reason]": [
+    "pass",
+    "pass"
+  ],
+  "deleting the default destination leaves it unoffered and no destination default": [
+    "pass",
+    "pass"
+  ],
+  "saving a destination with no name on the profile is refused as profile incomplete": [
+    "pass",
+    "pass"
+  ],
+  "setting a second destination as default makes the first no longer default": [
+    "pass",
+    "pass"
+  ],
+  "the same reversal arriving again moves nothing and returns the first outcome": [
+    "pass",
+    "pass"
+  ]
+}

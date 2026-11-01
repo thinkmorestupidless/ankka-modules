@@ -196,3 +196,12 @@ recordings by `tests/original/players-driver/`, one per scenario of `features/pl
 original can show (48 `pass` and 9 `fail` on both runs), and the original's three
 `TestScenario18_MultiAccountDetection_*` tests (`pass`). `players/README.md` says how they were made,
 where that differs from `tests/original/README.md`, and why each of the nine differs.
+
+## payouts (spec 007, T053)
+
+Recorded 2026-10-31 from the original on its own KinD stack (casino-service at `e7d8f2de`, with the
+brand's withdrawal limits; the rest at `a78decf1`), twice, on fresh ids: 56 recordings by
+`tests/original/payouts-driver/`, one per scenario of `features/payouts/*.feature` the original can
+show, and the original's four `TestScenario251_*` tests, every one `pass` on both runs.
+`payouts/README.md` says how they were made, what the run found about the original, and how the
+terminal listings are read.

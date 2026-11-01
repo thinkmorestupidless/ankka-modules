@@ -1,0 +1,27 @@
+{
+  "scenario": "an operator whose roles name another brand is refused this brand's queue",
+  "requirement": "007/FR-001",
+  "recorded_at": "2026-10-31T15:12:31.044385Z",
+  "original": {
+    "commit": "e7d8f2de"
+  },
+  "runs": 2,
+  "service": "payouts",
+  "steps": [
+    {
+      "name": "an operator of another brand opens the queue",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/withdrawal-requests",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {outsiderToken}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": "The supplied authentication is not authorized to access this resource"
+      }
+    }
+  ]
+}

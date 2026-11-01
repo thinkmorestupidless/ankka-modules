@@ -1,0 +1,7 @@
+{
+  "name": "payouts",
+  "service": {
+    "image": "payouts:latest",
+    "runtime": "0.13.0"
+  }
+}

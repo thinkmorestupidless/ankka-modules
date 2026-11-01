@@ -24,7 +24,7 @@ until it does. The additions are additive: no existing field or family changes.
 
 | Event | Family | Fields beyond the common ones |
 |---|---|---|
-| `DepositConfirmed` | `deposit_confirmed` | `amount_cents`, `payment_reference`, `deposit_ordinal` |
+| `DepositConfirmed` | `deposit_confirmed` | `amount_cents`, `payment_reference`, `deposit_ordinal`, `psp?` and `scheme?` (the deposit's gateway and scheme; added by spec 007) |
 | `BetPlaced` | `bet_placed` | `round_id`, `game_id`, `amount_cents`, `wallet_type` |
 | `WinCredited` | `win_credited` | `round_id`, `game_id`, `amount_cents`, `wallet_type` |
 | `BetRolledBack` | `bet_rolled_back` | `round_id`, `amount_cents` |

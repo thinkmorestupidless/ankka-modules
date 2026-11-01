@@ -33,6 +33,10 @@
           "type": "string",
           "x-personal": true
         },
+        "email": {
+          "type": "string",
+          "x-personal": true
+        },
         "family_name": {
           "type": "string",
           "x-personal": true
@@ -441,6 +445,28 @@
       },
       "required": ["type", "player_id", "fraud_case_id", "occurred_at"],
       "title": "player_fraud_cleared",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "email": {
+          "type": "string",
+          "x-personal": true
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_email_changed"
+        }
+      },
+      "required": ["type", "player_id", "email", "occurred_at"],
+      "title": "player_email_changed",
       "type": "object"
     },
     {
