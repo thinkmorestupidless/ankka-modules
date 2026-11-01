@@ -147,7 +147,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T026 [P] Implement `p/accounts/Secrets.scala` (`dataKey(affiliate)` created once and cached 60 s,
   `destroy(affiliate)`, `emailIndexKey`, `brandSecret(slug, name)`; as `m/security/Secrets.scala`) with
   `p-test/accounts/SecretsSuite.scala` over `InMemorySecretStore`
-- [ ] T027 Implement `p/intake/Intake.scala` (contracts/inbound.md *Intake*), `p/intake/BrandConsumers.scala`
+- [X] T027 Implement `p/intake/Intake.scala` (contracts/inbound.md *Intake*), `p/intake/BrandConsumers.scala`
   (one `attribution-<slug>` consumer per slug of `PROGRAMME_BRANDS`, `ChangeSource.fromTopic(slug,
   "affiliates.attribution", …)` from `Earliest`) and `p/brands/Seed.scala` (timed action at start:
   `BrandProgramme.seed` per slug, the first signing key when none), with
