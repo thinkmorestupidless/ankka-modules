@@ -23,7 +23,9 @@ object RewardsService:
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
-  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq()
+  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
+    clients => api.OffersEndpoint(api.Ctx(authenticate, clients))
+  )
 
   /** Once the service has started: the timers reachable from the components. */
   def started(timers: TimerRuntime): Unit =
