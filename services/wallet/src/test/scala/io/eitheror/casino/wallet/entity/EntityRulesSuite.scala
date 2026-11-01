@@ -3,7 +3,7 @@ package io.eitheror.casino.wallet.entity
 import com.thinkmorestupidless.ankka.core.Codecs
 import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
-import io.eitheror.casino.wallet.funding.{Record, Status}
+import io.eitheror.casino.wallet.funding.{Clawback, Record, Status}
 
 import java.time.{Duration, Instant}
 
@@ -160,6 +160,32 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     val before = io.eitheror.casino.contract.money.Digest.of(Vector("command" -> "close-pending-cap"))
     assertEquals(MoneyCommand.digestOf("close-pending-cap", ClosePendingCap("cp-1", None, t0), ClosePendingCap.Unset), before)
     assertNotEquals(MoneyCommand.digestOf("close-pending-cap", ClosePendingCap("cp-1", Some("g-1"), t0), ClosePendingCap.Unset), before)
+  }
+
+  // ── the unused secondary (spec 011 W3) ──────────────────────────────────────
+
+  /** Three active awards on 1,500 real, each with a baseline of 1,000: g-1 primary, g-2 unused, g-3 played. */
+  private def threeActive(id: String, baselines: Boolean = true) =
+    val kit = EventSourcedTestKit.of(WalletEntity, id)
+    def active(rf: String, grant: String, priority: Long, progress: Long) =
+      AwardedRecord(Record(rf, grant, Status.Active, priority = priority, balance = 200, releaseRequirement = 1000,
+        releasedProgress = progress), "bonus", None, t0, Option.when(baselines)(Clawback.Baseline(1000, 0)))
+    kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 1500, 0,
+      Vector(active("rf-1", "g-1", 0, 300), active("rf-2", "g-2", 1, 0), active("rf-3", "g-3", 2, 100)), 0, 0, 0, t0)): Unit
+    kit
+
+  private def cancelOf(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], grant: String) =
+    kit.call(WalletEntity.cancel)(CancelAward(s"c-$grant", Some(grant), t0)).replyValue
+
+  test("W3: a cancel naming a secondary with no release progress claws back nothing and still closes it (BR:2919-2925)") {
+    val kit     = threeActive("w3-unused/EUR")
+    val outcome = cancelOf(kit, "g-2")
+    assertEquals((outcome.clawbackApplied, outcome.forfeited, outcome.realBalance), (Some(0L), Vector("rf-2"), 1500L))
+  }
+
+  test("W3: the primary, or a secondary with release progress, claws back from its baseline") {
+    assertEquals(cancelOf(threeActive("w3-primary/EUR"), "g-1").clawbackApplied, Some(500L))
+    assertEquals(cancelOf(threeActive("w3-played/EUR"), "g-3").clawbackApplied, Some(500L))
   }
 
   // ── personal data (FR-033) ──────────────────────────────────────────────────

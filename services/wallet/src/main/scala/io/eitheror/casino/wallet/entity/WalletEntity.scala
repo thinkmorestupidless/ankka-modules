@@ -451,7 +451,12 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
     val source = c.grantRef.flatMap(s.recordByGrant)
       .orElse(s.openRecords.find(_.status == Status.Active).flatMap(r => s.record(r.id)))
       .orElse(s.records.maxByOption(_.awardedAt))
-    val clawback = Clawback.of(source.flatMap(_.baseline), s.realBalance, s.totalDeposits)
+    // A named secondary that has funded no stake produced no winnings: real balance grew from the
+    // primary's play, so it claws back nothing (spec 011 W3, the original's unused secondary).
+    val primary = s.openRecords.find(_.status == Status.Active)
+    val unusedSecondary = c.grantRef.exists(g =>
+      s.openRecords.find(r => r.grantRef == g && r.status == Status.Active).exists(r => !primary.exists(_.id == r.id) && r.releasedProgress == 0))
+    val clawback = if unusedSecondary then 0L else Clawback.of(source.flatMap(_.baseline), s.realBalance, s.totalDeposits)
     Resolver.cancelRecord(s.fundingWallet, s.openRecords, clawback, c.grantRef) match
       case Left(deny) => refuseDeny(c, "cancel", digest, deny)
       case Right(plan) =>
