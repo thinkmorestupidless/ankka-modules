@@ -127,6 +127,8 @@ object Render:
       // Whether the brand takes real money: game-provider refuses a provider key document then (spec 003 FR-026).
       case brand: BrandManifest => Vector("CASINO_BRAND" -> brand.slug, "CASINO_REAL_MONEY" -> brand.realMoney.toString)
       case shared: SharedManifest if shared.projectId == "payments" && pin.name == "merchant" => Vector("MERCHANT_BRANDS" -> merchantBrands(brands))
+      // The brands whose `affiliates.attribution` the programme consumes, one consumer each (spec 013 research R3).
+      case shared: SharedManifest if shared.projectId == "programme" && pin.name == "affiliate-programme" => Vector("PROGRAMME_BRANDS" -> brands.sorted.mkString(","))
       case _                    => Vector.empty)
     val env =
       (identity ++ auth).map((k, v) => EnvVar(k, value = Some(v))) ++

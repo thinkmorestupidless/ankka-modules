@@ -51,7 +51,7 @@ the recording driver, and the original's commission cases as failing tests.
   with cases in `contract/src/test/scala/io/eitheror/casino/contract/access/RoutesSuite.scala`
   (research R11)
 - [X] T003 [P] Add the realm role `affiliate_manager` to `brands/_realm/eitheror-operators.json`
-- [ ] T004 [P] Render `PROGRAMME_BRANDS` (comma-separated slugs of the brands that run `core`) for
+- [X] T004 [P] Render `PROGRAMME_BRANDS` (comma-separated slugs of the brands that run `core`) for
   `programme/affiliate-programme` in `tools/modules/src/main/scala/.../Render.scala` beside
   `MERCHANT_BRANDS`, with a case in its `RenderSuite`; add to `shared/programme/manifest.json` the env
   (`PROGRAMME_BRANDS` rendered, `AFFILIATE_PORTAL_BASE_URL`, `AFFILIATE_BACKOFFICE_BASE_URL`,
