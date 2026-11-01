@@ -137,16 +137,17 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
       Json.obj("outcome" -> "reversed", "providerReference" -> s"ref-$reversed", "reason" -> said), kit.asGateway)
     assertEquals(r.status, 200, r.text)
     scene.at(reversed, Flow.Reversed)
-    kit.eventually("the facts")(Option.when(kit.facts(CasinoWithdrawals).count(_.playerId == p) >= 9)(()))
+    def codes = kit.facts(CasinoWithdrawals).collect {
+      case f: WithdrawalFailed if f.playerId == p   => f.failureReason
+      case f: WithdrawalReversed if f.playerId == p => f.reason
+    }
+    // Ten facts in all; the three that carry a code are waited for, not a count the others can make up.
+    kit.eventually("the coded facts")(Option.when(codes.size >= 3)(()))
     Thread.sleep(1000)
 
     // The text is the request's note, which erasure blanks; the codes are the fixed ones.
     Vector(reject, failed, reversed).foreach(id =>
       assert(scene.state(id).outcomes.exists(_.note.exists(_.reveal == said)), s"$id: ${scene.state(id).outcomes}"))
-    val codes = kit.facts(CasinoWithdrawals).collect {
-      case f: WithdrawalFailed if f.playerId == p   => f.failureReason
-      case f: WithdrawalReversed if f.playerId == p => f.reason
-    }
     assertEquals(codes.toSet, Set("provider_rejected", "provider_failed", "chargeback"))
     val (_, rest) = kit.tables.toVector.partition((t, _) => Gap(t))
     val markers   = Vector(said, m.givenName, m.familyName)
