@@ -91,7 +91,11 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
           signals = f.signals ++ e.signals)))
       case e: DuplicateCleared =>
         s.copy(fraud = s.fraud.map(f => f.copy(caseIds = f.caseIds.filterNot(_ == e.caseId))).filter(_.caseIds.nonEmpty))
-      case _: KycVerified             => s.copy(kycVerified = true)
+      case e: DuplicateCheckStarted => s.copy(duplicateCheck = Some(DuplicateCheck(e.at)))
+      case e: DuplicateCheckEnded =>
+        s.copy(duplicateCheck = Some(s.duplicateCheck.getOrElse(DuplicateCheck(e.at)).copy(outcome = Some(e.outcome), endedAt = Some(e.at))))
+      case e: NoDepositBlocked => s.copy(noDepositBlock = Some(NoDepositBlock(e.signals, e.at)))
+      case _: KycVerified            => s.copy(kycVerified = true)
       case _: KycWithdrawn            => s.copy(kycVerified = false)
       case e: WithdrawalOpened        => s.copy(withdrawalsOpen = s.withdrawalsOpen + e.withdrawalId)
       case e: WithdrawalSettled       => s.copy(withdrawalsOpen = s.withdrawalsOpen - e.withdrawalId)
@@ -342,6 +346,24 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
     if !currentState.fraud.exists(_.caseIds.contains(c.caseId)) then effects.reply(Done.unchanged)
     else effects.persist(DuplicateCleared(c.caseId, c.actorId, c.at)).thenReply(_ => Done.changed)
 
+  /** The registration's duplicate check begun (spec 011 FR-034); once per player. */
+  def startDuplicateCheck(c: At): Effect[Done] =
+    val s = currentState
+    if !s.exists || s.duplicateCheck.nonEmpty then effects.reply(Done.unchanged)
+    else effects.persist(DuplicateCheckStarted(s.registeredAt.getOrElse(c.at), c.at)).thenReply(_ => Done.changed)
+
+  /**
+   * The check's end with its outcome (FR-034, FR-035); once, so a retried step changes nothing. A weak
+   * outcome blocks the no-deposit offers in the same change.
+   */
+  def endDuplicateCheck(c: EndDuplicateCheck): Effect[Done] =
+    val s = currentState
+    if !s.exists || s.duplicateCheck.exists(!_.inProgress) then effects.reply(Done.unchanged)
+    else
+      val ended = DuplicateCheckEnded(c.outcome, c.at)
+      if c.outcome == CheckOutcome.Weak then effects.persistAll(Seq(ended, NoDepositBlocked(c.weakSignals, c.at))).thenReply(_ => Done.changed)
+      else effects.persist(ended).thenReply(_ => Done.changed)
+
   def kycVerified(c: At): Effect[Done] =
     if currentState.kycVerified then effects.reply(Done.unchanged) else effects.persist(KycVerified(c.at)).thenReply(_ => Done.changed)
 
@@ -417,6 +439,7 @@ object PlayerEntity
   given Serializer[SetPotVip]             = PlayersCodecs.serializer[SetPotVip]("set-pot-vip")
   given Serializer[FlagDuplicate]         = PlayersCodecs.serializer[FlagDuplicate]("flag-duplicate")
   given Serializer[ClearDuplicate]        = PlayersCodecs.serializer[ClearDuplicate]("clear-duplicate")
+  given Serializer[EndDuplicateCheck]     = PlayersCodecs.serializer[EndDuplicateCheck]("end-duplicate-check")
   given Serializer[Withdrawal]            = PlayersCodecs.serializer[Withdrawal]("withdrawal")
   given Serializer[FileErasure]           = PlayersCodecs.serializer[FileErasure]("file-erasure")
   given Serializer[SendResetLink]         = PlayersCodecs.serializer[SendResetLink]("send-reset-link")
@@ -462,6 +485,8 @@ object PlayerEntity
   val setPotVip             = command("set-pot-vip")(_.setPotVip)
   val flagDuplicate         = command("flag-duplicate")(_.flagDuplicate)
   val clearDuplicate        = command("clear-duplicate")(_.clearDuplicate)
+  val startDuplicateCheck   = command("start-duplicate-check")(_.startDuplicateCheck)
+  val endDuplicateCheck     = command("end-duplicate-check")(_.endDuplicateCheck)
   val kycVerified           = command("kyc-verified")(_.kycVerified)
   val kycWithdrawn          = command("kyc-withdrawn")(_.kycWithdrawn)
   val withdrawalOpened      = command("withdrawal-opened")(_.withdrawalOpened)

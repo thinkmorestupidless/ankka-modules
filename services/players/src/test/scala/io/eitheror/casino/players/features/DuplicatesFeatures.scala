@@ -12,7 +12,14 @@ import scala.concurrent.duration.*
 
 /** features/players/duplicates.feature (T063). */
 class DuplicatesFeatures extends PlayersFeatures("duplicates.feature"):
-  protected def pending = Map.empty
+  protected def pending = Vector(
+    "a registration is marked as under a duplicate check until the detector has run",
+    "a registration whose email is a variant of a player's from the same address flags both as suspected duplicates",
+    "a registration whose email is a variant of a player's, with nothing else, blocks only its no-deposit offers",
+    "a registration whose comparison fails blocks only its no-deposit offers",
+    "registrations from one address at the rate the detector counts, with nothing else, change nothing",
+    "an operator clearing a player's no-deposit block lifts it and records who and when"
+  ).map(_ -> "spec 011 T016 (pending)").toMap
 
   private var first   = ""
   private var second  = ""

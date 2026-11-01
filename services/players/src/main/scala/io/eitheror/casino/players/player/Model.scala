@@ -52,6 +52,28 @@ final case class CookieDecision(analytics: Boolean, marketing: Boolean, version:
 final case class FraudFlag(caseIds: Vector[String] = Vector.empty, linkedPlayerIds: Set[String] = Set.empty,
     signals: Set[String] = Set.empty, flaggedAt: Instant)
 
+/**
+ * The duplicate check of a new registration (spec 011 FR-034): in progress from its start until the
+ * detector has run or the brand's kill switch skipped it, then its outcome ([[CheckOutcome]]).
+ */
+final case class DuplicateCheck(startedAt: Instant, outcome: Option[String] = None, endedAt: Option[Instant] = None):
+  def inProgress: Boolean = endedAt.isEmpty
+
+/** How a duplicate check ended (spec 011 FR-035; `player_duplicate_check_ended`'s `outcome`). */
+object CheckOutcome:
+  val Strong  = "strong"
+  val Weak    = "weak"
+  val Clear   = "clear"
+  val Skipped = "skipped"
+
+/**
+ * A weak duplicate signal's block of the player's no-deposit offers (spec 011 FR-035): the signals that
+ * set it and when; an operator's clearing (FR-036) is recorded beside it, so the reason stays.
+ */
+final case class NoDepositBlock(signals: Set[String], blockedAt: Instant, clearedBy: Option[String] = None,
+    clearedAt: Option[Instant] = None):
+  def active: Boolean = clearedAt.isEmpty
+
 /** A game session of the day, for the session limit (R5): open while `endedAt` is empty. */
 final case class DaySession(sessionId: String, startedAt: Instant, endedAt: Option[Instant] = None)
 
@@ -92,6 +114,8 @@ final case class PlayerState(
     vipTier: Option[String] = None,
     potVip: Boolean = false,
     fraud: Option[FraudFlag] = None,
+    duplicateCheck: Option[DuplicateCheck] = None,
+    noDepositBlock: Option[NoDepositBlock] = None,
     sessionLimitMinutes: Option[Int] = None,
     todaysGameSessions: Vector[DaySession] = Vector.empty,
     openPlayerSessions: Set[String] = Set.empty,
@@ -113,6 +137,7 @@ final case class PlayerState(
   def primary: Option[EmailAddress] = emails.find(_.primary)
   def address(text: String): Option[EmailAddress] = emails.find(_.address.reveal.equalsIgnoreCase(text.trim))
   def withdrawalOpen: Boolean = withdrawalsOpen.nonEmpty
+  def noDepositBlocked: Boolean = noDepositBlock.exists(_.active)
 
 /** A refusal: the code the route answers, and what it names. */
 final case class Refusal(code: String, details: Map[String, String] = Map.empty)
@@ -168,6 +193,12 @@ object PlayerEvent:
   final case class PotVipSet(potVip: Boolean, actorId: Option[String], at: Instant)                extends PlayerEvent
   final case class DuplicateFlagged(caseId: String, linked: Set[String], signals: Set[String], at: Instant) extends PlayerEvent
   final case class DuplicateCleared(caseId: String, actorId: Option[String], at: Instant)        extends PlayerEvent
+  /** The duplicate check begun (spec 011 FR-034), with the registration time its readers count from. */
+  final case class DuplicateCheckStarted(registeredAt: Instant, at: Instant)                       extends PlayerEvent
+  /** The check's end and its outcome, one event, so it never ends before the outcome is recorded (FR-035). */
+  final case class DuplicateCheckEnded(outcome: String, at: Instant)                               extends PlayerEvent
+  /** A weak signal's block of the no-deposit offers, persisted with the `weak` end in one change (FR-035). */
+  final case class NoDepositBlocked(signals: Set[String], at: Instant)                             extends PlayerEvent
   final case class KycVerified(at: Instant)                                                        extends PlayerEvent
   final case class KycWithdrawn(at: Instant)                                                       extends PlayerEvent
   final case class WithdrawalOpened(withdrawalId: String, at: Instant)                             extends PlayerEvent
@@ -231,6 +262,8 @@ final case class VipAnswer(previous: Option[String], changed: Boolean)
 final case class SetPotVip(potVip: Boolean, actorId: Option[String], at: Instant)
 final case class FlagDuplicate(caseId: String, linked: Set[String], signals: Set[String], at: Instant)
 final case class ClearDuplicate(caseId: String, actorId: Option[String], at: Instant)
+/** The check's end: its outcome, and for a weak one the signals that block the no-deposit offers. */
+final case class EndDuplicateCheck(outcome: String, weakSignals: Set[String], at: Instant)
 final case class Withdrawal(withdrawalId: String, at: Instant)
 final case class FileErasure(correlationId: String, holdUntil: Instant, at: Instant)
 final case class SendResetLink(operatorId: String, at: Instant)
