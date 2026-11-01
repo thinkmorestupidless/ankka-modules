@@ -93,7 +93,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `Claim.select(unsettled, periodEnd, priorClaims, threshold)`) until T007 passes, with
   `p-test/commission/CommissionSuite.scala` for what the original's cases do not cover (currency
   separation, zero omitted, a negative delta)
-- [ ] T011 [P] Implement `p/tags/TagSigner.scala` (spec 012 contracts/protocol.md *The tag*: JWS compact,
+- [X] T011 [P] Implement `p/tags/TagSigner.scala` (spec 012 contracts/protocol.md *The tag*: JWS compact,
   `EdDSA`, `typ eo-tag`, `net programme`, at most 1,024 characters) with `p-test/tags/TagSignerSuite.scala`
   verifying each signed tag with a copy of `a/tag/Tag.scala`'s verification against the key document
   the programme would serve
