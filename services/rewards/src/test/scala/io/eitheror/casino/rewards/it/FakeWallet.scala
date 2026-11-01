@@ -17,7 +17,7 @@ import scala.collection.concurrent.TrieMap
 final class FakeWallet(brand: String) extends FakeServer():
   /** One open record: `grantRef` is the award's key. */
   final case class Record(grantRef: String, bonusRef: String, amount: Long, requirement: Long, priority: Long, pendingCap: Boolean = false,
-      baseline: Boolean = true)
+      baseline: Boolean = true, winnings: Long = 0L)
 
   private val records  = TrieMap.empty[(String, String), Vector[Record]]
   private val real     = TrieMap.empty[(String, String), Long]
@@ -32,11 +32,18 @@ final class FakeWallet(brand: String) extends FakeServer():
   def routeAnswer(route: String, answer: Answer): Unit = byRoute.update(route, answer)
   def clearRoute(route: String): Unit                  = byRoute.remove(route): Unit
   def realFor(player: String, currency: String, amount: Long): Unit = real.update((player, currency), amount)
+  def realOf(player: String, currency: String): Long               = real.getOrElse((player, currency), 0L)
   def open(player: String, currency: String): Vector[Record]       = records.getOrElse((player, currency), Vector.empty)
   /** The record the award keyed `grantRef` opened now waits at its pending cap (W2). */
   def pendingCap(player: String, currency: String, grantRef: String): Unit = alter(player, currency, grantRef)(_.copy(pendingCap = true))
   /** The record has no baseline, as spec 019's migrated ones may (W4). */
   def noBaseline(player: String, currency: String, grantRef: String): Unit = alter(player, currency, grantRef)(_.copy(baseline = false))
+  /**
+   * The real winnings since the record's award less the deposits since, as the wallet computes them from its baseline
+   * (spec 002 FR-017): what a cancel of the record claws back, at most the real balance, nothing without a baseline.
+   */
+  def winningsSince(player: String, currency: String, grantRef: String, amount: Long): Unit =
+    alter(player, currency, grantRef)(_.copy(winnings = amount))
 
   def reset(): Unit =
     records.clear(); real.clear(); scripted.clear(); byRoute.clear(); answered.clear()
@@ -94,7 +101,11 @@ final class FakeWallet(brand: String) extends FakeServer():
         named match
           case None => FakeWallet.refusal("NO_ACTIVE_BONUS")
           case Some(g) if body.bool("requireBaseline").contains(true) && !g.baseline => FakeWallet.refusal("MISSING_BASELINE")
-          case Some(g) => end(g.grantRef); Answer.ok(money(player, currency, "clawbackAmount" -> 0L, "forfeited" -> Vector(g.grantRef)))
+          case Some(g) =>
+            val clawback = if g.baseline then math.max(0L, math.min(g.winnings, realOf(player, currency))) else 0L
+            real.update(wallet, realOf(player, currency) - clawback)
+            end(g.grantRef)
+            Answer.ok(money(player, currency, "clawbackAmount" -> clawback, "forfeited" -> Vector(g.grantRef)))
       case "awards/close-pending-cap" =>
         named.filter(_.pendingCap) match
           case None    => FakeWallet.refusal("NOT_PENDING_CAP")
