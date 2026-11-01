@@ -131,8 +131,13 @@ object Opening:
     Opening(playerId, offer.id, offer.name, offer.offerType.wire, offer.payload, decision, offer.priority, source, code, tag,
       RuleSnapshot.of(offer), freeRounds, by)
 
-/** The wallet's answer to an award (research R5's `award` step), as the reward keeps it. */
-final case class WalletAward(recordId: Option[String] = None, wageringRequirement: Long)
+/**
+ * The wallet's answer to an award (research R5's `award` step), as the reward keeps it, with the terms the award was
+ * made on: the claim's decision may differ from the provisional one the reward opened with (a deposit match is sized
+ * by the deposit), so the activation carries the amount, multiplier, maximum convertible and currency awarded.
+ */
+final case class WalletAward(recordId: Option[String] = None, wageringRequirement: Long, amount: Option[Long] = None,
+    wageringMultiplier: Option[Long] = None, maxConvertible: Option[Long] = None, currency: Option[String] = None)
 
 /**
  * A reward (data-model.md `Reward`), keyed by the reward id. `opened` is false until `Open`. `expiresAt` is the

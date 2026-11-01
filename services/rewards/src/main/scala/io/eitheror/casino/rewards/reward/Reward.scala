@@ -222,7 +222,11 @@ object Reward
     case Activated(award, expiresAt, wagering, at) =>
       s.copy(status = RewardStatus.Active, grantedAt = Some(at), expiresAt = Some(expiresAt), wageringExpiresAt = wagering,
         recordId = award.flatMap(_.recordId).orElse(s.recordId),
-        wageringRequirement = award.fold(s.wageringRequirement)(_.wageringRequirement))
+        wageringRequirement = award.fold(s.wageringRequirement)(_.wageringRequirement),
+        faceValue = award.flatMap(_.amount).getOrElse(s.faceValue),
+        wageringMultiplier = award.flatMap(_.wageringMultiplier).getOrElse(s.wageringMultiplier),
+        maxConvertible = award.flatMap(_.maxConvertible).getOrElse(s.maxConvertible),
+        currency = award.flatMap(_.currency).getOrElse(s.currency))
     case AwardRefused(code, _)        => s.copy(lastDecline = Some(code))
     case Converted(at, cap)           =>
       s.copy(status = RewardStatus.ConvertedPendingCap, convertedAt = Some(at), capExpiresAt = Some(cap), expiresAt = Some(cap))

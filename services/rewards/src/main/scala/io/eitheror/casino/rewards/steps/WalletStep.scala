@@ -6,6 +6,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.rewards.{RewardsCodecs, RewardsRuntime}
 import io.eitheror.casino.rewards.clients.{AwardTerms, Called, Wallet}
+import io.eitheror.casino.rewards.reward.Ending
 
 import scala.concurrent.duration.*
 
@@ -44,9 +45,11 @@ object WalletCall:
 
 /**
  * A step's request: the reward, its player's wallet, the call, and whether a timer asked for it (`byTimer`), which
- * decides whether `NO_ACTIVE_BONUS` and `NOT_PENDING_CAP` are a refusal or `NotOpen` (FR-015).
+ * decides whether `NO_ACTIVE_BONUS` and `NOT_PENDING_CAP` are a refusal or `NotOpen` (FR-015). A timer's step carries
+ * how it ends the reward (`ending`), so the delivery moves the reward as the timer decided when it fired.
  */
-final case class StepRequest(rewardId: String, playerId: String, currency: String, call: WalletCall, byTimer: Boolean = false):
+final case class StepRequest(rewardId: String, playerId: String, currency: String, call: WalletCall, byTimer: Boolean = false,
+    ending: Option[Ending] = None):
   def id: String = WalletStep.id(rewardId, call)
   /** The wallet's key: the reward id for the award, which the wallet names its record by; the step's id otherwise. */
   def key: String = call match
@@ -152,8 +155,8 @@ final class WalletStep(context: WorkflowContext) extends Workflow[StepState]:
     val (player, key) = (r.playerId, r.key)
     r.call match
       case WalletCall.Award(t)       => wallet.award(player, currency, key, t).map(WalletAnswer.Awarded(_))
-      case WalletCall.Winnings(t)    => wallet.award(player, currency, key, t).map(WalletAnswer.Awarded(_))
-      case WalletCall.LateAward(_, t) => wallet.award(player, currency, key, t).map(WalletAnswer.Awarded(_))
+      case WalletCall.Winnings(t)    => wallet.award(player, currency, key, WalletStep.below(wallet, player, currency, t)).map(WalletAnswer.Awarded(_))
+      case WalletCall.LateAward(_, t) => wallet.award(player, currency, key, WalletStep.below(wallet, player, currency, t)).map(WalletAnswer.Awarded(_))
       case WalletCall.Forfeit        => wallet.forfeit(player, currency, key, r.rewardId).map(WalletAnswer.Forfeited(_))
       case WalletCall.Cancel(base)   => wallet.cancel(player, currency, key, r.rewardId, base).map(WalletAnswer.Cancelled(_))
       case WalletCall.CloseCap       => wallet.closePendingCap(player, currency, key, r.rewardId).map(WalletAnswer.CapClosed(_))
@@ -183,6 +186,18 @@ object WalletStep
 
   /** The workflow's id: `<reward>/<step>` (research R5). */
   def id(rewardId: String, call: WalletCall): String = s"$rewardId/${call.step}"
+
+  /**
+   * Winnings' terms with no priority set: the open records' lowest priority less one, so they are spent after every
+   * open record (research R5, `award_bonus/handler.go:140-191`); none when nothing is open or the wallet cannot be read.
+   * A retry may read another priority: the wallet answers the key with its first award.
+   */
+  def below(wallet: Wallet, player: String, currency: Currency, t: AwardTerms): AwardTerms =
+    if t.priority.isDefined then t
+    else
+      wallet.restrictedFunds(player, currency) match
+        case Called.Done(funds) if funds.records.nonEmpty => t.copy(priority = Some(funds.records.map(_.priority).min - 1))
+        case _                                            => t
 
   /** The refusals that, on a timer's step, mean the record is not open (FR-015). */
   val NotOpenCodes: Set[String] = Set(Wallet.NoActiveBonus, Wallet.NotPendingCap)

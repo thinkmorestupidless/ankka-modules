@@ -56,6 +56,7 @@ final class Kit(base: Settings = Kit.Base):
     RewardsRuntime.gameProvider = services => GameProvider.http(services, settings)
     RewardsRuntime.players = services => Players.http(services, settings)
     RewardsRuntime.programme = _ => Programme.http(settings)
+    io.eitheror.casino.rewards.steps.Wiring.install()
   rewire()
 
   /** Every log line of the service, from the start, for the leak suite. */

@@ -87,6 +87,12 @@ class RewardSuite extends munit.FunSuite:
     assertEquals((status(kit), kit.currentState.wageringRequirement, kit.currentState.recordId), (Active, 170000L, Some("rec-1")))
     assertEquals(kit.call(Reward.activate)(Activate(Some(award), at)).events.toVector, Vector.empty)
 
+  test("Activated with the award's terms replaces the provisional amount, multiplier, maximum and currency it opened with"):
+    val kit = opened(funds.copy(decision = Decision(0L, 0L, 0L, 35L, eur)), Pending)
+    kit.call(Reward.activate)(Activate(Some(WalletAward(Some("rec-1"), 90000L, Some(3000L), Some(30L), Some(6000L), Some("EUR"))), at)): Unit
+    val s = kit.currentState
+    assertEquals((s.faceValue, s.wageringMultiplier, s.maxConvertible, s.currency, s.wageringRequirement), (3000L, 30L, 6000L, "EUR", 90000L))
+
   test("free rounds activate with their expiry (the offer's days, else 30)"):
     val kit = active(rounds)
     assertEquals(kit.currentState.expiresAt, Some(at.plus(7, DAYS)))
