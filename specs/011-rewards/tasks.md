@@ -94,7 +94,7 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
 
 **The service's foundation.**
 
-- [ ] T017 `S/Settings.scala` (brand, wallet, game-provider, players, programme URL, poll interval 30 s,
+- [X] T017 `S/Settings.scala` (brand, wallet, game-provider, players, programme URL, poll interval 30 s,
       poll limit 50, code refresh 5 min, staleness 15 min, request bound 2 s; `fromEnvironment`
       reads `CASINO_BRAND`, `REWARDS_CODE_DOCUMENT_URL`) and `S/RewardsCodecs.scala` (`stored`,
       `serializer`, `row`, `wire`, and a `RewardsRuntime` holder for settings, clock, client factories
