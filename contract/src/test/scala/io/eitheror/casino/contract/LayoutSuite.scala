@@ -28,25 +28,29 @@ class LayoutSuite extends munit.FunSuite:
   private def of(names: String*) = Layout.Modules.filter(m => names.contains(m.name))
 
   test("the modules are core first, then the product modules of the tree") {
-    assertEquals(Layout.Modules.map(_.name), Vector("core", "casino", "engagement", "reporting", "support"))
+    assertEquals(Layout.Modules.map(_.name), Vector("core", "casino", "engagement", "predictions", "reporting", "support"))
     assertEquals(Layout.Modules.map(_.kind).distinct, Vector("core", "product"))
   }
+
+  private val predictionsTopics = Set("markets.events", "exchange.orders", "exchange.trades", "exchange.prices")
 
   test("core and casino run spec 001's services less those now a module of their own or spec 016's") {
     assertEquals(of("core", "casino").flatMap(_.services).toSet,
       spec001Services.toSet -- Set("partner-api", "engagement", "reporting", "support-agent"))
-    assertEquals(Layout.Services.toSet, spec001Services.toSet - "partner-api")
+    assertEquals(Layout.Services.toSet, spec001Services.toSet - "partner-api" + "markets" + "exchange")
     assertEquals(Layout.Services.distinct, Layout.Services, "a service is in one module only")
     assertEquals(Layout.moduleOf("game-provider"), Some("casino"))
   }
 
   test("core and casino declare spec 001's topics less engagement's push, plus platform.modules") {
     assertEquals(of("core", "casino").flatMap(_.topics).toSet, spec001Topics.toSet - "casino.push" + "platform.modules")
-    assertEquals(Layout.BrandTopics.toSet, spec001Topics.toSet + "platform.modules")
+    assertEquals(Layout.BrandTopics.toSet, spec001Topics.toSet + "platform.modules" ++ predictionsTopics)
   }
 
-  test("the grants made are spec 001 FR-016's five, plus audit's consume of platform.modules") {
-    assertEquals(Layout.BrandGrantsMade, spec001Grants :+ Grant("service:reasoner/audit", GrantTarget.Topic("platform.modules", "consume")))
+  test("the grants made are spec 001 FR-016's five, plus audit's consume of platform.modules and of the predictions topics (spec 023)") {
+    val predictions = Vector("markets.events", "exchange.orders", "exchange.trades", "exchange.prices")
+      .map(t => Grant("service:reasoner/audit", GrantTarget.Topic(t, "consume")))
+    assertEquals(Layout.BrandGrantsMade, (spec001Grants :+ Grant("service:reasoner/audit", GrantTarget.Topic("platform.modules", "consume"))) ++ predictions)
   }
 
   test("the received grants stay shared payments' to make, per brand (E2)") {

@@ -27,7 +27,7 @@ class ReleaseRenderSuite extends munit.FunSuite:
 
   test("every manifest is rendered with every image at the version, and nothing else of the descriptor changes") {
     val (_, files) = rendered("9.9.9")
-    assertEquals(files.map(_.getFileName.toString).toSet, Set("core.json", "casino.json", "engagement.json", "reporting.json", "support.json"))
+    assertEquals(files.map(_.getFileName.toString).toSet, Set("core.json", "casino.json", "engagement.json", "predictions.json", "reporting.json", "support.json"))
     files.foreach { f =>
       val doc  = mapper.readTree(f.toFile)
       val tree = mapper.readTree(Fixtures.root.resolve(s"modules/${doc.path("name").asText()}/module.json").toFile)

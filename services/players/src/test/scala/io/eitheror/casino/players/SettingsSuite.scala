@@ -59,3 +59,15 @@ class SettingsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(Secrets.all.map(Secrets.variable), Seq("PLAYERS_REALM_ADMIN", "PLAYERS_WEBHOOK_SECRET", "PLAYERS_REALM_SECRET",
       "PLAYERS_EMAIL_TOKEN", "PLAYERS_LOOKUP_KEY", "PLAYERS_MERCHANT_KEY"))
   }
+
+  test("the erasure targets a brand's modules add are erased after core's own, and none is exported (spec 023 R13)") {
+    val set = Settings.fromEnvironment(brand + ("ERASURE_TARGETS" -> "exchange=/v1/casino/brands/goldvibe/exchange")).toOption.get
+    assertEquals(set.erasureTargets, Vector("exchange" -> "/v1/casino/brands/goldvibe/exchange"))
+    assertEquals(Settings.fromEnvironment(brand + ("ERASURE_TARGETS" -> "none")).map(_.erasureTargets), Right(Vector.empty))
+    assertEquals(Settings.fromEnvironment(brand).map(_.erasureTargets), Right(Vector.empty))
+    assert(Settings.fromEnvironment(brand + ("ERASURE_TARGETS" -> "exchange")).left.exists(_.startsWith("ERASURE_TARGETS")))
+    val names = erasure.ErasureWorkflow.targets("goldvibe", set.erasureTargets).map(_.name)
+    assertEquals(names, Vector("wallet", "responsible-gambling", "kyc", "payouts", "merchant", "exchange"))
+    assertEquals(erasure.ErasureWorkflow.targets("goldvibe", set.erasureTargets).last.target.prefix, "/v1/casino/brands/goldvibe/exchange")
+    assert(!erasure.ExportWorkflow.targets("goldvibe").exists(_.name == "exchange"))
+  }

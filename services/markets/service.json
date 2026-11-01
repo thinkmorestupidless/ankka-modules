@@ -1,0 +1,7 @@
+{
+  "name": "markets",
+  "service": {
+    "image": "markets:latest",
+    "runtime": "0.14.2"
+  }
+}

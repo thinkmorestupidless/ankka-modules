@@ -153,7 +153,7 @@ object ExportWorkflow
   def create(context: WorkflowContext) = new ExportWorkflow(context)
 
   /** The services asked for their part: the erasure's, as each serves both routes (contracts/routes.md). */
-  def targets(brand: String): Vector[ErasureTarget] = ErasureWorkflow.targets(brand)
+  def targets(brand: String): Vector[ErasureTarget] = ErasureWorkflow.own(brand)
 
   /** This service's part (FR-040): never an operator's note. */
   def own(components: ComponentClient, p: PlayerState): ObjectNode =

@@ -31,7 +31,8 @@ class RenderSuite extends munit.FunSuite:
   private val keys    = Keys.load(Fixtures.root)
   private val values  = Values.load(Fixtures.root.resolve("brands/goldvibe/values.json"), Main.valuesView(Fixtures.root)).toOption.get
   private val modules = ModuleManifest.validateTree(Fixtures.root, ModuleManifest.ContractView.fromTree(Fixtures.root))._1
-  private val at      = Map("core" -> "0.1.0", "casino" -> "0.1.0", "engagement" -> "0.1.0", "reporting" -> "0.1.0", "support" -> "0.1.0")
+  private val at      = Map("core" -> "0.1.0", "casino" -> "0.1.0", "engagement" -> "0.1.0", "reporting" -> "0.1.0", "support" -> "0.1.0",
+    "predictions" -> "0.1.0")
 
   private val spec001: Vector[ServiceDescriptor] =
     fixture.path("descriptors").elements().asScala.toVector.map(n => readFromString[ServiceDescriptor](n.toString))
@@ -40,7 +41,8 @@ class RenderSuite extends munit.FunSuite:
   private val PlayersSecrets = Set("REALM_ADMIN", "WEBHOOK_SECRET", "REALM_SECRET", "EMAIL_TOKEN", "LOOKUP_KEY", "MERCHANT_KEY").map("PLAYERS_" + _)
   private val NewOwnKeys  = Map(
     "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
-    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL") ++ PlayersSecrets),
+    // spec 023 R13: the erasure targets the brand's modules add.
+    "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS") ++ PlayersSecrets),
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
     "engagement"    -> Set("PUSH_PROVIDER_KEY"),
     "support-agent" -> Set("MODEL_PROVIDER_KEY"),
@@ -55,7 +57,8 @@ class RenderSuite extends munit.FunSuite:
   private val NewSizes = Map("players" -> "medium", "attribution" -> "medium", "kyc" -> "medium")
 
   private def plan(named: Vector[String], v: Values = values) =
-    BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind)).fold(e => fail(e), identity)
+    BrandRender.plan(v, keys, modules, named, at, Some(Fixtures.devKind), routes = ModuleManifest.ContractView.contractRoutes(Fixtures.root))
+      .fold(e => fail(e), identity)
 
   /** A descriptor with spec 021's listed additions taken out, and spec 001's dropped switch taken out of the other. */
   private def comparable(d: ServiceDescriptor, dropped: Set[String]): ServiceDescriptor =
@@ -160,6 +163,24 @@ class RenderSuite extends munit.FunSuite:
     val p = plan(Vector("casino", "engagement", "support"))
     assertEquals(p.modules.map(_.name), Vector("core", "casino"))
     assertEquals(p.missing.toSet, Set("engagement" -> "push-provider-key", "support" -> "model-provider-key"))
+  }
+
+  test("a brand entitled to predictions and not casino runs markets and exchange on the core, and no game-provider (spec 023 SC-004)") {
+    val p = plan(Vector("predictions"))
+    assertEquals(p.held, Vector.empty)
+    assertEquals(p.modules.map(_.name), Vector("core", "predictions"))
+    val names = p.services.map(_.name).toSet
+    assert(Set("markets", "exchange").subsetOf(names), names.toString)
+    assert(!names.contains("game-provider") && !names.contains("rewards"), names.toString)
+    val exchange = p.services.find(_.name == "exchange").get.service.env.map(e => e.name -> e.value).toMap
+    assertEquals(exchange.get("PREDICTIONS_GATES"), Some(Some("play-gate,may-bet")))
+  }
+
+  test("players erases at exchange when the brand runs predictions, and at core's own targets only when it does not (spec 023 R13)") {
+    def targets(named: Vector[String]) =
+      plan(named).services.find(_.name == "players").get.service.env.find(_.name == "ERASURE_TARGETS").flatMap(_.value)
+    assertEquals(targets(Vector("predictions")), Some("exchange=/v1/casino/brands/goldvibe/exchange"))
+    assertEquals(targets(Vector("casino")), Some("none"))
   }
 
   test("core comes first and a module after its dependencies; a module that does not exist is named") {

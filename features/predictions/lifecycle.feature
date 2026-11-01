@@ -28,3 +28,23 @@ Feature: Operators run a market's lifecycle under their brand's roles
     When the operator drafts a market "m4" with the outcomes "yes" and "no"
     And the operator approves market "m4"
     Then a fact for each change to market "m4" is written on the brand's markets topic, keyed by the market
+
+  Scenario: a draft in a category the brand does not offer is refused naming the category
+    Given an operator of the brand with the markets permission
+    And the brand offers the categories "sport" and "politics"
+    When the operator drafts a market "m5" in the category "weather"
+    Then it is refused naming the category
+
+  Scenario: a draft in a currency the brand's wallet does not hold is refused naming the currency
+    Given an operator of the brand with the markets permission
+    And the brand's wallet holds "EUR" only
+    When the operator drafts a market "m6" in "USD"
+    Then it is refused naming the currency
+
+  Scenario: a market opens with the brand's limits unless its draft sets its own
+    Given an operator of the brand with the markets permission
+    And the brand's limits are a maximum order cost of "100000" and a maximum position of "5000"
+    When the operator drafts a market "m7" and approves it
+    And the operator drafts a market "m8" with a maximum position of "500" and approves it
+    Then the book of market "m7" opens with a maximum order cost of "100000" and a maximum position of "5000"
+    And the book of market "m8" opens with a maximum order cost of "100000" and a maximum position of "500"

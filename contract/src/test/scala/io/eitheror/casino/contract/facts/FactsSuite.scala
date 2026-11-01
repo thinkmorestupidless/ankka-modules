@@ -87,7 +87,44 @@ class FactsSuite extends munit.FunSuite:
       val has = family.fields.exists(_._1 == "player_id")
       if topic.name == "affiliates.attribution" then assert(!has, family.name)
       else if family.sample.isInstanceOf[AccountFact] then assert(!has, s"${family.name} is about an account, not a player")
+      else if family.sample.isInstanceOf[MarketFact] then () // keyed by the market; the player test below (spec 023)
       else if topic.name != "platform.audit" && topic.name != "platform.modules" then assert(has, s"${topic.name} ${family.name}")
+  }
+
+  test("spec 023: the predictions facts are keyed by the market, and those about a player name them, a trade in each leg") {
+    for topic <- Vector(MarketsEvents, ExchangeOrders, ExchangeTrades, ExchangePrices); family <- topic.families do
+      assertEquals(family.sample.asInstanceOf[Fact].key, "x", s"${topic.name} ${family.name}")
+    def names(topic: Topic[?], family: String) = topic.families.find(_.name == family).get.allFields.map(_._1).toSet
+    Vector("order_placed", "order_cancelled", "order_expired").foreach(f => assert(names(ExchangeOrders, f)("player_id"), f))
+    assert(names(ExchangeTrades, "position_paid")("player_id"))
+    assert(Set("legs.player_id", "legs.order_id", "legs.charge_cents", "legs.released_cents", "prices.price").subsetOf(names(ExchangeTrades, "trade_made")))
+    assert(!names(MarketsEvents, "market_drafted").exists(_.endsWith("player_id")), "a market's facts name operators, not players")
+  }
+
+  test("spec 023: a nested object is an object in the schema, with its own required fields") {
+    val legs = ExchangeTrades.families.find(_.name == "trade_made").get.fields.collectFirst { case ("legs", t) => t }.get
+    legs.schema match
+      case Json.Obj(fs) =>
+        val items = fs.collectFirst { case ("items", Json.Obj(i)) => i.toMap }.get
+        assertEquals(items("type"), Json.str("object"))
+        assert(items("required").asInstanceOf[Json.Arr].items.contains(Json.str("player_id")))
+      case other => fail(s"legs is $other")
+  }
+
+  test("spec 023: compatibility reads within a nested object: an optional field added keeps the version, a removed one does not") {
+    final case class LegV1(playerId: String, chargeCents: Long)
+    final case class LegV2(playerId: String, chargeCents: Long, note: Option[String])
+    final case class LegV3(playerId: String)
+    final case class TradeV1(marketId: String, legs: Vector[LegV1])
+    final case class TradeV2(marketId: String, legs: Vector[LegV2])
+    final case class TradeV3(marketId: String, legs: Vector[LegV3])
+    given FieldType[LegV1] = FieldType.nested[LegV1]
+    given FieldType[LegV2] = FieldType.nested[LegV2]
+    given FieldType[LegV3] = FieldType.nested[LegV3]
+    val v1 = Vector(FamilyDef.of[TradeV1]("trade_made"))
+    assertEquals(Compatibility.compare(v1, Vector(FamilyDef.of[TradeV2]("trade_made"))), Compatibility.Verdict.SameVersion)
+    assertEquals(Compatibility.compare(v1, Vector(FamilyDef.of[TradeV3]("trade_made"))),
+      Compatibility.Verdict.NewVersion(Vector("trade_made.legs.charge_cents is removed")))
   }
 
   test("the original's export fields are kept (FR-014)") {

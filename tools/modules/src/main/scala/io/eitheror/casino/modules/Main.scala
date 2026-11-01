@@ -138,7 +138,7 @@ object Main:
       vs   <- versions(args, order.map(_.name), vendor).left.map { e => out.err(e); 2 }
       organization = args.flags.get("--organization").orElse(env.get("ANKKA_ORGANIZATION")).getOrElse("eitheror")
       keys  = Keys.load(root)
-      plan <- BrandRender.plan(v, keys, ms, named, vs, Some(inst)).left.map { e => out.err(e); 2 }
+      plan <- BrandRender.plan(v, keys, ms, named, vs, Some(inst), routes = ModuleManifest.ContractView.contractRoutes(root)).left.map { e => out.err(e); 2 }
       _    <- LocalApply.unbuilt(plan, keys) match
         case unbuilt if unbuilt.isEmpty || args.switches.contains("--allow-unbuilt") => Right(())
         case unbuilt =>
@@ -187,7 +187,7 @@ object Main:
         val named = list(args, "--modules") match
           case Vector() => ms.filter(m => m.name != "core" && m.services.exists(s => running.contains(s.name))).map(_.name)
           case listed   => listed
-        BrandRender.plan(v, Keys.load(root), ms, named, Map.empty, inst, args.flags.get("--organization")) match
+        BrandRender.plan(v, Keys.load(root), ms, named, Map.empty, inst, args.flags.get("--organization"), ModuleManifest.ContractView.contractRoutes(root)) match
           case Left(e) => out.err(e); 2
           case Right(plan) =>
             val facts = BrandCommands.facts(inst, Some(cp))
@@ -240,7 +240,7 @@ object Main:
           order <- BrandRender.ordered(list(args, "--modules"), ms).left.map { e => out.err(e); 2 }
           vs   <- versions(args, order.map(_.name), vendor).left.map { e => out.err(e); 2 }
           plan <- BrandRender.plan(v, keys, ms, list(args, "--modules"), vs, installation.flatMap(_.toOption),
-                    args.flags.get("--organization")).left.map { e => out.err(e); 2 }
+                    args.flags.get("--organization"), ModuleManifest.ContractView.contractRoutes(root)).left.map { e => out.err(e); 2 }
         yield plan
         result match
           case Left(code) => code

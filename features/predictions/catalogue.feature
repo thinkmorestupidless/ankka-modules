@@ -8,13 +8,19 @@ Feature: Players read the catalogue, prices and their positions
     And a player "ada" with an active account
     And a player "bob" with an active account
 
-  Scenario: a player sees open markets with prices and depth and no draft or unopened market
+  Scenario: a player sees open markets and no draft or unopened market
     Given an open market "m1" with the outcomes "yes" and "no" in "EUR"
     And a draft market "m2" with the outcomes "yes" and "no" in "EUR"
     And an approved market "m3" that has not opened
     When "ada" reads the market catalogue
-    Then "ada" sees market "m1" with the last price, best bid, best ask and depth of each outcome
+    Then "ada" sees market "m1" with its outcomes
     And "ada" does not see market "m2" or market "m3"
+
+  Scenario: a player sees each outcome's last price, best bid, best ask and depth of an open market
+    Given an open market "m1" with the outcomes "yes" and "no" in "EUR"
+    And "bob" has an order, a position and a trade in market "m1"
+    When "ada" reads the prices and depth of market "m1"
+    Then "ada" sees the last price, best bid, best ask and depth of each outcome of market "m1"
 
   Scenario: a player sees their own orders, positions and trades and no other player's
     Given an open market "m1" with the outcomes "yes" and "no" in "EUR"

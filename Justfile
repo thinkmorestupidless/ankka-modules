@@ -247,3 +247,25 @@ attribution-run:
 psp-stub gateway="http://localhost:9001":
     cd tests && go build -o stubs/bin/ ./stubs/psp-stub
     PSP_STUB_GATEWAY_URL={{gateway}} tests/stubs/bin/psp-stub
+
+# markets' suites (spec 023; Docker for the integration kit). The contract is published first, at
+# `CASINO_VERSION`, and ankka-predictions is resolved at `PREDICTIONS_VERSION`, when the caller sets them.
+markets-test:
+    just service markets test
+
+# markets' integration suites only (Docker).
+markets-it:
+    cd services/markets && sbt "testOnly io.eitheror.casino.markets.it.*"
+
+# exchange's suites (spec 023; Docker for the integration kit). The contract is published first, at
+# `CASINO_VERSION`, and ankka-predictions is resolved at `PREDICTIONS_VERSION`, when the caller sets them.
+exchange-test:
+    just service exchange test
+
+# exchange's integration suites only (Docker).
+exchange-it:
+    cd services/exchange && sbt "testOnly io.eitheror.casino.exchange.it.*"
+
+# exchange's placement latency at 200 orders a second, SC-002's figures (Docker).
+exchange-perf:
+    cd services/exchange && EXCHANGE_PERF=1 sbt "testOnly io.eitheror.casino.exchange.perf.*"

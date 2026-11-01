@@ -89,6 +89,11 @@ class CallersSuite extends munit.FunSuite with LogCapturing:
     val r = playersRead(depositCheck(5000, None))
     assert(r.exists { case KycDecision.Refused("DEPOSIT_BLOCKED_KYC_CURRENCY", _) => true; case _ => false }, r.toString)
 
+  test("spec 023: exchange asks the play gate, and a service the route does not name is refused"):
+    val asked = kit.request("GET", kit.servicePath(s"/$player/play-check"), None, kit.asService("exchange"))
+    assertEquals((asked.status, asked.json.get("allowed").asBoolean), (200, true))
+    assertEquals(kit.request("GET", kit.servicePath(s"/$player/play-check"), None, kit.asService("rewards")).status, 403)
+
   test("game-provider reads an allowed play check as allowed"):
     assertEquals(gameProviderRead(playCheck()), Right(PlayCheck.Allowed))
 

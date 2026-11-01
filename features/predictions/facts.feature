@@ -11,7 +11,7 @@ Feature: Facts, the price stream and the reasoning mirror
 
   Scenario: every order, trade and price change is a fact on the brand's exchange topics
     When "ada" places a buy order "o1" for "10" shares of "yes" in "m1" at price "60"
-    Then a fact for order "o1" is written on the brand's exchange orders topic, keyed by the player
+    Then a fact for order "o1" is written on the brand's exchange orders topic, keyed by the market
     When order "o1" is matched by a trade "t1"
     Then a fact for trade "t1" is written on the brand's exchange trades topic, keyed by the market
     And a fact for the new last price of "yes" is written on the brand's exchange prices topic, keyed by the market

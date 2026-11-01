@@ -88,10 +88,10 @@ class ModuleManifestSuite extends munit.FunSuite:
 
   private lazy val tree = ContractView.fromTree(Fixtures.root)
 
-  test("the five manifests under modules/ validate against the tree's contract, and one service is in one module") {
+  test("the six manifests under modules/ validate against the tree's contract, and one service is in one module") {
     val (valid, refused) = ModuleManifest.validateTree(Fixtures.root, tree)
     assertEquals(refused.map((p, rs) => s"$p: ${rs.mkString("; ")}"), Vector.empty)
-    assertEquals(valid.map(_.name), Vector("core", "casino", "engagement", "reporting", "support"))
+    assertEquals(valid.map(_.name), Vector("core", "casino", "engagement", "predictions", "reporting", "support"))
   }
 
   test("every service a manifest names has a build under services/ or is listed as not yet built in contract/keys.md") {
@@ -100,7 +100,7 @@ class ModuleManifestSuite extends munit.FunSuite:
     val named = ModuleManifest.validateTree(Fixtures.root, tree)._1.flatMap(_.serviceNames)
     named.foreach(s => assert(built.contains(s) || keys.notYetBuilt.contains(s), s"$s has no build and is not listed as not yet built"))
     assert(keys.notYetBuilt.keySet.intersect(built).isEmpty, s"listed as not yet built but built: ${keys.notYetBuilt.keySet.intersect(built)}")
-    assertEquals(named.filter(built.contains).toSet, Set("wallet", "game-provider", "players", "responsible-gambling", "attribution", "kyc", "payouts"))
+    assertEquals(named.filter(built.contains).toSet, Set("wallet", "game-provider", "players", "responsible-gambling", "attribution", "kyc", "payouts", "markets", "exchange"))
   }
 
   test("in the tree an image is the registry's, named for its service, at 0.0.0 until the release renders the tag") {

@@ -18,19 +18,26 @@ object Compatibility:
       after.find(_.name == old.name) match
         case None => Vector(s"${old.name} is gone; a family is replaced by a new version beside it, never removed")
         case Some(now) =>
-          val nowFields = now.fields.toMap
-          old.fields.flatMap { (field, kind) =>
-            nowFields.get(field) match
-              case None => Some(s"${old.name}.$field is removed")
-              case Some(k) if k.schema != kind.schema => Some(s"${old.name}.$field changes type")
-              case Some(k) if kind.optional && !k.optional => Some(s"${old.name}.$field becomes required")
-              case _ => None
-          } ++ now.fields.collect {
-            case (field, k) if !old.fields.exists(_._1 == field) && !k.optional =>
-              s"${old.name}.$field is added as required; an added field is optional, so readers of the old shape still read it"
-          }
+          fields(old.name, old.fields, now.fields)
     }
     if reasons.isEmpty then Verdict.SameVersion else Verdict.NewVersion(reasons)
+
+  /** The same rules within a nested object as at the top of a family (spec 023). */
+  private def fields(path: String, before: Vector[(String, FieldType[?])], after: Vector[(String, FieldType[?])]): Vector[String] =
+    val nowFields = after.toMap
+    before.flatMap { (field, kind) =>
+      nowFields.get(field) match
+        case None => Vector(s"$path.$field is removed")
+        case Some(k) if kind.nested.nonEmpty && k.nested.nonEmpty =>
+          (if kind.optional && !k.optional then Vector(s"$path.$field becomes required") else Vector.empty) ++
+            fields(s"$path.$field", kind.nested, k.nested)
+        case Some(k) if k.schema != kind.schema => Vector(s"$path.$field changes type")
+        case Some(k) if kind.optional && !k.optional => Vector(s"$path.$field becomes required")
+        case _ => Vector.empty
+    } ++ after.collect {
+      case (field, k) if !before.exists(_._1 == field) && !k.optional =>
+        s"$path.$field is added as required; an added field is optional, so readers of the old shape still read it"
+    }
 
   /** The name a changed family takes beside the old one. */
   def nextVersion(family: String): String =

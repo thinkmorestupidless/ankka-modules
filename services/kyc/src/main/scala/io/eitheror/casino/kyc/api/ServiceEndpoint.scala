@@ -56,7 +56,8 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
   }
 
   /** A read: the play gate on the record as it stands. */
-  withAcl(Routes.serviceOf("game-provider")) {
+  // exchange asks it before an order reaches a book (spec 023 FR-002).
+  withAcl(Routes.serviceOf("game-provider", "exchange")) {
     get("/{playerId}/play-check") { (p: String) =>
       val s = ctx.state(p)
       val g = Gates.play(ctx.policy, s.status)

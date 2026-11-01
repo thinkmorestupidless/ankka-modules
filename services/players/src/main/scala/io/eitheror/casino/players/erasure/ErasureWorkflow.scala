@@ -127,7 +127,7 @@ final class ErasureWorkflow(context: WorkflowContext) extends Workflow[ErasureFl
   def applyStep: StepEffect =
     val s    = currentState
     val done = s.certificates.map(_.service).toSet
-    ErasureWorkflow.targets(live.brand).find(t => !done(t.name)) match
+    ErasureWorkflow.targets(live.brand, live.erasureTargets).find(t => !done(t.name)) match
       case Some(t) =>
         val answer = Neighbour.inline(neighbours.erasure(t.target, t.subject(s.playerId), live.exportPartBound))
         answer match
@@ -156,7 +156,7 @@ final class ErasureWorkflow(context: WorkflowContext) extends Workflow[ErasureFl
   def failedStep: StepEffect =
     val s    = currentState
     val done = s.certificates.map(_.service).toSet
-    val at   = if s.step == Realm then "realm" else ErasureWorkflow.targets(live.brand).find(t => !done(t.name)).fold(ErasureWorkflow.Own)(_.name)
+    val at   = if s.step == Realm then "realm" else ErasureWorkflow.targets(live.brand, live.erasureTargets).find(t => !done(t.name)).fold(ErasureWorkflow.Own)(_.name)
     ErasureWorkflow.log.error("erasure of {}: {} did not apply it; the erasure is left failed", s.playerId, at)
     stepEffects.updateState(s.copy(step = Failed, failedAt = Some(at))).thenEnd
 
@@ -184,9 +184,14 @@ object ErasureWorkflow
    * `responsible-gambling` (spec 010 R15), and `merchant` in `payments` under the brand's erasure grant,
    * which knows the player as `<brand>:<player>`; `kyc` (spec 009 R15) deletes the documents' objects too;
    * `payouts` (spec 007 R12) blanks the destinations, names, email and reasons of the player and each request.
-   * A later service is one entry.
+   * A later service is one entry. Then the targets the brand's modules add (`ERASURE_TARGETS`, spec
+   * 023 R13): `exchange` for a brand that runs predictions.
    */
-  def targets(brand: String): Vector[ErasureTarget] = Vector(
+  def targets(brand: String, added: Vector[(String, String)] = Vector.empty): Vector[ErasureTarget] =
+    own(brand) ++ added.map((name, prefix) => ErasureTarget(name, Target(name, prefix), identity))
+
+  /** Core's own targets: every brand runs them, and each also exports (`ExportWorkflow`). */
+  def own(brand: String): Vector[ErasureTarget] = Vector(
     ErasureTarget("wallet", Target("wallet", s"/v1/casino/brands/$brand"), identity),
     ErasureTarget("responsible-gambling", Target("responsible-gambling", s"/v1/casino/brands/$brand/rg"), identity),
     ErasureTarget("kyc", Target("kyc", s"/v1/casino/brands/$brand/kyc"), identity),

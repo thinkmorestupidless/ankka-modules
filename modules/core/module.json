@@ -169,6 +169,10 @@
           {
             "name": "PLAYERS_MERCHANT_KEY",
             "key": "players-merchant-key"
+          },
+          {
+            "name": "ERASURE_TARGETS",
+            "key": "erasure-targets"
           }
         ]
       }
@@ -682,6 +686,11 @@
       "key": "players-merchant-key",
       "type": "string",
       "secret": true
+    },
+    {
+      "key": "erasure-targets",
+      "type": "string",
+      "secret": false
     }
   ],
   "requires": [

@@ -1,0 +1,7 @@
+{
+  "name": "exchange",
+  "service": {
+    "image": "exchange:latest",
+    "runtime": "0.14.2"
+  }
+}

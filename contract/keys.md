@@ -53,11 +53,18 @@ same for every brand and are literals in the descriptors, not keys.
 | players-merchant-key | core | string | yes | `<slug>-players/MERCHANT_KEY` | | `PLAYERS_MERCHANT_KEY` |
 | reporting-zone | core | string | no | | | `CASINO_REPORTING_ZONE` |
 | casino-modules | core | string | no | | | `CASINO_MODULES` |
+| erasure-targets | core | string | no | | | `ERASURE_TARGETS` |
 | game-provider-mode | casino | string | no | | | `GAME_PROVIDER_MODE` |
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
 | push-provider-key | engagement | string | yes | `<slug>-push/API_KEY` | | `PUSH_PROVIDER_KEY` |
 | model-provider-key | support | string | yes | `<slug>-model/API_KEY` | | `MODEL_PROVIDER_KEY` |
+| predictions-categories | predictions | string | no | | | `PREDICTIONS_CATEGORIES` |
+| predictions-currencies | predictions | string | no | | | `PREDICTIONS_CURRENCIES` |
+| predictions-max-order-cost | predictions | string | no | | | `PREDICTIONS_MAX_ORDER_COST` |
+| predictions-max-position | predictions | string | no | | | `PREDICTIONS_MAX_POSITION` |
+| predictions-taker-fee-bps | predictions | string | no | | | `PREDICTIONS_TAKER_FEE_BPS` |
+| predictions-gates | predictions | string | no | | | `PREDICTIONS_GATES` |
 
 `reporting-zone`, `casino-modules` and `kyc-max-upload-bytes` have a value when a brand writes none (spec
 012 research R7, R12; spec 009 R18; `Values.defaults`): the largest KYC upload is 5,242,880 bytes, the reporting zone is `UTC`, and the modules are those the brand runs, `core`
@@ -65,6 +72,21 @@ among them, so the value is never empty (the platform refuses an empty entry; fo
 2026-10-28). Locally the tool knows them from the modules it applies; through a vendor it does not, so
 a brand that runs the casino module writes `"casino-modules": "core,casino"` until spec 021 has the
 vendor render it.
+
+`erasure-targets` (spec 023 R13) names the services of the brand's modules beyond core's own that
+erase a player, as `service=prefix` pairs: each planned service with a `POST
+…/erasure/players/{player}` row in `contract/access/routes.md`, the prefix the path before it with
+the brand filled in. It is `none` when no module adds one. Like `casino-modules`, only the local plan
+computes it; through a vendor a brand that runs `predictions` writes
+`"erasure-targets": "exchange=/v1/casino/brands/<slug>/exchange"` until spec 021 has the vendor
+render it.
+
+The predictions module's keys (spec 023 R7): `predictions-categories` and `predictions-currencies`
+are comma lists, and a brand that runs the module names at least one of each; the two limits are
+minor units and shares. `predictions-taker-fee-bps` is `0` and `predictions-gates` is
+`play-gate,may-bet` when a brand writes none; a fee above `0` stops `markets` at start until
+ankka-predictions 0.2.0 charges one (R8). The reasoning mirror's key is added with the mirror,
+when ankka-reasoning 0.2.0 is cut (R14).
 
 ## Not yet built
 

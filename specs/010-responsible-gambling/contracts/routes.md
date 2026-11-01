@@ -57,7 +57,7 @@ answer is 200 with a decision; a 5xx or no answer is the caller's refusal.
 | Route | Admitted | Body | Answer |
 |---|---|---|---|
 | `POST /may-deposit` | `wallet`, `players` | `playerId, currency, amount, last24h, last7d, last30d` | `{decision: allowed}` \| `{decision: excluded}` \| `{decision: cooling_off, endsAt}` \| `{decision: over_limit, period, limit, used, remaining}` |
-| `POST /may-bet` | `game-provider`, `wallet` | `playerId, currency, amount, lossLast24h?, lossLast7d?, lossLast30d?` | `allowed` \| `excluded` \| `cooling_off` (`endsAt`) \| `spending_limit` (`period, limit, remaining`) \| `unavailable` (a loss limit set, no sums; R6) |
+| `POST /may-bet` | `game-provider`, `wallet`, `exchange` (023 FR-002) | `playerId, currency, amount, lossLast24h?, lossLast7d?, lossLast30d?` | `allowed` \| `excluded` \| `cooling_off` (`endsAt`) \| `spending_limit` (`period, limit, remaining`) \| `unavailable` (a loss limit set, no sums; R6) |
 | `GET /{player}/may-play` | `game-provider` | — | 200 `{allowed: true, sessionLimitMinutes?, minutesUsed}` \| 403 `{allowed: false, reason: self_excluded \| cooling_off \| session_limit_reached, coolingOffUntil?, limitMinutes?, usedMinutes?}` |
 | `POST /may-log-in` | `players` | `playerId` | `{decision: allowed}` \| `{decision: excluded}` \| `{decision: cooling_off, endsAt}` |
 | `POST /gamstop-refusal` | `players` | `playerId, result` (`excluded` \| `api_error` \| `timeout`) | 204; a third-party case for `excluded` only |

@@ -42,6 +42,17 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(Routes.operator("goldvibe", verified), Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
   }
 
+  test("spec 023: an operator holding the markets role is served; a brand operator without it is refused naming it") {
+    val acl = Routes.operatorHolding("goldvibe", "markets", "platform_admin")(verified)
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "markets")))), Outcome.Served)
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
+    val refused = outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "operator")))).asInstanceOf[Outcome.Refused]
+    assertEquals(refused.status, 403)
+    assert(refused.toString.contains("markets permission"), refused.toString)
+    // the role without the brand is still the operator class's refusal
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_spinvibe", "markets")))).asInstanceOf[Outcome.Refused].status, 403)
+  }
+
   test("a payments operator is served with a role of the table and a level from the scope claims") {
     val acl = Routes.paymentsOperator(verified)
     val company = paymentsOperator(Seq("resource_admin"), "eitheror_scope_level" -> "company", "eitheror_scope_id" -> "c-1")

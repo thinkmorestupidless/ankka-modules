@@ -64,6 +64,21 @@ object Routes:
       else Some(s"${Refusal.BrandNotInRoles}: no role names brand $slug")
     }
 
+  /** A brand operator without the role a route needs (spec 023 FR-004). */
+  val Forbidden = "forbidden"
+
+  /**
+   * An operator of this brand, as [[operator]], who also holds one of `roles` (spec 023 FR-004: the
+   * `markets` permission, with `platform_admin` beside it): refused `forbidden`, naming the first role,
+   * when they hold none. The realm's roles are the permissions (`brands/_realm`).
+   */
+  def operatorHolding(slug: String, roles: String*)(authenticate: => Acl = Oidc.authenticate()): Acl =
+    require(roles.nonEmpty, "a route names the role it needs")
+    refine(operator(slug, authenticate)) { p =>
+      if roles.exists(p.roles.contains) then None
+      else Some(s"$Forbidden: the ${roles.head} permission is needed")
+    }
+
   /**
    * The payments backoffice's privilege table (spec 004 research R10; the original's
    * `PrivilegeCheck.roleLevels`): a role and its level. An operator holds the highest of theirs.

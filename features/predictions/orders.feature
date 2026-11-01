@@ -35,6 +35,11 @@ Feature: An order passes the brand's gates and is funded before it reaches a boo
     Then it is refused as "insufficient funds"
     And nothing rests in the book of "yes" in "m1"
 
+  Scenario: with a taker fee a buy order reserves its cost and the most its fee can be
+    Given the brand's taker fee rate is "700" basis points
+    When "ada" places a buy order "o7" for "10" shares of "yes" in "m1" at price "60"
+    Then a reservation of "618" is placed for order "o7" on the wallet of "ada"
+
   Scenario: a sell order needs the position and reserves nothing
     Given "ada" holds "10" shares of "yes" in "m1"
     When "ada" places a sell order "o5" for "10" shares of "yes" in "m1" at price "60"

@@ -63,7 +63,7 @@ ACL: `Routes.service()`, and per route `Routes.serviceOf(...)`.
 | Method and path | Caller | Body | Answer |
 |---|---|---|---|
 | `POST /deposit-check` | `players` | `{playerId, amount, currency?}` | `{allowed: true}` or `{allowed: false, code, message, kycStatus?}` |
-| `GET /{playerId}/play-check` | `game-provider` | — | `{allowed: true}` or `{allowed: false, error: "PLAY_BLOCKED_KYC", code: "PLAY_BLOCKED_KYC", kycStatus, message}` |
+| `GET /{playerId}/play-check` | `game-provider`, `exchange` (023 FR-002) | — | `{allowed: true}` or `{allowed: false, error: "PLAY_BLOCKED_KYC", code: "PLAY_BLOCKED_KYC", kycStatus, message}` |
 | `POST /erasure/players/{playerId}` | `players` | — | `{service: "kyc", playerId, objectsDeleted, recordsKept, erasedAt}` |
 | `GET /exports/players/{playerId}` | `players` | — | `{documents: [...], status, mode, sof, flags, deadline}`, with no object |
 

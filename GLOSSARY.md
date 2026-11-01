@@ -1145,100 +1145,122 @@ Avoid: brand manifest
 ## Predictions
 
 ### market
-*Proposed.* A question with two or more outcomes, one of which will be resolved true; drafted, approved, opened, closed, resolved or voided, then final. The rules are the markets library's (ankka-predictions).
+A question with two or more outcomes, one of which will be resolved true; drafted, approved, opened, closed, resolved or voided, then final. The rules are the markets library's (ankka-predictions).
 
 ### outcome
-*Proposed.* One answer to a market's question, with a book of its own.
+One answer to a market's question, with a book of its own.
 
 ### draft market
-*Proposed.* A market an operator has written and not yet approved; not shown to players.
+A market an operator has written and not yet approved; not shown to players.
 
 ### approved market
-*Proposed.* A market approved and not yet open; not shown to players.
+A market approved and not yet open; not shown to players.
 
 ### open market
-*Proposed.* A market players may trade in.
+A market players may trade in.
 
 ### final
-*Proposed.* Of a market: resolved or void and past its review window; its positions are paid.
+Of a market: resolved or void and past its review window; its positions are paid.
 
 ### void
-*Proposed.* Of a market: cancelled after opening; each share is paid its equal part.
+Of a market: cancelled after opening; each share is paid its equal part.
 
 ### markets permission
-*Proposed.* The permission on the brand_<slug> role that lets an operator draft, approve, close, resolve and void markets.
+The permission on the brand_<slug> role that lets an operator draft, change, approve, open, suspend, resume, close, move the close of, resolve, correct and void markets.
 
 ### share
-*Proposed.* One unit of a position in an outcome; pays one unit if the market resolves to that outcome.
+One unit of a position in an outcome; pays one major unit of the market's currency (100 minor units) if the market resolves to that outcome.
 
 ### order
-*Proposed.* A player's instruction to buy or sell shares of an outcome at a price; checked, funded and then resting in the book.
+A player's instruction to buy or sell shares of an outcome at a price; checked, funded and then resting in the book.
 
 ### buy order
-*Proposed.* An order to buy shares; its cost is reserved before it rests.
+An order to buy shares; its cost is reserved before it rests.
 
 ### sell order
-*Proposed.* An order to sell shares the player holds; reserves nothing.
+An order to sell shares the player holds; reserves nothing.
 
 ### book
-*Proposed.* The resting orders of one outcome, matched by price then time; the exchange library's.
+The resting orders of one outcome, matched by price then time; the exchange library's.
 
 ### trade
-*Proposed.* A match between a buy order and a sell order at a price for a quantity; settled through the wallet under its id.
+A match between a buy order and a sell order at a price for a quantity; settled through the wallet under its id.
 
 ### position
-*Proposed.* The shares a player holds in an outcome of a market.
+The shares a player holds in an outcome of a market.
 
 ### price
-*Proposed.* What a share costs, from 1 to 99 minor units.
+What a share costs, from 1 to 99 minor units.
 
 ### last price
-*Proposed.* The price of an outcome's most recent trade.
+The price of an outcome's most recent trade.
 
 ### best bid
-*Proposed.* The highest resting buy price in an outcome's book.
+The highest resting buy price in an outcome's book.
 
 ### best ask
-*Proposed.* The lowest resting sell price in an outcome's book.
+The lowest resting sell price in an outcome's book.
+
+### taker
+Of a trade: the order that arrived and met a resting one.
+
+### maker
+Of a trade: the resting order the taker met.
+
+### taker fee
+What a trade's taker pays the brand: rate × contracts × price × (1 − price), rounded up to the minor unit; the maker pays none.
+Avoid: rake
+
+### taker fee rate
+The brand's value, in basis points, that a taker fee is worked out from; 0 means no fee.
+
+### fee account
+The brand's wallet account of kind `fee` that taker fees move into.
+
+### category
+The heading a market is listed under; a brand offers the categories its values list.
+
+### limits
+Of a market: the maximum order cost and the maximum position its book opens with; the brand's values' unless the draft sets its own.
 
 ### depth
-*Proposed.* The quantity resting at each price in a book.
+The quantity resting at each price in a book.
 
 ### market catalogue
-*Proposed.* The open markets a player may read, with each outcome's prices and depth.
+The open markets a player may read, with each outcome's prices and depth.
 
 ### bet gate
-*Proposed.* responsible-gambling's may-bet, asked with the order's cost before an order is funded.
+responsible-gambling's may-bet, asked with the order's cost before an order is funded.
 
 ### exchange
-*Proposed.* The predictions module's service that holds the books and implements the gate and ledger ports.
+The predictions module's service that holds the books and implements the gate and ledger ports.
 
 ### markets service
-*Proposed.* The predictions module's service that holds markets and implements the resolution port.
+The predictions module's service that holds markets and implements the resolution port.
 
 ### reasoning service
-*Proposed.* A reasoning graph a brand's values may name; when named, approved markets are mirrored to it and prices observed.
+A reasoning graph a brand's values may name; when named, approved markets are mirrored to it and prices observed.
 
 ### question
-*Proposed.* What a market is mirrored to the reasoning service as.
+What a market is mirrored to the reasoning service as.
 
 ### hypothesis
-*Proposed.* What an outcome is mirrored to the reasoning service as, one per outcome.
+What an outcome is mirrored to the reasoning service as, one per outcome.
 
 ### price observation
-*Proposed.* An outcome's last price written to the reasoning service, at most once a minute per outcome.
+An outcome's last price written to the reasoning service, at most once a minute per outcome.
 
 ### exchange orders topic
-*Proposed.* `exchange.orders`: one fact per order change, keyed by the player.
+`exchange.orders`: one fact per order change, keyed by the player.
 
 ### exchange trades topic
-*Proposed.* `exchange.trades`: one fact per trade, keyed by the market.
+`exchange.trades`: one fact per trade, keyed by the market.
 
 ### exchange prices topic
-*Proposed.* `exchange.prices`: one fact per change of an outcome's last price, keyed by the market.
+`exchange.prices`: one fact per change of an outcome's last price, keyed by the market.
 
 ### markets topic
-*Proposed.* `markets.events`: one fact per change to a market, keyed by the market.
+`markets.events`: one fact per change to a market, keyed by the market.
 
 ### platform audit topic
 *Proposed.* `platform.audit`, as spec 001 names it.

@@ -1,0 +1,45 @@
+package io.eitheror.casino.markets
+
+/**
+ * What `markets` is told at start (spec 023 R7), from the brand's values as the modules tool renders
+ * them: the categories and currencies a draft may name (FR-013), the limits a book opens with when a
+ * draft sets none (FR-014), the taker fee rate in basis points (FR-015), and the reasoning service to
+ * mirror markets to, if any (FR-007). No secret.
+ */
+final case class Settings(
+    brand: String,
+    categories: Vector[String],
+    currencies: Vector[String],
+    maxOrderCost: Long,
+    maxPosition: Long,
+    takerFeeBps: Int = 0,
+    reasoningService: Option[String] = None
+)
+
+object Settings:
+  /** The reasoning service a brand's values name (`project/service`, R7), absent unless named: then nothing is mirrored (FR-007). */
+  def reasoning(env: Map[String, String]): Option[String] = env.get("REASONING_SERVICE").map(_.trim).filter(_.nonEmpty)
+
+  /** The settings from the environment, refused naming the variable when one cannot be read. */
+  def fromEnvironment(env: Map[String, String] = sys.env): Either[String, Settings] =
+    def named(name: String): Either[String, String] =
+      env.get(name).map(_.trim).filter(_.nonEmpty).toRight(s"$name: not set; the brand's values name it (spec 023 R7)")
+    def list(name: String): Either[String, Vector[String]] =
+      named(name).map(_.split(',').toVector.map(_.trim).filter(_.nonEmpty)).filterOrElse(_.nonEmpty, s"$name: names nothing")
+    def positive(name: String): Either[String, Long] =
+      named(name).flatMap(v => v.toLongOption.filter(_ > 0).toRight(s"$name: '$v' is not a positive whole number"))
+    // The library charges no fee before ankka-predictions spec 007 (R8): a rate above 0 would be
+    // accepted and charged by nothing, so it is refused until the fee lands.
+    val fee = env.get("PREDICTIONS_TAKER_FEE_BPS").map(_.trim).filter(_.nonEmpty).fold(Right(0)) { v =>
+      v.toIntOption.filter(b => b >= 0 && b <= 10_000).toRight(s"PREDICTIONS_TAKER_FEE_BPS: '$v' is not a rate from 0 to 10000 basis points")
+        .filterOrElse(_ == 0, s"PREDICTIONS_TAKER_FEE_BPS: '$v': the taker fee waits on ankka-predictions 0.2.0 (spec 007); only 0 is charged")
+    }
+    for
+      brand      <- named("CASINO_BRAND")
+      categories <- list("PREDICTIONS_CATEGORIES")
+      currencies <- list("PREDICTIONS_CURRENCIES")
+      _          <- currencies.find(c => !c.matches("[A-Z]{3}")).map(c => s"PREDICTIONS_CURRENCIES: '$c' is not a currency code").toLeft(())
+      cost       <- positive("PREDICTIONS_MAX_ORDER_COST")
+      position   <- positive("PREDICTIONS_MAX_POSITION")
+      bps        <- fee
+    yield Settings(brand, categories, currencies, cost, position, bps, Settings.reasoning(env))

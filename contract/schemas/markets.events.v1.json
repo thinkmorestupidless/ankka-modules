@@ -1,0 +1,423 @@
+{
+  "$id": "https://eitheror.io/schemas/casino/markets.events.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The facts on markets.events, produced by markets (spec 001 FR-011). The family is the body's `type`; `ce-type` is the contract name.",
+  "oneOf": [
+    {
+      "additionalProperties": true,
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "close": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "criteria": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expected_resolution": {
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "open_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "outcomes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "question": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_drafted"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "question", "description", "category", "outcomes", "currency", "close", "expected_resolution", "criteria", "authority", "occurred_at"],
+      "title": "market_drafted",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "close": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "criteria": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "expected_resolution": {
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "open_time": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "outcomes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "question": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_changed"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "question", "description", "category", "outcomes", "currency", "close", "expected_resolution", "criteria", "authority", "occurred_at"],
+      "title": "market_changed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_approved"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "occurred_at"],
+      "title": "market_approved",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "const": "market_opened"
+        }
+      },
+      "required": ["type", "market_id", "occurred_at"],
+      "title": "market_opened",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_suspended"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "reason", "occurred_at"],
+      "title": "market_suspended",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_resumed"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "occurred_at"],
+      "title": "market_resumed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_closed"
+        }
+      },
+      "required": ["type", "market_id", "occurred_at"],
+      "title": "market_closed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "close": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "expected_resolution": {
+          "type": "string"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_close_moved"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "close", "expected_resolution", "reason", "occurred_at"],
+      "title": "market_close_moved",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "authority": {
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "excerpt": {
+                "type": "string"
+              },
+              "locator": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
+            "required": ["source", "locator", "excerpt"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "outcome_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_resolved"
+        },
+        "window_end": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "outcome_id", "evidence", "authority", "window_end", "occurred_at"],
+      "title": "market_resolved",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "evidence": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "excerpt": {
+                "type": "string"
+              },
+              "locator": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
+            "required": ["source", "locator", "excerpt"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "outcome_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_corrected"
+        },
+        "window_end": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "outcome_id", "evidence", "window_end", "occurred_at"],
+      "title": "market_corrected",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "evidence": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "excerpt": {
+                "type": "string"
+              },
+              "locator": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
+            "required": ["source", "locator", "excerpt"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "operator_id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "type": {
+          "const": "market_voided"
+        },
+        "window_end": {
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": ["type", "market_id", "operator_id", "reason", "evidence", "window_end", "occurred_at"],
+      "title": "market_voided",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "market_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "const": "market_final"
+        }
+      },
+      "required": ["type", "market_id", "occurred_at"],
+      "title": "market_final",
+      "type": "object"
+    }
+  ],
+  "title": "markets.events.v1"
+}
