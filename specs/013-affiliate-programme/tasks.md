@@ -197,7 +197,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   a bonus cost and a chargeback, in and out of order and with one duplicate, equal the original's fold;
   CPA once in the plan's currency; the GGR source switch from the next day; before-binding days fold
   nothing; both carryover windows
-- [ ] T036 [P] [US2] Bind `features/programme/commission.feature` in `p-test/features/CommissionSteps.scala`
+- [X] T036 [P] [US2] Bind `features/programme/commission.feature` in `p-test/features/CommissionSteps.scala`
 - [X] T037 [P] [US2] `p-test/it/IntakeSuite.scala` (topic cases): duplicates on one channel write once;
   a mismatched brand writes nothing and is counted; an unattributed fact is recorded with its reason
 

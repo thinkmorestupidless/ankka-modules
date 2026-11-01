@@ -75,6 +75,8 @@ class CommissionSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("the GGR source switch takes effect from its day; the other kind is recorded, not folded") {
+    // A switch makes every earlier day the previous source's, so the test sets its own starting point.
+    Scene.setGgrSource(kit, "silvervibe", GgrSource.Daily, "2026-03-01")
     Scene.setGgrSource(kit, "silvervibe", GgrSource.Rounds, "2026-03-10")
     try
       val s = Scene(kit, brand = "silvervibe")
