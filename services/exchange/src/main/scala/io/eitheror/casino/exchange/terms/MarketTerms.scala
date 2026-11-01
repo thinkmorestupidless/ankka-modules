@@ -29,6 +29,13 @@ final class MarketTermsEntity(@scala.annotation.unused context: KeyValueEntityCo
 object KnownTerms:
   private val known = java.util.concurrent.ConcurrentHashMap[String, Terms]()
 
+  /** The terms, if already known here; a caller that must not block reads the entity itself when not. */
+  def cached(market: String): Option[Terms] = Option(known.get(market))
+
+  def remember(market: String, t: Terms): Terms =
+    if t.known then known.put(market, t): Unit
+    t
+
   def of(market: String)(read: => Terms): Terms =
     Option(known.get(market)).getOrElse {
       val t = read

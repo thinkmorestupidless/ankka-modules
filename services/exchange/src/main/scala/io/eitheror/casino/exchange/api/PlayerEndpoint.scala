@@ -12,6 +12,7 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.exchange.{ExchangeRuntime, Json}
 import io.eitheror.casino.exchange.Json.*
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.*
 
 import Answers.*
@@ -57,10 +58,14 @@ final class PlayerEndpoint(components: ExchangeComponents, clients: EndpointClie
       case None    => ok(prices(market))
   }
 
-  /** The book's prices and each outcome's depth, sent whenever its sequence moves; a client that sees a gap reads again. */
+  /**
+   * The book's prices and each outcome's depth, sent whenever its sequence moves; a client that sees a
+   * gap reads again. Each tick's calls are asynchronous (`invokeAsync`), so no stream stage blocks on a
+   * reply, and a tick waits for the one before it.
+   */
   sse("/stream/{market}") { (market: String) =>
     Source.tick(Duration.Zero, PlayerEndpoint.StreamEvery, ())
-      .map(_ => prices(market))
+      .mapAsync(1)(_ => pricesAsync(market))
       .statefulMap(() => -1L)((last, p) => {
         val seq = p.get("sequence").asLong
         (seq, Option.when(seq != last)(Json.render(p)))
@@ -94,6 +99,17 @@ final class PlayerEndpoint(components: ExchangeComponents, clients: EndpointClie
   }
 
   /** Every outcome's last price, best bid, best ask and depth, current to the book's sequence. */
+  private def pricesAsync(market: String): Future[JsonNode] =
+    given ExecutionContext = ExecutionContext.parasitic
+    val terms = KnownTerms.cached(market).fold(
+      clients.componentClient.forKeyValueEntity(EntityId(market)).call(MarketTerms.get).invokeAsync().map(KnownTerms.remember(market, _))
+    )(Future.successful)
+    for
+      p      <- book(market).call(components.exchange.prices).invokeAsync()
+      t      <- terms
+      depths <- Future.sequence(t.outcomes.map(o => book(market).call(components.exchange.depth).invokeAsync(OutcomeId(o))))
+    yield PlayerEndpoint.prices(market, p, depths)
+
   private def prices(market: String) =
     val p      = book(market).call(components.exchange.prices).invoke()
     val terms  = clients.componentClient.forKeyValueEntity(EntityId(market)).call(io.eitheror.casino.exchange.terms.MarketTerms.get).invoke()
