@@ -130,7 +130,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [ ] T021 [P] `p-test/settlement/PayoutSuite.scala`: `open`, the approved-to-pending revert recording
   the superseded approval, every refused transition naming the status, paid never changing; then
   `p/settlement/Payout.scala`
-- [ ] T022 [P] `p-test/accounts/EmailIndexSuite.scala`, `TokenSuite.scala` (claim once, expiry); then
+- [X] T022 [P] `p-test/accounts/EmailIndexSuite.scala`, `TokenSuite.scala` (claim once, expiry); then
   `p/accounts/EmailIndex.scala`, `p/accounts/Token.scala`
 - [ ] T023 [P] `p-test/links/SigningKeysSuite.scala` (never retire the last; `withdrawLegacy` once) and
   `p-test/links/LinkSuite.scala`; then `p/links/SigningKeys.scala` and `p/links/Link.scala` (signed by
