@@ -359,3 +359,8 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   the end of the build, before the review: the routes exist by then, so each recording is replayed at
   once. Until then ParitySuite's thirteen-recordings check is red.
 
+- **A suspended affiliate is paid no CPA** (T039, R20's first item). The original's deposit route
+  (`S/InternalRoutes.scala:761-1171`) reads no affiliate status: a suspended affiliate's player's
+  first deposit wrote CPA there. FR-016 governs, as R20's fallback says: the fact is recorded, the
+  first-deposit guard is set, and no CPA is written, then or after reactivation. `CommissionSuite`
+  holds it.

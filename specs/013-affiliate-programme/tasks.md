@@ -193,19 +193,19 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T035 [P] [US2] `p-test/it/CommissionSuite.scala`: a registration, a first deposit, three GGR days,
+- [X] T035 [P] [US2] `p-test/it/CommissionSuite.scala`: a registration, a first deposit, three GGR days,
   a bonus cost and a chargeback, in and out of order and with one duplicate, equal the original's fold;
   CPA once in the plan's currency; the GGR source switch from the next day; before-binding days fold
   nothing; both carryover windows
 - [ ] T036 [P] [US2] Bind `features/programme/commission.feature` in `p-test/features/CommissionSteps.scala`
-- [ ] T037 [P] [US2] `p-test/it/IntakeSuite.scala` (topic cases): duplicates on one channel write once;
+- [X] T037 [P] [US2] `p-test/it/IntakeSuite.scala` (topic cases): duplicates on one channel write once;
   a mismatched brand writes nothing and is counted; an unattributed fact is recorded with its reason
 
 ### Implementation
 
-- [ ] T038 [US2] Wire the brand's GGR source and its change day through `Intake` into
+- [X] T038 [US2] Wire the brand's GGR source and its change day through `Intake` into
   `PlayerAttribution.apply`, and fees per folded GGR fact in `ToLedger`
-- [ ] T039 [US2] CPA in the plan's currency, the payment fee per deposit, and FR-016 for a suspended
+- [X] T039 [US2] CPA in the plan's currency, the payment fee per deposit, and FR-016 for a suspended
   membership in `ToLedger`; settle research R20's first item against `S/InternalRoutes.scala:761-1171`
   and record the answer in research.md *Changed at implementation*
 - [ ] T040 [US2] Parity: the ledger reads of the eight `tests/port/attribution/` driver recordings and the
