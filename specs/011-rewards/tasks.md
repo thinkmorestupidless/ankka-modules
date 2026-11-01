@@ -105,11 +105,11 @@ Build with `CASINO_VERSION=0.2.0-011-SNAPSHOT` (memory: contract snapshot collis
 - [X] T019 [P] Pure `S/reward/Transitions.scala`: the ten states and the original's table; refusal
       `INVALID_TRANSITION(from, to)`; a repeat a no-op. `T/reward/TransitionsSuite.scala` first, with
       `RewardStatusSpec`'s cases.
-- [ ] T020 [P] Pure `S/offers/OfferRules.scala` and `S/offers/Codes.scala`: create and edit checks
+- [X] T020 [P] Pure `S/offers/OfferRules.scala` and `S/offers/Codes.scala`: create and edit checks
       in data-model.md's order with their exact codes; normalisation (`trim.toLowerCase`); payload
       type derived from type. `T/offers/OfferRulesSuite.scala` first, with `BonusRoutesSpec`'s create
       cases (2036-2260) and the edit list of research R1.
-- [ ] T021 [P] Pure `S/eligibility/Evaluator.scala`, `Decline.scala`, `Amounts.scala`: research R4's
+- [X] T021 [P] Pure `S/eligibility/Evaluator.scala`, `Decline.scala`, `Amounts.scala`: research R4's
       thirteen rules in order, the two modes, the anchors, `computeBonusAmount` in minor units, half
       up. `T/eligibility/EvaluatorSuite.scala` and `AmountsSuite.scala` first, with
       `EligibilityEvaluatorSpec`'s cases.
