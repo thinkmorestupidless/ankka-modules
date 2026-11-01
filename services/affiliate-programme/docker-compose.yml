@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: ankka
       POSTGRES_DB: ankka
     ports:
-      - "5438:5432"
+      - "5440:5432"
     volumes:
       - ./target/ddl:/docker-entrypoint-initdb.d:ro
       - pgdata:/var/lib/postgresql/data
