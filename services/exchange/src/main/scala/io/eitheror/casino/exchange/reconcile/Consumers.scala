@@ -16,8 +16,8 @@ object Checks:
   def daily(market: String) = s"reconcile-daily/$market"
   def last(market: String)  = s"reconcile-final/$market"
 
-  @volatile var dailyEvery: FiniteDuration = 24.hours
-  @volatile var afterFinal: FiniteDuration = 10.minutes
+  @volatile private[exchange] var dailyEvery: FiniteDuration = 24.hours
+  @volatile private[exchange] var afterFinal: FiniteDuration = 10.minutes
 
 /**
  * The exchange's side, from its journal: each event's moves onto its keys' tallies, the orders and

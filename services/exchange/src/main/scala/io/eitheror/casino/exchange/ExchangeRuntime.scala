@@ -14,7 +14,7 @@ import java.time.Instant
 object ExchangeRuntime:
   @volatile private var current: Option[Settings]                           = None
   @volatile private var running: Option[() => (ServiceClients, ComponentClient, ViewClient)] = None
-  @volatile var now: () => Instant                                          = () => Instant.now()
+  @volatile private[exchange] var now: () => Instant                                          = () => Instant.now()
 
   def settings: Settings = current.getOrElse(throw IllegalStateException("exchange is not wired: ExchangeService.wire first"))
 

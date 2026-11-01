@@ -11,11 +11,6 @@ import io.eitheror.casino.exchange.Json.*
 /** A wallet call that has no answer yet: unreachable, a 5xx or `OUTCOME_PENDING`. The caller retries. */
 final class WalletPending(message: String) extends RuntimeException(message)
 
-/**
- * The wallet's money routes for the exchange. Every call is keyed, so a repeat is answered as the
- * first was. A 2xx is `Done`; `INSUFFICIENT_FUNDS` is `Insufficient`; any other code is `Refused`
- * with it; no answer, a 5xx or `OUTCOME_PENDING` throws [[WalletPending]] (research R4).
- */
 /** One keyed call to the wallet, kept whole so a retry repeats it exactly (research R5). */
 final case class WalletCall(key: String, path: String, body: String)
 

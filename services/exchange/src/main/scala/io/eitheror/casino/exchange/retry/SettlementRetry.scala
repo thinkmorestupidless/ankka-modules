@@ -106,7 +106,7 @@ object SettlementRetry
   given Serializer[Abandon]    = Codecs.serializer[Abandon]("settlement-retry-abandon")
 
   /** The backoff after `attempts` attempts: 1, 5, 15 minutes, then hourly (R5); the test kit sets a shorter one. */
-  @volatile var backoff: Int => Duration = {
+  @volatile private[exchange] var backoff: Int => Duration = {
     case 1 => Duration.ofMinutes(1)
     case 2 => Duration.ofMinutes(5)
     case 3 => Duration.ofMinutes(15)
