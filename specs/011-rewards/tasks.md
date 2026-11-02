@@ -304,7 +304,7 @@ the publishers green under their suites.
       `rewards` entry checked against the service (`just modules render goldvibe`).
 - [X] T069 [P] `specs/001-brands-and-projects/contracts/routes.md` and `contract/access/routes.md`:
       the rewards rows (four prefixes and their audiences).
-- [ ] T070 `just features` 0 findings; `just test`, `just rewards-test`, `just rewards-it`,
+- [X] T070 `just features` 0 findings; `just test`, `just rewards-test`, `just rewards-it`,
       `just wallet-test`, `just service players test`, `just service game-provider test` green.
 - [ ] T071 quickstart.md §4 run locally and §6 on kind (`--context kind-…` only): one deposit match
       and one free-rounds grant against the simulator end to end; `casino.rewards` read.
