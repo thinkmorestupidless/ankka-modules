@@ -28,7 +28,8 @@ class RealMoneySuite extends munit.FunSuite with LogCapturing:
     HoldReleased("p", zar, "t11", "w-1", m(1000), s(5700), m(0), at),
     WalletWithdrawalReversed("p", zar, "t12", "w-1", m(1000), s(6700), m(0), at),
     ProviderCredited("p", zar, "t13", "prov-1", m(700), "real", None, s(7400), m(0), at),
-    ProviderCredited("p", zar, "t14", "prov-2", m(900), "restricted", Some("aw-3"), s(7400), m(900), at)
+    ProviderCredited("p", zar, "t14", "prov-2", m(900), "restricted", Some("aw-3"), s(7400), m(900), at),
+    RestrictedFundsClosed("p", zar, "t22", "aw-1", "cap_expired", s(7400), m(900), at)
   )
 
   /** Spec 025: the parts a fact carries, deposit and converted. */
@@ -109,4 +110,26 @@ class RealMoneySuite extends munit.FunSuite with LogCapturing:
     assertEquals(RealMoney.dedupeId(all(1), None), "bet_placed/t2/")
     assertEquals(RealMoney.dedupeId(all(5), None), "restricted_funds_awarded/t6/aw-1")
     assertEquals(RealMoney.dedupeId(all(13), Some("")), "provider_credited/t14/aw-3")
+  }
+
+  /**
+   * Spec 011 SC-004: what the wallet publishes over one reward's life, keyed as `rewards` keys its calls (the award
+   * key and the provider reference are the reward id). The bonus cost is the award, once, under the reward; a free
+   * rounds reward's win paid onto restricted money costs what it paid; the conversion, the clawback, the close and a
+   * redelivered award add nothing.
+   */
+  test("spec 011: a reward's life costs its award once, under the reward id") {
+    val award = RestrictedFundsAwarded("p", zar, "t30", "rw-1", m(3000), m(90000), s(5000), m(3000), at)
+    val life: Vector[MoneyTransactionsFact] = Vector(
+      award,
+      RestrictedFundsConverted("p", zar, "t31", "rw-1", m(900), s(5900), m(0), at),
+      RestrictedFundsClosed("p", zar, "t32", "rw-1", "cap_expired", s(5900), m(0), at),
+      RestrictedFundsAwarded("p", zar, "t33", "rw-2", m(1000), m(10000), s(5900), m(1000), at),
+      RestrictedFundsForfeited("p", zar, "t34", "rw-2", m(1000), "adjustment", m(1200), s(4700), m(0), at),
+      ProviderCredited("p", zar, "t35", "rw-3", m(250), "restricted", Some("rw-3"), s(4700), m(250), at)
+    )
+    assertEquals(life.flatMap(RealMoney.bonusCost), Vector(3000L -> "rw-1", 1000L -> "rw-2", 250L -> "rw-3"))
+    // a redelivered award is the same message, which the attribution record keeps once by its dedupe id
+    assertEquals(RealMoney.dedupeId(award, None), RealMoney.dedupeId(award.copy(), None))
+    assertEquals(RealMoney.dedupeId(life(2), None), "restricted_funds_closed/t32/rw-1")
   }
