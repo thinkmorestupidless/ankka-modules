@@ -45,7 +45,13 @@ object Awards:
    * was never active, research R11), so the player's rewards list it once.
    */
   def start(client: ComponentClient, offer: Offer, playerId: String, claim: Claim, at: Instant): StepRequest =
-    val opening  = Opening.of(offer, playerId, claim.decision, claim.source, claim.code, claim.tag)
+    startOpening(client, Opening.of(offer, playerId, claim.decision, claim.source, claim.code, claim.tag), claim, at)
+
+  /**
+   * As `start`, with the reward's opening given: an operator's award names the operator (`by`, for the audit's
+   * `rewards.awarded`), and a free bonus with no offer its type `MANUAL` (FR-017).
+   */
+  def startOpening(client: ComponentClient, opening: Opening, claim: Claim, at: Instant): StepRequest =
     val replaced = claim.replaces.map(id => client.forEventSourcedEntity(EntityId(id)))
     val initial  = replaced.map(_.call(Reward.get).invoke().status).filter(_ == RewardStatus.Pending).getOrElse(RewardStatus.Available)
     val reward   = client.forEventSourcedEntity(EntityId(claim.rewardId)).call(Reward.open).invoke(Open(opening, initial, at))

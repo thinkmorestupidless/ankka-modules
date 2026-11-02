@@ -166,9 +166,38 @@ class PlayerRewardsSuite extends munit.FunSuite:
     assertEquals(r.events.toVector.map(_.getClass.getSimpleName), Vector("OfferMadeVisible", "Claimed"))
     assertEquals(kit.currentState.rewards(claim.rewardId).source, Source.CustomerioWebhook)
     val id = target(kit, matchOffer)
-    val c2 = kit.call(PlayerRewards.claim)(ClaimOffer(matchOffer, operator = true, None, Source.OperatorManual, None, None, 5, Eur, at))
+    val c2 = kit.call(PlayerRewards.claim)(ClaimOffer(matchOffer, operator = false,
+      Some(io.eitheror.casino.rewards.eligibility.Deposit(3000L, Eur, 1)), Source.CustomerioWebhook, None, None, 0, Eur, at))
     assertEquals(c2.replyValue.outcome.asInstanceOf[Outcome.Claimed].claim.rewardId, id)
     assertEquals(c2.events.toVector.map(_.getClass.getSimpleName), Vector("Claimed"))
+
+  test("a campaign's claim of an offer the player holds a claim of is ALREADY_CLAIMED and writes nothing; an operator's is not"):
+    val kit       = record
+    val freeBonus = this.freeBonus.copy(maxConcurrentGrants = None)
+    val first = kit.call(PlayerRewards.claim)(ClaimOffer(freeBonus, operator = false, None, Source.CustomerioWebhook, None, None, 0, Eur, at))
+    assert(first.replyValue.outcome.isInstanceOf[Outcome.Claimed])
+    val again = kit.call(PlayerRewards.claim)(ClaimOffer(freeBonus, operator = false, None, Source.CustomerioWebhook, None, None, 0, Eur, at))
+    assertEquals((again.replyValue.outcome, again.events.toVector), (Outcome.Refused(PlayerRewards.AlreadyClaimed), Vector.empty))
+    val op = kit.call(PlayerRewards.claim)(ClaimOffer(freeBonus, operator = true, None, Source.OperatorManual, None, None, 0, Eur, at))
+    assert(op.replyValue.outcome.isInstanceOf[Outcome.Claimed], op.replyValue.outcome.toString)
+
+  test("an operator's claim is a reward of its own: the reward the player may select stays theirs"):
+    val kit = record
+    val id  = target(kit, matchOffer)
+    val c   = kit.call(PlayerRewards.claim)(ClaimOffer(matchOffer, operator = true, None, Source.OperatorManual, None, None, 0, Eur, at))
+    val Outcome.Claimed(claim) = c.replyValue.outcome: @unchecked
+    assertNotEquals(claim.rewardId, id)
+    assertEquals(c.events.toVector.map(_.getClass.getSimpleName), Vector("OfferMadeVisible", "Claimed"))
+    assertEquals(kit.currentState.unclaimed(matchOffer.id).map(_._1), Some(id))
+
+  test("a campaign's claim skips the code rule when told the code was verified"):
+    val kit   = record
+    val coded = freeBonus.copy(id = "o-coded", redemptionCodes = Vector(io.eitheror.casino.rewards.offers.RedemptionCode("SECRET")))
+    val no    = kit.call(PlayerRewards.claim)(ClaimOffer(coded, operator = false, None, Source.CustomerioWebhook, None, None, 0, Eur, at))
+    assertEquals(no.replyValue.outcome, Outcome.Declined(None, "INVALID_CODE"))
+    val yes = kit.call(PlayerRewards.claim)(ClaimOffer(coded, operator = false, None, Source.CustomerioWebhook, None, None, 0, Eur, at,
+      codeVerified = true))
+    assert(yes.replyValue.outcome.isInstanceOf[Outcome.Claimed], yes.replyValue.outcome.toString)
 
   test("the provisional opening is the offer's fixed amount in the currency given"):
     val o = Openings.provisional(matchOffer, "p-1", Eur, Source.PlayerCode, None, None)

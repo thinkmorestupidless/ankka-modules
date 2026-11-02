@@ -21,10 +21,11 @@ import java.util.UUID
 final case class Claimed(path: String, refusal: Option[String], reply: Option[Reply] = None)
 
 /**
- * The paths to a reward that exist so far, over the whole service, for the suites of US2 and US3: the player's
- * selection (`POST /rewards/{p}/select`), a code (`POST /rewards/{p}/codes`) and a confirming deposit (the wallet's
- * `deposit_confirmed`). An offer is made visible as a campaign does, on `PlayerRewards` (`Scene.target`), until the
- * target route exists (task T059). The player's own facts arrive on `casino.players`, as `players` publishes them.
+ * The paths to a reward, over the whole service: the player's selection (`POST /rewards/{p}/select`), a code
+ * (`POST /rewards/{p}/codes`), a confirming deposit (the wallet's `deposit_confirmed`), the campaign's award
+ * (`POST /reward-campaigns/{p}/award`) and the operator's (`POST /reward-grants/{p}`). An offer is made visible as a
+ * campaign does, through the target route (`Scene.target`). The player's own facts arrive on `casino.players`, as
+ * `players` publishes them.
  */
 final class ClaimPaths(kit: Kit):
   private val Eur = Currency.unsafe("EUR")
@@ -164,6 +165,21 @@ final class ClaimPaths(kit: Kit):
         case RewardStatus.Active  => Claimed("deposit", None)
         case RewardStatus.Expired => Claimed("deposit", Some("CLAIM_WINDOW_EXPIRED"))
         case _                    => Claimed("deposit", r.lastDecline)
+
+  /** The campaign's award (FR-022): `{error: <reason>}` at 422, or 503 for a check in progress; else it proceeds. */
+  def viaCampaign(player: String, offerId: String, fields: (String, Any)*): Claimed =
+    val r = kit.json("POST", kit.campaignsPath(s"/$player/award"), Json.obj((("offerId" -> offerId) +: fields)*),
+      kit.asService("engagement"))
+    Claimed("campaign", Option.when(r.status != 200)(r.str("error")), Some(r))
+
+  /** The operator's award of the offer (FR-017): `{status: "ineligible", reason}` at 409; else it proceeds. */
+  def viaOperator(player: String, offerId: String, fields: (String, Any)*): Claimed =
+    val r = kit.json("POST", kit.grantsPath(s"/$player"), Json.obj((("offerId" -> offerId) +: fields)*), kit.asOperator())
+    val refusal = r.status match
+      case 200 => None
+      case 409 if r.str("status") == "ineligible" => Some(r.str("reason"))
+      case _   => Some(r.str("error"))
+    Claimed("operator", refusal, Some(r))
 
   /** The reward activated, once the wallet answered. */
   def active(player: String, offerId: String): RewardState =

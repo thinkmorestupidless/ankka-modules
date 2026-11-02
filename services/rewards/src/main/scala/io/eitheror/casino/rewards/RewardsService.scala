@@ -32,7 +32,8 @@ object RewardsService:
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => api.RewardsEndpoint(api.Ctx(authenticate, clients)),
     clients => api.OffersEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients))
+    clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.CampaignEndpoint(api.Ctx(authenticate, clients))
   )
 
   /**

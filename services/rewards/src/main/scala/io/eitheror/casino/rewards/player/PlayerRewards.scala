@@ -135,13 +135,19 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
   /**
    * An award of the offer on another path (the award route, an operator's award; tasks T059, T060): the reward the
    * player may select of it, else a new one, evaluated in the path's mode and reserved. A deposit, when given, sizes it.
+   * Off the operator's path, an offer the player already holds a claim of is refused `ALREADY_CLAIMED`.
    */
   def claim(c: ClaimOffer): Effect[PlayerAnswer] =
     val s = currentState
-    PlayerRewards.evaluateClaim(s, c) match
+    // The award route's repeat (`CW:174-183`): a claim the player holds of the offer, in flight or answered, writes
+    // nothing. An operator's award has no such check, as the original's.
+    if !c.operator && Evaluator.alreadyClaimed(s.snapshot, c.offer.id) then answer(Outcome.Refused(AlreadyClaimed))
+    else PlayerRewards.evaluateClaim(s, c) match
       case Left(d) => answer(Outcome.Declined(None, d.reason))
       case Right(decision) =>
-        val held = s.unclaimed(c.offer.id)
+        // An operator's award is a reward of its own, opened as theirs (FR-017's audit); it never takes the reward a
+        // campaign or a code made visible, which stays the player's to select.
+        val held = if c.operator then None else s.unclaimed(c.offer.id)
         val id   = held.fold(newRewardId())(_._1)
         val claim = held.fold(Claim(id, c.offer.id, decision, c.source, c.code, c.tag, None, c.at))((_, h) =>
           reserve(id, h, Claim(id, c.offer.id, decision, c.source, c.code, c.tag, None, c.at)))
@@ -216,7 +222,8 @@ object PlayerRewards
    */
   def evaluateClaim(s: PlayerRewardsState, c: ClaimOffer): Either[Decline, Decision] =
     val mode = if c.operator then Mode.OperatorOverride else Mode.Standard
-    val request = Request(mode, Anchor.registration(s.registeredAt, c.at), c.walletCurrency, c.code, c.deposit, s.detectionOn)
+    val request = Request(mode, Anchor.registration(s.registeredAt, c.at), c.walletCurrency, c.code, c.deposit, s.detectionOn,
+      codeVerifiedAtTargeting = c.codeVerified)
     Evaluator.evaluate(c.offer, s.snapshot, c.walletOpen, request, c.at)
 
   /** A reward id: reserved in the event that makes the reward, so a replay holds the same one. */

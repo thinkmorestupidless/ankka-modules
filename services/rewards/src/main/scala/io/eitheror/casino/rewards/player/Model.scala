@@ -184,9 +184,13 @@ final case class DepositConfirmed(deposit: DepositSeen, pending: Option[PendingO
 
 final case class PendingOffer(rewardId: String, offer: Option[Offer])
 
-/** An award of the offer on another path (the award route, an operator's award): evaluated in `mode`, then reserved. */
+/**
+ * An award of the offer on another path (the award route, an operator's award): evaluated in `mode`, then reserved.
+ * `codeVerified` skips rule 8, as a campaign's award does (`CW`: it never presented a code).
+ */
 final case class ClaimOffer(offer: Offer, operator: Boolean, deposit: Option[io.eitheror.casino.rewards.eligibility.Deposit],
-    source: Source, code: Option[String], tag: Option[String], walletOpen: Int, walletCurrency: Currency, at: Instant)
+    source: Source, code: Option[String], tag: Option[String], walletOpen: Int, walletCurrency: Currency, at: Instant,
+    codeVerified: Boolean = false)
 
 /** What a code entered came to, as `bonus_code_entered` names it (contracts/facts.md). */
 object CodeOutcome:

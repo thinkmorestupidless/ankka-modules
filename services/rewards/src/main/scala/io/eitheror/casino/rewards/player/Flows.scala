@@ -3,10 +3,10 @@ package io.eitheror.casino.rewards.player
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.money.Currency
-import io.eitheror.casino.rewards.clients.{Called, Wallet}
+import io.eitheror.casino.rewards.clients.{Called, GameProvider, Wallet}
 import io.eitheror.casino.rewards.offers.{Offer, OfferBook}
 import io.eitheror.casino.rewards.reward
-import io.eitheror.casino.rewards.reward.{ExpireReason, Reward}
+import io.eitheror.casino.rewards.reward.{ExpireReason, Reward, Source}
 import io.eitheror.casino.rewards.steps.{Awards, StepRequest}
 
 import java.time.Instant
@@ -66,3 +66,37 @@ object Flows:
           case _                  => offer
         act(client, playerId, claimedOffer, other, deposit.at): Unit
     answer
+
+  // ── free rounds granted on another path: the grant path is task T054's (US5) ─────────────
+
+  /**
+   * A grant of free rounds asked for (FR-017, FR-022, FR-023): by the campaign's award route (`operator` false, source
+   * `customerio_webhook`) or an operator (`operator` true, source `operator_manual`, `by` the operator). `offer` is the
+   * brand's offer, or, for an operator's free rounds with no offer (`manual`), one made of the body's fields under
+   * `manual:<uuid>`, whose reward is opened with type `MANUAL`.
+   */
+  final case class FreeRoundsAsk(playerId: String, offer: Offer, operator: Boolean, source: Source, manual: Boolean,
+      by: Option[String], at: Instant)
+
+  /** What a free-rounds grant came to, for the route to answer in its own shape (contracts/routes.md). */
+  enum FreeRoundsGrant:
+    /** Created at the provider (the route answers after `create`): the reward's id is the provider's `grantId`. */
+    case Granted(rewardId: String, providerStatus: String)
+    /** The evaluator's decline. */
+    case Declined(reason: String)
+    /** `currency_not_configured` (+ `playerCurrency`), `player_currency_unresolved`, `game_not_eligible`,
+      * `spin_value_not_offered` (+ `allowedValues`), `provider_rejected` (+ `grantId`). */
+    case Refused(code: String, fields: Vector[(String, Any)] = Vector.empty)
+    /** No answer within the request bound, or the grant path not built yet (T054). */
+    case Unavailable
+
+  /**
+   * THE SEAM FOR TASK T054 (US5): the free-rounds grant path — the spin value for the player's currency, G1's game
+   * check, the spin-value check, the evaluation (rules 1 to 4 for an operator), the claim on `PlayerRewards`, the
+   * reward opened with its rounds, then `FreeRounds` up to `create`. The campaign's award route and the operator's
+   * award (both shapes) call it; until T054 fills it, it answers `Unavailable` (503) and their free-rounds cases are
+   * pending naming T054.
+   */
+  def grantFreeRounds(@scala.annotation.unused client: ComponentClient, @scala.annotation.unused provider: GameProvider,
+      @scala.annotation.unused wallet: Wallet, @scala.annotation.unused ask: FreeRoundsAsk): FreeRoundsGrant =
+    FreeRoundsGrant.Unavailable
