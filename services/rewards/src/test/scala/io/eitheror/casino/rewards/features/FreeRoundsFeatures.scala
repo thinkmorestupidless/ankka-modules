@@ -1,16 +1,13 @@
 package io.eitheror.casino.rewards.features
 
-import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.facts.{CasinoRounds, RoundSettled}
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.rewards.Json.*
 import io.eitheror.casino.rewards.RewardsRuntime
-import io.eitheror.casino.rewards.api.FreeRoundsGrants
-import io.eitheror.casino.rewards.api.FreeRoundsGrants.{How, Result}
+import io.eitheror.casino.rewards.api.FreeRoundsGrants.Result
 import io.eitheror.casino.rewards.clients.AwardTerms
 import io.eitheror.casino.rewards.it.{Answer, FakeGameProvider}
-import io.eitheror.casino.rewards.offers.{Offer, OfferBook}
-import io.eitheror.casino.rewards.reward.{RewardState, RewardStatus, Source}
+import io.eitheror.casino.rewards.reward.{RewardState, RewardStatus}
 
 import java.time.Duration as JDuration
 import java.time.temporal.ChronoUnit
@@ -18,8 +15,8 @@ import java.util.UUID
 
 /**
  * features/rewards/free-rounds.feature (US5; FR-023 to FR-026, FR-022b). The offers are created through `/offers`; the
- * rounds are given through the grant path every route shares (`FreeRoundsGrants.give`, as the campaign's award gives
- * them, until the routes of tasks T059 and T060 carry it); the provider is `FakeGameProvider`, the rounds its
+ * rounds are given by the campaign's award route (`POST /reward-campaigns/{playerId}/award`, the grant path every route
+ * shares), its answer read back as the grant's `Result`; the provider is `FakeGameProvider`, the rounds its
  * `round_settled` facts on the kit's broker, the wallet `FakeWallet`, the expiry its `rounds-<reward>` timer made due
  * with the clock past it; the reads are their routes.
  */
@@ -55,21 +52,40 @@ class FreeRoundsFeatures extends RewardsFeatures("free-rounds.feature"):
       "spinValue" -> io.eitheror.casino.contract.money.Amounts.parse(value, Eur).toOption.get.value) ++ fields)*)
     offerId
 
-  private def theOffer: Offer =
-    kit.components.forEventSourcedEntity(EntityId(kit.slug)).call(OfferBook.get).invoke().offer(offerId).get
+  /**
+   * The campaign's award answer as the grant's `Result`: `{ok, grantId, providerStatus}` granted, 502 the provider's
+   * rejection naming the grant, 503 unavailable, any other refusal its code and fields (the route answers a decline and
+   * a refusal alike, 422 `{error}`, and no step here tells them apart).
+   */
+  private def asResult(r: io.eitheror.casino.rewards.it.Reply): Result =
+    import scala.jdk.CollectionConverters.*
+    (r.status, r.json.text("error")) match
+      case (200, _)   => Result.Granted(r.json.text("grantId").getOrElse(fail(r.text)), r.json.text("providerStatus").getOrElse(fail(r.text)))
+      case (502, _)   => Result.ProviderRejected(r.json.text("grantId").getOrElse(fail(r.text)))
+      case (503, _)   => Result.Unavailable
+      case (_, Some(code)) =>
+        Result.Refused(code, r.json.properties.asScala.toVector.filterNot(_.getKey == "error").map { e =>
+          val v = e.getValue
+          e.getKey -> (if v.isArray then v.elements.asScala.map(_.asLong).toVector else v.asText)
+        })
+      case _ => fail(s"not an answer of the award: ${r.status} ${r.text}")
 
-  private def env = FreeRoundsGrants.Env(kit.components, RewardsRuntime.gameProvider(kit.services), RewardsRuntime.wallet(kit.services),
-    () => kit.now(), kit.settings.requestBound)
-
-  private def give(): Result =
-    result = FreeRoundsGrants.give(env, player, theOffer, How.Claim(Source.CustomerioWebhook))
+  /**
+   * The offer given to the player by the campaign's award, or, `byOperator`, by an operator's (`POST /reward-grants`):
+   * the campaign answers a second give of an offer the player holds `alreadyProcessed`, the operator gives it again.
+   */
+  private def give(byOperator: Boolean = false): Result =
+    val reply =
+      if byOperator then kit.json("POST", kit.grantsPath(s"/$player"), json("offerId" -> offerId), operator)
+      else kit.json("POST", kit.campaignsPath(s"/$player/award"), json("offerId" -> offerId), kit.asService("engagement"))
+    result = asResult(reply)
     result match
       case Result.Granted(id, _)        => rewardId = id
       case Result.ProviderRejected(id)  => rewardId = id
       case _                            => ()
     result
 
-  private def granted(): String = give() match
+  private def granted(byOperator: Boolean = false): String = give(byOperator) match
     case Result.Granted(id, _) => id
     case other                 => fail(s"the free rounds were not given: $other")
 
@@ -364,7 +380,7 @@ class FreeRoundsFeatures extends RewardsFeatures("free-rounds.feature"):
   Given("live free rounds of the player on a game") { () =>
     spinsOffer(): Unit
     first = granted()
-    granted(): Unit
+    granted(byOperator = true): Unit
     eventually("both in the view")(Option.when(rows().count(_.offerId == offerId) == 2)(()))
   }
 

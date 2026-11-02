@@ -18,8 +18,6 @@ import java.util.UUID
  * `engagement` does, through the target route (US6).
  */
 class OffersFeatures extends RewardsFeatures("offers.feature"):
-  override protected def ranElsewhere: Map[String, String] = OffersFeatures.Pending
-
   private val Eur = Currency.unsafe("EUR")
 
   private var offerId              = ""
@@ -319,6 +317,26 @@ class OffersFeatures extends RewardsFeatures("offers.feature"):
     assert(listed.head.has("grantedAt") && listed.head.has("expiresAt"), listed.head.toString)
   }
 
+  private var roundsGame = ""
+
+  When("an operator gives a player {string} free rounds on an eligible game") { (rounds: String) =>
+    roundsGame = s"game-${UUID.randomUUID().toString.take(8)}"
+    kit.provider.game(roundsGame, "free_spins")
+    kit.provider.spinValues("EUR", "0.20")
+    last = kit.json("POST", kit.grantsPath(s"/$player"), json("type" -> "FREE_SPINS", "gameId" -> roundsGame, "provider" -> "st8",
+      "spinCount" -> rounds.toInt, "spinValue" -> 20L), operator)
+  }
+
+  Then("the game provider is asked to create {string} rounds under the reward's id") { (rounds: String) =>
+    assertEquals((last.status, last.str("status"), last.str("type")), (200, "granted", "FREE_SPINS"), last.text)
+    val id      = last.str("grantId")
+    val created = kit.provider.createCalls.flatMap(_.json).filter(_.text("grantId").contains(id))
+    assertEquals(created.map(b => (b.long("count"), b.strings("gameCodes"))), Vector((Some(rounds.toLong), Vector(roundsGame))))
+    val s = reward(id)
+    assertEquals((s.status, s.offerType, s.playerId), (RewardStatus.Active, "MANUAL", player))
+    assert(s.offerId.startsWith("manual:"), s.offerId)
+  }
+
   Given("rewards across the brand's players") { () =>
     offerId = offer(named(noDeposit)*)
     selected(offerId)
@@ -467,8 +485,3 @@ class OffersFeatures extends RewardsFeatures("offers.feature"):
     assertEquals((h.text("grantRef"), h.text("status"), h.long("faceValue")), (Some(closedReward), Some("CANCELLED"), Some(1000L)))
     kit.wallet.clearRoute("restricted-funds")
   }
-
-object OffersFeatures:
-  // Here, not in the class: GherkinSuite reads ranElsewhere while it is constructed, before the class's own vals.
-  val Pending: Map[String, String] =
-    RewardsFeatures.pending("T054", "an operator giving free rounds with no offer creates them at the game provider")

@@ -9,7 +9,7 @@ import io.eitheror.casino.rewards.Json.*
 import io.eitheror.casino.rewards.eligibility.{Deposit, Evaluator}
 import io.eitheror.casino.rewards.offers.{Offer, OfferBookState, PayloadType}
 import io.eitheror.casino.rewards.player.{ClaimOffer, Flows, Openings, Outcome, PlayerRewards, PlayerRewardsState, Target}
-import io.eitheror.casino.rewards.player.Flows.{FreeRoundsAsk, FreeRoundsGrant}
+import io.eitheror.casino.rewards.api.FreeRoundsGrants.{How, Result}
 import io.eitheror.casino.rewards.reward.{Open, Reward, RewardStatus, Source}
 import io.eitheror.casino.rewards.steps.{Awards, WalletAnswer}
 
@@ -88,7 +88,8 @@ object Campaigns:
    * `{ok: true, alreadyProcessed: true}`; a decline its reason alone; a deposit match is sized from the player's last
    * confirmed deposit as `money.transactions` reported it, never from the caller. The award is the wallet's, waited
    * for up to the request bound: awarded is `{ok: true, bonusAmount}` (the amount awarded), the wallet's refusal or
-   * no answer `grant_failed`, as the original's. Free rounds go to the grant path (`Flows.grantFreeRounds`, T054).
+   * no answer `grant_failed`, as the original's. Free rounds go to the grant path
+   * (`FreeRoundsGrants.give`, T054), the code taken as verified; a claim lost to a repeat in flight is `alreadyProcessed`.
    */
   def award(ctx: Ctx, playerId: String, b: JsonNode): Reply =
     resolve(ctx.offers, b.textOr("offerId", ""), b.text("role")) match
@@ -98,8 +99,8 @@ object Campaigns:
         val state = ctx.playerState(playerId)
         if offer.freeRounds then
           if Evaluator.alreadyClaimed(state.snapshot, offer.id) then AlreadyProcessed
-          else freeRounds(Flows.grantFreeRounds(ctx.components, ctx.gameProvider, ctx.wallet,
-            FreeRoundsAsk(playerId, offer, operator = false, Source.CustomerioWebhook, manual = false, None, now)))
+          else freeRounds(FreeRoundsGrants.give(FreeRoundsGrants.env(ctx), playerId, offer,
+            How.Claim(Source.CustomerioWebhook, codeVerified = true)))
         else
           val sent = b.text("currency").flatMap(c => Currency.from(c).toOption)
           offer.currency.orElse(sent).orElse(playerCurrency(state)) match
@@ -120,9 +121,12 @@ object Campaigns:
                     case _                            => refuse("grant_failed")
                 case other => refuse("grant_failed", "message" -> other.toString)
 
-  /** The grant path's answer in the award route's shape. */
-  def freeRounds(g: FreeRoundsGrant): Reply = g match
-    case FreeRoundsGrant.Granted(id, status) => ok(Json.obj("ok" -> true, "grantId" -> id, "providerStatus" -> status))
-    case FreeRoundsGrant.Declined(reason)    => refuse(reason)
-    case FreeRoundsGrant.Refused(code, fs)   => refuse(code, fs*)
-    case FreeRoundsGrant.Unavailable         => unavailable
+  /**
+   * The grant path's answer in the award route's shape: `{ok, grantId, providerStatus}`; a decline 422 `{error}`
+   * (`ELIGIBILITY_CHECK_UNAVAILABLE` 503), the claim already held `alreadyProcessed`; the rest as the grant answers it.
+   */
+  def freeRounds(r: Result): Reply = r match
+    case Result.Granted(id, status)                     => ok(Json.obj("ok" -> true, "grantId" -> id, "providerStatus" -> status))
+    case Result.Declined(PlayerRewards.AlreadyClaimed)  => AlreadyProcessed
+    case Result.Declined(reason)                        => refuse(reason)
+    case other                                          => FreeRoundsGrants.refusal(other, Answers.Campaigns).getOrElse(unavailable)

@@ -178,9 +178,65 @@ class OperatorSuite extends munit.FunSuite:
       assertEquals((r.status, r.str("error")), (400, code), s"$field: ${r.text}")
     }
 
-  test("free rounds with no offer are created at the provider under the reward's id (task T054)".pending("T054")):
-    ()
+  /** An eligible game the provider offers 0.20 euro rounds on. */
+  private def eligibleGame(): String =
+    val game = paths.unique("g")
+    kit.provider.game(game, "free_spins")
+    kit.provider.spinValues("EUR", "0.10", "0.20")
+    game
 
-  test("an offer of free rounds awarded by an operator answers {status: granted, grantId, type, providerStatus} (task T054)"
-      .pending("T054")):
-    ()
+  test("free rounds with no offer are created at the provider under the reward's id, offer manual:<uuid> of type MANUAL"):
+    val p    = paths.newPlayer("op-p")
+    val game = eligibleGame()
+    val r = give(p, "type" -> "FREE_SPINS", "gameId" -> game, "provider" -> "st8", "spinCount" -> 10, "spinValue" -> 20L,
+      "freeSpinsExpiryDays" -> 5)
+    assertEquals((r.status, r.str("status"), r.str("type"), r.str("providerStatus")), (200, "granted", "FREE_SPINS", "active"), r.text)
+    val id = r.str("grantId")
+    val s  = paths.reward(id)
+    assert(s.offerId.startsWith("manual:"), s.offerId)
+    assertEquals((s.status, s.offerType, s.source, s.openedBy), (RewardStatus.Active, "MANUAL", Source.OperatorManual, Some("op-1")))
+    assertEquals(s.expiresAt, s.grantedAt.map(_.plus(5, java.time.temporal.ChronoUnit.DAYS)))
+    val created = kit.provider.createCalls.flatMap(_.json).filter(_.text("grantId").contains(id))
+    assertEquals(created.map(b => (b.long("count"), b.strings("gameCodes"), b.text("spinValue"))), Vector((Some(10L), Vector(game), Some("0.20"))))
+
+  test("free rounds with no offer on a game not eligible are 422 game_not_eligible; a spin value not offered names the values"):
+    val p    = paths.newPlayer("op-p")
+    val game = eligibleGame()
+    val fields = Vector[(String, Any)]("type" -> "FREE_SPINS", "gameId" -> game, "provider" -> "st8", "spinCount" -> 10)
+    val notOffered = give(p, (fields :+ ("spinValue" -> 30L))*)
+    assertEquals((notOffered.status, notOffered.str("error")), (422, "spin_value_not_offered"), notOffered.text)
+    assertEquals(notOffered.json.get("allowedValues").toString, "[10,20]")
+    kit.provider.game(game)
+    val r = give(p, (fields :+ ("spinValue" -> 20L))*)
+    assertEquals((r.status, r.str("error")), (422, "game_not_eligible"), r.text)
+    assertEquals(kit.provider.createCalls.flatMap(_.json).count(_.text("playerId").contains(p)), 0)
+
+  test("an offer of free rounds awarded by an operator answers {status: granted, grantId, type, providerStatus}"):
+    val game  = eligibleGame()
+    val offer = paths.offer("name" -> paths.unique("Spins"), "type" -> "FREE_SPINS", "currency" -> "EUR", "gameId" -> game,
+      "gameName" -> "Book", "provider" -> "st8", "spinCount" -> 10, "spinValue" -> 20L)
+    val p = paths.newPlayer("op-p")
+    val r = give(p, "offerId" -> offer)
+    assertEquals((r.status, r.str("status"), r.str("type"), r.str("providerStatus")), (200, "granted", "FREE_SPINS", "active"), r.text)
+    val s = paths.reward(r.str("grantId"))
+    assertEquals((s.status, s.offerId, s.source, s.openedBy), (RewardStatus.Active, offer, Source.OperatorManual, Some("op-1")))
+    kit.provider.createAnswer = Some(FakeGameProvider.status("rejected"))
+    try
+      val q        = paths.newPlayer("op-q")
+      val rejected = give(q, "offerId" -> offer)
+      assertEquals((rejected.status, rejected.str("error")), (502, "provider_rejected"), rejected.text)
+      assertEquals(paths.reward(rejected.str("grantId")).terminationReason, Some("provider_failed"))
+    finally kit.provider.createAnswer = None
+
+  test("a player's list shows the rounds that named free rounds this service does not hold"):
+    import io.eitheror.casino.contract.facts.{CasinoRounds, RoundSettled}
+    import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
+    val p     = paths.newPlayer("op-p")
+    val ghost = paths.unique("ghost")
+    kit.publish(CasinoRounds, s"$p/EUR", RoundSettled(p, Currency.unsafe("EUR"), "rd-9", "st8", "p-rd-9", "g-1", "s-1",
+      MinorUnits.unsafe(0), MinorUnits.unsafe(300), SignedMinorUnits(300), RoundSettled.Outcome.Win, Vector.empty, Vector.empty,
+      Vector.empty, Some(ghost), kit.now()))
+    val shown = kit.eventually("unmatched round listed")(Some(get(s"?playerId=$p")).filter(_.json.get("unmatchedRounds").size == 1))
+    val round = shown.json.get("unmatchedRounds").get(0)
+    assertEquals((round.text("roundId"), round.text("grantRef"), round.long("winCents")), (Some("rd-9"), Some(ghost), Some(300L)), shown.text)
+    assertEquals(items(shown), Vector.empty)

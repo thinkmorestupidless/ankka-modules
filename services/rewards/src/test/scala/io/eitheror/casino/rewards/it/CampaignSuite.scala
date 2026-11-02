@@ -1,6 +1,7 @@
 package io.eitheror.casino.rewards.it
 
 import io.eitheror.casino.rewards.Json
+import io.eitheror.casino.rewards.Json.*
 import io.eitheror.casino.rewards.features.Scene
 import io.eitheror.casino.rewards.reads.RewardsView
 import io.eitheror.casino.rewards.reward.{RewardStatus, Source}
@@ -171,8 +172,33 @@ class CampaignSuite extends munit.FunSuite:
     paths.registered(p, paths.ago(JDuration.ofDays(3)))
     assertEquals(award(p, "offerId" -> paths.noDeposit("claimWindowDays" -> 1)).str("error"), "CLAIM_WINDOW_EXPIRED")
 
-  test("an award of free rounds answers {ok, grantId, providerStatus} (task T054)".pending("T054")):
-    ()
+  test("an award of free rounds answers {ok, grantId, providerStatus}: the reward ACTIVE, created at the provider under its id"):
+    val p     = paths.newPlayer("ca-p")
+    val offer = rounds()
+    val r     = award(p, "offerId" -> offer)
+    assertEquals((r.status, r.json.get("ok").asBoolean, r.str("providerStatus")), (200, true, "active"), r.text)
+    val id = r.str("grantId")
+    val s  = paths.reward(id)
+    assertEquals((s.status, s.offerId, s.source, s.faceValue), (RewardStatus.Active, offer, Source.CustomerioWebhook, 0L))
+    assertEquals(kit.provider.createCalls.flatMap(_.json).count(_.text("grantId").contains(id)), 1)
+    assertEquals(awardsOf(p), Vector.empty)
 
-  test("an award of free rounds the player already holds is alreadyProcessed (task T054)".pending("T054")):
-    ()
+  test("an award of free rounds the player already holds is alreadyProcessed and creates nothing more"):
+    val p     = paths.newPlayer("ca-p")
+    val offer = rounds()
+    assertEquals(award(p, "offerId" -> offer).status, 200)
+    val again = award(p, "offerId" -> offer)
+    assertEquals((again.status, again.json.get("alreadyProcessed").asBoolean), (200, true), again.text)
+    assertEquals(kit.provider.createCalls.flatMap(_.json).count(_.text("playerId").contains(p)), 1)
+
+  test("free rounds the provider rejects are 502 provider_rejected naming the grant; a game not eligible is 422"):
+    val offer = rounds()
+    kit.provider.createAnswer = Some(FakeGameProvider.status("rejected"))
+    try
+      val r = award(paths.newPlayer("ca-p"), "offerId" -> offer)
+      assertEquals((r.status, r.str("error")), (502, "provider_rejected"), r.text)
+      assertEquals(paths.reward(r.str("grantId")).terminationReason, Some("provider_failed"))
+    finally kit.provider.createAnswer = None
+    kit.provider.game(paths.offerOf(offer).gameId.get)
+    val r = award(paths.newPlayer("ca-p"), "offerId" -> offer)
+    assertEquals((r.status, r.str("error")), (422, "game_not_eligible"), r.text)

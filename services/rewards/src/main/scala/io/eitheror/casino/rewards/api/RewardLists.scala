@@ -47,10 +47,11 @@ object RewardLists:
   /**
    * Every reward of the player, newest first, with `isPrimary` (the wallet's first active record; null for free rounds,
    * or when the wallet cannot be read, as the original's) and the wagering from the reward's open record when it has
-   * one. `unmatchedRounds` are the player's rounds naming a reward this service does not know (task T055, US5).
+   * one. `unmatchedRounds` are the player's rounds naming a reward this service does not know (`UnmatchedRounds`).
    */
   private def ofPlayer(ctx: Ctx, playerId: String, found: RewardsView.Page): ObjectNode =
-    val currency = ctx.playerState(playerId).currency.orElse(found.rows.headOption.map(_.currency)).filter(_.nonEmpty)
+    val player   = ctx.playerState(playerId)
+    val currency = player.currency.orElse(found.rows.headOption.map(_.currency)).filter(_.nonEmpty)
       .flatMap(c => Currency.from(c).toOption)
     val records: Option[Vector[OpenRecord]] = currency.flatMap(c =>
       ctx.wallet.restrictedFunds(playerId, c) match
@@ -67,7 +68,7 @@ object RewardLists:
       o
     }
     Json.obj("items" -> Json.arr(items*), "total" -> found.total, "page" -> 1, "pageSize" -> items.size,
-      "unmatchedRounds" -> Json.arr())
+      "unmatchedRounds" -> UnmatchedRounds.json(player))
 
   /** The reward's own state, read for a free-rounds row only, for its rounds' part. */
   private def rounds(ctx: Ctx, r: RewardRow): Option[RewardState] =

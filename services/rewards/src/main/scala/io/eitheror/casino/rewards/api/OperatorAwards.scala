@@ -7,11 +7,9 @@ import io.eitheror.casino.rewards.Json.*
 import io.eitheror.casino.rewards.eligibility.Deposit
 import io.eitheror.casino.rewards.offers.{Offer, OfferType, WinningsDestination}
 import io.eitheror.casino.rewards.player.{Claim, ClaimOffer, Flows, Outcome, PlayerRewards}
-import io.eitheror.casino.rewards.player.Flows.{FreeRoundsAsk, FreeRoundsGrant}
+import io.eitheror.casino.rewards.api.FreeRoundsGrants.{How, Result}
 import io.eitheror.casino.rewards.reward.{Opening, Source}
 import io.eitheror.casino.rewards.steps.{Awards, WalletAnswer}
-
-import java.util.UUID
 
 import Answers.*
 
@@ -26,7 +24,7 @@ object OperatorAwards:
   private def refuse(code: String, fields: (String, Any)*): Reply = Answers.Grants.refuse(code, fields*)
 
   /** A free bonus's offer id, `manual:<uuid>`, and its type (FR-017). */
-  val ManualType     = "MANUAL"
+  val ManualType     = FreeRoundsGrants.ManualType
   val FreeBonusName  = "Free Bonus"
   val FreeRoundsName = "Free Spins"
   /** A free bonus's wagering window (FR-017). */
@@ -50,8 +48,8 @@ object OperatorAwards:
     ctx.offers.offer(offerId) match
       case None => refuse("offer_not_found")
       case Some(o) if o.freeRounds =>
-        rounds(Flows.grantFreeRounds(ctx.components, ctx.gameProvider, ctx.wallet,
-          FreeRoundsAsk(playerId, o, operator = true, Source.OperatorManual, manual = false, Some(by), ctx.now())))
+        rounds(FreeRoundsGrants.give(FreeRoundsGrants.env(ctx), playerId, o, How.Claim(Source.OperatorManual, operator = true,
+          by = Some(by))))
       case Some(o) =>
         Answers.amount(b, "depositAmount") match
           case Left(refused) => refused
@@ -77,7 +75,7 @@ object OperatorAwards:
               case None => refuse("player_currency_unresolved")
               case Some(currency) =>
                 val now = ctx.now()
-                val manual = Offer(id = s"manual:${UUID.randomUUID()}", name = FreeBonusName, offerType = OfferType.NoDeposit,
+                val manual = Offer(id = FreeRoundsGrants.manualOfferId(), name = FreeBonusName, offerType = OfferType.NoDeposit,
                   maxBonusValue = Some(amount), maxConvertibleAmount = amounts.get("maxConvertibleAmount"), wageringMultiplier = wager,
                   wageringWindowDays = Some(FreeBonusWindowDays), currency = Some(currency), createdAt = now, updatedAt = now)
                 claim(ctx, playerId, manual, currency, None, by)(d =>
@@ -108,13 +106,12 @@ object OperatorAwards:
           refuse("max_convertible_amount_required")
         else
           val now = ctx.now()
-          val manual = Offer(id = s"manual:${UUID.randomUUID()}", name = FreeRoundsName, offerType = OfferType.FreeSpins,
+          val manual = Offer(id = FreeRoundsGrants.manualOfferId(), name = FreeRoundsName, offerType = OfferType.FreeSpins,
             gameId = gameId, provider = b.text("provider"), spinCount = spinCount, spinValue = spinValue,
             maxConvertibleAmount = maxConv, wageringMultiplier = multiplier(b, "wageringMultiplier").getOrElse(0L),
             winningsDestination = destination, freeSpinsExpiryDays = b.long("freeSpinsExpiryDays").map(_.toInt),
             wageringWindowDays = b.long("wageringWindowDays").map(_.toInt), createdAt = now, updatedAt = now)
-          rounds(Flows.grantFreeRounds(ctx.components, ctx.gameProvider, ctx.wallet,
-            FreeRoundsAsk(playerId, manual, operator = true, Source.OperatorManual, manual = true, Some(by), now)))
+          rounds(FreeRoundsGrants.give(FreeRoundsGrants.env(ctx), playerId, manual, How.Manual(by)))
 
   /** The override's claim on `PlayerRewards`, then the award; the reward is opened as `opening` says. */
   private def claim(ctx: Ctx, playerId: String, offer: Offer, currency: Currency, deposit: Option[Deposit], by: String)(
@@ -137,10 +134,11 @@ object OperatorAwards:
       case Some(WalletAnswer.Refused(_, code, _)) => ineligible(code)
       case _                                      => unavailable
 
-  /** The grant path's answer in the operator's shape. */
-  def rounds(g: FreeRoundsGrant): Reply = g match
-    case FreeRoundsGrant.Granted(id, status) =>
-      ok(Json.obj("status" -> "granted", "grantId" -> id, "type" -> "FREE_SPINS", "providerStatus" -> status))
-    case FreeRoundsGrant.Declined(reason)  => ineligible(reason)
-    case FreeRoundsGrant.Refused(code, fs) => refuse(code, fs*)
-    case FreeRoundsGrant.Unavailable       => unavailable
+  /**
+   * The grant path's answer in the operator's shape: `{status: "granted", grantId, type, providerStatus}`; a decline
+   * 409 `{status: "ineligible", reason}`; the rest as the grant answers it (502 `provider_rejected` naming the grant).
+   */
+  def rounds(r: Result): Reply = r match
+    case Result.Granted(id, status) => ok(FreeRoundsGrants.granted(id, status))
+    case Result.Declined(reason)    => ineligible(reason)
+    case other                      => FreeRoundsGrants.refusal(other, Answers.Grants).getOrElse(unavailable)

@@ -27,10 +27,13 @@ import Answers.*
  * the reward, deciding again on the record as it stands.
  */
 object FreeRoundsGrants:
-  /** How the rounds are given: an offer claimed on a path (evaluated), or an operator's rounds with no offer (not). */
+  /**
+   * How the rounds are given: an offer claimed on a path (evaluated), or an operator's rounds with no offer (not).
+   * `codeVerified` skips rule 8, as a campaign's award does (it never presented a code).
+   */
   enum How:
     case Claim(source: Source, code: Option[String] = None, tag: Option[String] = None, operator: Boolean = false,
-        by: Option[String] = None)
+        by: Option[String] = None, codeVerified: Boolean = false)
     /** An operator's free rounds with no offer (FR-017): the offer is the operator's terms, `manual:<uuid>`, type `MANUAL`. */
     case Manual(by: String)
 
@@ -53,7 +56,7 @@ object FreeRoundsGrants:
 
   val ManualType = "MANUAL"
 
-  /** An operator's rounds with no offer take the id `manual:<uuid>` (FR-017). */
+  /** An operator's award with no offer, free rounds or a free bonus, takes the offer id `manual:<uuid>` (FR-017). */
   def manualOfferId(): String = s"manual:${UUID.randomUUID()}"
 
   def give(env: Env, playerId: String, offer: Offer, how: How): Result =
@@ -68,7 +71,8 @@ object FreeRoundsGrants:
         val game = offer.gameId.getOrElse("")
         val claim = how match
           case c: How.Claim =>
-            Some(ClaimOffer(offer, c.operator, None, c.source, c.code, c.tag, Flows.walletOpen(env.wallet, playerId, currency), currency, now))
+            Some(ClaimOffer(offer, c.operator, None, c.source, c.code, c.tag, Flows.walletOpen(env.wallet, playerId, currency), currency, now,
+              c.codeVerified))
           case _: How.Manual => None
         val declined = claim.flatMap(c => PlayerRewards.evaluateClaim(state, c).left.toOption).map(d => Result.Declined(d.reason))
         declined.orElse(gameCheck(env.provider, game)).orElse(spinCheck(env.provider, SpinCheck(game, currency, spinValue))) match

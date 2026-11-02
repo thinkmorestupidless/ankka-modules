@@ -93,8 +93,8 @@ class FreeRoundsGrantSuite extends munit.FunSuite:
         val s = reward(id)
         assertEquals((s.status, s.terminationReason), (RewardStatus.Cancelled, Some("provider_failed")))
         kit.provider.createAnswer = None
-        // Not a claim (FR-023): the offer may be given again.
-        assert(give(player, offer).isInstanceOf[Result.Granted])
+        // Not a claim (FR-023): the offer may be given again, once the cancel has reached the player's record.
+        kit.eventually("given again")(Some(give(player, offer)).collect { case g: Result.Granted => g }): Unit
       case other => fail(s"not rejected: $other")
 
   test("the spin value per currency: the player's currency unknown is player_currency_unresolved, one not configured names it"):
