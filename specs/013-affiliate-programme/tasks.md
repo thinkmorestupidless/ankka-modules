@@ -225,7 +225,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T041 [P] [US1] `p-test/it/MembershipsSuite.scala`: apply to A then B; approve on the default plan;
   a manager of A only cannot see B's application; a suspended membership's facts recorded without payable
   facts; reapply after rejection; a duplicate email refused; the raw status route answers `404`
-- [ ] T042 [P] [US1] Bind `features/programme/memberships.feature` in `p-test/features/MembershipSteps.scala`
+- [X] T042 [P] [US1] Bind `features/programme/memberships.feature` in `p-test/features/MembershipSteps.scala`
 
 ### Implementation
 
