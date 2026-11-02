@@ -8,7 +8,7 @@ final class PostbackReceiver extends FakeServer:
   @volatile var default: Int = 200
 
   /** A postback address with the original's macros, on this receiver. */
-  def url(template: String = "event={event}&click={click_id}&amount={amount}"): String = s"$address/postback?$template"
+  def url(template: String = "event={event}&click={clickid}&payout={payout}&status={status}"): String = s"$address/postback?$template"
 
   def answer(statuses: Int*): Unit = script.synchronized(script.enqueueAll(statuses)): Unit
   def calls: Vector[Received]      = received.filter(_.path == "/postback")

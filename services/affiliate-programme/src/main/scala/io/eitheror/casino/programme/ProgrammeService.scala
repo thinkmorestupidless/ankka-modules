@@ -9,7 +9,8 @@ import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.activity.{Activity, AuditEntry, Creative, Creatives, FraudFlag, FraudFlags, Note}
 import io.eitheror.casino.programme.api.*
 import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Plans, Seed}
-import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, FlagNotices, Notification}
+import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, FlagNotices, Notification, PayoutNotices}
+import io.eitheror.casino.programme.postbacks.{Postback, PostbackOutcome, PostbackOutcomes, PostbackRetry}
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
 import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
 import io.eitheror.casino.programme.links.{BonusCode, BonusCodes, Clicks, InviteLink, InviteLinks, Link, Links, Revocations, RevocationsStamp, SigningKeys}
@@ -71,7 +72,12 @@ object ProgrammeService:
       Note.descriptor,
       Creative.descriptor,
       Creatives.descriptor,
-      FlagNotices.descriptor
+      FlagNotices.descriptor,
+      PayoutNotices.descriptor,
+      Postback.descriptor,
+      PostbackRetry.descriptor,
+      PostbackOutcome.descriptor,
+      PostbackOutcomes.descriptor
     ) ++ BrandConsumers.of(settings.brands).map(_.descriptor)
 
   /** The realm the service provisions in, or none configured (a local run). */
@@ -99,6 +105,7 @@ object ProgrammeService:
     Wiring.clock.set(clock)
     EmailSend.customerIo.set(customerIo)
     EmailSend.clock.set(clock)
+    Postback.http.set(Postback.get(settings.outboundTimeout))
 
   /** What a workflow's steps read of the views, which exist only once the service has started. */
   def wireViews(views: ViewClient): Unit =
@@ -106,6 +113,7 @@ object ProgrammeService:
 
   /** At every start: the seed, once, a moment after the service is up (setting it again replaces it). */
   def started(timers: TimerScheduler): Unit =
+    Postback.timers.set(Some(timers))
     timers.createSingleTimer(Seed.TimerName, 1.second, Seed.seed.deferred)
     timers.createRecurringTimer(RevocationsStamp.TimerName, 1.second, RevocationsStamp.RefreshSeconds.seconds, RevocationsStamp.stamp.deferred)
 

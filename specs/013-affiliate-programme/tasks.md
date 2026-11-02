@@ -348,20 +348,20 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T074 [P] [US7] `p-test/it/CommunicationsSuite.scala`: each happening of communications.feature writes
+- [X] T074 [P] [US7] `p-test/it/CommunicationsSuite.scala`: each happening of communications.feature writes
   a notification and one Customer.io send with the brand's sender configuration; a failing send blocks
   nothing; a postback to a failing receiver retried to 24 h on the `MovableClock`, its outcome visible
   within a minute (SC-009); a parent told of a pending sub once
-- [ ] T075 [P] [US7] Bind `features/programme/communications.feature` in `p-test/features/CommunicationSteps.scala`
+- [X] T075 [P] [US7] Bind `features/programme/communications.feature` in `p-test/features/CommunicationSteps.scala`
 
 ### Implementation
 
-- [ ] T076 [US7] Extend `p/comms/Communications.scala` over `Payout` and `FraudFlag` and the invitation
+- [X] T076 [US7] Extend `p/comms/Communications.scala` over `Payout` and `FraudFlag` and the invitation
   and password happenings; portal M24, M25
-- [ ] T077 [US7] `p/comms/Postback.scala` (workflow after `a/carriers/Delivery.scala`, the retry by timer),
+- [X] T077 [US7] `p/comms/Postback.scala` (workflow after `a/carriers/Delivery.scala`, the retry by timer),
   `PostbackOutcome`, queued by `ToLedger` for registration, first deposit, deposit and RevShare; the
   portal's `postbacks` route
-- [ ] T078 [US7] P5, P6 (forgot password, accept invitation, `mode=reset`), O16, O17; M34, M35; M26, M27
+- [X] T078 [US7] P5, P6 (forgot password, accept invitation, `mode=reset`), O16, O17; M34, M35; M26, M27
 - [ ] T079 [US7] Parity: `notifications`
 
 ---

@@ -34,7 +34,7 @@ public by `withAcl(Routes.public)`.
 | O26 | `GET /{brand}/accounts/{aff}/players` | pseudonyms, never a player id |
 | O27 | `GET /{brand}/accounts/{aff}/sub-affiliates` | |
 | O28 | `POST /{brand}/accounts/{aff}/adjustments` | `{type, amount, currency, reason}`; FR-022 |
-| O29–O34 | `GET /{brand}/accounts/{aff}/view/{page}` | `page` ∈ `dashboard`, `stats`, `commission`, `links`, `payouts`, `notifications`; `commission` takes `?period=` (**reshaped** from `view/commission/{period}`) |
+| O29–O34 | `GET /{brand}/accounts/{aff}/view/{page}` | `page` ∈ `dashboard`, `stats`, `commission`, `links`, `payouts`, `notifications`, and (new, FR-036) `postbacks`; `commission` takes `?period=` (**reshaped** from `view/commission/{period}`) |
 | O35, O36 | `GET`, `POST /{brand}/tracking-links` | the link gains a signed tag |
 | O37–O39 | `GET /{brand}/revenue`, `/revenue/by-campaign`, `/revenue/geo` | per currency |
 | O40 | `POST /{brand}/payouts/close?period=` | starts or rejoins the `Close` workflow; answers when it ends or after 10 s with `202` and the workflow's id |

@@ -459,3 +459,33 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
 - **The read-only view is six routes** (T072). `view/{page}` would be a third path parameter, and
   ankka 0.13 takes two. Each page is a route of its own, at the same paths contracts/routes.md
   names, and each answers what the portal's read answers for the brand.
+- **A manager reads postback outcomes on a seventh read-only view page** (T077, asked 2026-11-02,
+  the person chose this). FR-036 has a manager see an affiliate's last outcome per event;
+  contracts/routes.md had the portal's route only. `GET /{brand}/accounts/{aff}/view/postbacks`
+  answers what `GET /v1/my/{aff}/postbacks` answers for that brand; routes.md's O29–O34 row names it.
+- **Which facts send a postback** (T077). As the original: a registration (`status=ok`, no payout);
+  a first deposit as `ftd` with the CPA paid in major units, or `0` on a plan that pays RevShare,
+  and none on a CPA plan that did not pay; a positive RevShare delta as `revshare`. The original
+  sent none for a plain deposit; FR-036 and R13 name it, so a deposit sends `deposit` with `payout=0`
+  and `status=ok`. The click id is the registration's, kept on the player. The address is read when
+  the fact is written and the macros filled then; the postback is a GET, as the original's.
+- **A postback's last outcome is an entity per affiliate, brand and event** (T077).
+  `PostbackOutcome`, id `<affiliate>/<brand>/<event>`, written by each attempt; the latest attempt
+  wins. Its view answers the portal and the manager.
+- **Notifications the original did not write** (T076). The feature has an affiliate told in the
+  portal of a payment, an invitation and a reset request, where the original only emailed: the
+  kinds are `PAYOUT_PAID`, `INVITED` and `PASSWORD_RESET_REQUESTED`. `PAYOUT_APPROVED` and
+  `PAYOUT_REJECTED` are the original's, with its text; `AffiliatePaymentProcessed` carries
+  `amount` (major units), `currency`, `paid_at` (epoch seconds) and `period_label`. The original's
+  `payment_method` is not sent: the programme holds no payment method.
+- **The portal's notifications cover every membership** (T076). Other portal reads take the
+  brands where the account is active or suspended; M24 takes every brand the account has applied
+  to, as the original listed every notification, so an applicant and a rejected one are told.
+- **A token is given back when the password cannot be set** (T078). As the original's `release`:
+  a realm failure, or an affiliate whose realm user is not provisioned yet (`503
+  substrate_unavailable`), leaves the token to be tried again. The original also marked the email
+  verified; the realm client here has no such call, and the realm sets it at the first sign-in.
+- **The forgotten-password dedupe is per process** (T078), as the original's: five minutes per
+  address, in memory, so two instances may each send one.
+- **A first sign-in before the memberships' view has caught up is recorded with no brand** (T078),
+  so `AFFILIATE_FIRST_LOGIN` is never lost to the view's lag.

@@ -39,6 +39,11 @@ final class Token(@scala.annotation.unused context: KeyValueEntityContext) exten
     if !s.issued || s.usedAt.isDefined || s.expiresAt.exists(!at.isBefore(_)) then effects.error(Token.Invalid, ErrorCode.BadRequest)
     else effects.updateState(s.copy(usedAt = Some(at))).thenReplyState
 
+  /** A claimed token given back after the password could not be set, so the person can try it again (as the original). */
+  def release: Effect[TokenState] =
+    if currentState.usedAt.isEmpty then effects.reply(currentState)
+    else effects.updateState(currentState.copy(usedAt = None)).thenReplyState
+
   def get: ReadOnlyEffect[TokenState] = effects.reply(currentState)
 
 object Token extends KeyValueEntity.Companion[Token, TokenState](
@@ -70,4 +75,5 @@ object Token extends KeyValueEntity.Companion[Token, TokenState](
 
   val issue = command("issue")(_.issue)
   val claim = command("claim")(_.claim)
+  val release = command("release")(_.release)
   val get   = query("get")(_.get)

@@ -10,6 +10,7 @@ import io.eitheror.casino.programme.api.TrackingAnswers.given
 import io.eitheror.casino.programme.api.BackofficeAnswers.given
 import io.eitheror.casino.programme.api.RecordAnswers.given
 import io.eitheror.casino.programme.api.ManagerAnswers.given
+import io.eitheror.casino.programme.api.PasswordAnswers.{AcceptBody, ForgotBody, given}
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.network.Network
 import io.eitheror.casino.programme.sealing.Identity
@@ -26,9 +27,11 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   private val backoffice = Backoffice(api)
   private val records    = Records(api)
   private val managers   = Managers(api)
+  private val passwords  = Passwords(api)
 
   withAcl(Access.public) {
-    post("/accept-invitation") { () => notBuilt("POST /v1/affiliates/accept-invitation") }
+    postBody("/accept-invitation") { (body: String) => attempt(withBody[AcceptBody](body)(passwords.accept)) }
+    postBody("/{brand}/forgot-password") { (brand: String, body: String) => attempt(withBody[ForgotBody](body)(passwords.forgot(brand, _))) }
     postBody("/{brand}/apply") { (brand: String, body: String) => attempt(withBody[ApplyBody](body)(b => live(brand)(applyTo(brand, b)))) }
     // O19 is not served (change 13): a status changes only through its transitions.
     patchBody("/{brand}/accounts/{affiliate}/status") { (_: String, _: String, _: String) =>
@@ -49,6 +52,13 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       })))
     }
     get("/{brand}/accounts/{affiliate}") { (brand: String, aff: String) => attempt(member(brand, aff)(m => accountAt(aff, m))) }
+    // US7: an invitation sent again, and a reset sent by a manager (O16, O17).
+    post("/{brand}/accounts/{affiliate}/resend-invitation") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => passwords.resendInvitation(brand, aff, principal.subject)))
+    }
+    post("/{brand}/accounts/{affiliate}/reset-password") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => passwords.reset(brand, aff, principal.subject)))
+    }
     patchBody("/{brand}/accounts/{affiliate}") { (brand: String, aff: String, body: String) =>
       attempt(withBody[AccountPatch](body)(p => member(brand, aff)(_ => patch(brand, aff, p, AccountPatch.clearsOverride(body)))))
     }
@@ -158,6 +168,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       reading.range(query.raw("period"))((_, r) => ok(Reports.cpa(reading.rows(Some(aff), Vector(brand), r)._1)))
     case "links"   => Tracking(api).links(Some(aff), brand)
     case "payouts" => settlement.of(aff, Vector(brand))
+    case "postbacks" => Feed(api).postbacks(aff, Vector(brand))
     case _         => ok(records.notificationsOf(aff, Vector(brand)))
 
   /** A retired brand takes no application and changes no membership's status; closes, payouts and reads go on. */
@@ -244,5 +255,5 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
         Patching(api).apply(affiliate, p, principal.subject, manager = true).getOrElse(accountAt(affiliate, api.membership(affiliate, brand)))
 
 object OperatorEndpoint:
-  val ViewPages    = Vector("dashboard", "stats", "commission", "links", "payouts", "notifications")
+  val ViewPages    = Vector("dashboard", "stats", "commission", "links", "payouts", "notifications", "postbacks")
   val BrandRetired = "brand_retired"

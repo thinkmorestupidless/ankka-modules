@@ -108,11 +108,24 @@ final class PortalEndpoint(api: Api) extends HttpEndpoint("/v1/my"):
     delete("/{affiliate}/invite-links/{link}") { (aff: String, link: String) =>
       asTarget(aff)(_ => if invitations.revoke(aff, link) then ok(Answers.Ok(true)) else refuse(404, "not_found"))
     }
+    // US7: what the programme told the affiliate, and what it sent their system.
+    get("/{affiliate}/creatives") { (aff: String) => asTarget(aff)(_ => brands(aff)(feed.creatives)) }
+    // Every brand the account has applied to, as the original listed every notification: an applicant is told too.
+    get("/{affiliate}/notifications") { (aff: String) =>
+      asTarget(aff)(_ => feed.notifications(aff, brandParam.fold(api.membershipsOf(aff).map(_.brand).distinct)(Vector(_))))
+    }
+    patch("/{affiliate}/notifications/read-all") { (aff: String) => asTarget(aff)(_ => attempt(feed.readAll(aff))) }
+    get("/{affiliate}/events") { (aff: String) => asTarget(aff)(_ => brands(aff)(feed.events(aff, _, network = true))) }
+    get("/{affiliate}/events/account") { (aff: String) => asTarget(aff)(_ => brands(aff)(feed.events(aff, _, network = false))) }
+    post("/{affiliate}/first-login") { (aff: String) => asTarget(aff)(_ => brands(aff)(bs => attempt(feed.firstLogin(aff, bs, principal.subject)))) }
+    patch("/{affiliate}/last-login") { (aff: String) => asTarget(aff)(_ => attempt(feed.lastLogin(aff))) }
+    get("/{affiliate}/postbacks") { (aff: String) => asTarget(aff)(_ => brands(aff)(feed.postbacks(aff, _))) }
   }
 
   private val networks    = Networks(api)
   private val invitations = Invitations(api)
   private val tracking    = Tracking(api)
+  private val feed        = Feed(api)
 
   /** Lists of several brands' as one: each a JSON array the same route answered for one brand. */
   private def merge(parts: Vector[Respond[Bytes]]): Respond[Bytes] =

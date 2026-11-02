@@ -57,6 +57,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server)
   )
   probe.bind(testKit)
+  io.eitheror.casino.programme.postbacks.Postback.timers.set(Some(timers.timerScheduler))
   ProgrammeService.wireViews(testKit.service.viewClient)
   // The seed the start timer runs, run now so every suite begins seeded.
   Seeding.run(testKit.componentClient, testKit.secrets, brands, clock.instant())
@@ -69,7 +70,10 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
   private def wire(): Unit = ProgrammeService.wire(settings, customerIo, clock, realm)
 
   /** Points the process-wide wiring back at this kit, after another kit in the same JVM took it. */
-  def rewire(): Unit = { wire(); ProgrammeService.wireViews(views) }
+  def rewire(): Unit =
+    wire()
+    ProgrammeService.wireViews(views)
+    io.eitheror.casino.programme.postbacks.Postback.timers.set(Some(timers.timerScheduler))
 
   def stop(): Unit = { testKit.stop(); postbacks.stop() }
 

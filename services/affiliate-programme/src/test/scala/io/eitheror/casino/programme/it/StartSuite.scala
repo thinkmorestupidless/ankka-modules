@@ -22,9 +22,9 @@ class StartSuite extends munit.FunSuite:
 
   test("a manager is held to the brands they hold; an affiliate to their own account") {
     assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/settings", headers = kit.asManager(Seq("silvervibe"))).status, 403)
-    assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/settings", headers = kit.asManager()).status, 501)
+    assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/settings", headers = kit.asManager()).status, 200)
     assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/managers", headers = kit.asManager()).status, 403)
-    assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/managers", headers = kit.asManager(role = "brand_admin")).status, 501)
+    assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/managers", headers = kit.asManager(role = "brand_admin")).status, 200)
     assertEquals(kit.request("GET", "/v1/programme/brands", headers = kit.asManager()).status, 403)
     assertEquals(kit.request("GET", "/v1/programme/brands", headers = kit.asPlatformAdmin()).status, 501)
     val other = kit.request("GET", "/v1/my/aff-other/account", headers = kit.asAffiliate("aff-me"))

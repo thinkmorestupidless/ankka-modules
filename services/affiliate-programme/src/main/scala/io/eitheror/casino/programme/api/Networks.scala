@@ -10,7 +10,7 @@ import io.eitheror.casino.programme.activity.{Audit, AuditEntry}
 import io.eitheror.casino.programme.api.Answers.given
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.brands.Plan
-import io.eitheror.casino.programme.comms.{EmailSend, SendEmail}
+import io.eitheror.casino.programme.comms.{EmailSend, Notification, SendEmail, WriteNotification}
 import io.eitheror.casino.programme.ledger.{Figure, Revenue}
 import io.eitheror.casino.programme.network.Network
 import io.eitheror.casino.programme.periods.Periods
@@ -234,3 +234,5 @@ final class Networks(api: Api):
     val link = s"${api.settings.portalBaseUrl}/accept-invitation?token=$token"
     api.components.forWorkflow(EntityId(s"invite-${Token.idOf(token)}")).call(EmailSend.start)
       .invoke(SendEmail(affiliate, brand, "AffiliateInvite", Map("set_password_url" -> link, "link" -> link))): Unit
+    api.components.forKeyValueEntity(EntityId(Notification.idFor(s"invite/${Token.idOf(token)}"))).call(Notification.write)
+      .invoke(WriteNotification(affiliate, Some(brand), "INVITED", s"You were invited to $brand.", api.now())): Unit
