@@ -9,6 +9,7 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionR
 object RewardsService:
   val descriptors: Seq[ComponentDescriptor] = Seq(
     steps.WalletStep.descriptor,
+    steps.FreeRounds.descriptor,
     reward.Reward.descriptor,
     reward.RewardClocks.descriptor,
     reward.ClockTimer.descriptor,
