@@ -255,7 +255,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T048 [P] [US3] `p-test/it/NetworkSuite.scala`: three tiers, each ancestor's delta checked against
   the original's `emitOverrideDelta`; no override where the sub has no membership; a cycle ends the walk;
   an email invitation active at once; an invite link pending; a request outside the subtree refused
-- [ ] T049 [P] [US3] Bind `features/programme/network.feature` in `p-test/features/NetworkSteps.scala`
+- [X] T049 [P] [US3] Bind `features/programme/network.feature` in `p-test/features/NetworkSteps.scala`
 
 ### Implementation
 
