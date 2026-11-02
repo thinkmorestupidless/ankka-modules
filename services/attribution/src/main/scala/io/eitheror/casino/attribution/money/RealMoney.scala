@@ -1,5 +1,6 @@
 package io.eitheror.casino.attribution.money
 
+import io.eitheror.casino.attribution.MoneyEvent
 import io.eitheror.casino.contract.facts.*
 
 /**
@@ -36,11 +37,39 @@ object RealMoney:
   /** A fact's deposit part; one without parts (published before spec 025) counts 0, never its real delta. */
   private def deposit(part: Option[io.eitheror.casino.contract.money.MinorUnits]): Long = part.fold(0L)(_.value)
 
-  /** A bonus's cost to the brand, recognised at the award and never negative (spec 011 FR-028). */
+  /**
+   * A bonus's cost to the brand from the wallet, recognised at the award and never negative (spec 011 FR-028): a
+   * restricted award, and a provider credit landing on restricted money. A free-rounds grant's cost is its
+   * `free_spins_settled` instead (spec 011, "Free-rounds cost from free_spins_settled"), so its winnings awards,
+   * told by their key, cost nothing here; its provider credit names only the reward, which the attribution record
+   * recognises from `casino.rewards` and drops (`Record.money`).
+   */
   def bonusCost(fact: MoneyTransactionsFact): Option[(Long, String)] = fact match
-    case f: RestrictedFundsAwarded                          => Some(f.amountCents.value -> f.awardId)
-    case f: ProviderCredited if f.landedOn == "restricted"  => Some(f.amountCents.value -> f.providerRef)
-    case _                                                  => None
+    case f: RestrictedFundsAwarded if !freeRoundsWinnings(f.awardId) => Some(f.amountCents.value -> f.awardId)
+    case f: ProviderCredited if f.landedOn == "restricted"           => Some(f.amountCents.value -> f.providerRef)
+    case _                                                           => None
+
+  /**
+   * Whether an award is a free-rounds grant's winnings as `rewards` keys them (spec 011 research R5): `<reward>/winnings`
+   * at finalisation, `<reward>/late/<round>` for a round after it. A funds reward's award is keyed by the reward id.
+   */
+  def freeRoundsWinnings(awardId: String): Boolean =
+    val slash = awardId.indexOf('/')
+    slash > 0 && { val rest = awardId.substring(slash + 1); rest == "winnings" || rest.startsWith("late/") }
+
+  /**
+   * A free-rounds grant's cost: what one `free_spins_settled` paid (spec 011, "Free-rounds cost from
+   * free_spins_settled"), at the finalisation and again for each late round. The reference is
+   * `<reward>/settled/<occurredAt in ms>`, so each settlement is a `bonus-cost` of its own; the dedupe id is the
+   * fact's `ce-id`, or, when the runtime does not surface it (ankka 0.13), `free_spins_settled/<reward>/<ms>/<win>`.
+   * Rounds that won nothing cost nothing.
+   */
+  def freeRoundsCost(fact: FreeSpinsSettled, ceId: Option[String]): Option[MoneyEvent] =
+    Option.when(fact.winCents.value > 0) {
+      val ms = fact.occurredAt.toEpochMilli
+      MoneyEvent(MoneyEvent.BonusCost, fact.currency.code, fact.winCents.value, s"${fact.bonusId}/settled/$ms", fact.occurredAt,
+        ceId.filter(_.nonEmpty).getOrElse(s"free_spins_settled/${fact.bonusId}/$ms/${fact.winCents.value}"))
+    }
 
   /** A fact's family, as the topic names it. */
   def family(fact: MoneyTransactionsFact): String = fact match

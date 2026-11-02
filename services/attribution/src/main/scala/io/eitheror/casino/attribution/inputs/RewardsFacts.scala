@@ -2,7 +2,8 @@ package io.eitheror.casino.attribution.inputs
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId}
 import io.eitheror.casino.attribution.{Binding, Wiring}
-import io.eitheror.casino.attribution.record.{AttributionRecord, Touches}
+import io.eitheror.casino.attribution.money.RealMoney
+import io.eitheror.casino.attribution.record.{AttributionRecord, FreeRoundsReward, Touches}
 import io.eitheror.casino.attribution.tag.TagCheck
 
 import java.time.Duration
@@ -13,7 +14,9 @@ import org.slf4j.LoggerFactory
 
 /**
  * `casino.rewards`, registered only when the brand runs the casino module: `bonus_code_entered` binds
- * within the bonus code window or is a touch (research R7); every other family is ignored.
+ * within the bonus code window or is a touch (research R7); `free_spins_granted` tells the record a
+ * free-rounds reward, and `free_spins_settled` is that reward's bonus cost, each settlement once (spec 011,
+ * "Free-rounds cost from free_spins_settled"); every other family is ignored.
  */
 final class RewardsFacts(context: ConsumerContext) extends Consumer[Option[CasinoRewardsFact], Unit]:
   private val sources = TagCheck.live(context.componentClient, () => Wiring.networks.get()())
@@ -24,10 +27,24 @@ final class RewardsFacts(context: ConsumerContext) extends Consumer[Option[Casin
     case Some(e: BonusCodeEntered) =>
       entered(e)
       effects.done()
+    case Some(g: FreeSpinsGranted) =>
+      freeRounds(g.playerId, g.bonusId)
+      effects.done()
+    case Some(f: FreeSpinsSettled) =>
+      // the reward is told first, so its wallet credit is never cost even when its grant was not read
+      freeRounds(f.playerId, f.bonusId)
+      RealMoney.freeRoundsCost(f, None).foreach { cost =>
+        context.componentClient.forEventSourcedEntity(EntityId(f.playerId)).call(AttributionRecord.money).invoke(cost): Unit
+      }
+      effects.done()
     case Some(_)                   => effects.ignore()
     case None =>
       RewardsFacts.log.warn("a casino.rewards fact this service cannot read was skipped (subject {})", messageContext.subject)
       effects.ignore()
+
+  private def freeRounds(player: String, reward: String): Unit =
+    context.componentClient.forEventSourcedEntity(EntityId(player)).call(AttributionRecord.freeRounds)
+      .invoke(FreeRoundsReward(reward)): Unit
 
   /**
    * A code entered after registration (research R7): an unbound player within the bonus code window of

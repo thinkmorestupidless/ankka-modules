@@ -119,6 +119,47 @@ class MoneySuite extends munit.FunSuite with LogCapturing:
     assertEquals(settled(p).count(_.startsWith("bonus-cost/")), 2)
   }
 
+  /**
+   * Spec 011, "Free-rounds cost from free_spins_settled": a free-rounds grant costs what `free_spins_settled` says it
+   * paid, each settlement once, whatever the destination. The wallet's money for it is keyed as `rewards` keys it: a
+   * credit to real balance landing on an open record names the reward, an award of restricted funds is
+   * `<reward>/winnings` or `<reward>/late/<round>`. A funds reward still costs its award.
+   */
+  test("a free-rounds grant costs its settlements once, to real balance or restricted funds, a late round included") {
+    val (player, p) = boundPlayer()
+    val wallet      = WalletScript(kit, player)
+    val (toReal, toRestricted, funds) = (kit.fresh("rw"), kit.fresh("rw"), kit.fresh("rw"))
+    def granted(reward: String) = FreeSpinsGranted(player, reward, "Spins", "o-1", "free_spins", 10, Vector("game-1"), kit.now)
+    def paid(reward: String, win: Long, at: Instant) =
+      FreeSpinsSettled(player, reward, "Spins", "o-1", "free_spins", eur(win), EUR, at)
+    wallet.deposit(5000)
+    wallet.award(funds, 2000)
+    kit.publish(CasinoRewards, granted(toReal))
+    kit.publish(CasinoRewards, granted(toRestricted))
+    kit.eventually("the grants known")(Option.when(Set(toReal, toRestricted).subsetOf(kit.record(player).freeRounds.toSet))(()))
+
+    val (t1, t2, t3, t4) = (kit.now.plusSeconds(1), kit.now.plusSeconds(2), kit.now.plusSeconds(3), kit.now.plusSeconds(4))
+    // real balance, landing on the funds reward's open record; then a late round the same way
+    wallet.providerCredit(toReal, 400, "restricted", t1)
+    kit.publish(CasinoRewards, paid(toReal, 400, t1))
+    wallet.providerCredit(toReal, 150, "restricted", t3)
+    kit.publish(CasinoRewards, paid(toReal, 150, t3))
+    // restricted funds: the winnings award, then a late round's
+    wallet.award(s"$toRestricted/winnings", 600, t2)
+    kit.publish(CasinoRewards, paid(toRestricted, 600, t2))
+    wallet.award(s"$toRestricted/late/rd-1", 50, t4)
+    val late = paid(toRestricted, 50, t4)
+    kit.publish(CasinoRewards, late)
+    kit.publish(CasinoRewards, late) // delivered again
+
+    val expected = Set(funds -> 2000L, s"$toReal/settled/${t1.toEpochMilli}" -> 400L, s"$toReal/settled/${t3.toEpochMilli}" -> 150L,
+      s"$toRestricted/settled/${t2.toEpochMilli}" -> 600L, s"$toRestricted/settled/${t4.toEpochMilli}" -> 50L)
+    def costs = factsOf(p).collect { case b: BonusCost => b.reference -> b.amount.value }
+    kit.eventually("every cost")(Option.when(expected.subsetOf(costs.toSet))(()))
+    settled(p): Unit
+    assertEquals(costs.sorted, expected.toVector.sorted)
+  }
+
   test("a deposit captured before the registration is emitted at the binding, with the first deposit") {
     val player = kit.fresh("p")
     val pay    = kit.fresh("pay")
