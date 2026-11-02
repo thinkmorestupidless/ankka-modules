@@ -374,6 +374,19 @@ name against the features offline.
   scenarios are `NotDriven`, and "free rounds given when the game provider cannot say which spin values it
   offers go ahead" is what the stack shows.
 
+The Go suite's reward scenarios (spec 011 Recordings) need two things on the kind stack:
+
+- **Emails that stay distinct after the duplicate check strips digits.** From #730 casino-service strips
+  digits from an email's local part and counts a shared result from the same IP within 24 hours as a strong
+  duplicate signal. The suite's emails are built from hex run ids, so a second run's players were
+  duplicates of the first's (`SUSPECTED_DUPLICATE`, `invalid_code`). `e2e-recording.patch` spells the run
+  id's digits as letters in scenarios 16, 18 and 19's emails (`recLetters`).
+- **The fake-st8 launches first, on a freshly restarted fake-st8.** A test with an ST8 harness (19, 254,
+  the bonus bust) registers the suite's own key with the adapter, which replaces fake-st8's, after which
+  fake-st8's launch answers "session expired". Each run restarts fake-st8, runs `FreeSpinsPlay_` and
+  `244_` alone, then the rest, then scenario 23 by `test-e2e-cadence`'s steps with `-json`. The suite's
+  `WalletInternalURL` is wallet-service's port 9001, forwarded to 19001; substrate to 18080.
+
 Its secrets and passwords come from the environment: `TEST_OPERATOR_EMAIL` and `TEST_OPERATOR_PASSWORD`
 (brand_admin at the brand) and `EITHEROR_UNLEASH_TOKEN` (Unleash's admin token; without it the kill
 switch's scenario is skipped and writes nothing). The webhook's signature and timestamp and the Unleash

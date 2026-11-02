@@ -1,6 +1,8 @@
---- a/tests/e2e/go.mod	2026-10-09 07:36:17
-+++ b/tests/e2e/go.mod	2026-10-09 07:36:17
-@@ -17,3 +17,8 @@
+diff --git a/tests/e2e/go.mod b/tests/e2e/go.mod
+index d9fa637b..c7d4bf2e 100644
+--- a/tests/e2e/go.mod
++++ b/tests/e2e/go.mod
+@@ -24,3 +24,8 @@ require (
  	golang.org/x/text v0.34.0 // indirect
  	gopkg.in/yaml.v3 v3.0.1 // indirect
  )
@@ -9,9 +11,60 @@
 +
 +// ankka-modules (module ankka-casino) is checked out beside eitheror-platform.
 +replace github.com/eitheror-io/ankka-casino/tests => ../../../ankka-modules/tests
---- a/tests/e2e/record_test.go	1970-01-01 01:00:00
-+++ b/tests/e2e/record_test.go	2026-10-09 07:36:17
-@@ -0,0 +1,16 @@
+diff --git a/tests/e2e/scenario16_bonus_triggers_e2e_test.go b/tests/e2e/scenario16_bonus_triggers_e2e_test.go
+index 1ea13e58..24e06669 100644
+--- a/tests/e2e/scenario16_bonus_triggers_e2e_test.go
++++ b/tests/e2e/scenario16_bonus_triggers_e2e_test.go
+@@ -342,7 +342,7 @@ func s16RegisterPlayer(t *testing.T, s setup.Suite, brandId, runId string) strin
+ // s16Email / s16Password derive the same registration credentials a given
+ // runId produces via s16RegisterPlayer, so s16VerifiedLogin can log the same
+ // player back in without threading the credentials through every call site.
+-func s16Email(runId string) string    { return fmt.Sprintf("bonus-e2e-%s@example.com", runId) }
++func s16Email(runId string) string    { return fmt.Sprintf("bonus-e2e-%s@example.com", recLetters(runId)) }
+ func s16Password(runId string) string { return fmt.Sprintf("Bonus-E2e-%s!Pwd", runId) }
+ 
+ // s16VerifiedLogin clears the Keycloak VERIFY_EMAIL required action a freshly
+diff --git a/tests/e2e/scenario18_multi_account_detection_e2e_test.go b/tests/e2e/scenario18_multi_account_detection_e2e_test.go
+index 6c6153d4..0d5afc12 100644
+--- a/tests/e2e/scenario18_multi_account_detection_e2e_test.go
++++ b/tests/e2e/scenario18_multi_account_detection_e2e_test.go
+@@ -287,7 +287,7 @@ func TestScenario18_MultiAccountDetection_FraudCaseReview(t *testing.T) {
+ // s18RegisterPlayer registers a casino player with identity fields and returns the playerId.
+ func s18RegisterPlayer(t *testing.T, s setup.Suite, brandId, runId, firstName, lastName, dob string) string {
+ 	t.Helper()
+-	email := fmt.Sprintf("s18-%s-%s@example.com", strings.ToLower(firstName[:4]), runId)
++	email := fmt.Sprintf("s18-%s-%s@example.com", strings.ToLower(firstName[:4]), recLetters(runId))
+ 	body, err := json.Marshal(map[string]string{
+ 		"email":       email,
+ 		"password":    fmt.Sprintf("S18-E2e-%s!Pwd", runId),
+diff --git a/tests/e2e/scenario19_bonus_wagering_conversion_e2e_test.go b/tests/e2e/scenario19_bonus_wagering_conversion_e2e_test.go
+index 98faccc5..8af98b3e 100644
+--- a/tests/e2e/scenario19_bonus_wagering_conversion_e2e_test.go
++++ b/tests/e2e/scenario19_bonus_wagering_conversion_e2e_test.go
+@@ -291,7 +291,7 @@ func s14RegisterPlayerWithIdentity(t *testing.T, s setup.Suite, brandId, runId s
+ // currency, so that scenario needs players outside the EUR default.
+ func s14RegisterPlayerWithIdentityInCurrency(t *testing.T, s setup.Suite, brandId, runId, currency string) string {
+ 	t.Helper()
+-	email := fmt.Sprintf("e2e-%s@example.com", runId)
++	email := fmt.Sprintf("e2e-%s@example.com", recLetters(runId))
+ 	body, err := json.Marshal(map[string]any{
+ 		"email":       email,
+ 		"firstName":   "E2E",
+@@ -334,7 +334,7 @@ func s19LoginAndGetToken(t *testing.T, s setup.Suite, brandId, runId string) str
+ 	t.Helper()
+ 	// Registration leaves the Keycloak account with VERIFY_EMAIL (spec 132); clear it the way
+ 	// scenario 16 does, then log in with the shared retrying helper.
+-	email := fmt.Sprintf("e2e-%s@example.com", runId)
++	email := fmt.Sprintf("e2e-%s@example.com", recLetters(runId))
+ 	s16ClearEmailVerification(t, s, brandId, email)
+ 	return s16Login(t, s, brandId, email, fmt.Sprintf("E2e-%s!Pwd", runId))
+ }
+diff --git a/tests/e2e/record_test.go b/tests/e2e/record_test.go
+new file mode 100644
+index 00000000..4b34c9db
+--- /dev/null
++++ b/tests/e2e/record_test.go
+@@ -0,0 +1,30 @@
 +//go:build e2e
 +
 +package e2e_test
@@ -23,8 +76,22 @@
 +
 +import (
 +	"os"
++	"strings"
 +
 +	"github.com/eitheror-io/ankka-casino/tests/original/recorder"
 +)
 +
 +var _ = recorder.Install("e2e_test", os.Getenv)
++
++// recLetters spells a run id's digits as letters (0-9 → g-p) for the emails the suite registers.
++// casino-service's duplicate check (#730) strips digits from an email's local part and treats a
++// shared result from the same IP within 24 hours as a strong signal, so hex run ids made players of
++// one recording run duplicates of another's. Letters keep each email distinct after stripping.
++func recLetters(runId string) string {
++	return strings.Map(func(r rune) rune {
++		if r >= '0' && r <= '9' {
++			return 'g' + (r - '0')
++		}
++		return r
++	}, runId)
++}
