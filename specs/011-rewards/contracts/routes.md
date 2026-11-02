@@ -18,7 +18,7 @@ ACL `Routes.player(slug)`; a `{playerId}` other than the token's is 403 `player_
 | `POST /{playerId}/codes` | `{code}` | the offer summary `{offerId, role, source: "code", name, description, claimWindowDays, type, bonusPercentage, maxBonusValue, minDepositAmount, wageringMultiplier, wageringWindowDays, noDepositRequired}` | 400 `code is required`; 422 `invalid_code`; 409 `{status: "ineligible", reason}` |
 | `POST /{playerId}/codes/preview` | `{code}` | `{valid: true, offerName, offerType, preview, firesImmediately, minDepositAmount, isAffiliate}` | 400 `code is required`; 200 `{valid: false, error: "code_not_found"}` |
 | `POST /{playerId}/cancel` | `{grantRef?}` | `{status: "canceled", clawbackAmount, newRealBalance}` | 404 `grant_not_found`; 409 `no_active_bonus`; 503 `cancel_failed` |
-| `POST /{playerId}/switch` | `{grantRef}` | `{ok: true}` | 400 `grantRef_required`; 409 `switch_failed` |
+| `POST /{playerId}/switch` | `{grantRef}` | `{ok: true}` | 400 `grantRef_required`; 409 `switch_failed`; 503 `service_unavailable` (no answer from the wallet) |
 | `GET /{playerId}/history` | — | `[{grantRef, faceValue, currency, status, grantedAt, closedAt}]`, closed, newest 20 | — |
 | `GET /{playerId}/grants` | — | `[{rewardId, offerName, status, wageringRequirement, releaseProgress, expiresAt, currency}]` | — (also `Routes.serviceOf("support-agent")`, by `withAcl`) |
 | `GET /{playerId}/free-rounds/eligible?provider=&gameCode=` | — | `{grantId}`, the oldest live free rounds for the game | 404 `no_eligible_grant` (`Routes.serviceOf("game-provider")` only, by `withAcl`) |

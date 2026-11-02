@@ -169,6 +169,11 @@ the same money (the record to zero, nothing else). The difference is the family'
 **Alternatives considered**: call the wallet from the endpoint or the entity (no lifetime record;
 the 1,000-key window); a workflow per reward for every command (serialises a switch behind a pending
 timer step).
+- **Amended during implementation (2026-11-02):** an operator's revoke has steps of its own,
+  `<reward>/revoke-forfeit` and `<reward>/revoke-reclaim`, not `forfeit` and `cancel`. A workflow
+  started twice answers its first state, so a refused revoke under the shared ids would block the
+  claim timer's forfeit and the player's cancel. Wallet keys stay `<reward>/<step>` (FR-018).
+
 
 ## R6. What the neighbours must change
 
@@ -424,3 +429,13 @@ behaviour unless it says otherwise.
   a game that cannot be looked up is 503 `service_unavailable`. A missing `type` is `DEPOSIT_MATCH`.
 - **A deposit** (T033) is evaluated at the fact's `occurredAt`, in the offer's currency else the
   deposit's; source, code and tag are fixed at targeting.
+- **Revoke is recorded by its route** (T050): the reason is `Personal` and may live only in the
+  `Revoked` event, so the delivery leaves a revoke's answer alone and the route records it; no answer
+  within the bound is 503, and asking again answers from the finished step. The order: admin role,
+  mode, reward, then free rounds or funds; a pending cap is `NO_ACTIVE_BONUS`.
+- **Free rounds revoked from the route** (T050): the provider's cancel, then the revoke, until T053's
+  `FreeRounds` takes the cancel; only no answer or the provider's `error` is 503
+  `PROVIDER_UNAVAILABLE`.
+- **The player's cancel** (T049): the open rewards are the wallet's open records whose reward is
+  `ACTIVE`; an empty `grantRef` is `grant_not_found`, never the primary; no grant named cancels the
+  primary.

@@ -212,22 +212,22 @@ the publishers green under their suites.
 
 **Independent test**: `lifecycle.feature` with `FakeWallet` facts and the settable clock.
 
-- [ ] T046 [US4] Bind `features/rewards/lifecycle.feature` in `T/features/LifecycleFeatures.scala`.
-- [ ] T047 [US4] `MoneyConsumer`: `restricted_funds_converted` → `Converted` (cap timer);
+- [X] T046 [US4] Bind `features/rewards/lifecycle.feature` in `T/features/LifecycleFeatures.scala`.
+- [X] T047 [US4] `MoneyConsumer`: `restricted_funds_converted` → `Converted` (cap timer);
       `restricted_funds_forfeited` reason `loss` → `Forfeited bonus_exhausted`, `adjustment` →
       `Forfeited admin_adjust_emptied`; `restricted_funds_closed` → `Closed` with its reason. Suite
       cases.
-- [ ] T048 [US4] The timers `claim-`, `wagering-`, `cap-`, `pending-<reward>` (research R10) wired to
+- [X] T048 [US4] The timers `claim-`, `wagering-`, `cap-`, `pending-<reward>` (research R10) wired to
       `WalletStep` `forfeit` and `close-cap`; `T/it/ClockSuite.scala` (SC-002): each fires within a
       minute and is a no-op on a terminal reward.
-- [ ] T049 [US4] `RewardsEndpoint`: `POST /{playerId}/cancel` (`grant_not_found`, `no_active_bonus`,
+- [X] T049 [US4] `RewardsEndpoint`: `POST /{playerId}/cancel` (`grant_not_found`, `no_active_bonus`,
       the wallet's cancel through `WalletStep`, `{status: "canceled", clawbackAmount, newRealBalance}`),
       `POST /{playerId}/switch` (`grantRef_required`, `switch_failed`), `GET /{playerId}/history`.
-- [ ] T050 [US4] `S/api/RewardAdminEndpoint.scala` (`/reward-grants`): `POST /{rewardId}/revoke`
+- [X] T050 [US4] `S/api/RewardAdminEndpoint.scala` (`/reward-grants`): `POST /{rewardId}/revoke`
       (`INVALID_MODE`, `CLAIM_NOT_FOUND` including another brand's, `NO_ACTIVE_BONUS`; `forfeit` →
       `WalletStep forfeit`, `reclaim` → `WalletStep cancel` with `requireBaseline`, `MISSING_BASELINE`);
       the reason `Personal` in the audit. `T/it/RevokeSuite.scala`.
-- [ ] T051 [US4] `T/it/RepeatSuite.scala` (SC-003): every wallet command, fact and timer delivered
+- [X] T051 [US4] `T/it/RepeatSuite.scala` (SC-003): every wallet command, fact and timer delivered
       twice, and a command repeated after 1,000 other keys at `FakeWallet`: one award, forfeit and
       clawback per reward.
 
