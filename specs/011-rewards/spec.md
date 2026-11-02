@@ -675,7 +675,10 @@ and `reporting` learn of it without a call.
 
 ## Recordings
 
-None is recorded yet (`tests/port/` has no `rewards/`); research R2 says how each is made. The Go
+Recorded 2026-11-02 against the original at `7630feb0`: 47 recordings in `tests/port/rewards/`, whose
+README names each one's requirement and the two the original could not give (`TestScenario23_RewardGrantExpiry`
+fails on the original itself; `TestScenario21_CodeMinDepositDepositNumberWindow` did not repeat).
+Research R2 says how each is made. The Go
 end-to-end suite, run against the original on its kind stack and recorded by ankka-port:
 `TestScenario21_*` (OfferValidation, CleanGrantEveryPath, CodeMinDepositDepositNumberWindow,
 Concurrency_ActiveBonusConflict, ConflictsWith, MaxClaimsAndExclusion,

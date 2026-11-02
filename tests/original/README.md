@@ -392,14 +392,19 @@ Its secrets and passwords come from the environment: `TEST_OPERATOR_EMAIL` and `
 switch's scenario is skipped and writes nothing). The webhook's signature and timestamp and the Unleash
 token are sent and never recorded.
 
+casino-service's Unleash token is `*:*`, which reads Unleash's `default` environment; the kind stack's
+`default` project does not carry it, so add it once (`POST /api/admin/projects/default/environments`
+with `{"environment":"default"}`) and run with `-unleash-environment default`. Unleash answers on host
+port 4242 and fake-st8 on 8096 (their node ports' host mappings).
+
 ```bash
-kubectl --context kind-eitheror-dev port-forward svc/eitheror-bundle-unleash 4242:4242 &
+kubectl --context kind-eitheror-dev -n eitheror port-forward svc/eitheror-bundle-substrate 18080:9000 &
 cd tests
 for run in 1 2; do
   EITHEROR_RECORD_TO=/tmp/rewards-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
     go test -tags e2e -count=1 -timeout 60m -json ./original/rewards-driver/... \
-      -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -substrate-url http://localhost:9000 \
-      -fake-st8-url http://localhost:30096 -unleash-url http://localhost:4242 -brand spinvibe \
+      -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -substrate-url http://localhost:18080 \
+      -fake-st8-url http://localhost:8096 -unleash-url http://localhost:4242 -unleash-environment default -brand spinvibe \
       -operator-client casino-backoffice > /tmp/rewards-$run.json
 done
 go run ./original/merge -run1 /tmp/rewards-1 -run2 /tmp/rewards-2 -results1 /tmp/rewards-1.json -results2 /tmp/rewards-2.json -out port
