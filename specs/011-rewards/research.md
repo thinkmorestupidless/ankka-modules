@@ -359,6 +359,8 @@ None.
 - **Spec 002 wallet**: closing a pending cap when real balance reaches zero is not built (R6).
 - **Spec 012 attribution**: bonus cost counts every `restricted_funds_awarded`; the original sent it
   only from a confirming deposit (and it was refused). Spec 012 decides whether every award is cost.
+- **Spec 015 reporting**: its features name bonus cost; free rounds cost their `free_spins_settled`
+  amount, as attribution now counts it.
 - **Spec 013 programme**: the code document (`code`, `offerId`, `tag`) per brand and its URL.
 - **Spec 014 engagement**: translates the webhook's `grant_bonus` and `target_offer` to
   `/reward-campaigns`, passing the answers through.
@@ -495,3 +497,8 @@ behaviour unless it says otherwise.
 - **What the leak and outbound suites read** (T064): spans are not scanned (the kit exposes none; a
   span carries only declared names, a subject and a client key); "only these are called" counts the
   service's own calls, not the runtime's key fetch, telemetry, broker or database.
+- **Free-rounds money recognised in attribution** (2026-11-02): the restricted destination's awards by
+  their keys (`<reward>/winnings`, `<reward>/late/<round>`); the real destination's credit by the reward
+  ids attribution learns from `free_spins_granted` and `free_spins_settled`. A credit read before its
+  reward, for a player already attributed, is still counted: possible only on a replay where money runs
+  far ahead of `casino.rewards`.

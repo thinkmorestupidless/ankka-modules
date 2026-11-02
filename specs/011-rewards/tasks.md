@@ -300,7 +300,7 @@ the publishers green under their suites.
 
 ## Phase 11: Polish and cross-cutting
 
-- [ ] T068 [P] `services/rewards/README.md`: components, suites, local run; `modules/casino/module.json`'s
+- [X] T068 [P] `services/rewards/README.md`: components, suites, local run; `modules/casino/module.json`'s
       `rewards` entry checked against the service (`just modules render goldvibe`).
 - [X] T069 [P] `specs/001-brands-and-projects/contracts/routes.md` and `contract/access/routes.md`:
       the rewards rows (four prefixes and their audiences).
