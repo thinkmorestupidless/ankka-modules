@@ -235,26 +235,26 @@ the publishers green under their suites.
 
 **Independent test**: `free-rounds.feature` with `FakeGameProvider` and `casino.rounds` facts.
 
-- [ ] T052 [US5] Bind `features/rewards/free-rounds.feature` in `T/features/FreeRoundsFeatures.scala`.
-- [ ] T053 [US5] `S/steps/FreeRounds.scala`: research R8's steps (known, create, poll 30 s × 50,
+- [X] T052 [US5] Bind `features/rewards/free-rounds.feature` in `T/features/FreeRoundsFeatures.scala`.
+- [X] T053 [US5] `S/steps/FreeRounds.scala`: research R8's steps (known, create, poll 30 s × 50,
       cancel); a create never resent after `active` or `processing`. `T/it/FreeRoundsSuite.scala`
       (SC-005): confirmed; processing then active; rejected; 50 polls then `CANCELLED provider_failed`
       with no wallet command; a restart mid-poll resumes.
-- [ ] T054 [US5] The grant path: the spin value for the player's currency (`currency_not_configured`,
+- [X] T054 [US5] The grant path: the spin value for the player's currency (`currency_not_configured`,
       `player_currency_unresolved`), G1's game check (`game_not_eligible`), the spin-value check
       (refused only on a known mismatch), then `FreeRounds`; the route answers after `create`.
-- [ ] T055 [US5] `S/consumers/RoundsConsumer.scala`: `round_settled` with `freeRoundsGrant` →
+- [X] T055 [US5] `S/consumers/RoundsConsumer.scala`: `round_settled` with `freeRoundsGrant` →
       `Reward.RoundSettled`; an unknown reward → `PlayerRewards.RoundUnmatched`, shown in
       `GET /reward-grants?playerId=` as `unmatchedRounds`. Suite.
-- [ ] T056 [US5] Finalisation: on the last round and at `rounds-<reward>`, `Settlement` decides;
+- [X] T056 [US5] Finalisation: on the last round and at `rounds-<reward>`, `Settlement` decides;
       `WalletStep credit` (provider credit) or `winnings` (award at `min(open) − 1`, 30-day expiry);
       nothing won calls nothing; a late round paid under `late-<round>`. `T/it/SettlementItSuite.scala`
       covers both destinations with and without an active reward.
-- [ ] T057 [US5] `RewardsEndpoint`: `GET /{playerId}/free-rounds` and
+- [X] T057 [US5] `RewardsEndpoint`: `GET /{playerId}/free-rounds` and
       `GET /{playerId}/free-rounds/eligible` (`withAcl(Routes.serviceOf("game-provider"))`,
       `no_eligible_grant`); `OffersEndpoint`: `GET /free-rounds/spin-values` (`not_configured` as an
       empty list, 502 `provider_unavailable`).
-- [ ] T058 [US5] Revoke of free rounds in `RewardAdminEndpoint`: `FreeRounds.cancel` first,
+- [X] T058 [US5] Revoke of free rounds in `RewardAdminEndpoint`: `FreeRounds.cancel` first,
       `FREE_SPINS_FINISHED`, `PROVIDER_UNAVAILABLE`; accumulated winnings forfeited. Suite cases in
       `RevokeSuite`.
 

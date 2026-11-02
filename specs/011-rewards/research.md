@@ -455,3 +455,18 @@ behaviour unless it says otherwise.
   The preview's text names the offer's currency (the original wrote £).
 - **Codes against the document** (T043): an offer create fetches the document when no copy exists
   (503 when that fails); an edit checks the copy it has.
+- **The provider's create** (T053): no answer or a 4xx is `failed` and the reward is cancelled
+  `provider_failed`; the create is never resent. A poll with no answer counts towards the 50 and
+  polling goes on (the original's poll stopped silently on an error); a reward no longer `ACTIVE`
+  ends the polling with no cancel. A revoke's cancel redirects the workflow from any phase.
+- **The grant order** (T054): currency, evaluation (reserving nothing), the game, the spin value, then
+  the claim, which evaluates again; the reward opens `ACTIVE` at face value 0 before the create, as the
+  original. A create not answered within the bound is 503 and the workflow carries on.
+- **Spin values in minor units** (T054, T057, FR-032): `allowedValues` and the spin-values route's
+  `values`, where the original sent decimal strings; a configured but empty list refuses
+  `spin_value_not_offered`.
+- **A round for a reward not held** (T055): recorded once per round id on the player, the newest 200,
+  matched by grant id only.
+- **A restart mid-poll** (T053): ankka 0.13's test kit keeps no pause timer to stop and resume, so the
+  suite proves the poll count is journalled and a repeated start neither restarts polling nor creates
+  again; the restart itself is not exercised (For ankka).
