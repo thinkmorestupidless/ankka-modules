@@ -155,7 +155,8 @@ class ClientsSuite extends munit.FunSuite:
     assertEquals(p.fetch(programme.url("goldvibe")), Called.Refused(410, "gone", ""))
     programme.answerFor("goldvibe", Answer(200, """{"brand":"goldvibe"}"""))
     assert(unanswered(p.fetch(programme.url("goldvibe"))))
-    assert(unanswered(p.fetch(programme.url("nobody"))))
+    // A brand the programme publishes nothing for (404) has no codes, rather than no answer.
+    assertEquals(p.fetch(programme.url("nobody")), Called.Done(ProgrammeDocument.none))
     assert(unanswered(p.fetch("ftp://example.test/codes.json")))
     assert(unanswered(p.fetch(s"$Nowhere/codes/goldvibe.json")))
     programme.documentFor("goldvibe", 1L, Instant.EPOCH)
