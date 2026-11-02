@@ -43,6 +43,12 @@ const (
 // NotDriven are the feature scenarios no recording of the original can show, and why (spec 008,
 // *Recordings*). Each is held by the port's own suites.
 var NotDriven = map[string]string{
+	"a registration is marked as under a duplicate check until the detector has run":                                                    "the detector runs inside the registration; its oracle is MultiAccountDetectorSpec.scala:250-334 (spec 011 R2), and rewards-driver records its effect on claims",
+	"a registration whose email is a variant of a player's from the same address flags both as suspected duplicates":                    "the detector runs inside the registration; its oracle is MultiAccountDetectorSpec.scala:250-334 (spec 011 R2), and rewards-driver records its effect on claims",
+	"a registration whose email is a variant of a player's, with nothing else, blocks only its no-deposit offers":                       "the detector runs inside the registration; its oracle is MultiAccountDetectorSpec.scala:250-334 (spec 011 R2), and rewards-driver records its effect on claims",
+	"a registration whose comparison fails blocks only its no-deposit offers":                                                           "a failed comparison cannot be caused from outside; its oracle is MultiAccountDetectorSpec.scala:250-334 (spec 011 R2)",
+	"registrations from one address at the rate the detector counts, with nothing else, change nothing":                                 "the detector runs inside the registration; its oracle is MultiAccountDetectorSpec.scala:250-334 (spec 011 R2), and rewards-driver records its effect on claims",
+	"an operator clearing a player's no-deposit block lifts it and records who and when":                                                "the block is set by the detector alone; its oracle is BackofficePlayerRoutesSpec.scala:1670 (spec 011 R2)",
 	"the realm asking whether a restricted player may sign in is answered that they may not, before anything is issued [suspended]":     "the original's realm asks nothing; its check follows the issue",
 	"the realm asking whether a restricted player may sign in is answered that they may not, before anything is issued [self-excluded]": "the original's realm asks nothing; its check follows the issue",
 	"a player session whose realm session has gone idle ends as expired when the brand next asks the realm":                             "the realm's idle timeout is not waited by a run",
