@@ -259,7 +259,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Implementation
 
-- [ ] T050 [US3] `p/ledger/Overrides.scala` (consumer over `EarningsChanged`, research R7) and its kit suite
+- [X] T050 [US3] `p/ledger/Overrides.scala` (consumer over `EarningsChanged`, research R7) and its kit suite
 - [ ] T051 [US3] `p/links/InviteLink.scala` (key value, 50 an hour) with its suite; `p/api/JoinEndpoint.scala`
   P3 and P4; portal M31–M33
 - [ ] T052 [US3] Portal M13–M21 (network health, network, a sub, its approve, suspend and reactivate at

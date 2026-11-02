@@ -11,7 +11,7 @@ import io.eitheror.casino.programme.api.*
 import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Plans, Seed}
 import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, Notification}
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
-import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, ToLedger, Unsettled}
+import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
 import io.eitheror.casino.programme.links.{Link, SigningKeys}
 import io.eitheror.casino.programme.players.{PlayerAttribution, PlayerFacts, Players}
 import io.eitheror.casino.programme.settlement.{Payout, Payouts}
@@ -50,6 +50,7 @@ object ProgrammeService:
       Ledger.descriptor,
       Unsettled.descriptor,
       ToLedger.descriptor,
+      Overrides.descriptor,
       Communications.descriptor,
       Provisioning.descriptor,
       Seed.descriptor
