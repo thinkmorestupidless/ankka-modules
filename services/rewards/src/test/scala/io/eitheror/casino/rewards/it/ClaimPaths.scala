@@ -181,9 +181,15 @@ final class ClaimPaths(kit: Kit):
       case _   => Some(r.str("error"))
     Claimed("operator", refusal, Some(r))
 
-  /** The reward activated, once the wallet answered. */
+  /**
+   * The reward activated, once the wallet answered and the player's record knows it (`IndexConsumer`): until then the
+   * record holds the claim as open, and a pending one as a pending selection, which a next claim would see.
+   */
   def active(player: String, offerId: String): RewardState =
-    kit.eventually(s"$offerId active")(Some(rewardOf(player, offerId)).filter(_.status == RewardStatus.Active))
+    val r = kit.eventually(s"$offerId active")(Some(rewardOf(player, offerId)).filter(_.status == RewardStatus.Active))
+    awaitRecord(player, s"${r.rewardId} answered")(_.rewards.get(r.rewardId).exists(h =>
+      !h.claiming && h.status != RewardStatus.Available && h.status != RewardStatus.Pending)): Unit
+    r
 
   /** A no-deposit offer the player holds active, its id. */
   def holdingActive(player: String, fields: (String, Any)*): String =

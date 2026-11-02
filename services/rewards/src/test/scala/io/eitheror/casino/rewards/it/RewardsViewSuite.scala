@@ -38,9 +38,11 @@ class RewardsViewSuite extends munit.FunSuite:
     val at = start.plus(Duration.ofMinutes(minutes))
     val a  = reward(id).call(Reward.open).invoke(Open(o, initial, at, Option.when(initial == RewardStatus.Active)(WalletAward(None, 100000L))))
     assertEquals(a.refusal, None)
+    // The view applies the opening's events one at a time (`Targeted` first, as AVAILABLE): wait for the last.
+    row(id, _.status == initial.wire): Unit
     id
 
-  private def row(id: String, until: RewardRow => Boolean = _ => true): RewardRow =
+  private def row(id: String, until: RewardRow => Boolean): RewardRow =
     kit.eventually(s"the row of $id")(view.get(id).filter(until))
 
   private def mine(rows: Vector[RewardRow], player: String) = rows.filter(_.playerId == player).map(_.rewardId)
@@ -48,7 +50,7 @@ class RewardsViewSuite extends munit.FunSuite:
   test("a row holds the reward's columns and follows its events; no personal value is kept"):
     val p  = s"vp-$tag-1"
     val id = open(s"v-$tag-1", opening(p, "o-1"), 0, RewardStatus.Pending)
-    val pending = row(id)
+    val pending = row(id, _.status == "PENDING")
     assertEquals((pending.playerId, pending.offerId, pending.offerName, pending.offerType, pending.status, pending.faceValue,
       pending.currency, pending.source, pending.grantedAt, pending.closedAt),
       (p, "o-1", "Welcome", "DEPOSIT_MATCH", "PENDING", 5000L, "EUR", "player_code", None, None))
