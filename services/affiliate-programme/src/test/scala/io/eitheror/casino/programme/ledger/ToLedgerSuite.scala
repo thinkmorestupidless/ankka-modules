@@ -26,6 +26,10 @@ class ToLedgerSuite extends munit.FunSuite with LogCapturing:
     def recordNgr(a: EntityId, c: RecordNgr): Unit          = accountOf(a).call(CommissionAccount.recordNgr)(c): Unit
     def recordCpa(a: EntityId, c: RecordCpa): Unit          = accountOf(a).call(CommissionAccount.recordCpa)(c): Unit
     def recordPaymentFee(a: EntityId, c: RecordPaymentFee): Unit = accountOf(a).call(CommissionAccount.recordPaymentFee)(c): Unit
+    val players = mutable.Map.empty[String, io.eitheror.casino.programme.players.PlayerState]
+    val flags   = mutable.Map.empty[String, io.eitheror.casino.programme.activity.RaiseFlag]
+    def player(brand: String, p: String) = players.getOrElse(s"$brand/$p", io.eitheror.casino.programme.players.PlayerState())
+    def raiseFlag(id: EntityId, c: io.eitheror.casino.programme.activity.RaiseFlag): Unit = flags.getOrElseUpdate(id.toString, c): Unit
     def facts(id: String) = accounts.get(id).fold(Vector.empty[io.eitheror.casino.programme.commission.LedgerFact])(_.call(CommissionAccount.get).replyValue.unsettled)
     def sums(id: String)  = accounts(id).call(CommissionAccount.get).replyValue.sums
 

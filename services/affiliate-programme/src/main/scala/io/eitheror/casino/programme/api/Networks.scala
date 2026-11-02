@@ -136,6 +136,10 @@ final class Networks(api: Api):
    * An approval puts the sub on the plan its parent holds at the brand, or the brand's default.
    */
   def transition(sub: String, brand: String, action: String, actor: String, kind: String): Respond[Bytes] =
+    if api.brand(brand).retired.isDefined then refuse(409, OperatorEndpoint.BrandRetired, brand)
+    else transitionAt(sub, brand, action, actor, kind)
+
+  private def transitionAt(sub: String, brand: String, action: String, actor: String, kind: String): Respond[Bytes] =
     val m = api.membership(sub, brand)
     if !m.exists then refuse(409, Codes.NotAMember, brand)
     else

@@ -20,7 +20,9 @@ final case class PlayerRow(
     deposits: Map[String, DepositTotals] = Map.empty,
     withdrawals: Map[String, Long] = Map.empty,
     fraud: Fraud = Fraud(),
-    closed: Option[String] = None
+    closed: Option[String] = None,
+    /** Facts that named another affiliate or link than the binding (edge cases): the binding won; a manager sees them. */
+    disagreements: Vector[Disagreement] = Vector.empty
 )
 
 object PlayerRow:
@@ -30,13 +32,13 @@ object PlayerRow:
   def of(s: PlayerState): PlayerRow =
     PlayerRow(s.brand, s.pseudonym, s.binding.map(_.affiliate), s.binding.map(_.link), s.binding.flatMap(_.campaign),
       s.binding.fold(Vector.empty)(_.subIds), s.country, s.binding.map(_.boundAt), s.guard.map(_.at), s.deposits, s.withdrawals,
-      s.fraud, s.closed.map(_.category))
+      s.fraud, s.closed.map(_.category), s.disagreements)
 
   def next(row: PlayerRow, e: PlayerAttribution.Applied): PlayerRow =
     val prior = PlayerState(row.brand, row.pseudonym,
       binding = row.affiliate.map(a => Binding(a, row.link.getOrElse(""), row.campaign, row.subIds, None, row.boundAt.getOrElse(Instant.EPOCH))),
       country = row.country, guard = row.firstDepositAt.map(Guard("", _)), deposits = row.deposits, withdrawals = row.withdrawals,
-      fraud = row.fraud, closed = row.closed.map(ClosedAs(_, Instant.EPOCH)))
+      fraud = row.fraud, closed = row.closed.map(ClosedAs(_, Instant.EPOCH)), disagreements = row.disagreements)
     of(PlayerAttribution.next(prior, e))
 
 /** One row per player at a brand (data-model.md *Views*). */
@@ -53,6 +55,10 @@ object Players extends View.Companion[PlayersView, PlayerAttribution.Event, Play
     ):
   val byAffiliate = query("by-affiliate")(
     s"SELECT payload FROM $table WHERE payload::jsonb->>'affiliate' = :affiliate AND payload::jsonb->>'brand' = :brand ORDER BY row_key"
+  )
+  /** The brand's players with a fact that disagreed with their binding. */
+  val disagreeing = query("disagreeing")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand AND payload::jsonb->'disagreements' IS NOT NULL ORDER BY row_key"
   )
   val byLink = query("by-link")(s"SELECT payload FROM $table WHERE payload::jsonb->>'link' = :link ORDER BY row_key")
 

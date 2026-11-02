@@ -434,3 +434,28 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
 - **A link answers its landing address** (T061). The programme holds no brand's site, so a link's
   `landingUrl` is the brand's landing path, `/` when none, with `btag` the signed tag and the utm
   parameters, relative to the brand's site; the portal puts the brand's address before it.
+- **Revoking a manager keeps the manager role while another brand's remains** (T068, asked
+  2026-11-02, the person chose this). Change 16's route takes `brand_<slug>` always, and
+  `affiliate_manager` only when the user then holds no other `brand_*` role, so a manager of A and B
+  revoked at A still manages B. contracts/routes.md's row says so.
+- **A manager's invitation and reset are the original's emails** (T068). A new manager, or a reset,
+  gets a token (`manager-invite`, 72 hours; `manager-reset`, 30 minutes, its `user` the realm's id)
+  and the brand's `AffiliateManagerInvite` or `AffiliateManagerPasswordReset` message, linking to
+  the backoffice's `affiliates/accept-invitation` or `affiliates/reset-password` as the original.
+  `EmailSend` takes the manager's address in `to`: a manager has no sealed identity to open.
+- **A fraud flag's id is a UUID of the player, brand and reason** (T070). The original's id was
+  this UUID. data-model.md's `<brand>/<pseudonym>/<reason>` would put slashes in O49's path; the
+  entity is `<brand>/<flagId>`, raised once for each all the same. The reason is the kind
+  (`bonus-cost`, `chargeback`), and the original's text (`3+ chargebacks`) is the description. The
+  original's id carried the count, so it raised a flag at every count past the threshold.
+- **A retired brand refuses with `409 brand_retired`** (T071). data-model.md says a retired brand
+  refuses applications and status changes and names no code. Apply, approve, reject, create an
+  account, and the network transitions on either side answer `409 brand_retired`; reads, closes and
+  payouts go on. Added to contracts/routes.md's *New refusals*.
+- **O7's rows carry this month's figures per currency** (T069). The original's row was the account
+  with `currentMonthFtds`, `currentMonthNgr` and `currentMonthCommission`, in one currency. A row
+  here is `{account, currentMonth: [figure]}`, each figure the revenue read's for the brand's
+  current month in its zone. The brand's rows are read once and grouped by affiliate.
+- **The read-only view is six routes** (T072). `view/{page}` would be a third path parameter, and
+  ankka 0.13 takes two. Each page is a route of its own, at the same paths contracts/routes.md
+  names, and each answers what the portal's read answers for the brand.

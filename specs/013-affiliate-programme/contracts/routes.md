@@ -18,7 +18,7 @@ public by `withAcl(Routes.public)`.
 | P5 | `POST /{brand}/forgot-password` | public; always `200`; 30-minute token; 5-minute dedupe |
 | P6 | `POST /accept-invitation` | public; `{token, password, mode}`; the token claimed once |
 | O1–O3 | `GET /{brand}/managers`, `POST /{brand}/managers`, `POST /{brand}/managers/{user}/reset-password` | FR-031 |
-| new | `DELETE /{brand}/managers/{user}` | change 16: removes `affiliate_manager` and `brand_<slug>` |
+| new | `DELETE /{brand}/managers/{user}` | change 16: removes `brand_<slug>`, and `affiliate_manager` when the user holds no other `brand_*` role |
 | O4–O6 | `GET`, `POST /{brand}/commission-plans`; `PATCH /{brand}/commission-plans/{plan}` | + `cpaCurrency` (change 11) |
 | O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9); create active with a membership |
 | O9, O10 | `GET /{brand}/accounts/{aff}/network-health`, `/network` | |
@@ -99,7 +99,8 @@ The click (`POST /v1/track/click`, spec 012's), `/health` (the runtime's readine
 
 `409 not_a_member` (an affiliate acting at a brand with no membership), `403 brand_not_held` (a brand
 the caller's roles do not cover), `409 status_transition` (naming the status), `409 payout_paid`,
-`404 brand_unknown` (inbound or documents for a brand the programme does not serve), `409 erased`.
+`404 brand_unknown` (inbound or documents for a brand the programme does not serve), `409 erased`,
+`409 brand_retired` (an application, an account made or a status change at a retired brand).
 
 ## The export
 

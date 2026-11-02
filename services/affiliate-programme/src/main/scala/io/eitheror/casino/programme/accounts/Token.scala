@@ -47,10 +47,13 @@ object Token extends KeyValueEntity.Companion[Token, TokenState](
     ):
   val Invite  = "invite"
   val Reset   = "reset"
+  /** A manager's, whose `user` is the realm's user id: a manager has no account (O2, O3). */
+  val ManagerInvite = "manager-invite"
+  val ManagerReset  = "manager-reset"
   val Invalid = "invalid_or_expired_token"
 
   /** As the original: 72 hours for an invitation, 30 minutes for a reset. */
-  def life(purpose: String): Duration = if purpose == Reset then Duration.ofMinutes(30) else Duration.ofHours(72)
+  def life(purpose: String): Duration = if purpose == Reset || purpose == ManagerReset then Duration.ofMinutes(30) else Duration.ofHours(72)
 
   private val random = SecureRandom()
 

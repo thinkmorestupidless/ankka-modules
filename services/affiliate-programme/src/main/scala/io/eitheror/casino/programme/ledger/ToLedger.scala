@@ -6,7 +6,8 @@ import io.eitheror.casino.programme.Wiring
 import io.eitheror.casino.programme.accounts.{Membership, MembershipState}
 import io.eitheror.casino.programme.brands.{BrandProgramme, BrandState, Plan, PlanState}
 import io.eitheror.casino.programme.commission.Window
-import io.eitheror.casino.programme.players.{Outcome, PlayerAttribution, PlayerFact}
+import io.eitheror.casino.programme.activity.{FraudFlag, RaiseFlag}
+import io.eitheror.casino.programme.players.{Outcome, PlayerAttribution, PlayerFact, PlayerState}
 
 import java.time.Instant
 
@@ -18,6 +19,8 @@ trait LedgerCalls:
   def recordNgr(account: EntityId, c: RecordNgr): Unit
   def recordCpa(account: EntityId, c: RecordCpa): Unit
   def recordPaymentFee(account: EntityId, c: RecordPaymentFee): Unit
+  def player(brand: String, pseudonym: String): PlayerState
+  def raiseFlag(id: EntityId, c: RaiseFlag): Unit
 
 object LedgerCalls:
   def of(client: ComponentClient): LedgerCalls = new LedgerCalls:
@@ -31,6 +34,9 @@ object LedgerCalls:
       client.forEventSourcedEntity(account).call(CommissionAccount.recordCpa).invoke(c): Unit
     def recordPaymentFee(account: EntityId, c: RecordPaymentFee): Unit =
       client.forEventSourcedEntity(account).call(CommissionAccount.recordPaymentFee).invoke(c): Unit
+    def player(brand: String, pseudonym: String): PlayerState =
+      client.forEventSourcedEntity(PlayerAttribution.entityId(brand, pseudonym)).call(PlayerAttribution.get).invoke()
+    def raiseFlag(id: EntityId, c: RaiseFlag): Unit = client.forKeyValueEntity(id).call(FraudFlag.raise).invoke(c): Unit
 
 /**
  * What a player's recorded fact means for the ledger (data-model.md *Consumers*), at the binding's
@@ -67,7 +73,27 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
             val fees = FeeRates(brand.fees.admin, brand.fees.payment, brand.fees.provider)
             calls.recordNgr(account(c), RecordNgr(f.factId, kind, amount, f.occurredAt, rate, fees, brand.reportingZone, now()))
           }
+          flag(e, b.affiliate, kind, brand)
         case _ => ()
+    }
+
+  /**
+   * FR-032: once the player's bonus costs or chargebacks reach the brand's threshold, a flag for that
+   * player, brand and reason. The player's counters are read after the fact, and only rise, so a
+   * redelivered event raises the same flag, which is raised once.
+   */
+  private def flag(e: PlayerAttribution.Applied, affiliate: String, kind: String, brand: BrandState): Unit =
+    val f = e.fact
+    val reason = kind match
+      case "bonus-cost" => Some((FraudFlag.BonusCost, brand.thresholds.bonusCost, "bonus deductions"))
+      case "chargeback" => Some((FraudFlag.Chargeback, brand.thresholds.chargeback, "chargebacks"))
+      case _            => None
+    reason.foreach { (code, threshold, what) =>
+      val p     = calls.player(f.brand, f.pseudonym)
+      val count = if code == FraudFlag.BonusCost then p.fraud.bonusCosts else p.fraud.chargebacks
+      if count >= threshold then
+        calls.raiseFlag(FraudFlag.entityId(f.brand, FraudFlag.flagId(f.brand, f.pseudonym, code)),
+          RaiseFlag(f.brand, f.pseudonym, affiliate, code, s"$threshold+ $what", f.period.getOrElse(""), now()))
     }
 
 final class ToLedger(context: ConsumerContext) extends Consumer[PlayerAttribution.Event, Unit]:

@@ -34,6 +34,19 @@ trait KeycloakAdmin:
   def resetPassword(userId: String, password: String): Either[RealmError, Unit]
   def updateEmail(userId: String, email: String): Either[RealmError, Unit]
   def deleteUser(userId: String): Either[RealmError, Unit]
+  /** The realm's users holding a realm role (the managers of a brand are those holding two). */
+  def usersWithRole(role: String): Either[RealmError, Vector[RealmUser]]
+  /** A user's realm roles. */
+  def rolesOf(userId: String): Either[RealmError, Set[String]]
+
+/** A user as the manager list shows one: pending until they verified their email and set a password. */
+final case class RealmUser(id: String, email: String, firstName: Option[String], lastName: Option[String], emailVerified: Boolean,
+    requiredActions: Set[String]):
+  def pending: Boolean = !emailVerified || requiredActions.contains("UPDATE_PASSWORD")
+  /** The original's: first and last name, either, or the email's local part. */
+  def name: String = (firstName ++ lastName).mkString(" ") match
+    case "" => email.takeWhile(_ != '@')
+    case n  => n
 
 object KeycloakAdmin:
   final case class Credentials(username: String, password: String)
@@ -62,6 +75,8 @@ object KeycloakAdmin:
     def resetPassword(userId: String, password: String)                                          = no
     def updateEmail(userId: String, email: String)                                               = no
     def deleteUser(userId: String)                                                               = no
+    def usersWithRole(role: String)                                                              = no
+    def rolesOf(userId: String)                                                                  = no
 
 private final class HttpKeycloak(base: String, realm: String, credentials: () => Option[KeycloakAdmin.Credentials]) extends KeycloakAdmin:
   private val mapper = ObjectMapper()
@@ -151,4 +166,25 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
     call("DELETE", s"/users/$userId").flatMap {
       case (404, _, _) => Right(())
       case r           => ok(userId)(r)
+    }
+
+  def usersWithRole(role: String): Either[RealmError, Vector[RealmUser]] =
+    call("GET", s"/roles/${enc(role)}/users?first=0&max=10000").flatMap {
+      case (200, body, _) =>
+        Right(parse(body).filter(_.isArray).fold(Vector.empty[RealmUser])(_.elements.asScala.toVector.map { u =>
+          def text(f: String) = Option(u.get(f)).filter(_.isTextual).map(_.asText)
+          RealmUser(text("id").getOrElse(""), text("email").getOrElse(""), text("firstName"), text("lastName"),
+            Option(u.get("emailVerified")).exists(_.asBoolean),
+            Option(u.get("requiredActions")).filter(_.isArray).fold(Set.empty[String])(_.elements.asScala.map(_.asText).toSet))
+        }))
+      case (404, _, _) => Right(Vector.empty)
+      case (s, b, _)   => Left(RealmError.Failed(s"$s ${b.take(200)}"))
+    }
+
+  def rolesOf(userId: String): Either[RealmError, Set[String]] =
+    call("GET", s"/users/$userId/role-mappings/realm").flatMap {
+      case (200, body, _) =>
+        Right(parse(body).filter(_.isArray).fold(Set.empty[String])(_.elements.asScala.flatMap(r => Option(r.get("name")).map(_.asText)).toSet))
+      case (404, _, _) => Left(RealmError.NotFound(userId))
+      case (s, b, _)   => Left(RealmError.Failed(s"$s ${b.take(200)}"))
     }

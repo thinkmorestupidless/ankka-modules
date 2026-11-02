@@ -320,25 +320,25 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T066 [P] [US6] `p-test/it/ManagersSuite.scala`: a manager of A lists only A; a request naming B is
+- [X] T066 [P] [US6] `p-test/it/ManagersSuite.scala`: a manager of A lists only A; a request naming B is
   refused `403 brand_not_held`; a manager of A and B reads per brand and currency; plans apply from the
   next fact; adjustments; a fraud flag once per player, brand and reason; dismissal tells the affiliate;
   the read-only view changes nothing; add, reset and revoke a manager
-- [ ] T067 [P] [US6] Bind `features/programme/managers.feature` in `p-test/features/ManagerSteps.scala`
+- [X] T067 [P] [US6] Bind `features/programme/managers.feature` in `p-test/features/ManagerSteps.scala`
 
 ### Implementation
 
-- [ ] T068 [US6] O1–O3 and `DELETE /{brand}/managers/{user}` (change 16) through `KeycloakAdmin`, admitted
+- [X] T068 [US6] O1–O3 and `DELETE /{brand}/managers/{user}` (change 16) through `KeycloakAdmin`, admitted
   to `brand_admin` and `platform_admin` only; O4–O6 plans with `cpaCurrency`; O43–O46 settings and
   programme page (GGR source, reporting zone, sender configuration, default plan, terms)
-- [ ] T069 [US6] O7, O8: the account list decrypting the brand's page and filtering by search, status,
+- [X] T069 [US6] O7, O8: the account list decrypting the brand's page and filtering by search, status,
   manager, group and tags in the endpoint (research R9); creating an account active with a membership
-- [ ] T070 [US6] `p/activity/FraudFlag.scala` raised by `ToLedger` when a player's counters cross the
+- [X] T070 [US6] `p/activity/FraudFlag.scala` raised by `ToLedger` when a player's counters cross the
   brand's thresholds; O48, O49
-- [ ] T071 [US6] `p/activity/Note.scala`, `Creative.scala`, the `Activity` view; O23–O25, O47, O50–O52;
+- [X] T071 [US6] `p/activity/Note.scala`, `Creative.scala`, the `Activity` view; O23–O25, O47, O50–O52;
   `GET /{brand}/unattributed` (contracts/routes.md); a retired brand refusing applications and status
   changes (data-model.md `BrandProgramme`)
-- [ ] T072 [US6] O29–O34, the read-only view (`view/{page}`, `commission` with `?period=`)
+- [X] T072 [US6] O29–O34, the read-only view (`view/{page}`, `commission` with `?period=`)
 - [ ] T073 [US6] Parity: `plans`, `managers`, `fraud flags`, `notes, messages, creatives, settings,
   programme page`, `read-only view`
 

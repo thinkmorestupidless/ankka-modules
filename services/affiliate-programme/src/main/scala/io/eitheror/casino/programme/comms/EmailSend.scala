@@ -26,10 +26,13 @@ final case class EmailState(
     lastStatus: Option[Int] = None,
     lastError: Option[String] = None,
     status: String = EmailRules.New,
-    finishedAt: Option[Instant] = None
+    finishedAt: Option[Instant] = None,
+    /** A manager's address: a manager is not an affiliate, has no sealed identity, and the realm holds it anyway. */
+    to: Option[String] = None
 )
 
-final case class SendEmail(affiliate: String, brand: String, kind: String, data: Map[String, String])
+/** To an affiliate by id; or, with `to`, to a manager (O2, O3), `affiliate` then the manager's user id. */
+final case class SendEmail(affiliate: String, brand: String, kind: String, data: Map[String, String], to: Option[String] = None)
 
 /** Up to three attempts over five minutes: the second a minute after the first, the third four minutes later. */
 object EmailRules:
@@ -61,7 +64,7 @@ final class EmailSend(context: WorkflowContext) extends Workflow[EmailState]:
   def start(c: SendEmail): Effect[EmailState] =
     if currentState.status != EmailRules.New then effects.reply(currentState)
     else
-      effects.updateState(EmailState(c.affiliate, c.brand, c.kind, c.data, status = EmailRules.Sending))
+      effects.updateState(EmailState(c.affiliate, c.brand, c.kind, c.data, status = EmailRules.Sending, to = c.to))
         .transitionTo(EmailSend.send.ref).thenReplyState
 
   def sendStep: StepEffect =
@@ -92,18 +95,23 @@ object EmailSend extends Workflow.Companion[EmailSend, EmailState](
   final case class Message(apiKey: String, region: String, transactionalId: String, to: String, data: Map[String, String])
 
   def resolve(context: WorkflowContext, s: EmailState): Either[String, Message] =
-    val brand = context.componentClient.forKeyValueEntity(EntityId(s.brand)).call(BrandProgramme.get).invoke()
-    val account = context.componentClient.forEventSourcedEntity(EntityId(s.affiliate)).call(Affiliate.get).invoke()
+    val brand   = context.componentClient.forKeyValueEntity(EntityId(s.brand)).call(BrandProgramme.get).invoke()
     val secrets = Secrets(context.secrets)
+    val region  = brand.sender.region.getOrElse(Wiring.settings.get().customerIoRegion)
     for
-      tid      <- brand.sender.messages.get(s.kind).toRight(s"no message for ${s.kind} at ${s.brand}")
-      apiKey   <- secrets.brandSecret(s.brand, Secrets.CustomerIoKey).left.map(_.reason).flatMap(_.toRight("no Customer.io key"))
-      key      <- secrets.existingDataKey(s.affiliate).left.map(_.reason).flatMap(_.toRight("erased"))
-      identity <- Sealing.open(account.identity, key, s.affiliate)
-    yield
-      val region = brand.sender.region.getOrElse(Wiring.settings.get().customerIoRegion)
-      val named  = Map("name" -> identity.name) ++ identity.companyName.map("company_name" -> _)
-      Message(apiKey, region, tid, identity.email, named ++ s.data)
+      tid    <- brand.sender.messages.get(s.kind).toRight(s"no message for ${s.kind} at ${s.brand}")
+      apiKey <- secrets.brandSecret(s.brand, Secrets.CustomerIoKey).left.map(_.reason).flatMap(_.toRight("no Customer.io key"))
+      message <- s.to match
+        case Some(address) => Right(Message(apiKey, region, tid, address, s.data))
+        case None =>
+          val account = context.componentClient.forEventSourcedEntity(EntityId(s.affiliate)).call(Affiliate.get).invoke()
+          for
+            key      <- secrets.existingDataKey(s.affiliate).left.map(_.reason).flatMap(_.toRight("erased"))
+            identity <- Sealing.open(account.identity, key, s.affiliate)
+          yield
+            val named = Map("name" -> identity.name) ++ identity.companyName.map("company_name" -> _)
+            Message(apiKey, region, tid, identity.email, named ++ s.data)
+    yield message
 
   given Serializer[SendEmail] = ProgrammeCodecs.serializer[SendEmail]("send-email")
 

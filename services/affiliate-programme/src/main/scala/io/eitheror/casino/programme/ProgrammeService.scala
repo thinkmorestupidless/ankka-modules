@@ -6,10 +6,10 @@ import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, H
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime, ViewClient}
 import com.thinkmorestupidless.ankka.sdk.TimerScheduler
 import io.eitheror.casino.programme.accounts.*
-import io.eitheror.casino.programme.activity.{Activity, AuditEntry}
+import io.eitheror.casino.programme.activity.{Activity, AuditEntry, Creative, Creatives, FraudFlag, FraudFlags, Note}
 import io.eitheror.casino.programme.api.*
 import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Plans, Seed}
-import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, Notification}
+import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, FlagNotices, Notification}
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
 import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
 import io.eitheror.casino.programme.links.{BonusCode, BonusCodes, Clicks, InviteLink, InviteLinks, Link, Links, Revocations, RevocationsStamp, SigningKeys}
@@ -65,7 +65,13 @@ object ProgrammeService:
       Revocations.descriptor,
       BonusCodes.descriptor,
       Clicks.descriptor,
-      RevocationsStamp.descriptor
+      RevocationsStamp.descriptor,
+      FraudFlag.descriptor,
+      FraudFlags.descriptor,
+      Note.descriptor,
+      Creative.descriptor,
+      Creatives.descriptor,
+      FlagNotices.descriptor
     ) ++ BrandConsumers.of(settings.brands).map(_.descriptor)
 
   /** The realm the service provisions in, or none configured (a local run). */

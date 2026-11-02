@@ -31,6 +31,9 @@ final class FakeKeycloak extends KeycloakAdmin:
   def resetPassword(userId: String, password: String)   = guarded(change(userId)(_.copy(password = Some(password))))
   def updateEmail(userId: String, email: String)        = guarded(change(userId)(_.copy(email = email)))
   def deleteUser(userId: String)                        = guarded { users.remove(userId); Right(()) }
+  def usersWithRole(role: String) = guarded(Right(users.values.toVector.filter(_.roles(role)).map(u =>
+    io.eitheror.casino.programme.accounts.RealmUser(u.id, u.email, u.firstName, u.lastName, u.password.isDefined, Set.empty))))
+  def rolesOf(userId: String) = guarded(users.get(userId).map(_.roles).toRight(RealmError.NotFound(userId)))
 
   def user(id: String): Option[User]          = synchronized(users.get(id))
   def byEmail(email: String): Option[User]    = synchronized(users.values.find(_.email.equalsIgnoreCase(email)))

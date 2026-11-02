@@ -7,6 +7,9 @@ import io.eitheror.casino.programme.api.Answers.{*, given}
 import io.eitheror.casino.programme.api.Bodies.{*, given}
 import io.eitheror.casino.programme.api.SettlementAnswers.given
 import io.eitheror.casino.programme.api.TrackingAnswers.given
+import io.eitheror.casino.programme.api.BackofficeAnswers.given
+import io.eitheror.casino.programme.api.RecordAnswers.given
+import io.eitheror.casino.programme.api.ManagerAnswers.given
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.network.Network
 import io.eitheror.casino.programme.sealing.Identity
@@ -20,10 +23,13 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   private val reading  = Reading(api)
   private val networks = Networks(api)
   private val settlement = Settlement(api)
+  private val backoffice = Backoffice(api)
+  private val records    = Records(api)
+  private val managers   = Managers(api)
 
   withAcl(Access.public) {
     post("/accept-invitation") { () => notBuilt("POST /v1/affiliates/accept-invitation") }
-    postBody("/{brand}/apply") { (brand: String, body: String) => attempt(withBody[ApplyBody](body)(applyTo(brand, _))) }
+    postBody("/{brand}/apply") { (brand: String, body: String) => attempt(withBody[ApplyBody](body)(b => live(brand)(applyTo(brand, b)))) }
     // O19 is not served (change 13): a status changes only through its transitions.
     patchBody("/{brand}/accounts/{affiliate}/status") { (_: String, _: String, _: String) =>
       refuse(404, "not_found", "a membership's status changes through approve, reject, suspend and reactivate")
@@ -31,17 +37,16 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   }
 
   withAcl(api.access.manager) {
-    get("/{brand}/settings") { (brand: String) => notBuilt(s"GET /v1/affiliates/$brand/settings") }
     postBody("/{brand}/accounts/{affiliate}/approve") { (brand: String, aff: String, body: String) =>
-      attempt(withBody[ApproveBody](body)(approve(brand, aff, _)))
+      attempt(withBody[ApproveBody](body)(b => live(brand)(approve(brand, aff, b))))
     }
     postBody("/{brand}/accounts/{affiliate}/reject") { (brand: String, aff: String, body: String) =>
-      attempt(withBody[RejectBody](body)(b => member(brand, aff) { _ =>
+      attempt(withBody[RejectBody](body)(b => live(brand)(member(brand, aff) { _ =>
         api.components.forEventSourcedEntity(Membership.entityId(aff, brand)).call(Membership.reject)
           .invoke(Reject(b.reason, principal.subject, api.now())): Unit
         networks.audit(aff, Some(brand), "APPLICATION_REJECTED", principal.subject, b.reason.map("reason" -> _).toMap)
         ok(Ok(true))
-      }))
+      })))
     }
     get("/{brand}/accounts/{affiliate}") { (brand: String, aff: String) => attempt(member(brand, aff)(m => accountAt(aff, m))) }
     patchBody("/{brand}/accounts/{affiliate}") { (brand: String, aff: String, body: String) =>
@@ -62,7 +67,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     }
     for action <- Seq("approve", "suspend", "reactivate") do
       post(s"/{brand}/network/{sub}/$action") { (brand: String, sub: String) =>
-        attempt(member(brand, sub)(_ => networks.transition(sub, brand, action, principal.subject, Membership.Operator)))
+        attempt(live(brand)(member(brand, sub)(_ => networks.transition(sub, brand, action, principal.subject, Membership.Operator))))
       }
     // US5: the brand's links; a link made for one of its affiliates.
     get("/{brand}/tracking-links") { (brand: String) => attempt(Tracking(api).links(None, brand)) }
@@ -90,9 +95,74 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     }
   }
 
-  withAcl(api.access.managerAdmin) {
-    get("/{brand}/managers") { (brand: String) => notBuilt(s"GET /v1/affiliates/$brand/managers") }
+  withAcl(api.access.manager) {
+    // US6: plans, settings and the programme page.
+    get("/{brand}/commission-plans") { (brand: String) => attempt(backoffice.plans(brand)) }
+    postBody("/{brand}/commission-plans") { (brand: String, body: String) =>
+      attempt(withBody[BackofficeAnswers.PlanBody](body)(backoffice.createPlan(brand, _, principal.subject)))
+    }
+    patchBody("/{brand}/commission-plans/{plan}") { (brand: String, plan: String, body: String) =>
+      attempt(withBody[BackofficeAnswers.PlanBody](body)(backoffice.updatePlan(brand, plan, _, principal.subject)))
+    }
+    get("/{brand}/settings") { (brand: String) => attempt(backoffice.settings(brand)) }
+    putBody("/{brand}/settings") { (brand: String, body: String) =>
+      attempt(withBody[BackofficeAnswers.SettingsBody](body)(backoffice.putSettings(brand, _, principal.subject)))
+    }
+    get("/{brand}/programme") { (brand: String) => attempt(backoffice.programme(brand)) }
+    putBody("/{brand}/programme") { (brand: String, body: String) =>
+      attempt(withBody[BackofficeAnswers.ProgrammeBody](body)(backoffice.putProgramme(brand, _, principal.subject)))
+    }
+    // The brand's accounts, and one made active by a manager.
+    get("/{brand}/accounts") { (brand: String) => attempt(backoffice.accounts(brand, k => query.raw(k).map(_.trim).filter(_.nonEmpty))) }
+    postBody("/{brand}/accounts") { (brand: String, body: String) =>
+      attempt(withBody[BackofficeAnswers.CreateBody](body)(b => live(brand)(backoffice.createAccount(brand, b, principal.subject))))
+    }
+    // Notes, the audit, and the read-only view of what the affiliate sees at the brand (FR-033): reads only.
+    get("/{brand}/accounts/{affiliate}/notes") { (brand: String, aff: String) => attempt(member(brand, aff)(_ => records.notesOf(aff, brand))) }
+    postBody("/{brand}/accounts/{affiliate}/notes") { (brand: String, aff: String, body: String) =>
+      attempt(withBody[RecordAnswers.NoteBody](body)(b => member(brand, aff)(_ => records.note(aff, brand, b, principal.subject))))
+    }
+    get("/{brand}/accounts/{affiliate}/audit") { (brand: String, aff: String) => attempt(member(brand, aff)(_ => records.auditOf(aff, brand))) }
+    for page <- OperatorEndpoint.ViewPages do
+      get(s"/{brand}/accounts/{affiliate}/view/$page") { (brand: String, aff: String) =>
+        attempt(member(brand, aff)(_ => view(page, brand, aff)))
+      }
+    postBody("/{brand}/messages") { (brand: String, body: String) =>
+      attempt(withBody[BackofficeAnswers.MessageBody](body)(backoffice.message(brand, _, principal.subject)))
+    }
+    get("/{brand}/fraud-flags") { (brand: String) => attempt(records.flagsOf(brand)) }
+    patchBody("/{brand}/fraud-flags/{flag}/dismiss") { (brand: String, flag: String, body: String) =>
+      attempt(withBody[RecordAnswers.DismissBody](body)(records.dismiss(brand, flag, _, principal.subject)))
+    }
+    get("/{brand}/unattributed") { (brand: String) => attempt(records.unattributedOf(brand)) }
+    get("/{brand}/creatives") { (brand: String) => attempt(records.creativesOf(brand)) }
+    postBody("/{brand}/creatives") { (brand: String, body: String) =>
+      attempt(withBody[RecordAnswers.CreativeBody](body)(records.creative(brand, _, principal.subject)))
+    }
+    delete("/{brand}/creatives/{creative}") { (brand: String, id: String) => attempt(records.deleteCreative(brand, id, principal.subject)) }
   }
+
+  withAcl(api.access.managerAdmin) {
+    get("/{brand}/managers") { (brand: String) => attempt(managers.list(brand)) }
+    postBody("/{brand}/managers") { (brand: String, body: String) =>
+      attempt(withBody[ManagerAnswers.ManagerBody](body)(managers.add(brand, _, principal.subject)))
+    }
+    post("/{brand}/managers/{user}/reset-password") { (brand: String, user: String) => attempt(managers.reset(brand, user, principal.subject)) }
+    delete("/{brand}/managers/{user}") { (brand: String, user: String) => attempt(managers.revoke(brand, user, principal.subject)) }
+  }
+
+  /** O29 to O34: what the portal answers the affiliate, at this brand only. */
+  private def view(page: String, brand: String, aff: String): Respond[Bytes] = page match
+    case "dashboard" | "stats" => reading.revenue(Some(aff), Vector(brand), query.raw("period"))
+    case "commission" =>
+      reading.range(query.raw("period"))((_, r) => ok(Reports.cpa(reading.rows(Some(aff), Vector(brand), r)._1)))
+    case "links"   => Tracking(api).links(Some(aff), brand)
+    case "payouts" => settlement.of(aff, Vector(brand))
+    case _         => ok(records.notificationsOf(aff, Vector(brand)))
+
+  /** A retired brand takes no application and changes no membership's status; closes, payouts and reads go on. */
+  private def live(brand: String)(f: => Respond[Bytes]): Respond[Bytes] =
+    if api.brand(brand).retired.isDefined then refuse(409, OperatorEndpoint.BrandRetired, brand) else f
 
   /** The route's body for an account with a membership at the brand; any other is not found (FR-041). */
   private def member(brand: String, affiliate: String)(f: MembershipState => Respond[Bytes]): Respond[Bytes] =
@@ -173,3 +243,6 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
             p.revShareOverride.map(o => "revShareOverride" -> Percent.show(o.bp).toString).toMap)
         Patching(api).apply(affiliate, p, principal.subject, manager = true).getOrElse(accountAt(affiliate, api.membership(affiliate, brand)))
 
+object OperatorEndpoint:
+  val ViewPages    = Vector("dashboard", "stats", "commission", "links", "payouts", "notifications")
+  val BrandRetired = "brand_retired"
