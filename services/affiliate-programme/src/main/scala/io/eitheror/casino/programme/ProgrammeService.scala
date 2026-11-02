@@ -77,7 +77,9 @@ object ProgrammeService:
       Postback.descriptor,
       PostbackRetry.descriptor,
       PostbackOutcome.descriptor,
-      PostbackOutcomes.descriptor
+      PostbackOutcomes.descriptor,
+      Erasure.descriptor,
+      ErasureDue.descriptor
     ) ++ BrandConsumers.of(settings.brands).map(_.descriptor)
 
   /** The realm the service provisions in, or none configured (a local run). */
@@ -114,6 +116,7 @@ object ProgrammeService:
   /** At every start: the seed, once, a moment after the service is up (setting it again replaces it). */
   def started(timers: TimerScheduler): Unit =
     Postback.timers.set(Some(timers))
+    Erasure.timers.set(Some(timers))
     timers.createSingleTimer(Seed.TimerName, 1.second, Seed.seed.deferred)
     timers.createRecurringTimer(RevocationsStamp.TimerName, 1.second, RevocationsStamp.RefreshSeconds.seconds, RevocationsStamp.stamp.deferred)
 

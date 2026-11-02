@@ -109,6 +109,7 @@ final class PortalEndpoint(api: Api) extends HttpEndpoint("/v1/my"):
       asTarget(aff)(_ => if invitations.revoke(aff, link) then ok(Answers.Ok(true)) else refuse(404, "not_found"))
     }
     // US7: what the programme told the affiliate, and what it sent their system.
+    get("/{affiliate}/players") { (aff: String) => asTarget(aff)(_ => brands(aff)(DataSubjects(api).players(aff, _, network = true))) }
     get("/{affiliate}/creatives") { (aff: String) => asTarget(aff)(_ => brands(aff)(feed.creatives)) }
     // Every brand the account has applied to, as the original listed every notification: an applicant is told too.
     get("/{affiliate}/notifications") { (aff: String) =>

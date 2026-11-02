@@ -1,0 +1,147 @@
+package io.eitheror.casino.programme.it
+
+import com.fasterxml.jackson.databind.JsonNode
+import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.testkit.LogCapturing
+import io.eitheror.casino.programme.accounts.*
+import io.eitheror.casino.programme.brands.Plan
+
+import java.time.Instant
+import scala.jdk.CollectionConverters.*
+
+/**
+ * An affiliate as a data subject (US8, T082 and T083): closing and filing an erasure, who may, a new
+ * email, and players read by pseudonym. The hold's lapse moves the clock five years, so it is shown in
+ * LeakSuite and DataSubjectSteps, each on a service of its own; here the erasure is only filed and held.
+ */
+class ErasureSuite extends munit.FunSuite with LogCapturing:
+  override val munitTimeout = scala.concurrent.duration.Duration(180, "s")
+  private def kit = SharedKit.kit
+
+  override def beforeEach(context: BeforeEach): Unit = { kit.rewire(); kit.reset() }
+
+  private def post(path: String, as: Seq[(String, String)] = kit.asManager(), body: Option[String] = None): Reply =
+    kit.request("POST", s"/v1/affiliates$path", body, as)
+  private def account(aff: String): AffiliateState = kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke()
+  private def silverToo(aff: String): Unit =
+    val plan = kit.plan("silvervibe", kit.fresh("p"))
+    val m    = kit.components.forEventSourcedEntity(Membership.entityId(aff, "silvervibe"))
+    m.call(Membership.applyFor).invoke(Apply(aff, "silvervibe", Application(kit.now, None, "kit", None))): Unit
+    m.call(Membership.approve).invoke(Approve(plan, "kit", kit.now)): Unit
+    // The rule reads memberships from the view, as every read of an account's brands does.
+    kit.eventually("the silvervibe membership seen")(Option(kit.views.forView(Memberships).ask(Memberships.byAffiliate, "affiliate" -> aff))
+      .filter(_.exists(_.brand == "silvervibe"))): Unit
+
+  test("an account with a membership at a brand the manager does not hold is closed by none but a holder of both") {
+    val s = Scene(kit)
+    silverToo(s.affiliate)
+    val shared = post(s"/goldvibe/accounts/${s.affiliate}/close")
+    assertEquals(shared.status, 409, shared.text)
+    assertEquals(shared.json.get("error").asText, "account_shared")
+    assert(shared.json.get("message").asText.contains("silvervibe"), shared.text)
+    assertEquals(post(s"/goldvibe/accounts/${s.affiliate}/erasure").status, 409)
+    assertEquals(account(s.affiliate).closed, None)
+    val both = post(s"/goldvibe/accounts/${s.affiliate}/close", kit.asManager(Seq("goldvibe", "silvervibe")))
+    assertEquals(both.status, 200, both.text)
+    assert(account(s.affiliate).closed.isDefined)
+  }
+
+  test("a platform administrator closes an account wherever it is a member") {
+    val s = Scene(kit)
+    silverToo(s.affiliate)
+    assertEquals(post(s"/goldvibe/accounts/${s.affiliate}/close").status, 409)
+    assertEquals(post(s"/goldvibe/accounts/${s.affiliate}/close", kit.asPlatformAdmin()).status, 200)
+  }
+
+  test("closing ends sign-in: the realm user loses the affiliate and brand roles; closing again answers the same") {
+    val r   = kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"${kit.fresh("close")}@close.example"}"""), kit.fromInternet)
+    val aff = r.json.get("affiliateId").asText
+    assertEquals(post(s"/goldvibe/accounts/$aff/approve", body = Some(s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}"}""")).status, 200)
+    val user = kit.eventually("the realm user")(account(aff).keycloakUser)
+    kit.eventually("the roles")(kit.realm.user(user).filter(_.roles("affiliate"))): Unit
+    val first = post(s"/goldvibe/accounts/$aff/close")
+    assertEquals(first.status, 200, first.text)
+    assertEquals(kit.realm.user(user).map(_.roles.filter(r => r == "affiliate" || r.startsWith("brand_"))), Some(Set.empty[String]))
+    val again = post(s"/goldvibe/accounts/$aff/close")
+    assertEquals(again.json.get("closedAt").asText, first.json.get("closedAt").asText)
+    assertEquals(kit.request("PATCH", s"/v1/my/$aff/last-login", None, kit.asAffiliate(aff)).status, 409)
+    assert(kit.eventually("audited")(Option(kit.views.forView(io.eitheror.casino.programme.activity.Activity)
+      .ask(io.eitheror.casino.programme.activity.Activity.byAction, "action" -> "ACCOUNT_CLOSED").exists(_.affiliate == aff)).filter(identity)))
+  }
+
+  test("an erasure is filed only for a closed account, held to the filing day plus the retention, and filed once") {
+    val s = Scene(kit)
+    val open = post(s"/goldvibe/accounts/${s.affiliate}/erasure")
+    assertEquals((open.status, open.json.get("error").asText), (409, "account_not_closed"))
+    assertEquals(post(s"/goldvibe/accounts/${s.affiliate}/close").status, 200)
+    val filed = post(s"/goldvibe/accounts/${s.affiliate}/erasure")
+    assertEquals(filed.status, 202, filed.text)
+    val filedAt = Instant.parse(filed.json.get("filedAt").asText)
+    assertEquals(Instant.parse(filed.json.get("holdUntil").asText), ErasureRules.holdUntil(filedAt, 1825))
+    assertEquals(filed.json.get("holdUntil").asText.drop(10), "T00:00:00Z")
+    val again = post(s"/goldvibe/accounts/${s.affiliate}/erasure")
+    assertEquals((again.status, again.json.get("filedAt").asText), (202, filed.json.get("filedAt").asText))
+    // Held: the identity stays readable until the hold ends.
+    Thread.sleep(500)
+    assertEquals(account(s.affiliate).erased, None)
+    val read = kit.request("GET", s"/v1/affiliates/goldvibe/accounts/${s.affiliate}", headers = kit.asManager())
+    assertEquals(read.json.get("email").asText, s"${s.affiliate}@example.com")
+  }
+
+  test("ErasureRules: the hold ends at the start of the UTC day the retention names") {
+    assertEquals(ErasureRules.holdUntil(Instant.parse("2026-11-02T23:59:59Z"), 1825), Instant.parse("2031-11-01T00:00:00Z"))
+    assertEquals(ErasureRules.holdUntil(Instant.parse("2026-11-02T00:00:00Z"), 0), Instant.parse("2026-11-02T00:00:00Z"))
+  }
+
+  test("O18: a new email is sealed, indexed and given to the realm user; an email another account holds is refused") {
+    val old = s"${kit.fresh("old")}@email.example"
+    val r   = kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"$old"}"""), kit.fromInternet)
+    val aff = r.json.get("affiliateId").asText
+    assertEquals(post(s"/goldvibe/accounts/$aff/approve", body = Some(s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}"}""")).status, 200)
+    val user = kit.eventually("the realm user")(account(aff).keycloakUser)
+    val held = s"${kit.fresh("held")}@email.example"
+    assertEquals(kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"$held"}"""), kit.fromInternet).status, 201)
+    val taken = post(s"/goldvibe/accounts/$aff/update-email", body = Some(s"""{"email":"$held"}"""))
+    assertEquals((taken.status, taken.json.get("error").asText), (409, "email_already_registered"))
+    val before = account(aff).emailDigest
+    val fresh  = s"${kit.fresh("new")}@Email.example"
+    assertEquals(post(s"/goldvibe/accounts/$aff/update-email", body = Some(s"""{"email":" $fresh "}""")).status, 200)
+    assertNotEquals(account(aff).emailDigest, before)
+    assertEquals(kit.request("GET", s"/v1/affiliates/goldvibe/accounts/$aff", headers = kit.asManager()).json.get("email").asText, fresh)
+    assertEquals(kit.realm.user(user).map(_.email), Some(fresh))
+    // The old address is free again: applying with it makes a new account.
+    val reapply = kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"$old"}"""), kit.fromInternet)
+    assertEquals(reapply.status, 201, reapply.text)
+    assertNotEquals(reapply.json.get("affiliateId").asText, aff)
+    assertEquals(post(s"/goldvibe/accounts/$aff/update-email", body = Some("{}")).status, 400)
+  }
+
+  private def players(r: Reply): Vector[JsonNode] = { assertEquals(r.status, 200, r.text); r.json.elements().asScala.toVector }
+
+  test("O26 and M23 list players by pseudonym with country and figures; a sub-affiliate's players in M23 only; a closed player loses its country") {
+    val s   = Scene(kit, planType = Plan.Cpa, cpa = 1_000)
+    val sub = kit.affiliate(kit.fresh("sub"), "goldvibe", s.plan, parent = Some(s.affiliate))
+    val p   = s.player()
+    s.send(s.facts.deposit(p, 1_500, kit.now)): Unit
+    val subFacts = Facts("goldvibe", sub, kit.link(kit.fresh("lnk"), sub, "goldvibe"))
+    val q = kit.fresh("ps")
+    s.send(subFacts.registration(q, kit.now)): Unit
+    s.send(subFacts.deposit(q, 700, kit.now)): Unit
+    val o26 = kit.eventually("O26")(Option(players(kit.request("GET", s"/v1/affiliates/goldvibe/accounts/${s.affiliate}/players", headers = kit.asManager())))
+      .filter(_.exists(_.get("playerRef").asText == p)))
+    assert(!o26.exists(_.get("playerRef").asText == q))
+    val m23 = kit.eventually("M23")(Option(players(kit.request("GET", s"/v1/my/${s.affiliate}/players", headers = kit.asAffiliate(s.affiliate))))
+      .filter(ps => Set(p, q).subsetOf(ps.map(_.get("playerRef").asText).toSet)))
+    val mine = m23.find(_.get("playerRef").asText == p).get
+    assertEquals((mine.get("country").asText, mine.get("referredByAffiliateId").asText, mine.get("deposits").get("EUR").get("sum").asLong),
+      ("ZA", s.affiliate, 1_500L))
+    assertEquals(m23.find(_.get("playerRef").asText == q).get.get("referredByAffiliateId").asText, sub)
+    assertEquals(kit.request("GET", s"/v1/my/$sub/players", headers = kit.asAffiliate(s.affiliate)).status, 200)
+    assertEquals(kit.request("GET", s"/v1/my/${s.affiliate}/players", headers = kit.asAffiliate(sub)).status, 404)
+    s.send(s.facts.playerClosed(p, kit.now)): Unit
+    for path <- Seq(s"/v1/affiliates/goldvibe/accounts/${s.affiliate}/players", s"/v1/my/${s.affiliate}/players") do
+      val as = if path.startsWith("/v1/my") then kit.asAffiliate(s.affiliate) else kit.asManager()
+      val closed = kit.eventually(s"closed in $path")(players(kit.request("GET", path, headers = as)).find(r => r.get("playerRef").asText == p && r.get("closed").asBoolean))
+      assert(!closed.has("country"), closed.toString)
+      assertEquals(closed.get("deposits").get("EUR").get("sum").asLong, 1_500L)
+  }

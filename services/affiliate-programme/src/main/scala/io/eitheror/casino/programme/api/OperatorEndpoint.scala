@@ -11,6 +11,8 @@ import io.eitheror.casino.programme.api.BackofficeAnswers.given
 import io.eitheror.casino.programme.api.RecordAnswers.given
 import io.eitheror.casino.programme.api.ManagerAnswers.given
 import io.eitheror.casino.programme.api.PasswordAnswers.{AcceptBody, ForgotBody, given}
+import io.eitheror.casino.programme.api.SubjectAnswers.{EmailBody, given}
+import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.network.Network
 import io.eitheror.casino.programme.sealing.Identity
@@ -28,6 +30,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   private val records    = Records(api)
   private val managers   = Managers(api)
   private val passwords  = Passwords(api)
+  private val subjects   = DataSubjects(api)
 
   withAcl(Access.public) {
     postBody("/accept-invitation") { (body: String) => attempt(withBody[AcceptBody](body)(passwords.accept)) }
@@ -58,6 +61,19 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     }
     post("/{brand}/accounts/{affiliate}/reset-password") { (brand: String, aff: String) =>
       attempt(member(brand, aff)(_ => passwords.reset(brand, aff, principal.subject)))
+    }
+    // US8: the account as a data subject (FR-037), and its players by pseudonym (O26, FR-038).
+    postBody("/{brand}/accounts/{affiliate}/update-email") { (brand: String, aff: String, body: String) =>
+      attempt(withBody[EmailBody](body)(b => member(brand, aff)(_ => subjects.updateEmail(brand, aff, b, principal.subject))))
+    }
+    post("/{brand}/accounts/{affiliate}/close") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => subjects.close(brand, aff, principal.subject, Routes.brandsOf(principal).holds)))
+    }
+    post("/{brand}/accounts/{affiliate}/erasure") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => subjects.erasure(brand, aff, principal.subject, Routes.brandsOf(principal).holds)))
+    }
+    get("/{brand}/accounts/{affiliate}/players") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => subjects.players(aff, Vector(brand), network = false)))
     }
     patchBody("/{brand}/accounts/{affiliate}") { (brand: String, aff: String, body: String) =>
       attempt(withBody[AccountPatch](body)(p => member(brand, aff)(_ => patch(brand, aff, p, AccountPatch.clearsOverride(body)))))

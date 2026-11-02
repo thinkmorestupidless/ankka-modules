@@ -55,20 +55,29 @@ final class Provisioner(calls: ProvisioningCalls, realm: KeycloakAdmin, now: () 
       case _ =>
         val m = calls.membership(affiliate, brand)
         if !m.status.exists(s => s == Membership.Active || s == Membership.Suspended) then
-          calls.account(affiliate).keycloakUser.foreach(user => done(realm.removeRole(user, s"brand_$brand")))
+          // A user the realm no longer has holds no role to remove.
+          calls.account(affiliate).keycloakUser.foreach(user => done(realm.removeRole(user, s"brand_$brand").left.flatMap(gone)))
 
   private def grant(affiliate: String, brand: String): Unit =
     val account = calls.account(affiliate)
     if !account.exists || account.closed.isDefined || account.erased.isDefined then ()
     else
+      def roles(user: String) =
+        realm.assignRole(user, "affiliate").flatMap(_ => realm.assignRole(user, s"brand_$brand"))
       userOf(affiliate, account).foreach { user =>
-        done(realm.assignRole(user, "affiliate"))
-        done(realm.assignRole(user, s"brand_$brand"))
+        roles(user) match
+          // The user the account names was deleted in the realm: found by email or made again, as at first.
+          case Left(RealmError.NotFound(_)) => userOf(affiliate, account, heldIsGone = true).foreach(u => done(roles(u)))
+          case other                        => done(other)
       }
 
+  private def gone(e: RealmError): Either[RealmError, Unit] = e match
+    case RealmError.NotFound(_) => Right(())
+    case other                  => Left(other)
+
   /** The account's realm user: the one it holds, the one its email already names, or a new one. */
-  private def userOf(affiliate: String, account: AffiliateState): Option[String] =
-    account.keycloakUser.orElse {
+  private def userOf(affiliate: String, account: AffiliateState, heldIsGone: Boolean = false): Option[String] =
+    account.keycloakUser.filterNot(_ => heldIsGone).orElse {
       calls.identity(affiliate, account).flatMap { id =>
         val found = done(realm.findByEmail(id.email)).flatten
         val user  = found.orElse {

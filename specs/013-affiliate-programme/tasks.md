@@ -370,18 +370,18 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T080 [P] [US8] `p-test/it/LeakSuite.scala`: `pg_dump` of the service's database, journals and
+- [X] T080 [P] [US8] `p-test/it/LeakSuite.scala`: `pg_dump` of the service's database, journals and
   views included, holds no test name, email or IBAN; after an erasure, opening the sealed identity with
   the secret store fails (SC-007)
-- [ ] T081 [P] [US8] Bind `features/programme/data-subjects.feature` in `p-test/features/DataSubjectSteps.scala`
+- [X] T081 [P] [US8] Bind `features/programme/data-subjects.feature` in `p-test/features/DataSubjectSteps.scala`
 
 ### Implementation
 
-- [ ] T082 [US8] `p/accounts/Erasure.scala` (workflow: hold to the filing day plus
+- [X] T082 [US8] `p/accounts/Erasure.scala` (workflow: hold to the filing day plus
   `PROGRAMME_RETENTION_DAYS`, added to `p/Settings.scala` and the manifest, default 1825; destroy the key, release the email index,
   delete the realm user, record) with its kit suite; the close and erasure routes; O18 update-email
   re-sealing and moving the index
-- [ ] T083 [US8] O26 and M23 show pseudonyms, countries and figures only; a `player-closed` fact's effect
+- [X] T083 [US8] O26 and M23 show pseudonyms, countries and figures only; a `player-closed` fact's effect
   visible in both
 
 ---

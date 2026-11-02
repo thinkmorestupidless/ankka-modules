@@ -489,3 +489,37 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   address, in memory, so two instances may each send one.
 - **A first sign-in before the memberships' view has caught up is recorded with no brand** (T078),
   so `AFFILIATE_FIRST_LOGIN` is never lost to the view's lag.
+- **Closing and erasing need every brand of the account** (T082, decided 2026-11-02). Both reach
+  the whole account, so a manager who does not hold every brand where the account has a membership
+  is answered `409 account_shared`, naming the other brands; a `platform_admin` holds them all. The
+  memberships are read from the view, as every read of an account's brands is, so a membership
+  approved a moment before may not yet count.
+- **Closing takes the realm roles** (T082): `affiliate` and every `brand_*` role go from the
+  account's realm user, and `ACCOUNT_CLOSED` is audited. The user stays until the erasure, so a
+  closed account's identity is still there for finance's questions during the hold.
+- **An erasure is filed only for a closed account and held from the filing day** (T082): `409
+  account_not_closed` otherwise. The hold ends at the start of the UTC day `filedAt` plus
+  `PROGRAMME_RETENTION_DAYS` (1825, the length `players` keeps); the route answers `202` with the
+  hold, and filing again answers the erasure already held.
+- **The erasure's four actions run in one step** (T082): destroy the data key, release the email
+  index, delete the realm user, record `Erased`. Each is harmless done twice, so a retried step
+  repeats none wrongly, and splitting them would add states without making any of them safer.
+  Facts, payouts and the audit name the affiliate by id only and are not touched.
+- **An erased account reads as `erased`** (T082): its name and email answer `erased`, every other
+  identity field is absent.
+- **O18 keeps the address as typed** (T082), trimmed, as the application does; the index digests
+  the lowercased address, so a change of case alone moves nothing. An address another live account
+  holds is `409 email_already_registered`; the old address is released for a new application.
+- **The leak search reads every table over JDBC rather than `pg_dump`** (T080), as attribution's
+  LeakSuite does, so the suite needs no `pg_dump` on the machine that runs it; the search reads
+  `bytea` as UTF-8, which is what a dump would show of the journals' payloads. A planted value is
+  found, so the search is shown to look.
+- **O26 and M23 answer one shape** (T083): `playerRef` (the brand's pseudonym), `brandId`,
+  `referredByAffiliateId`, `campaign`, `registeredAt`, `country`, `hasFtd`, `firstDepositAt`,
+  deposits and withdrawals per currency, and `closed`. M23 covers the caller and the network below
+  them, as the original's did; a closed player's country is absent and its figures remain.
+- **A realm user deleted under an account stalls no provisioning** (found in the T080–T083
+  regression run). The account keeps naming its realm user after an erasure, and a user can be
+  deleted in Keycloak by hand; a later membership change then met `NotFound`, which the consumer
+  retried forever, holding back every account's provisioning. Removing a role from a user who is
+  gone is now done; granting to one finds the user by email or makes it again, as at first.

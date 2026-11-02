@@ -18,6 +18,7 @@
         "AFFILIATE_PORTAL_BASE_URL": "https://affiliates.127.0.0.1.sslip.io:8443",
         "AFFILIATE_BACKOFFICE_BASE_URL": "https://affiliates-backoffice.127.0.0.1.sslip.io:8443",
         "CUSTOMERIO_REGION_DEFAULT": "eu",
+        "PROGRAMME_RETENTION_DAYS": "1825",
         "KEYCLOAK_URL": "https://auth-casino.127.0.0.1.sslip.io:8443",
         "KEYCLOAK_REALM": "eitheror",
         "KEYCLOAK_ADMIN_USERNAME": "secret:keycloak-operators-admin/USERNAME",

@@ -58,6 +58,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
   )
   probe.bind(testKit)
   io.eitheror.casino.programme.postbacks.Postback.timers.set(Some(timers.timerScheduler))
+  io.eitheror.casino.programme.accounts.Erasure.timers.set(Some(timers.timerScheduler))
   ProgrammeService.wireViews(testKit.service.viewClient)
   // The seed the start timer runs, run now so every suite begins seeded.
   Seeding.run(testKit.componentClient, testKit.secrets, brands, clock.instant())
@@ -74,6 +75,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     wire()
     ProgrammeService.wireViews(views)
     io.eitheror.casino.programme.postbacks.Postback.timers.set(Some(timers.timerScheduler))
+    io.eitheror.casino.programme.accounts.Erasure.timers.set(Some(timers.timerScheduler))
 
   def stop(): Unit = { testKit.stop(); postbacks.stop() }
 

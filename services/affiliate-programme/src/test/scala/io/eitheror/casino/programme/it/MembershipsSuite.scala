@@ -65,6 +65,22 @@ class MembershipsSuite extends munit.FunSuite with LogCapturing:
     }
   }
 
+  test("a realm user deleted under the account stalls nothing: a suspension removes no role, an approval makes the user again") {
+    val email = s"${kit.fresh("gone")}@example.com"
+    val aff   = apply("goldvibe", email).json.get("affiliateId").asText
+    assertEquals(approve("goldvibe", aff, s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}"}""").status, 200)
+    val first = kit.eventually("the realm user")(kit.realm.byEmail(email).filter(_.roles("brand_goldvibe")))
+    kit.eventually("the user on the account")(kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke().keycloakUser): Unit
+    kit.realm.deleteUser(first.id): Unit
+    assertEquals(kit.request("POST", s"/v1/affiliates/goldvibe/network/$aff/suspend", None, kit.asManager()).status, 200)
+    assertEquals(apply("silvervibe", email).status, 201)
+    assertEquals(approve("silvervibe", aff, s"""{"planId":"${kit.plan("silvervibe", kit.fresh("p"))}"}""").status, 200)
+    val again = kit.eventually("the user made again")(kit.realm.byEmail(email).filter(_.roles("brand_silvervibe")))
+    assertNotEquals(again.id, first.id)
+    kit.eventually("the account names the new user")(
+      Option(kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke().keycloakUser).filter(_.contains(again.id))): Unit
+  }
+
   test("a manager of another brand can neither see nor act on an application") {
     val aff = apply("goldvibe", s"${kit.fresh("cy")}@example.com").json.get("affiliateId").asText
     val elsewhere = kit.asManager(Seq("silvervibe"))

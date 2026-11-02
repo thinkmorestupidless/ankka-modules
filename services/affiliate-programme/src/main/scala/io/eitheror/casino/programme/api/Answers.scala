@@ -103,7 +103,11 @@ object Answers:
     MembershipAnswer(m.brand, m.status.getOrElse(""), m.plan, m.revShareOverride.map(Percent.show), m.application.map(_.appliedAt), m.since,
       m.rejectedReason)
 
-  def account(a: AffiliateState, identity: Option[Identity], memberships: Vector[MembershipState], atBrand: Option[MembershipState]): AccountAnswer =
+  /** What an erased account's identity reads as (data-model.md *Affiliate*): its name and email `erased`, the rest absent. */
+  val ErasedIdentity: Identity = Identity("erased", email = "erased")
+
+  def account(a: AffiliateState, opened: Option[Identity], memberships: Vector[MembershipState], atBrand: Option[MembershipState]): AccountAnswer =
+    val identity = if a.erased.isDefined then Some(ErasedIdentity) else opened
     AccountAnswer(a.id, identity.map(_.email), identity.map(_.name), identity.flatMap(_.displayName), identity.flatMap(_.companyName),
       identity.flatMap(_.website), identity.flatMap(_.trafficSource), identity.flatMap(_.paymentMethod), a.parent, Percent.show(a.overrideBp),
       a.postbackUrl, a.minimumPayout, a.managerId, a.group, a.tags, a.createdAt, a.firstLoginAt, a.lastLoginAt, a.closed,
