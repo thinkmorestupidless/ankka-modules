@@ -26,7 +26,7 @@ class StartSuite extends munit.FunSuite:
     assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/managers", headers = kit.asManager()).status, 403)
     assertEquals(kit.request("GET", "/v1/affiliates/goldvibe/managers", headers = kit.asManager(role = "brand_admin")).status, 200)
     assertEquals(kit.request("GET", "/v1/programme/brands", headers = kit.asManager()).status, 403)
-    assertEquals(kit.request("GET", "/v1/programme/brands", headers = kit.asPlatformAdmin()).status, 501)
+    assertEquals(kit.request("GET", "/v1/programme/brands", headers = kit.asPlatformAdmin()).status, 200)
     val other = kit.request("GET", "/v1/my/aff-other/account", headers = kit.asAffiliate("aff-me"))
     assertEquals((other.status, other.json.get("error").asText), (404, "account_not_found"))
     assertEquals(kit.request("GET", "/v1/my/aff-me/account", headers = kit.asAffiliate("aff-me")).json.get("error").asText, "account_not_found")

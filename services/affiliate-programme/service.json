@@ -10,6 +10,7 @@
       "AFFILIATE_BACKOFFICE_BASE_URL": "http://localhost:3014",
       "CUSTOMERIO_REGION_DEFAULT": "eu",
       "PROGRAMME_RETENTION_DAYS": "1825",
+      "PUBLIC_URL": "http://localhost:9018",
       "KEYCLOAK_REALM": "eitheror"
     }
   }

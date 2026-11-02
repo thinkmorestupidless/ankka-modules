@@ -7,7 +7,7 @@ import io.eitheror.casino.programme.ProgrammeCodecs
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.players.{DepositTotals, PlayerRow, Players}
-import io.eitheror.casino.programme.sealing.Sealing
+import io.eitheror.casino.programme.sealing.{Digest, Sealing}
 
 import java.time.Instant
 
@@ -75,7 +75,7 @@ final class DataSubjects(api: Api):
         answer(202, ErasureFiled(aff, s.status, s.filedAt.getOrElse(at), s.holdUntil.getOrElse(hold)))
     }
 
-  /** O18: the identity sealed again with the new address, the index moved, and the realm user's email changed. */
+  /** O18: the identity sealed again with the new address, lowercased as at enrolment, the index moved, and the realm user's email changed. */
   def updateEmail(brand: String, aff: String, b: EmailBody, by: String): Respond[Bytes] =
     val enrolment = Enrolment(api)
     enrolment.address(b.email) match
@@ -92,7 +92,7 @@ final class DataSubjects(api: Api):
               val sealedAgain = for
                 key      <- Secrets(api.secrets).dataKey(aff).left.map(_.reason)
                 identity <- Sealing.open(a.identity, key, aff)
-              yield Sealing.seal(identity.copy(email = email), key, aff)
+              yield Sealing.seal(identity.copy(email = Digest.normalised(email)), key, aff)
               sealedAgain match
                 case Left(e) => refuse(503, "store_unavailable", e)
                 case Right(identity) =>
@@ -101,7 +101,7 @@ final class DataSubjects(api: Api):
                     .invoke(UpdateIdentity(identity, digest, by, api.now())): Unit
                   if a.emailDigest.nonEmpty && a.emailDigest != digest then
                     api.components.forKeyValueEntity(EntityId(a.emailDigest)).call(EmailIndex.release).invoke(aff): Unit
-                  a.keycloakUser.foreach(user => api.realm.updateEmail(user, email): Unit)
+                  a.keycloakUser.foreach(user => api.realm.updateEmail(user, Digest.normalised(email)): Unit)
                   networks.audit(aff, Some(brand), "EMAIL_UPDATED", by)
                   ok(EmailUpdated(aff, true))
 

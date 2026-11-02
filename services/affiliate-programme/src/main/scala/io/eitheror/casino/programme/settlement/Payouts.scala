@@ -18,6 +18,8 @@ object Payouts extends View.Companion[PayoutsView, Payout.Event, PayoutState](
   val byBrandAndPeriod = query("by-brand-and-period")(
     s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand AND payload::jsonb->>'period' = :period ORDER BY row_key"
   )
+  /** A brand's payouts, for the usage report's commission paid (FR-042). */
+  val byBrand     = query("by-brand")(s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand ORDER BY row_key")
   val byAffiliate = query("by-affiliate")(s"SELECT payload FROM $table WHERE payload::jsonb->>'affiliate' = :affiliate ORDER BY row_key")
   /** What finance exports: the approved payouts of a brand's period. */
   val approved = query("approved")(

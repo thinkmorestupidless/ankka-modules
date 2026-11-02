@@ -107,8 +107,8 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
     val fresh  = s"${kit.fresh("new")}@Email.example"
     assertEquals(post(s"/goldvibe/accounts/$aff/update-email", body = Some(s"""{"email":" $fresh "}""")).status, 200)
     assertNotEquals(account(aff).emailDigest, before)
-    assertEquals(kit.request("GET", s"/v1/affiliates/goldvibe/accounts/$aff", headers = kit.asManager()).json.get("email").asText, fresh)
-    assertEquals(kit.realm.user(user).map(_.email), Some(fresh))
+    assertEquals(kit.request("GET", s"/v1/affiliates/goldvibe/accounts/$aff", headers = kit.asManager()).json.get("email").asText, fresh.toLowerCase)
+    assertEquals(kit.realm.user(user).map(_.email), Some(fresh.toLowerCase))
     // The old address is free again: applying with it makes a new account.
     val reapply = kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"$old"}"""), kit.fromInternet)
     assertEquals(reapply.status, 201, reapply.text)

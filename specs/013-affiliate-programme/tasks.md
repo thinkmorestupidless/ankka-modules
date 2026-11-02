@@ -390,17 +390,17 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T084 [P] [US10] `p-test/it/HostingSuite.scala`: add a hosted brand; its webhook fact becomes
+- [X] T084 [P] [US10] `p-test/it/HostingSuite.scala`: add a hosted brand; its webhook fact becomes
   commission; a bad signature, a wrong protocol and a fact id mismatch refused with nothing recorded; the
   same fact on the topic and by webhook writes once (SC-004); a hosted brand's manager and an eitheror
   manager sharing an affiliate each see only theirs (SC-010); the usage report per currency, refused to a
   manager
-- [ ] T085 [P] [US10] Bind `features/programme/hosting.feature` in `p-test/features/HostingSteps.scala`
+- [X] T085 [P] [US10] Bind `features/programme/hosting.feature` in `p-test/features/HostingSteps.scala`
 
 ### Implementation
 
-- [ ] T086 [US10] `POST /v1/programme/inbound/{brand}` (contracts/inbound.md, constant-time HMAC)
-- [ ] T087 [US10] `GET`, `POST /v1/programme/brands`, `PATCH /v1/programme/brands/{brand}` (the webhook
+- [X] T086 [US10] `POST /v1/programme/inbound/{brand}` (contracts/inbound.md, constant-time HMAC)
+- [X] T087 [US10] `GET`, `POST /v1/programme/brands`, `PATCH /v1/programme/brands/{brand}` (the webhook
   secret generated and shown once) and `GET /v1/programme/brands/{brand}/usage?month=`, `platform_admin`
 
 ---

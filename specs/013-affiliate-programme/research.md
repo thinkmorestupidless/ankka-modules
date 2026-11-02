@@ -507,8 +507,8 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   Facts, payouts and the audit name the affiliate by id only and are not touched.
 - **An erased account reads as `erased`** (T082): its name and email answer `erased`, every other
   identity field is absent.
-- **O18 keeps the address as typed** (T082), trimmed, as the application does; the index digests
-  the lowercased address, so a change of case alone moves nothing. An address another live account
+- **O18 stores the address lowercased** (T082), trimmed, as enrolment does; the index digests the
+  same, so a change of case alone moves nothing. An address another live account
   holds is `409 email_already_registered`; the old address is released for a new application.
 - **The leak search reads every table over JDBC rather than `pg_dump`** (T080), as attribution's
   LeakSuite does, so the suite needs no `pg_dump` on the machine that runs it; the search reads
@@ -523,3 +523,25 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   deleted in Keycloak by hand; a later membership change then met `NotFound`, which the consumer
   retried forever, holding back every account's provisioning. Removing a role from a user who is
   gone is now done; granting to one finds the user by email or makes it again, as at first.
+- **A brand is added in one request** (T087). `POST /v1/programme/brands` takes `brandId`, `origin`
+  (`hosted` by default, or `elsewhere`), `name`, `reportingZone`, `keyDocumentUrl`, and the
+  manager routes' own bodies as `settings`, `programme`, `defaultPlan` and `firstManager`; each is
+  applied by the code of the route it comes from, so its checks and audits are the same. It answers
+  `201` with the brand, `webhookUrl` (under the new setting `PUBLIC_URL`, the service's public
+  address, as psp-gateway names it) and `webhookSecret`: 32 random bytes in hex, kept in the store and
+  never read back by a route. `PATCH` takes `name`, `keyDocumentUrl` and `retired: true`; a retired
+  brand stays retired, and its webhook answers `404 brand_unknown`.
+- **The usage report counts memberships per plan currency** (T087, decided 2026-11-02). FR-042 asks
+  for every figure per currency, and a membership has none of its own: an active membership is
+  counted under its plan's CPA currency. Facts received are counted per the fact's currency, `none`
+  for a fact with no amount; commission recorded is the payable facts recorded in the month, and
+  commission paid the payouts paid in it. The month is the brand's reporting zone's. A membership
+  counts as active in the month when it is active now and became so before the month ended.
+- **A fact claimed but never handled is handled when it comes again** (T086). A failure after
+  `FactInbox` claims a fact (the service stopping, a store unreachable) left the claim with no
+  outcome, and the redelivery was answered `duplicate`, so the fact was lost on the topic and the
+  webhook alike. A claim with no outcome now goes on; the player's own record of the fact ids it
+  has seen keeps the second pass from writing twice.
+- **The webhook's two channels are shown once each** (T084). No brand both publishes on a topic
+  here and posts to the webhook, so HostingSuite hands the fact to `Intake` on the topic channel as
+  a brand consumer does, then posts it; the claim answers the post `duplicate`.

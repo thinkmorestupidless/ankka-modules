@@ -8,7 +8,7 @@ import com.thinkmorestupidless.ankka.sdk.TimerScheduler
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.activity.{Activity, AuditEntry, Creative, Creatives, FraudFlag, FraudFlags, Note}
 import io.eitheror.casino.programme.api.*
-import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Plans, Seed}
+import io.eitheror.casino.programme.brands.{BrandProgramme, Brands, Plan, Plans, Seed}
 import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, FlagNotices, Notification, PayoutNotices}
 import io.eitheror.casino.programme.postbacks.{Postback, PostbackOutcome, PostbackOutcomes, PostbackRetry}
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
@@ -47,6 +47,7 @@ object ProgrammeService:
       Players.descriptor,
       PlayerFacts.descriptor,
       Plans.descriptor,
+      Brands.descriptor,
       InviteLinks.descriptor,
       Activity.descriptor,
       Payouts.descriptor,

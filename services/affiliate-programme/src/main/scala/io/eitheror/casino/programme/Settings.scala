@@ -26,7 +26,9 @@ final case class Settings(
     /** `attribution`'s address in this installation: its brands' key documents (FR-026). */
     attributionBaseUrl: Option[String] = None,
     /** Days an erasure is held after the day it is filed: the records finance keeps (FR-037), as `players`' 1825. */
-    retentionDays: Int = 1825
+    retentionDays: Int = 1825,
+    /** The service's own public address: a brand elsewhere or hosted is given its webhook under it (FR-040). */
+    publicUrl: String = "http://localhost:9018"
 )
 
 object Settings:
@@ -47,11 +49,12 @@ object Settings:
       attr    <- opt("ATTRIBUTION_BASE_URL").fold(Right(None))(u => url("ATTRIBUTION_BASE_URL", u).map(Some(_)))
       timeout <- opt("OUTBOUND_TIMEOUT").fold(Right(d.outboundTimeout))(v =>
                    parseDuration(v).toRight(s"OUTBOUND_TIMEOUT: '$v' is not a duration such as 10s or 500ms"))
+      public  <- url("PUBLIC_URL", opt("PUBLIC_URL").getOrElse(d.publicUrl))
       days    <- opt("PROGRAMME_RETENTION_DAYS").fold(Right(d.retentionDays))(v =>
                    v.toIntOption.filter(_ >= 0).toRight(s"PROGRAMME_RETENTION_DAYS: '$v' is not a whole number of days"))
     yield Settings(brands, opt("CASINO_PROJECT").getOrElse(d.project), portal, office, region, kc,
       opt("KEYCLOAK_REALM").getOrElse(d.keycloakRealm), opt("KEYCLOAK_ADMIN_USERNAME"), opt("KEYCLOAK_ADMIN_PASSWORD"),
-      timeout, opt("PLAIN_HTTP").exists(_.equalsIgnoreCase("true")), attr, days)
+      timeout, opt("PLAIN_HTTP").exists(_.equalsIgnoreCase("true")), attr, days, public)
 
   /** `PROGRAMME_BRANDS`: comma-separated slugs, each `[a-z0-9-]`; empty when only hosted brands report here. */
   def brandsOf(value: String): Either[String, Vector[String]] =
