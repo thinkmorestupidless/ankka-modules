@@ -22,6 +22,7 @@ object Wire:
     val PlanNotFound     = "plan_not_found"
     val NoPlanAssigned   = "no_plan_assigned"
     val ParentNotFound   = "parent_not_found"
+    val ParentCycle      = "parent_cycle"
     val EmailRegistered  = "email_already_registered"
     val AccountNotFound  = "account_not_found"
     val NotAMember       = "not_a_member"
@@ -45,9 +46,11 @@ object Wire:
     val text = Option(e.getMessage).getOrElse("")
     val code = text.takeWhile(c => c != ':').trim
     val status = e.code match
-      case ErrorCode.Conflict => 409
-      case ErrorCode.NotFound => 404
-      case _                  => 400
+      case _ if code == "too_many_requests" => 429
+      case ErrorCode.Conflict  => 409
+      case ErrorCode.NotFound  => 404
+      case ErrorCode.Forbidden => 403
+      case _                   => 400
     if code.matches("[a-z_]+") then refuse(status, code, text.drop(code.length).stripPrefix(":").trim)
     else refuse(status, text)
 

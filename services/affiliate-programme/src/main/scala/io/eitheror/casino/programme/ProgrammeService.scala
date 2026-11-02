@@ -6,13 +6,13 @@ import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, H
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.sdk.TimerScheduler
 import io.eitheror.casino.programme.accounts.*
-import io.eitheror.casino.programme.activity.AuditEntry
+import io.eitheror.casino.programme.activity.{Activity, AuditEntry}
 import io.eitheror.casino.programme.api.*
 import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Plans, Seed}
 import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, Notification}
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
 import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
-import io.eitheror.casino.programme.links.{Link, SigningKeys}
+import io.eitheror.casino.programme.links.{InviteLink, InviteLinks, Link, SigningKeys}
 import io.eitheror.casino.programme.players.{PlayerAttribution, PlayerFacts, Players}
 import io.eitheror.casino.programme.settlement.{Payout, Payouts}
 
@@ -37,6 +37,7 @@ object ProgrammeService:
       Payout.descriptor,
       SigningKeys.descriptor,
       Link.descriptor,
+      InviteLink.descriptor,
       AuditEntry.descriptor,
       Notification.descriptor,
       EmailSend.descriptor,
@@ -45,6 +46,8 @@ object ProgrammeService:
       Players.descriptor,
       PlayerFacts.descriptor,
       Plans.descriptor,
+      InviteLinks.descriptor,
+      Activity.descriptor,
       Payouts.descriptor,
       Inbox.descriptor,
       Ledger.descriptor,

@@ -128,14 +128,15 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     Plan.idOf(brand, name)
 
   /** An account with an active membership at `brand` on `plan`, its identity sealed as the routes seal it. */
-  def affiliate(id: String, brand: String, plan: String, email: Option[String] = None, parent: Option[String] = None): String =
+  def affiliate(id: String, brand: String, plan: String, email: Option[String] = None, parent: Option[String] = None,
+      overrideBp: Int = 0): String =
     val address = email.getOrElse(s"$id@example.com")
     val store   = Secrets(secrets)
     val key     = store.dataKey(id).fold(e => throw AssertionError(e.reason), identity)
     val sealedId = Sealing.seal(Identity(id, None, address, None, None, None, None), key, id)
     val digest  = Digest.of(address, store.emailIndexKey.fold(e => throw AssertionError(e.reason), identity))
     components.forEventSourcedEntity(EntityId(id)).call(Affiliate.createAccount)
-      .invoke(CreateAffiliate(id, sealedId, digest, parent, 0, AccountFields(), "kit", now)): Unit
+      .invoke(CreateAffiliate(id, sealedId, digest, parent, overrideBp, AccountFields(), "kit", now)): Unit
     val m = components.forEventSourcedEntity(Membership.entityId(id, brand))
     m.call(Membership.applyFor).invoke(Apply(id, brand, Application(now, None, "kit", parent))): Unit
     m.call(Membership.approve).invoke(Approve(plan, "kit", now)): Unit

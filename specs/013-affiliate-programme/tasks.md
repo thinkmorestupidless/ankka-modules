@@ -252,7 +252,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T048 [P] [US3] `p-test/it/NetworkSuite.scala`: three tiers, each ancestor's delta checked against
+- [X] T048 [P] [US3] `p-test/it/NetworkSuite.scala`: three tiers, each ancestor's delta checked against
   the original's `emitOverrideDelta`; no override where the sub has no membership; a cycle ends the walk;
   an email invitation active at once; an invite link pending; a request outside the subtree refused
 - [ ] T049 [P] [US3] Bind `features/programme/network.feature` in `p-test/features/NetworkSteps.scala`
@@ -260,9 +260,9 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 ### Implementation
 
 - [X] T050 [US3] `p/ledger/Overrides.scala` (consumer over `EarningsChanged`, research R7) and its kit suite
-- [ ] T051 [US3] `p/links/InviteLink.scala` (key value, 50 an hour) with its suite; `p/api/JoinEndpoint.scala`
+- [X] T051 [US3] `p/links/InviteLink.scala` (key value, 50 an hour) with its suite; `p/api/JoinEndpoint.scala`
   P3 and P4; portal M31–M33
-- [ ] T052 [US3] Portal M13–M21 (network health, network, a sub, its approve, suspend and reactivate at
+- [X] T052 [US3] Portal M13–M21 (network health, network, a sub, its approve, suspend and reactivate at
   `?brand=`, `sub-affiliates/invite` with `brands`, `sub-affiliates`); the email invitation through
   `Membership.activateInvited`, `Token.issue` and an `EmailSend`; operator O9–O13 (O11–O13 reshaped,
   routes.md) and O27; `setParent` refused `parent_cycle` through `Network.wouldCycle`

@@ -377,3 +377,21 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   `deposit` facts with their sum. GGR recorded and not folded (before the binding, or of the other
   source) is `excludedGgr`.
 
+- **The second and third deposit counts** (T047). The original's revenue also counts the deposits that
+  were a player's second and third in their life (`deposit2Count`, `deposit3Count`). `PlayerFacts`
+  stamps each `deposit` row with its ordinal among the player's deposits at the brand, in every
+  currency, and the figure counts ordinals 2 and 3 in its period.
+- **An email invitation to an address that already has an account is refused** (T052, decided
+  2026-11-02). The original made an account per brand, so its invitation checked only the brand's
+  accounts. Here one account per email holds every membership and one parent, so M20 answers
+  `409 email_already_registered` when the email names any account; the existing account keeps its
+  parent and memberships. The person chose this over adopting a parentless account and over adding
+  memberships without a parent. An invite link (P4) to a known email applies with that account at
+  the link's brand and leaves its parent as it is.
+- **A network read across several brands** (T052). A node's `status` and `planId` are its first
+  membership's among the brands read, as the original's single brand gave one; each node also lists
+  `memberships` (brand, status, plan), and `revenueForPeriod` is the figures list. Health counts a
+  descendant as active if any of its memberships is, else pending, else suspended.
+- **The invitation token names the account** (T052). `Token.issue` records the sub's affiliate id, not
+  a realm user, since `Provisioning` makes the realm user after the invitation; P6 (T078) finds the
+  realm user through the account.

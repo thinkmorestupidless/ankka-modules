@@ -6,7 +6,8 @@ import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Answers.{*, given}
 import io.eitheror.casino.programme.api.Bodies.{*, given}
 import io.eitheror.casino.programme.api.Wire.*
-import io.eitheror.casino.programme.sealing.{Digest, Identity, Sealing}
+import io.eitheror.casino.programme.network.Network
+import io.eitheror.casino.programme.sealing.Identity
 
 /**
  * The managers' backoffice (contracts/routes.md `/v1/affiliates`): a manager of the path's brand, the
@@ -14,7 +15,8 @@ import io.eitheror.casino.programme.sealing.{Digest, Identity, Sealing}
  */
 final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   val acl: Acl = Acl.DenyAll
-  private val reading = Reading(api)
+  private val reading  = Reading(api)
+  private val networks = Networks(api)
 
   withAcl(Access.public) {
     post("/accept-invitation") { () => notBuilt("POST /v1/affiliates/accept-invitation") }
@@ -34,6 +36,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       attempt(withBody[RejectBody](body)(b => member(brand, aff) { _ =>
         api.components.forEventSourcedEntity(Membership.entityId(aff, brand)).call(Membership.reject)
           .invoke(Reject(b.reason, principal.subject, api.now())): Unit
+        networks.audit(aff, Some(brand), "APPLICATION_REJECTED", principal.subject, b.reason.map("reason" -> _).toMap)
         ok(Ok(true))
       }))
     }
@@ -44,6 +47,20 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     get("/{brand}/accounts/{affiliate}/revenue") { (brand: String, aff: String) =>
       attempt(member(brand, aff)(_ => reading.revenue(Some(aff), Vector(brand), query.raw("period"))))
     }
+    // US3: an account's network at the brand, and the operator's transitions of a sub there.
+    get("/{brand}/accounts/{affiliate}/network-health") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => networks.health(aff, Vector(brand))))
+    }
+    get("/{brand}/accounts/{affiliate}/network") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => networks.tree(aff, Vector(brand), query.raw("maxDepth"), query.raw("period"))))
+    }
+    get("/{brand}/accounts/{affiliate}/sub-affiliates") { (brand: String, aff: String) =>
+      attempt(member(brand, aff)(_ => networks.subs(aff, Vector(brand), query.raw("period"))))
+    }
+    for action <- Seq("approve", "suspend", "reactivate") do
+      post(s"/{brand}/network/{sub}/$action") { (brand: String, sub: String) =>
+        attempt(member(brand, sub)(_ => networks.transition(sub, brand, action, principal.subject, Membership.Operator)))
+      }
     get("/{brand}/revenue") { (brand: String) => attempt(reading.revenue(None, Vector(brand), query.raw("period"))) }
     get("/{brand}/revenue/by-campaign") { (brand: String) =>
       attempt(reading.range(query.raw("period"))((_, r) => ok(Reports.byCampaign(reading.rows(None, Vector(brand), r)._2))))
@@ -68,27 +85,22 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
    * duplicate; a rejected one may apply again.
    */
   private def applyTo(brand: String, b: ApplyBody): Respond[Bytes] =
-    val email = b.email.map(_.trim).filter(e => e.contains('@') && e.length <= 254)
+    val enrolment = Enrolment(api)
+    val email     = enrolment.address(b.email)
     if !api.brand(brand).exists then refuse(404, Codes.BrandUnknown, brand)
     else if email.isEmpty then invalid("email is required")
     else
-      val secrets = Secrets(api.secrets)
-      secrets.emailIndexKey.fold(e => refuse(503, "store_unavailable", e.reason), { indexKey =>
-        val digest = Digest.of(email.get, indexKey)
-        val index  = api.components.forKeyValueEntity(EntityId(digest))
-        val known  = index.call(EmailIndex.get).invoke().affiliate.filter(a => api.account(a).exists)
+      enrolment.lookup(email.get).fold(e => refuse(503, "store_unavailable", e), { (digest, known) =>
         val affiliate = known.getOrElse(Affiliate.newId())
         if known.exists(a => api.membership(a, brand).holds) then refuse(409, Codes.EmailRegistered)
         else
-          val made = if known.isDefined then Right(()) else
-            index.call(EmailIndex.claim).invoke(affiliate): Unit
-            secrets.dataKey(affiliate).map { key =>
-              val identity = Identity(b.name.getOrElse(email.get), b.name, Digest.normalised(email.get), b.companyName, b.website, b.trafficSource)
-              api.components.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.createAccount)
-                .invoke(CreateAffiliate(affiliate, Sealing.seal(identity, key, affiliate), digest, None, 0,
-                  AccountFields(termsVersion = b.termsVersion, termsAcceptedAt = b.termsVersion.map(_ => api.now())), "self", api.now())): Unit
-            }
-          made.fold(e => refuse(503, "store_unavailable", e.reason), { _ =>
+          val identity = Identity(b.name.getOrElse(email.get), b.name, email.get, b.companyName, b.website, b.trafficSource)
+          val made =
+            if known.isDefined then Right(())
+            else
+              enrolment.open(affiliate, digest, identity, None, 0,
+                AccountFields(termsVersion = b.termsVersion, termsAcceptedAt = b.termsVersion.map(_ => api.now())), "self")
+          made.fold(e => refuse(503, "store_unavailable", e), { _ =>
             api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand)).call(Membership.applyFor)
               .invoke(Apply(affiliate, brand, Application(api.now(), b.termsVersion, "self"))): Unit
             answer(201, Answers.Applied(affiliate, Membership.Pending))
@@ -104,12 +116,17 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
         case Some(planId) =>
           b.parentAffiliateId.filter(p => !api.account(p).exists) match
             case Some(missing) => refuse(400, Codes.ParentNotFound, missing)
+            case None if b.parentAffiliateId.exists(p => Network.wouldCycle(affiliate, p, api.parentOf)) =>
+              refuse(409, Codes.ParentCycle, b.parentAffiliateId.get)
             case None =>
               val account = api.components.forEventSourcedEntity(EntityId(affiliate))
               b.parentAffiliateId.foreach(p => account.call(Affiliate.setParent).invoke(SetParent(Some(p), principal.subject, api.now())): Unit)
               b.overridePercent.foreach(p => account.call(Affiliate.setOverride).invoke(SetOverride(p.bp, principal.subject, api.now())): Unit)
               api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand)).call(Membership.approve)
                 .invoke(Approve(planId, principal.subject, api.now())): Unit
+              networks.audit(affiliate, Some(brand), "APPLICATION_APPROVED", principal.subject,
+                Map("planId" -> planId) ++ b.parentAffiliateId.map("parentAffiliateId" -> _) ++
+                  b.overridePercent.map(p => "overridePercent" -> Percent.show(p.bp).toString))
               ok(Ok(true))
     }
 
@@ -125,9 +142,14 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       case Some(missing) => refuse(404, Codes.PlanNotFound, missing)
       case None =>
         val membership = api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand))
-        p.planId.foreach(id => membership.call(Membership.setPlan).invoke(SetPlan(id, principal.subject, api.now())): Unit)
+        p.planId.foreach { id =>
+          membership.call(Membership.setPlan).invoke(SetPlan(id, principal.subject, api.now())): Unit
+          networks.audit(affiliate, Some(brand), "PLAN_CHANGED", principal.subject, Map("planId" -> id))
+        }
         if clearOverride || p.revShareOverride.isDefined then
           membership.call(Membership.setRevShareOverride)
             .invoke(SetRevShareOverride(p.revShareOverride.map(_.bp), principal.subject, api.now())): Unit
+          networks.audit(affiliate, Some(brand), "REVSHARE_OVERRIDE_CHANGED", principal.subject,
+            p.revShareOverride.map(o => "revShareOverride" -> Percent.show(o.bp).toString).toMap)
         Patching(api).apply(affiliate, p, principal.subject, manager = true).getOrElse(accountAt(affiliate, api.membership(affiliate, brand)))
 
