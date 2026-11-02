@@ -313,6 +313,15 @@ Unchanged:
 | Amounts in minor units throughout | FR-032 | `WireTranslation` |
 | The player's eligible list is in the brand's order | FR-004 | `offers.feature` |
 | Paths move under `/v1/casino/brands/<slug>/…` | spec 001 | `WireTranslation` |
+| A matched code selects its offer; the original revealed it as available and waited for a select | found by T067 (FR-019 as built) | scenario 16's state and claim reads, scenario 21's select after a code, marked |
+| A code is live once its offer is written; the original's code index caught up moments later, refusing it `invalid_code` meanwhile | found by T067 | scenario 21's first code entry, marked |
+| Free-rounds winnings stay their reward's: its face value is what the rounds won, and winnings to the bonus balance are a wallet record of the reward (`<reward>/winnings`), below the player's other records, not a reward of their own; the player's cancel finds no reward to cancel for them | found by T067 (FR-024 as built); the cancel is open, see the report | scenario 244's cancels and winnings reads, the free-rounds scenarios' closed rewards, marked |
+| Segments and the tier floor are dormant: no fact carries a player's segments or tier rank | R4 | the driver's tier-floor and segment recordings, marked |
+| The award's `bonusAmount` is the amount awarded; the original answered the most it could convert | routes.md (the original's defect) | `CampaignSuite`; the stacking free-rounds scenario's award, marked |
+| The preview names the offer's currency where the original wrote £ | found by T067 | the driver's preview recording, marked |
+| The brand's order is its offer book's; an offer keeps its own `priority`, so a reorder changes no offer's `priorityOrder` | found by T067 | the driver's reorder recording, marked |
+| The player's own forfeit at the wallet is not carried (spec 002 serves the forfeit to rewards only), so the reward stays active | spec 002 | scenario 16's forfeit, scenario 21's exclusion after it, marked |
+| The brand's list carries each reward's wagering requirement, where the original's answered none | found by T067 | the driver's brand-list recording, marked |
 
 ## What the next command needs to know
 
