@@ -470,3 +470,19 @@ behaviour unless it says otherwise.
 - **A restart mid-poll** (T053): ankka 0.13's test kit keeps no pause timer to stop and resume, so the
   suite proves the poll count is journalled and a repeated start neither restarts polling nor creates
   again; the restart itself is not exercised (For ankka).
+- **Face values in minor units** (decided 2026-11-02): FR-030's lists carry face values in minor units
+  with their currency, as FR-032 and the contract; the original sent major-unit strings, a divergence
+  parity names.
+- **The campaign's award** (T059): currency the offer's, else the body's, else the player's last seen,
+  else 422 `player_currency_unresolved` (the original defaulted to EUR); the deposit the last confirmed
+  one; a wallet refusal or no answer within the bound is 422 `grant_failed`, and the next retry answers
+  `alreadyProcessed`. A grant the service cannot finish (the game or the create unanswered) is 503
+  `service_unavailable`. Codes are not asked (`codeVerified`), for funds and free rounds alike.
+- **The operator's award takes a fresh reward** (T060): it never claims the player's available reward,
+  so the source is the operator's and the award is audited; it has no repeat check, as the original.
+  An inactive offer can still be awarded (`BR:3198`).
+- **The operator's lists** (T060): `pageSize` outside 1–200 is 400 `{error: "pageSize"}`; with
+  `playerId` every reward up to 200; free rounds valued at spin value × count, or what they paid once
+  closed.
+- **The player's grants** (T061): every reward the player holds, whatever its state, as the original's
+  `get_active_bonuses`.

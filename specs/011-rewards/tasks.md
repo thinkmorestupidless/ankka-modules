@@ -262,17 +262,17 @@ the publishers green under their suites.
 
 **Independent test**: the US6 scenarios of `offers.feature` and the campaign routes.
 
-- [ ] T059 [US6] `S/api/CampaignEndpoint.scala` (`/reward-campaigns`, `Routes.serviceOf("engagement")`):
+- [X] T059 [US6] `S/api/CampaignEndpoint.scala` (`/reward-campaigns`, `Routes.serviceOf("engagement")`):
       `POST /{playerId}/target` (by role; `free_spins_offer_not_targetable` for both free-rounds types,
       `role_not_found`; idempotent) and `POST /{playerId}/award` (role re-resolution once,
       `alreadyProcessed`, `offer_not_found`, `offer_not_active`, `{error: <reason>}`, 503 for
       `ELIGIBILITY_CHECK_UNAVAILABLE`, the deposit from `PlayerRewards`' last deposit, the free-rounds
       answers). `T/it/CampaignSuite.scala`.
-- [ ] T060 [US6] `RewardAdminEndpoint`: `GET /` (any operator of the brand; `search`, `status`,
+- [X] T060 [US6] `RewardAdminEndpoint`: `GET /` (any operator of the brand; `search`, `status`,
       `offerId`, `playerId`, `page`, `pageSize`), `GET /{rewardId}`, and `POST /{playerId}` in its
       three shapes (offer with optional deposit, free bonus with no offer, free rounds with no offer).
       `T/it/OperatorSuite.scala`.
-- [ ] T061 [US6] `RewardsEndpoint`: the `available` list in the brand's order, with the reason each
+- [X] T061 [US6] `RewardsEndpoint`: the `available` list in the brand's order, with the reason each
       offer is visible; `GET /{playerId}/grants` (`withAcl` adding `Routes.serviceOf("support-agent")`).
 
 ## Phase 9: US7, every change is a fact (P2)

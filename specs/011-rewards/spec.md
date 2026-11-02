@@ -595,7 +595,8 @@ and `reporting` learn of it without a call.
 
 - **FR-030**: The player's state, free rounds, history and eligible list, and the operator's
   per-player and per-brand lists, MUST be views over this service's entities and the wallet's
-  balance read; face values MUST be displayed in major units with the currency.
+  balance read; face values MUST carry their currency, in minor units (FR-032; the frontend
+  formats them).
 - **FR-031**: Player routes MUST require the brand's player realm; operator routes the brand's
   operator roles (`brand_admin`, `resource_admin`, `platform_admin`); service routes the calling
   service's identity (spec 001 FR-020), admitting `engagement`, `game-provider` and
