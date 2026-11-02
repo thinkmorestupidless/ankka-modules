@@ -18,7 +18,7 @@ import scala.collection.concurrent.TrieMap
 final class FakeWallet(brand: String) extends FakeServer():
   /** One open record: `grantRef` is the award's key. */
   final case class Record(grantRef: String, bonusRef: String, amount: Long, requirement: Long, priority: Long, pendingCap: Boolean = false,
-      baseline: Boolean = true, winnings: Long = 0L)
+      baseline: Boolean = true, winnings: Long = 0L, maxWin: Option[Long] = None)
 
   private val records  = TrieMap.empty[(String, String), Vector[Record]]
   private val real     = TrieMap.empty[(String, String), Long]
@@ -46,6 +46,10 @@ final class FakeWallet(brand: String) extends FakeServer():
    */
   def winningsSince(player: String, currency: String, grantRef: String, amount: Long): Unit =
     alter(player, currency, grantRef)(_.copy(winnings = amount))
+
+  /** The record ended by the wallet itself (a conversion, a loss, an adjustment, a close), as its facts tell. */
+  def end(player: String, currency: String, grantRef: String): Unit =
+    records.updateWith((player, currency))(_.map(_.filterNot(_.grantRef == grantRef))): Unit
 
   def reset(): Unit =
     records.clear(); real.clear(); scripted.clear(); byRoute.clear(); answered.clear(); recent.clear()
@@ -105,7 +109,8 @@ final class FakeWallet(brand: String) extends FakeServer():
         if body.long("maxConcurrentGrants").exists(active >= _) then FakeWallet.refusal("BONUS_ALREADY_ACTIVE")
         else
           val priority = body.long("priority").getOrElse(0L)
-          val record   = Record(key, body.textOr("bonusRef", ""), amount, amount * body.long("wageringMultiplier").getOrElse(0L), priority)
+          val record   = Record(key, body.textOr("bonusRef", ""), amount, amount * body.long("wageringMultiplier").getOrElse(0L), priority,
+            maxWin = body.long("maxWin"))
           records.updateWith(wallet)(rs => Some(rs.getOrElse(Vector.empty) :+ record)): Unit
           Answer.ok(money(player, currency, "txnId" -> s"txn-$key", "recordId" -> key, "wageringRequirement" -> record.requirement))
       case "awards/forfeit" =>
@@ -153,7 +158,7 @@ final class FakeWallet(brand: String) extends FakeServer():
     val rs = open(player, currency).sortBy(-_.priority).map { r =>
       Json.obj("recordId" -> r.grantRef, "grantRef" -> r.grantRef, "bonusRef" -> r.bonusRef,
         "status" -> (if r.pendingCap then "converted_pending_cap" else "active"), "priority" -> r.priority, "balance" -> r.amount,
-        "wageringRequirement" -> r.requirement, "releaseProgress" -> 0L, "maxConvertible" -> r.amount)
+        "wageringRequirement" -> r.requirement, "releaseProgress" -> 0L, "maxConvertible" -> r.maxWin.getOrElse(r.amount))
     }
     Json.obj("records" -> Json.arr(rs*), "headline" -> rs.headOption, "restrictedBalance" -> open(player, currency).map(_.amount).sum)
 

@@ -55,8 +55,8 @@ class ClientsSuite extends munit.FunSuite:
     w.award("p1", eur, "r-1", terms): Unit
     w.award("p1", eur, "r-2", terms.copy(priority = Some(1L))): Unit
     assertEquals(w.restrictedFunds("p1", eur), Called.Done(RestrictedFunds(Vector(
-      OpenRecord("r-1", "r-1", "offer-1", "active", 3L, 1000L, 30000L, 0L, 1000L),
-      OpenRecord("r-2", "r-2", "offer-1", "active", 1L, 1000L, 30000L, 0L, 1000L)), 2000L)))
+      OpenRecord("r-1", "r-1", "offer-1", "active", 3L, 1000L, 30000L, 0L, 5000L),
+      OpenRecord("r-2", "r-2", "offer-1", "active", 1L, 1000L, 30000L, 0L, 5000L)), 2000L)))
     assertEquals(w.balance("p1", eur), Called.Done(WalletBalance(0L, 2000L, Some("r-1"))))
     assertEquals(w.switch("p1", eur, "r-2/switch-1", "r-2"), Called.Done(Switched(Some(4L), alreadyPrimary = false)))
     w.providerCredit("p1", eur, "r-9/credit", 250L, "r-9", "free_rounds", "rewards") match
