@@ -18,6 +18,11 @@ object Wire:
 
   object Codes:
     val InvalidRequest   = "invalid_request"
+    val InvalidPeriod    = "invalid_period"
+    val PlanNotFound     = "plan_not_found"
+    val NoPlanAssigned   = "no_plan_assigned"
+    val ParentNotFound   = "parent_not_found"
+    val EmailRegistered  = "email_already_registered"
     val AccountNotFound  = "account_not_found"
     val NotAMember       = "not_a_member"
     val BrandNotHeld     = "brand_not_held"
@@ -45,6 +50,15 @@ object Wire:
       case _                  => 400
     if code.matches("[a-z_]+") then refuse(status, code, text.drop(code.length).stripPrefix(":").trim)
     else refuse(status, text)
+
+  /** The route's answer, or a component's refusal as the original's. */
+  def attempt(f: => Respond[Bytes]): Respond[Bytes] =
+    try f
+    catch case e: CommandError => refused(e)
+
+  /** A body read as the route's shape, or `400 invalid_request` naming what was wrong. */
+  def withBody[A: JsonValueCodec](body: String)(f: A => Respond[Bytes]): Respond[Bytes] =
+    read[A](if body.trim.isEmpty then "{}" else body).fold(invalid, f)
 
   /** A route declared and not yet built: 501 naming it. */
   def notBuilt(route: String): Respond[Bytes] = refuse(501, Codes.NotBuilt, route)

@@ -8,12 +8,12 @@ import com.thinkmorestupidless.ankka.sdk.TimerScheduler
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.activity.AuditEntry
 import io.eitheror.casino.programme.api.*
-import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Seed}
+import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Plans, Seed}
 import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, Notification}
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
 import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, ToLedger, Unsettled}
 import io.eitheror.casino.programme.links.{Link, SigningKeys}
-import io.eitheror.casino.programme.players.{PlayerAttribution, Players}
+import io.eitheror.casino.programme.players.{PlayerAttribution, PlayerFacts, Players}
 import io.eitheror.casino.programme.settlement.{Payout, Payouts}
 
 import java.time.{Clock, Instant}
@@ -43,12 +43,15 @@ object ProgrammeService:
       Accounts.descriptor,
       Memberships.descriptor,
       Players.descriptor,
+      PlayerFacts.descriptor,
+      Plans.descriptor,
       Payouts.descriptor,
       Inbox.descriptor,
       Ledger.descriptor,
       Unsettled.descriptor,
       ToLedger.descriptor,
       Communications.descriptor,
+      Provisioning.descriptor,
       Seed.descriptor
     ) ++ BrandConsumers.of(settings.brands).map(_.descriptor)
 
@@ -71,8 +74,9 @@ object ProgrammeService:
     )
 
   /** What the consumers, the timed actions and the workflows' steps are constructed without (see `Wiring`). */
-  def wire(settings: Settings, customerIo: CustomerIo, clock: Clock): Unit =
+  def wire(settings: Settings, customerIo: CustomerIo, clock: Clock, realm: KeycloakAdmin): Unit =
     Wiring.settings.set(settings)
+    Wiring.realm.set(realm)
     Wiring.clock.set(clock)
     EmailSend.customerIo.set(customerIo)
     EmailSend.clock.set(clock)
@@ -92,12 +96,13 @@ object ProgrammeService:
       org.slf4j.LoggerFactory.getLogger("programme").warn("ANKKA_KAFKA_BOOTSTRAP_SERVERS is not set: facts are read in memory (a local run)")
       val memory = InMemoryBroker()
       ProjectionRuntime.withBroker(memory, memory)
-  ProgrammeService.wire(settings, CustomerIo.http(settings.outboundTimeout), Clock.systemUTC())
+  val realm = ProgrammeService.realm(settings)
+  ProgrammeService.wire(settings, CustomerIo.http(settings.outboundTimeout), Clock.systemUTC(), realm)
   val service = Ankka.service
     .registerAll(ProgrammeService.descriptors(settings))
     .withExtension(broker)
     .withExtension(timers)
-    .withExtension(HttpServer.of(ProgrammeService.endpoints(settings, () => Oidc.authenticate(), ProgrammeService.realm(settings))*))
+    .withExtension(HttpServer.of(ProgrammeService.endpoints(settings, () => Oidc.authenticate(), realm)*))
     .start()
   ProgrammeService.start(timers)
   sys.addShutdownHook(service.terminate())

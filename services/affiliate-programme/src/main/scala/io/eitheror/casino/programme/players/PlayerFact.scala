@@ -25,7 +25,9 @@ final case class PlayerFact(
     reference: Option[String] = None,
     reportingDay: Option[String] = None,
     beforeBinding: Boolean = false,
-    category: Option[String] = None
+    category: Option[String] = None,
+    /** The period in the brand's reporting zone, which `Intake` sets: what the revenue reads count by. */
+    period: Option[String] = None
 )
 
 object PlayerFact:

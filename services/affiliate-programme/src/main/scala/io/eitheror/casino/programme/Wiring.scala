@@ -1,5 +1,7 @@
 package io.eitheror.casino.programme
 
+import io.eitheror.casino.programme.accounts.KeycloakAdmin
+
 import java.time.Clock
 import java.util.concurrent.atomic.AtomicReference
 
@@ -12,3 +14,6 @@ object Wiring:
 
   /** The clock facts are received by: the system's in a cluster, the kit's movable one in the suites. */
   val clock: AtomicReference[Clock] = AtomicReference(Clock.systemUTC())
+
+  /** The realm `Provisioning` gives affiliates their sign-in and roles in. */
+  val realm: AtomicReference[KeycloakAdmin] = AtomicReference(KeycloakAdmin.unconfigured)

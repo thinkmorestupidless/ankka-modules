@@ -87,6 +87,8 @@ object Payout extends EventSourcedEntity.Companion[Payout, PayoutState, Payout.E
 object PayoutCodecs:
   val state: Serializer[PayoutState]  = ProgrammeCodecs.serializer[PayoutState]("payout")
   val event: Serializer[Payout.Event] = ProgrammeCodecs.serializer[Payout.Event]("payout-event")
+  /** Payouts as the portal lists them (M5). */
+  val wireList: com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec[Vector[PayoutState]] = ProgrammeCodecs.wire[Vector[PayoutState]]
   given Serializer[OpenPayout]    = ProgrammeCodecs.serializer[OpenPayout]("open-payout")
   given Serializer[ApprovePayout] = ProgrammeCodecs.serializer[ApprovePayout]("approve-payout")
   given Serializer[RejectPayout]  = ProgrammeCodecs.serializer[RejectPayout]("reject-payout")

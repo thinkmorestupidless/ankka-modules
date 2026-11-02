@@ -64,7 +64,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
   def views        = testKit.service.viewClient
   def secrets      = testKit.secrets
 
-  private def wire(): Unit = ProgrammeService.wire(settings, customerIo, clock)
+  private def wire(): Unit = ProgrammeService.wire(settings, customerIo, clock, realm)
 
   /** Points the process-wide wiring back at this kit, after another kit in the same JVM took it. */
   def rewire(): Unit = wire()

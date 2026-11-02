@@ -84,7 +84,8 @@ class TranslateSuite extends munit.FunSuite:
     actions match
       case Vector(Replay(r)) =>
         assertEquals((r.method, r.path), ("GET", "/v1/my/{affiliate}/revenue?period=2026-10&brand=goldvibe"))
-        assertEquals(r.expected.map(_.toString), Some("""{"cpaCommission":5000,"period":"2026-10","totalDepositAmount":10000}"""))
+        assertEquals(r.expected.map(_.toString),
+          Some("""{"period":"2026-10","figures":[{"cpaCommission":5000,"totalDepositAmount":10000,"currency":"GBP","brandId":"goldvibe"}]}"""))
       case other => fail(s"not one replay: $other")
   }
 

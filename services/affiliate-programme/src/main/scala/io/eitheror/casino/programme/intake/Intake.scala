@@ -98,7 +98,8 @@ final class Intake(calls: IntakeCalls, now: () => Instant):
           else
             named.flatMap((affiliate, _) => calls.membership(affiliate, f.brand).plan)
               .map(calls.plan(f.brand, _)).filter(_.paysCpa).map(_.minimumDeposit)
-        Intake.describe(calls.apply(f.brand, f.pseudonym, ApplyFact(f, brand.ggrSource.on(day), minimum)))
+        val dated   = f.copy(period = Some(Periods.periodOf(f.occurredAt, brand.zone)))
+        Intake.describe(calls.apply(f.brand, f.pseudonym, ApplyFact(dated, brand.ggrSource.on(day), minimum)))
 
 object Intake:
   /** A membership that receives facts: active, or suspended (FR-016). */

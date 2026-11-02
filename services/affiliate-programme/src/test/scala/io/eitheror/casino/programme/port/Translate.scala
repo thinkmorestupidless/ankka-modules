@@ -27,6 +27,8 @@ object Translate:
     case Manager
     /** An affiliate the recording names by placeholder, `{<who>Token}` for the account `{<who>}`. */
     case Affiliate(who: String)
+    /** An affiliate by account id, already filled: a read of the account a recording's twin named. */
+    case AffiliateId(id: String)
 
   /** A request the programme answers, with the original's answer translated to compare against; `compare` false for a setup. */
   final case class Request(name: String, method: String, path: String, body: Option[String], auth: Auth, status: Int,
@@ -92,6 +94,30 @@ object Translate:
       case _                           => Auth.Nobody
 
   // ── bodies and answers ──────────────────────────────────────────────────────────────────────────
+
+  /** The figure fields of a revenue answer, which the programme lists per brand and currency (contracts/routes.md). */
+  private val Top = Set("affiliateId", "period")
+
+  /**
+   * A recorded revenue answer, one flat object, as the programme answers it: `affiliateId` and `period`
+   * at the top and the rest the one figure, in the recording's currency.
+   */
+  def asFigures(flat: JsonNode, currency: String, brand: String): JsonNode =
+    val out    = nodes.objectNode()
+    val figure = nodes.objectNode()
+    flat.properties().asScala.foreach { e =>
+      if Top(e.getKey) then out.set(e.getKey, e.getValue): Unit else figure.set(e.getKey, e.getValue): Unit
+    }
+    figure.put("currency", currency): Unit
+    figure.put("brandId", brand): Unit // the recording's brand is the replay's
+    out.set("figures", nodes.arrayNode().add(figure)): Unit
+    out
+
+  /** A recorded `vary` path in a revenue answer, moved to where `asFigures` puts its field. */
+  def figurePath(path: String): String =
+    path.stripPrefix("$.").takeWhile(c => c != '.' && c != '[') match
+      case f if Top(f) || path == "$" => path
+      case _                          => "$.figures[0]." + path.stripPrefix("$.")
 
   /** A body or an answer with its money fields in minor units and every `playerId` its pseudonym. */
   def translated(node: JsonNode, currency: String, pseudonym: String => String): JsonNode =
@@ -161,6 +187,11 @@ object Translate:
     private var withdrawals = Map.empty[String, (Long, String)]
     private var serial     = 0
     private var literals   = Map.empty[String, String]       // a value a recorded answer holds → its placeholder
+    private var aliases    = Map.empty[String, String]       // a placeholder a capture named → the value it captured
+
+    /** A recorded text with each captured placeholder its captured value, then filled. */
+    private def resolve(text: String): String =
+      fill("""\{(\w+)\}""".r.replaceAllIn(text, m => java.util.regex.Matcher.quoteReplacement(aliases.getOrElse(m.group(1), m.matched))))
 
     private def local(value: String): String = literals.get(value).map(n => fill(s"{$n}")).getOrElse(fill(value))
 
@@ -171,7 +202,7 @@ object Translate:
 
     def step(s: Recording.Step): Vector[Action] =
       val out = translatedStep(s)
-      s.capture.foreach((name, path) => s.response.body.flatMap(b => at(b, path)).foreach(v => literals += v -> name))
+      s.capture.foreach((name, path) => s.response.body.flatMap(b => at(b, path)).foreach { v => literals += v -> name; aliases += name -> v })
       out
 
     private def at(node: JsonNode, path: String): Option[String] =
@@ -201,7 +232,7 @@ object Translate:
         else
           links += tag -> affiliate
           Vector(SetupLink(brand, tag, affiliate))
-      case Revenue(aff, _) if s.request.method == "GET" => Vector(revenue(s, fill(aff)))
+      case Revenue(aff, _) if s.request.method == "GET" => Vector(revenue(s, resolve(aff)))
       case Round(_) if s.request.method == "GET"        => round(s)
       case FactsTwin() if s.request.method == "GET"     => facts(s)
       case p if p.startsWith("/twins/")                 => Vector(Skip(s.name, "a twin the programme does not keep"))
@@ -302,9 +333,11 @@ object Translate:
     private def revenue(s: Recording.Step, affiliate: String): Action =
       val period = s.response.body.flatMap(b => at(b, "$.period"))
       val path   = s"/v1/my/$affiliate/revenue" + period.fold("")(p => s"?period=$p")
-      Replay(Request(s.name, "GET", route(path, brand), None, Auth.Affiliate(literals.getOrElse(affiliate, "affiliate")),
-        s.response.status, s.response.body.map(translated(_, currencies.values.headOption.getOrElse(DefaultCurrency), p => pseudonym(local(p)))),
-        Map.empty, s.vary.keySet))
+      Replay(Request(s.name, "GET", route(path, brand), None, Auth.AffiliateId(affiliate),
+        s.response.status, s.response.body.map { b =>
+          val currency = currencies.values.headOption.getOrElse(DefaultCurrency)
+          asFigures(translated(b, currency, p => pseudonym(local(p))), currency, brand)
+        }, Map.empty, s.vary.keySet.map(Translate.figurePath)))
 
     private var lastRound = Option.empty[(String, String)] // (player, round)
 

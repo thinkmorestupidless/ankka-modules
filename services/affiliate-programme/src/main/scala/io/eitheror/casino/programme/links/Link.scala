@@ -70,6 +70,15 @@ object Link extends KeyValueEntity.Companion[Link, LinkState](
     val bits = BigInt(1, bytes)
     "lnk-" + (0 until 16).map(i => Base32(((bits >> (5 * (15 - i))) & 31).toInt)).mkString
 
+  /**
+   * The link an affiliate is given at a brand on activation, campaign `default` (`S/NetworkTree.scala:178-212`):
+   * its id derived from the membership, so a repeat of the activation makes no second link.
+   */
+  def defaultIdOf(affiliate: String, brand: String): String =
+    val digest = java.security.MessageDigest.getInstance("SHA-256").digest(s"default:$affiliate/$brand".getBytes("UTF-8"))
+    val bits   = BigInt(1, digest.take(10))
+    "lnk-" + (0 until 16).map(i => Base32(((bits >> (5 * (15 - i))) & 31).toInt)).mkString
+
   def create(context: KeyValueEntityContext) = new Link(context)
 
   val createLink = command("create")(_.create)

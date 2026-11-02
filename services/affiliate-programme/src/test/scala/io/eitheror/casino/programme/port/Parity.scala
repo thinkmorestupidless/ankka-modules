@@ -86,9 +86,20 @@ object Parity:
           case Auth.Nobody        => kit.fromInternet
           case Auth.Manager       => kit.asManager(Seq(brand), role = "brand_admin")
           case Auth.Affiliate(who) => kit.asAffiliate(fill(s"{$who}"))
-        val reply = kit.request(r.method, fill(r.path), r.body.map(fill), headers)
+          case Auth.AffiliateId(id) => kit.asAffiliate(id)
+        def send() = kit.request(r.method, fill(r.path), r.body.map(fill), headers)
+        // A read is of views, which follow the facts: it is asked again until it agrees, or 20 s pass.
+        val (reply, differences) =
+          if r.method != "GET" || !r.compare then
+            val once = send()
+            (once, if r.compare then compare(recording, r, once, fill) else Vector.empty)
+          else
+            val deadline = System.nanoTime() + 20_000_000_000L
+            Iterator.continually { val x = send(); (x, compare(recording, r, x, fill)) }
+              .tapEach(x => if x._2.nonEmpty && System.nanoTime() < deadline then Thread.sleep(500))
+              .find(x => x._2.isEmpty || System.nanoTime() >= deadline).get
         parse(reply).foreach(body => r.capture.foreach((name, at) => JsonPath.get(body, at).map(Translate.scalar).foreach(v => values(name) = v)))
-        if r.compare then compare(recording, r, reply, fill) else Vector.empty
+        differences
       case Publish(fact) =>
         kit.publish(fact)
         Vector.empty
