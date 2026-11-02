@@ -138,9 +138,7 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
    */
   def claim(c: ClaimOffer): Effect[PlayerAnswer] =
     val s = currentState
-    val mode = if c.operator then Mode.OperatorOverride else Mode.Standard
-    val request = Request(mode, Anchor.registration(s.registeredAt, c.at), c.walletCurrency, c.code, c.deposit, s.detectionOn)
-    Evaluator.evaluate(c.offer, s.snapshot, c.walletOpen, request, c.at) match
+    PlayerRewards.evaluateClaim(s, c) match
       case Left(d) => answer(Outcome.Declined(None, d.reason))
       case Right(decision) =>
         val held = s.unclaimed(c.offer.id)
@@ -204,6 +202,15 @@ object PlayerRewards
   val AlreadyClaimed  = Decline.AlreadyClaimed.reason
   /** A code no live offer carries and the programme's document does not hold (FR-019), never the evaluator's `INVALID_CODE`. */
   val InvalidCode     = "invalid_code"
+
+  /**
+   * How `claim` evaluates an award on another path, so a caller with checks of its own to make first (the free rounds'
+   * provider checks) can answer the decline the claim would, in the original's order, without reserving anything.
+   */
+  def evaluateClaim(s: PlayerRewardsState, c: ClaimOffer): Either[Decline, Decision] =
+    val mode = if c.operator then Mode.OperatorOverride else Mode.Standard
+    val request = Request(mode, Anchor.registration(s.registeredAt, c.at), c.walletCurrency, c.code, c.deposit, s.detectionOn)
+    Evaluator.evaluate(c.offer, s.snapshot, c.walletOpen, request, c.at)
 
   /** A reward id: reserved in the event that makes the reward, so a replay holds the same one. */
   private def newRewardId(): String = UUID.randomUUID().toString

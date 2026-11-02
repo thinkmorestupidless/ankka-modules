@@ -86,7 +86,8 @@ object RuleSnapshot:
     RuleSnapshot(o.betRules, o.claimWindowDays, o.wageringWindowDays, o.freeSpinsExpiryDays, o.maxConcurrentGrants)
 
 /** The rounds an offer grants (FR-023), fixed at creation. */
-final case class FreeRoundsTerms(gameId: String, provider: String, spinCount: Int, spinValue: Long, destination: Destination)
+final case class FreeRoundsTerms(gameId: String, provider: String, spinCount: Int, spinValue: Long, destination: Destination,
+    gameName: Option[String] = None)
 
 object FreeRoundsTerms:
   /** The offer's rounds, when it grants rounds and names its game; the spin value is the one resolved for the currency. */
@@ -95,7 +96,7 @@ object FreeRoundsTerms:
       game  <- o.gameId.filter(_ => o.freeRounds)
       count <- o.spinCount
     yield FreeRoundsTerms(game, o.provider.getOrElse("st8"), count, spinValue,
-      Destination.from(Some(o.winningsDestination.getOrElse(WinningsDestination.RealBalance).wire)))
+      Destination.from(Some(o.winningsDestination.getOrElse(WinningsDestination.RealBalance).wire)), o.gameName)
 
 /**
  * A free-rounds reward's play (data-model.md `FreeRoundsState`): the terms, the tally, the provider's last word, and

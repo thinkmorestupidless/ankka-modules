@@ -20,6 +20,10 @@ final class FakeGameProvider(brand: String, provider: String = "st8") extends Fa
   private val games    = TrieMap.empty[String, Vector[String]]
   @volatile var notConfigured: Boolean = false
   @volatile var knownAnswer: Option[Answer] = None
+  /** The answer to a create whose grant id is not scripted, when set (the grant id is made by the service). */
+  @volatile var createAnswer: Option[Answer] = None
+  /** The answer to every spin-values read, when set: a provider that cannot list them. */
+  @volatile var spinValuesAnswer: Option[Answer] = None
 
   def createFor(grantId: String, answer: Answer): Unit  = creates.update(grantId, answer)
   def createStatus(grantId: String, status: String): Unit = createFor(grantId, FakeGameProvider.status(status))
@@ -30,6 +34,7 @@ final class FakeGameProvider(brand: String, provider: String = "st8") extends Fa
   def game(code: String, bonusTypes: String*): Unit     = games.update(code, bonusTypes.toVector)
   def reset(): Unit =
     creates.clear(); statuses.clear(); cancels.clear(); values.clear(); games.clear(); notConfigured = false; knownAnswer = None
+    createAnswer = None; spinValuesAnswer = None
     resetServer()
 
   private val Base = s"/v1/casino/brands/$brand/game-provider/$provider"
@@ -48,7 +53,7 @@ final class FakeGameProvider(brand: String, provider: String = "st8") extends Fa
           val grantId = r.json.flatMap(_.text("grantId")).getOrElse("")
           if notConfigured then FakeGameProvider.status("not_configured")
           else
-            val a = creates.getOrElse(grantId, FakeGameProvider.status("active"))
+            val a = creates.getOrElse(grantId, createAnswer.getOrElse(FakeGameProvider.status("active")))
             a.parsed.flatMap(_.text("status")).foreach(s => statuses.putIfAbsent(grantId, s): Unit)
             a
         case ("GET", Vector("bonuses", grantId)) =>
@@ -56,6 +61,7 @@ final class FakeGameProvider(brand: String, provider: String = "st8") extends Fa
         case ("POST", Vector("bonuses", grantId, "cancel")) =>
           if notConfigured then FakeGameProvider.status("not_configured")
           else cancels.getOrElse(grantId, { statuses.update(grantId, "cancelled"); FakeGameProvider.status("cancelled") })
+        case ("GET", Vector("spin-values")) if spinValuesAnswer.isDefined => spinValuesAnswer.get
         case ("GET", Vector("spin-values")) =>
           if notConfigured then FakeGameProvider.status("not_configured")
           else Answer.ok(Json.obj("values" -> values.getOrElse(r.query.getOrElse("currency", ""), Vector.empty)))
