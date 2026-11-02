@@ -255,10 +255,10 @@ func (s *Session) CRMKey() {
 	})
 }
 
-// DetectionOff turns the brand's kill switch on in Unleash: the flag is created when missing, given a
-// strategy for this brand alone, and enabled; after the scenario the strategy is removed, and the flag
-// disabled again when it was off before. With no Unleash token the scenario is skipped before its first
-// step.
+// DetectionOff turns the brand's kill switch on in Unleash: the flag and the `brandId` context field are
+// created when missing, the flag given a strategy for this brand alone, and enabled; after the scenario
+// the strategy is removed, the field removed when it was created here, and the flag disabled again when
+// it was off before. With no Unleash token the scenario is skipped before its first step.
 func (s *Session) DetectionOff() {
 	if s.cfg.UnleashToken == "" || s.cfg.UnleashURL == "" {
 		s.Skip("no EITHEROR_UNLEASH_TOKEN or -unleash-url: the brand's kill switch is set in the original's Unleash")
@@ -277,6 +277,14 @@ func (s *Session) DetectionOff() {
 				wasOn, _ = m["enabled"].(bool)
 			}
 		}
+	}
+	// casino-service gives Unleash the brand as the custom field `brandId`, which a constraint can name only
+	// once it is defined; a fresh Unleash has none.
+	if c := s.Unleash("read the brand's context field", http.MethodGet, "/api/admin/context/brandId", nil); c.Status == http.StatusNotFound {
+		s.ok(s.Unleash("define the brand's context field", http.MethodPost, "/api/admin/context", map[string]any{"name": "brandId"}))
+		s.Cleanup(func() {
+			s.Unleash("remove the brand's context field", http.MethodDelete, "/api/admin/context/brandId", nil)
+		})
 	}
 	strategy := s.ok(s.Unleash("turn detection off for the brand", http.MethodPost, env+"/strategies", map[string]any{
 		"name": "flexibleRollout",

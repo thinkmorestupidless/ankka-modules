@@ -279,10 +279,13 @@ func TestTheKillSwitchIsSetForTheBrandAloneWithATokenNeverRecordedAndPutBackAfte
 	want := []string{
 		"GET /api/admin/projects/default/features/" + KillSwitch,
 		"POST /api/admin/projects/default/features",
+		"GET /api/admin/context/brandId",
+		"POST /api/admin/context",
 		"POST /api/admin/projects/default/features/" + KillSwitch + "/environments/development/strategies",
 		"POST /api/admin/projects/default/features/" + KillSwitch + "/environments/development/on",
 		"POST /api/admin/projects/default/features/" + KillSwitch + "/environments/development/off",
 		"DELETE /api/admin/projects/default/features/" + KillSwitch + "/environments/development/strategies/strategy-1",
+		"DELETE /api/admin/context/brandId",
 	}
 	if len(o.unleashed) != len(want) {
 		t.Fatalf("Unleash received %v", o.unleashed)
