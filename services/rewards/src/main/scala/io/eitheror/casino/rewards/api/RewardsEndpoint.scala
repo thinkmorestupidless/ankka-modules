@@ -58,6 +58,13 @@ final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
     }
   }
 
+  // FR-022a: the player's grants, to the player and to `support-agent` by its identity (US6).
+  withAcl(PlayerGrants.acl(ctx)) {
+    get("/{playerId}/grants") { (p: String) =>
+      if PlayerGrants.supportAgent(caller) then PlayerGrants.list(ctx, p) else mine(p)(PlayerGrants.list(ctx, p))
+    }
+  }
+
 /** The selection routes' work (FR-011, FR-013). */
 object Selection:
   private def refuse(code: String): Reply = Answers.Rewards.refuse(code)

@@ -5,7 +5,7 @@ import io.eitheror.casino.contract.facts.{DepositConfirmed, MoneyTransactions}
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.rewards.Json
 import io.eitheror.casino.rewards.Json.*
-import io.eitheror.casino.rewards.it.Received
+import io.eitheror.casino.rewards.it.{Answer, Received, Reply}
 import io.eitheror.casino.rewards.reward.RewardStatus
 
 import java.time.Duration as JDuration
@@ -14,8 +14,8 @@ import java.util.UUID
 /**
  * features/rewards/offers.feature (US1; FR-001 to FR-003, FR-011 to FR-013). The operator creates offers through
  * `/offers`; the player selects through `/rewards`; a deposit arrives as the wallet's `deposit_confirmed` on the
- * broker, and the award is the wallet's as `FakeWallet` keeps it. Making an offer visible to the player is the
- * campaign route's story (US6): here it is done on `PlayerRewards` itself, as the scene for selecting.
+ * broker, and the award is the wallet's as `FakeWallet` keeps it. An offer is made visible to the player as the brand's
+ * `engagement` does, through the target route (US6).
  */
 class OffersFeatures extends RewardsFeatures("offers.feature"):
   override protected def ranElsewhere: Map[String, String] = OffersFeatures.Pending
@@ -255,20 +255,220 @@ class OffersFeatures extends RewardsFeatures("offers.feature"):
     assertEquals(kit.wallet.open(player, "EUR").size, 1)
   }
 
+  // ── US6: targeting ─────────────────────────────────────────────────────────────────────────
+
+  private var targetedReward = ""
+
+  private def targetRole(role: String): Reply =
+    kit.json("POST", kit.campaignsPath(s"/$player/target"), json("role" -> role), kit.asService("engagement"))
+
+  Given("an offer the brand's engagement targeted at a player") { () =>
+    offerId = offer(named(noDeposit)*)
+    targetedReward = Scene.target(kit, player, offerId)
+  }
+
+  When("it is targeted at the player again") { () => last = targetRole(Scene.roleOf(kit, offerId)) }
+
+  Then("nothing changes") { () =>
+    assertEquals((last.status, last.json.bool("ok")), (200, Some(true)), last.text)
+    Thread.sleep(500)
+    assertEquals(rewardOf(offerId).rewardId, targetedReward)
+    assertEquals(rows().filter(_.offerId == offerId).map(_.rewardId), Vector(targetedReward))
+    assertEquals(statusOf(offerId), RewardStatus.Available)
+  }
+
+  Given("an offer of a deposit match with free rounds") { () =>
+    offerId = offer(freeRounds("type" -> "DEPOSIT_MATCH_WITH_FREE_SPINS", "bonusPercentage" -> 10000L, "maxBonusValue" -> 50000L,
+      "wageringMultiplier" -> 30L)*)
+  }
+
+  When("the brand's engagement targets it at a player") { () => last = targetRole(Scene.roleOf(kit, offerId)) }
+
+  Then("it is refused as {string}") { (code: String) =>
+    refusedWith(422, code): Unit
+    assertEquals(rows(), Vector.empty)
+  }
+
+  // ── US6: the operator's lists and awards ───────────────────────────────────────────────────
+
+  private var otherPlayer = ""
+
+  private def grants(query: String): Reply = kit.request("GET", kit.grantsPath(query), None, operator)
+  private def items(r: Reply): Vector[JsonNode] =
+    assertEquals(r.status, 200, r.text)
+    (0 until r.json.get("items").size).map(r.json.get("items").get).toVector
+
+  Given("a player with rewards") { () =>
+    offerId = offer(named(noDeposit)*)
+    selected(offerId)
+    until(RewardStatus.Active): Unit
+    target(offer(named(noDeposit)*))
+    eventually("both listed")(Some(rows()).filter(_.size == 2))
+  }
+
+  When("an operator reads the player's rewards") { () => last = grants(s"?playerId=$player") }
+
+  Then("every reward is listed with its state, its face value in major units, its source and its clocks") { () =>
+    val listed = items(last)
+    assertEquals(listed.flatMap(_.text("status")), Vector("AVAILABLE", "ACTIVE"), last.text)
+    // Amounts are minor units on every route (FR-032): 1000 is the offer's 10.00.
+    assertEquals(listed.flatMap(_.long("faceValue")), Vector(1000L, 1000L))
+    assertEquals(listed.flatMap(_.text("source")).toSet, Set("customerio_webhook"))
+    val active = listed(1)
+    assert(active.text("grantedAt").isDefined && active.text("expiresAt").isDefined, active.toString)
+    assert(listed.head.has("grantedAt") && listed.head.has("expiresAt"), listed.head.toString)
+  }
+
+  Given("rewards across the brand's players") { () =>
+    offerId = offer(named(noDeposit)*)
+    selected(offerId)
+    until(RewardStatus.Active): Unit
+    otherPlayer = newPlayer()
+    Scene.target(kit, otherPlayer, offerId): Unit
+    eventually("the other's listed")(Some(rows(otherPlayer)).filter(_.nonEmpty))
+  }
+
+  When("an operator reads the brand's rewards") { () => last = grants(s"?offerId=$offerId") }
+
+  Then("every reward is listed across players, filterable by state") { () =>
+    assertEquals(items(last).flatMap(_.text("playerId")).toSet, Set(player, otherPlayer), last.text)
+    assertEquals(items(grants(s"?offerId=$offerId&status=ACTIVE")).flatMap(_.text("playerId")), Vector(player))
+    assertEquals(items(grants(s"?offerId=$offerId&status=available")).flatMap(_.text("playerId")), Vector(otherPlayer))
+  }
+
+  When("an operator gives a player a free bonus of {string} at a wagering multiplier of {string}") { (amount: String, wager: String) =>
+    last = kit.json("POST", kit.grantsPath(s"/$player"), json("bonusAmount" -> amount.toLong, "wager" -> wager.toLong,
+      "currency" -> "EUR"), operator)
+  }
+
+  Then("the wallet is asked to award {string} as restricted funds with a wagering requirement of {string}") {
+    (amount: String, requirement: String) =>
+      assertEquals((last.status, last.str("status")), (200, "granted"), last.text)
+      assertEquals(awards.flatMap(_.json.flatMap(_.long("amount"))), Vector(amount.toLong))
+      assertEquals(kit.wallet.open(player, "EUR").map(r => (r.amount, r.requirement)), Vector((amount.toLong, requirement.toLong)))
+  }
+
+  Then("the reward is active, with a wagering window of {string} days") { (days: String) =>
+    val row = eventually("the reward active")(rows().find(_.status == RewardStatus.Active.wire))
+    val r   = reward(row.rewardId)
+    assertEquals((row.offerType, r.snapshot.wageringWindowDays), ("MANUAL", Some(days.toInt)))
+    assertEquals(JDuration.between(r.grantedAt.get, r.expiresAt.get).toDays, days.toLong)
+  }
+
+  // ── US6: the player's lists ────────────────────────────────────────────────────────────────
+
+  private var visible: Vector[String] = Vector.empty
+  private var hidden                  = ""
+  private var state: JsonNode         = null
+
+  private def readState(): JsonNode =
+    val r = kit.request("GET", kit.rewardsPath(s"/$player/state"), None, kit.asPlayer(player))
+    assertEquals(r.status, 200, r.text)
+    r.json
+
+  private def elements(n: JsonNode): Vector[JsonNode] = (0 until n.size).map(n.get).toVector
+
+  /** The offers the state lists: the selection first, then the rest. */
+  private def listed(s: JsonNode): Vector[JsonNode] =
+    Option(s.get("selected")).toVector ++ Vector("visibleOffers", "competingOffers").flatMap(f => Option(s.get(f)).toVector.flatMap(elements))
+
+  When("the player lists their eligible offers") { () => state = readState() }
+  When("they list their eligible offers") { () => state = readState() }
+
+  Then("the offer appears with the reason it is visible") { () =>
+    val found = listed(state).find(_.text("offerId").contains(offerId)).getOrElse(fail(s"$offerId not listed: $state"))
+    assertEquals(found.text("source"), Some("customerio_webhook"))
+  }
+
+  Given("a player with rewards available or pending") { () =>
+    val pendingOffer = offer(depositMatch(100, Some(50000L), 30, None)*)
+    selected(pendingOffer)
+    val available = offer(named(noDeposit)*)
+    target(available)
+    hidden = offer(named(noDeposit)*)
+    visible = Vector(pendingOffer, available)
+  }
+
+  Then("only those offers are selectable") { () =>
+    assertEquals(state.text("state"), Some("pending"), state.toString)
+    assertEquals(listed(state).flatMap(_.text("offerId")), visible)
+    assert(!state.toString.contains(hidden), state.toString)
+  }
+
+  Given("a player with no reward available or pending") { () =>
+    // Visibility is a reward held AVAILABLE (research R3): what a code or a campaign made visible is what is listed.
+    // A code selects what it matches (research, "a matched code selects"), so it is listed as the selection.
+    val code = unique("SEEN")
+    val byCode = offer((depositMatch(100, Some(50000L), 30, None).filterNot(_._1 == "redemptionCodes") :+
+      ("redemptionCodes" -> Json.arr(Json.obj("code" -> code, "isAffiliate" -> false))))*)
+    val targeted = offer(named(noDeposit)*)
+    hidden = offer(named(noDeposit)*)
+    assertEquals(readState().text("state"), Some("available"))
+    assertEquals(elements(readState().get("visibleOffers")), Vector.empty)
+    target(targeted)
+    val entered = kit.json("POST", kit.rewardsPath(s"/$player/codes"), json("code" -> code), kit.asPlayer(player))
+    assertEquals(entered.status, 200, entered.text)
+    visible = Vector(byCode, targeted)
+  }
+
+  Then("the offers visible to them by offer code or targeting are listed") { () =>
+    val offers = listed(state)
+    assertEquals(offers.flatMap(_.text("offerId")), visible, state.toString)
+    assertEquals(offers.flatMap(_.text("source")), Vector("player_code", "customerio_webhook"))
+    assert(!state.toString.contains(hidden), state.toString)
+  }
+
+  Given("the brand's offers") { () =>
+    visible = Vector.fill(3)(offer(named(noDeposit)*))
+    visible.foreach(target)
+  }
+
+  When("an operator reorders them") { () =>
+    visible = visible.reverse
+    last = kit.json("PUT", kit.offersPath("/order"), json("orderedOfferIds" -> Json.arr(visible*)), operator)
+    assertEquals(last.status, 200, last.text)
+  }
+
+  Then("players see them in that order") { () =>
+    assertEquals(elements(readState().get("visibleOffers")).flatMap(_.text("offerId")), visible)
+  }
+
+  // ── the player's reward state (US4's lifecycle, read through the wallet) ─────────────────
+
+  private var closedReward = ""
+
+  Given("a player with an active reward") { () =>
+    val first = offer(named(noDeposit)*)
+    selected(first)
+    closedReward = eventually("the first active")(Some(rewardOf(first)).filter(_.status == RewardStatus.Active)).rewardId
+    val cancelled = kit.json("POST", kit.rewardsPath(s"/$player/cancel"), json(), kit.asPlayer(player))
+    assertEquals(cancelled.status, 200, cancelled.text)
+    eventually("the first cancelled")(Some(reward(closedReward)).filter(_.status == RewardStatus.Cancelled))
+    offerId = offer(named(noDeposit)*)
+    selected(offerId)
+    val id = until(RewardStatus.Active).rewardId
+    kit.wallet.routeAnswer("restricted-funds", Answer.ok(Json.obj("restrictedBalance" -> 800L, "records" -> Json.arr(
+      Json.obj("recordId" -> id, "grantRef" -> id, "bonusRef" -> offerId, "status" -> "active", "priority" -> 1L, "balance" -> 800L,
+        "wageringRequirement" -> 10000L, "releaseProgress" -> 2500L, "maxConvertible" -> 1000L)))))
+  }
+
+  When("they read their reward state") { () => state = readState() }
+
+  Then("the active reward's balance, wagering requirement and release progress are shown as the wallet reports them") { () =>
+    assertEquals((state.text("state"), state.long("bonusBalance"), state.long("wageringRequirement"), state.long("wageredAmount")),
+      (Some("active"), Some(800L), Some(10000L), Some(2500L)), state.toString)
+    assertEquals(elements(state.get("activeBonuses")).flatMap(_.text("grantRef")), Vector(until(RewardStatus.Active).rewardId))
+  }
+
+  Then("their history of rewards is shown") { () =>
+    val r = eventually("the history")(Some(kit.request("GET", kit.rewardsPath(s"/$player/history"), None, kit.asPlayer(player)))
+      .filter(r => r.status == 200 && r.json.size == 1))
+    val h = r.json.get(0)
+    assertEquals((h.text("grantRef"), h.text("status"), h.long("faceValue")), (Some(closedReward), Some("CANCELLED"), Some(1000L)))
+    kit.wallet.clearRoute("restricted-funds")
+  }
+
 object OffersFeatures:
   // Here, not in the class: GherkinSuite reads ranElsewhere while it is constructed, before the class's own vals.
   val Pending: Map[String, String] =
-    RewardsFeatures.pending("T059 and T061",
-      "an offer the brand's engagement targeted at a player appears in their eligible list with the reason it is visible",
-      "targeting an offer at a player again changes nothing",
-      "a player with rewards available or pending sees only those offers as selectable",
-      "a player with no reward sees the offers visible to them by code or targeting",
-      "targeting an offer of free rounds, or of a deposit match with free rounds, is refused") ++
-      RewardsFeatures.pending("T061", "offers reordered by an operator are seen by players in that order") ++
-      RewardsFeatures.pending("T060",
-        "an operator reading a player's rewards sees every reward with its state, face value, source and clocks",
-        "an operator reading the brand's rewards sees them across players, filterable by state",
-        "an operator giving a free bonus with no offer awards restricted funds with the amount and wagering they set",
-        "an operator giving free rounds with no offer creates them at the game provider") ++
-      RewardsFeatures.pending("T049 and T061",
-        "a player reading their reward state sees the active reward's balance, requirement and progress and their history")
+    RewardsFeatures.pending("T054", "an operator giving free rounds with no offer creates them at the game provider")
