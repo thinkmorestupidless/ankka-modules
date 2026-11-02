@@ -12,10 +12,8 @@ import java.time.Duration as JDuration
  * One evaluator on every path (FR-005, FR-006; SC of US2), over the whole service: each decline reason a path can reach,
  * answered in that path's own shape (contracts/routes.md). The player's selection answers `409 {error: <reason>}`; a
  * code `409 {status: "ineligible", reason}`; a confirming deposit records the reason on the reward, which stays pending
- * and is awarded nothing (FR-012), or expires it for the claim window. The campaign's award route (`422 {error}`,
- * `503` for `ELIGIBILITY_CHECK_UNAVAILABLE`) and the operator's award (`409 {status: "ineligible", reason}`) are tasks
- * T059 and T060: their cases are pending here, named by task. The operator's override is held to rules 1 to 4 on
- * `PlayerRewards.claim`, the evaluation both awards will make.
+ * and is awarded nothing (FR-012), or expires it for the claim window; the campaign's award route `422 {error}`, `503`
+ * for `ELIGIBILITY_CHECK_UNAVAILABLE`; the operator's award `409 {status: "ineligible", reason}`, held to rules 1 to 4.
  */
 class PathsSuite extends munit.FunSuite:
   private lazy val kit   = SharedKit.kit
@@ -151,8 +149,47 @@ class PathsSuite extends munit.FunSuite:
     paths.holdingActive(r): Unit
     assertEquals(claim(r, paths.noDeposit("maxConcurrentGrants" -> 1)), Outcome.Declined(None, "ACTIVE_BONUS_CONFLICT"))
 
-  test("the campaign's award route answers each decline as 422 {error}, ELIGIBILITY_CHECK_UNAVAILABLE as 503 (task T059)".pending("T059")):
-    ()
+  test("the campaign's award route answers each decline as 422 {error}, ELIGIBILITY_CHECK_UNAVAILABLE as 503 (task T059)"):
+    def campaign(reason: String, setup: Setup, offer: Seq[(String, Any)] => String = paths.noDeposit(_*)): Unit =
+      val p = paths.newPlayer("pa-c")
+      val r = paths.viaCampaign(p, offer(setup(p))).reply.get
+      val status = if reason == "ELIGIBILITY_CHECK_UNAVAILABLE" then 503 else 422
+      assertEquals((r.status, r.json.toString), (status, s"""{"error":"$reason"}"""), reason)
+    campaign("SUSPECTED_DUPLICATE", p => { paths.checked(p); paths.flagged(p); Seq.empty })
+    campaign("NO_DEPOSIT_OFFER_BLOCKED", p => { paths.blocked(p); Seq.empty })
+    campaign("ELIGIBILITY_CHECK_UNAVAILABLE", p => { paths.checkStarted(p, kit.now()); Seq.empty })
+    campaign("ACTIVE_BONUS_CONFLICT", p => { paths.holdingActive(p); Seq("maxConcurrentGrants" -> 1) })
+    campaign("CONFLICTING_GRANT", p => Seq("conflictsWith" -> Json.arr(paths.holdingActive(p))))
+    campaign("EXCLUDED_BY_PRIOR_OFFER", p => Seq("excludedOfferIds" -> Json.arr(paths.holdingActive(p))))
+    campaign("CLAIM_WINDOW_EXPIRED", p => { paths.registered(p, paths.ago(JDuration.ofDays(2))); Seq("claimWindowDays" -> 1) })
+    campaign("BELOW_MIN_DEPOSIT", _ => Seq("minDepositAmount" -> 2000L), paths.depositMatch(_*))
+    campaign("DEPOSIT_NUMBER_MISMATCH", p => {
+      paths.deposit(p, 3000L, Some(1)): Unit
+      paths.awaitRecord(p, "the deposit")(_.lastDeposit.isDefined): Unit
+      Seq("depositNumberTarget" -> 2)
+    }, paths.depositMatch(_*))
+    // Rule 6 is not reached: a claim the player holds of the offer is answered alreadyProcessed first (`CW:174-183`).
+    val p  = paths.newPlayer("pa-c")
+    val id = paths.holdingActive(p, "maxClaimsPerPlayer" -> 1)
+    val r  = paths.viaCampaign(p, id).reply.get
+    assertEquals((r.status, r.str("alreadyProcessed")), (200, "true"), r.text)
 
-  test("the operator's award answers each decline as 409 {status: ineligible, reason} and applies rules 1 to 4 (task T060)".pending("T060")):
-    ()
+  test("the operator's award answers each decline as 409 {status: ineligible, reason} and applies rules 1 to 4 (task T060)"):
+    def operator(reason: String, setup: Setup): Unit =
+      val p = paths.newPlayer("pa-o")
+      val r = paths.viaOperator(p, paths.noDeposit(setup(p)*)).reply.get
+      assertEquals((r.status, r.str("status"), r.str("reason")), (409, "ineligible", reason), r.text)
+    operator("SUSPECTED_DUPLICATE", p => { paths.checked(p); paths.flagged(p); Seq.empty })
+    operator("NO_DEPOSIT_OFFER_BLOCKED", p => { paths.blocked(p); Seq.empty })
+    operator("ELIGIBILITY_CHECK_UNAVAILABLE", p => { paths.checkStarted(p, kit.now()); Seq.empty })
+    operator("ACTIVE_BONUS_CONFLICT", p => { paths.holdingActive(p); Seq("maxConcurrentGrants" -> 1) })
+    // Rules 5 to 13 are not the operator's: a conflict, an exclusion, the claims, a code, the window, the minimum.
+    val p    = paths.newPlayer("pa-o")
+    val held = paths.holdingActive(p, "maxClaimsPerPlayer" -> 1)
+    paths.registered(p, paths.ago(JDuration.ofDays(5)))
+    val lenient = paths.depositMatch("conflictsWith" -> Json.arr(held), "excludedOfferIds" -> Json.arr(held), "claimWindowDays" -> 1,
+      "minDepositAmount" -> 5000L, "depositNumberTarget" -> 3, paths.codes(paths.unique("OP")))
+    val r = paths.viaOperator(p, lenient, "depositAmount" -> 1000L).reply.get
+    assertEquals((r.status, r.str("status"), r.json.get("bonusAmount").asLong), (200, "granted", 1000L), r.text)
+    // An offer the player already claimed is awarded again: the operator's award has no repeat check (`BR:3198`).
+    assertEquals(paths.viaOperator(p, held).reply.get.status, 200)

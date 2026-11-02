@@ -13,8 +13,8 @@ import java.time.Duration as JDuration
  * features/rewards/eligibility.feature (US2; FR-005, FR-006, FR-008): one evaluator on every path. The paths built so
  * far are driven through the service: the player's selection, a code, a confirming deposit; each answers a decline in
  * its own shape (`ClaimPaths`). The player's duplicate signals arrive on `casino.players` as `players` publishes them,
- * and the brand's detection switch is `FakePlayers`'. The campaign's award route and the operator's award are tasks
- * T059 and T060: their scenarios are pending on them.
+ * and the brand's detection switch is `FakePlayers`'. The campaign's award is `engagement`'s route
+ * (`/reward-campaigns`), the operator's `/reward-grants`.
  *
  * Two rows of the outline name rules that are dormant (research R4): nothing writes a player's segments or a tier rank,
  * so no path can reach them. Those rows are bound on `Evaluator` itself, with the player's record as the service holds
@@ -224,6 +224,41 @@ class EligibilityFeatures extends RewardsFeatures("eligibility.feature"):
 
   When("the player claims the offer") { () => one(claim()) }
 
+  // ── the campaign's award ───────────────────────────────────────────────────────────────────
+
+  Given("a player whose duplicate check is in progress") { () =>
+    paths.registered(player, kit.now())
+    paths.checkStarted(player, kit.now())
+  }
+
+  When("the brand's engagement awards them an offer with no deposit required") { () =>
+    offerId = paths.noDeposit()
+    one(paths.viaCampaign(player, offerId))
+  }
+
+  Then("it is answered as unavailable for now, to try again later") { () =>
+    val r = claims.head.reply.get
+    assertEquals((r.status, r.str("error")), (503, "ELIGIBILITY_CHECK_UNAVAILABLE"), r.text)
+    assertEquals(paths.record(player).rewards.values.count(_.offerId == offerId), 0)
+  }
+
+  // ── the operator's award ───────────────────────────────────────────────────────────────────
+
+  Given("a player who would fail any rule but the duplicate checks and the open reward maximum") { () =>
+    val held = paths.holdingActive(player, "maxClaimsPerPlayer" -> 1)
+    paths.registered(player, paths.ago(JDuration.ofDays(5)))
+    offerId = paths.depositMatch("conflictsWith" -> io.eitheror.casino.rewards.Json.arr(held),
+      "excludedOfferIds" -> io.eitheror.casino.rewards.Json.arr(held), "claimWindowDays" -> 1, "minDepositAmount" -> 5000L,
+      "depositNumberTarget" -> 3, paths.codes(paths.unique("HAND")))
+  }
+
+  When("an operator awards them an offer by hand") { () => one(paths.viaOperator(player, offerId, "depositAmount" -> 1000L)) }
+
+  Then("the award proceeds, because an operator's award applies only those four rules") { () =>
+    proceeds()
+    paths.active(player, offerId): Unit
+  }
+
   // ── a code verified at targeting ───────────────────────────────────────────────────────────
 
   Given("an offer code verified when the offer was targeted at the player") { () =>
@@ -243,6 +278,4 @@ class EligibilityFeatures extends RewardsFeatures("eligibility.feature"):
 
 object EligibilityFeatures:
   val Pending: Map[String, String] =
-    RewardsFeatures.pending("T059", "an award by the brand's engagement during the duplicate check is answered to try again later") ++
-      RewardsFeatures.pending("T060",
-        "an operator's award proceeds past every rule but the duplicate checks and the open reward maximum")
+    Map.empty[String, String]

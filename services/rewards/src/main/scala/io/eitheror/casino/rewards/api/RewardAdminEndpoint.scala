@@ -22,6 +22,16 @@ final class RewardAdminEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/bran
   private def admin(f: => Reply): Reply = if principal.roles.exists(Answers.AdminRoles) then f else forbidden
   private def body(text: String)(f: JsonNode => Reply): Reply = Json.parseObject(text).fold(badBody)(f)
 
+  // The lists and the awards (US6): the brand's list is any operator's; the rest the three admin roles.
+  get("") { () =>
+    RewardLists.list(ctx, RewardLists.Query(query.raw("search"), query.raw("status"), query.raw("offerId"), query.raw("playerId"),
+      query.raw("page"), query.raw("pageSize")))
+  }
+
+  get("/{rewardId}") { (id: String) => admin(RewardLists.one(ctx, id)) }
+
+  postBody("/{playerId}") { (p: String, text: String) => admin(body(text)(OperatorAwards.award(ctx, p, _, principal.subject))) }
+
   postBody("/{rewardId}/revoke") { (id: String, text: String) =>
     admin(body(text)(Revocations.revoke(ctx, id, _, principal.subject)))
   }
