@@ -486,3 +486,12 @@ behaviour unless it says otherwise.
   closed.
 - **The player's grants** (T061): every reward the player holds, whatever its state, as the original's
   `get_active_bonuses`.
+- **Free-rounds cost from `free_spins_settled`** (decided 2026-11-02): attribution reads
+  `casino.rewards` as well, and a free-rounds grant's bonus cost is its `free_spins_settled` amount,
+  keyed by the reward, whatever the destination; it no longer counts a restricted provider credit or a
+  winnings award of a free-rounds reward, so nothing is counted twice (SC-004, "from the topic alone").
+- **Attribution names `restricted_funds_closed`** (T063): its money consumer had no case for the new
+  family and would have failed on the first one.
+- **What the leak and outbound suites read** (T064): spans are not scanned (the kit exposes none; a
+  span carries only declared names, a subject and a client key); "only these are called" counts the
+  service's own calls, not the runtime's key fetch, telemetry, broker or database.

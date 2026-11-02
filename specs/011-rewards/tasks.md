@@ -277,12 +277,12 @@ the publishers green under their suites.
 
 ## Phase 9: US7, every change is a fact (P2)
 
-- [ ] T062 [US7] Bind `features/rewards/facts.feature` in `T/features/FactsFeatures.scala`.
-- [ ] T063 [US7] `T/it/PublishersSuite.scala` (SC-004): one grant driven through its life; each
+- [X] T062 [US7] Bind `features/rewards/facts.feature` in `T/features/FactsFeatures.scala`.
+- [X] T063 [US7] `T/it/PublishersSuite.scala` (SC-004): one grant driven through its life; each
       transition once on `casino.rewards` with source, code and tag; a transition applied twice
       publishes one fact; `attribution`'s `RealMoney` over the same `money.transactions` facts
       computes the bonus cost (a case in `services/attribution`'s suite).
-- [ ] T064 [US7] `T/it/LeakSuite.scala`: no email, address or revoke reason on a fact, log line,
+- [X] T064 [US7] `T/it/LeakSuite.scala`: no email, address or revoke reason on a fact, log line,
       span or timer name; `T/it/OutboundSuite.scala` (SC-006): only `wallet`, `game-provider`,
       `players` and the programme's URL are called.
 
