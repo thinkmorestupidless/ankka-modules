@@ -1,6 +1,7 @@
 package io.eitheror.casino.programme
 
 import io.eitheror.casino.programme.accounts.KeycloakAdmin
+import io.eitheror.casino.programme.ledger.UnsettledRow
 
 import java.time.Clock
 import java.util.concurrent.atomic.AtomicReference
@@ -17,3 +18,7 @@ object Wiring:
 
   /** The realm `Provisioning` gives affiliates their sign-in and roles in. */
   val realm: AtomicReference[KeycloakAdmin] = AtomicReference(KeycloakAdmin.unconfigured)
+
+  /** The accounts a close owes (brand, period, after): the `Unsettled` view's, set once the service has started. */
+  val owed: AtomicReference[(String, String, String) => Vector[UnsettledRow]] =
+    AtomicReference((_, _, _) => throw IllegalStateException("the views are not wired: ProgrammeService.wireViews"))

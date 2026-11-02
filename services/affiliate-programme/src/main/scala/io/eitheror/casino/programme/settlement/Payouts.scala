@@ -1,6 +1,6 @@
 package io.eitheror.casino.programme.settlement
 
-import com.thinkmorestupidless.ankka.core.ComponentId
+import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId}
 import com.thinkmorestupidless.ankka.sdk.*
 
 /** One row per payout (data-model.md *Views*). */
@@ -24,5 +24,13 @@ object Payouts extends View.Companion[PayoutsView, Payout.Event, PayoutState](
     s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand AND payload::jsonb->>'period' = :period " +
       "AND payload::jsonb->>'status' = 'approved' ORDER BY row_key"
   )
+
+  /** A payout's id on the wire, `<affiliate>:<currency>:<period>`: the brand is the route's, and a path segment holds no `/`. */
+  def wireId(affiliate: String, currency: String, period: String): String = s"$affiliate:$currency:$period"
+
+  /** The payout a wire id names at a brand. */
+  def fromWire(brand: String, id: String): Option[EntityId] = id.split(':') match
+    case Array(a, c, p) if a.nonEmpty && c.length == 3 && p.length == 7 => Some(Payout.entityId(a, brand, c, p))
+    case _                                                            => None
 
   def create(ctx: ViewComponentContext) = new PayoutsView

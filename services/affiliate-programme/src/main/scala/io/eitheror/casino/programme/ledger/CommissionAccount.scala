@@ -34,7 +34,7 @@ final case class RecordNgr(factId: String, kind: String, amount: Long, occurredA
 final case class RecordCpa(id: String, amount: Long, occurredAt: Instant, zone: String, at: Instant)
 final case class RecordPaymentFee(factId: String, deposit: Long, bp: Int, occurredAt: Instant, zone: String, at: Instant)
 final case class RecordAdjustment(id: String, amount: Long, reason: String, by: String, occurredAt: Instant, claimedBy: Option[String],
-    zone: String, at: Instant)
+    zone: String, at: Instant, source: Option[String] = None)
 final case class RecomputeOverride(source: String, period: String, sourceEarnings: Long, bp: Int, zone: String, at: Instant)
 final case class CloseAccount(payoutId: String, periodEnd: Instant, threshold: Long)
 
@@ -181,7 +181,7 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
     else if c.claimedBy.exists(currentState.paid) then effects.error("paid", ErrorCode.Conflict)
     else
       val f = LedgerFact(c.id, FactType.Adjustment, c.amount, c.occurredAt, c.at, Periods.periodOf(c.occurredAt, ZoneId.of(c.zone)),
-        settledBy = c.claimedBy)
+        sourceAffiliate = c.source, settledBy = c.claimedBy)
       write(withEarnings(currentState, Vector(FactWritten(f, Some(c.reason), Some(c.by)))))
 
   /** The override for one source and period, written as the delta from what was written (FR-015). */

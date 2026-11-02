@@ -92,7 +92,15 @@ object Ngr:
 object Earnings:
   def of(sums: Sums, period: String): Long =
     val p = sums.forPeriod(period)
-    p.amount(FactType.Cpa) + p.amount(FactType.RevShare) + p.amount(FactType.Adjustment)
+    p.amount(FactType.Cpa) + p.amount(FactType.RevShare) + p.amount(FactType.Adjustment) -
+      p.amount(FactType.Adjustment, Some(OverrideFigure))
+
+  /**
+   * The source an override figure's adjustment carries (FR-019): it corrects the affiliate's own override
+   * income, so it is not earnings their ancestors' overrides are taken on; the original never made the
+   * figure a fact at all (`S/OperatorRoutes.scala:3094-3112`).
+   */
+  val OverrideFigure = "override-figure"
 
 /** A rate of basis points applied HALF_UP, as the original's `BigDecimal` percent (`S/CommissionEngine.scala:487-513`). */
 private def applyRate(amount: Long, bp: Int): Long =

@@ -3,7 +3,7 @@ package io.eitheror.casino.programme
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
-import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime, ViewClient}
 import com.thinkmorestupidless.ankka.sdk.TimerScheduler
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.activity.{Activity, AuditEntry}
@@ -14,7 +14,7 @@ import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
 import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
 import io.eitheror.casino.programme.links.{InviteLink, InviteLinks, Link, SigningKeys}
 import io.eitheror.casino.programme.players.{PlayerAttribution, PlayerFacts, Players}
-import io.eitheror.casino.programme.settlement.{Payout, Payouts}
+import io.eitheror.casino.programme.settlement.{Close, CloseRun, Payout, Payouts}
 
 import java.time.{Clock, Instant}
 import scala.concurrent.duration.*
@@ -49,6 +49,8 @@ object ProgrammeService:
       InviteLinks.descriptor,
       Activity.descriptor,
       Payouts.descriptor,
+      Close.descriptor,
+      CloseRun.descriptor,
       Inbox.descriptor,
       Ledger.descriptor,
       Unsettled.descriptor,
@@ -85,6 +87,10 @@ object ProgrammeService:
     EmailSend.customerIo.set(customerIo)
     EmailSend.clock.set(clock)
 
+  /** What a workflow's steps read of the views, which exist only once the service has started. */
+  def wireViews(views: ViewClient): Unit =
+    Wiring.owed.set((brand, period, after) => views.forView(Unsettled).ask(Unsettled.owed, "brand" -> brand, "period" -> period, "after" -> after))
+
   /** At every start: the seed, once, a moment after the service is up (setting it again replaces it). */
   def started(timers: TimerScheduler): Unit =
     timers.createSingleTimer(Seed.TimerName, 1.second, Seed.seed.deferred)
@@ -108,6 +114,7 @@ object ProgrammeService:
     .withExtension(timers)
     .withExtension(HttpServer.of(ProgrammeService.endpoints(settings, () => Oidc.authenticate(), realm)*))
     .start()
+  ProgrammeService.wireViews(service.viewClient)
   ProgrammeService.start(timers)
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

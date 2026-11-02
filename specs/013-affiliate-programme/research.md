@@ -395,3 +395,23 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
 - **The invitation token names the account** (T052). `Token.issue` records the sub's affiliate id, not
   a realm user, since `Provisioning` makes the realm user after the invitation; P6 (T078) finds the
   realm user through the account.
+- **An override figure is not earnings** (T057). FR-019 writes an approval's override figure as an
+  adjustment the payout claims; adjustments are earnings their ancestors' overrides are taken on
+  (FR-015), so the figure would have cascaded up the tree. The original never made the figure a fact
+  (`S/OperatorRoutes.scala:3094-3112`), so nothing cascaded there. The adjustment carries the source
+  `override-figure` and `Earnings` leaves it out; the payout's figures still count it under
+  `adjustments`. Its id is `override-figure/<payoutId>/<n>`, a later approval of a reverted payout
+  writing the next difference.
+- **A rejected payout is frozen as a paid one is** (T056). The spec and the original leave a rejected
+  payout's facts stamped; a close of its period again would have reopened it, which FR-019's machine
+  does not allow. A close skips it, and its late facts wait for the next close.
+- **A repeated close answers the period's open payouts** (T056). Each close is a run of the `Close`
+  workflow, `<brand>/<period>/<run>`, which `CloseRun` numbers: a close asked for while one runs joins
+  it, and one asked for after carries the previous run's payouts forward, so it answers the pending and
+  approved payouts of the period with their totals now, as the original's close does (FR-020).
+- **Moving a payout to pending is refused as a transition** (T057). The original answered `400` for any
+  status other than approved, rejected or paid; settlement.feature's outline wants a `paid` payout
+  moved to `pending` refused naming `paid`, so `pending` is `409 status_transition` with the message.
+- **The thousand closes run at the unit level** (T054). SC-006's thousand closes with late facts between
+  them run in `CloserSuite`, over the account's and the payouts' entity kits, in seconds; `CloseSuite`
+  holds the same rules through the routes.

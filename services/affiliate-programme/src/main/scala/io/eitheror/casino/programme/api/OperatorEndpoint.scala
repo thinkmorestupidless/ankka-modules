@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Answers.{*, given}
 import io.eitheror.casino.programme.api.Bodies.{*, given}
+import io.eitheror.casino.programme.api.SettlementAnswers.given
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.network.Network
 import io.eitheror.casino.programme.sealing.Identity
@@ -17,6 +18,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   val acl: Acl = Acl.DenyAll
   private val reading  = Reading(api)
   private val networks = Networks(api)
+  private val settlement = Settlement(api)
 
   withAcl(Access.public) {
     post("/accept-invitation") { () => notBuilt("POST /v1/affiliates/accept-invitation") }
@@ -61,6 +63,16 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       post(s"/{brand}/network/{sub}/$action") { (brand: String, sub: String) =>
         attempt(member(brand, sub)(_ => networks.transition(sub, brand, action, principal.subject, Membership.Operator)))
       }
+    // US4: closing a period, the payouts, adjustments and the export.
+    post("/{brand}/payouts/close") { (brand: String) => attempt(settlement.close(brand, query.raw("period"), principal.subject)) }
+    get("/{brand}/payouts") { (brand: String) => attempt(settlement.list(brand, query.raw("period"))) }
+    get("/{brand}/payouts/export") { (brand: String) => attempt(settlement.exported(brand, query.raw("period"), principal.subject)) }
+    patchBody("/{brand}/payouts/{payout}/status") { (brand: String, payout: String, body: String) =>
+      attempt(withBody[SettlementAnswers.StatusBody](body)(settlement.transition(brand, payout, _, principal.subject)))
+    }
+    postBody("/{brand}/accounts/{affiliate}/adjustments") { (brand: String, aff: String, body: String) =>
+      attempt(withBody[SettlementAnswers.AdjustmentBody](body)(b => member(brand, aff)(_ => settlement.adjust(brand, aff, b, principal.subject))))
+    }
     get("/{brand}/revenue") { (brand: String) => attempt(reading.revenue(None, Vector(brand), query.raw("period"))) }
     get("/{brand}/revenue/by-campaign") { (brand: String) =>
       attempt(reading.range(query.raw("period"))((_, r) => ok(Reports.byCampaign(reading.rows(None, Vector(brand), r)._2))))

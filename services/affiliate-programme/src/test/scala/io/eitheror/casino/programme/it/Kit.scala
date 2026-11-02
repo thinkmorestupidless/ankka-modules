@@ -12,6 +12,7 @@ import io.eitheror.casino.programme.{ProgrammeService, Settings}
 import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.brands.{CreatePlan, Plan, Seeding}
+import io.eitheror.casino.programme.ledger.{CommissionAccount, Unsettled}
 import io.eitheror.casino.programme.links.{CreateLink, Link}
 import io.eitheror.casino.programme.sealing.{Digest, Identity, Sealing}
 
@@ -56,6 +57,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server)
   )
   probe.bind(testKit)
+  ProgrammeService.wireViews(testKit.service.viewClient)
   // The seed the start timer runs, run now so every suite begins seeded.
   Seeding.run(testKit.componentClient, testKit.secrets, brands, clock.instant())
 
@@ -67,7 +69,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
   private def wire(): Unit = ProgrammeService.wire(settings, customerIo, clock, realm)
 
   /** Points the process-wide wiring back at this kit, after another kit in the same JVM took it. */
-  def rewire(): Unit = wire()
+  def rewire(): Unit = { wire(); ProgrammeService.wireViews(views) }
 
   def stop(): Unit = { testKit.stop(); postbacks.stop() }
 
@@ -147,6 +149,13 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     components.forKeyValueEntity(EntityId(id)).call(Link.createLink)
       .invoke(CreateLink(id, affiliate, brand, None, None, Map.empty, Vector.empty, None, None, "kit", now)): Unit
     id
+
+  /** Waits until the `Unsettled` view counts the account's unclaimed payable facts as the account does, as a close reads them. */
+  def owed(affiliate: String, brand: String, currency: String): Unit =
+    val account = components.forEventSourcedEntity(CommissionAccount.entityId(affiliate, brand, currency))
+    val unclaimed = account.call(CommissionAccount.get).invoke().unsettled.count(f => f.kind.payable && f.settledBy.isEmpty)
+    eventually(s"$affiliate/$brand/$currency owed $unclaimed")(
+      Option(views.forView(Unsettled).get(s"$affiliate/$brand/$currency").fold(0)(_.open.values.sum)).filter(_ == unclaimed)): Unit
 
   /** Polls until `f` answers, as a view's or consumer's effect must be waited for. */
   def eventually[A](what: String, within: FiniteDuration = 20.seconds)(f: => Option[A]): A =

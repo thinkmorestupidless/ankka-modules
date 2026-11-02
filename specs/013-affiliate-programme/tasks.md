@@ -274,19 +274,19 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T054 [P] [US4] `p-test/it/CloseSuite.scala`: a close claims and writes pending; below threshold
+- [X] T054 [P] [US4] `p-test/it/CloseSuite.scala`: a close claims and writes pending; below threshold
   nothing; a late fact reverts an approved payout; a paid payout unchanged and its late fact in the next
   close; two currencies two payouts; two concurrent closes one result; then a thousand closes with
   interleaved late facts, no fact claimed twice and none older than the last close unclaimed (SC-006)
-- [ ] T055 [P] [US4] Bind `features/programme/settlement.feature` in `p-test/features/SettlementSteps.scala`
+- [X] T055 [P] [US4] Bind `features/programme/settlement.feature` in `p-test/features/SettlementSteps.scala`
 
 ### Implementation
 
-- [ ] T056 [US4] `p/settlement/Close.scala` (workflow, research R8: 50 accounts a step) and its kit suite;
+- [X] T056 [US4] `p/settlement/Close.scala` (workflow, research R8: 50 accounts a step) and its kit suite;
   O40 starting or rejoining it, O41
-- [ ] T057 [US4] O42: approve, reject, paid; an override figure written as the adjustment
+- [X] T057 [US4] O42: approve, reject, paid; an override figure written as the adjustment
   `override-figure/<payoutId>` claimed by the payout before approval (FR-019); `markPaid` on the account
-- [ ] T058 [US4] O28 adjustments (FR-022); the export route and its `payment_details_read` audit
+- [X] T058 [US4] O28 adjustments (FR-022); the export route and its `payment_details_read` audit
   (FR-021, `p/csv/Export.scala`); portal M5
 - [ ] T059 [US4] Parity: `close and pay`
 

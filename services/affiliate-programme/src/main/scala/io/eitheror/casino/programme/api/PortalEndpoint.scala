@@ -8,7 +8,6 @@ import io.eitheror.casino.programme.api.NetworkAnswers.{InviteBody, SubPatch, gi
 import io.eitheror.casino.programme.api.Invitations.{InviteLinkBody, given}
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.brands.Plan
-import io.eitheror.casino.programme.settlement.{PayoutCodecs, Payouts}
 
 /**
  * The affiliate's portal (contracts/routes.md `/v1/my`): an affiliate, acting on their own account or
@@ -34,10 +33,7 @@ final class PortalEndpoint(api: Api) extends HttpEndpoint("/v1/my"):
       asTarget(aff)(_ => brands(aff)(bs => reading.range(Some(period))((_, r) => ok(Reports.deductions(reading.rows(Some(aff), bs, r)._1)))))
     }
     get("/{affiliate}/payouts") { (aff: String) =>
-      asTarget(aff)(_ => brands(aff) { bs =>
-        val rows = api.views.forView(Payouts).ask(Payouts.byAffiliate, "affiliate" -> aff).filter(p => bs.contains(p.brand))
-        ok(rows)(using PayoutCodecs.wireList)
-      })
+      asTarget(aff)(_ => brands(aff)(bs => Settlement(api).of(aff, bs)))
     }
     get("/{affiliate}/account") { (aff: String) => asTarget(aff)(_ => attempt(account(aff))) }
     patchBody("/{affiliate}/account") { (aff: String, body: String) =>

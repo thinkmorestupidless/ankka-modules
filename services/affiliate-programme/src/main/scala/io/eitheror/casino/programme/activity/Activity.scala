@@ -41,4 +41,8 @@ object Activity extends KeyedView.Companion[ActivityView, ActivityRow](
   val ofAffiliate = query("of-affiliate")(
     s"SELECT payload FROM $table WHERE payload::jsonb->>'affiliate' = :affiliate ORDER BY payload::jsonb->>'at', row_key")
 
+  /** Entries of one action, whoever they are about: the export's `payment_details_read` names no one affiliate. */
+  val byAction = query("by-action")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'action' = :action ORDER BY payload::jsonb->>'at', row_key")
+
   def create(ctx: ViewComponentContext) = new ActivityView
