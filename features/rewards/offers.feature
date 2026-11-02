@@ -89,7 +89,7 @@ Feature: An operator creates an offer, a player claims it, and offers are target
   Scenario: an operator reading a player's rewards sees every reward with its state, face value, source and clocks
     Given a player with rewards
     When an operator reads the player's rewards
-    Then every reward is listed with its state, its face value in major units, its source and its clocks
+    Then every reward is listed with its state, its face value in minor units, its source and its clocks
 
   Scenario: an operator reading the brand's rewards sees them across players, filterable by state
     Given rewards across the brand's players

@@ -306,7 +306,7 @@ class OffersFeatures extends RewardsFeatures("offers.feature"):
 
   When("an operator reads the player's rewards") { () => last = grants(s"?playerId=$player") }
 
-  Then("every reward is listed with its state, its face value in major units, its source and its clocks") { () =>
+  Then("every reward is listed with its state, its face value in minor units, its source and its clocks") { () =>
     val listed = items(last)
     assertEquals(listed.flatMap(_.text("status")), Vector("AVAILABLE", "ACTIVE"), last.text)
     // Amounts are minor units on every route (FR-032): 1000 is the offer's 10.00.
