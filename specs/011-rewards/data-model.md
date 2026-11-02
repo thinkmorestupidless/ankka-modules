@@ -59,7 +59,7 @@ Wire names are camelCase; stored types go through `RewardsCodecs` (manifests `re
 | `Target(offer, source, campaign)` | target route, code | `OfferMadeVisible` + a reward id `AVAILABLE`; a repeat for the same offer writes nothing |
 | `Select(offer)` | player | deposit offer: `RewardSelected` (the `AVAILABLE` reward → `PENDING`); no-deposit: `Claimed(rewardId, decision)` then an award; refusals `offer_not_visible`, a decline reason |
 | `Deselect` | player | every `PENDING` → `AVAILABLE` |
-| `EnterCode(code, preview)` | player | `CodeEntered(code, outcome)`; matched and not preview → `Target` with source `player_code` or `affiliate_code` and the tag |
+| `EnterCode(code, preview)` | player | not preview: `CodeEntered(code, outcome)`, and matched → `Target` with source `player_code` or `affiliate_code` and the tag; a preview answers the terms and records nothing (FR-020) |
 | `DepositConfirmed(deposit)` | `MoneyConsumer` | `DepositRecorded`; with a `PENDING` reward: evaluate at `Selection` → `Claimed` / `PendingExpired` / `DeclineRecorded(reason)` |
 | `Claim(offer, mode, deposit?, source)` | award route, operator award | `Claimed(rewardId, decision)` or the decline |
 | `PlayerFact(fact)` | `PlayersConsumer` | `RegistrationRecorded`, `CheckStarted`, `CheckEnded`, `NoDepositBlocked`, `BlockCleared`, `FlagChanged`, `TierChanged` |

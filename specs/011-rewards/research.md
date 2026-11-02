@@ -333,7 +333,8 @@ name; `LeakSuite` checks the published facts and the logs.
 **Decision**: `CodeDocument` (key value, id = slug) holds the last fetched document and its time;
 `codes-<slug>` refreshes it every 5 minutes from `REWARDS_CODE_DOCUMENT_URL`, a key added to
 `contract/keys.md` and `modules/casino/module.json`'s `configuration[]`, empty until spec 013
-publishes one (inert, settled 2026-11-01). A fetch failure keeps the last copy; the operator's
+publishes one (inert, settled 2026-11-01). A fetch failure keeps the last copy, but a 404 is a document with no codes (decided 2026-11-02, so
+a brand can create offers before spec 013 publishes one); the operator's
 `GET /offers/code-document` answers its age and `stale` past 15 minutes.
 
 ## R14. Local run and CI
@@ -439,3 +440,18 @@ behaviour unless it says otherwise.
 - **The player's cancel** (T049): the open rewards are the wallet's open records whose reward is
   `ACTIVE`; an empty `grantRef` is `grant_not_found`, never the primary; no grant named cancels the
   primary.
+- **A preview records nothing** (decided 2026-11-02, FR-020): no `CodeEntered`, no
+  `bonus_code_entered`, as the original, so a preview never clears the registration's pending code.
+- **A claim after the wallet refused** (T040): the award key is the reward id and the wallet keeps its
+  refusal under it, so a claim of a reward whose award was refused opens a fresh reward id in the
+  same state; the old one expires `superseded`.
+- **One selection at a time** (T040): a select, or a no-deposit select, while any other reward is
+  pending is refused 409 `ACTIVE_BONUS_CONFLICT`.
+- **The detection switch** (T039): read on the first player fact after start and on each duplicate
+  check fact; a failed read keeps the last value. Every `player_fraud_flagged` sets the
+  suspected-duplicate flag.
+- **A matched code selects** (T044): as codes.feature ("visible and selected"); the original only
+  revealed it. A no-deposit offer is awarded at once; a decline is 409 `{status: "ineligible", reason}`.
+  The preview's text names the offer's currency (the original wrote £).
+- **Codes against the document** (T043): an offer create fetches the document when no copy exists
+  (503 when that fails); an edit checks the copy it has.

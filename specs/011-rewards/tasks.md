@@ -179,14 +179,14 @@ the publishers green under their suites.
 
 **Independent test**: `eligibility.feature` through every path.
 
-- [ ] T038 [US2] Bind `features/rewards/eligibility.feature` in `T/features/EligibilityFeatures.scala`.
-- [ ] T039 [US2] `S/consumers/PlayersConsumer.scala`: research R9's families into `PlayerRewards`;
+- [X] T038 [US2] Bind `features/rewards/eligibility.feature` in `T/features/EligibilityFeatures.scala`.
+- [X] T039 [US2] `S/consumers/PlayersConsumer.scala`: research R9's families into `PlayerRewards`;
       the detection switch from `Players` at start and on each check fact. `ConsumerTestKit` suite.
-- [ ] T040 [US2] The open count: `PlayerRewards`' open rewards and the wallet's active records from
+- [X] T040 [US2] The open count: `PlayerRewards`' open rewards and the wallet's active records from
       `GET W/restricted-funds` at evaluation (0 on failure); `T/it/ConcurrencySuite.scala`: one, two
       and no maximum; the wallet refusing `BONUS_ALREADY_ACTIVE` records the refusal and leaves the
       reward as it was.
-- [ ] T041 [US2] `T/it/PathsSuite.scala`: each decline reason answered on select, code, deposit,
+- [X] T041 [US2] `T/it/PathsSuite.scala`: each decline reason answered on select, code, deposit,
       the award route and the operator's award, in the shape each path answers; the operator's
       override applies rules 1–4 only.
 
@@ -196,16 +196,16 @@ the publishers green under their suites.
 
 **Independent test**: `codes.feature` with `FakeProgramme`.
 
-- [ ] T042 [US3] Bind `features/rewards/codes.feature` in `T/features/CodesFeatures.scala`.
-- [ ] T043 [US3] `S/codes/CodeDocument.scala` (key value) and `S/codes/CodesTimer.scala`
+- [X] T042 [US3] Bind `features/rewards/codes.feature` in `T/features/CodesFeatures.scala`.
+- [X] T043 [US3] `S/codes/CodeDocument.scala` (key value) and `S/codes/CodesTimer.scala`
       (`codes-<slug>`, every 5 minutes, inert with no URL; a failure keeps the last copy; staleness
       reported after 15 minutes) and `OffersEndpoint`'s `GET /code-document` (`{fetchedAt, entries,
       stale}`). Suite with `FakeProgramme`.
-- [ ] T044 [US3] `RewardsEndpoint`: `POST /{playerId}/codes` (brand codes first, then the document;
+- [X] T044 [US3] `RewardsEndpoint`: `POST /{playerId}/codes` (brand codes first, then the document;
       `invalid_code`; source `player_code` or `affiliate_code` with the tag) and
       `POST /{playerId}/codes/preview`; each entry publishes `bonus_code_entered` with its outcome.
       `OfferBook`'s create and edit refuse a code already in the document.
-- [ ] T045 [US3] `T/it/CodesSuite.scala`: any case and spaces; a code in the document but not live;
+- [X] T045 [US3] `T/it/CodesSuite.scala`: any case and spaces; a code in the document but not live;
       the document unreachable serving the last copy.
 
 ## Phase 6: US4, an active reward converts, completes, is switched, cancelled, revoked or expires (P1)
