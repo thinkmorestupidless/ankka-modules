@@ -288,7 +288,7 @@ the publishers green under their suites.
 
 ## Phase 10: The recordings and parity
 
-- [ ] T065 `tests/original/rewards-driver/`: one scenario per feature scenario the suite does not reach
+- [X] T065 `tests/original/rewards-driver/`: one scenario per feature scenario the suite does not reach
       (research R2: the #730 gates, the operator's awards with no offer, revoke of free rounds, spin
       values), on the original's routes, in the shape of `tests/original/payouts-driver/`.
 - [ ] T066 Record (needs the user: the original's kind stack and credentials): the spec's
