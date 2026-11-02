@@ -167,6 +167,11 @@ final class PlayerRewards(@scala.annotation.unused context: EventSourcedEntityCo
     val events = PlayerRewards.factEvents(currentState, c)
     if events.isEmpty then answer(Outcome.Idle) else write(Outcome.Idle, events*)
 
+  /** A round naming free rounds this service does not hold (`RoundsConsumer`): recorded once per round id. */
+  def roundUnmatched(c: RecordUnmatchedRound): Effect[PlayerAnswer] =
+    if currentState.unmatchedRounds.exists(_.roundId == c.round.roundId) then answer(Outcome.Idle)
+    else write(Outcome.Idle, RoundUnmatched(c.round))
+
   def get: ReadOnlyEffect[PlayerRewardsState] = effects.reply(currentState)
 
 object PlayerRewards
@@ -185,6 +190,7 @@ object PlayerRewards
   given Serializer[RewardChanged]      = RewardsCodecs.serializer[RewardChanged]("player-reward-changed")
   given Serializer[PlayerFact]         = RewardsCodecs.serializer[PlayerFact]("player-fact")
   given Serializer[EnterCode]          = RewardsCodecs.serializer[EnterCode]("player-enter-code")
+  given Serializer[RecordUnmatchedRound] = RewardsCodecs.serializer[RecordUnmatchedRound]("player-round-unmatched")
 
   def create(context: EventSourcedEntityContext) = new PlayerRewards(context)
 
@@ -196,6 +202,7 @@ object PlayerRewards
   val rewardChanged    = command("reward-changed")(_.rewardChanged)
   val playerFact       = command("player-fact")(_.playerFact)
   val enterCode        = command("enter-code")(_.enterCode)
+  val roundUnmatched   = command("round-unmatched")(_.roundUnmatched)
   val get              = query("get")(_.get)
 
   val OfferNotVisible = "offer_not_visible"
@@ -275,3 +282,5 @@ object PlayerRewards
     case TierChanged(tier, _)                  => s.copy(tier = Some(tier))
     case DetectionChanged(on, _)               => s.copy(detectionOn = on)
     case CodeEntered(_, _, _)                  => s
+    case RoundUnmatched(round)                 =>
+      s.copy(unmatchedRounds = (s.unmatchedRounds :+ round).takeRight(PlayerRewardsState.UnmatchedKept))

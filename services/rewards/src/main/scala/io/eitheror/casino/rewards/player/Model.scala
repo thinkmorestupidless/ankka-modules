@@ -45,6 +45,12 @@ final case class HeldReward(
   def standing: Standing = if claiming then Standing.Open else Standing.of(status.wire)
   def held: Held         = Held(offerId, standing, providerFailed)
 
+/**
+ * A settled round naming free rounds this service does not hold (the edge case "a round for a reward this service does
+ * not know"): kept on the player's record, which the fact names, for the operator's list of the player's rewards.
+ */
+final case class UnmatchedRound(roundId: String, grantRef: String, winCents: Long, at: Instant)
+
 /** A confirmed deposit as the wallet reported it (FR-012): the ordinal is the wallet's, per player and currency. */
 final case class DepositSeen(amount: Long, currency: String, ordinal: Int, paymentRef: String, at: Instant)
 
@@ -66,7 +72,8 @@ final case class PlayerRewardsState(
     rewards: Map[String, HeldReward] = Map.empty,
     lastDeposit: Option[DepositSeen] = None,
     payments: Vector[String] = Vector.empty,
-    retired: Set[String] = Set.empty
+    retired: Set[String] = Set.empty,
+    unmatchedRounds: Vector[UnmatchedRound] = Vector.empty
 ):
   /** The evaluator's view of the player (FR-008); segments and the tier rank are dormant (research R4). */
   def snapshot: PlayerSnapshot =
@@ -94,6 +101,8 @@ final case class PlayerRewardsState(
 object PlayerRewardsState:
   /** How many recent payment references are kept against a deposit reported twice. */
   val PaymentsKept: Int = 200
+  /** How many unmatched rounds are kept for the operator's list, the newest. */
+  val UnmatchedKept: Int = 200
 
   given JsonValueCodec[PlayerRewardsState] = RewardsCodecs.stored[PlayerRewardsState]
 
@@ -132,6 +141,9 @@ object PlayerEvent:
    * `matched`, `invalid` or `ineligible` (`CodeOutcome`). `bonus_code_entered` is published from it (`CodesPublisher`).
    */
   final case class CodeEntered(code: String, outcome: String, at: Instant) extends PlayerEvent
+
+  /** A settled round naming free rounds this service does not hold (data-model.md `RoundUnmatched`). */
+  final case class RoundUnmatched(round: UnmatchedRound) extends PlayerEvent
 
 /** What a command came to, for its caller to act on (open the reward, select it, start the award, expire it). */
 sealed trait Outcome
@@ -208,6 +220,9 @@ object PlayerChange:
  * read (research R9: at start and on each check fact).
  */
 final case class PlayerFact(change: PlayerChange, detection: Option[Boolean], at: Instant)
+
+/** A settled round naming free rounds this service does not hold, from `RoundsConsumer`; once per round id. */
+final case class RecordUnmatchedRound(round: UnmatchedRound)
 
 final case class RewardChanged(rewardId: String, offerId: String, status: RewardStatus, providerFailed: Boolean, awardRefused: Boolean,
     at: Instant)

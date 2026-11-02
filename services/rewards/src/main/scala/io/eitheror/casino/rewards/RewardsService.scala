@@ -23,6 +23,7 @@ object RewardsService:
     consumers.MoneyConsumer.descriptor,
     consumers.IndexConsumer.descriptor,
     consumers.PlayersConsumer.descriptor,
+    consumers.RoundsConsumer.descriptor,
     codes.CodeDocument.descriptor,
     codes.CodesTimer.descriptor
   )

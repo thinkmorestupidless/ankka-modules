@@ -318,3 +318,11 @@ class PlayerRewardsSuite extends munit.FunSuite:
     assertEquals(CodesPublisher.fact("p-1", CodeEntered("AFF100", CodeOutcome.Matched, at)),
       Some(BonusCodeEntered("p-1", "AFF100", at, Some("matched"))))
     assertEquals(CodesPublisher.fact("p-1", RewardSelected("r-1", at)), None)
+
+  test("a round naming free rounds not held is recorded once per round id"):
+    val kit   = record
+    val round = UnmatchedRound("rd-1", "fr-unknown", 150L, at)
+    val first = kit.call(PlayerRewards.roundUnmatched)(RecordUnmatchedRound(round))
+    assertEquals(first.events.toVector, Vector(RoundUnmatched(round)))
+    assertEquals(kit.call(PlayerRewards.roundUnmatched)(RecordUnmatchedRound(round.copy(winCents = 9L))).events.toVector, Vector.empty)
+    assertEquals(kit.currentState.unmatchedRounds, Vector(round))
