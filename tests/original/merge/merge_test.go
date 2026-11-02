@@ -166,3 +166,23 @@ func TestRepeatedReadsCollapseToTheLast(t *testing.T) {
 		t.Fatal("a repeated write was collapsed")
 	}
 }
+
+func TestAPollOfSeveralReadsCollapsesToItsLastRound(t *testing.T) {
+	balance := func(resp string) recorder.Step { return step("/wallet/balance", ``, resp) }
+	twin := func(resp string) recorder.Step { return step("/twins/player-1", ``, resp) }
+	act := recorder.Step{Request: recorder.Request{Method: "POST", Path: "/grant"}, Response: recorder.Response{Status: 200}}
+	a := recorder.Recording{Scenario: "TestZ", Steps: []recorder.Step{balance(`0`), twin(`{}`), act}}
+	b := recorder.Recording{Scenario: "TestZ", Steps: []recorder.Step{balance(`0`), twin(`{}`), balance(`0`), twin(`{}`),
+		balance(`5`), twin(`{"t":1}`), act}}
+	m := Merge(a, b)
+	if m.Runs != 2 || len(m.Steps) != 3 {
+		t.Fatalf("runs %d, %d steps", m.Runs, len(m.Steps))
+	}
+	if got := Collapse(b).Steps; string(got[0].Response.Body) != `5` || string(got[1].Response.Body) != `{"t":1}` {
+		t.Fatalf("the last round was not kept: %s %s", got[0].Response.Body, got[1].Response.Body)
+	}
+	// Two different reads after each other are not a poll.
+	if n := len(Collapse(recorder.Recording{Steps: []recorder.Step{balance(`0`), twin(`{}`)}}).Steps); n != 2 {
+		t.Fatalf("%d steps", n)
+	}
+}
