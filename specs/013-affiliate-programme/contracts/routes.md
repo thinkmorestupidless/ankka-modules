@@ -54,6 +54,12 @@ Admits `Routes.affiliate()`; the target is the caller (`eitheror_scope_id`) or a
 `404 account_not_found` (the original's). Every read takes `?brand=` (absent: every brand the account
 has a membership at), and every figure is per brand and currency.
 
+A revenue read (M1, and O22 and O37 on the operator's side) answers
+`{affiliateId, period, figures: [{brandId, currency, …}]}`: one element per brand and currency, each
+holding the original's revenue fields (`ggr`, `ngr`, `cpaCommission`, `depositCount`, …) in minor units.
+O37 has no `affiliateId`. A brand with registrations and no money yet has an element without `currency`.
+Decided 2026-11-02 (research.md *Found during implementation*).
+
 | Original # | Paths under `/{affiliate}` |
 |---|---|
 | M1–M5 | `revenue`, `revenue/{period}/breakdown`, `revenue/by-campaign`, `deductions/{period}`, `payouts` |

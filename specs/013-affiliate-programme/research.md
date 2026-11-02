@@ -364,3 +364,16 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   first deposit wrote CPA there. FR-016 governs, as R20's fallback says: the fact is recorded, the
   first-deposit guard is set, and no CPA is written, then or after reactivation. `CommissionSuite`
   holds it.
+- **A revenue read answers a list of figures** (T046, asked 2026-11-02). The original's revenue read
+  was one flat object for one brand. The programme keeps figures per brand and currency, so M1, O22
+  and O37 answer `{affiliateId, period, figures: [{brandId, currency, …the original's fields}]}`
+  (contracts/routes.md). The person chose this over an array at the top level and over a flat object
+  when unambiguous. Parity wraps a recorded flat answer as the one element it expects.
+- **The counts a revenue read gives come from the player's facts** (T046). The original's revenue holds
+  `depositCount`, `totalDepositAmount`, `ftdCount` and `registrationCount` per period; the `Ledger`
+  view holds only commission facts. `PlayerFacts`, a keyed view of `PlayerAttribution`'s events (one
+  row per applied fact, stamped with the period in the brand's reporting zone, which `Intake` sets
+  on the fact), is what those counts fold from: registrations bound, `first-deposit` facts, and
+  `deposit` facts with their sum. GGR recorded and not folded (before the binding, or of the other
+  source) is `excludedGgr`.
+
