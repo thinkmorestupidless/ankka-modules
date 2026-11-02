@@ -52,6 +52,7 @@ object RealMoney:
     case _: RestrictedFundsAwarded   => "restricted_funds_awarded"
     case _: RestrictedFundsConverted => "restricted_funds_converted"
     case _: RestrictedFundsForfeited => "restricted_funds_forfeited"
+    case _: RestrictedFundsClosed    => "restricted_funds_closed"
     case _: AdminAdjusted            => "admin_adjusted"
     case _: HoldPlaced               => "hold_placed"
     case _: HoldReleased             => "hold_released"
@@ -75,6 +76,7 @@ object RealMoney:
         case f: RestrictedFundsAwarded   => f.awardId
         case f: RestrictedFundsConverted => f.awardId
         case f: RestrictedFundsForfeited => f.awardId
+        case f: RestrictedFundsClosed    => f.awardId
         case f: ProviderCredited         => f.awardId.getOrElse("")
         case _                           => ""
       s"${family(fact)}/${fact.transactionId}/$award"
