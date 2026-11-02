@@ -9,6 +9,7 @@ import io.eitheror.casino.rewards.clients.AwardTerms
 import io.eitheror.casino.rewards.eligibility.Decision
 import io.eitheror.casino.rewards.offers.PayloadType
 import io.eitheror.casino.rewards.reward.*
+import io.eitheror.casino.rewards.steps.{FreeRounds, FreeRoundsFlow, FreeRoundsRequest}
 
 import java.util.UUID
 
@@ -161,3 +162,44 @@ class RevokeSuite extends munit.FunSuite:
     val r = revoke(id, "mode" -> "forfeit")()
     assertEquals((r.status, r.str("error"), r.str("grantStatus")), (409, "FREE_SPINS_FINISHED", "expired"))
     assertEquals(kit.provider.cancelCalls(id), Vector.empty)
+
+  test("free rounds are cancelled through FreeRounds; unavailable then asked again once the provider answers"):
+    val (id, _) = active(freeRounds = true)
+    kit.provider.down = Some(Answer(503, """{"error":"down"}"""))
+    assertEquals(revoke(id, "mode" -> "forfeit")().str("error"), "PROVIDER_UNAVAILABLE")
+    kit.provider.down = None
+    val r = revoke(id, "mode" -> "forfeit")()
+    assertEquals((r.status, r.str("status")), (200, "revoked"), r.text)
+    assertEquals(kit.provider.cancelCalls(id).size, 2)
+    val flow = kit.components.forWorkflow(EntityId(id)).call(FreeRounds.status).invoke()
+    assertEquals((flow.phase, flow.cancelled), (FreeRoundsFlow.Cancelled, Some("cancelled")))
+
+  test("the provider's error on the cancel is PROVIDER_UNAVAILABLE"):
+    val (id, _) = active(freeRounds = true)
+    kit.provider.cancelFor(id, FakeGameProvider.status("error"))
+    val r = revoke(id, "mode" -> "forfeit")()
+    assertEquals((r.status, r.str("error")), (503, "PROVIDER_UNAVAILABLE"))
+    assertEquals(reward(id).status, RewardStatus.Active)
+
+  test("what free rounds accumulated is forfeited: nothing paid at the revoke, nor for a round after it"):
+    val (id, player) = active(freeRounds = true)
+    entity(id).call(Reward.roundSettled).invoke(RoundSettled("rd-1", 400L, kit.now())): Unit
+    assertEquals(reward(id).freeRounds.map(_.tally.accumulated), Some(400L))
+    assertEquals(revoke(id, "mode" -> "forfeit")().str("status"), "revoked")
+    val late = entity(id).call(Reward.roundSettled).invoke(RoundSettled("rd-2", 300L, kit.now()))
+    assertEquals((late.payment, late.skipped), (None, Some("not_live")))
+    assertEquals(entity(id).call(Reward.finalise).invoke(Finalise(kit.now().plusSeconds(86400L * 60))).payment, None)
+    Thread.sleep(300)
+    assertEquals(kit.wallet.received.filter(_.path.contains(s"/wallets/$player/")), Vector.empty)
+
+  test("free rounds still being confirmed: the revoke cancels them and the polling stops"):
+    RewardsRuntime.wire(kit.settings.copy(pollEvery = java.time.Duration.ofMillis(200)), () => kit.now())
+    val (id, player) = active(freeRounds = true)
+    kit.provider.createStatus(id, "processing")
+    kit.components.forWorkflow(EntityId(id)).call(FreeRounds.start).invoke(FreeRoundsRequest(id, player, "EUR", "g-1", 10, 20L, 30)): Unit
+    kit.eventually("polling")(Option.when(kit.provider.polls(id).nonEmpty)(()))
+    assertEquals(revoke(id, "mode" -> "forfeit")().str("status"), "revoked")
+    assertEquals(reward(id).status, RewardStatus.Revoked)
+    val polls = kit.provider.polls(id).size
+    Thread.sleep(800)
+    assertEquals(kit.provider.polls(id).size, polls)

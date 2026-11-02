@@ -6,9 +6,9 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.rewards.Json
 import io.eitheror.casino.rewards.Json.*
-import io.eitheror.casino.rewards.clients.{BonusStatus, Called, Wallet}
+import io.eitheror.casino.rewards.clients.Wallet
 import io.eitheror.casino.rewards.reward.{Revoke, Reward, RewardCodes, RewardState, RewardStatus, RevokeMode}
-import io.eitheror.casino.rewards.steps.{StepRequest, WalletCall, Wiring}
+import io.eitheror.casino.rewards.steps.{FreeRoundsFlow, StepRequest, WalletCall, Wiring}
 
 import Answers.*
 
@@ -31,7 +31,8 @@ final class RewardAdminEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/bran
  * does not hold, another brand's among them, is `CLAIM_NOT_FOUND`), then free rounds or funds. Funds must be `ACTIVE`
  * (the original read the record's own status at the wallet, so a pending cap is `NO_ACTIVE_BONUS`); `forfeit` is the
  * wallet's forfeit, nothing clawed back; `reclaim` its cancel with `requireBaseline`, refused `MISSING_BASELINE`.
- * Free rounds are cancelled at the provider first: only no answer refuses (`PROVIDER_UNAVAILABLE`); once played out
+ * Free rounds are cancelled at the provider first, through `FreeRounds` (research R8's `cancel`): only no answer, or the
+ * provider's error, refuses (`PROVIDER_UNAVAILABLE`); once played out
  * they are `FREE_SPINS_FINISHED`. The reward is revoked once the wallet or the provider answered, with the reason.
  */
 object Revocations:
@@ -66,10 +67,11 @@ object Revocations:
   private def freeRounds(ctx: Ctx, s: RewardState, mode: RevokeMode, by: String, reason: Option[Personal[String]]): Reply =
     if s.status != RewardStatus.Active then refuse("FREE_SPINS_FINISHED", "grantStatus" -> grantStatus(s.status))
     else
-      ctx.gameProvider.cancel(s.rewardId, s.playerId) match
-        case Called.Unreachable(_) | Called.Done(BonusStatus.Error) => refuse("PROVIDER_UNAVAILABLE")
-        case _ =>
-          // Whatever else the provider answered, the spins are taken away here (`BR:883-893`); nothing was paid.
+      FreeRoundsCancel.run(ctx, s.rewardId, s.playerId) match
+        case None | Some(FreeRoundsFlow.Unavailable) => refuse("PROVIDER_UNAVAILABLE")
+        case Some(_) =>
+          // Whatever else the provider answered, the spins are taken away here (`BR:883-893`); what they accumulated is
+          // forfeited: a revoked reward pays nothing, at its end or for a late round.
           recorded(ctx, s.rewardId, Revoke(mode, by, reason, 0L, ctx.now())) {
             ok(Json.obj("status" -> "revoked", "mode" -> mode.wire, "clawbackApplied" -> 0L, "freeSpins" -> true))
           }
