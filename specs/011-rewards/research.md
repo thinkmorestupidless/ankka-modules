@@ -502,3 +502,10 @@ behaviour unless it says otherwise.
   ids attribution learns from `free_spins_granted` and `free_spins_settled`. A credit read before its
   reward, for a player already attributed, is still counted: possible only on a replay where money runs
   far ahead of `casino.rewards`.
+- **The kyc recordings listed as unclaimed** (2026-11-02, the user, "List kyc as unclaimed"): `recordings
+  check` refused the 35 kyc recordings spec 009 committed with no requirement. They are listed in
+  `tests/port/unclaimed.txt` until spec 009 names one in each, rather than given a mapping here.
+- **Recordings the original could not give** (2026-11-02): `TestScenario23_RewardGrantExpiry` fails on the
+  original at `7630feb0` (its setup's losing bet forfeits the grant, the bonus bust); and
+  `TestScenario21_CodeMinDepositDepositNumberWindow` passed twice in nine runs. Neither is kept;
+  `tests/port/rewards/README.md` says why. FR-015 and FR-025 rest on the expiry capabilities' tables.
