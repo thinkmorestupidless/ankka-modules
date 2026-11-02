@@ -55,7 +55,9 @@ final case class BrandState(
     duplicates: Long = 0,
     mismatches: Long = 0,
     addedBy: Option[String] = None,
-    addedAt: Option[Instant] = None
+    addedAt: Option[Instant] = None,
+    /** Where the brand's own key document is, whose `transition` says when its legacy tags end (FR-026). */
+    keyDocumentUrl: Option[String] = None
 ):
   def exists: Boolean   = origin.nonEmpty
   def zone: ZoneId      = ZoneId.of(reportingZone)
@@ -63,8 +65,14 @@ final case class BrandState(
   /** A brand outside this installation delivers by webhook: one elsewhere or hosted (contracts/inbound.md). */
   def byWebhook: Boolean = origin == BrandProgramme.Elsewhere || origin == BrandProgramme.Hosted
 
+  /** The brand's key document: the one it was given, or for a brand of this installation, its `attribution`'s (spec 012). */
+  def keyDocument(attributionBaseUrl: Option[String]): Option[String] =
+    keyDocumentUrl.orElse(Option.when(origin == BrandProgramme.Here)(attributionBaseUrl).flatten
+      .map(base => s"$base/v1/casino/brands/$slug/attribution/keys"))
+
 final case class SeedBrand(slug: String, at: Instant)
-final case class AddBrand(slug: String, origin: String, name: Option[String], reportingZone: String, by: String, at: Instant)
+final case class AddBrand(slug: String, origin: String, name: Option[String], reportingZone: String, by: String, at: Instant,
+    keyDocumentUrl: Option[String] = None)
 
 /** A manager's change to the settings and the programme page; what is absent is left as it is. */
 final case class UpdateBrand(
@@ -75,7 +83,8 @@ final case class UpdateBrand(
     defaultPlan: Option[String] = None,
     page: Option[ProgrammePage] = None,
     sender: Option[Sender] = None,
-    name: Option[String] = None
+    name: Option[String] = None,
+    keyDocumentUrl: Option[String] = None
 )
 
 final case class SetGgrSource(source: String, fromDay: String)
@@ -106,7 +115,7 @@ final class BrandProgramme(@scala.annotation.unused context: KeyValueEntityConte
     else if Try(ZoneId.of(cmd.reportingZone)).isFailure then effects.error(s"reportingZone: '${cmd.reportingZone}' is not a time zone", ErrorCode.BadRequest)
     else
       effects.updateState(BrandState(cmd.slug, cmd.origin, cmd.name, reportingZone = cmd.reportingZone,
-        addedBy = Some(cmd.by), addedAt = Some(cmd.at))).thenReplyState
+        addedBy = Some(cmd.by), addedAt = Some(cmd.at), keyDocumentUrl = cmd.keyDocumentUrl)).thenReplyState
 
   def update(cmd: UpdateBrand): Effect[BrandState] =
     BrandProgramme.problem(currentState, cmd) match
@@ -121,7 +130,8 @@ final class BrandProgramme(@scala.annotation.unused context: KeyValueEntityConte
           defaultPlan = cmd.defaultPlan.orElse(s.defaultPlan),
           page = cmd.page.getOrElse(s.page),
           sender = cmd.sender.getOrElse(s.sender),
-          name = cmd.name.orElse(s.name)
+          name = cmd.name.orElse(s.name),
+          keyDocumentUrl = cmd.keyDocumentUrl.orElse(s.keyDocumentUrl)
         )).thenReplyState
 
   /** The GGR source from a reporting day on; the source before that day stays what it was. */

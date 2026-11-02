@@ -85,8 +85,8 @@ past 50 an hour.
 |---|---|---|
 | `GET /documents/keys`, `/documents/revocations`, `/documents/legacy-tags`, `/documents/codes/{brand}` | public | spec 012's shapes; `Cache-Control: max-age=<cacheSeconds>` |
 | `POST /inbound/{brand}` | public, HMAC | [inbound.md](inbound.md) |
-| `POST /documents/legacy-tags/withdraw` | `platform_admin` | FR-026: once every brand with imported tags reports its transition ended in its own key document; the document answers `404` after |
-| `GET`, `POST /brands`; `PATCH /brands/{brand}` | `platform_admin` | FR-040; `POST` answers the webhook secret once |
+| `POST /documents/legacy-tags/withdraw` | `platform_admin` | FR-026: once every brand with imported tags reports its transition ended in its own key document, read from the brand's `keyDocumentUrl`; else `409 transition_not_ended` naming the brands not ended or not reachable; the document answers `404` after |
+| `GET`, `POST /brands`; `PATCH /brands/{brand}` | `platform_admin` | FR-040; `POST` answers the webhook secret once; `POST` and `PATCH` take `keyDocumentUrl` (FR-026) |
 | `GET /brands/{brand}/usage?month=` | `platform_admin` | FR-042 |
 | `POST /imports/{brand}` | `platform_admin` | FR-039 |
 

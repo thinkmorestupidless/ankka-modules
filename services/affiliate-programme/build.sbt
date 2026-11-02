@@ -39,13 +39,19 @@ lazy val root = project
     // the recordings at ../../tests/port.
     Test / fork := true,
     Test / javaOptions += s"-Dcasino.root=${(baseDirectory.value / ".." / "..").getCanonicalPath}",
+    // DocumentsSuite verifies the programme's tags with the verifier a brand runs: spec 012's own, compiled
+    // in from attribution's sources, which need nothing of attribution's but these four files.
+    Test / unmanagedSources ++= {
+      val attribution = baseDirectory.value / ".." / "attribution" / "src" / "main" / "scala" / "io" / "eitheror" / "casino" / "attribution"
+      Seq(attribution / "Types.scala", attribution / "Json.scala", attribution / "tag" / "Tag.scala", attribution / "tag" / "Signing.scala")
+    },
     // `sbt test` runs the unit suites only (quickstart §3); `sbt -Dit=true "testOnly …"` (`just
     // programme-it`) runs the integration, parity and feature suites, which need Docker.
     Test / testOptions ++= (if (sys.props.contains("it")) Nil else Seq(Tests.Filter(n => !needsDocker(n)))),
     // The integration suites share one service per JVM (SharedKit). A suite that starts a service of its
     // own runs in a JVM of its own, since two services in one JVM disturb each other when one stops.
     Test / testGrouping := {
-      val own     = Set("LeakSuite", "LatencySuite", "CloseSuite")
+      val own     = Set("LeakSuite", "LatencySuite", "CloseSuite", "DocumentsSuite")
       val options = ForkOptions().withRunJVMOptions((Test / javaOptions).value.toVector)
       val (alone, shared) = (Test / definedTests).value.partition(t => own.exists(n => t.name.endsWith(s".$n")))
       Tests.Group("shared", shared, Tests.SubProcess(options)) +: alone.map(t => Tests.Group(t.name, Seq(t), Tests.SubProcess(options)))

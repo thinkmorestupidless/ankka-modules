@@ -6,6 +6,7 @@ import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Answers.{*, given}
 import io.eitheror.casino.programme.api.Bodies.{*, given}
 import io.eitheror.casino.programme.api.SettlementAnswers.given
+import io.eitheror.casino.programme.api.TrackingAnswers.given
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.network.Network
 import io.eitheror.casino.programme.sealing.Identity
@@ -63,6 +64,13 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       post(s"/{brand}/network/{sub}/$action") { (brand: String, sub: String) =>
         attempt(member(brand, sub)(_ => networks.transition(sub, brand, action, principal.subject, Membership.Operator)))
       }
+    // US5: the brand's links; a link made for one of its affiliates.
+    get("/{brand}/tracking-links") { (brand: String) => attempt(Tracking(api).links(None, brand)) }
+    postBody("/{brand}/tracking-links") { (brand: String, body: String) =>
+      attempt(withBody[TrackingAnswers.LinkBody](body)(b => b.affiliateId match
+        case None      => invalid("affiliateId is required")
+        case Some(aff) => member(brand, aff)(_ => Tracking(api).createLink(aff, brand, b, principal.subject))))
+    }
     // US4: closing a period, the payouts, adjustments and the export.
     post("/{brand}/payouts/close") { (brand: String) => attempt(settlement.close(brand, query.raw("period"), principal.subject)) }
     get("/{brand}/payouts") { (brand: String) => attempt(settlement.list(brand, query.raw("period"))) }

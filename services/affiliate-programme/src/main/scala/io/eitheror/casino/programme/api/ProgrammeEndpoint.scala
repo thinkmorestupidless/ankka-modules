@@ -11,10 +11,16 @@ import io.eitheror.casino.programme.api.Wire.*
 final class ProgrammeEndpoint(api: Api) extends HttpEndpoint("/v1/programme"):
   val acl: Acl = Acl.DenyAll
 
+  private val documents = Documents(api)
+
   withAcl(Access.public) {
-    get("/documents/keys") { () => notBuilt("GET /v1/programme/documents/keys") }
+    get("/documents/keys") { () => attempt(documents.keys) }
+    get("/documents/revocations") { () => attempt(documents.revocations) }
+    get("/documents/legacy-tags") { () => attempt(documents.legacyTags) }
+    get("/documents/codes/{brand}") { (brand: String) => attempt(documents.codes(brand)) }
   }
 
   withAcl(api.access.platformAdmin) {
+    post("/documents/legacy-tags/withdraw") { () => attempt(documents.withdraw(principal.subject)) }
     get("/brands") { () => notBuilt("GET /v1/programme/brands") }
   }

@@ -3,6 +3,7 @@ package io.eitheror.casino.programme.intake
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.facts.{AttributionFact, Click}
+import io.eitheror.casino.programme.Wiring
 import io.eitheror.casino.programme.accounts.{Membership, MembershipState}
 import io.eitheror.casino.programme.brands.{BrandProgramme, BrandState, Plan, PlanState}
 import io.eitheror.casino.programme.links.{Link, LinkState}
@@ -29,7 +30,7 @@ trait IntakeCalls:
   def player(brand: String, pseudonym: String): PlayerState
   def apply(brand: String, pseudonym: String, cmd: ApplyFact): Outcome
   def outcome(brand: String, factId: String, outcome: String): Unit
-  /** A click fact: recorded against its link (US5 adds the record). */
+  /** A click fact: recorded against its link (FR-024). */
   def click(fact: Click): Unit
 
 object IntakeCalls:
@@ -52,7 +53,9 @@ object IntakeCalls:
       client.forEventSourcedEntity(PlayerAttribution.entityId(brand, pseudonym)).call(PlayerAttribution.applyFact).invoke(cmd)
     def outcome(brand: String, factId: String, outcome: String): Unit =
       client.forKeyValueEntity(FactInbox.entityId(brand, factId)).call(FactInbox.outcome).invoke(outcome): Unit
-    def click(fact: Click): Unit = ()
+    def click(fact: Click): Unit =
+      client.forKeyValueEntity(ClickRecord.entityId(fact.brand, fact.factId)).call(ClickRecord.record)
+        .invoke(RecordClick(fact, Wiring.clock.get().instant())): Unit
 
 /**
  * A fact received on a channel (contracts/inbound.md *Intake*): the brand's own channel only, claimed

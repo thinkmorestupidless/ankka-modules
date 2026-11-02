@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.programme.Wiring
 import io.eitheror.casino.programme.links.{CreateLink, Link}
 import io.eitheror.casino.programme.sealing.{Identity, Sealing}
+import io.eitheror.casino.programme.tags.Tags
 import org.slf4j.LoggerFactory
 
 import java.time.Instant
@@ -30,7 +31,10 @@ object ProvisioningCalls:
     def setKeycloakUser(affiliate: String, user: String): Unit =
       client.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.update)
         .invoke(UpdateAccount(AccountFields(keycloakUser = Some(user)), "provisioning", now())): Unit
-    def createLink(c: CreateLink): Unit = client.forKeyValueEntity(EntityId(c.id)).call(Link.createLink).invoke(c): Unit
+    /** Signed here (FR-023): a link a key cannot sign yet is made without a tag rather than not at all. */
+    def createLink(c: CreateLink): Unit =
+      val tag = c.tag.orElse(Tags.sign(client, secrets, c.affiliate, c.id, c.campaign, c.subIds, c.at).toOption)
+      client.forKeyValueEntity(EntityId(c.id)).call(Link.createLink).invoke(c.copy(tag = tag)): Unit
 
 /**
  * What a membership's change means in the realm (research R11): on activation the account's realm user,

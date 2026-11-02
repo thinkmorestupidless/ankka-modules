@@ -12,8 +12,8 @@ import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Plans, Seed}
 import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, Notification}
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
 import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
-import io.eitheror.casino.programme.links.{InviteLink, InviteLinks, Link, SigningKeys}
-import io.eitheror.casino.programme.players.{PlayerAttribution, PlayerFacts, Players}
+import io.eitheror.casino.programme.links.{BonusCode, BonusCodes, Clicks, InviteLink, InviteLinks, Link, Links, Revocations, RevocationsStamp, SigningKeys}
+import io.eitheror.casino.programme.players.{ClickRecord, PlayerAttribution, PlayerFacts, Players}
 import io.eitheror.casino.programme.settlement.{Close, CloseRun, Payout, Payouts}
 
 import java.time.{Clock, Instant}
@@ -58,7 +58,14 @@ object ProgrammeService:
       Overrides.descriptor,
       Communications.descriptor,
       Provisioning.descriptor,
-      Seed.descriptor
+      Seed.descriptor,
+      BonusCode.descriptor,
+      ClickRecord.descriptor,
+      Links.descriptor,
+      Revocations.descriptor,
+      BonusCodes.descriptor,
+      Clicks.descriptor,
+      RevocationsStamp.descriptor
     ) ++ BrandConsumers.of(settings.brands).map(_.descriptor)
 
   /** The realm the service provisions in, or none configured (a local run). */
@@ -94,6 +101,7 @@ object ProgrammeService:
   /** At every start: the seed, once, a moment after the service is up (setting it again replaces it). */
   def started(timers: TimerScheduler): Unit =
     timers.createSingleTimer(Seed.TimerName, 1.second, Seed.seed.deferred)
+    timers.createRecurringTimer(RevocationsStamp.TimerName, 1.second, RevocationsStamp.RefreshSeconds.seconds, RevocationsStamp.stamp.deferred)
 
   def start(timers: TimerRuntime): Unit = started(timers.timerScheduler)
 

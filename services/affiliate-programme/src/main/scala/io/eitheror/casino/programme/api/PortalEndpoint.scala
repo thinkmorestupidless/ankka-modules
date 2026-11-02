@@ -6,6 +6,7 @@ import io.eitheror.casino.programme.api.Answers.given
 import io.eitheror.casino.programme.api.Bodies.{*, given}
 import io.eitheror.casino.programme.api.NetworkAnswers.{InviteBody, SubPatch, given}
 import io.eitheror.casino.programme.api.Invitations.{InviteLinkBody, given}
+import io.eitheror.casino.programme.api.TrackingAnswers.given
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.brands.Plan
 
@@ -72,6 +73,28 @@ final class PortalEndpoint(api: Api) extends HttpEndpoint("/v1/my"):
       asTarget(aff)(_ => attempt(withBody[InviteBody](body)(b => networks.invite(aff, b, brandParam))))
     }
     get("/{affiliate}/sub-affiliates") { (aff: String) => asTarget(aff)(_ => brands(aff)(bs => networks.subs(aff, bs, query.raw("period")))) }
+    // US5: links and bonus codes, each with the programme's tag.
+    get("/{affiliate}/tracking-links") { (aff: String) =>
+      asTarget(aff)(_ => brands(aff)(bs => attempt(merge(bs.map(b => tracking.links(Some(aff), b))))))
+    }
+    postBody("/{affiliate}/tracking-links") { (aff: String, body: String) =>
+      asTarget(aff)(_ => attempt(withBody[TrackingAnswers.LinkBody](body)(b => b.brandId.orElse(brandParam) match
+        case None        => invalid("brandId is required")
+        case Some(brand) => tracking.createLink(aff, brand, b, principal.subject))))
+    }
+    get("/{affiliate}/bonus-codes") { (aff: String) =>
+      asTarget(aff)(_ => brands(aff)(bs => attempt(merge(bs.map(b => tracking.codes(aff, b))))))
+    }
+    postBody("/{affiliate}/bonus-codes") { (aff: String, body: String) =>
+      asTarget(aff)(_ => attempt(withBody[TrackingAnswers.CodeBody](body)(b => b.brandId.orElse(brandParam) match
+        case None        => invalid("brandId is required")
+        case Some(brand) => tracking.createCode(aff, brand, b))))
+    }
+    delete("/{affiliate}/bonus-codes/{code}") { (aff: String, code: String) =>
+      asTarget(aff)(_ => brandParam match
+        case None        => invalid("brand is required")
+        case Some(brand) => attempt(tracking.revokeCode(aff, brand, code)))
+    }
     get("/{affiliate}/invite-links") { (aff: String) =>
       asTarget(aff)(_ => ok(invitations.of(aff, brandParam)))
     }
@@ -89,6 +112,14 @@ final class PortalEndpoint(api: Api) extends HttpEndpoint("/v1/my"):
 
   private val networks    = Networks(api)
   private val invitations = Invitations(api)
+  private val tracking    = Tracking(api)
+
+  /** Lists of several brands' as one: each a JSON array the same route answered for one brand. */
+  private def merge(parts: Vector[Respond[Bytes]]): Respond[Bytes] =
+    parts.find(_.status != 200).getOrElse {
+      val items = parts.map(p => new String(p.body.body, "UTF-8").trim.stripPrefix("[").stripSuffix("]")).filter(_.nonEmpty)
+      raw(200, "application/json", items.mkString("[", ",", "]"))
+    }
 
   private def brandParam: Option[String] = query.raw("brand").map(_.trim).filter(_.nonEmpty)
 

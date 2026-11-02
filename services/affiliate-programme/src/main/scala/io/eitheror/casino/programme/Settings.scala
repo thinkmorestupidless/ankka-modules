@@ -22,7 +22,9 @@ final case class Settings(
     keycloakAdminPassword: Option[String] = None,
     outboundTimeout: Duration = Duration.ofSeconds(10),
     /** An http postback or webhook address admitted: for a local run and the suites only. */
-    plainHttp: Boolean = false
+    plainHttp: Boolean = false,
+    /** `attribution`'s address in this installation: its brands' key documents (FR-026). */
+    attributionBaseUrl: Option[String] = None
 )
 
 object Settings:
@@ -40,11 +42,12 @@ object Settings:
                    case r @ ("eu" | "us") => Right(r)
                    case r                 => Left(s"CUSTOMERIO_REGION_DEFAULT: '$r' is eu or us")
       kc      <- opt("KEYCLOAK_URL").fold(Right(None))(u => url("KEYCLOAK_URL", u).map(Some(_)))
+      attr    <- opt("ATTRIBUTION_BASE_URL").fold(Right(None))(u => url("ATTRIBUTION_BASE_URL", u).map(Some(_)))
       timeout <- opt("OUTBOUND_TIMEOUT").fold(Right(d.outboundTimeout))(v =>
                    parseDuration(v).toRight(s"OUTBOUND_TIMEOUT: '$v' is not a duration such as 10s or 500ms"))
     yield Settings(brands, opt("CASINO_PROJECT").getOrElse(d.project), portal, office, region, kc,
       opt("KEYCLOAK_REALM").getOrElse(d.keycloakRealm), opt("KEYCLOAK_ADMIN_USERNAME"), opt("KEYCLOAK_ADMIN_PASSWORD"),
-      timeout, opt("PLAIN_HTTP").exists(_.equalsIgnoreCase("true")))
+      timeout, opt("PLAIN_HTTP").exists(_.equalsIgnoreCase("true")), attr)
 
   /** `PROGRAMME_BRANDS`: comma-separated slugs, each `[a-z0-9-]`; empty when only hosted brands report here. */
   def brandsOf(value: String): Either[String, Vector[String]] =

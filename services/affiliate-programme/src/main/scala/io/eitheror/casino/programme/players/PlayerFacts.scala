@@ -23,7 +23,9 @@ final case class PlayerFactRow(
     /** On a registration only, until the player is closed (FR-038). */
     country: Option[String] = None,
     /** On a deposit: which of the player's deposits it is, in every currency (the original's 2nd and 3rd deposit counts). */
-    ordinal: Int = 0
+    ordinal: Int = 0,
+    /** The link the player is bound through: a link's registrations count these (FR-024). */
+    link: Option[String] = None
 )
 
 object PlayerFactRow:
@@ -49,7 +51,7 @@ final class PlayerFactsView extends KeyedView[PlayerFactRow]:
             .count(r => r.kind == PlayerFact.Deposit && r.factId != f.factId) + 1
         effects.updateRow(PlayerFacts.key(f.brand, f.factId),
           PlayerFactRow(f.brand, f.pseudonym, b.affiliate, f.factId, f.kind, Intake.describe(event.outcome), f.currency, f.amount,
-            period, b.campaign, f.occurredAt, f.country.filter(_ => f.kind == PlayerFact.Registration), ordinal))
+            period, b.campaign, f.occurredAt, f.country.filter(_ => f.kind == PlayerFact.Registration), ordinal, Some(b.link)))
       case _ => effects.ignore()
 
 object PlayerFacts extends KeyedView.Companion[PlayerFactsView, PlayerFactRow](

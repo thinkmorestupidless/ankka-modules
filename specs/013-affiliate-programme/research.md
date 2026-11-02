@@ -415,3 +415,22 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
 - **The thousand closes run at the unit level** (T054). SC-006's thousand closes with late facts between
   them run in `CloserSuite`, over the account's and the payouts' entity kits, in seconds; `CloseSuite`
   holds the same rules through the routes.
+- **The withdrawal reads each brand's key document** (T064, asked 2026-11-02). FR-026 withdraws the
+  legacy tag document once every brand with imported tags reports its transition ended in its own key
+  document, and the programme held no address for one. `BrandProgramme` gains `keyDocumentUrl`, set when
+  a brand is added or updated; a brand of this installation defaults to `ATTRIBUTION_BASE_URL` with
+  012's path. The route fetches the document of every brand with an imported tag and refuses `409
+  transition_not_ended`, naming each brand whose `transition.endedOn` is null or whose document cannot
+  be fetched. The person chose this over withdrawing on the administrator's word and over a body that
+  lists the evidence.
+- **A bonus code may name an offer** (T062). The original's bonus code named no offer; 012's code
+  document carries one and 011 selects the offer it names. `POST bonus-codes` takes an optional
+  `offer`, carried into the code document when given.
+- **A link's counts are rows counted, not a row of counts** (T063). data-model.md's `LinkStats` is a
+  view over `ClickRecord` and `PlayerAttribution`. A keyed row of counts would be read, added to and
+  written back, and a change delivered twice would count twice. `Clicks` keeps a row per click
+  instead, `PlayerFacts` a row per registration with the link it bound through, and `LinkStats`
+  counts each link's rows when a link is read (FR-024).
+- **A link answers its landing address** (T061). The programme holds no brand's site, so a link's
+  `landingUrl` is the brand's landing path, `/` when none, with `btag` the signed tag and the utm
+  parameters, relative to the brand's site; the portal puts the brand's address before it.

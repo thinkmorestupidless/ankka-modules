@@ -296,19 +296,19 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T060 [P] [US5] `p-test/it/DocumentsSuite.scala`: a link's tag verifies against the served key
+- [X] T060 [P] [US5] `p-test/it/DocumentsSuite.scala`: a link's tag verifies against the served key
   document with 012's `Tag`; a revoked link in the revocation list within 300 s; the legacy tag
   document maps imported tags and answers `404` after the transition; the code document's version bumps
   on each change; a key rotated keeps the old verifying until its expiry
-- [ ] T061 [P] [US5] Bind `features/programme/links.feature` in `p-test/features/LinkSteps.scala`
+- [X] T061 [P] [US5] Bind `features/programme/links.feature` in `p-test/features/LinkSteps.scala`
 
 ### Implementation
 
-- [ ] T062 [US5] `p/links/BonusCode.scala` (one wins a concurrent claim; revoke frees the text) with its
+- [X] T062 [US5] `p/links/BonusCode.scala` (one wins a concurrent claim; revoke frees the text) with its
   suite; portal M11, M12, M28–M30; operator O35, O36 over T023's `Link`
-- [ ] T063 [US5] `p/players/ClickRecord.scala` and `p/links/LinkStats.scala` (click counts from click facts
+- [X] T063 [US5] `p/players/ClickRecord.scala` and `p/links/LinkStats.scala` (click counts from click facts
   only, FR-024)
-- [ ] T064 [US5] The views `p/links/Codes.scala`, `Revocations.scala` (closed and erased affiliates
+- [X] T064 [US5] The views `p/links/Codes.scala`, `Revocations.scala` (closed and erased affiliates
   included), `LegacyTags.scala`, the `Revocations` timed action, the four document routes of
   `ProgrammeEndpoint` (contracts/inbound.md *The documents*) and the legacy withdrawal route
   (contracts/routes.md)

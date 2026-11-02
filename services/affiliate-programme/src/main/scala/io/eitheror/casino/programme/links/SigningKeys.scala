@@ -11,7 +11,8 @@ final case class SigningKey(kid: String, x: String, madeAt: Instant, retiredAt: 
   def live: Boolean = retiredAt.isEmpty
 
 /** The programme's signing keys (one entity, id `programme`) and when the legacy tag document was withdrawn. */
-final case class SigningKeysState(keys: Vector[SigningKey] = Vector.empty, legacyWithdrawnAt: Option[Instant] = None, legacyWithdrawnBy: Option[String] = None):
+final case class SigningKeysState(keys: Vector[SigningKey] = Vector.empty, legacyWithdrawnAt: Option[Instant] = None, legacyWithdrawnBy: Option[String] = None,
+    revocationsAsOf: Option[Instant] = None):
   def live: Vector[SigningKey] = keys.filter(_.live)
   /** The newest live key: the one that signs. */
   def signing: Option[SigningKey] = live.maxByOption(_.madeAt)
@@ -25,6 +26,7 @@ object SigningKeysCodecs:
   given Serializer[AddKey]           = ProgrammeCodecs.serializer[AddKey]("add-key")
   given Serializer[RetireKey]        = ProgrammeCodecs.serializer[RetireKey]("retire-key")
   given Serializer[WithdrawLegacy]   = ProgrammeCodecs.serializer[WithdrawLegacy]("withdraw-legacy")
+  given Serializer[Instant]          = ProgrammeCodecs.serializer[Instant]("instant")
 
 import SigningKeysCodecs.given
 
@@ -50,6 +52,9 @@ final class SigningKeys(@scala.annotation.unused context: KeyValueEntityContext)
     if currentState.legacyWithdrawnAt.isDefined then effects.reply(currentState)
     else effects.updateState(currentState.copy(legacyWithdrawnAt = Some(cmd.at), legacyWithdrawnBy = Some(cmd.by))).thenReplyState
 
+  /** The revocation list as of `at` (`RevocationsStamp`, every 300 s). */
+  def stamp(at: Instant): Effect[SigningKeysState] = effects.updateState(currentState.copy(revocationsAsOf = Some(at))).thenReplyState
+
   def get: ReadOnlyEffect[SigningKeysState] = effects.reply(currentState)
 
 object SigningKeys extends KeyValueEntity.Companion[SigningKeys, SigningKeysState](
@@ -65,4 +70,5 @@ object SigningKeys extends KeyValueEntity.Companion[SigningKeys, SigningKeysStat
   val add            = command("add")(_.add)
   val retire         = command("retire")(_.retire)
   val withdrawLegacy = command("withdraw-legacy")(_.withdrawLegacy)
+  val stamp          = command("stamp")(_.stamp)
   val get            = query("get")(_.get)
