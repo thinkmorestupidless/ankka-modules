@@ -49,6 +49,15 @@ final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
 
   postBody("/{playerId}/codes/preview") { (p: String, text: String) => mine(p)(body(text)(Codes.preview(ctx, _))) }
 
+  // Free rounds (US5): the player's own, and `game-provider`'s read at a launch, by identity (FR-022b).
+  get("/{playerId}/free-rounds") { (p: String) => mine(p)(FreeRoundsReads.list(ctx, p, query.optional[String]("currency"))) }
+
+  withAcl(Routes.serviceOf("game-provider")) {
+    get("/{playerId}/free-rounds/eligible") { (p: String) =>
+      FreeRoundsReads.eligible(ctx, p, query.optional[String]("provider"), query.optional[String]("gameCode"))
+    }
+  }
+
 /** The selection routes' work (FR-011, FR-013). */
 object Selection:
   private def refuse(code: String): Reply = Answers.Rewards.refuse(code)

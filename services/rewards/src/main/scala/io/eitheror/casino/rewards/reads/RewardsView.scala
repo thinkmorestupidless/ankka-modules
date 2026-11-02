@@ -11,7 +11,8 @@ import io.eitheror.casino.rewards.reward.RewardEvent.*
 import java.time.Instant
 
 /** A free-rounds reward's part of its row: what is left to play, the game, and the provider's last word. */
-final case class FreeRoundsRow(spinsRemaining: Int, spinCount: Int, gameId: String, provider: String, providerStatus: String = "")
+final case class FreeRoundsRow(spinsRemaining: Int, spinCount: Int, gameId: String, provider: String, providerStatus: String = "",
+    gameName: String = "")
 
 /**
  * One reward's row (data-model.md `RewardsView`), from its events. `offerType` is the offer's type (the routes'
@@ -49,7 +50,7 @@ object RewardRow:
       Some(row.getOrElse(RewardRow(id)).copy(rewardId = id, playerId = o.playerId, offerId = o.offerId, offerName = o.offerName,
         offerType = o.offerType, payloadType = o.payloadType.wire, faceValue = o.decision.amount,
         wageringRequirement = o.decision.wageringRequirement, currency = o.decision.currency.code, source = o.source.wire,
-        freeRounds = o.freeRounds.map(t => FreeRoundsRow(t.spinCount, t.spinCount, t.gameId, t.provider)), openedAt = at))
+        freeRounds = o.freeRounds.map(t => FreeRoundsRow(t.spinCount, t.spinCount, t.gameId, t.provider, gameName = t.gameName.getOrElse(""))), openedAt = at))
     case (None, _) => None
     case (Some(r), e) =>
       Some(e match

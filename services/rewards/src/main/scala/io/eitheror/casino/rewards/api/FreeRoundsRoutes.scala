@@ -2,9 +2,14 @@ package io.eitheror.casino.rewards.api
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
+import io.eitheror.casino.contract.money.{Amounts as MoneyAmounts, Currency}
 import io.eitheror.casino.rewards.Json
+import io.eitheror.casino.rewards.clients.{Called, GameProvider}
 import io.eitheror.casino.rewards.player.PlayerRewardsState
+import io.eitheror.casino.rewards.reads.RewardsView
 import io.eitheror.casino.rewards.steps.{CancelRounds, FreeRounds, FreeRoundsFlow}
+
+import Answers.*
 
 /** An operator's revoke of free rounds asks `FreeRounds` to cancel them at the provider (research R8's `cancel`). */
 object FreeRoundsCancel:
@@ -31,3 +36,43 @@ object UnmatchedRounds:
   def json(s: PlayerRewardsState): JsonNode =
     Json.arr(s.unmatchedRounds.map(r => Json.obj("roundId" -> r.roundId, "grantRef" -> r.grantRef, "winCents" -> r.winCents,
       "at" -> r.at.toString))*)
+
+/** The free-rounds reads (contracts/routes.md; FR-022b, FR-026), apart from their endpoints so a suite can read them. */
+object FreeRoundsReads:
+  private def view(ctx: Ctx) = ctx.clients.viewClient.forView(RewardsView)
+
+  /** `GET /rewards/{playerId}/free-rounds`: the player's active free rounds the provider has not failed, oldest first. */
+  def list(ctx: Ctx, playerId: String, currency: Option[String]): Reply =
+    val rows = RewardsView.liveFreeRounds(view(ctx), playerId, currency.map(_.trim.toUpperCase).filter(_.nonEmpty))
+    ok(Json.arr(rows.flatMap(r => r.freeRounds.map(f => Json.obj("id" -> r.rewardId, "gameId" -> f.gameId,
+      "gameName" -> Option(f.gameName).filter(_.nonEmpty), "spinsRemaining" -> f.spinsRemaining,
+      "expiresAt" -> r.expiresAt.map(_.toString), "providerStatus" -> Option(f.providerStatus).filter(_.nonEmpty))))*))
+
+  /**
+   * `GET /rewards/{playerId}/free-rounds/eligible` (FR-022b): `game-provider`'s read at a launch naming no free rounds,
+   * the player's oldest live free rounds on the game, or `no_eligible_grant`.
+   */
+  def eligible(ctx: Ctx, playerId: String, provider: Option[String], gameCode: Option[String]): Reply =
+    gameCode.map(_.trim).filter(_.nonEmpty)
+      .flatMap(g => RewardsView.eligibleFreeRounds(view(ctx), playerId, g, provider.map(_.trim).filter(_.nonEmpty)))
+      .fold(Answers.Rewards.refuse("no_eligible_grant"))(r => ok(Json.obj("grantId" -> r.rewardId)))
+
+  /**
+   * `GET /offers/free-rounds/spin-values` (FR-026; `BR:2969-3020`): the provider's values for the game in the currency,
+   * in minor units (FR-032), distinct and sorted, with the source; a brand with no free rounds set up is an empty list,
+   * `not_configured`; a provider that does not answer is 502 `provider_unavailable`.
+   */
+  def spinValues(ctx: Ctx, gameId: Option[String], currency: Option[String]): Reply =
+    val game = gameId.map(_.trim).filter(_.nonEmpty)
+    val cur  = currency.map(_.trim.toUpperCase).filter(_.nonEmpty)
+    (game, cur.flatMap(c => Currency.from(c).toOption)) match
+      case (None, _) => refusal(400, "invalid_query", "field" -> "gameId", "message" -> "'gameId' is required")
+      case (_, None) => refusal(400, "invalid_query", "field" -> "currency", "message" -> "'currency' is required, a currency code")
+      case (Some(g), Some(c)) =>
+        def answer(values: Vector[Long], source: String) =
+          ok(Json.obj("gameId" -> g, "currency" -> c.code, "values" -> values, "source" -> source))
+        ctx.gameProvider.spinValues(Vector(g), c) match
+          case Called.Done(v) if !v.configured => answer(Vector.empty, "not_configured")
+          case Called.Done(v) =>
+            answer(v.values.flatMap(x => MoneyAmounts.parse(x.trim, c).toOption.map(_.value)).distinct.sorted, GameProvider.St8)
+          case _ => Answers.Offers.refuse("provider_unavailable")

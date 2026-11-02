@@ -43,6 +43,10 @@ final class OffersEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${
 
   get("/code-document") { () => ok(Offers.codeDocument(ctx)) }
 
+  get("/free-rounds/spin-values") { () =>
+    FreeRoundsReads.spinValues(ctx, query.optional[String]("gameId"), query.optional[String]("currency"))
+  }
+
   putBody("/order") { (text: String) =>
     body(text) { b =>
       val a = ctx.book.call(OfferBook.reorder).invoke(ReorderOffers(b.strings("orderedOfferIds"), by, ctx.now()))
