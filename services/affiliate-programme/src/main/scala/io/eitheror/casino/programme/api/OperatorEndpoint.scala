@@ -19,6 +19,10 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   withAcl(Access.public) {
     post("/accept-invitation") { () => notBuilt("POST /v1/affiliates/accept-invitation") }
     postBody("/{brand}/apply") { (brand: String, body: String) => attempt(withBody[ApplyBody](body)(applyTo(brand, _))) }
+    // O19 is not served (change 13): a status changes only through its transitions.
+    patchBody("/{brand}/accounts/{affiliate}/status") { (_: String, _: String, _: String) =>
+      refuse(404, "not_found", "a membership's status changes through approve, reject, suspend and reactivate")
+    }
   }
 
   withAcl(api.access.manager) {

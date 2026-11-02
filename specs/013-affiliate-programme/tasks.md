@@ -222,23 +222,23 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T041 [P] [US1] `p-test/it/MembershipsSuite.scala`: apply to A then B; approve on the default plan;
+- [X] T041 [P] [US1] `p-test/it/MembershipsSuite.scala`: apply to A then B; approve on the default plan;
   a manager of A only cannot see B's application; a suspended membership's facts recorded without payable
   facts; reapply after rejection; a duplicate email refused; the raw status route answers `404`
 - [ ] T042 [P] [US1] Bind `features/programme/memberships.feature` in `p-test/features/MembershipSteps.scala`
 
 ### Implementation
 
-- [ ] T043 [US1] `POST /v1/affiliates/{brand}/apply` (public): `EmailIndex.claim` of the digest, a data
+- [X] T043 [US1] `POST /v1/affiliates/{brand}/apply` (public): `EmailIndex.claim` of the digest, a data
   key and a `Sealed` identity for a new email, a membership for an existing account, `409` for a
   pending or active membership at the brand (FR-003)
-- [ ] T044 [US1] Operator routes O14, O15, O20, O21 (approve with plan, reject with reason, read and patch
+- [X] T044 [US1] Operator routes O14, O15, O20, O21 (approve with plan, reject with reason, read and patch
   the account, `revShareOverride` on the membership) in `p/api/OperatorEndpoint.scala`
-- [ ] T045 [US1] `p/accounts/Provisioning.scala` (consumer over `Membership`): the realm user and the
+- [X] T045 [US1] `p/accounts/Provisioning.scala` (consumer over `Membership`): the realm user and the
   roles `affiliate` and `brand_<slug>` on activation (research R11), the brand role removed when no
   membership there is active or suspended; a default link on activation (as `S/NetworkTree.scala:178-212`,
   T023's `Link` created with `campaign default`)
-- [ ] T046 [US1] Revenue reads with the brand as a filter, per brand and currency, never summed across
+- [X] T046 [US1] Revenue reads with the brand as a filter, per brand and currency, never summed across
   currencies: portal M1–M5 and operator O22, O37–O39 in `p/api/PortalEndpoint.scala` and
   `OperatorEndpoint.scala`, over `Ledger`; portal M6–M10 (`account`, `plan`, `available-plans`,
   `programme`)
