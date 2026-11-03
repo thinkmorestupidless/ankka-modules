@@ -613,9 +613,10 @@ count.
 
 - **FR-020**: The service MUST serve a player-class SSE route at the original's path (`/v1/stream`,
   which the player app's proxy appends to its base URL) that opens a connection for the token's
-  player: a `ready` frame (`subjectId`, `serverTime`), a `: heartbeat` comment every fifteen
+  player: a `ready` frame (`subjectId`, `serverTime`), a `heartbeat` frame (`at`) every fifteen
   seconds, the first after fifteen, `signal` frames (`kind`, `correlationId`, a content-free
-  `hint`, the frame's `id` the correlation id), and a `closing` frame with a reason before any
+  `hint`; the original's comment heartbeat and frame `id` are not written, since ankka's SSE writes
+  neither, a divergence), and a `closing` frame with a reason before any
   close the service makes. A missing or bad token MUST be refused 401 `unauthenticated`; a token
   without a player id 403 `subject_unresolved`; an instance at its connection cap (10,000) 503
   `capacity`. (Source: `StreamRoutes`, `ConnectionRegistry`, contract `push-gateway-api.md`.)
@@ -646,9 +647,9 @@ count.
   prefix: an operator-class route issuing a single-use ticket valid thirty seconds, and an SSE route
   opened with the ticket alone (no bearer), refused as `invalid_ticket` when the ticket is unknown,
   used, another brand's or expired; the stream MUST push a `player_online` frame (`player_id`,
-  `player_email_prefix`, `session_id`, `occurred_at`, the frame's `id` the session id) to every
+  `player_email_prefix`, `session_id`, `occurred_at`; no frame `id`, as FR-020) to every
   connected agent when `player_logged_in` arrives, at most once, within five seconds, with a
-  `: ping` every fifteen seconds; an agent's queue of sixteen frames MUST drop the connection on
+  `ping` frame every fifteen seconds; an agent's queue of sixteen frames MUST drop the connection on
   overflow. (Source: `BackofficeAgentStreamRoutes`, `AgentStreamTicketStore`, `AgentStreamRegistry`,
   feature 182; kept, Session 2026-11-03.)
 
