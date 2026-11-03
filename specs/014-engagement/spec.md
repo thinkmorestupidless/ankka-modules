@@ -87,16 +87,19 @@ player's state, and never decides what a campaign should do.
   confirmation) are still sent. Campaign logic lives in Customer.io; the marketing-class events are
   withheld from it too (Session 2026-11-03).
 - Q: Which `Personal` fields leave the installation? → A: Exactly those the original's `identify`
-  sends: email address, player name (display name, else first name, else the part of the address
-  before `@`), date of birth, and the free text of a transactional email's data. No network
+  sends: email address, player name (the given name, else the part of the address before `@`; no
+  fact carries a display name, Session 2026-11-03 (planning)), date of birth, and the free text of a
+  transactional email's data. No network
   address, no document, no postal address. The spec names Customer.io as a processor of those four
   and the data-processor boundary is the brand's agreement with it (FR-012). On a player's erasure
   (042) this service's erasure handler asks Customer.io to delete the person.
-- Q: Which transactional triggers exist? → A: The original's thirty, kept by name (FR-006's table):
-  twenty-two derived from facts and eight sent on request by `players` (verification, change and
-  reset flows) through this service's send route. `cooling_off_removed` (spec 099) was never built
-  and is not added; `OperatorInvitation`/`OperatorStatusChanged` are the two the payments backoffice
-  used from the holding-level configuration (open question below).
+- Q: Which transactional triggers exist? → A: The original's thirty `CrmEvent` values, kept by name:
+  twenty-three dispatched from facts with an identify, a track and an optional transactional
+  (FR-006's table, which also carries `affiliate_attributed`, tracked by the Go path alone), and
+  seven sent on request by `players` (verification, change and reset flows) through this service's
+  send route (FR-014). `cooling_off_removed` (spec 099) was never built and is not added;
+  `OperatorInvite`/`OperatorPasswordReset` are `merchant-service`'s, from the holding-level
+  configuration (answered 2026-10-12).
 - Q: Does the in-app inbox move here? → A: No. `players` (008 FR-030) owns the inbox: messages,
   read state, recipient-local deletion, operator composition and merge tags. This service owns the
   **signal** that an inbox changed (the envelope and the connection it is pushed down), the
@@ -115,9 +118,9 @@ player's state, and never decides what a campaign should do.
 - Q: Where does the Customer.io configuration live? → A: Per brand, in this service: the
   non-secret part (site id, region, sender address, the trigger table) in a key value entity, the
   three secrets (track key, app key, webhook signing key) in the secret store (038) under names the
-  entity records. The original's second, holding-level copy in `merchant-service` is not carried
-  over as a fallback: a brand's configuration is its own, and a brand with none sends nothing and
-  says so in status.
+  entity records. The original read the holding-level copy in `merchant-service` first and the
+  brand's own as the fallback; neither the holding copy nor the fallback is carried: a brand's
+  configuration is its own, and a brand with none sends nothing and says so in status.
 
 ### Session 2026-10-08 (reconciliation 3)
 
@@ -156,6 +159,41 @@ player's state, and never decides what a campaign should do.
   `marketing_suppressed`, audited, and leaves the dead letter. A service-class send retries
   regardless.
 
+### Session 2026-11-03 (planning)
+
+- Q: The plan's read of the original whole found the spec contradicting it in FR-002, FR-006,
+  FR-008 to FR-010, FR-013, FR-014, FR-017 to FR-024 and FR-026 (research R1's table). Correct the
+  spec to the original, or keep the spec's forms as divergences? → A: Correct to the original.
+  Where the original's two dispatch paths disagree, the Scala route path's form is taken: it is the
+  path the frontends and the original's own suites drive. Each correction is in the requirement it
+  touches; what this spec still changes on purpose is under *Changes from the original*.
+- Q: `rg_limit_loosened`: the original tracks it when a loosening is *requested*, 24 hours before it
+  applies, but no fact says a loosening was staged. Add a request fact to 010, derive it from the
+  later `rg_limit_applied`, or drop the event? → A: Add a request fact to 010:
+  `rg_limit_loosening_requested`, produced when the loosening is staged (spec 010 FR-030). FR-006
+  derives `rg_limit_loosened` from it, and from `rg_limit_applied` with cause `removed`, as the
+  original tracked a delete at once.
+- Q: The push closing reasons, jitters and overflow: the original's names and behaviour
+  (`revalidation_failed`, `connection_recycled`, a silent drop on overflow), or the spec's? → A: The
+  original's names and behaviour (FR-021).
+- Q: Presence and delivery: per instance as the original (one outcome per pod, a snapshot every
+  30 s), or cluster-wide with one fact? → A: Cluster-wide, one fact: `presence_changed` when the
+  count across the cluster crosses zero, one `push_delivered` per `player_message_created` with the
+  cluster's count (FR-022, FR-023). Named as a divergence.
+- Q: Consent at registration: `players` stores the consents given at registration and publishes
+  nothing, so this service (fail-closed) treats every new player as unconsented until a consent
+  fact arrives; and `players`' client treats a `refused` answer from the send route as retryable.
+  Apply both amendments to 008? → A: Apply both: `players` produces `player_consent_changed` for
+  `email` and `sms` at registration with source `registration`, and its client treats `refused`
+  with its reason as terminal, like `suppressed` (spec 008 FR-028; Dependencies).
+- Q: The module manifest declares a `push-provider-key` secret that nothing uses; the three
+  Customer.io secrets enter through the configuration route (FR-004). Remove it, or keep it for a
+  push provider later? → A: Remove it (spec 021's `engagement` manifest; Dependencies).
+- Q: `player_name` and `language`: no fact carries a display name, a language or a potential-VIP
+  mark. Ask 008 for them, or render from what facts carry? → A: From what facts carry:
+  `player_name` is the given name, else the part of the address before `@`; `language` is not
+  sent; `pot_vip` is always `false` (FR-008). Noted for 008 under *Elsewhere* in research.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A fact becomes one Customer.io event, exactly once (Priority: P1)
@@ -193,22 +231,22 @@ record for the registration.
 An operator building a lapsed-player campaign segments on `last_login_at`, `deposit_count` and
 `real_money`. Every identify this service sends carries the full profile the original sent — from
 facts, not from a read of any other service's store — and the numeric attributes are numbers, so a
-segment on `deposit_count >= 10` works. At 03:00 UTC each day, every player whose daily deposit
-count was above zero is identified again with zero, so a lapsing player's profile does not say
-they deposited three times today forever.
+segment on `deposit_count >= 10` works. The deposit day begins at 03:00 UTC; at 03:05 each day,
+every player whose daily deposit count was above zero for an earlier day is identified again with
+zero, so a lapsing player's profile does not say they deposited three times today forever.
 
 **Why this priority**: Campaigns segment on these attributes; a wrong or stale attribute sends the
 wrong campaign to the wrong player.
 
 **Independent Test**: Drive facts for registration, login, a deposit, a bet, an RG limit and a
 consent withdrawal, read the identify calls the stub received, and verify each attribute by name
-and type against FR-008's table; advance the clock past 03:00 UTC and verify the zero.
+and type against FR-008's table; advance the clock past 03:05 UTC and verify the zero.
 
 **Acceptance Scenarios**:
 
 - added `features/engagement/profiles.feature`: the identify before any track carries every attribute whose source fact has been seen, as numbers where numeric
 - added `features/engagement/profiles.feature`: the deposit day rolling over identifies a player who deposited today with a daily deposit count of zero, and not one already at zero
-- added `features/engagement/profiles.feature`: a tier change or a potential VIP mark identifies the player with the new value and tracks nothing
+- added `features/engagement/profiles.feature`: a tier change identifies the player with the new value and tracks nothing
 - added `features/engagement/profiles.feature`: a player with no row in the balance view is identified with the balance attributes absent, not zero
 
 ---
@@ -313,6 +351,7 @@ fact naming two connections.
 - added `features/engagement/push.feature`: an inbox item created reaches each of the player's connections on two instances as one inbox changed push, and one delivered fact counts them
 - added `features/engagement/push.feature`: an inbox item for a player with no connection anywhere pushes nothing and produces no fact
 - added `features/engagement/push.feature`: a connection whose sign-in no longer verifies at the re-check is closed as invalid
+- added `features/engagement/push.feature`: a connection past its recycle age is closed as recycled and the page reconnects
 - added `features/engagement/push.feature`: an operator's or a part's sign-in without a player id is refused the stream
 - added `features/engagement/push.feature`: an inbox item read on one device pushes inbox changed to every other connection so the unread count converges
 
@@ -364,11 +403,14 @@ count.
 - A parked marketing-class send is retried after the player self-excluded, withdrew consent or was
   suppressed by an operator: refused as `marketing_suppressed`, audited, out of the dead letter. A
   parked service-class send retries regardless.
-- A player with no email address on file: transactional sends are refused as `no_address` and
-  recorded; identify and track are still made (Customer.io keys the person by id).
-- A connection's client cannot keep up: its queue fails and the connection is closed with
-  `slow_consumer`; the client reconnects and refetches, which is correct because push carries no
-  content.
+- A player with no email address on file: nothing is sent and the send record says `no_address`
+  (the original's Scala path skipped the whole dispatch without an address, and the Go path never
+  fired without one; Session 2026-11-03 (planning)).
+- A connection's client cannot keep up: its queue of sixty-four frames overflows and the connection
+  is dropped with no frame, as the original's; the client reconnects and refetches, which is
+  correct because push carries no content.
+- A payment fails and later expires: one `payment_failed` is tracked, keyed by the payment, as the
+  original's dedup id was (research R4).
 - An instance stops: every connection it holds gets `closing: shutting_down` before its consumers
   stop; the clients reconnect to another instance.
 - A fact for a player this service has never seen (their registration fact was before the topic's
@@ -387,10 +429,12 @@ count.
   (`/api/v2/entity`, basic authentication with site id and track key) and App API
   (`/v1/send/email`, bearer app key) in the US or EU region the brand configured.
   (Source: `CustomerIOClient.scala`, `cio_client.go`.)
-- **FR-002**: Every outbound call MUST have a timeout, and a retryable answer (a connection failure,
-  429, 5xx) MUST be retried four times with a 500 ms backoff doubling each time and ±25 % jitter;
-  any other failure MUST NOT be retried. A send still failing after the retries MUST be parked in
-  the brand's dead letter with the last answer. (Source: `withRetry`, `cio_client.go`.)
+- **FR-002**: Every outbound call MUST have a timeout (ten seconds; the original had none), and a
+  retryable answer (a connection failure, a timeout, 429, 5xx) MUST be attempted four times in all,
+  with a 500 ms backoff doubling each time and ±25 % jitter; any other failure MUST NOT be retried.
+  A send still failing after the fourth attempt MUST be parked in the brand's dead letter with the
+  last answer. (Source: `withRetry`, `maxAttempts = 4`, `cio_client.go`; the original's Scala path
+  never retried, Session 2026-11-03 (planning).)
 - **FR-003**: The attributes `created_at`, `deposit_count`, `daily_deposit_count`, `real_money`,
   `bonus_money`, `total_balance`, `total_deposit_amount`, `amount` and
   `session_duration_minutes` MUST be sent as numbers; every other attribute as a string; a numeric
@@ -413,57 +457,70 @@ count.
   | Fact (topic) | Event | Data beyond the profile |
   |---|---|---|
   | `player_registered` (players) | `player_registered` | `currency`, `btag` when a tag was presented |
-  | `player_registered` with a tag | `affiliate_attributed` | `btag`; the network and affiliate the tag names (012 FR-002) |
+  | `player_registered` with a tag | `affiliate_attributed` | `btag` (the original's `affiliate_id` is known to no brand service, 012) |
   | `player_logged_in` (players), not within two minutes of registration | `player_logged_in` | — |
   | `game_session_started` (sessions) | `game_session_started` | `game_id`, `session_id` |
   | `game_session_ended` (sessions) | `game_session_ended` | `game_id`, `session_id`, `session_duration_minutes` |
   | `deposit_confirmed` (money) | `deposit_confirmed` | `amount`, `currency`, `transaction_id` |
   | `deposit_confirmed` when the lifetime count becomes 1 | `first_deposit_confirmed` | as above |
-  | `payment.failed` (payments) | `payment_failed` | `amount`, `currency`, `transaction_id`, `failure_reason` |
-  | `bonus_granted` (rewards) | `bonus_granted` | `bonus_name`, `amount`, `currency`, `wagering_required`, `reward_id` |
-  | `bonus_cancelled` (rewards) | `bonus_cancelled` | `bonus_name`, `clawback_amount`, `currency`, `reward_id` |
-  | `restricted_funds_converted` (money) | `wagering_requirement_met` | `bonus_name`, `amount_wagered`, `currency`, `reward_id` |
-  | `withdrawal_failed` (withdrawals) | `withdrawal_failed` | `amount`, `currency`, `transaction_id`, `failure_reason` |
+  | `payment.failed` or `payment.expired` (payments), once per payment | `payment_failed` | `amount`, `currency` (from the payment's `payment.initiated`), `transaction_id`, `failure_reason` (`expired` for an expiry), `provider`, `payment_method`, `reason` (normalised from the code), `provider_code`, each when present |
+  | `bonus_granted` or `free_spins_granted` (rewards) | `bonus_granted` | `bonus_name` (the offer id), `amount`, `currency`, `reward_id` |
+  | `bonus_cancelled` or `bonus_forfeited` (rewards) | `bonus_cancelled` | `bonus_name`, `amount`, `currency` |
+  | `bonus_completed` (rewards) | `wagering_requirement_met` | `bonus_name`, `amount`, `currency` |
+  | `withdrawal_failed` (withdrawals), once per failure | `withdrawal_failed` | `amount`, `currency`, `transaction_id`, `failure_reason` |
   | `rg_limit_applied` (players) with cause `set` or `lowered`, a deposit limit | `deposit_limit_set` | `limit_type`, `limit_value` |
   | `rg_limit_applied` with cause `set` or `lowered`, a loss limit | `loss_limit_set` | `limit_type`, `limit_value` |
   | `rg_limit_applied` with cause `set` or `lowered`, a session limit | `session_limit_set` | `limit_type`, `limit_value` |
-  | `rg_limit_applied` with cause `applied` or `removed` (spec 010 FR-030) | `rg_limit_loosened` | `limit_type` |
+  | `rg_limit_loosening_requested` (players, spec 010 FR-030) | `rg_limit_loosened` | `limit_type`, `limit_value` |
+  | `rg_limit_applied` with cause `removed` | `rg_limit_loosened` | `limit_type` |
   | `rg_case_opened` (players), type cooling-off, with its `closes-at` | `cooling_off_set` | `cooling_off_period` (the end) |
-  | `player_self_excluded` (players) | `self_exclusion_activated` | `exclusion_period` |
+  | `player_self_excluded` (players) | `self_exclusion_activated` | — |
   | `player_kyc_verified` (players) | `kyc_approved` | — |
-  | `player_kyc_rejected` (players) | `kyc_rejected` | `rejection_reason` |
+  | `player_kyc_rejected` (players) | `kyc_rejected` | — |
   | `player_kyc_document_reviewed` (players, 009 FR-030) with outcome approved | `kyc_document_accepted` | `doc_type` (the category) |
   | `player_kyc_document_reviewed` with outcome declined | `kyc_document_declined` | `doc_type`, `reason` (the reason code) |
   | `bonus_code_entered` (rewards, 011 FR-027) | `promo_code_entered` | `promo_code` |
-  | `player_consent_changed` (players) | `consent_updated` | — |
+  | `player_consent_changed` (players) for `email` or `sms` | `consent_updated` | — |
 
-  Amounts MUST be rendered in major units with two decimals, as the original's templates expect;
-  the fact's minor units are the source. (Source: `playerEventCandidates`, `resolveSingleEvent`,
-  `CrmEvent`, every `crmService.dispatch` call site.)
+  Every track MUST carry the identify's attributes beside the data, as the original's did. Amounts
+  MUST be rendered in major units with two decimals, as the original's templates expect; the fact's
+  minor units are the source. `limit_type` MUST be the original's `<TYPE>_<PERIOD>` form. The
+  original's `payment_failed` also carried crypto and expiry keys no fact carries; they are absent
+  (research R8). (Source: `playerEventCandidates`, `resolveSingleEvent`, `CrmEvent`, the
+  `notify-*` functions, every `crmService.dispatch` call site; corrected to the original, Session
+  2026-11-03 (planning).)
 - **FR-007**: Before any call for a fact, the service MUST create a **send record** keyed by the fact
   id and the event, holding the player, the trigger, the class, the channel, each call's outcome
   and time; a fact whose record exists MUST produce no call; the record MUST survive a restart,
   a redeploy and a view rebuild (024). A fact whose `occurred-at` is older than the brand's
   staleness bound (shipped 24 hours) at first sight MUST be recorded as `skipped_stale` and
   produce no call.
-- **FR-008**: Every identify MUST carry these attributes where their source has been seen, and omit
-  the rest, never sending an empty string: `id`, `created_at` (registration as a Unix time),
-  `email`, `player_name`, `brand_id`, `currency`, `country`, `language`, `date_of_birth`,
-  `registration_date`, `vip_tier`, `pot_vip` (`true`/`false`), `last_login_at`,
-  `last_deposit_at`, `deposit_count`, `daily_deposit_count` (always sent; 0 when the day has
-  rolled over), `total_deposit_amount`, `real_money`, `bonus_money`, `total_balance` (from the
-  balance view; omitted when it has no row), `has_rg_limits` (`true`/`false`), `rg_limit_types`,
-  `is_cooling_off`, `suspected_duplicate`, `kyc_status`, `account_status`, `email_subscribed`,
-  `sms_subscribed`, `email_consent_at`, `sms_consent_at`, `consent_source`, `btag`,
-  `marketing_suppressed` and `suppression_reason`. The profile MUST be a view this service builds
-  from facts, one row per player. (Source: `buildIdentifyAttributes`, both implementations.)
-- **FR-009**: A deposit day MUST begin at 03:00 UTC; at that moment the service MUST identify every
-  player whose `daily_deposit_count` was above zero with the count 0, from its own view, and no
-  other player. (Source: `DepositDay`, `DailyDepositCountReset`; the Keycloak enumeration is
-  replaced by the view.)
-- **FR-010**: An identify with no event MUST be sent when `vip_tier_changed`, `player_fraud_flagged`
-  or a profile fact changes an attribute of FR-008 that no event of FR-006 carries. (Source:
-  `syncAttributes` call sites.)
+- **FR-008**: Every identify MUST always carry `id`, `brand_id`, `has_rg_limits` (`true`/`false`),
+  `daily_deposit_count` (0 when the day has rolled over), `email_subscribed`, `sms_subscribed` and
+  `pot_vip` (always `false`: no fact carries the mark), and MUST carry these where their source has
+  been seen, omitting the rest and never sending an empty string: `created_at` (registration as a
+  Unix time), `email`, `player_name` (the given name, else the part of the address before `@`),
+  `currency`, `country`, `date_of_birth`, `registration_date`, `vip_tier`, `last_login_at`,
+  `last_deposit_at`, `deposit_count`, `total_deposit_amount`, `real_money`, `bonus_money` (the
+  restricted balance), `total_balance` (from the balance view; omitted when it has no row),
+  `rg_limit_types` (the original's `DEPOSIT_DAILY,…` form), `is_cooling_off`,
+  `suspected_duplicate`, `kyc_status`, `account_status`, `email_consent_at`, `sms_consent_at`,
+  `consent_source`, `btag`, `marketing_suppressed` and `suppression_reason`. `language`,
+  `affiliate_id` and `last_device_os`, which the original sent, MUST NOT be sent: no fact carries
+  them. The profile MUST be a view this service builds from facts, one row per player. (Source:
+  `buildIdentifyAttributes`, the Scala form where the two implementations differ; Session
+  2026-11-03 (planning).)
+- **FR-009**: A deposit day MUST begin at 03:00 UTC; at 03:05 UTC each day the service MUST reset
+  every player whose `daily_deposit_count` is above zero and stamped with an earlier deposit day,
+  from its own view, and identify each with the count 0, and no other player. The reset MUST be on
+  by default (the original's CronJob ran at `5 3 * * *` and was off by default in the chart).
+  (Source: `DepositDay`, `DailyDepositCountReset`, the chart; the Keycloak enumeration is replaced
+  by the view.)
+- **FR-010**: An identify with no event MUST be sent when `vip_tier_changed` arrives or a profile
+  fact changes an attribute of FR-008 that no event of FR-006 carries (an address or profile change,
+  a duplicate check, a status change, a case closing, the operator's suppression flag, a balance
+  movement with no event). (Source: `syncAttributes` call sites; the Go path identified on every
+  twin write. `player_fraud_flagged` changes no attribute and sends nothing.)
 
 **Transactional sends and classes**
 
@@ -488,19 +545,23 @@ count.
   Customer.io's campaigns can segment on them, and MUST be sent within one minute of the fact.
 - **FR-013**: A transactional send MUST be made only when the brand configured a transactional id for
   the trigger, or the trigger has the built-in fallback the original has
-  (`EmailAddressVerification`); MUST address the player's primary email address; MUST carry the
-  data of FR-006 or FR-014 plus `player_name`, `player_email`, `brand_id` and `brand_name`; and
-  MUST be refused as `no_address` when the player has none. The `language` the data names MUST be
-  passed as the message's language, not as data. (Source: `maybeTransactional`,
-  `sendTransactional`.)
+  (`EmailAddressVerification`); MUST address the player's primary email address; MUST carry as
+  message data, all as strings, the track's data (the identify's attributes plus FR-006's data) for
+  a fact-derived trigger, or the request's data plus `brand_name` (the brand id, as at every call
+  site of the original) for a trigger of FR-014; and MUST be recorded as `no_address` with nothing
+  sent when the player has none. No `language` is passed (no fact carries one). (Source:
+  `maybeTransactional`, `sendTransactional`, the `send*` methods; corrected to the original, Session
+  2026-11-03 (planning).)
 - **FR-014**: The service MUST serve a **send route** to the brand's services only (001 FR-020
   service class), taking a trigger, a recipient address, an idempotency key and data, for the
-  triggers `EmailAddressVerification`, `EmailChangeVerification`, `EmailChangeNotification`,
-  `EmailPrimaryChanged`, `PasswordChangeVerification`, `PasswordChangeNotification`,
-  `PasswordResetRequest` and `ConsentUpdated`; MUST send at most once per key; and MUST answer
-  `accepted`, `refused` with the reason, or `not_configured`. The verification and reset links are
-  the caller's data, never read or logged by this service above debug. (Source: the `send*`
-  methods of `CrmService`.)
+  seven send-only triggers `EmailAddressVerification`, `EmailChangeVerification`,
+  `EmailChangeNotification`, `EmailPrimaryChanged`, `PasswordChangeVerification`,
+  `PasswordChangeNotification` and `PasswordResetRequest` (`ConsentUpdated` is dispatched from
+  `player_consent_changed`, FR-006, not sent on request); MUST send at most once per key; and MUST
+  answer `accepted`, `suppressed` with the reason (FR-011), `refused` with the reason, or
+  `not_configured`. `players` sends three of the seven today (008); the route serves all seven. The
+  verification and reset links are the caller's data, never read or logged by this service above
+  debug. (Source: the `send*` methods of `CrmService`; Session 2026-11-03 (planning).)
 
 **Personal data and erasure**
 
@@ -518,55 +579,77 @@ count.
 **The webhook**
 
 - **FR-017**: The service MUST serve a public route per brand for Customer.io's campaign actions,
-  served only when `X-CIO-Signature` is a correct HMAC-SHA256, under the brand's signing key, of
-  `v0:<X-CIO-Timestamp>:<raw body>` and the timestamp is within the window the original enforces
-  (five minutes of the service's clock); a brand with no signing key MUST refuse every request. A
-  refusal MUST do nothing and MUST be counted per brand. (Source: `CustomerIOWebhookRoutes`.)
-- **FR-018**: The actions MUST be: `grant_bonus` (player, offer, optional role, optional deposit
-  amount and currency) — asks `rewards` (011 FR-022's award route) to award the offer with source
-  `customerio_webhook`, re-resolving a stale offer by its role once, and answers `ok`, `ok` with
-  `alreadyProcessed`, or the refusal `rewards` gave; `send_message` (player, delivery id, title,
-  body, optional campaign id) — writes a marketing-class in-app message through `players` (008
-  FR-030) under the delivery id as the key, origin `crm`, and answers as `players` did; and
-  `target_offer` (player, role) — asks `rewards` to target the role at the player, refusing a
-  free-spins offer as `free_spins_offer_not_targetable`. An unknown action MUST be refused as
-  `unknown_action`; a `send_message` without a delivery id as `delivery_id_required`.
-  (Source: `dispatchAction`.)
+  served only when `X-CIO-Signature` is a correct lowercase-hex HMAC-SHA256, under the brand's
+  signing key, of `v0:<X-CIO-Timestamp>:<raw body>` and the timestamp is within 300 seconds of the
+  service's clock. The refusals MUST be the original's, in its order: `brand_not_configured` (no
+  configuration), `webhook_not_configured` (no signing key), `timestamp_invalid` (missing,
+  non-numeric or outside the window), `invalid_signature` (missing or wrong), each 401 and before
+  the body is read as JSON; a body that cannot be read is `could_not_read_body`. A refusal MUST do
+  nothing and MUST be counted per brand (new). (Source: `CustomerIOWebhookRoutes`; corrected to the
+  original, Session 2026-11-03 (planning).)
+- **FR-018**: The actions MUST be: `grant_bonus` (`player_id`, `offer_id`, optional `role`,
+  optional `currency`; `amount` read and ignored, FR-019) — asks `rewards` (011 FR-022's award
+  route) to award the offer with source `customerio_webhook` and answers exactly what `rewards`
+  answers (`ok` with `bonusAmount` or `grantId`, `ok` with `alreadyProcessed`, or its refusal with
+  its status); `send_message` (`player_id`, `delivery_id`, `title`, `body`; `campaign_id` and
+  `reward_id` read and dropped) — writes a marketing-class in-app message through `players` (008
+  FR-030) under the delivery id as the key, origin `crm`, and answers as `players` did, `ok` with
+  `alreadyProcessed` on a repeat; and `target_offer` (`player_id`, `role`, optional `context`) —
+  asks `rewards` to target the role at the player and answers as it does
+  (`free_spins_offer_not_targetable`, `role_not_found`, `target_failed`). A missing field MUST be
+  refused with the original's literal messages (`player_id and offer_id required`, `player_id
+  required`, `player_id and role required`); an unknown action as `unknown_action`; a
+  `send_message` without a delivery id as `delivery_id_required`; a body that is not a JSON object
+  as `invalid_body` (the original threw). (Source: `dispatchAction`; the award and target logic is
+  `rewards`' (011), the message's `players`' (008).)
 - **FR-019**: The deposit amount a `grant_bonus` carries MUST NOT size a deposit-match award; the
   award is sized by `rewards` from the wallet's facts (011), as the original sizes it from the
-  player's last confirmed deposit and never from the webhook body. (Source: ClickUp 869erhfnk
-  comment in `CustomerIOWebhookRoutes`.)
+  player's last confirmed deposit and never from the webhook body. The webhook's `currency` MAY
+  name the currency `rewards` awards in, as the original's did, when the player has none.
+  (Source: ClickUp 869erhfnk comment in `CustomerIOWebhookRoutes`.)
 
 **The push channel**
 
-- **FR-020**: The service MUST serve a player-class SSE route that opens a connection for the token's
-  player: a `ready` frame naming the player and the server time, a heartbeat comment every fifteen
-  seconds, `signal` frames (kind, correlation id, content-free hint), and a `closing` frame with a
-  reason before any close the service makes. A token without a player id MUST be refused as
-  `subject_unresolved`; an instance at its connection cap MUST refuse as `capacity`.
-  (Source: `StreamRoutes`, contract `push-gateway-api.md`.)
-- **FR-021**: Every connection MUST have its token re-verified every thirty seconds and be closed as
-  `token_invalid` when it fails; MUST be closed as `max_age` after five minutes, jittered by up to
-  20 % per connection; MUST be closed as `slow_consumer` when its queue of sixty-four frames
-  overflows; and MUST be closed as `shutting_down` before the instance stops consuming. (Source:
-  `Revalidator`, `ConnectionSweeper`, `ConnectionRegistry`, `GracefulShutdownSpec`.)
+- **FR-020**: The service MUST serve a player-class SSE route at the original's path (`/v1/stream`,
+  which the player app's proxy appends to its base URL) that opens a connection for the token's
+  player: a `ready` frame (`subjectId`, `serverTime`), a `: heartbeat` comment every fifteen
+  seconds, the first after fifteen, `signal` frames (`kind`, `correlationId`, a content-free
+  `hint`, the frame's `id` the correlation id), and a `closing` frame with a reason before any
+  close the service makes. A missing or bad token MUST be refused 401 `unauthenticated`; a token
+  without a player id 403 `subject_unresolved`; an instance at its connection cap (10,000) 503
+  `capacity`. (Source: `StreamRoutes`, `ConnectionRegistry`, contract `push-gateway-api.md`.)
+- **FR-021**: Every connection MUST have its token re-verified every thirty seconds, jittered by up
+  to 20 % per connection, and be closed as `revalidation_failed` when it fails or names another
+  player; MUST be closed as `connection_recycled` after five minutes, jittered by up to 19 % per
+  connection and judged at the thirty-second sweep; MUST be dropped with no frame when its queue of
+  sixty-four frames overflows; and MUST be closed as `shutting_down` before the instance stops
+  consuming. (Source: `Revalidator`, `ConnectionSweeper`, `ConnectionRegistry`,
+  `GracefulShutdownSpec`; the original's names, Session 2026-11-03 (planning).)
 - **FR-022**: On `player_message_created`, `player_message_read` and `player_message_deleted`
   (`casino.players`, see Dependencies) the service MUST push one `inbox.changed` signal with the
   message's correlation id (`<brand>:<message id>`) down every connection it holds for the player,
   on any instance, at most once per connection, within two seconds; and on `player_message_created`
-  MUST produce `push_delivered` naming the correlation id and the number of connections when that
-  number is above zero. Delivered MUST mean only that a frame was written to a live connection
-  (175 FR-009b).
-- **FR-023**: The service MUST produce `presence_changed` (`online` | `offline`) when a player's
-  connection count across the cluster crosses zero, and MUST serve an operator-class presence view
-  listing online players with the time they came online, keyed by the facts it produced. A player
-  flagged as a test account MUST be excluded from the agent alert of FR-024.
-  (Source: `PresenceTracker`, `PresenceView`, `AgentStreamConsumer.isTestAccount`.)
-- **FR-024**: The service MUST serve an operator-class SSE route per brand that pushes a
-  `player_online` frame (player id, the part of the email address before `@`, session id, time) to
-  every connected agent when `player_logged_in` arrives for a player who is not a test
-  account, at most once, within five seconds. (Source: `AgentStreamRegistry`, feature 182; kept,
-  Session 2026-11-03.)
+  only MUST produce one `push_delivered` naming the message id and the number of connections across
+  the cluster when that number is above zero. Delivered MUST mean only that a frame was written to a
+  live connection (175 FR-009b). (The original produced one outcome per pod, for read and delete
+  alike; cluster-wide and once, Session 2026-11-03 (planning).)
+- **FR-023**: The service MUST produce `presence_changed` (`online` | `offline`, with the time the
+  player came online) when a player's connection count across the cluster crosses zero, within two
+  minutes of an instance dying with its connections, and MUST serve an operator-class presence view
+  listing online players with the time they came online, from its own connection records. (The
+  original counted per pod with a snapshot every thirty seconds; Session 2026-11-03 (planning).) A
+  player flagged as a test account MUST be excluded from the agent alert of FR-024 once a fact
+  carries the flag; none does today (research, *Elsewhere*). (Source: `PresenceTracker`,
+  `PresenceView`, `AgentStreamConsumer.isTestAccount`.)
+- **FR-024**: The service MUST serve the original's agent-stream routes under the brand's backoffice
+  prefix: an operator-class route issuing a single-use ticket valid thirty seconds, and an SSE route
+  opened with the ticket alone (no bearer), refused as `invalid_ticket` when the ticket is unknown,
+  used, another brand's or expired; the stream MUST push a `player_online` frame (`player_id`,
+  `player_email_prefix`, `session_id`, `occurred_at`, the frame's `id` the session id) to every
+  connected agent when `player_logged_in` arrives, at most once, within five seconds, with a
+  `: ping` every fifteen seconds; an agent's queue of sixteen frames MUST drop the connection on
+  overflow. (Source: `BackofficeAgentStreamRoutes`, `AgentStreamTicketStore`, `AgentStreamRegistry`,
+  feature 182; kept, Session 2026-11-03.)
 
 **Operators**
 
@@ -578,10 +661,11 @@ count.
   audit record naming the operator.
 - **FR-026**: An operator with the brand's role MUST be able to read and write the brand's
   configuration (FR-004) with secrets masked to their first three characters and asterisks, a
-  masked value sent back unchanged preserving the stored secret; and MUST be able to seed the event
-  catalogue: one identify and one track per trigger of FR-006 and FR-014 at the person
-  `_seed_<brand>` with the original's seed data, idempotent, answering the count. (Source:
-  `CustomerIOConfigRoutes`.)
+  masked value sent back unchanged preserving the stored secret, at the original's paths
+  (`/v1/casino/crm-config/<brand>`); and MUST be able to seed the event catalogue: one identify and
+  one track for each of the thirty `CrmEvent` values at the person `_seed_<brand>` with the
+  original's seed data, refused as `credentials_not_configured` without a site id, answering the
+  count and the person; a repeat seeds the same person again. (Source: `CustomerIOConfigRoutes`.)
 - **FR-027**: The brand's status MUST say whether Customer.io is configured, the dead letter's size
   and age of its oldest entry, the number of sends in the last hour by outcome, and the number of
   open connections per instance.
@@ -601,16 +685,19 @@ count.
 - **Profile** (view, one per player): the attributes of FR-008 as last seen from facts, the
   suppression state of FR-012 with its reason, the deposit-day count, the balance after the last
   movement.
-- **Send record** (event sourced, one per fact id and event, or per send-route key): player,
-  trigger, class, channel, each call (identify, track, transactional) with its outcome, attempts
-  and last answer; states `pending` → `accepted` | `refused` | `skipped_stale` |
-  `no_configuration` | `parked` → `accepted` | `discarded`.
+- **Send record** (the state of one durable send, one per fact id and event, per payment for
+  `payment_failed`, or per send-route key): player, trigger, class, channel, each call (identify,
+  track, transactional) with its outcome, attempts and last answer; states `pending` → `accepted` |
+  `refused` | `skipped_stale` | `no_configuration` | `no_address` | `marketing_suppressed` |
+  `account_closed` | `parked` → `accepted` | `discarded`.
 - **Dead letter** (view over parked send records per brand).
 - **Configuration** (key value, one per brand): site id, region, sender address, trigger table, the
   names of the three secrets in the secret store.
-- **Connection** (in memory, per instance): id, player, token, queue, opened-at; the set per player
-  across the cluster answers presence.
-- **Presence** (view): online players and since when, from `presence_changed`.
+- **Connection** (held per player, across the cluster): id, instance, opened-at, lease; the set per
+  player answers presence, and every instance's stream handlers read it, so a signal reaches a
+  connection on any instance.
+- **Presence** (view): online players and since when, from the connection records.
+- **Agent ticket** (one per ticket): brand, issued-at, used.
 - **Seed person**: `_seed_<brand>`, the synthetic person the catalogue is seeded at.
 
 ## Success Criteria *(mandatory)*
@@ -644,8 +731,16 @@ count.
   and in-process dedup cache, and `CrmService`'s route-handler dispatches are replaced by consumers
   of facts and a durable send record. Phantom and duplicate events — the cause of the stale
   `player_registered` campaigns after every rollout — cannot occur.
-- Failures are no longer fire-and-forget: retries, a dead letter, operator retry and discard, and a
-  per-player send history are new.
+- Failures are no longer fire-and-forget: the Scala path's sends gain the Go path's four attempts, a
+  per-call timeout, a dead letter, operator retry and discard, and a per-player send history are new.
+- `withdrawal_failed` is tracked once per failure; the original's dedup id was the player, so it
+  tracked one failed withdrawal per player per 25 hours (a defect, not carried).
+- `player_name` is the given name or the address's local part, `language`, `affiliate_id` and
+  `last_device_os` are not sent, `pot_vip` is always `false`, and `payment_failed` carries no crypto
+  or expiry keys: no fact carries them (Session 2026-11-03 (planning)).
+- The webhook answers a body that is not a JSON object with `invalid_body` (the original threw) and
+  counts its refusals; `send_message`'s `campaign_id` and `reward_id` are dropped (`players` takes
+  neither).
 - Marketing suppression is enforced outbound (FR-011, FR-012), for sends and for events alike: a
   suppressed player's marketing-class facts are not tracked, suppression is re-checked at every
   retry, and the operator's message-suppression flag covers every marketing channel. The original
@@ -655,8 +750,15 @@ count.
   `platform.push.events` topics and the dedicated agent-presence topic are replaced by this
   service's SSE routes and the `push_delivered` and `presence_changed` facts; the `delivered` state
   of a message is advanced by `players` from the fact, not by `casino-service` from a Kafka record.
-- The holding-level Customer.io configuration in `merchant-service` is not carried over as a
-  fallback; a brand's configuration is its own (see the open question on operator mail).
+  Presence is counted across the cluster and `push_delivered` is produced once with the cluster's
+  count, on `player_message_created` only; the original produced one outcome per pod for created,
+  read and delete alike, and a presence snapshot every thirty seconds (Session 2026-11-03
+  (planning)). The `ready` frame's subject is the player id, not `casino.player/<id>`.
+- The holding-level Customer.io configuration in `merchant-service`, which the original read first,
+  is not carried; a brand's configuration is its own (see the open question on operator mail).
+- The configuration, webhook, stream and agent-stream routes keep the original's paths; the send,
+  sends, parked-sends, presence and status routes are new, under the brand's prefixes (001 FR-020).
+- The person is deleted at Customer.io on erasure; the original never deleted one.
 - The nightly `DailyDepositCountReset` CronJob, which enumerated Keycloak's users, becomes a timer
   over this service's own view.
 - Live balances come from the wallet's facts, not from a read of the wallet's twin.
@@ -665,31 +767,44 @@ count.
   service wrote back, since no service in the brand knows an affiliate account (012).
 - The Customer.io reporting webhook (opened, bounced) is not added; the send record holds
   Customer.io's acceptance of the call, which is all the original held.
-- The daily, 03:00 UTC deposit day and the auto-login rule are kept exactly.
+- The deposit day beginning at 03:00 UTC, the 03:05 reset and the auto-login rule are kept exactly;
+  the reset is on by default where the original's chart had it off.
 
 ## Recordings
 
 The original's suites that cover this service, which become the recordings and the oracle (001
 FR-029 to FR-032):
 
-- Go end-to-end: `TestScenarioFreeSpinsPlay_CustomerIOGrant` (skipped without operator credentials
-  today; recorded with them), `TestScenario16_RewardGrant_TargetSelectActivateForfeit` (the webhook's
-  `target_offer` path). No other Go scenario exercises Customer.io or push; the recordings of this
-  service's outbound calls come from the unit suites below replayed against the `crm-stub`.
+- Go end-to-end, run with the original's two Customer.io base URLs pointed at the `crm-stub` and the
+  recording brand configured against it with a transactional id for every trigger, so every
+  dispatch is recorded with its identify, track and send: the scenarios that produce CRM traffic
+  (40, 16, 21, 30, the RG and KYC scenarios of `e2e-rg-kyc.patch`) and the three that call the
+  webhook: `TestScenarioFreeSpinsPlay_CustomerIOGrant` (skipped without operator credentials today;
+  recorded with them), `TestScenario21_SuspectedDuplicate_RefusedOnEveryPath` and
+  `scenario_free_spins_stacking` (`grant_bonus`; both already recorded under `tests/port/rewards/`).
+  Scenario 16 never calls the webhook; no Go scenario drives `send_message`, `target_offer` or push.
+- An `engagement-driver` (as `rewards-driver`) for what the suite never reaches: the configuration
+  routes with masking and the seed, the webhook's refusals and its `send_message` and
+  `target_offer` paths, the daily reset route, the agent-stream ticket and stream, the player
+  stream's frames, and the pod-local presence route.
 - Playwright (`tests/playwright/tests/`): `notifications-inbox`, `notifications-inbox-pagination`,
   `notifications-inbox-after-dismiss`, `notifications-lobby`, `notifications-in-game-desktop`,
   `notifications-mobile-lobby`, `notifications-mobile-in-game`, `notifications-offline-recovery`,
   `backoffice-message-status`, `backoffice-message-consent`, `backoffice-merge-tags`,
   `backoffice-online-filter`, `47-casino-backoffice-player-online-notification`,
-  `11-email-verification`, `31-player-email-change`, `40-player-registration`.
-- Unit and integration, as expected answers: `customerio_dispatch/handler_test.go` (763 lines: the
-  candidate events, dedup ids, freshness, attribute encoding), `NotificationDeliveryIntegrationSpec`,
-  `PushEventConsumerSpec`, `AgentStreamConsumerSpec`, and the ten `push-gateway` specs
-  (`StreamRoutesSpec`, `ConnectionRegistrySpec`, `RevalidatorSpec`, `ConnectionSweeperSpec`,
-  `PresenceTrackerSpec`, `GracefulShutdownSpec`, `EnvelopeConsumerSpec`, `StreamRoutesAuthSpec`,
+  `11-email-verification`, `31-player-email-change`, `32-player-email-management`,
+  `40-player-registration`.
+- Unit and integration, as expected answers, ported case by case into this service's pure suites:
+  `customerio_dispatch/handler_test.go` (1,070 lines: the candidate events, dedup ids, freshness,
+  attribute encoding), `payment_failed_test.go`, `daily_deposit_count_test.go`,
+  `CustomerIOWebhookRoutesSpec` (the webhook's oracle), `PresenceViewSpec`,
+  `AgentStreamTicketStoreSpec`, `NotificationDeliveryIntegrationSpec`, `PushEventConsumerSpec`,
+  `AgentStreamConsumerSpec`, and the ten `push-gateway` specs (`StreamRoutesSpec`,
+  `ConnectionRegistrySpec`, `RevalidatorSpec`, `ConnectionSweeperSpec`, `PresenceTrackerSpec`,
+  `GracefulShutdownSpec`, `EnvelopeConsumerSpec`, `StreamRoutesAuthSpec`,
   `MultiRealmJwtValidatorSpec`, `KeepAliveSocketOptionsSpec`).
-- A `crm-stub` image standing in for Customer.io's two APIs, recording every call, is added beside
-  005's `psp-stub`; recording MUST refuse to start without it.
+- A `crm-stub` image standing in for Customer.io's two APIs, recording every call and scriptable to
+  refuse, is added beside 005's `psp-stub`; recording MUST refuse to start without it.
 
 ## Assumptions
 
@@ -704,8 +819,10 @@ FR-029 to FR-032):
 - The webhook's timestamp window is five minutes either side of the service's clock, read from
   `CustomerIOWebhookRoutes`' `tsValid` (300 seconds of absolute skew).
 - The operator's "online" filter tolerates a few seconds' lag; presence is derived, not polled.
-- Every Playwright notification suite drives the player frontend through its proxy routes
-  (`/api/player/stream`), which change only their upstream base URL.
+- The Playwright notification suites drive the player frontend through its proxy route
+  (`/api/player/stream`, which appends `/v1/stream` to its upstream base URL); suite 47 calls the
+  agent-stream ticket and stream routes directly at the backoffice's base URL. Both keep their
+  paths; only the base URLs change.
 
 ## Dependencies
 
@@ -718,13 +835,19 @@ FR-029 to FR-032):
 - Spec 008 (taken): the message route this service writes through for `send_message` (008 FR-030:
   origin `crm`, the delivery id as the key, category `marketing`, the three refusals); the operator
   message-suppression flag on `player_consent_changed`; the fallback-template contract for
-  `EmailAddressVerification` (008 FR-004).
+  `EmailAddressVerification` (008 FR-004). Asked 2026-11-03 (planning): `player_consent_changed`
+  for `email` and `sms` at registration with source `registration` (008 FR-028), and `players`'
+  client treating the send route's `refused` as terminal.
 - Spec 009: the document outcomes are `player_kyc_document_reviewed` with its outcome and category
   (009 FR-030); FR-006 derives `kyc_document_accepted` and `kyc_document_declined` from it. No new
   family.
 - Spec 010: `rg_limit_applied` carries `cause` (`set`, `lowered`, `applied`, `removed`), type,
   currency and value; `rg_case_opened` carries the case type and `closes-at` (010 FR-030); FR-006
-  derives tightened and loosened from `cause`. No new field.
+  derives the tightened events and the removal from `cause`. Asked 2026-11-03 (planning):
+  `rg_limit_loosening_requested` when a loosening is staged (010 FR-030), from which FR-006 derives
+  `rg_limit_loosened` at the request, as the original tracked it.
+- Spec 021: the `engagement` module manifest declares no `push-provider-key`; the three Customer.io
+  secrets enter through FR-026's route (answered 2026-11-03 (planning)).
 - Spec 011 (taken): `bonus_code_entered` on `casino.rewards` (011 FR-027), and the award and target
   routes of 011 FR-022 admitting this service with the original's answers.
 - Spec 004: `merchant` sends operator invitations through the installation's provider configured on it,

@@ -63,8 +63,9 @@ partner is contracted.
 
 ## `engagement` (kind `product`, depends on `core`)
 
-`engagement`: expose; keys the twelve identity keys plus `push-provider-key` (secret). Topics
-`casino.push` 6 (1d). Retention 30d.
+`engagement`: expose; keys the twelve identity keys and no secret (the three Customer.io secrets
+enter through its configuration route, spec 014 FR-004; `push-provider-key` removed 2026-11-03).
+Topics `casino.push` 6 (1d). Retention 30d.
 
 ## `reporting` (kind `product`, depends on `core`)
 

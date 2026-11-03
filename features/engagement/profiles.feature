@@ -20,8 +20,8 @@ Feature: The profile the CRM holds reflects the brand's facts
     Then one identify with "daily_deposit_count" of "0" is sent for the player
     And none is sent for a player whose count was already "0"
 
-  Scenario: a tier change or a potential VIP mark identifies the player with the new value and tracks nothing
-    Given an operator changes the player's tier or marks them a potential VIP
+  Scenario: a tier change identifies the player with the new value and tracks nothing
+    Given an operator changes the player's tier
     When the fact arrives
     Then the player is identified with the new value
     And no track is made
