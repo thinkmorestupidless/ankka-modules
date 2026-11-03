@@ -289,6 +289,7 @@ Unchanged:
 | The webhook answers 400 for a body that is not a JSON object; the original threw | R7 | `WebhookSuite` |
 | The webhook's refusals are counted on status | FR-017 (new) | `WebhookSuite` |
 | `send_message`'s `campaign_id` and `reward_id` are read and dropped; `players` takes neither | R6 | `WebhookSuite`; the free-spins recording's `send_message`, marked |
+| The streams' heartbeat and ping are named events (`heartbeat` `{at}`, `ping` `{}`), and no frame has an `id:`; the ids are in the data | ankka 0.13's SSE (research, *Found during implementation*) | `FramesSuite`; `StreamSuite`; the driver's stream recordings, marked |
 | `ready`'s `subjectId` is the player id, not `casino.player/<id>` | constitution III | `StreamSuite`; the driver's stream recording, marked |
 | Presence cluster-wide with `since`; one `push_delivered` per `player_message_created` with the cluster's count; nothing on read or delete | settled 2026-11-03 | `ChannelSuite`; `push.feature` |
 | A dead instance's connections expire within two minutes (`sweep-<player>`) | R10 | `ChannelSuite` across `restartService()` |

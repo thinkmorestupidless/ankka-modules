@@ -296,7 +296,7 @@ end in `just players-run` + `just engagement-run`.
       30 s for the brand), `S/channel/AgentChannel.scala` (event sourced, id = slug: connections, the
       `PlayerOnline` ring, a 16-frame queue dropped on overflow); `BackofficeEndpoint`'s `POST
       /agent-stream/ticket` and `GET /agent-stream?ticket=` (`sse`, no bearer, `invalid_ticket`;
-      `: ping` every 15 s); `PlayersConsumer`'s `player_logged_in` → `AgentChannel.signal` with the
+      `event: ping` every 15 s); `PlayersConsumer`'s `player_logged_in` → `AgentChannel.signal` with the
       profile's email prefix. `T/channel/AgentTicketSuite.scala`, `T/channel/AgentChannelSuite.scala`
       first; `T/it/AgentStreamSuite.scala` (`AgentStreamTicketStoreSpec`'s and
       `AgentStreamConsumerSpec`'s cases; `player_online` within 5 s; a ticket used twice).

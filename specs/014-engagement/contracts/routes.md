@@ -22,7 +22,7 @@ ACL `Routes.player(slug)`.
 
 | Method and path | Answer |
 |---|---|
-| `GET /` (`sse`) | `text/event-stream`: `event: ready` `{subjectId, serverTime}`; `: heartbeat <instant>` every 15 s, the first after 15 s; `event: signal` with `id: <correlationId>` and `{kind: "inbox.changed", correlationId: "<slug>:<messageId>", hint: {}}`; `event: closing` `{reason}` before any close the service makes |
+| `GET /` (`sse`) | `text/event-stream`: `event: ready` `{subjectId, serverTime}`; `event: heartbeat` `{at}` every 15 s, the first after 15 s; `event: signal` `{kind: "inbox.changed", correlationId: "<slug>:<messageId>", hint: {}}`; `event: closing` `{reason}` before any close the service makes. No `id:` and no comment lines: ankka 0.13 writes neither (research, *Found during implementation*) |
 
 Refusals before the stream opens: 401 `unauthenticated` (no or bad token); 403 `subject_unresolved`
 (a token with no `eitheror_twin_id`); 503 `capacity` (`MAX_CONNECTIONS`, 10,000 per instance).
@@ -58,7 +58,7 @@ ACL `Routes.operator(slug)`; the agent stream itself under the ticket, by `withA
 | Method and path | Body | Answer | Refusals |
 |---|---|---|---|
 | `POST /agent-stream/ticket` | — | 200 `{ticket, expires_in: 30}` | — |
-| `GET /agent-stream?ticket=` (`sse`, no bearer) | — | `id: <session_id>`, `event: player_online`, `{player_id, player_email_prefix, session_id, occurred_at}`; `: ping` every 15 s | 403 `invalid_ticket` (unknown, used, another brand, older than 30 s) |
+| `GET /agent-stream?ticket=` (`sse`, no bearer) | — | `event: player_online`, `{player_id, player_email_prefix, session_id, occurred_at}`; `event: ping` `{}` every 15 s (no `id:`, no comment) | 403 `invalid_ticket` (unknown, used, another brand, older than 30 s) |
 | `GET /players/{player}/sends?page=` | — | `{sends: [{sendId, trigger, event, class, channel, time, outcome, reason}], page, total}` newest first, 50 a page | — |
 | `GET /parked-sends?page=&search=` | — | the same rows, parked only; `search` on trigger and reason | — |
 | `POST /parked-sends/{sendId}/retry` | — | 200 the send's record after the attempt (`accepted`, `parked` again, `marketing_suppressed`, `account_closed`) | 404 `send_not_found`; 409 `not_parked` |

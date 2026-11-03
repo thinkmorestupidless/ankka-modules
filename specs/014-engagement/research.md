@@ -388,7 +388,10 @@ built in the stubs job beside `psp-stub`.
 
 ## For ankka
 
-Nothing new. A per-instance consumer group, or a way to reach every instance's sockets, would make
+The SSE frame fields: ankka 0.13's `SseEvent` writes a name and JSON data only, so an `id:` line and a comment
+line cannot be sent (found during implementation, below). A stream that keeps the original's frames needs both.
+
+A per-instance consumer group, or a way to reach every instance's sockets, would make
 R10 a broadcast rather than a poll; the poll is cheap enough that no spec is raised.
 
 ## Declined remediations
@@ -410,6 +413,16 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
 - **spec 017**: `support-agent` reads a player's sends through the backoffice route.
 - **spec 012**: `affiliate_attributed` on an affiliate's code is not derived here; `attribution`
   knows which codes are affiliates'.
+
+## Found during implementation
+
+- **SSE frames** (2026-11-03, asked and settled): ankka 0.13's `sse` writes named events with JSON data
+  only, never an `id:` or a comment line. So the player stream's heartbeat is `event: heartbeat`
+  `{"at": <instant>}` every 15 s, the agent stream's ping `event: ping` `{}` every 15 s, and the ids
+  (`correlationId` on `signal`, `session_id` on `player_online`) are carried in the data alone, which
+  already holds them. The frontends listen by event name and never received the comments; a
+  reconnect's `Last-Event-ID` is lost, and the page refetches anyway. A divergence (plan.md), and a
+  note under *For ankka*.
 
 ## Design finished
 
