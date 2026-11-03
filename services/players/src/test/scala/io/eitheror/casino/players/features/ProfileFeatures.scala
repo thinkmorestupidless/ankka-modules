@@ -142,10 +142,10 @@ class ProfileFeatures extends PlayersFeatures("profile.feature"):
   }
   Then("a {string} fact is produced") { (name: String) =>
     assertEquals(name, "player_consent_changed")
-    kit.eventually(name)(kit.facts(CasinoPlayers).collectFirst { case f: PlayerConsentChanged if f.playerId == playerId && !f.consented => f })
+    kit.eventually(name)(kit.facts(CasinoPlayers).collectFirst { case f: PlayerConsentChanged if f.playerId == playerId && !f.consented && f.source != "registration" => f })
   }
   Then("the brand's engagement stops sending marketing email from that fact") { () =>
-    val f = kit.facts(CasinoPlayers).collectFirst { case f: PlayerConsentChanged if f.playerId == playerId && !f.consented => f }.get
+    val f = kit.facts(CasinoPlayers).collectFirst { case f: PlayerConsentChanged if f.playerId == playerId && !f.consented && f.source != "registration" => f }.get
     assertEquals((f.channel, f.source), ("email", "player"))
   }
 

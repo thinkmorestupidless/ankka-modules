@@ -1,6 +1,6 @@
 package io.eitheror.casino.players.features
 
-import io.eitheror.casino.contract.facts.{CasinoPlayers, PlayerRegistered}
+import io.eitheror.casino.contract.facts.{CasinoPlayers, PlayerConsentChanged, PlayerRegistered}
 import io.eitheror.casino.players.Json
 import io.eitheror.casino.players.it.Reply
 import io.eitheror.casino.players.player.{PlayerEntity, PlayerState}
@@ -111,6 +111,14 @@ class RegistrationFeatures extends PlayersFeatures("registration.feature"):
     val at  = player().registeredAt
     assertEquals((c.email.granted, c.email.at, c.email.source), (true, at, Some(source)))
     assertEquals((c.sms.granted, c.sms.at, c.sms.source), (true, at, Some(source)))
+  }
+  Then("one {string} fact per channel carries the consent and the source {string}") { (name: String, source: String) =>
+    assertEquals(name, "player_consent_changed")
+    def consents = kit.facts(CasinoPlayers).collect { case f: PlayerConsentChanged if f.playerId == playerId => f }
+    kit.eventually("a player_consent_changed per channel")(Option(consents).filter(_.map(_.channel).toSet == Set("email", "sms")))
+    val registeredAt = player().registeredAt.get
+    assertEquals(consents.map(f => (f.channel, f.consented, f.source, f.occurredAt)).sortBy(_._1),
+      Vector(("email", true, source, registeredAt), ("sms", true, source, registeredAt)))
   }
 
   Given("a registration from a network address") { () =>

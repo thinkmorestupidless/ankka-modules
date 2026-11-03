@@ -70,7 +70,7 @@ another session's: do not touch it.
       player; a suite case in the publisher's suite; the step added to the raise scenario of
       `features/responsible-gambling/limits.feature` bound in the service's `GherkinSuite`;
       `just service responsible-gambling test` green.
-- [ ] T009 `services/players/` (R6 P2): `RegistrationRoutes.scala` (line ~157) produces
+- [X] T009 `services/players/` (R6 P2): `RegistrationRoutes.scala` (line ~157) produces
       `player_consent_changed` for `email` and `sms` at registration, source `registration`, beside
       `player_registered`; suite cases; the step added to the consents scenario of
       `features/players/registration.feature` bound; `just service players test` green.
