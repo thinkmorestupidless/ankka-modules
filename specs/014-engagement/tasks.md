@@ -55,7 +55,7 @@ another session's: do not touch it.
       `services/engagement/**`, `features/engagement/**`, `tests/port/engagement/**`,
       `tests/stubs/crm-stub/**`) and a job as rewards', with a `-Dit=true` step; `crm-stub` built in
       the stubs job beside `psp-stub`.
-- [ ] T007 [P] `tests/stubs/crm-stub/` (Go, the `stubhttp` recorder of `tests/stubs/psp-stub`; research
+- [X] T007 [P] `tests/stubs/crm-stub/` (Go, the `stubhttp` recorder of `tests/stubs/psp-stub`; research
       R2): two listeners (18201 Track, 18202 App) answering `POST /api/v2/entity` and `POST
       /v1/send/email` with 200, checking basic `siteId:trackKey` and bearer `appKey` against its
       flags; `GET /__received` listing every call with headers and body in order; `POST /__control`
