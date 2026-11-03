@@ -97,7 +97,8 @@ another session's: do not touch it.
       classes), `S/events/Amounts.scala` (minor → major, two decimals, `HALF_UP`).
       `T/events/EventsSuite.scala` first: every row of facts.md; `G/handler_test.go`'s candidate and
       single-mode cases and `G/payment_failed_test.go` ported case by case, the freshness cases marked
-      as replaced by the claim.
+      as replaced by the claim; `T/events/ClassesSuite.scala`: every trigger of FR-006 and FR-014 in
+      exactly one class.
 - [ ] T014 [P] `S/profile/Attributes.scala` (`Attributes.of(profile)`: FR-008 exactly as
       `buildIdentifyAttributes`, the seven always sent, the numeric nine with the string fallback,
       `player_name`'s fallback, `rg_limit_types`'s form), `S/profile/Suppression.scala` (research
@@ -275,7 +276,7 @@ end in `just players-run` + `just engagement-run`.
 - [ ] T043 [US6] `PlayersConsumer`: `player_message_created | read | deleted` → `Channel.signal`;
       `S/facts/PushPublisher.scala` (`Opened` on 0→1, `Closed | Expired` on 1→0 → `presence_changed`;
       `Delivered` → `push_delivered` with the bare message id); `S/timers/SweepTimer.scala`
-      (`sweep-<player>` recurring 60 s while above zero, cancelled at zero). Suites:
+      (`sweep-<player>` recurring 30 s while above zero, cancelled at zero). Suites:
       `T/facts/PushFactsSuite.scala` (no fact for `Leased`, `Acked`, `Signalled`, read or delete).
 - [ ] T044 [US6] `T/it/StreamSuite.scala` (`ready`, the heartbeat, a `signal` after
       `player_message_created`, `closing` for each reason, the refusals, two devices converging on a

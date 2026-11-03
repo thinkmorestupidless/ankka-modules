@@ -57,7 +57,7 @@ just engagement-it        # Postgres (Docker): the SC suites below
 | `RecordsSuite` (SC-008) | accepted calls = `accepted` rows; every refusal, parking, discard audited |
 | `WebhookSuite` | each action relayed, each answer passed through, `FakeRewards` and `FakePlayers` scripted |
 | `StreamSuite` | `ready`, heartbeat, `signal`, `closing`; `revalidation_failed`, `connection_recycled`, `shutting_down`; `capacity` |
-| `AgentStreamSuite` | the ticket once, 30 s, another brand; `player_online` frames; test accounts |
+| `AgentStreamSuite` | the ticket once, 30 s, another brand; `player_online` frames within 5 s; the 16-frame drop |
 | `ConfigSuite` | masking, the masked round trip, the secret store holding the values, the seed's 30 pairs |
 
 ## 5. Run it

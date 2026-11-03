@@ -96,7 +96,7 @@ One row per player: `playerId, dailyDepositCount, depositDay, status, erased`. Q
 | `acked(connectionId, seq)` | `Acked` | marks; a signal whose `openAt ⊆ acked ∪ closed` becomes `Delivered(correlationId, openAt.size)` once, for kind `inbox.changed` from `created` only |
 | `signal(kind, correlationId, origin, now)` | `Signalled` | appended only when a connection is open; `openAt` = the open set |
 | `close(connectionId, reason, now)` | `Closed` | 1→0 clears `onlineSince`; pending signals re-judged |
-| `sweep(now)` | `Expired` per lease older than 90 s | from the `sweep-<player>` timer |
+| `sweep(now)` | `Expired` per lease older than 90 s | from the `sweep-<player>` timer, every 30 s, so a dead instance's player is offline within 120 s (FR-023) |
 
 Snapshots every 100 events. `PushPublisher` maps `Opened` on 0→1 and `Closed` | `Expired` on 1→0 to
 `presence_changed`, `Delivered` to `push_delivered`.
@@ -127,7 +127,7 @@ secrets are `clients.secrets` under `crm/<slug>/track-key`, `crm/<slug>/app-key`
 | Name | Kind | Handler |
 |---|---|---|
 | `deposit-day-<slug>` | recurring, first due at the next 03:05 UTC, period 1 day; set at every start | `DepositDayTimer.reset(day)`: pages `ProfilesView.dailyCountAbove(day)`, for each `Profile.resetDepositDay(day)` then `Send.start(deposit-day/<day>/<player>, identify)` |
-| `sweep-<player>` | recurring 60 s while `Channel` has connections; cancelled at zero | `SweepTimer.sweep(player)` → `Channel.sweep(now)` |
+| `sweep-<player>` | recurring 30 s while `Channel` has connections; cancelled at zero | `SweepTimer.sweep(player)` → `Channel.sweep(now)` |
 
 ## Consumers
 

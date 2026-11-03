@@ -306,9 +306,9 @@ stream's `Source` lives on the instance that served the request. So:
   connections were open; `Delivered(correlationId, n)` is the event when every one of those has acked
   the signal or closed, once, for `created` only (settled 2026-11-03);
 - `Opened` on 0→1 and `Closed` on 1→0 are `presence_changed` (`online` with `since` = the first
-  open's time); a `sweep-<player>` recurring timer (60 s) while the count is above zero expires any
+  open's time); a `sweep-<player>` recurring timer (30 s) while the count is above zero expires any
   connection whose lease is older than 90 s, so an instance that died takes its players offline
-  within two minutes; the timer is cancelled at zero;
+  within two minutes (90 s + 30 s at worst); the timer is cancelled at zero;
 - the ring holds 32 signals; a connection whose cursor has fallen out re-reads (the page refetches
   anyway, push carries no content); the queue of 64 frames per connection overflows into a drop, as
   the original (settled 2026-11-03);
@@ -410,3 +410,7 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
 - **spec 017**: `support-agent` reads a player's sends through the backoffice route.
 - **spec 012**: `affiliate_attributed` on an affiliate's code is not derived here; `attribution`
   knows which codes are affiliates'.
+
+## Design finished
+
+2026-11-03: analyze reported nothing above LOW.

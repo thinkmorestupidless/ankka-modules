@@ -130,7 +130,7 @@ self-hosted installation (kind locally, GKE), as `modules/engagement/module.json
 | Event sourced entities | 2 (`Channel`, `AgentChannel`) |
 | Workflows | 1 (`Send`) |
 | Views | 2 (`SendsView`, `ProfilesView`) |
-| Timers | `deposit-day-<slug>` (daily, 03:05 UTC); `sweep-<player>` (60 s while online) |
+| Timers | `deposit-day-<slug>` (daily, 03:05 UTC); `sweep-<player>` (30 s while online) |
 | Consumers | 8 (6 in: players, sessions, money, payments, withdrawals, rewards; 2 out: push, audit) |
 | Feature scenarios bound | every scenario of `features/engagement/`, plus the steps added to `features/responsible-gambling/limits.feature` and `features/players/registration.feature` |
 | Recordings replayed | the spec's *Recordings* (research R2) |

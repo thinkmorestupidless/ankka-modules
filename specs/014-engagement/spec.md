@@ -536,8 +536,9 @@ count.
   the closure confirmation. Suppression and the account state MUST be checked at every attempt: the
   first, each automatic retry of FR-002, and an operator's retry of FR-025.
 - **FR-012**: A player MUST be suppressed for a channel while any of these holds, from the brand's
-  facts: consent for the channel withdrawn or never given (`player_consent_changed`,
-  `player_registered`); an open exclusion or cooling-off case (`player_self_excluded`,
+  facts: consent for the channel withdrawn or never given (`player_consent_changed`, including the
+  registration's own, 008 FR-028; a player with no consent fact is not consented); an open
+  exclusion or cooling-off case (`player_self_excluded`,
   `rg_case_opened` until `rg_case_closed`; spec 010 FR-031); the account closed; or an operator's
   message suppression (`players`, 008), which suppresses every marketing channel — email, SMS and
   in-app — with `suppression_reason` `operator`. The next identify after a change MUST carry
@@ -673,8 +674,9 @@ count.
 **Origins and bounds**
 
 - **FR-028**: Every route of this service MUST be of a 001 FR-020 class: the stream (player), the
-  agent stream, sends, dead letter, configuration, presence (operator), the send route (service,
-  the brand's own services), the webhook (public, under its signature).
+  agent-stream ticket, sends, dead letter, configuration, presence, status (operator), the agent
+  stream itself (served under the single-use ticket the operator route issued, FR-024), the send
+  route (service, the brand's own services), the webhook (public, under its signature).
 - **FR-029**: The service MUST hold no money, no balance of its own beyond the view of FR-008, no
   credential of another service, and no realm administration; it MUST write audit records (001
   `platform.audit`) for every refusal of FR-011, every retry and discard of FR-025, and every
@@ -682,9 +684,9 @@ count.
 
 ### Key Entities
 
-- **Profile** (view, one per player): the attributes of FR-008 as last seen from facts, the
-  suppression state of FR-012 with its reason, the deposit-day count, the balance after the last
-  movement.
+- **Profile** (one per player, built from facts; the plan keeps it as an entity with a view over
+  it): the attributes of FR-008 as last seen from facts, the suppression state of FR-012 with its
+  reason, the deposit-day count, the balance after the last movement.
 - **Send record** (the state of one durable send, one per fact id and event, per payment for
   `payment_failed`, or per send-route key): player, trigger, class, channel, each call (identify,
   track, transactional) with its outcome, attempts and last answer; states `pending` → `accepted` |
@@ -704,8 +706,9 @@ count.
 
 ### Measurable Outcomes
 
-- **SC-001**: Every fact family of FR-006, delivered twice, produces exactly one event at the
-  Customer.io stub, measured over the recordings.
+- **SC-001**: Every fact family of FR-006 produces the original's event, with its attribute names
+  and types and data keys, at the Customer.io stub, measured over the recordings; delivered twice,
+  it produces it once (SC-002's replay).
 - **SC-002**: A year's replay of a brand's facts into a rebuilt view sends nothing and ends with every
   fact recorded.
 - **SC-003**: A send for a suppressed player of the marketing class is refused and its event is not
@@ -852,9 +855,9 @@ FR-029 to FR-032):
   routes of 011 FR-022 admitting this service with the original's answers.
 - Spec 004: `merchant` sends operator invitations through the installation's provider configured on it,
   not through `engagement` (spec 004 FR-027; answered 2026-10-12).
-- ankka 028 (SSE and socket routes), 032 (the deposit-day timer), 038 (the three secrets), 040 (a
-  grant if the open question on operator mail is answered with one), 042 (`Personal`, the erasure
-  handler).
+- ankka 028 (SSE and socket routes), 032 (the deposit-day and sweep timers), 038 (the three
+  secrets), 042 (`Personal`, the erasure handler). No grant into another project: the operator-mail
+  question was answered with none (2026-10-12).
 
 ## Out of scope
 
