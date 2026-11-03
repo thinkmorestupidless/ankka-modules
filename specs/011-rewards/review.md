@@ -206,3 +206,181 @@ Tests: `CASINO_VERSION=0.2.0-011-SNAPSHOT sbt test` in `services/rewards/` ran 2
 run: the integration, parity and feature suites (`-Dit=true`, Docker, several minutes each), and the wallet,
 players, game-provider and attribution suites. The first two Blocking findings rest on reading, and each
 names the test that would show it.
+
+## Second round
+
+# Review: 011-rewards — the first round's fixes (d7e3222d..6126e13a)
+
+**Verdict:** Request changes
+**What it does:** Answers the first round's 11 findings in 7 commits. A repeated completing round answers the
+finalisation's payment again. Only this project's `support-agent` reads grants. Free-rounds winnings to the
+bonus balance become a reward of their own. The launch's eligible read uses the player's record and each
+reward rather than the view. The task-era comments are corrected.
+**Should it exist:** yes, because each commit answers a finding of the first round, and nothing else is in
+the range.
+**Read:** in full, the diff of every main and test file in the range, plus plan.md's and research.md's
+changes. Outside the diff: `reward/Reward.scala` (`open`, `activate`, `activeDeadline`), `reward/Clocks.scala`,
+`reward/Settlement.scala` (`Destination`, `Payment.key`), `reward/Model.scala` (`Opening`),
+`player/PlayerRewards.scala` (`select`, `rewardChanged`, `indexed`), `player/Model.scala` (`HeldReward`,
+`PlayerRewardsState`), `eligibility/Evaluator.scala` (`Held`, `Standing`, rules 4 to 7),
+`consumers/IndexConsumer.scala`, `api/Lifecycle.scala` (`active`, `cancel`, `switch`),
+`api/RewardsEndpoint.scala:85-170` (the player's state and visible offers), wallet's
+`api/ServiceEndpoint.scala:302` (`ownProject`), attribution's `inputs/RewardsFacts.scala`, and the original's
+`tl/runtime/capabilities/award_bonus/handler.go:130-240` plus spec 196's `data-model.md` (`bonus_source_ref`).
+Not reviewed: the recordings, which are unchanged.
+**Size:** 22 code files, about +170 −77 hand-written lines, plus docs. Small.
+
+### Resolutions of the first round
+
+- **Blocking 1 (repeated completing round loses the payment): holds.** `Reward.roundSettled` answers
+  `late.orElse(s.finalPayment)` on `AlreadyCounted`. The new `RewardSuite` case repeats `rd-2`, the round that
+  completed the count, and expects the same payment. Without the fix it would fail, because the old code
+  answered `None`. Restarting the step is safe, since `WalletStep.start` is idempotent by step id and
+  `Wiring.pay`'s new `Reward.open` is a no-op on an opened reward. A repeat of an earlier round, counted
+  before finalisation, now also restarts the payment. That is harmless for the same reason.
+- **Blocking 2 (winnings record never expired, closed, cancelled or switched): partly holds.** The winnings
+  are a reward of their own under the wallet key they had. `Activated` sets the `claim-` timer
+  (`isFreeRounds` is false for a `BonusFunds` opening). `Converted` sets the cap timer. `Lifecycle.active`
+  resolves the wallet record's `grantRef` to the reward, so cancel and switch reach it. `SettlementItSuite`
+  drives the real path to an `ACTIVE` `<reward>/winnings`. The record's lifetime is fixed. But the new reward
+  is opened under the free-rounds **offer's** id, and that changes the player's eligibility and visible offers.
+  See the new Blocking finding below. Leaving `Clock.Wagering` unused, with the reason in research.md, is
+  acceptable.
+- **Blocking 3 (any project's `support-agent`): holds.** `supportAgent(ctx, c)` compares the caller's project
+  with `ctx.ownProject`, which is the brand's slug unless one is given. That is the same convention as wallet's
+  `ServiceEndpoint.scala:302`. The handler uses the same test, and the principal now names the project.
+  `PlayerGrantsSuite` refuses `other-brand`'s agent with 401. The ACL is still composed outside
+  `contract.access.Routes`. The reason, a contract publish this branch does not make, is fair, but the
+  follow-up is recorded nowhere in the repository (see Should fix).
+- **Should fix (split the PR): declined, and the decline is recorded** in research.md ("One pull request").
+  Accepted.
+- **Should fix (eligible read lags the view): holds,** with a gap in its test (see Should fix). The read now
+  goes through `PlayerRewards.get` and `Reward.get` for each held, non-terminal reward. It applies the filters
+  the view applied: active, game, provider, provider status not failed, oldest grant first. The operator
+  grant path reports to the record as soon as the reward is opened. The view query and its test are removed.
+- **Nit (priority comment): holds.**
+- **Nit (task-era comments): holds.**
+- **Nit (`.get` and `isInstanceOf`): left as a nit.** That is fine.
+- **Question (refused switch or cancel is final): answered.** The reasoning holds for the two paths named.
+- **Question (unanswered provider create): answered.** It is the original's behaviour. The answer says it is
+  "listed among the pull request's known gaps", but there is no pull request yet and nothing in specs/ records
+  it (see Should fix).
+- **Question (`PendingCapClosed` replay): answered.** No live journal predates W5. Accepted.
+
+### Blocking
+
+- `services/rewards/src/main/scala/io/eitheror/casino/rewards/steps/Wiring.scala:142-145`: issue (blocking).
+  The winnings' own reward is opened with the free-rounds **offer's** id (`s.offerId`). The player's record
+  then indexes it as a reward of that offer, and the evaluator counts it.
+  - `Held.claim` is true for an `ACTIVE` reward. Rule 6 (`maxClaimsPerPlayer`) therefore counts one free-rounds
+    claim twice once its winnings go to the bonus balance. An offer limited to 2 claims allows one.
+  - Rule 5 (`conflictsWith`) and rule 7 (`excludedOfferIds`) now see the free-rounds offer as open or claimed
+    for as long as the winnings are wagered, after the free-rounds reward itself has closed.
+  - While the winnings award is in flight, and for good if the wallet refuses it, the reward is `AVAILABLE`.
+    `Wiring.move` maps a refused `Winnings` to `RefuseAward`, which leaves the status as it was. The record holds
+    it as `unclaimed`, and three things follow:
+    - `GET /{playerId}/state` lists it among `visibleOffers` while the offer is live (`RewardsEndpoint.scala:154`).
+    - A `select` of the free-rounds offer finds it through `unclaimed(offerId)` and claims a free-rounds offer
+      against a `BonusFunds` reward.
+    - `makeVisible` (`PlayerRewards.scala:36`) treats the offer as already visible.
+
+  The original did not do this. Its grant's `OfferRef` is `params.BonusSourceRef` (`handler.go:212`), which is
+  the free-spins **grant** id (spec 196 `data-model.md:79`, "points back to the Free Spins Grant `grant_id`").
+  The grant therefore never counted as a claim of the offer. plan.md's rewritten row says "the free rounds'
+  offer" but does not declare these consequences, and no test covers them.
+
+  Suggestion: open the winnings' reward with `offerId = s.rewardId` (the free-rounds reward, as the original's
+  `offer_ref`), and keep `offerName` and `snapshot` from the parent so the operator lists still read well. An
+  id the offer book does not hold is already left out of the visible offers (`inBrandOrder`) and matches no
+  offer's rules. Also end the reward when its award is refused, rather than leaving it `AVAILABLE`: for
+  example, `Wiring.move` answers a refused `Winnings` with `Landing.Cancel` or `Landing.Expire`, with a
+  reason. Add an evaluator or `PlayerRewards` case: a free-rounds offer with `maxClaimsPerPlayer = 2`, one
+  claim whose winnings went to the bonus balance, and a second claim allowed. Add a `WiringSuite` case for the
+  refused winnings.
+  Resolved: the winnings reward's offer is the free-rounds reward (`offerId = s.rewardId`), with the offer's name and snapshot, so no offer's claim limit, conflicts, exclusions or visible offers count it; a refused `winnings` award expires it (`winnings_award_refused`, from `AVAILABLE`, no fact). `WiringSuite` covers the opening's offer and the refusal; the evaluator counts held rewards by offer id, so the claim-limit case follows from the opening's, e34d9812.
+
+### Should fix
+
+- `services/rewards/src/test/scala/io/eitheror/casino/rewards/it/FreeRoundsRoutesSuite.scala:31-41,79-83`:
+  issue (non-blocking). The new "launch just after the grant" test sends the `IndexConsumer.current`
+  report itself, in its `live` helper. It therefore shows that the read uses the record, but not that the
+  grant path reports to the record. Remove the two lines added to `FreeRoundsGrants.scala:133-136` and the test
+  still passes. Suggestion: drive the real operator grant route (or `FreeRoundsGrants`) and call `eligible`
+  immediately after it, without waiting for the view. Keep the helper's direct report only for tests that do
+  not cover the grant.
+  Resolved: `FreeRoundsGrantSuite` gives an operator's rounds through `FreeRoundsGrants.give` and reads the player's record as the grant answers, `ACTIVE`, 283e7dd3. The routes suite's helper keeps its direct report for the read alone.
+- `specs/011-rewards/research.md`: todo. Two first-round answers point at records that do not exist yet. The
+  contract combinator follow-up (`Routes.playerOrService`) has none. The unanswered provider create, "listed
+  among the pull request's known gaps", points at a pull request that has not been written. Add both to
+  research.md's findings, or to a "Known gaps" section that the pull request body will copy, so they survive
+  until the pull request exists.
+  Resolved: research.md's "Known gaps for the pull request" holds both, with the cancel clawback and the winnings deadline below, 343c0c0b.
+
+### Nits
+
+- `services/rewards/src/test/scala/io/eitheror/casino/rewards/port/Parity.scala:81-82`: nitpick
+  (non-blocking). The divergence was renamed "a reward of their own", but its explanation still says "a wallet
+  record of their reward …, not a reward of their own". Update the text to match the plan row.
+  Resolved: the explanation matches the plan row, 343c0c0b.
+
+### Questions
+
+- `services/rewards/src/test/scala/io/eitheror/casino/rewards/port/Parity.scala:83-85`: question. The
+  divergence still covers scenario 244's cancel steps (`CancelWithBaselineClawsBackOnlyWinnings` 32,
+  `CancelWithoutBaseline…` 31). The old plan row explained those steps as "the player's cancel finds no reward
+  to cancel". Now that the winnings are a reward that the cancel reaches, does the port answer those steps as
+  the original did, apart from the grant id? If so, narrow the predicate to the fields that still differ, so
+  that parity holds the new cancel to the recording. If not, what still differs? The answer is settled by
+  running the parity suite with those steps unmarked. It was not run here, because it needs Docker.
+  Answered: run with both steps unmarked, step 31 (no baseline) matches the original and is unmarked; step 32's clawback is 0.00 against the original's 20.00, so it stays marked and is a known gap in research.md and plan.md, 343c0c0b.
+- `services/rewards/src/main/scala/io/eitheror/casino/rewards/steps/Wiring.scala:156`: question. The
+  winnings' deadline is `Reward.activeDeadline(snapshot, false, at)`, which is the offer's
+  `wageringWindowDays`, else 30 days. The original set `expires_at` to a fixed 30 days (`handler.go:184-190`)
+  and a separate `wagering_expires_at` only when `BonusWageringExpiryDays` was passed. research.md says the
+  original "did the same (… a 30-day expiry)". For an offer with a wagering window other than 30 days, the two
+  differ. Is that intended? If so, add a divergence row. If not, use 30 days. `SettlementItSuite` covers only an
+  offer with no window.
+  Answered: intended; the offer's window is what the wallet's award for the offer itself uses. Recorded among the known gaps and in plan.md's row, 343c0c0b, e34d9812.
+- `services/rewards/src/main/scala/io/eitheror/casino/rewards/api/FreeRoundsRoutes.scala:68-76`: thought.
+  The launch read now costs one `Reward.get` for each of the player's non-terminal held rewards, and that
+  includes every offer made visible but not claimed. A heavily targeted player makes a launch do dozens of
+  entity reads where the view did one query. This is probably fine at today's volumes. Filtering `held` to
+  rewards whose `HeldReward` is not `Available` or `Pending`, or that are `claiming`, would bound it to the
+  rewards that can be live.
+  Resolved: only rewards being claimed, or held neither ended nor unclaimed, are read, 9de3af8e.
+
+### Praise
+
+- `services/rewards/src/main/scala/io/eitheror/casino/rewards/steps/Wiring.scala:133-137`: praise. Keeping
+  the wallet key the winnings already had (`<reward>/winnings`, `<reward>/late/<round>`) as the new reward's
+  id means the wallet's records and the attribution's `grantRef`s are unchanged. The reward is also reached by
+  the lookups that already exist (`Lifecycle.active`'s `grantRef` to reward). No migration and no new lookup.
+- `services/rewards/src/test/scala/io/eitheror/casino/rewards/reward/RewardSuite.scala:187-194`: praise. The
+  regression test repeats exactly the round that completed the count and asserts that the repeat writes
+  nothing. It fails on the old code.
+
+### Checks applied
+
+General checklist groups applied:
+- Correctness, Design and scope, Error handling, Concurrency and state (the direct report and the consumer's
+  report racing to `rewardChanged`, which is idempotent on equal reports).
+- Security (the ACL change).
+- Data and migrations (the step ids of winnings move from `<reward>/winnings` to `<reward>/winnings/winnings`
+  and the `late-award` call is removed. Nothing is live, so no stored step is orphaned).
+- Tests, Observability, API and compatibility, Documentation, Commit and PR hygiene. The commits follow
+  Conventional Commits with scope `011` and carry the trailer.
+
+General checklist groups skipped: Performance beyond the thought above, and Dependencies and build (none
+changed).
+
+Language checks: `pr-review-scala` (bundled), applied to types and totality, error handling, tests and
+idioms.
+
+Project rules: CLAUDE.md.
+
+Tests run: `CASINO_VERSION=0.2.0-011-SNAPSHOT sbt "testOnly …RewardSuite …WiringSuite"`, 35 tests, all
+passed.
+
+Tests not run: the integration and parity suites (`SettlementItSuite`, `FreeRoundsRoutesSuite`,
+`PlayerGrantsSuite`, parity), which need Docker and several minutes. The new Blocking finding rests on reading
+`Evaluator` and `PlayerRewards`. The test it names would show it.
