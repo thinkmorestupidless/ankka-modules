@@ -62,6 +62,7 @@ class PlayerGrantsSuite extends munit.FunSuite:
     val r = grants(p, kit.asService("support-agent"))
     assertEquals((r.status, r.json.size), (200, 1), r.text)
     assertEquals(grants(p, kit.asService("engagement")).status, 401)
+    assertEquals(grants(p, kit.asService("support-agent", project = "other-brand")).status, 401)
     assertEquals(grants(p, kit.asOperator()).status, 403)
 
   test("the progress is the wallet's, for a reward with an open record"):

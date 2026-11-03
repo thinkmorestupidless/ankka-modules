@@ -12,7 +12,7 @@ import Answers.*
 /**
  * `GET /rewards/{playerId}/grants` (FR-022a; contracts/routes.md): every reward of the player, newest first, with its
  * state, offer name, wagering requirement, release progress and expiry, served to the player (their own) and to
- * `support-agent` by its identity within the project (spec 017 FR-009 `get_active_bonuses`, which listed every bonus
+ * this project's `support-agent` by its identity (spec 017 FR-009 `get_active_bonuses`, which listed every bonus
  * of the player whatever its state). The wagering is the wallet's open record's when the reward has one, else the
  * reward's own requirement with no progress.
  */
@@ -20,19 +20,21 @@ object PlayerGrants:
   /** The service that reads a player's grants by its identity (research R7). */
   val SupportAgent = "support-agent"
 
-  def supportAgent(c: Caller): Boolean = c match
-    case Caller.Service(_, SupportAgent) => true
-    case _                               => false
+  /** This project's `support-agent`, as `Routes.serviceOf` admits it: another brand's runs its own and is not let in. */
+  def supportAgent(ctx: Ctx, c: Caller): Boolean = c match
+    case Caller.Service(project, SupportAgent) => project == ctx.ownProject
+    case _                                     => false
 
   /**
-   * The endpoint's player ACL, and `Routes.serviceOf("support-agent")` beside it: `support-agent` is admitted by its
-   * identity with no token; every other caller is the player's ACL's to decide.
+   * The endpoint's player ACL, and `Routes.serviceOf("support-agent")` beside it: this project's `support-agent` is
+   * admitted by its identity with no token; every other caller is the player's ACL's to decide.
    */
   def acl(ctx: Ctx): Acl =
     Routes.player(ctx.slug, ctx.authenticate()) match
       case Acl.Authenticate(player) =>
         Acl.Authenticate { (context: RequestContext) =>
-          if supportAgent(context.caller) then AuthDecision.Allow(Principal(s"service:$SupportAgent")) else player(context)
+          if supportAgent(ctx, context.caller) then AuthDecision.Allow(Principal(s"service:${ctx.ownProject}/$SupportAgent"))
+          else player(context)
         }
       case other => other
 

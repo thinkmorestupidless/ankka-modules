@@ -29,11 +29,11 @@ object RewardsService:
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
-  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
-    clients => api.RewardsEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.OffersEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.CampaignEndpoint(api.Ctx(authenticate, clients))
+  def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
+    clients => api.RewardsEndpoint(api.Ctx(authenticate, clients, project)),
+    clients => api.OffersEndpoint(api.Ctx(authenticate, clients, project)),
+    clients => api.RewardAdminEndpoint(api.Ctx(authenticate, clients, project)),
+    clients => api.CampaignEndpoint(api.Ctx(authenticate, clients, project))
   )
 
   /**

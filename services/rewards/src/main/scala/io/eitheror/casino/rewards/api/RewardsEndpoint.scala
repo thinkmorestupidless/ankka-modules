@@ -61,7 +61,7 @@ final class RewardsEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
   // FR-022a: the player's grants, to the player and to `support-agent` by its identity (US6).
   withAcl(PlayerGrants.acl(ctx)) {
     get("/{playerId}/grants") { (p: String) =>
-      if PlayerGrants.supportAgent(caller) then PlayerGrants.list(ctx, p) else mine(p)(PlayerGrants.list(ctx, p))
+      if PlayerGrants.supportAgent(ctx, caller) then PlayerGrants.list(ctx, p) else mine(p)(PlayerGrants.list(ctx, p))
     }
   }
 

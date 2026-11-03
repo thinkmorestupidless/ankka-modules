@@ -13,9 +13,11 @@ import io.eitheror.casino.rewards.steps.{StepState, WalletStep}
 import java.time.Instant
 
 /** What every endpoint is built with, as payouts': the service's clients and the authenticator; the settings, clock and neighbours. */
-final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
+final class Ctx(val authenticate: () => Acl, val clients: EndpointClients, project: String = ""):
   def settings: Settings           = RewardsRuntime.settings
   def slug: String                 = settings.brand
+  /** This service's project, whose services an identity ACL admits: the brand's is its slug; the integration kit's is `local`. */
+  def ownProject: String           = if project.isEmpty then slug else project
   def now(): Instant               = RewardsRuntime.now()
   def wallet: Wallet               = RewardsRuntime.wallet(clients.services)
   def gameProvider: GameProvider   = RewardsRuntime.gameProvider(clients.services)

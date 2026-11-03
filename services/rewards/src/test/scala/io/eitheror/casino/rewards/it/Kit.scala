@@ -66,7 +66,7 @@ final class Kit(base: Settings = Kit.Base):
   LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
 
   private val timers = TimerRuntime(200.millis)
-  private val server = HttpServer.at("127.0.0.1", 0)(RewardsService.endpoints(() => Kit.authenticate)*)
+  private val server = HttpServer.at("127.0.0.1", 0)(RewardsService.endpoints(() => Kit.authenticate, project = "local")*)
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     RewardsService.descriptors,
