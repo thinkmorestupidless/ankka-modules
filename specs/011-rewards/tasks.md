@@ -295,7 +295,7 @@ the publishers green under their suites.
       *Recordings* twice on fresh ids with `e2e-recording.patch`, scenario 23 through
       `just test-e2e-cadence`, and the driver; merge into `tests/port/rewards/`, moving recordings filed
       under other services; `just modules recordings check` green.
-- [ ] T067 `T/port/WireTranslation.scala` (contracts/wire.md) and `T/port/ParitySuite.scala`: one test
+- [X] T067 `T/port/WireTranslation.scala` (contracts/wire.md) and `T/port/ParitySuite.scala`: one test
       per recording; each marked divergence named with plan.md's *Divergences* row.
 
 ## Phase 11: Polish and cross-cutting
@@ -306,7 +306,7 @@ the publishers green under their suites.
       the rewards rows (four prefixes and their audiences).
 - [X] T070 `just features` 0 findings; `just test`, `just rewards-test`, `just rewards-it`,
       `just wallet-test`, `just service players test`, `just service game-provider test` green.
-- [ ] T071 quickstart.md §4 run locally and §6 on kind (`--context kind-…` only): one deposit match
+- [X] T071 quickstart.md §4 run locally and §6 on kind (`--context kind-…` only): one deposit match
       and one free-rounds grant against the simulator end to end; `casino.rewards` read.
 
 ## Dependencies & Execution Order

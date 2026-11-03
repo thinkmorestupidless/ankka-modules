@@ -509,3 +509,41 @@ behaviour unless it says otherwise.
   original at `7630feb0` (its setup's losing bet forfeits the grant, the bonus bust); and
   `TestScenario21_CodeMinDepositDepositNumberWindow` passed twice in nine runs. Neither is kept;
   `tests/port/rewards/README.md` says why. FR-015 and FR-025 rest on the expiry capabilities' tables.
+- **Free rounds on kind, run locally instead** (2026-11-03, the user, "Run it locally"): on `dev-kind`
+  game-provider cannot reach the simulator. Through the gateway its ST8 client trusts no local CA (PKIX);
+  the simulator's in-cluster port answers no plain HTTP. T071's free-rounds leg runs as quickstart §4
+  does, on the laptop; giving game-provider an optional local CA is a follow-up for specs 003 and 020.
+- **What T071 found on `dev-kind`** (2026-11-03), none of it in rewards:
+  - `modules apply` installs core before casino and waits for core's services, but core's `players`
+    reads `casino.rewards`, whose schema the casino module declares. A change to that schema leaves
+    `players` refusing its projections and the apply stuck; pausing `players` let the casino module
+    declare it.
+  - A service whose image tag (`0.0.0`) did not change is not rolled, so it keeps running the old
+    image: the wallet published `money.transactions` on the old schema, and rewards skipped the deposit
+    as unreadable.
+  - players' `INGEST_URL` names the gateway's host port (8443), which a pod cannot reach, and players
+    trusts no local CA either, so a deposit cannot start from players. The run opened the cashier
+    session at ingest from the host.
+  - The duplicate check (FR-035) declined the scripted players, who shared a name and a birth date:
+    the rule working, the script's data at fault.
+- **What T071's local run found** (2026-11-03): the free-rounds leg passed on the laptop. Three rounds
+  (1.50, 0, 2.00) closed the reward `free_spins_finalised` with 3.50 won, rewards' `credit` step paid
+  it, and the real balance went from 1.01 to 4.51. Getting there:
+  - game-provider reads a provider's key document as `{keys:[{kid, publicKey}]}` (spec 003
+    `contracts/provider-api.md`); the simulator publishes `{current:{kid, spki}, next, cacheSeconds}`
+    (spec 020 `contracts/st8-wire.md`). No key verifies, so the game page's `check` is `auth_failed` and
+    no round is played. The run configured the provider with the simulator's key itself
+    (`providerPublicKey`). A cross-spec defect for 003 and 020, not rewards'.
+  - A launch made before the new grant reaches the free-rounds list opens a session without
+    `freeSpinsGrantRef`; the simulator still spends the grant's rounds there, game-provider settles them
+    as ordinary rounds, and the reward never counts them. The simulator also spends whichever of the
+    player's bonuses it holds for the game, not the session's. The index lag the parity suite waits for
+    (T067) shows up here as lost rounds.
+  - The wallet opens on a deposit, a bet, an award or a migration, not on an adjustment; a player known
+    only on kind has no local wallet, so the first finalisation's payment was refused
+    `WALLET_NOT_FOUND`. The run opened it with an award, forfeited at once.
+  - Running locally needs a Kafka broker (`ANKKA_KAFKA_BOOTSTRAP_SERVERS`), a fixed `ANKKA_SECRET_KEY`
+    per service (a fresh one cannot read the secrets stored under the last), and players, kyc and
+    responsible-gambling answering game-provider's launch and bet checks (the run used a stub).
+  - `just rewards-run`'s `-Dankka.local-services.*` never reached the forked run; `build.sbt` now
+    passes `ankka.*` properties on.

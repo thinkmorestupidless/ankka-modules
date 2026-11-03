@@ -59,6 +59,11 @@ requirement at amount × multiplier. Give free rounds against the simulator
 (`services/game-provider-simulator`, 9100), play them with `POST /test/free-spin`, and read the
 reward closed with the winnings where the offer says.
 
+A run on the laptop also needs a Kafka broker (`ANKKA_KAFKA_BOOTSTRAP_SERVERS=localhost:9092`), a
+fixed `ANKKA_SECRET_KEY` per service, players, kyc and responsible-gambling (or a stand-in) for
+game-provider's launch checks, and a wallet opened for the player. Give game-provider the simulator's
+public key itself rather than its key document (research.md, "What T071's local run found").
+
 ## 5. Parity
 
 Record (needs the user: the original's kind stack and credentials, research R2), move the
