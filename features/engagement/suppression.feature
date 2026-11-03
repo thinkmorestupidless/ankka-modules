@@ -12,6 +12,8 @@ Feature: A suppressed player gets no marketing and still gets service sends
     Given the player has an open case of exclusion or break
     When a marketing class trigger fires for them
     Then no send is made
+    And no track is made
+    And the identify still says the player is suppressed, with the reason
     And the send record says "marketing_suppressed" with the reason
     And the refusal is an audit record
 

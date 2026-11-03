@@ -84,8 +84,8 @@ player's state, and never decides what a campaign should do.
   in-app message of the marketing class nowhere, and sends an `identify` with
   `email_subscribed=false`, `sms_subscribed=false`, `marketing_suppressed=true` and the reason;
   **service** class sends (a withdrawal outcome, a KYC decision, a verification link, an exclusion
-  confirmation) are still sent. Campaign logic lives in Customer.io; which events this service
-  withholds from a suppressed player is the open question below.
+  confirmation) are still sent. Campaign logic lives in Customer.io; the marketing-class events are
+  withheld from it too (Session 2026-11-03).
 - Q: Which `Personal` fields leave the installation? → A: Exactly those the original's `identify`
   sends: email address, player name (display name, else first name, else the part of the address
   before `@`), date of birth, and the free text of a transactional email's data. No network
@@ -133,6 +133,28 @@ player's state, and never decides what a campaign should do.
   holds no grant into a brand's `engagement`, and a payments operator belongs to no brand: `merchant`
   sends them through the installation's provider configured on it (spec 004 FR-027, research R10). The
   open question below is answered by this.
+
+### Session 2026-11-03
+
+- Q: For a suppressed player, does the service withhold the marketing-class *events* of FR-011 from
+  Customer.io too, or track every event and rely on the suppression attributes? → A: Withhold them.
+  A suppressed player's marketing-class fact makes no track and no transactional send; its send
+  record says `marketing_suppressed`. The identify of FR-012 is still sent, with the suppression
+  attributes, and the service-class events (`self_exclusion_activated`, `cooling_off_set`,
+  `deposit_limit_set`, …) are still tracked, so an RG welfare campaign keys off those. Suppression
+  is fail-closed at the source rather than left to each campaign's segment.
+- Q: Keep the backoffice agent's "player is online" browser alert (FR-024, feature 182)? → A: Kept
+  (constitution I: it exists, runs and has a suite). FR-024 fires on `player_logged_in`, the fact
+  the original's `AgentStreamConsumer` read; `player_session_started` was a misnaming.
+- Q: Which channels does an operator's message-suppression flag (008) cover? → A: Every marketing
+  channel: it refuses marketing-class email and in-app sends here, and the next identify carries
+  `marketing_suppressed=true` with `suppression_reason` `operator`, so Customer.io's email and SMS
+  campaigns stop too. The original's flag guarded only the in-app composer.
+- Q: Is suppression re-checked when a parked send is retried? → A: At every attempt. An automatic
+  retry (FR-002) and an operator's retry (FR-025) both check FR-011 and FR-012 and the account state
+  first; a marketing-class send for a player suppressed since it was parked is refused as
+  `marketing_suppressed`, audited, and leaves the dead letter. A service-class send retries
+  regardless.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -196,7 +218,7 @@ and type against FR-008's table; advance the clock past 03:00 UTC and verify the
 A player self-excludes. From the `player_self_excluded` fact this service tracks
 `self_exclusion_activated`, sends the exclusion confirmation (service class), identifies the player
 as suppressed with the reason, and from then on refuses every marketing-class transactional send
-for them until the exclusion ends. A player who withdraws email consent is unsubscribed in
+and tracks no marketing-class event for them until the exclusion ends. A player who withdraws email consent is unsubscribed in
 Customer.io on the next identify and gets no marketing email from this service; a service-class
 email (their withdrawal failed) still reaches them. A closed player gets the closure confirmation
 and nothing after.
@@ -318,6 +340,7 @@ count.
 - added `features/engagement/operators.feature`: an operator reads a player's sends newest first with event, class, channel, time, outcome and reason
 - added `features/engagement/operators.feature`: a parked send retried and accepted by the CRM becomes accepted and is no longer parked
 - added `features/engagement/operators.feature`: a parked send discarded records who discarded it and why
+- added `features/engagement/operators.feature`: a parked marketing class send retried for a player suppressed since is refused, audited and leaves the parked sends
 - added `features/engagement/operators.feature`: a new CRM app key is stored in the secret store and read back masked, and a masked value sent back preserves the secret
 - added `features/engagement/operators.feature`: seeding the track list fires one identify and one track per trigger at the seed person, and seeding twice updates the same person
 - added `features/engagement/operators.feature`: an operator reading presence sees each player with an open connection as online with the time they came online
@@ -338,6 +361,9 @@ count.
   retried under the new key; a send parked under the old key retries under the new one.
 - A `send_message` whose player `players` has since closed: refused as `account_closed`, answered to
   the campaign as such, never parked.
+- A parked marketing-class send is retried after the player self-excluded, withdrew consent or was
+  suppressed by an operator: refused as `marketing_suppressed`, audited, out of the dead letter. A
+  parked service-class send retries regardless.
 - A player with no email address on file: transactional sends are refused as `no_address` and
   recorded; identify and track are still made (Customer.io keys the person by id).
 - A connection's client cannot keep up: its queue fails and the connection is closed with
@@ -446,14 +472,18 @@ count.
   `first_deposit_confirmed`, `bonus_granted`, `bonus_cancelled`, `wagering_requirement_met`,
   `promo_code_entered`, `affiliate_attributed`) or **service** (every other trigger of FR-006 and
   every trigger of FR-014). A transactional send of the marketing class MUST be refused for a
-  suppressed player (FR-012) with the reason recorded and an audit record written; a service-class
-  send MUST NOT be refused for suppression. A closed player MUST receive no send but the closure
-  confirmation.
+  suppressed player (FR-012) with the reason recorded and an audit record written, and a
+  marketing-class event MUST NOT be tracked for them: the send record says `marketing_suppressed`,
+  the identify of FR-012 is still sent, and the service-class events are still tracked. A
+  service-class send MUST NOT be refused for suppression. A closed player MUST receive no send but
+  the closure confirmation. Suppression and the account state MUST be checked at every attempt: the
+  first, each automatic retry of FR-002, and an operator's retry of FR-025.
 - **FR-012**: A player MUST be suppressed for a channel while any of these holds, from the brand's
   facts: consent for the channel withdrawn or never given (`player_consent_changed`,
   `player_registered`); an open exclusion or cooling-off case (`player_self_excluded`,
   `rg_case_opened` until `rg_case_closed`; spec 010 FR-031); the account closed; or an operator's
-  message suppression (`players`, 008). The next identify after a change MUST carry
+  message suppression (`players`, 008), which suppresses every marketing channel — email, SMS and
+  in-app — with `suppression_reason` `operator`. The next identify after a change MUST carry
   `email_subscribed`, `sms_subscribed`, `marketing_suppressed` and `suppression_reason` so
   Customer.io's campaigns can segment on them, and MUST be sent within one minute of the fact.
 - **FR-013**: A transactional send MUST be made only when the brand configured a transactional id for
@@ -534,16 +564,18 @@ count.
   (Source: `PresenceTracker`, `PresenceView`, `AgentStreamConsumer.isTestAccount`.)
 - **FR-024**: The service MUST serve an operator-class SSE route per brand that pushes a
   `player_online` frame (player id, the part of the email address before `@`, session id, time) to
-  every connected agent when `player_session_started` arrives for a player who is not a test
-  account, at most once, within five seconds. (Source: `AgentStreamRegistry`, feature 182 — see the
-  open question.)
+  every connected agent when `player_logged_in` arrives for a player who is not a test
+  account, at most once, within five seconds. (Source: `AgentStreamRegistry`, feature 182; kept,
+  Session 2026-11-03.)
 
 **Operators**
 
 - **FR-025**: An operator with the brand's role MUST be able to read a player's sends (event, class,
   channel, time, outcome, reason) newest first and paged; read and search the brand's dead letter;
-  retry a parked send, which re-runs FR-002 and updates the record; and discard one with a reason.
-  Every retry and discard MUST be an audit record naming the operator.
+  retry a parked send, which re-checks FR-011 and FR-012, re-runs FR-002 and updates the record; and
+  discard one with a reason. A marketing-class send for a player suppressed since it was parked MUST
+  be refused as `marketing_suppressed` and leave the dead letter. Every retry and discard MUST be an
+  audit record naming the operator.
 - **FR-026**: An operator with the brand's role MUST be able to read and write the brand's
   configuration (FR-004) with secrets masked to their first three characters and asterisks, a
   masked value sent back unchanged preserving the stored secret; and MUST be able to seed the event
@@ -589,8 +621,9 @@ count.
   Customer.io stub, measured over the recordings.
 - **SC-002**: A year's replay of a brand's facts into a rebuilt view sends nothing and ends with every
   fact recorded.
-- **SC-003**: A send for a suppressed player of the marketing class is refused 100 % of the time, and
-  a service-class send for the same player is made 100 % of the time, over FR-011's trigger list.
+- **SC-003**: A send for a suppressed player of the marketing class is refused and its event is not
+  tracked 100 % of the time, at the first attempt and at every retry, and a service-class send for
+  the same player is made 100 % of the time, over FR-011's trigger list.
 - **SC-004**: An `inbox.changed` signal reaches every open connection of the player within two
   seconds of the fact, on a three-instance cluster, 99 % of the time.
 - **SC-005**: A transactional email is accepted by Customer.io within sixty seconds of its trigger
@@ -613,9 +646,11 @@ count.
   `player_registered` campaigns after every rollout — cannot occur.
 - Failures are no longer fire-and-forget: retries, a dead letter, operator retry and discard, and a
   per-player send history are new.
-- Marketing suppression is enforced outbound (FR-011, FR-012); the original enforced it only for
-  in-app messages an operator composed. The `marketing_suppressed` and `suppression_reason`
-  attributes are new.
+- Marketing suppression is enforced outbound (FR-011, FR-012), for sends and for events alike: a
+  suppressed player's marketing-class facts are not tracked, suppression is re-checked at every
+  retry, and the operator's message-suppression flag covers every marketing channel. The original
+  enforced it only for in-app messages an operator composed. The `marketing_suppressed` and
+  `suppression_reason` attributes are new.
 - `push-gateway`, `PushEventConsumer`, `AgentStreamConsumer`, the `platform.push.envelope` and
   `platform.push.events` topics and the dedicated agent-presence topic are replaced by this
   service's SSE routes and the `push_delivered` and `presence_changed` facts; the `delivered` state
@@ -711,10 +746,6 @@ FR-029 to FR-032):
 
 - Answered 2026-10-12 (from spec 004): no brand's `engagement` sends the payments backoffice's operator
   mail; `merchant` sends it through the installation's provider configured on it (Clarifications).
-- [NEEDS CLARIFICATION: For a suppressed player, should the service withhold the marketing-class
-  *events* of FR-011 from Customer.io too (safer: no campaign can fire), or track every event and
-  rely on the suppression attributes (as the original does; keeps RG welfare campaigns, which key
-  off the same events, working)? Sheldon's call.]
-- [NEEDS CLARIFICATION: Keep the backoffice agent's "player is online" browser alert (FR-024,
-  feature 182, written as a stopgap "until automated welcome messages ship")? It has a Playwright
-  suite and is cheap here; dropping it removes one operator-class stream route.]
+- Answered 2026-11-03: a suppressed player's marketing-class events are withheld from Customer.io
+  too; the service-class events still reach it (Clarifications).
+- Answered 2026-11-03: the agent's "player is online" alert (FR-024) is kept (Clarifications).
