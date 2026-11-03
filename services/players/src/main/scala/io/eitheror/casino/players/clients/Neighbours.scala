@@ -32,11 +32,15 @@ object Kyc:
       case Some(b) => b.text("code").map(c => KycDecision.Refused(c, b.textOr("message", ""))).toRight("refused without a code")
       case None    => Left("no body")
 
-/** What `engagement`'s send route answered (spec 014 US4). */
+/**
+ * What `engagement`'s send route answered (spec 014 US4). `Refused` (no address, or the CRM's status)
+ * is as final as `Suppressed`: the send is not tried again (FR-004).
+ */
 enum SendOutcome:
   case Accepted
   case NotConfigured
   case Suppressed(reason: String)
+  case Refused(reason: String)
 
 /**
  * `engagement` within the project, under `/v1/casino/brands/<brand>/engagement`: one transactional send
@@ -62,6 +66,7 @@ object Engagement:
       case Some("accepted")       => Right(SendOutcome.Accepted)
       case Some("not_configured") => Right(SendOutcome.NotConfigured)
       case Some("suppressed")     => Right(SendOutcome.Suppressed(r.body.flatMap(_.text("reason")).getOrElse("")))
+      case Some("refused")        => Right(SendOutcome.Refused(r.body.flatMap(_.text("reason")).getOrElse("")))
       case other                  => Left(s"status ${other.getOrElse("missing")}")
 
 /** The brand's `wallet`, under `/v1/casino/brands/<brand>`: the deposit sums `may-deposit` takes (002 `deposit-sums`). */

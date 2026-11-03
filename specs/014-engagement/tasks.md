@@ -74,7 +74,7 @@ another session's: do not touch it.
       `player_consent_changed` for `email` and `sms` at registration, source `registration`, beside
       `player_registered`; suite cases; the step added to the consents scenario of
       `features/players/registration.feature` bound; `just service players test` green.
-- [ ] T010 `services/players/` (R6 P3): `clients/Neighbours.scala` (lines 46-66) treats `refused` with
+- [X] T010 `services/players/` (R6 P3): `clients/Neighbours.scala` (lines 46-66) treats `refused` with
       its reason as a terminal answer like `suppressed`; `RegistrationWorkflow.scala` (322-363)
       records it and does not retry; suite cases.
 - [ ] T011 [P] `contract/access/routes.md`: the rows for `POST

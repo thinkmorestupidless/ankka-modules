@@ -2,6 +2,7 @@ package io.eitheror.casino.players.registration
 
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
+import io.eitheror.casino.players.Json.*
 import io.eitheror.casino.players.it.{Reply, SharedKit}
 import io.eitheror.casino.players.player.{PlayerEntity, PlayerState, Status}
 
@@ -121,6 +122,21 @@ class RegistrationWorkflowSuite extends munit.FunSuite with LogCapturing:
     assertEquals(player(id).status, Status.Pending)
     assertEquals(pending(email).request, None)
     kit.engagement.silent = false
+  }
+
+  test("engagement refusing the send (no_address) is an answer: the player is left pending after one send, not retried (FR-004)") {
+    val email = address
+    kit.engagement.outcome = "refused"
+    kit.engagement.reason = Some("no_address")
+    val r = kit.register("email" -> email)
+    assertEquals(r.status, 201, r.text)
+    val id = r.str("playerId")
+    val f  = ended(email)
+    assertEquals(f.sends, 1, f.toString)
+    assertEquals(kit.engagement.received.count(_.json.flatMap(_.text("playerId")).contains(id)), 1)
+    assert(player(id).verificationEmail.pending)
+    assertEquals(player(id).verificationEmail.lastSentAt, None)
+    assertEquals(player(id).status, Status.Pending)
   }
 
   test("a second registration of one address while the first runs joins it: one realm user, one player, the same answer") {
