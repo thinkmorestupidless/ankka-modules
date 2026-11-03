@@ -152,6 +152,10 @@
           {
             "name": "KEYCLOAK_JWKS_BASE",
             "key": "keycloak-jwks-base"
+          },
+          {
+            "name": "REWARDS_CODE_DOCUMENT_URL",
+            "key": "rewards-code-document-url"
           }
         ]
       }
@@ -244,6 +248,11 @@
       "key": "st8-api-key",
       "type": "string",
       "secret": true
+    },
+    {
+      "key": "rewards-code-document-url",
+      "type": "string",
+      "secret": false
     }
   ],
   "retention": "30d"

@@ -59,11 +59,42 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
   test("a hold is hold_placed with the voided amount, then one forfeit per record with the clawback once") {
     val e = HoldPlaced("w-1", "d", "t-h", "w-1", 5000, Vector(Forfeit("rf-1", 100, "funds_and_winnings", false), Forfeit("rf-2", 200, "funds", false)),
       400, Vector(CapDraw("rf-3", 0, 100, closes = true)), 900, 4100, Vector.empty, true,
-      Vector(update("rf-1", "g1", "FORFEITED"), update("rf-2", "g2", "FORFEITED")), 1000, 0, t0, ok)
-    assertEquals(families(e), Vector("hold_placed", "restricted_funds_forfeited", "restricted_funds_forfeited"))
+      Vector(update("rf-1", "g1", "FORFEITED"), update("rf-2", "g2", "FORFEITED"), update("rf-3", "g3", "CLOSED")), 1000, 0, t0, ok)
+    assertEquals(families(e), Vector("hold_placed", "restricted_funds_forfeited", "restricted_funds_forfeited", "restricted_funds_closed"))
     val facts = Facts.moneyTransactions(wallet, e).map(_.fact)
     assertEquals(facts.head.asInstanceOf[f.HoldPlaced].voidedCents.value, 900L)
-    assertEquals(facts.tail.map(_.asInstanceOf[f.RestrictedFundsForfeited].clawbackCents.value), Vector(400L, 0L))
+    assertEquals(facts.collect { case x: f.RestrictedFundsForfeited => x }.map(_.clawbackCents.value), Vector(400L, 0L))
+  }
+
+  // ── spec 011 W5: every pending cap the wallet closes is on the topic ─────────
+
+  test("W5: a closed pending cap is restricted_funds_closed, reason cap_expired, naming the award, keyed by the transaction") {
+    val e = PendingCapClosed("cp-1", "d", "t-cp", "rf-1", Vector(update("rf-1", "grant-1", "CLOSED")), t0, ok, 4000, 0, 3000, 1000)
+    assertEquals(families(e), Vector("restricted_funds_closed"))
+    val published = Facts.moneyTransactions(wallet, e).head
+    val fact      = published.fact.asInstanceOf[f.RestrictedFundsClosed]
+    assertEquals((fact.awardId, fact.reason, fact.transactionId, published.dedupeId), ("grant-1", "cap_expired", "t-cp", "t-cp"))
+    assertEquals((fact.realBalanceAfter.value, fact.restrictedBalanceAfter.value, fact.depositPoolAfter.map(_.value),
+      fact.convertedPoolAfter.map(_.value)), (4000L, 0L, Some(3000L), Some(1000L)))
+  }
+
+  test("W5: a hold's cap draw that closes a record is restricted_funds_closed, reason cap_exhausted; one that does not is nothing") {
+    val e = HoldPlaced("w-1", "d", "t-h", "w-1", 500, Vector.empty, 0, Vector(CapDraw("rf-1", 0, 100, closes = true),
+      CapDraw("rf-2", 0, 50, closes = false)), 0, 500, Vector.empty, false,
+      Vector(update("rf-1", "g1", "CLOSED"), update("rf-2", "g2", "CONVERTED_PENDING_CAP")), 0, 0, t0, ok)
+    assertEquals(families(e), Vector("hold_placed", "restricted_funds_closed"))
+    val closed = Facts.moneyTransactions(wallet, e)(1)
+    val fact   = closed.fact.asInstanceOf[f.RestrictedFundsClosed]
+    assertEquals((fact.awardId, fact.reason, closed.dedupeId), ("g1", "cap_exhausted", "t-h/rf-1"))
+  }
+
+  test("W5: the wallet's close records the balances after it, so the fact carries them") {
+    val kit = com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit.of(WalletEntity, wallet)
+    val capped = AwardedRecord(io.eitheror.casino.wallet.funding.Record("rf-1", "grant-1", "CONVERTED_PENDING_CAP", remainingAllowance = 100),
+      "bonus", None, t0, None)
+    kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 4000, 0, Vector(capped), 0, 0, 0, t0, depositPool = Some(3000), convertedPool = Some(1000))): Unit
+    val event = kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", Some("grant-1"), t0)).eventOfType[PendingCapClosed]
+    assertEquals((event.realAfter, event.restrictedAfter, event.depositAfter, event.convertedAfter), (4000L, 0L, 3000L, 1000L))
   }
 
   test("an adjustment's fact carries the category, never the operator's text (FR-033)") {

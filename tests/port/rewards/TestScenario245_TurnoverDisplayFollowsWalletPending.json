@@ -1,0 +1,694 @@
+{
+  "scenario": "TestScenario245_TurnoverDisplayFollowsWalletPending",
+  "recorded_at": "2026-11-02T15:46:08.120171Z",
+  "original": {
+    "brand": "",
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "realm",
+  "steps": [
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice&grant_type=password&password=<redacted>&username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "<redacted>",
+          "scope": "email profile",
+          "session_state": "15786846-8657-4cce-973c-5bd7f235472f",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "e2e-iieccjib@example.com",
+          "firstName": "E2E",
+          "language": "en",
+          "lastName": "Player22ecc32b",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c0": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli&grant_type=password&password=<redacted>&username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "<redacted>",
+          "scope": "profile email",
+          "session_state": "90943472-5361-46fa-86a5-7e00ddd5c5b1",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=e2e-iieccjib%40example.com&exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "createdTimestamp": 1793634368144,
+            "disableableCredentialTypes": [],
+            "email": "e2e-iieccjib@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "69a68929-9efc-4f3e-afd3-9b3b5e57406d",
+            "lastName": "Player22ecc32b",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-iieccjib@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c1": "$[0].email",
+        "c2": "$[0].id"
+      },
+      "vary": {
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].lastName": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/69a68929-9efc-4f3e-afd3-9b3b5e57406d",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/69a68929-9efc-4f3e-afd3-9b3b5e57406d",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a"
+            ]
+          },
+          "createdTimestamp": 1793634368144,
+          "disableableCredentialTypes": [],
+          "email": "e2e-iieccjib@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "E2E",
+          "id": "69a68929-9efc-4f3e-afd3-9b3b5e57406d",
+          "lastName": "Player22ecc32b",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "e2e-iieccjib@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.lastName": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c1}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-payments/87e30dea-e888-4494-b6e0-81e05f540ac9",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-payments/87e30dea-e888-4494-b6e0-81e05f540ac9",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "EUR",
+          "customer_ref": "spinvibe:{c0}",
+          "payment_type": "deposit",
+          "psp_transaction_id": "s16-psp-22ecc32b-d1"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-payments/87e30dea-e888-4494-b6e0-81e05f540ac9"
+        }
+      },
+      "capture": {
+        "c3": "$.twinId"
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-payments/87e30dea-e888-4494-b6e0-81e05f540ac9/concept",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c3}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "payment.captured"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "GET /twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f",
+      "request": {
+        "method": "GET",
+        "path": "/twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "wallet"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "brand_ref": "spinvibe",
+            "converted_pool_balance": 0,
+            "currency": "EUR",
+            "deposit_pool_balance": 0,
+            "player_id": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "player_ref": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "pools_stamped_at": "2026-11-02T15:46:08.179319547Z",
+            "processed_payment_refs": "||",
+            "real_balance": 0,
+            "restricted_balance": 0
+          }
+        }
+      },
+      "vary": {
+        "$.properties.player_id": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.pools_stamped_at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/wallet/spinvibe/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/EUR/balance",
+      "request": {
+        "method": "GET",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/balance",
+        "service": "unsorted"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "convertedPoolBalance": "0.00",
+          "currency": "EUR",
+          "depositPoolBalance": "50.00",
+          "realBalance": "50.00"
+        }
+      }
+    },
+    {
+      "name": "GET /twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f",
+      "request": {
+        "method": "GET",
+        "path": "/twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "wallet"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "brand_ref": "spinvibe",
+            "converted_pool_balance": 0,
+            "currency": "EUR",
+            "deposit_pool_balance": 5000,
+            "deposit_turnover_pending": 5000,
+            "pending_deposit_record_refs": "|deposit-record/a35e6d3e-2ee0-4adf-809e-bff37b0edca9|",
+            "player_id": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "player_ref": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "pools_stamped_at": "2026-11-02T15:46:08.179319547Z",
+            "processed_payment_refs": "||",
+            "real_balance": 5000,
+            "restricted_balance": 0
+          }
+        }
+      },
+      "vary": {
+        "$.properties.pending_deposit_record_refs": "differs between two runs of the original",
+        "$.properties.player_id": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.pools_stamped_at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/casino/brands/spinvibe/players/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/deposit-records",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/players/{c0}/deposit-records?currency=EUR",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "depositRecords": [
+            {
+              "amount": "50.00",
+              "clearedAt": null,
+              "closedAt": null,
+              "createdAt": "2026-11-02T15:46:08.630728957Z",
+              "currency": "EUR",
+              "paymentRef": "s16-psp-22ecc32b-d1",
+              "pspId": "",
+              "scheme": "",
+              "sourceTransactionId": "transaction/567dabc9-3ebd-41d3-bc39-9972e9462a44",
+              "status": "",
+              "turnoverDefinition": "gross_wagered",
+              "turnoverRequiredAmount": "50.00",
+              "turnoverStatus": "PENDING",
+              "wageredTowardTurnover": "0.00"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.depositRecords[0].createdAt": "differs between two runs of the original",
+        "$.depositRecords[0].paymentRef": "differs between two runs of the original",
+        "$.depositRecords[0].sourceTransactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/wallet/spinvibe/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/EUR/bet",
+      "request": {
+        "method": "POST",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/bet",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "gameId": "s245-slot",
+          "gameType": "slots",
+          "provider": "s245-provider",
+          "roundId": "s245-85fd88d5",
+          "sessionId": "4af2d13f-4e42-4757-bbd1-ef4a27ee15a4"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "fundedDepositAmount": "10.00",
+          "fundedRealAmount": "10.00",
+          "realBalance": "40.00",
+          "txnId": "transaction/b8ee4516-8548-4b06-926e-5f20feceb614",
+          "walletType": "real"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/wallet/spinvibe/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/EUR/win",
+      "request": {
+        "method": "POST",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/win",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "roundId": "s245-85fd88d5"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "realBalance": "50.00",
+          "txnId": "transaction/e0042fda-32dd-4bc7-bdf6-2252d47cbf8a",
+          "walletType": "real",
+          "wonDepositAmount": "10.00",
+          "wonRealAmount": "10.00"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f",
+      "request": {
+        "method": "GET",
+        "path": "/twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "wallet"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "brand_ref": "spinvibe",
+            "converted_pool_balance": 0,
+            "currency": "EUR",
+            "deposit_pool_balance": 5000,
+            "deposit_turnover_pending": 4000,
+            "open_rounds": "",
+            "pending_deposit_record_refs": "|deposit-record/a35e6d3e-2ee0-4adf-809e-bff37b0edca9|",
+            "player_id": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "player_ref": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "pools_stamped_at": "2026-11-02T15:46:08.179319547Z",
+            "processed_payment_refs": "||",
+            "real_balance": 5000,
+            "restricted_balance": 0
+          }
+        }
+      },
+      "vary": {
+        "$.properties.pending_deposit_record_refs": "differs between two runs of the original",
+        "$.properties.player_id": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.pools_stamped_at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/casino/brands/spinvibe/players/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/deposit-records",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/players/{c0}/deposit-records?currency=EUR",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "depositRecords": [
+            {
+              "amount": "50.00",
+              "clearedAt": null,
+              "closedAt": null,
+              "createdAt": "2026-11-02T15:46:08.630728957Z",
+              "currency": "EUR",
+              "paymentRef": "s16-psp-22ecc32b-d1",
+              "pspId": "",
+              "scheme": "",
+              "sourceTransactionId": "transaction/567dabc9-3ebd-41d3-bc39-9972e9462a44",
+              "status": "",
+              "turnoverDefinition": "gross_wagered",
+              "turnoverRequiredAmount": "50.00",
+              "turnoverStatus": "PENDING",
+              "wageredTowardTurnover": "10.00"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.depositRecords[0].createdAt": "differs between two runs of the original",
+        "$.depositRecords[0].paymentRef": "differs between two runs of the original",
+        "$.depositRecords[0].sourceTransactionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/wallet/spinvibe/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/EUR/bet",
+      "request": {
+        "method": "POST",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/bet",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "40.00",
+          "gameId": "s245-slot",
+          "gameType": "slots",
+          "provider": "s245-provider",
+          "roundId": "s245-b7ddf87d",
+          "sessionId": "1422390d-e033-4034-87e3-412e7befcb75"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "fundedDepositAmount": "40.00",
+          "fundedRealAmount": "40.00",
+          "realBalance": "10.00",
+          "txnId": "transaction/6465fed9-105d-4714-8320-35320d794841",
+          "walletType": "real"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/wallet/spinvibe/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/EUR/win",
+      "request": {
+        "method": "POST",
+        "path": "/v1/wallet/spinvibe/{c0}/EUR/win",
+        "service": "unsorted",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "40.00",
+          "roundId": "s245-b7ddf87d"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "realBalance": "50.00",
+          "txnId": "transaction/18ced335-67d6-40c7-8335-4c6f09a14242",
+          "walletType": "real",
+          "wonDepositAmount": "40.00",
+          "wonRealAmount": "40.00"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f",
+      "request": {
+        "method": "GET",
+        "path": "/twins/wallet/fe741917-460a-3000-956c-a9eadbc1a78f?include=concepts",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "concepts": [
+            "wallet"
+          ],
+          "properties": {
+            "brand_id": "spinvibe",
+            "brand_ref": "spinvibe",
+            "converted_pool_balance": 0,
+            "currency": "EUR",
+            "deposit_pool_balance": 5000,
+            "deposit_turnover_pending": 0,
+            "open_rounds": "",
+            "pending_deposit_record_refs": "",
+            "player_id": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "player_ref": "c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a",
+            "pools_stamped_at": "2026-11-02T15:46:08.179319547Z",
+            "processed_payment_refs": "||",
+            "real_balance": 5000,
+            "restricted_balance": 0
+          }
+        }
+      },
+      "vary": {
+        "$.properties.player_id": "differs between two runs of the original",
+        "$.properties.player_ref": "differs between two runs of the original",
+        "$.properties.pools_stamped_at": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /v1/casino/brands/spinvibe/players/c5d6ce26-4b8a-3f2b-b68a-f50bb189c79a/deposit-records",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/brands/spinvibe/players/{c0}/deposit-records?currency=EUR",
+        "service": "players"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "depositRecords": [
+            {
+              "amount": "50.00",
+              "clearedAt": "2026-11-02T15:46:09.228143426Z",
+              "closedAt": null,
+              "createdAt": "2026-11-02T15:46:08.630728957Z",
+              "currency": "EUR",
+              "paymentRef": "s16-psp-22ecc32b-d1",
+              "pspId": "",
+              "scheme": "",
+              "sourceTransactionId": "transaction/567dabc9-3ebd-41d3-bc39-9972e9462a44",
+              "status": "",
+              "turnoverDefinition": "gross_wagered",
+              "turnoverRequiredAmount": "50.00",
+              "turnoverStatus": "CLEARED",
+              "wageredTowardTurnover": "50.00"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.depositRecords[0].clearedAt": "differs between two runs of the original",
+        "$.depositRecords[0].createdAt": "differs between two runs of the original",
+        "$.depositRecords[0].paymentRef": "differs between two runs of the original",
+        "$.depositRecords[0].sourceTransactionId": "differs between two runs of the original"
+      }
+    }
+  ],
+  "requirement": "011/FR-030"
+}

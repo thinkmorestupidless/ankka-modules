@@ -1,0 +1,276 @@
+{
+  "scenario": "a claim that fails one rule is refused with that rule's reason [a player outside the offer's segment]",
+  "requirement": "011/FR-005",
+  "recorded_at": "2026-11-02T15:56:50.486282Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "rewards",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "7a49da84-e15e-3c39-8ad9-79b05bff882e",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "7a49da84-e15e-3c39-8ad9-79b05bff882e",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the player's duplicate check has ended",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "a-claim-that-fails-one-rule-is-rd41ca3730b3-email-beeea459@example.test",
+          "email_local_normalized": "a-claim-that-fails-one-rule-is-rdcab-email-beeea",
+          "kyc_check_deadline_at": "2026-12-02T15:56:50.533710313Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_device_browser": "Unknown",
+          "last_device_os": "Unknown",
+          "last_login_at": "2026-11-02T15:56:50.684609710Z",
+          "marketing_consent": "false",
+          "pending_duplicate_check": "false",
+          "registered_at": "2026-11-02T15:56:50.533710313Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "a-claim-that-fails-one-rule-is-rd41ca3730b3-email-beeea459@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.email_local_normalized": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player is in the casual segment",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "segments": "casual"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/7a49da84-e15e-3c39-8ad9-79b05bff882e"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the offer offerId",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "rewards driver offerId",
+          "no_deposit_required": "false",
+          "offer_id": "{offerId}",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "{code}:0",
+          "segment_predicate": "vip",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "{offerIdValidFrom}",
+          "valid_until": "{offerIdValidUntil}",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/0705098b-f76e-4fc2-a0de-d2932c2bf92f"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the offer offerId is active",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "claim the offer by its code",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/spinvibe/enter-code",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "code": "{code}"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "reason": "SEGMENT_MISMATCH",
+          "status": "ineligible"
+        }
+      }
+    },
+    {
+      "name": "setup: deactivate the offer offerId",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/0705098b-f76e-4fc2-a0de-d2932c2bf92f"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

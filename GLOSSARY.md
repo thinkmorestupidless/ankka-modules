@@ -8,7 +8,7 @@ validates, declares, fit, backoffice, force,
 a, an, the, and, or, of, to, in, on, for, with, is, are, was, has, have, had, does, not, no, one, two, any, every, each, same, other, its, their, this, that, when, then, after, before, within, again, still, only, also, than, more, less, new, first, last, next, named, called, shown, listed, given, asked, told, sent, kept, left, made, put, set, seen, found, open, closed, known, unknown, yes, number, amount, time, day, days, hour, hours, minute, minutes, second, seconds, year, years, month, months,
 above, accepted, across, act, action, active, actor, add, added, address, addresses, admitted, against, ago, allowed, allowing, allows, already, ancestor, answer, anything, applicant, applied, applies, apply, applying, approval, approve, approved, approves, arrive, arrives, awaiting, awaits, back, backoff, backup, backups, bad, base, becomes, belonged, below, beside, between, bind, binds, birth, blocks, bound, browser, cache, caches, cancellation, cancelled, capture, captured, carried, carries, carry, category, chain, change, changed, changes, charged, checked, claimed, closure, comes, completed, computation, computed, concurrent, condition, conditions, configuration, confirm, confirmation, confirmed, confirms, consumed, content, continue, convert, converted, converts, copies, copy, correction, corrupted, counter, country, covers, create, created, creates, cross, cumulative, currencies, currency, cycle, daily, dashboard, date, dated, dates, debit, debited, debits, decision, default, deficit, delivered, delta, descendant, details, device, differ, difference, different, digest, discard, dismissed, dismisses, display, draw, drawn, duplicate, duplicated, during, earlier, earnings, earns, else, email, emit, emits, emitted, end, ended, ends, enforced, enter, entirely, entry, equals, erase, erased, erases, established, everything, exactly, exclude, excludes, exhausted, exists, export, exports, failed, fails, failure, falls, fetches, field, fields, figure, figures, file, files, filter, finance, floors, forgets, forms, forward, fresh, frontend, full, gains, gave, half, headline, held, however, identifies, identity, ignored, import, imported, inherits, inspects, interruption, invite, invited, issued, itself, keep, keeps, kind, knows, landed, landing, lands, lapses, late, learn, lets, life, lifetime, like, limit, local, locally, longer, major, maps, mark, marked, meaning, meeting, meets, minimum, minor, minus, mirrors, moved, need, never, nothing, occur, occurred, occurs, old, older, once, onward, optionally, organically, otherwise, outcome, outside, own, paid, part, partly, passed, passes, password, pay, pays, per, percent, percentages, permanently, persists, person, pins, placed, places, play, played, pointed, position, positive, postal, posts, previous, produced, provisioned, published, publishes, raised, ran, range, rate, reactivate, reactivates, read, readable, reader, readers, reading, reads, reason, rebuilds, rebuilt, received, receives, recomputed, reduced, refreshed, refreshes, refused, refuses, register, registered, registers, rejected, removed, replays, repository, request, requested, required, requires, resend, reset, restored, retried, retries, returned, returns, reverse, reverts, review, reviewed, revoke, revoked, right, rises, role, roles, rolled, row, rules, run, running, runs, say, says, scenario, see, sees, self, send, sender, sends, separately, served, serves, session, settled, settles, shows, sign, signature, signed, sorts, source, stale, stamped, stands, started, starts, states, stats, status, stay, stays, stores, strings, substituted, succeeds, suite, sum, summed, superseded, suspend, suspended, swept, telephone, tell, text, threshold, thresholds, total, totals, traffic, transactional, treated, turned, twice, unaffected, unchanged, unclaimed, unit, units, unless, untouched, usage, valid, verifies, verify, version, visible, visited, visitor, voided, what, where, which, who, whole, whose, withdrawn, without, won, writes, written, zero
 afresh, among, attached, attaches, band, browse, browses, built, cleared, clears, configured, current, decimals, deprecation, disable, disabled, disables, echoed, eligible, enable, enabled, enables, included, jurisdiction, labels, layer, layers, long, nightly, oldest, plus, popular, processing, prohibited, prohibits, ranked, ranking, reach, refunded, resolved, site, stop, stops, success, take, territories, territory, whatever, winnings, yet
-body, enablement, lobby, matching, redeploy, rotated, calendar
+body, enablement, lobby, matching, redeploy, rotated, calendar, common, comparison, eleven
 feature
 abandon, abandoned, abandons, acknowledged, acknowledges, activated, appears, available, away, branch, caller, capability, cause, coin, crypto, deadline, deleted, delivery, deploy, deployed, deployment, deploys, draft, empty, error, exceeds, expired, expires, expiry, final, fires, fixed, flight, generates, gives, governs, happened, happens, history, hosted, inactive, initiate, initiated, initiates, invoiced, listable, live, logged, lost, many, method, mints, missing, moment, newest, offering, offers, overpayment, overwritten, parsed, past, possible, presenting, private, privilege, properties, rather, raw, re-drive, re-driven, re-drives, receiver, recent, recovers, redirect, refusal, regions, restart, risen, root, rotations, said, saved, scheme, secret, secrets, series, server, short, simulates, submit, submits, submitted, summary, surplus, traced, transient, unauthenticated, underpayment, unreachable, unreadable, valuation, variance, volume, wait, waits, why, wrong
 words
@@ -169,17 +169,17 @@ What funded a bet, as the original names it: real, bonus, split, or empty for a 
 What happens when a restricted funds record's release progress meets its wagering requirement: its balance is credited to real balance and the record awaits its cap.
 
 ### deposit pool
-*Proposed.* The part of a wallet's real balance that is the player's deposited money, operator credits, and the winnings earned by staking that money; never below zero. The only money affiliate GGR counts.
+The part of a wallet's real balance that is the player's deposited money, operator credits, and the winnings earned by staking that money; never below zero. The only money affiliate GGR counts.
 
 Avoid: deposit-origin balance, cash pool, real pool
 
 ### converted pool
-*Proposed.* The part of a wallet's real balance that came from conversions, from bonus-side credits (a provider credit to real balance, a win's share whose record is gone), and from the winnings earned by staking that money; below zero only by a correction debit's shortfall. Earns an affiliate nothing.
+The part of a wallet's real balance that came from conversions, from bonus-side credits (a provider credit to real balance, a win's share whose record is gone), and from the winnings earned by staking that money; below zero only by a correction debit's shortfall. Earns an affiliate nothing.
 
 Avoid: bonus pool, conversion pool
 
 ### parts
-*Proposed.* Of one movement of real balance: how much of it was deposit pool money and how much converted pool money, summing to the amount moved; recorded on the transaction and carried on its fact.
+Of one movement of real balance: how much of it was deposit pool money and how much converted pool money, summing to the amount moved; recorded on the transaction and carried on its fact.
 
 Avoid: origin amounts, pool split
 
@@ -433,7 +433,7 @@ What a brand spent on a player's rewards: emitted as a fact when restricted fund
 A deposit the player's payment provider took back; emitted as a fact and folded into NGR.
 
 ### reward
-One player's taking of an offer: pending on a selection until the confirming deposit, then active once awarded as restricted funds or created as free rounds at the game provider; then converted pending cap, completed, cancelled, forfeited, revoked, expired or voided. Every transition is a fact.
+One player's taking of an offer: pending on a selection until the confirming deposit, then active once awarded as restricted funds or created as free rounds at the game provider; then converted pending cap, completed, cancelled (also when the game provider fails free rounds), forfeited, revoked or expired. Every transition is a fact.
 
 Avoid: grant, bonus grant, bonus instance
 
@@ -771,6 +771,14 @@ What opens when two players of a brand match by name and date of birth or by dev
 ### suspected duplicate
 The flag a fraud case sets on each player it links; the brand's rewards withhold a reward from a flagged player.
 
+### duplicate check
+What a new registration is under from the moment it registers until the brand has compared it with its players: while in progress, and for no more than 10 minutes from registration, the brand's rewards refuse the player's no-deposit offers for now.
+
+### weak duplicate signal
+An email that is a variant of another player's with nothing else in common, or a comparison that could not be made: it blocks the new player's no-deposit offers until an operator clears the block, and flags no one.
+
+Avoid: soft duplicate, partial match
+
 ### signal
 What a fraud case was opened on: identity, for a match by name and date of birth, or device, for a match by device fingerprint.
 
@@ -879,7 +887,7 @@ How long a selection waits for its confirming deposit; past it the reward is exp
 The days a reward's restricted funds may be wagered before the reward expires.
 
 ### cap window
-The days a converted reward waits for its cap before the pending cap is closed.
+The days a converted reward waits for its cap before the pending cap is closed: the offer's wagering window days counted from the conversion, 30 when the offer sets none.
 
 ### activation baseline
 The real balance recorded when a reward activated, from which a player's own cancellation computes the clawback: real winnings since activation less deposits since, floored at zero; with no baseline the clawback is zero.
@@ -1084,63 +1092,63 @@ The person who drives the simulator: selects a scenario, instructs a bet, a win,
 ## Modules
 
 ### module
-*Proposed.* A named set of services, with the grants, topics, dependencies, configuration keys and retention its manifest declares, that a brand runs when entitled to it: core, casino, support, predictions, pool.
+A named set of services, with the grants, topics, dependencies, configuration keys and retention its manifest declares, that a brand runs when entitled to it: core, casino, support, predictions, pool.
 
 ### core
-*Proposed.* The module every brand runs: wallet, players, kyc, responsible-gambling, payouts, engagement, reporting, attribution and the vendor's agent.
+The module every brand runs: wallet, players, kyc, responsible-gambling, payouts, engagement, reporting, attribution and the vendor's agent.
 
 ### vendor
-*Proposed.* eitheror as the operator of ankka-vendor: the product that releases modules, holds entitlements and enables modules for brands.
+eitheror as the operator of ankka-vendor: the product that releases modules, holds entitlements and enables modules for brands.
 
 ### eitheror staff
-*Proposed.* People who sign in to the vendor's console and enable, disable, pin or move a brand's modules; they see no player of any brand.
+People who sign in to the vendor's console and enable, disable, pin or move a brand's modules; they see no player of any brand.
 
 ### vendor's console
-*Proposed.* ankka-vendor's backoffice for eitheror staff: every brand's modules from the mirrored module entities.
+ankka-vendor's backoffice for eitheror staff: every brand's modules from the mirrored module entities.
 
 ### entitlement
-*Proposed.* The vendor's record that a brand may run a module on a channel or at a pinned version, with its terms, start and end.
+The vendor's record that a brand may run a module on a channel or at a pinned version, with its terms, start and end.
 
 ### agent
-*Proposed.* The vendor's service in a brand's project: holds the module entity, applies and removes modules through the brand's own control plane.
+The vendor's service in a brand's project: holds the module entity, applies and removes modules through the brand's own control plane.
 
 ### module entity
-*Proposed.* The agent's record of what is enabled, running and failed in a brand: module, version, channel, each service's state, the time of the last change, and any missing configuration key.
+The agent's record of what is enabled, running and failed in a brand: module, version, channel, each service's state, the time of the last change, and any missing configuration key.
 
 ### channel
-*Proposed.* A name at the vendor pointing at one release of one module; a brand's entitlement follows a channel unless pinned.
+A name at the vendor pointing at one release of one module; a brand's entitlement follows a channel unless pinned.
 
 ### module manifest
-*Proposed.* The one description of a module, `modules/<module>/module.json`: services, grants, topics, dependencies, configuration keys, retention and any condition on ending.
+The one description of a module, `modules/<module>/module.json`: services, grants, topics, dependencies, configuration keys, retention and any condition on ending.
 Avoid: manifest file
 
 ### configuration key
-*Proposed.* A name a module manifest declares for a value the brand supplies; the manifest never carries the value.
+A name a module manifest declares for a value the brand supplies; the manifest never carries the value.
 
 ### values file
-*Proposed.* What one brand supplies, `brands/<slug>/values.json`: realm settings, real money, secret names, hostnames and a value for every configuration key its modules name; never a version, service or grant.
+What one brand supplies, `brands/<slug>/values.json`: realm settings, real money, secret names, hostnames and a value for every configuration key its modules name; never a version, service or grant.
 Avoid: brand manifest
 
 ### modules tool
-*Proposed.* `tools/modules`, reached as `ankka casino`: validates a module manifest or a values file, renders what the agent would apply, applies in local mode, reads status.
+`tools/modules`, reached as `ankka casino`: validates a module manifest or a values file, renders what the agent would apply, applies in local mode, reads status.
 
 ### retention
-*Proposed.* How long a disabled module's data is kept, as its manifest declares; re-enabling within it attaches to the kept data.
+How long a disabled module's data is kept, as its manifest declares; re-enabling within it attaches to the kept data.
 
 ### release job
-*Proposed.* The job a tag runs: builds every module's images and publishes every manifest to the vendor at the tag's version, moving no channel.
+The job a tag runs: builds every module's images and publishes every manifest to the vendor at the tag's version, moving no channel.
 
 ### modules page
-*Proposed.* The backoffice page where a brand operator sees their brand's modules; it offers no enable.
+The backoffice page where a brand operator sees their brand's modules; it offers no enable.
 
 ### platform modules topic
-*Proposed.* `platform.modules`: one fact per change to a brand's module entity.
+`platform.modules`: one fact per change to a brand's module entity.
 
 ### market route
-*Proposed.* A route the predictions module serves.
+A route the predictions module serves.
 
 ### game route
-*Proposed.* A route the casino module serves.
+A route the casino module serves.
 
 ## Predictions
 
@@ -1263,7 +1271,7 @@ An outcome's last price written to the reasoning service, at most once a minute 
 `markets.events`: one fact per change to a market, keyed by the market.
 
 ### platform audit topic
-*Proposed.* `platform.audit`, as spec 001 names it.
+`platform.audit`, as spec 001 names it.
 
 ## Reservations and accounts
 

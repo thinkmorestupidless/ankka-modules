@@ -15,6 +15,8 @@ object Record:
   val MaxPending  = 200
   val PendingLife = Duration.ofHours(48)
   val MaxEmitted  = 1000
+  /** The free-rounds rewards a record remembers (spec 011, "Free-rounds cost from free_spins_settled"). */
+  val MaxFreeRounds = 200
 
   final case class Refusal(tag: String, reason: String, at: Instant)
   final case class Closure(category: String, at: Instant)
@@ -31,7 +33,8 @@ object Record:
       emitted: Vector[String] = Vector.empty,
       disputes: Set[String] = Set.empty,
       closed: Option[Closure] = None,
-      erased: Option[Instant] = None
+      erased: Option[Instant] = None,
+      freeRounds: Vector[String] = Vector.empty
   ):
     def bound: Boolean = binding.isDefined
     def seen(dedupeId: String): Boolean = emitted.contains(dedupeId) || pending.exists(_.dedupeId == dedupeId)
@@ -72,6 +75,12 @@ object Record:
   final case class Closed(category: String, at: Instant, binding: Option[Binding]) extends Event
 
   final case class Erased(at: Instant) extends Event
+
+  /**
+   * A free-rounds reward of the player's, from `casino.rewards` (spec 011, "Free-rounds cost from
+   * free_spins_settled"): its cost is its `free_spins_settled`, so a wallet credit naming it is no bonus cost.
+   */
+  final case class FreeRoundsSeen(rewardId: String) extends Event
 
   // ── commands ────────────────────────────────────────────────────────────
 
@@ -122,6 +131,7 @@ object Record:
    */
   def money(state: State, event: MoneyEvent): Vector[Event] =
     if state.seen(event.dedupeId) then Vector.empty
+    else if freeRoundsCredit(state, event) then Vector.empty
     else if event.kind == MoneyEvent.Chargeback && state.disputes.contains(event.reference) then Vector.empty
     else
       val first = event.kind == MoneyEvent.Deposit && state.firstDepositAt.isEmpty
@@ -133,6 +143,17 @@ object Record:
             case MoneyEvent.Chargeback => Vector(ChargebackRecorded(event, b))
             case MoneyEvent.BonusCost  => Vector(BonusCostRecorded(event, b))
             case _                     => Vector(WithdrawalRecorded(event, b))
+
+  /**
+   * A free-rounds reward told by `casino.rewards`, once. A bonus cost named by the reward itself (the wallet's
+   * provider credit of its winnings, whose reference is the reward id) is then nothing: its cost is its
+   * settlements, whose references are `<reward>/settled/<ms>`.
+   */
+  def freeRounds(state: State, rewardId: String): Vector[Event] =
+    if state.freeRounds.contains(rewardId) then Vector.empty else Vector(FreeRoundsSeen(rewardId))
+
+  private def freeRoundsCredit(state: State, event: MoneyEvent): Boolean =
+    event.kind == MoneyEvent.BonusCost && state.freeRounds.contains(event.reference)
 
   def close(state: State, category: String, at: Instant): Vector[Event] =
     if state.closed.isDefined then Vector.empty else Vector(Closed(category, at, state.binding))
@@ -160,6 +181,10 @@ object Record:
     case BonusCostRecorded(e, _)  => state.copy(emitted = remember(state.emitted, Vector(e.dedupeId)))
     case Closed(category, at, _)  => state.copy(closed = Some(Closure(category, at)))
     case Erased(at)               => state.copy(erased = Some(at))
+    case FreeRoundsSeen(id) =>
+      // a credit held pending before the reward was told is dropped, so the binding never emits it
+      val known = state.copy(freeRounds = (state.freeRounds :+ id).takeRight(MaxFreeRounds))
+      known.copy(pending = state.pending.filterNot(freeRoundsCredit(known, _)))
 
   private def deposit(state: State, e: MoneyEvent, first: Boolean): State =
     if first then state.copy(firstDepositAt = Some(e.at), firstDeposit = Some(e.dedupeId)) else state

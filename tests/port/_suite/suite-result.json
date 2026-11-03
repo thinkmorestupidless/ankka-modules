@@ -526,5 +526,117 @@
   "the same capture reported again leaves the payment captured, calls the wallet nothing and is acknowledged": [
     "pass",
     "pass"
+  ],
+  "TestScenario16_RewardGrant_TargetSelectActivateForfeit": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario19_BonusWageringCompletesToRealMoney": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario21_CleanGrantEveryPath": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario21_Concurrency_ActiveBonusConflict": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario21_ConflictsWith": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario21_MaxClaimsAndExclusion": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario21_OfferValidation": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario21_SuspectedDuplicate_RefusedOnEveryPath": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario244_CancelWithBaselineClawsBackOnlyWinnings": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario244_CancelWithNoBonusIsConflict": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario244_CancelWithoutBaselineSucceedsWithZeroClawback": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario244_ConversionRecordsActivationBaseline": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario244_DepositMatchCancelStillWorks": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario245_PartialBonusAdjustLeavesRecordActive": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario245_TurnoverDisplayFollowsWalletPending": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario245_ZeroedBonusClosesRecordAndGrant": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario254_PrimaryBonus_LossSettlementPromotesNext": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario254_PrimaryBonus_ZeroWinPromotesNext": [
+    "pass",
+    "pass"
+  ],
+  "TestScenarioFreeSpinsPlay_MultiCurrencyGrant": [
+    "pass",
+    "pass"
+  ],
+  "TestScenario_BonusBust_LosingRoundForfeitsGrant": [
+    "pass",
+    "pass"
+  ],
+  "TestAFreeBonusIsSentInMajorUnitsAndItsRewardReadFromTheOperatorsList": [
+    "pass",
+    "pass"
+  ],
+  "TestAGateWritesEveryFlagAndItsRegistrationTimeByName": [
+    "pass",
+    "pass"
+  ],
+  "TestRevokingFreeRoundsNamesTheRewardTheGrantPointsAt": [
+    "pass",
+    "pass"
+  ],
+  "TestRewards": [
+    "pass",
+    "pass"
+  ],
+  "TestTheKillSwitchIsSetForTheBrandAloneWithATokenNeverRecordedAndPutBackAfterwards": [
+    "pass",
+    "pass"
+  ],
+  "TestTheOriginalsNameUUIDsMajorUnitsAndWebhookSignature": [
+    "pass",
+    "pass"
+  ],
+  "TestTheWebhookIsSignedWithTheBrandsKeyWhichIsRestoredAndTheSignatureNeverRecorded": [
+    "pass",
+    "pass"
+  ],
+  "TestWithNoUnleashTokenTheKillSwitchsScenarioIsSkippedAndWritesNothing": [
+    "pass",
+    "pass"
   ]
 }

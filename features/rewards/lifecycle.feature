@@ -11,10 +11,15 @@ Feature: An active reward converts, completes, is switched, cancelled, revoked o
     Then the reward is converted pending cap
     And a cap timer is set for the cap window's days
 
-  Scenario: a conversion with no cap closes the reward as completed
+  Scenario: a conversion with no maximum convertible amount still waits in converted pending cap
     Given the reward's restricted funds record has no maximum convertible amount
     When the wallet reports the record converted
-    Then the reward is closed as completed
+    Then the reward is converted pending cap
+    And a cap timer is set for the cap window's days
+
+  Scenario: a reward whose restricted funds are lost in play is forfeited
+    When the wallet reports the reward's record taken to zero by a losing round
+    Then the reward is forfeited
 
   Scenario: a cap deadline passing closes the record on the wallet and the reward
     Given the reward is converted pending cap
@@ -58,7 +63,7 @@ Feature: An active reward converts, completes, is switched, cancelled, revoked o
   Scenario: a cancel naming no active reward is refused as a conflict
     Given the player's reward is no longer active
     When the player cancels it
-    Then it is refused as "NO_ACTIVE_BONUS"
+    Then it is refused as "no_active_bonus"
 
   Scenario: an operator revoking a reward as forfeit forfeits the record and leaves real balance untouched
     Given the reward is active
@@ -72,15 +77,32 @@ Feature: An active reward converts, completes, is switched, cancelled, revoked o
     Then the record is forfeited
     And the clawback is applied too
 
+  Scenario: an operator revoking as reclaim a reward whose record has no baseline is refused
+    Given the reward is active
+    And the wallet's record has no baseline
+    When an operator revokes it as "reclaim"
+    Then it is refused as "MISSING_BASELINE"
+
+  Scenario: an operator revoking free rounds not yet played cancels them at the game provider
+    Given live free rounds of the player
+    When an operator revokes them as "forfeit"
+    Then the game provider is asked to cancel them
+    And the reward is revoked
+
+  Scenario: an operator revoking free rounds already played out is refused
+    Given free rounds of the player already played out
+    When an operator revokes them as "forfeit"
+    Then it is refused as "FREE_SPINS_FINISHED"
+
   Scenario: an operator revoking a reward with no mode is refused
     Given the reward is active
     When an operator revokes it with no mode
     Then it is refused as "INVALID_MODE"
 
-  Scenario: a record an operator adjusted to zero closes the reward
+  Scenario: a record an operator adjusted to zero forfeits the reward
     Given the reward is active
     When the wallet reports the reward's record adjusted to zero by an operator
-    Then the reward is closed
+    Then the reward is forfeited
 
   Scenario: a record an operator adjusted but not to zero leaves the reward active
     Given the reward is active

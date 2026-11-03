@@ -1,0 +1,271 @@
+{
+  "scenario": "an operator revoking as reclaim a reward whose record has no baseline is refused",
+  "requirement": "011/FR-017",
+  "recorded_at": "2026-11-02T15:56:53.71154Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "rewards",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "6266961e-0285-3c60-9c3d-3b588fca6389",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "6266961e-0285-3c60-9c3d-3b588fca6389",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the player's duplicate check has ended",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "an-operator-revoking-as-reclai-rd8fbaef3eac-email-1262159d@example.test",
+          "email_local_normalized": "an-operator-revoking-as-reclai-rdfbaefeac-email-d",
+          "kyc_check_deadline_at": "2026-12-02T15:56:53.754821428Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_device_browser": "Unknown",
+          "last_device_os": "Unknown",
+          "last_login_at": "2026-11-02T15:56:53.892068406Z",
+          "marketing_consent": "false",
+          "pending_duplicate_check": "false",
+          "registered_at": "2026-11-02T15:56:53.754821428Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "an-operator-revoking-as-reclai-rd8fbaef3eac-email-1262159d@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.email_local_normalized": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: award the player a free bonus",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonusAmount": "20.00",
+          "currency": "EUR",
+          "wager": "5"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusAmount": "20.00",
+          "status": "granted",
+          "wageringRequired": "100.00"
+        }
+      }
+    },
+    {
+      "name": "setup: read the player's rewards",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/bonuses",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "closedAt": null,
+            "currency": "EUR",
+            "faceValue": "20.00",
+            "freeSpins": null,
+            "grantRef": "bonus-claims/214d0481-1196-4b33-99ea-f957a1d42f45",
+            "grantedAt": "2026-11-02T15:56:53.909759546Z",
+            "isPrimary": true,
+            "offerName": "Free Bonus",
+            "status": "ACTIVE",
+            "wageredAmount": "0.00",
+            "wageringRequirement": "100.00"
+          }
+        ]
+      },
+      "capture": {
+        "claimId": "$[0].grantRef"
+      },
+      "vary": {
+        "$[0].grantRef": "differs between two runs of the original",
+        "$[0].grantedAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the reward has no baseline",
+      "request": {
+        "method": "POST",
+        "path": "/twins/bonus-claims/{claimId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "activation_real_balance": null,
+          "activation_total_deposits": null
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "bonus-claims/214d0481-1196-4b33-99ea-f957a1d42f45"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player has no baseline",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_activation_real_balance": "",
+          "bonus_activation_total_deposits": ""
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/6266961e-0285-3c60-9c3d-3b588fca6389"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "revoke the reward as reclaim",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/spinvibe/bonuses/{claimId}/revoke",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "mode": "reclaim"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "MISSING_BASELINE"
+        }
+      }
+    }
+  ]
+}

@@ -88,7 +88,9 @@ object Values:
     // spec 023 R7: no taker fee, and both gates an order may run
     "predictions-taker-fee-bps" -> "0", "predictions-gates" -> "play-gate,may-bet",
     // spec 023 R13: no erasure target beyond core's own unless a planned module's service serves one
-    "erasure-targets" -> "none")
+    "erasure-targets" -> "none",
+    // spec 011 R13: no programme code document until spec 013 publishes one
+    "rewards-code-document-url" -> "none")
 
   /** Every non-secret value a module may read: the defaults, the brand's own and the derived. */
   def all(v: Values, project: String, installation: Option[Installation]): Map[String, String] =

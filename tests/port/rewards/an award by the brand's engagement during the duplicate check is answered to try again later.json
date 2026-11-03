@@ -1,0 +1,332 @@
+{
+  "scenario": "an award by the brand's engagement during the duplicate check is answered to try again later",
+  "requirement": "011/FR-005",
+  "recorded_at": "2026-11-02T15:56:51.522343Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "rewards",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "d0f53e76-25a3-31a6-a5c3-e8da9b3d098d",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "d0f53e76-25a3-31a6-a5c3-e8da9b3d098d",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the player's duplicate check has ended",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "an-award-by-the-brand-s-engage-rd8dd29ea655-email-fe8168d5@example.test",
+          "email_local_normalized": "an-award-by-the-brand-s-engage-rdddea-email-fed",
+          "kyc_check_deadline_at": "2026-12-02T15:56:51.560512869Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_device_browser": "Unknown",
+          "last_device_os": "Unknown",
+          "last_login_at": "2026-11-02T15:56:51.716083239Z",
+          "marketing_consent": "false",
+          "pending_duplicate_check": "false",
+          "registered_at": "2026-11-02T15:56:51.560512869Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "an-award-by-the-brand-s-engage-rd8dd29ea655-email-fe8168d5@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.email_local_normalized": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player registered five minutes ago and their duplicate check is in progress",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "no_deposit_offer_blocked": "false",
+          "pending_duplicate_check": "true",
+          "registered_at": "{registeredAt}",
+          "suspected_duplicate": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/d0f53e76-25a3-31a6-a5c3-e8da9b3d098d"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the offer offerId",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "rewards driver offerId",
+          "no_deposit_required": "true",
+          "offer_id": "{offerId}",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "{offerIdValidFrom}",
+          "valid_until": "{offerIdValidUntil}",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/17798b0d-9a32-4230-80b9-89b35385598e"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the offer offerId is active",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "setup: read the brand's legacy CRM config",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino/ced175e0-d852-38c8-95ea-1cea69c6af43",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "crm_config": "{\"webhookSigningKey\":\"s21-signing-key-5dae496c\"}"
+        }
+      }
+    },
+    {
+      "name": "setup: the brand's webhook signing key",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino/ced175e0-d852-38c8-95ea-1cea69c6af43",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "crm_config": "{\"webhookSigningKey\":\"rewards-driver-webhook-key\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino/ced175e0-d852-38c8-95ea-1cea69c6af43"
+        }
+      }
+    },
+    {
+      "name": "the brand's engagement awards the offer",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/customerio/webhook/spinvibe",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "action": "grant_bonus",
+          "offer_id": "{offerId}",
+          "player_id": "{playerId}"
+        }
+      },
+      "response": {
+        "status": 503,
+        "body": {
+          "error": "ELIGIBILITY_CHECK_UNAVAILABLE"
+        }
+      }
+    },
+    {
+      "name": "setup: restore the brand's legacy CRM config",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino/ced175e0-d852-38c8-95ea-1cea69c6af43",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "crm_config": "{\"webhookSigningKey\":\"s21-signing-key-5dae496c\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino/ced175e0-d852-38c8-95ea-1cea69c6af43"
+        }
+      }
+    },
+    {
+      "name": "setup: deactivate the offer offerId",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/17798b0d-9a32-4230-80b9-89b35385598e"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

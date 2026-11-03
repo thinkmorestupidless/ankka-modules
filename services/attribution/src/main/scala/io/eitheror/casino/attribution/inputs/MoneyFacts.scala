@@ -13,7 +13,8 @@ import org.slf4j.LoggerFactory
  * `money.transactions` (research R10): every family advances the wallet's cursor, so the next fact's real
  * movement is measured from it; the real legs go to the tally of their round's day (the day of its first
  * stake, else the leg's own), and a restricted award, or a provider credit landing on restricted money,
- * is bonus cost. A redelivered fact is given the delta it was given before, and every write after the
+ * is bonus cost, but for a free-rounds grant's, whose cost is `free_spins_settled` (`RealMoney.bonusCost`,
+ * `Record.money`). A redelivered fact is given the delta it was given before, and every write after the
  * cursor is idempotent by the dedupe id, so a delivery cut short is finished by the next.
  */
 final class MoneyFacts(context: ConsumerContext) extends Consumer[Option[MoneyTransactionsMessage], Unit]:

@@ -44,7 +44,7 @@ second start replaces them) and makes the click salt when the store has none.
 | Variable | Default | |
 |---|---|---|
 | `CASINO_BRAND` | | the brand's slug |
-| `CASINO_MODULES` | none | `casino` registers the `casino.rewards` consumer (bonus codes entered later) |
+| `CASINO_MODULES` | none | `casino` registers the `casino.rewards` consumer (bonus codes entered later, free-rounds bonus cost) |
 | `CASINO_REPORTING_ZONE` | `UTC` | the reporting day's zone |
 | `CLOSE_GRACE` | `20m` | how long after local midnight a day closes |
 | `COUNTRY_HEADER` | `CF-IPCountry` | the gateway's header for the visitor's country, when a click sends none |
@@ -85,6 +85,15 @@ The click's address digest is on the click's row and nowhere else; `it.LeakSuite
 - **`casino.rewards` without the casino module** (T033): the consumer is registered only when
   `CASINO_MODULES` names `casino`, so the question of an undeclared topic never arises. Whether ankka
   would refuse such a consumer was not tested; the in-memory broker cannot tell.
+- **Free-rounds bonus cost** (spec 011, "Free-rounds cost from free_spins_settled"): a free-rounds
+  grant's cost is each `free_spins_settled` on `casino.rewards`, reference `<reward>/settled/<ms>`,
+  deduplicated by `free_spins_settled/<reward>/<ms>/<win>` (no `ce-id`, as above); a settlement of 0
+  costs nothing. The wallet's money for the grant is not counted: its winnings award is told by its
+  key (`<reward>/winnings`, `<reward>/late/<round>`), and its provider credit, which names only the
+  reward, by the record remembering the player's free-rounds rewards (the newest 200) from
+  `free_spins_granted` and `free_spins_settled`; a credit held pending is dropped when the reward is
+  told. A restricted provider credit read before its reward's grant (a money consumer far ahead of
+  the rewards consumer, as on a replay from the start) would still be counted.
 - **The country header** (T073): dev-kind's gateway sets none and passes `CF-IPCountry` through (a click
   carrying it was recorded with that country), so `COUNTRY_HEADER` keeps its default; which header the
   production edge sets is the installation's to confirm.

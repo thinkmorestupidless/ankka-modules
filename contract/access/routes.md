@@ -27,4 +27,8 @@ target only a route listed here; the modules tool refuses any other.
 | wallet | POST | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/adjustments | operator | 022 FR-009 |
 | wallet | GET | /v1/casino/backoffice/{brand}/accounts/{kind}/{name}/balance | operator | 022 FR-012 |
 | payouts | POST | /v1/casino/brands/{brand}/withdrawals/{requestId}/outcome | service | 001 FR-016, 007 (granted to payments/psp-gateway) |
+| rewards | POST | /v1/casino/brands/{brand}/reward-campaigns/{player}/target | service | 011 R7 (engagement, by `Routes.serviceOf`) |
+| rewards | POST | /v1/casino/brands/{brand}/reward-campaigns/{player}/award | service | 011 R7 (engagement, by `Routes.serviceOf`) |
+| rewards | GET | /v1/casino/brands/{brand}/rewards/{player}/grants | player | 011 R7 (also support-agent, by `Routes.serviceOf`) |
+| rewards | GET | /v1/casino/brands/{brand}/rewards/{player}/free-rounds/eligible | service | 011 R7 (game-provider, by `Routes.serviceOf`) |
 | exchange | POST | /v1/casino/brands/{brand}/exchange/erasure/players/{player} | service | 023 R13 (an erasure target: players reads it from `erasure-targets`) |

@@ -450,6 +450,88 @@
     {
       "additionalProperties": true,
       "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "registered_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "type": {
+          "const": "player_duplicate_check_started"
+        }
+      },
+      "required": ["type", "player_id", "registered_at", "occurred_at"],
+      "title": "player_duplicate_check_started",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_duplicate_check_ended"
+        }
+      },
+      "required": ["type", "player_id", "outcome", "occurred_at"],
+      "title": "player_duplicate_check_ended",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_no_deposit_blocked"
+        }
+      },
+      "required": ["type", "player_id", "occurred_at"],
+      "title": "player_no_deposit_blocked",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "player_no_deposit_block_cleared"
+        }
+      },
+      "required": ["type", "player_id", "actor_id", "occurred_at"],
+      "title": "player_no_deposit_block_cleared",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
         "email": {
           "type": "string",
           "x-personal": true

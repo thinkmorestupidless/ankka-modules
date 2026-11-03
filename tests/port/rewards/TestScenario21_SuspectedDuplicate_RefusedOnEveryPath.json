@@ -1,0 +1,2933 @@
+{
+  "scenario": "TestScenario21_SuspectedDuplicate_RefusedOnEveryPath",
+  "recorded_at": "2026-11-02T15:45:46.559787Z",
+  "original": {
+    "brand": "",
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "substrate",
+  "steps": [
+    {
+      "name": "GET /twins/casino-bonus-offers",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-bonus-offers",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "total": 71,
+          "twins": [
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 8d49682b",
+                "offer_id": "b7855d2f-950b-409f-b280-dde17e07f185",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S16-8D49682B:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:36Z",
+                "valid_until": "2026-11-03T15:38:36Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/b7855d2f-950b-409f-b280-dde17e07f185"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "0",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "50.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "50.00",
+                "min_deposit_amount": "0.00",
+                "name": "E2E Bonus Block 1941a470",
+                "offer_id": "89fd9fc6-2e5d-4762-bd73-b2e41c2ee366",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:49Z",
+                "valid_until": "2026-11-03T15:38:49Z",
+                "wagering_multiplier": "35",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/89fd9fc6-2e5d-4762-bd73-b2e41c2ee366"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "conflicts_with": "|x|y|",
+                "created_at": "2026-11-02T15:39:18.599513875Z",
+                "deposit_number_target": "ANY",
+                "is_active": "false",
+                "max_bonus_value": "100",
+                "max_concurrent_grants": "2",
+                "name": "S21 Validation Good 8111875e",
+                "offer_id": "6601f6a9-446f-4cdc-9ae7-f07081da9ee3",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "type": "DEPOSIT_MATCH",
+                "updated_at": "2026-11-02T15:39:18.599513875Z",
+                "wagering_multiplier": "10"
+              },
+              "twinId": "casino-bonus-offers/6601f6a9-446f-4cdc-9ae7-f07081da9ee3"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "1",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 2404dc2f",
+                "no_deposit_required": "false",
+                "offer_id": "2c378e64-04e7-4195-abd9-af487e39716e",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:18Z",
+                "valid_until": "2026-11-03T15:39:18Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/2c378e64-04e7-4195-abd9-af487e39716e"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 01b669b8",
+                "no_deposit_required": "false",
+                "offer_id": "f3750ffd-bbed-4d77-98ce-58d2b2444c61",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:21Z",
+                "valid_until": "2026-11-03T15:39:21Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/f3750ffd-bbed-4d77-98ce-58d2b2444c61"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 3b1c252b",
+                "offer_id": "97bd114e-f0d8-4741-a0ec-68b7c32dae5a",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CCA-3B1C252B:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:56Z",
+                "valid_until": "2026-11-03T15:38:56Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/97bd114e-f0d8-4741-a0ec-68b7c32dae5a"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 2c154ccf",
+                "no_deposit_required": "false",
+                "offer_id": "9d584d97-c58b-412d-a67c-6e6c376e5d43",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:56Z",
+                "valid_until": "2026-11-03T15:38:56Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/9d584d97-c58b-412d-a67c-6e6c376e5d43"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 2c154ccf",
+                "no_deposit_required": "false",
+                "offer_id": "77382d9f-f6e3-4592-a799-c62cd9b9663d",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:56Z",
+                "valid_until": "2026-11-03T15:38:56Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/77382d9f-f6e3-4592-a799-c62cd9b9663d"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "0",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "10.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "",
+                "min_deposit_amount": "0.00",
+                "name": "E2E Wagering Conversion b738cc9e",
+                "offer_id": "423ca678-efe2-414d-8039-5c05007dda79",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:50Z",
+                "valid_until": "2026-11-03T15:38:50Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/423ca678-efe2-414d-8039-5c05007dda79"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 2c154ccf",
+                "no_deposit_required": "false",
+                "offer_id": "2f3903dc-0f09-4008-bcde-e609feb77ec3",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21DUPE-2C154CCF:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:55Z",
+                "valid_until": "2026-11-03T15:38:55Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/2f3903dc-0f09-4008-bcde-e609feb77ec3"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 2c154ccf",
+                "no_deposit_required": "false",
+                "offer_id": "6d3f9d71-fc1a-415b-8181-55e760647418",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:56Z",
+                "valid_until": "2026-11-03T15:38:56Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/6d3f9d71-fc1a-415b-8181-55e760647418"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 3b1c252b",
+                "no_deposit_required": "false",
+                "offer_id": "7423ae1f-1861-44ce-b388-ede6cb921e87",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CCB-3B1C252B:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:58Z",
+                "valid_until": "2026-11-03T15:38:58Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/7423ae1f-1861-44ce-b388-ede6cb921e87"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 2c154ccf",
+                "no_deposit_required": "true",
+                "offer_id": "ed15eda0-830f-4b31-a372-5f68d3cd9a2d",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21DUPS-2C154CCF:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:55Z",
+                "valid_until": "2026-11-03T15:38:55Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/ed15eda0-830f-4b31-a372-5f68d3cd9a2d"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer c192311e",
+                "offer_id": "61c2f180-5687-477c-9b65-70f7aac01a98",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21MCA-C192311E:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:01Z",
+                "valid_until": "2026-11-03T15:39:01Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/61c2f180-5687-477c-9b65-70f7aac01a98"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer e4a89a0a",
+                "offer_id": "f6c84414-ddd5-4a5f-bfd6-e124ee491ef1",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CFA-E4A89A0A:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:38:58Z",
+                "valid_until": "2026-11-03T15:38:58Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/f6c84414-ddd5-4a5f-bfd6-e124ee491ef1"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "2",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 67e037d9",
+                "no_deposit_required": "false",
+                "offer_id": "a90434db-854b-4a98-9f9a-fd20a2524212",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21DN-67E037D9:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:07Z",
+                "valid_until": "2026-11-03T15:39:07Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/a90434db-854b-4a98-9f9a-fd20a2524212"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "50.00",
+                "name": "S21 Offer a67944c1",
+                "no_deposit_required": "false",
+                "offer_id": "ababc518-3ed8-4cdb-9316-02187c3025fe",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:06Z",
+                "valid_until": "2026-11-03T15:39:06Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/ababc518-3ed8-4cdb-9316-02187c3025fe"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 41b13003",
+                "offer_id": "1de32ea1-69ef-40b3-ab85-9aacfc219d5c",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CLEAN-41B13003:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:19Z",
+                "valid_until": "2026-11-03T15:39:19Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/1de32ea1-69ef-40b3-ab85-9aacfc219d5c"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "|f6c84414-ddd5-4a5f-bfd6-e124ee491ef1|",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "2",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer e4a89a0a",
+                "no_deposit_required": "false",
+                "offer_id": "2d9bfb6f-2734-46e7-a0c6-72379409e8ea",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CFB-E4A89A0A:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:01Z",
+                "valid_until": "2026-11-03T15:39:01Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/2d9bfb6f-2734-46e7-a0c6-72379409e8ea"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "|61c2f180-5687-477c-9b65-70f7aac01a98|",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer c192311e",
+                "no_deposit_required": "false",
+                "offer_id": "821b6505-4b29-413f-82e6-60a1baa62c6b",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21MCC-C192311E:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:04Z",
+                "valid_until": "2026-11-03T15:39:04Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/821b6505-4b29-413f-82e6-60a1baa62c6b"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:24.025964419Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 39b63010",
+                "no_deposit_required": "true",
+                "offer_id": "7a929a57-5d87-42fa-b05b-74427967462f",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:24.661625042Z",
+                "valid_from": "2026-11-02T14:39:24Z",
+                "valid_until": "2026-11-03T15:39:24Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/7a929a57-5d87-42fa-b05b-74427967462f"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 5412d112",
+                "offer_id": "466ab1ca-872a-4b20-9c1c-574f1b9aa4eb",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S16-5412D112:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:24Z",
+                "valid_until": "2026-11-03T15:41:24Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/466ab1ca-872a-4b20-9c1c-574f1b9aa4eb"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:42.918275828Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance f99218f4",
+                "no_deposit_required": "true",
+                "offer_id": "83913122-3741-4ce0-919a-7045b5ffe9de",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "role": "e2e_fs_f99218f4",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:44.088809182Z",
+                "valid_from": "2026-11-02T14:39:42Z",
+                "valid_until": "2026-11-03T15:39:42Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/83913122-3741-4ce0-919a-7045b5ffe9de"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:26.838464149Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 4c54d83f",
+                "no_deposit_required": "true",
+                "offer_id": "26a512b4-f2a3-42a0-bd7d-aff6f9cd8b04",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:27.493015891Z",
+                "valid_from": "2026-11-02T14:39:26Z",
+                "valid_until": "2026-11-03T15:39:26Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/26a512b4-f2a3-42a0-bd7d-aff6f9cd8b04"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:28.606573144Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 0123ea72",
+                "no_deposit_required": "true",
+                "offer_id": "063c0369-e398-41fb-a92d-06bd03e33076",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:29.366392256Z",
+                "valid_from": "2026-11-02T14:39:28Z",
+                "valid_until": "2026-11-03T15:39:28Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/063c0369-e398-41fb-a92d-06bd03e33076"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 6ede6d1e",
+                "offer_id": "d2005cba-bf07-452b-89a7-2851bc59b90f",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S2446ede6d1e:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:30Z",
+                "valid_until": "2026-11-03T15:39:30Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/d2005cba-bf07-452b-89a7-2851bc59b90f"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:45.234859046Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 60dd6c57",
+                "no_deposit_required": "true",
+                "offer_id": "1b652fe8-ef41-4a8d-ae97-b18cc27be211",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:45.942503259Z",
+                "valid_from": "2026-11-02T14:39:45Z",
+                "valid_until": "2026-11-03T15:39:45Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/1b652fe8-ef41-4a8d-ae97-b18cc27be211"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:47.925392457Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance ed7d1168",
+                "no_deposit_required": "true",
+                "offer_id": "4620f3a8-2253-4601-937d-133d640edccd",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:48.569470762Z",
+                "valid_from": "2026-11-02T14:39:47Z",
+                "valid_until": "2026-11-03T15:39:47Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/4620f3a8-2253-4601-937d-133d640edccd"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "0",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "50.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "50.00",
+                "min_deposit_amount": "0.00",
+                "name": "E2E Bonus Block f1ab0790",
+                "offer_id": "4bce3905-495c-4376-b999-937281510984",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:27Z",
+                "valid_until": "2026-11-03T15:41:27Z",
+                "wagering_multiplier": "35",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/4bce3905-495c-4376-b999-937281510984"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:44.425083801Z",
+                "currency": "",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "name": "E2E Free Spins real_balance d19b98d4",
+                "no_deposit_required": "true",
+                "offer_id": "bb102698-3ac7-4225-83c8-0fad75c0ae47",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "EUR:0.10|ZAR:2.00",
+                "spin_count": "3",
+                "spin_value": "",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:44.592165625Z",
+                "valid_from": "2026-11-02T14:39:44Z",
+                "valid_until": "2026-11-03T15:39:44Z",
+                "winnings_destination": "real_balance"
+              },
+              "twinId": "casino-bonus-offers/bb102698-3ac7-4225-83c8-0fad75c0ae47"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:39:46.476307314Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "name": "E2E Free Spins real_balance 84b8391a",
+                "no_deposit_required": "true",
+                "offer_id": "682bb352-6014-4650-abf7-848bab6365c0",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "2",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:39:47.136102219Z",
+                "valid_from": "2026-11-02T14:39:46Z",
+                "valid_until": "2026-11-03T15:39:46Z",
+                "winnings_destination": "real_balance"
+              },
+              "twinId": "casino-bonus-offers/682bb352-6014-4650-abf7-848bab6365c0"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "0",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "25.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "0",
+                "name": "Welcome ed7d1168",
+                "no_deposit_required": "true",
+                "offer_id": "04ffbfd2-94ec-41c0-a6bf-8950a3bbb9d0",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:39:47Z",
+                "valid_until": "2026-11-03T15:39:47Z",
+                "wagering_multiplier": "10",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/04ffbfd2-94ec-41c0-a6bf-8950a3bbb9d0"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:42:13.269987233Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance d8615254",
+                "no_deposit_required": "true",
+                "offer_id": "1e1855b3-2947-4287-b70e-78a7842556ee",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "role": "e2e_fs_d8615254",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:42:14.099316530Z",
+                "valid_from": "2026-11-02T14:42:13Z",
+                "valid_until": "2026-11-03T15:42:13Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/1e1855b3-2947-4287-b70e-78a7842556ee"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "0",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "10.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "",
+                "min_deposit_amount": "0.00",
+                "name": "E2E Wagering Conversion 1a0002df",
+                "offer_id": "3fccc1a1-a6f0-4887-819f-b4f25a759631",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:27Z",
+                "valid_until": "2026-11-03T15:41:27Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/3fccc1a1-a6f0-4887-819f-b4f25a759631"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 760b3a2a",
+                "no_deposit_required": "false",
+                "offer_id": "4c965fa3-a20a-4415-9bac-fe7d5aa460c0",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21DUPE-760B3A2A:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:32Z",
+                "valid_until": "2026-11-03T15:41:32Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/4c965fa3-a20a-4415-9bac-fe7d5aa460c0"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 87f70dcf",
+                "offer_id": "4a5909e9-1f03-460c-85dc-d849d0b4c874",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CFA-87F70DCF:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:34Z",
+                "valid_until": "2026-11-03T15:41:34Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/4a5909e9-1f03-460c-85dc-d849d0b4c874"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 760b3a2a",
+                "no_deposit_required": "true",
+                "offer_id": "9e4c3259-8df1-4de2-81cb-aa0fc97fad07",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21DUPS-760B3A2A:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:32Z",
+                "valid_until": "2026-11-03T15:41:32Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/9e4c3259-8df1-4de2-81cb-aa0fc97fad07"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 760b3a2a",
+                "no_deposit_required": "false",
+                "offer_id": "699e2329-2a74-45db-a061-422127ea2bd9",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:33Z",
+                "valid_until": "2026-11-03T15:41:33Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/699e2329-2a74-45db-a061-422127ea2bd9"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 2047eaab",
+                "offer_id": "09843160-6d4e-415b-a72b-fe9e2de42f3f",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CCA-2047EAAB:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:33Z",
+                "valid_until": "2026-11-03T15:41:33Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/09843160-6d4e-415b-a72b-fe9e2de42f3f"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer b62b976f",
+                "offer_id": "e8aa7b5e-e77d-4b60-8d6c-5e60c3ae0ac7",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CLEAN-B62B976F:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:52Z",
+                "valid_until": "2026-11-03T15:41:52Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/e8aa7b5e-e77d-4b60-8d6c-5e60c3ae0ac7"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "|f2b25e6f-c042-453e-8c63-c2673c37978f|",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 8cb2d90e",
+                "no_deposit_required": "false",
+                "offer_id": "bb988e4e-3301-4d5d-a02d-4caefc457e4c",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21MCC-8CB2D90E:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:38Z",
+                "valid_until": "2026-11-03T15:41:38Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/bb988e4e-3301-4d5d-a02d-4caefc457e4c"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 8cb2d90e",
+                "offer_id": "f2b25e6f-c042-453e-8c63-c2673c37978f",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21MCA-8CB2D90E:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:36Z",
+                "valid_until": "2026-11-03T15:41:36Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/f2b25e6f-c042-453e-8c63-c2673c37978f"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 2047eaab",
+                "no_deposit_required": "false",
+                "offer_id": "48ecc0fb-72cd-447d-bb9c-8ea8eb7c9085",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CCB-2047EAAB:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:34Z",
+                "valid_until": "2026-11-03T15:41:34Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/48ecc0fb-72cd-447d-bb9c-8ea8eb7c9085"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "|4a5909e9-1f03-460c-85dc-d849d0b4c874|",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "2",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 87f70dcf",
+                "no_deposit_required": "false",
+                "offer_id": "66eb46c7-a7a6-4b03-a1c5-12cf6f1e5475",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21CFB-87F70DCF:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:35Z",
+                "valid_until": "2026-11-03T15:41:35Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/66eb46c7-a7a6-4b03-a1c5-12cf6f1e5475"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "1",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 39151677",
+                "no_deposit_required": "false",
+                "offer_id": "4d30c385-b4cc-4e32-9dea-d258310860bf",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:51Z",
+                "valid_until": "2026-11-03T15:41:51Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/4d30c385-b4cc-4e32-9dea-d258310860bf"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "conflicts_with": "|x|y|",
+                "created_at": "2026-11-02T15:41:51.529551919Z",
+                "deposit_number_target": "ANY",
+                "is_active": "false",
+                "max_bonus_value": "100",
+                "max_concurrent_grants": "2",
+                "name": "S21 Validation Good b39b07d1",
+                "offer_id": "9470d9d9-3ec0-42bd-8b78-c5e770e403df",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "type": "DEPOSIT_MATCH",
+                "updated_at": "2026-11-02T15:41:51.529551919Z",
+                "wagering_multiplier": "10"
+              },
+              "twinId": "casino-bonus-offers/9470d9d9-3ec0-42bd-8b78-c5e770e403df"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "2",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer 09c43b7d",
+                "no_deposit_required": "false",
+                "offer_id": "eeae2574-88ef-4333-9476-deae23a56c6f",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S21DN-09C43B7D:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:39Z",
+                "valid_until": "2026-11-03T15:41:39Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/eeae2574-88ef-4333-9476-deae23a56c6f"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "50.00",
+                "name": "S21 Offer 7b291b98",
+                "no_deposit_required": "false",
+                "offer_id": "c9f0119f-ed63-4f6b-8eff-5a766d4d553e",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:39Z",
+                "valid_until": "2026-11-03T15:41:39Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/c9f0119f-ed63-4f6b-8eff-5a766d4d553e"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S21 Offer b032b597",
+                "no_deposit_required": "false",
+                "offer_id": "cac53e73-133f-4ada-8ec3-4eb56b26e4d8",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:41:54Z",
+                "valid_until": "2026-11-03T15:41:54Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/cac53e73-133f-4ada-8ec3-4eb56b26e4d8"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:41:55.928370051Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance b7bc6944",
+                "no_deposit_required": "true",
+                "offer_id": "c97a5ed5-60b9-4b49-9496-872fcf5b1298",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:41:56.115622067Z",
+                "valid_from": "2026-11-02T14:41:55Z",
+                "valid_until": "2026-11-03T15:41:55Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/c97a5ed5-60b9-4b49-9496-872fcf5b1298"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:42:00.016857560Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 2b1a455a",
+                "no_deposit_required": "true",
+                "offer_id": "c4476f73-b825-4870-8ca7-1d2ae1fa77bb",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:42:00.781612609Z",
+                "valid_from": "2026-11-02T14:41:59Z",
+                "valid_until": "2026-11-03T15:41:59Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/c4476f73-b825-4870-8ca7-1d2ae1fa77bb"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:41:57.205314203Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 010aaabd",
+                "no_deposit_required": "true",
+                "offer_id": "484e9243-945f-44a8-858b-a08e7a6a01cb",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:41:57.855103720Z",
+                "valid_from": "2026-11-02T14:41:57Z",
+                "valid_until": "2026-11-03T15:41:57Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/484e9243-945f-44a8-858b-a08e7a6a01cb"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:42:14.484689461Z",
+                "currency": "",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "name": "E2E Free Spins real_balance a0e95317",
+                "no_deposit_required": "true",
+                "offer_id": "9329ac19-8876-4f98-a9a7-60b1ad0276bd",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "EUR:0.10|ZAR:2.00",
+                "spin_count": "3",
+                "spin_value": "",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:42:14.713616702Z",
+                "valid_from": "2026-11-02T14:42:14Z",
+                "valid_until": "2026-11-03T15:42:14Z",
+                "winnings_destination": "real_balance"
+              },
+              "twinId": "casino-bonus-offers/9329ac19-8876-4f98-a9a7-60b1ad0276bd"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 13baecd3",
+                "offer_id": "e244cf57-f5eb-4557-b284-ad4d36b1a354",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S24413baecd3:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:42:01Z",
+                "valid_until": "2026-11-03T15:42:01Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/e244cf57-f5eb-4557-b284-ad4d36b1a354"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:42:16.578523741Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "name": "E2E Free Spins real_balance bda1cf6b",
+                "no_deposit_required": "true",
+                "offer_id": "e60512a5-0c35-412c-bd3e-f4d9b9c724a9",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "2",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:42:17.289530779Z",
+                "valid_from": "2026-11-02T14:42:16Z",
+                "valid_until": "2026-11-03T15:42:16Z",
+                "winnings_destination": "real_balance"
+              },
+              "twinId": "casino-bonus-offers/e60512a5-0c35-412c-bd3e-f4d9b9c724a9"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:42:15.319859753Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance ebe052ad",
+                "no_deposit_required": "true",
+                "offer_id": "536e9dc4-a6cb-4f54-a0f0-c289b39e2ab6",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:42:16.016503718Z",
+                "valid_from": "2026-11-02T14:42:15Z",
+                "valid_until": "2026-11-03T15:42:15Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/536e9dc4-a6cb-4f54-a0f0-c289b39e2ab6"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "0",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "25.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "0",
+                "name": "Welcome 6a7a58d7",
+                "no_deposit_required": "true",
+                "offer_id": "e52d7510-c2c6-4764-9f7f-6efd5293484b",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:42:18Z",
+                "valid_until": "2026-11-03T15:42:18Z",
+                "wagering_multiplier": "10",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/e52d7510-c2c6-4764-9f7f-6efd5293484b"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:42:18.410994942Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 6a7a58d7",
+                "no_deposit_required": "true",
+                "offer_id": "ae6d7643-b700-4d13-915b-a03672184968",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:42:19.142068601Z",
+                "valid_from": "2026-11-02T14:42:18Z",
+                "valid_until": "2026-11-03T15:42:18Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/ae6d7643-b700-4d13-915b-a03672184968"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:10.678238626Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance cbdd240a",
+                "no_deposit_required": "true",
+                "offer_id": "d013323c-b870-451a-9c66-4032a3c96fd0",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:13.225774788Z",
+                "valid_from": "2026-11-02T14:45:10Z",
+                "valid_until": "2026-11-03T15:45:10Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/d013323c-b870-451a-9c66-4032a3c96fd0"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 485cfc30",
+                "offer_id": "bf5bd051-b64e-4ba9-9ed6-08ff770d99a1",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S244485cfc30:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:45:23Z",
+                "valid_until": "2026-11-03T15:45:23Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/bf5bd051-b64e-4ba9-9ed6-08ff770d99a1"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:14.445431381Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 54f59678",
+                "no_deposit_required": "true",
+                "offer_id": "c25ae825-ca5f-4202-b04a-fab27acbb1f2",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:18.266935509Z",
+                "valid_from": "2026-11-02T14:45:14Z",
+                "valid_until": "2026-11-03T15:45:14Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/c25ae825-ca5f-4202-b04a-fab27acbb1f2"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:19.851237948Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 925ca0e8",
+                "no_deposit_required": "true",
+                "offer_id": "eb74f299-c8d9-4320-917b-abcd08a61289",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:22.612692538Z",
+                "valid_from": "2026-11-02T14:45:19Z",
+                "valid_until": "2026-11-03T15:45:19Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/eb74f299-c8d9-4320-917b-abcd08a61289"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:26.661405192Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 07b3163c",
+                "no_deposit_required": "true",
+                "offer_id": "e68f3243-fba3-4f39-96ae-dd32724d643e",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "role": "e2e_fs_07b3163c",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:29.156881023Z",
+                "valid_from": "2026-11-02T14:45:26Z",
+                "valid_until": "2026-11-03T15:45:26Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/e68f3243-fba3-4f39-96ae-dd32724d643e"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:29.531513860Z",
+                "currency": "",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "name": "E2E Free Spins real_balance a114cfc1",
+                "no_deposit_required": "true",
+                "offer_id": "768ef0f8-1b94-4039-b0b9-6e534cc0f3e8",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "EUR:0.10|ZAR:2.00",
+                "spin_count": "3",
+                "spin_value": "",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:29.664614337Z",
+                "valid_from": "2026-11-02T14:45:29Z",
+                "valid_until": "2026-11-03T15:45:29Z",
+                "winnings_destination": "real_balance"
+              },
+              "twinId": "casino-bonus-offers/768ef0f8-1b94-4039-b0b9-6e534cc0f3e8"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:30.296044523Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance dbeb050e",
+                "no_deposit_required": "true",
+                "offer_id": "1c610e70-b487-489e-9d9b-b17c5c87ea17",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:32.675605011Z",
+                "valid_from": "2026-11-02T14:45:30Z",
+                "valid_until": "2026-11-03T15:45:30Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/1c610e70-b487-489e-9d9b-b17c5c87ea17"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:33.265243673Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "name": "E2E Free Spins real_balance d0d75698",
+                "no_deposit_required": "true",
+                "offer_id": "9f4d0625-ec24-4a0a-8695-e5f672a79f38",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "2",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:35.099885902Z",
+                "valid_from": "2026-11-02T14:45:33Z",
+                "valid_until": "2026-11-03T15:45:33Z",
+                "winnings_destination": "real_balance"
+              },
+              "twinId": "casino-bonus-offers/9f4d0625-ec24-4a0a-8695-e5f672a79f38"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "0",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "conflicts_with": "",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "25.00",
+                "max_claims_per_player": "1",
+                "max_concurrent_grants": "",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "0",
+                "name": "Welcome 84b6b052",
+                "no_deposit_required": "true",
+                "offer_id": "0908c836-7c0a-4a07-890b-3d0510587c41",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:45:35Z",
+                "valid_until": "2026-11-03T15:45:35Z",
+                "wagering_multiplier": "10",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/0908c836-7c0a-4a07-890b-3d0510587c41"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "30",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "500.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "500.00",
+                "min_deposit_amount": "10.00",
+                "name": "S16 Offer 85c609ab",
+                "offer_id": "a999683f-de64-42e9-81ca-cbf2591e1e70",
+                "payload_type": "bonus_funds",
+                "priority_order": "1",
+                "redemption_codes": "S16-85C609AB:0",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:45:39Z",
+                "valid_until": "2026-11-03T15:45:39Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/a999683f-de64-42e9-81ca-cbf2591e1e70"
+            },
+            {
+              "properties": {
+                "brand_id": "spinvibe",
+                "created_at": "2026-11-02T15:45:35.737889807Z",
+                "currency": "EUR",
+                "deposit_number_target": "ANY",
+                "free_spins_expiry_days": "7",
+                "game_id": "book-of-ra",
+                "game_name": "Book of Ra",
+                "is_active": "false",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "100.00",
+                "name": "E2E Free Spins bonus_balance 84b6b052",
+                "no_deposit_required": "true",
+                "offer_id": "ec52b0be-ebdf-4df9-b1ab-069792d23764",
+                "priority_order": "1",
+                "provider": "ST8",
+                "redemption_codes": "",
+                "spin_configurations": "",
+                "spin_count": "3",
+                "spin_value": "0.10",
+                "type": "FREE_SPINS",
+                "updated_at": "2026-11-02T15:45:38.538879545Z",
+                "valid_from": "2026-11-02T14:45:35Z",
+                "valid_until": "2026-11-03T15:45:35Z",
+                "wagering_multiplier": "20",
+                "wagering_window_days": "14",
+                "winnings_destination": "bonus_balance"
+              },
+              "twinId": "casino-bonus-offers/ec52b0be-ebdf-4df9-b1ab-069792d23764"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "0",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "10.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "",
+                "min_deposit_amount": "0.00",
+                "name": "E2E Wagering Conversion 373077d3",
+                "offer_id": "ec8af157-1d70-4b87-b58a-f2add43dc251",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:45:43Z",
+                "valid_until": "2026-11-03T15:45:43Z",
+                "wagering_multiplier": "1",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/ec8af157-1d70-4b87-b58a-f2add43dc251"
+            },
+            {
+              "properties": {
+                "bonus_percentage": "100",
+                "brand_id": "spinvibe",
+                "claim_window_days": "0",
+                "deposit_number_target": "ANY",
+                "excluded_offer_ids": "",
+                "is_active": "false",
+                "max_bonus_value": "50.00",
+                "max_claims_per_player": "1",
+                "max_convertible_amount": "50.00",
+                "min_deposit_amount": "0.00",
+                "name": "E2E Bonus Block d20dc688",
+                "offer_id": "d3b0497b-0cdf-4898-9503-91b94aeb49cd",
+                "priority_order": "1",
+                "redemption_codes": "",
+                "type": "DEPOSIT_MATCH",
+                "valid_from": "2026-11-02T14:45:42Z",
+                "valid_until": "2026-11-03T15:45:42Z",
+                "wagering_multiplier": "35",
+                "wagering_window_days": "30"
+              },
+              "twinId": "casino-bonus-offers/d3b0497b-0cdf-4898-9503-91b94aeb49cd"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.total": "differs between two runs of the original",
+        "$.twins": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "email": "bonus-e2e-imbiodfb@example.com",
+          "firstName": "Bonus",
+          "lastName": "E2E",
+          "password": "<redacted>",
+          "username": "bonus-e2e-26b28dfb"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "7b884e76-c250-3e7b-9412-2515bf381891",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c0": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli&grant_type=password&password=<redacted>&username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "<redacted>",
+          "scope": "profile email",
+          "session_state": "3ae846dd-3e9b-4685-ac3c-77cd79b8dc5f",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=bonus-e2e-imbiodfb%40example.com&exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "attributes": {
+              "eitheror_twin_id": [
+                "casino.player/7b884e76-c250-3e7b-9412-2515bf381891"
+              ]
+            },
+            "createdTimestamp": 1793634346608,
+            "disableableCredentialTypes": [],
+            "email": "bonus-e2e-imbiodfb@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "Bonus",
+            "id": "6258bf95-55a9-4cda-a2fa-d8692d078be0",
+            "lastName": "E2E",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "bonus-e2e-imbiodfb@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c1": "$[0].email",
+        "c2": "$[0].id"
+      },
+      "vary": {
+        "$[0].attributes": "differs between two runs of the original",
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/6258bf95-55a9-4cda-a2fa-d8692d078be0",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/6258bf95-55a9-4cda-a2fa-d8692d078be0",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/7b884e76-c250-3e7b-9412-2515bf381891"
+            ]
+          },
+          "createdTimestamp": 1793634346608,
+          "disableableCredentialTypes": [],
+          "email": "bonus-e2e-imbiodfb@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "Bonus",
+          "id": "6258bf95-55a9-4cda-a2fa-d8692d078be0",
+          "lastName": "E2E",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "bonus-e2e-imbiodfb@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c1}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": null,
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "7b884e76-c250-3e7b-9412-2515bf381891",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/dc93b330-8eae-4ec1-b854-342f2b909c8a",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/dc93b330-8eae-4ec1-b854-342f2b909c8a",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "S21 Offer 26b28dfb",
+          "no_deposit_required": "true",
+          "offer_id": "dc93b330-8eae-4ec1-b854-342f2b909c8a",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "S21DUPS-26B28DFB:0",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "2026-11-02T14:45:47Z",
+          "valid_until": "2026-11-03T15:45:47Z",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/dc93b330-8eae-4ec1-b854-342f2b909c8a"
+        }
+      },
+      "capture": {
+        "c3": "$.twinId"
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/dc93b330-8eae-4ec1-b854-342f2b909c8a/concept",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c3}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/spinvibe/enter-code",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/spinvibe/enter-code",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "code": "S21DUPS-26B28DFB"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": "invalid_code"
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/spinvibe/enter-code",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/spinvibe/enter-code",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "code": "S21DUPS-26B28DFB"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusPercentage": 100,
+          "claimWindowDays": 30,
+          "description": "",
+          "maxBonusValue": 500,
+          "minDepositAmount": 10,
+          "name": "S21 Offer 26b28dfb",
+          "noDepositRequired": true,
+          "offerId": "dc93b330-8eae-4ec1-b854-342f2b909c8a",
+          "role": "",
+          "source": "code",
+          "type": "DEPOSIT_MATCH",
+          "wageringMultiplier": 1,
+          "wageringWindowDays": 30
+        }
+      },
+      "capture": {
+        "c4": "$.name",
+        "c5": "$.offerId"
+      },
+      "vary": {
+        "$.name": "differs between two runs of the original",
+        "$.offerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-spinvibe/7b884e76-c250-3e7b-9412-2515bf381891",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{c0}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "suspected_duplicate": "true"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/7b884e76-c250-3e7b-9412-2515bf381891"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/spinvibe/select",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/spinvibe/select",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "offerId": "{c5}"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "SUSPECTED_DUPLICATE"
+        }
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/c6afe64f-6d3b-460f-8572-ef9961b2c138",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/c6afe64f-6d3b-460f-8572-ef9961b2c138",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "{c4}",
+          "no_deposit_required": "false",
+          "offer_id": "c6afe64f-6d3b-460f-8572-ef9961b2c138",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "S21DUPE-26B28DFB:0",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "2026-11-02T14:45:47Z",
+          "valid_until": "2026-11-03T15:45:47Z",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/c6afe64f-6d3b-460f-8572-ef9961b2c138"
+        }
+      },
+      "capture": {
+        "c6": "$.twinId"
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/c6afe64f-6d3b-460f-8572-ef9961b2c138/concept",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c6}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/spinvibe/enter-code",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/spinvibe/enter-code",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "code": "S21DUPE-26B28DFB"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "reason": "SUSPECTED_DUPLICATE",
+          "status": "ineligible"
+        }
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/d21a0d45-85f5-4b68-8766-af0482201a80",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/d21a0d45-85f5-4b68-8766-af0482201a80",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "{c4}",
+          "no_deposit_required": "false",
+          "offer_id": "d21a0d45-85f5-4b68-8766-af0482201a80",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "2026-11-02T14:45:47Z",
+          "valid_until": "2026-11-03T15:45:47Z",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/d21a0d45-85f5-4b68-8766-af0482201a80"
+        }
+      },
+      "capture": {
+        "c7": "$.twinId"
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/d21a0d45-85f5-4b68-8766-af0482201a80/concept",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c7}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/claim/spinvibe",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/claim/spinvibe",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "depositAmount": "50.00"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "reason": "SUSPECTED_DUPLICATE",
+          "status": "ineligible"
+        }
+      }
+    },
+    {
+      "name": "POST /realms/eitheror/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/eitheror/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=casino-backoffice&grant_type=password&password=<redacted>&username=dev-operator"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 300,
+          "not-before-policy": 0,
+          "refresh_expires_in": 28800,
+          "refresh_token": "<redacted>",
+          "scope": "email profile",
+          "session_state": "32182494-a7ea-4465-9f70-1b22b1b16eac",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/bd43c41f-f10e-4799-8c1a-52cf34cd8da3",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/bd43c41f-f10e-4799-8c1a-52cf34cd8da3",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "{c4}",
+          "no_deposit_required": "false",
+          "offer_id": "bd43c41f-f10e-4799-8c1a-52cf34cd8da3",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "2026-11-02T14:45:47Z",
+          "valid_until": "2026-11-03T15:45:47Z",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/bd43c41f-f10e-4799-8c1a-52cf34cd8da3"
+        }
+      },
+      "capture": {
+        "c8": "$.twinId"
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/bd43c41f-f10e-4799-8c1a-52cf34cd8da3/concept",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c8}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/bonus/grant/spinvibe/7b884e76-c250-3e7b-9412-2515bf381891",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{c0}",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "offerId": "bd43c41f-f10e-4799-8c1a-52cf34cd8da3"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "reason": "SUSPECTED_DUPLICATE",
+          "status": "ineligible"
+        }
+      }
+    },
+    {
+      "name": "POST /twins/casino/ced175e0-d852-38c8-95ea-1cea69c6af43",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino/ced175e0-d852-38c8-95ea-1cea69c6af43",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "crm_config": "{\"webhookSigningKey\":\"s21-signing-key-26b28dfb\"}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino/ced175e0-d852-38c8-95ea-1cea69c6af43"
+        }
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/a7e1f487-4966-471b-bdb8-bbdde35c46c5",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/a7e1f487-4966-471b-bdb8-bbdde35c46c5",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "{c4}",
+          "no_deposit_required": "false",
+          "offer_id": "a7e1f487-4966-471b-bdb8-bbdde35c46c5",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "2026-11-02T14:45:47Z",
+          "valid_until": "2026-11-03T15:45:47Z",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/a7e1f487-4966-471b-bdb8-bbdde35c46c5"
+        }
+      },
+      "capture": {
+        "c9": "$.twinId"
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/a7e1f487-4966-471b-bdb8-bbdde35c46c5/concept",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c9}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "POST /v1/casino/customerio/webhook/spinvibe",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/customerio/webhook/spinvibe",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "action": "grant_bonus",
+          "offer_id": "a7e1f487-4966-471b-bdb8-bbdde35c46c5",
+          "player_id": "{c0}"
+        }
+      },
+      "response": {
+        "status": 422,
+        "body": {
+          "error": "SUSPECTED_DUPLICATE"
+        }
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/a7e1f487-4966-471b-bdb8-bbdde35c46c5",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c9}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/a7e1f487-4966-471b-bdb8-bbdde35c46c5"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/bd43c41f-f10e-4799-8c1a-52cf34cd8da3",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c8}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/bd43c41f-f10e-4799-8c1a-52cf34cd8da3"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/d21a0d45-85f5-4b68-8766-af0482201a80",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c7}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/d21a0d45-85f5-4b68-8766-af0482201a80"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/c6afe64f-6d3b-460f-8572-ef9961b2c138",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c6}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/c6afe64f-6d3b-460f-8572-ef9961b2c138"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /twins/casino-bonus-offers/dc93b330-8eae-4ec1-b854-342f2b909c8a",
+      "request": {
+        "method": "POST",
+        "path": "/twins/{c3}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/dc93b330-8eae-4ec1-b854-342f2b909c8a"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    }
+  ],
+  "requirement": "011/FR-005"
+}

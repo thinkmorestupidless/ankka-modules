@@ -13,6 +13,11 @@
   `rewards`, `engagement` for push, `reporting`, `partner-api`, `support-agent`). Never exposed:
   routes of class `service`; the tool refuses `expose: true` on a service that serves only those.
 
+- `rewards` (spec 011) serves four prefixes, one endpoint each: `/v1/casino/brands/{brand}/rewards`
+  (player, on their own id; `support-agent` and `game-provider` by `Routes.serviceOf` on one route
+  each), `/offers` (operator holding a brand, resource or platform admin role), `/reward-grants`
+  (operator, roles checked in the handler) and `/reward-campaigns` (service, `engagement` alone).
+
 ## Classes and recipes (`contract.access`)
 
 | Class | Recipe | Admits | Refuses as |

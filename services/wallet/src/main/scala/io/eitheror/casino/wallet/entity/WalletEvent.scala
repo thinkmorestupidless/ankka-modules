@@ -67,8 +67,10 @@ enum WalletEvent:
       clawback: Long, balanceBefore: Long, recordUpdates: Vector[RecordUpdate], realAfter: Long, restrictedAfter: Long,
       at: Instant, outcome: Outcome, parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L)
 
+  /** The balances and pools after it (unchanged by the close) ride for its fact (spec 011 W5). */
   case PendingCapClosed(key: String, digest: String, transactionId: String, recordId: String,
-      recordUpdates: Vector[RecordUpdate], at: Instant, outcome: Outcome)
+      recordUpdates: Vector[RecordUpdate], at: Instant, outcome: Outcome, realAfter: Long = 0L, restrictedAfter: Long = 0L,
+      depositAfter: Long = 0L, convertedAfter: Long = 0L)
 
   case PrimarySwitched(key: String, digest: String, recordId: String, newPriority: Long, at: Instant, outcome: Outcome)
 

@@ -113,7 +113,8 @@ final case class Taken(taken: Boolean)
  * the attempt with it; a created user moves to `player`. `player` writes the player, retried twice and
  * then failed over to `undo-realm`, which removes the user, so no player exists without its realm user
  * and no realm user without its player (FR-002). An answer that never comes is undone after `realm`'s
- * pause. `match` flags a suspected duplicate (US6). `email` sends the verification link, retried for a
+ * pause. `match` flags a suspected duplicate (US6) and ends the duplicate check `player` began (spec 011
+ * FR-034), through `match-failed` when it cannot compare. `email` sends the verification link, retried for a
  * minute and then left pending on the player (R16). `forget` deletes the request and ends.
  */
 final class RegistrationWorkflow(context: WorkflowContext) extends Workflow[RegistrationFlow]:
@@ -132,7 +133,8 @@ final class RegistrationWorkflow(context: WorkflowContext) extends Workflow[Regi
     WorkflowSettings.builder
       .defaultStepTimeout(30.seconds)
       .stepRecovery(RegistrationWorkflow.playerStep, RecoverStrategy.maxRetries(2).failoverTo(RegistrationWorkflow.undoRealm))
-      .stepRecovery(RegistrationWorkflow.matchStep, RecoverStrategy.maxRetries(2).failoverTo(RegistrationWorkflow.emailStep))
+      .stepRecovery(RegistrationWorkflow.matchStep, RecoverStrategy.maxRetries(2).failoverTo(RegistrationWorkflow.matchFailed))
+      .stepRecovery(RegistrationWorkflow.matchFailed, RecoverStrategy.maxRetries(3).failoverTo(RegistrationWorkflow.emailStep))
       .stepTimeout(RegistrationWorkflow.emailStep, RegistrationWorkflow.EmailStepTimeout)
       .stepRecovery(RegistrationWorkflow.emailStep, RecoverStrategy.maxRetries(0).failoverTo(RegistrationWorkflow.emailUnanswered))
       .stepRecovery(RegistrationWorkflow.emailUnanswered, RecoverStrategy.maxRetries(3).failoverTo(RegistrationWorkflow.forget))
@@ -177,35 +179,55 @@ final class RegistrationWorkflow(context: WorkflowContext) extends Workflow[Regi
     val answer = RegistrationRuntime.write(components, Register(currentState.playerId, r.profile, r.address, r.currency, r.consents,
       r.registration, r.at))
     val tokens = neighbours.secret(Secrets.LookupKey).toOption.toVector.flatMap { key =>
-      LookupTokens.identity(key, r.profile.get("firstName").getOrElse(""), r.profile.get("lastName").getOrElse(""),
-        r.profile.get("dateOfBirth").getOrElse("")).map(LookupTokens.tagged(LookupTokens.Identity, _)).toVector ++
-        r.registration.deviceFingerprint.flatMap(f => LookupTokens.device(key, f.reveal)).map(LookupTokens.tagged(LookupTokens.Device, _))
+      LookupTokens.of(key, r.profile.get("firstName").getOrElse(""), r.profile.get("lastName").getOrElse(""),
+        r.profile.get("dateOfBirth").getOrElse(""), r.registration.deviceFingerprint.map(_.reveal), r.address,
+        r.registration.networkAddress.map(_.reveal))
     }
+    // in progress before the match runs, so a reader never sees a registration it has not been told is being checked
+    player.call(PlayerEntity.startDuplicateCheck).invoke(At(now())): Unit
     stepEffects.updateState(currentState.copy(step = Match, lookupTokens = tokens,
       outcome = Some(Outcome(Some(answer.playerId), Some(answer.status))))).thenTransitionTo(RegistrationWorkflow.matchStep)
 
   /**
-   * Duplicate detection (FR-036, R9): each lookup token's index entry takes the player and answers the
-   * others under it, so the match is two reads, never a scan. A match opens one case under the player's
-   * id (a retried step opens the same one) and flags every player it links, the new one included.
-   * Nothing is compared when the brand's `multiAccountDetection` is off or the registration has no token.
+   * Duplicate detection (FR-036, R9; spec 011 FR-035): each lookup token's index entry takes the player
+   * and answers the others under it, and the address's entry the others registered from it in the last
+   * 24 hours, so the match is a read per token, never a scan. [[DuplicateRules]] judges what was found.
+   * A strong outcome opens one case under the player's id (a retried step opens the same one) and flags
+   * every player it links, the new one included. Nothing is compared when the brand's
+   * `multiAccountDetection` is off (`skipped`) or the registration has no token (`clear`). The check
+   * ends last, with its outcome, so it never ends before the flags are written.
    */
   def matchStep: StepEffect =
     val s      = currentState
+    val at     = now()
     val detect = components.forKeyValueEntity(EntityId(live.brand)).call(BrandConfigEntity.get).invoke().multiAccountDetection
-    if detect && s.lookupTokens.nonEmpty then
-      val found = s.lookupTokens.map(LookupTokens.split).map { (signal, token) =>
-        signal -> components.forKeyValueEntity(EntityId(token)).call(LookupIndexEntity.add).invoke(LookupPlayer(s.playerId)).playerIds
-      }.filter(_._2.nonEmpty)
-      if found.nonEmpty then
-        val players = found.flatMap(_._2).toSet + s.playerId
-        val signals = found.map(_._1).toSet
-        val caseId  = RegistrationWorkflow.caseOf(s.playerId)
-        val at      = now()
-        components.forEventSourcedEntity(EntityId(caseId)).call(FraudCaseEntity.open).invoke(OpenCase(players, signals, at)): Unit
-        players.toVector.sorted.foreach(p =>
-          components.forEventSourcedEntity(PlayerEntity.id(p)).call(PlayerEntity.flagDuplicate).invoke(FlagDuplicate(caseId, players, signals, at)): Unit)
+    val judged =
+      if !detect then Judgement(CheckOutcome.Skipped)
+      else if s.lookupTokens.isEmpty then Judgement(CheckOutcome.Clear)
+      else
+        val (addresses, others) = s.lookupTokens.map(LookupTokens.split).partition(_._1 == LookupTokens.Address)
+        val found  = others.map((signal, token) => signal -> RegistrationRuntime.lookup(components, token, LookupPlayer(s.playerId)).playerIds)
+        val nearby = addresses.flatMap((_, token) =>
+          components.forKeyValueEntity(EntityId(token)).call(LookupIndexEntity.arrive).invoke(Arrival(s.playerId, at)).playerIds).toSet
+        DuplicateRules.judge(found.groupMapReduce(_._1)(_._2)(_ ++ _), nearby)
+    if judged.outcome == CheckOutcome.Strong then
+      val players = judged.players + s.playerId
+      val caseId  = RegistrationWorkflow.caseOf(s.playerId)
+      components.forEventSourcedEntity(EntityId(caseId)).call(FraudCaseEntity.open).invoke(OpenCase(players, judged.signals, at)): Unit
+      players.toVector.sorted.foreach(p =>
+        components.forEventSourcedEntity(PlayerEntity.id(p)).call(PlayerEntity.flagDuplicate)
+          .invoke(FlagDuplicate(caseId, players, judged.signals, at)): Unit)
+    player.call(PlayerEntity.endDuplicateCheck).invoke(EndDuplicateCheck(judged.outcome, judged.weak, at)): Unit
     stepEffects.updateState(s.copy(step = Email)).thenTransitionTo(RegistrationWorkflow.emailStep)
+
+  /**
+   * A match that failed after its retries (spec 011 FR-035): the comparison could not be made, so the
+   * check ends `weak` and the new player's no-deposit offers are blocked, as the original's `check_failed`.
+   */
+  def matchFailedStep: StepEffect =
+    RegistrationWorkflow.log.warn(s"registration ${currentState.playerId}: the duplicate match failed; ending the check weak")
+    player.call(PlayerEntity.endDuplicateCheck).invoke(EndDuplicateCheck(CheckOutcome.Weak, Set(LookupTokens.CheckFailed), now())): Unit
+    stepEffects.updateState(currentState.copy(step = Email)).thenTransitionTo(RegistrationWorkflow.emailStep)
 
   /**
    * One verification send, made on the step's thread (`Neighbour.inline`), so the step's timeout is its
@@ -272,7 +294,15 @@ object RegistrationRuntime:
 
   @volatile var write: (ComponentClient, Register) => RegisterAnswer = entity
 
-  def reset(): Unit = write = entity
+  /** The `match` step's index read for one token: a suite replaces it to fail the comparison (spec 011 FR-035). */
+  val index: (ComponentClient, String, LookupPlayer) => Others =
+    (c, token, p) => c.forKeyValueEntity(EntityId(token)).call(LookupIndexEntity.add).invoke(p)
+
+  @volatile var lookup: (ComponentClient, String, LookupPlayer) => Others = index
+
+  def reset(): Unit =
+    write = entity
+    lookup = index
 
 object RegistrationWorkflow
     extends Workflow.Companion[RegistrationWorkflow, RegistrationFlow](
@@ -334,6 +364,7 @@ object RegistrationWorkflow
   val awaitRealm = step("realm")(_.awaitRealmStep)
   val playerStep = step("player")(_.playerStep)
   val matchStep  = step("match")(_.matchStep)
+  val matchFailed = step("match-failed")(_.matchFailedStep)
 
   /** The case a registration's match opens: one per new player, so a retry opens the same one. */
   def caseOf(playerId: String): String = s"dup-$playerId"

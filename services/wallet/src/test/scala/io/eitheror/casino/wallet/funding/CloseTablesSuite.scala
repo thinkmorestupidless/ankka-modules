@@ -111,6 +111,22 @@ class CloseTablesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(plan.projection.restrictedBalance, 10L)
   }
 
+  // spec 011 W2: a close names its grant, so with two waiting it closes that one and no other.
+
+  test("W2: a close naming a grant closes that pending-cap record, not the first") {
+    val first  = Record(id = "a", grantRef = "g-a", status = Status.ConvertedPendingCap, priority = 1)
+    val second = Record(id = "b", grantRef = "g-b", status = Status.ConvertedPendingCap, priority = 2)
+    assertEquals(ok(Resolver.closePendingCap(Wallet(0), Vector(first, second), Some("g-b"))).closedRecords, Vector("b"))
+    assertEquals(ok(Resolver.closePendingCap(Wallet(0), Vector(first, second))).closedRecords, Vector("a"))
+  }
+
+  test("W2: a close naming an active record, or a grant with no open record, is NOT_PENDING_CAP") {
+    val active  = priRecord("a", 1, day1, 10).copy(grantRef = "g-a")
+    val pending = Record(id = "b", grantRef = "g-b", status = Status.ConvertedPendingCap, priority = 2)
+    assertEquals(Resolver.closePendingCap(Wallet(0), Vector(active, pending), Some("g-a")).left.map(_.code), Left(Codes.NotPendingCap))
+    assertEquals(Resolver.closePendingCap(Wallet(0), Vector(active, pending), Some("g-z")).left.map(_.code), Left(Codes.NotPendingCap))
+  }
+
   // ── AwardCheck ────────────────────────────────────────────────────────────
 
   test(s"$file/TestAwardCheck_RecordActiveAndPresent_OK") {

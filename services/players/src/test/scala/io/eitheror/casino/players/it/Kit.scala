@@ -164,12 +164,20 @@ final class Kit(base: Settings = Kit.Base):
   def sessionPath(rest: String): String  = s"/v1/casino/sessions/$slug$rest"
   def realmPath(rest: String): String    = s"/internal/realm/$slug$rest"
 
-  /** A registration with quickstart's fields, `fields` replacing any; a `None` leaves one out. */
-  def register(fields: (String, Any)*): Reply =
-    val defaults = Vector[(String, Any)]("email" -> s"p-${UUID.randomUUID().toString.take(8)}@example.test",
+  /**
+   * A registration with quickstart's fields, `fields` replacing any; a `None` leaves one out. The default
+   * address's local part is digits after `p-`, which has no email variant (spec 011 FR-035), so two
+   * default registrations never share one.
+   */
+  def register(fields: (String, Any)*): Reply = registerFrom(None, fields*)
+
+  /** A registration, as [[register]], from the network address given (spec 011 FR-035's address signal). */
+  def registerFrom(address: Option[String], fields: (String, Any)*): Reply =
+    val defaults = Vector[(String, Any)]("email" -> s"p-${java.util.concurrent.ThreadLocalRandom.current().nextLong(1L << 52)}@example.test",
       "password" -> "Passw0rd!", "currency" -> "EUR", "displayName" -> "Ada", "country" -> "GB")
     val names = fields.map(_._1).toSet
-    json("POST", playerPath("/register"), Json.obj((defaults.filterNot(f => names(f._1)) ++ fields.filterNot(_._2 == None))*), asVisitor)
+    json("POST", playerPath("/register"), Json.obj((defaults.filterNot(f => names(f._1)) ++ fields.filterNot(_._2 == None))*),
+      asVisitor ++ address.map("x-test-ip" -> _))
 
   /** Follows the last verification link `engagement` was asked to send to `address`. */
   def verify(address: String): Reply =
@@ -183,7 +191,7 @@ final class Kit(base: Settings = Kit.Base):
 
   /** A registered player whose address is verified: the address and the player id. */
   def activePlayer(fields: (String, Any)*): (String, String) =
-    val address = s"p-${UUID.randomUUID().toString.take(8)}@example.test"
+    val address = s"p-${java.util.concurrent.ThreadLocalRandom.current().nextLong(1L << 52)}@example.test"
     val r       = register((("email" -> address) +: fields)*)
     if r.status != 201 then fail(s"registration: ${r.status} ${r.text}")
     val v = verify(address)

@@ -1,0 +1,222 @@
+{
+  "scenario": "TestScenario244_CancelWithNoBonusIsConflict",
+  "recorded_at": "2026-11-02T15:45:22.782957Z",
+  "original": {
+    "brand": "",
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "players",
+  "steps": [
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "email": "bonus-e2e-cobbkapf@example.com",
+          "firstName": "Bonus",
+          "lastName": "E2E",
+          "password": "<redacted>",
+          "username": "bonus-e2e-c8bb4a9f"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "458c1e6f-1185-3ad0-a75c-756275bcb3b2",
+          "status": "pending_email_verification"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli&grant_type=password&password=<redacted>&username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "<redacted>",
+          "scope": "profile email",
+          "session_state": "9e8ccdff-8ea8-48ae-a0ad-6435103291d5",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=bonus-e2e-cobbkapf%40example.com&exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "createdTimestamp": 1793634322704,
+            "disableableCredentialTypes": [],
+            "email": "bonus-e2e-cobbkapf@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "Bonus",
+            "id": "44dcebbc-3d12-4d6a-97af-0623bb7b6a21",
+            "lastName": "E2E",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "bonus-e2e-cobbkapf@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c0": "$[0].email",
+        "c1": "$[0].id"
+      },
+      "vary": {
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/44dcebbc-3d12-4d6a-97af-0623bb7b6a21",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c1}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/44dcebbc-3d12-4d6a-97af-0623bb7b6a21",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c1}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/458c1e6f-1185-3ad0-a75c-756275bcb3b2"
+            ]
+          },
+          "createdTimestamp": 1793634322704,
+          "disableableCredentialTypes": [],
+          "email": "bonus-e2e-cobbkapf@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "Bonus",
+          "id": "44dcebbc-3d12-4d6a-97af-0623bb7b6a21",
+          "lastName": "E2E",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "bonus-e2e-cobbkapf@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c0}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": null,
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "458c1e6f-1185-3ad0-a75c-756275bcb3b2",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "DELETE /v1/casino/bonus/spinvibe/cancel",
+      "request": {
+        "method": "DELETE",
+        "path": "/v1/casino/bonus/spinvibe/cancel",
+        "service": "players"
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "no_active_bonus"
+        }
+      }
+    }
+  ],
+  "requirement": "011/FR-016"
+}

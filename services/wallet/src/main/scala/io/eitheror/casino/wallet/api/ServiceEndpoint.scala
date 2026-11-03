@@ -99,7 +99,7 @@ final class ServiceEndpoint(
         val rules = Rules(r.maxStake, r.maxStakeEnforcement, r.contributionDefault, r.contributionOverrides, r.scopeInclude,
           r.scopeExclude, r.scopeViolationMode, r.fundingOrder, r.winAllocation, r.releaseProgressScope, r.forfeitOnWithdrawal)
         wallet(player, currency).call(WalletEntity.award).invoke(Award(k, r.bonusRef.getOrElse(""), a, r.wageringMultiplier, r.maxWin,
-          r.priority.getOrElse(0L), r.expiresAt, rules, brandConfig.maxConcurrentAwards, clock()))
+          r.priority.getOrElse(0L), r.expiresAt, rules, Award.limit(r.maxConcurrentGrants, brandConfig.maxConcurrentAwards), clock()))
     }
   }
 
@@ -107,12 +107,13 @@ final class ServiceEndpoint(
     money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.forfeit).invoke(ForfeitAward(k, r.grantRef, clock()))))
   }
 
-  postBody("/wallets/{player}/{currency}/awards/cancel") { (player: String, currency: String, r: GrantRequest) =>
-    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.cancel).invoke(CancelAward(k, r.grantRef, clock()))))
+  postBody("/wallets/{player}/{currency}/awards/cancel") { (player: String, currency: String, r: CancelRequest) =>
+    money(currency)(key(r.key).map(k =>
+      wallet(player, currency).call(WalletEntity.cancel).invoke(CancelAward(k, r.grantRef, clock(), r.requireBaseline))))
   }
 
-  postBody("/wallets/{player}/{currency}/awards/close-pending-cap") { (player: String, currency: String, r: KeyRequest) =>
-    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.closePendingCap).invoke(ClosePendingCap(k, clock()))))
+  postBody("/wallets/{player}/{currency}/awards/close-pending-cap") { (player: String, currency: String, r: GrantRequest) =>
+    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.closePendingCap).invoke(ClosePendingCap(k, r.grantRef, clock()))))
   }
 
   /** The grant to make primary rides in the body: a handler takes at most two path parameters. */
@@ -424,6 +425,7 @@ object ServiceEndpoint:
   given JsonValueCodec[LossRequest]           = Codecs.make[LossRequest]
   given JsonValueCodec[ProviderCreditRequest] = Codecs.make[ProviderCreditRequest]
   given JsonValueCodec[AwardRequest]          = Codecs.make[AwardRequest]
+  given JsonValueCodec[CancelRequest]         = Codecs.make[CancelRequest]
   given JsonValueCodec[GrantRequest]          = Codecs.make[GrantRequest]
   given JsonValueCodec[KeyRequest]            = Codecs.make[KeyRequest]
   given JsonValueCodec[HoldRequest]           = Codecs.make[HoldRequest]

@@ -15,6 +15,7 @@ record, or `<paymentId>/<outcome>`. The transaction id is in every body as well.
 | `ProviderCredited(playerId, currency, transactionId, providerRef, amountCents, landedOn: real \| restricted, awardId: Option, balances after, occurredAt)` | new family `provider_credited` |
 | `RestrictedFundsForfeited.clawbackCents: MinorUnits` (0 when none) | added field; the cause rides in the existing `reason` (forfeit, cancel, hold, adjustment, loss) |
 | `HoldPlaced.voidedCents: MinorUnits` (0 when none) | added field |
+| `RestrictedFundsClosed(playerId, currency, transactionId, awardId, reason, balances after, occurredAt)`, `reason`: `cap_expired`, `cap_exhausted`, `real_balance_zero` | new family `restricted_funds_closed` (spec 011 W5); `real_balance_zero` is not yet produced (spec 011 research, *Elsewhere*) |
 | `KeyedOutcomes[A]`: `seen: Map[String, Seen[A]]`, `Seen(digest, outcome)`, `check(key, digest)` → `Repeated` / `Reused`, `record`, `answer`; `Digest.of(fields)` | `contract.money.Key` (research R4); published as 0.2.0-SNAPSHOT |
 
 `just schemas` regenerates `contract/schemas/money.transactions.v1.json`; `SchemaDriftSuite` fails
@@ -37,7 +38,9 @@ until it does. The additions are additive: no existing field or family changes.
 | `HoldReleased` | `hold_released` | `withdrawal_request_id`, `amount_cents` |
 | `WithdrawalReversed` | `withdrawal_reversed` | `withdrawal_request_id`, `amount_cents` |
 | `ProviderCredited` | `provider_credited` | `provider_ref`, `amount_cents`, `landed_on`, `award_id?` |
-| `HoldConfirmed`, `PendingCapClosed`, `PrimarySwitched`, `TurnoverOverrideSet`, `CommandRefused` | none | no money moved; audit only |
+| `PendingCapClosed` | `restricted_funds_closed`, `ce-id` = the transaction id | `award_id`, `reason` = `cap_expired` (spec 011 W5) |
+| `HoldPlaced` with a cap draw that closes a record | one `restricted_funds_closed` per closed record, after the forfeits, `ce-id` = `<transactionId>/<recordId>` | `award_id`, `reason` = `cap_exhausted` (the original's payout completion, `WalletRoutes.scala:4630-4645`) |
+| `HoldConfirmed`, `PrimarySwitched`, `TurnoverOverrideSet`, `CommandRefused` | none | no money moved; audit only |
 
 Common: `player_id`, `currency`, `transaction_id`, `real_balance_after`, `restricted_balance_after`,
 `occurred_at` (the event's time).

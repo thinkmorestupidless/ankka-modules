@@ -22,7 +22,7 @@ object WireTranslation:
   private val Emails      = """/v1/casino/players/([^/]+)/emails""".r
   private val EmailChange = """/v1/casino/players/([^/]+)/email-change""".r
   private val Sessions    = """/v1/casino/sessions/([^/?]+)""".r
-  private val Operator    = """/v1/casino/([^/]+)/players/([^/]+)/(suspend|reinstate|vip-tier|pot-vip|reset-password|date-of-birth|clear-suspect-flag|sessions/.+)""".r
+  private val Operator    = """/v1/casino/([^/]+)/players/([^/]+)/(suspend|reinstate|vip-tier|pot-vip|reset-password|date-of-birth|clear-suspect-flag|clear-no-deposit-block|sessions/.+)""".r
   private val BrandConfig = """/v1/casino/([^/]+)/brand-config""".r
   private val BrandScoped = """/v1/casino/brands/([^/]+)/(merge-tags|messages/preview)""".r
   private val NotABrand   = Set("players", "sessions", "backoffice", "brands", "geo")

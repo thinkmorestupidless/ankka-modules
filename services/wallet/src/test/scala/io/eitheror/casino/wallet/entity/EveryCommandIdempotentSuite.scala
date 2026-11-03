@@ -72,7 +72,7 @@ class EveryCommandIdempotentSuite extends munit.FunSuite with LogCapturing:
     Case("ForfeitAward", withAward, ForfeitAward("f-1", None, t0), ForfeitAward("f-1", Some("seed-grant"), t0), sender(WalletEntity.forfeit)),
     Case("CancelAward", withAward, CancelAward("c-1", None, t0), CancelAward("c-1", Some("seed-grant"), t0), sender(WalletEntity.cancel)),
     // A close carries only its key: the changed command under it is another command type (FR-002: "in type").
-    Case("ClosePendingCap", withAward, ClosePendingCap("cp-1", t0), ForfeitAward("cp-1", None, t0), sender(WalletEntity.closePendingCap),
+    Case("ClosePendingCap", withAward, ClosePendingCap("cp-1", None, t0), ForfeitAward("cp-1", None, t0), sender(WalletEntity.closePendingCap),
       Some(sender(WalletEntity.forfeit))),
     Case("SwitchPrimary", withAward, SwitchPrimary("s-1", "seed-grant", t0), SwitchPrimary("s-1", "other-grant", t0), sender(WalletEntity.switchPrimary)),
     Case("Hold", funded, Hold("h-1", 1000, true, t0), Hold("h-1", 2000, true, t0), sender(WalletEntity.hold)),

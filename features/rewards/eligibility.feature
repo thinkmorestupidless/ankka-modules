@@ -18,8 +18,43 @@ Feature: Eligibility is decided once, with the same reasons on every path
 
   Scenario: a player with an active reward claiming another offer is refused
     Given a player with an active reward
-    When they claim another offer
+    When they claim another offer allowing one open reward
     Then they are refused as "ACTIVE_BONUS_CONFLICT"
+
+  Scenario: an offer allowing two open rewards is claimed beside one the player holds
+    Given a player with an active reward
+    When they claim an offer allowing two open rewards
+    Then the claim proceeds
+
+  Scenario: an offer setting no maximum of open rewards is claimed beside any the player holds
+    Given a player with two active rewards
+    When they claim an offer that sets no maximum of open rewards
+    Then the claim proceeds
+
+  Scenario: a no-deposit offer claimed while the player's duplicate check is in progress is refused for now
+    Given a player registered five minutes ago whose duplicate check is in progress
+    When they claim an offer with no deposit required
+    Then they are refused as "ELIGIBILITY_CHECK_UNAVAILABLE"
+
+  Scenario: a duplicate check still in progress ten minutes after registration no longer refuses
+    Given a player registered eleven minutes ago whose duplicate check never ended
+    When they claim an offer with no deposit required
+    Then the duplicate check is not what refuses them
+
+  Scenario: a no-deposit offer claimed by a player with a weak duplicate signal is refused
+    Given a player whose no-deposit offers are blocked by a weak duplicate signal
+    When they claim an offer with no deposit required
+    Then they are refused as "NO_DEPOSIT_OFFER_BLOCKED"
+
+  Scenario: a deposit offer is not refused for a duplicate check in progress or a weak duplicate signal
+    Given a player whose duplicate check is in progress and whose no-deposit offers are blocked
+    When they claim an offer requiring a deposit
+    Then neither refuses them
+
+  Scenario: an award by the brand's engagement during the duplicate check is answered to try again later
+    Given a player whose duplicate check is in progress
+    When the brand's engagement awards them an offer with no deposit required
+    Then it is answered as unavailable for now, to try again later
 
   Scenario: an offer that conflicts with one the player holds open is refused
     Given an offer that conflicts with an offer the player holds open
@@ -50,10 +85,10 @@ Feature: Eligibility is decided once, with the same reasons on every path
       | a player outside the offer's segment                                | SEGMENT_MISMATCH        |
       | a player below the offer's tier floor                               | VIP_TIER_TOO_LOW        |
 
-  Scenario: an operator's award proceeds past every rule but the duplicate flag and the active reward conflict
-    Given a player who would fail any rule but the duplicate flag and the active reward conflict
+  Scenario: an operator's award proceeds past every rule but the duplicate checks and the open reward maximum
+    Given a player who would fail any rule but the duplicate checks and the open reward maximum
     When an operator awards them an offer by hand
-    Then the award proceeds, because an operator's award applies only those two rules
+    Then the award proceeds, because an operator's award applies only those four rules
 
   Scenario: an offer code verified when the offer was targeted is not demanded again when the deposit confirms
     Given an offer code verified when the offer was targeted at the player

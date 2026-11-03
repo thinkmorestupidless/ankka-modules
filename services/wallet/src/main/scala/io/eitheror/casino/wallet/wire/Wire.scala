@@ -44,8 +44,11 @@ final case class AwardRequest(key: Option[String], bonusRef: Option[String] = No
     maxWin: Long = 0L, priority: Option[Long] = None, expiresAt: Option[java.time.Instant] = None, maxStake: Option[Long] = None,
     maxStakeEnforcement: String = "", contributionDefault: Option[Long] = None, contributionOverrides: Map[String, Long] = Map.empty,
     scopeInclude: Set[String] = Set.empty, scopeExclude: Set[String] = Set.empty, scopeViolationMode: String = "",
-    fundingOrder: String = "", winAllocation: String = "", releaseProgressScope: String = "", forfeitOnWithdrawal: String = "")
+    fundingOrder: String = "", winAllocation: String = "", releaseProgressScope: String = "", forfeitOnWithdrawal: String = "",
+    maxConcurrentGrants: Option[Int] = None)
 final case class GrantRequest(key: Option[String], grantRef: Option[String] = None)
+/** `requireBaseline`: an operator's reclaim, refused `MISSING_BASELINE` without one (spec 011 W4). */
+final case class CancelRequest(key: Option[String], grantRef: Option[String] = None, requireBaseline: Boolean = false)
 final case class KeyRequest(key: Option[String])
 final case class HoldRequest(key: Option[String], amount: AmountText, playerConfirmed: Boolean = false)
 final case class ReleaseRequest(key: Option[String], outcome: String)
@@ -136,6 +139,7 @@ object Wire:
     case "NOT_CLEARING" | "CREDIT_LINE_BELOW_BALANCE"                                                         => 400
     case "PLAYER_LOCKED" | "EXCLUDED" | "COOLING_OFF" | "player_id_mismatch" | "NOT_OWNER"                     => 403
     case "RG_UNAVAILABLE" | "OUTCOME_PENDING"                                                                   => 503
+    case "MISSING_BASELINE"                                                                                     => 409
     case _                                                                                                      => 409
 
   def json[A](status: Int, body: A)(using codec: JsonValueCodec[A]): Respond[Bytes] =

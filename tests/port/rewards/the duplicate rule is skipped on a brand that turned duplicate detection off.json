@@ -1,0 +1,511 @@
+{
+  "scenario": "the duplicate rule is skipped on a brand that turned duplicate detection off",
+  "requirement": "011/FR-005",
+  "recorded_at": "2026-11-02T16:03:01.69794Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "rewards",
+  "steps": [
+    {
+      "name": "setup: read the kill switch",
+      "request": {
+        "method": "GET",
+        "path": "/api/admin/projects/default/features/casino-disable-multi-account-detection",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "archived": false,
+          "children": [],
+          "createdAt": "2026-11-02T15:56:07.799Z",
+          "dependencies": [],
+          "description": null,
+          "environments": [
+            {
+              "enabled": false,
+              "lastSeenAt": null,
+              "name": "default",
+              "sortOrder": 1,
+              "strategies": [],
+              "type": "production"
+            },
+            {
+              "enabled": false,
+              "lastSeenAt": null,
+              "name": "development",
+              "sortOrder": 2,
+              "strategies": [
+                {
+                  "constraints": [],
+                  "disabled": false,
+                  "id": "f2a3578a-77e7-4bcf-b61f-f07ba6890c5e",
+                  "name": "flexibleRollout",
+                  "parameters": {
+                    "groupId": "casino-disable-multi-account-detection",
+                    "rollout": "100",
+                    "stickiness": "default"
+                  },
+                  "sortOrder": 0,
+                  "title": "",
+                  "variants": []
+                }
+              ],
+              "type": "development"
+            },
+            {
+              "enabled": false,
+              "lastSeenAt": null,
+              "name": "production",
+              "sortOrder": 3,
+              "strategies": [],
+              "type": "production"
+            }
+          ],
+          "impressionData": false,
+          "lastSeenAt": "2026-11-02T16:02:32.017Z",
+          "name": "casino-disable-multi-account-detection",
+          "project": "default",
+          "stale": false,
+          "type": "kill-switch",
+          "variants": []
+        }
+      }
+    },
+    {
+      "name": "setup: read the brand's context field",
+      "request": {
+        "method": "GET",
+        "path": "/api/admin/context/brandId",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "details": [
+            {
+              "description": "Could not find context field",
+              "message": "Could not find context field"
+            }
+          ],
+          "id": "7663dfa3-5aae-42f9-bd43-5d5d24ba4db5",
+          "message": "Could not find context field",
+          "name": "NotFoundError"
+        }
+      },
+      "vary": {
+        "$.id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: define the brand's context field",
+      "request": {
+        "method": "POST",
+        "path": "/api/admin/context",
+        "service": "unleash",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "brandId"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "createdAt": "2026-11-02T16:03:01.710Z",
+          "description": null,
+          "legalValues": [],
+          "name": "brandId",
+          "sortOrder": 10,
+          "stickiness": false
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: turn detection off for the brand",
+      "request": {
+        "method": "POST",
+        "path": "/api/admin/projects/default/features/casino-disable-multi-account-detection/environments/default/strategies",
+        "service": "unleash",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "constraints": [
+            {
+              "contextName": "brandId",
+              "operator": "IN",
+              "values": [
+                "spinvibe"
+              ]
+            }
+          ],
+          "name": "flexibleRollout",
+          "parameters": {
+            "groupId": "casino-disable-multi-account-detection",
+            "rollout": "100",
+            "stickiness": "default"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "constraints": [
+            {
+              "contextName": "brandId",
+              "operator": "IN",
+              "values": [
+                "spinvibe"
+              ]
+            }
+          ],
+          "disabled": false,
+          "id": "56bda6ff-88ae-4cca-a017-8479589c4480",
+          "name": "flexibleRollout",
+          "parameters": {
+            "groupId": "casino-disable-multi-account-detection",
+            "rollout": "100",
+            "stickiness": "default"
+          },
+          "segments": [],
+          "sortOrder": 0,
+          "title": null,
+          "variants": []
+        }
+      },
+      "vary": {
+        "$.id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: enable the kill switch",
+      "request": {
+        "method": "POST",
+        "path": "/api/admin/projects/default/features/casino-disable-multi-account-detection/environments/default/on",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "7a4e7765-f49e-3457-80a8-10c8896c05e6",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "7a4e7765-f49e-3457-80a8-10c8896c05e6",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the player's duplicate check has ended",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "the-duplicate-rule-is-skipped-rd87285f7a22-email-25a4bc47@example.test",
+          "email_local_normalized": "the-duplicate-rule-is-skipped-rdfa-email-abc",
+          "kyc_check_deadline_at": "2026-12-02T16:03:01.804326651Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_device_browser": "Unknown",
+          "last_device_os": "Unknown",
+          "last_login_at": "2026-11-02T16:03:01.978979372Z",
+          "marketing_consent": "false",
+          "pending_duplicate_check": "false",
+          "registered_at": "2026-11-02T16:03:01.804326651Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "the-duplicate-rule-is-skipped-rd87285f7a22-email-25a4bc47@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.email_local_normalized": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player is flagged as a suspected duplicate",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "no_deposit_offer_blocked": "false",
+          "pending_duplicate_check": "false",
+          "suspected_duplicate": "true"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/7a4e7765-f49e-3457-80a8-10c8896c05e6"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the offer offerId",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonus_percentage": "100",
+          "brand_id": "spinvibe",
+          "claim_window_days": "30",
+          "conflicts_with": "",
+          "currency": "EUR",
+          "deposit_number_target": "ANY",
+          "excluded_offer_ids": "",
+          "is_active": "true",
+          "max_bonus_value": "500.00",
+          "max_claims_per_player": "1",
+          "max_concurrent_grants": "1",
+          "max_convertible_amount": "500.00",
+          "min_deposit_amount": "10.00",
+          "name": "rewards driver offerId",
+          "no_deposit_required": "false",
+          "offer_id": "{offerId}",
+          "payload_type": "bonus_funds",
+          "priority_order": "1",
+          "redemption_codes": "{code}:0",
+          "type": "DEPOSIT_MATCH",
+          "valid_from": "{offerIdValidFrom}",
+          "valid_until": "{offerIdValidUntil}",
+          "wagering_multiplier": "1",
+          "wagering_window_days": "30"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/fd3490e7-9e2a-4b34-9be4-fee1bd2a03ea"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the offer offerId is active",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}/concept",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "conceptId": "bonus.offer.active"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "assigned": true
+        }
+      }
+    },
+    {
+      "name": "claim the offer by its code",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/spinvibe/enter-code",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "code": "{code}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusPercentage": 100,
+          "claimWindowDays": 30,
+          "description": "",
+          "maxBonusValue": 500,
+          "minDepositAmount": 10,
+          "name": "rewards driver offerId",
+          "noDepositRequired": false,
+          "offerId": "fd3490e7-9e2a-4b34-9be4-fee1bd2a03ea",
+          "role": "",
+          "source": "code",
+          "type": "DEPOSIT_MATCH",
+          "wageringMultiplier": 1,
+          "wageringWindowDays": 30
+        }
+      },
+      "vary": {
+        "$.offerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: deactivate the offer offerId",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-bonus-offers/{offerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "is_active": "false"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-bonus-offers/fd3490e7-9e2a-4b34-9be4-fee1bd2a03ea"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: disable the kill switch",
+      "request": {
+        "method": "POST",
+        "path": "/api/admin/projects/default/features/casino-disable-multi-account-detection/environments/default/off",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "setup: remove the brand's strategy",
+      "request": {
+        "method": "DELETE",
+        "path": "/api/admin/projects/default/features/casino-disable-multi-account-detection/environments/default/strategies/{strategyId}",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "setup: remove the brand's context field",
+      "request": {
+        "method": "DELETE",
+        "path": "/api/admin/context/brandId",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 200
+      }
+    }
+  ]
+}

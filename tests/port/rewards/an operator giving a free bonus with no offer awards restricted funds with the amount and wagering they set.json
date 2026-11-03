@@ -1,0 +1,255 @@
+{
+  "scenario": "an operator giving a free bonus with no offer awards restricted funds with the amount and wagering they set",
+  "requirement": "011/FR-017",
+  "recorded_at": "2026-11-02T15:56:56.033612Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "rewards",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "21569a0b-70eb-3933-b34f-ee06662abbc8",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "21569a0b-70eb-3933-b34f-ee06662abbc8",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the player's duplicate check has ended",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "an-operator-giving-a-free-bonu-rd54fc6c5e01-email-919f523e@example.test",
+          "email_local_normalized": "an-operator-giving-a-free-bonu-rdfcce-email-fe",
+          "kyc_check_deadline_at": "2026-12-02T15:56:56.071934503Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_device_browser": "Unknown",
+          "last_device_os": "Unknown",
+          "last_login_at": "2026-11-02T15:56:56.220516559Z",
+          "marketing_consent": "false",
+          "pending_duplicate_check": "false",
+          "registered_at": "2026-11-02T15:56:56.071934503Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "an-operator-giving-a-free-bonu-rd54fc6c5e01-email-919f523e@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.email_local_normalized": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "give the player a free bonus",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonusAmount": "20.00",
+          "currency": "EUR",
+          "wager": "5"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusAmount": "20.00",
+          "status": "granted",
+          "wageringRequired": "100.00"
+        }
+      }
+    },
+    {
+      "name": "setup: read the player's rewards",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/bonuses",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "closedAt": null,
+            "currency": "EUR",
+            "faceValue": "20.00",
+            "freeSpins": null,
+            "grantRef": "bonus-claims/1d00c746-a31f-470e-bd20-933c969138f1",
+            "grantedAt": "2026-11-02T15:56:56.254872959Z",
+            "isPrimary": true,
+            "offerName": "Free Bonus",
+            "status": "ACTIVE",
+            "wageredAmount": "0.00",
+            "wageringRequirement": "100.00"
+          }
+        ]
+      },
+      "capture": {
+        "claimId": "$[0].grantRef"
+      },
+      "vary": {
+        "$[0].grantRef": "differs between two runs of the original",
+        "$[0].grantedAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the reward is active with its wagering window",
+      "request": {
+        "method": "GET",
+        "path": "/twins/bonus-claims/{claimId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "activation_real_balance": 0,
+          "activation_total_deposits": 0,
+          "brand_id": "spinvibe",
+          "brand_ref": "spinvibe",
+          "cap_expires_at": null,
+          "clawback_applied": false,
+          "currency": "EUR",
+          "expires_at": "2026-12-02T15:56:56.254872959Z",
+          "face_value": 2000,
+          "free_spins_grant_ref": null,
+          "grant_id": "bonus-claims/1d00c746-a31f-470e-bd20-933c969138f1",
+          "granted_at": "2026-11-02T15:56:56.254872959Z",
+          "last_event_ref": "reward-events-spinvibe/2ce79bd4-4732-49bf-8aa0-81f3f864e279",
+          "offer_id": "manual:2bb8b4f2-6dec-45a5-a6fe-16488746bb0d",
+          "offer_name": "Free Bonus",
+          "offer_ref": "manual:2bb8b4f2-6dec-45a5-a6fe-16488746bb0d",
+          "payload_type": "bonus_funds",
+          "payment_ref": "",
+          "player_ref": "21569a0b-70eb-3933-b34f-ee06662abbc8",
+          "priority": 0,
+          "release_requirement": 10000,
+          "released_progress": 0,
+          "restricted_funds_ref": "restricted-funds/1d00c746-a31f-470e-bd20-933c969138f1",
+          "revoke_mode": null,
+          "revoked_by": null,
+          "source": "operator_manual",
+          "status": "ACTIVE",
+          "terminated_at": null,
+          "type": "MANUAL",
+          "wagering_expires_at": null
+        }
+      },
+      "vary": {
+        "$.expires_at": "differs between two runs of the original",
+        "$.grant_id": "differs between two runs of the original",
+        "$.granted_at": "differs between two runs of the original",
+        "$.last_event_ref": "differs between two runs of the original",
+        "$.offer_id": "differs between two runs of the original",
+        "$.offer_ref": "differs between two runs of the original",
+        "$.player_ref": "differs between two runs of the original",
+        "$.restricted_funds_ref": "differs between two runs of the original"
+      }
+    }
+  ]
+}

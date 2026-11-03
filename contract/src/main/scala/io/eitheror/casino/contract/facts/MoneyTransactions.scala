@@ -74,6 +74,13 @@ final case class RestrictedFundsForfeited(playerId: String, currency: Currency, 
     amountCents: MinorUnits, reason: String, clawbackCents: MinorUnits, realBalanceAfter: SignedMinorUnits,
     restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
 
+/** A pending cap the wallet closed: `reason` is `cap_expired`, `cap_exhausted` or `real_balance_zero` (spec 011 R6). */
+@named("restricted_funds_closed")
+final case class RestrictedFundsClosed(playerId: String, currency: Currency, transactionId: String, awardId: String,
+    reason: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant,
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None)
+    extends MoneyTransactionsFact
+
 @named("admin_adjusted")
 final case class AdminAdjusted(playerId: String, currency: Currency, transactionId: String, amount: SignedMinorUnits,
     target: String, reason: String, actorId: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
@@ -207,6 +214,7 @@ object MoneyTransactions extends Topic[MoneyTransactionsMessage]("money.transact
     FamilyDef.of[RestrictedFundsAwarded]("restricted_funds_awarded"),
     FamilyDef.of[RestrictedFundsConverted]("restricted_funds_converted"),
     FamilyDef.of[RestrictedFundsForfeited]("restricted_funds_forfeited"),
+    FamilyDef.of[RestrictedFundsClosed]("restricted_funds_closed"),
     FamilyDef.of[AdminAdjusted]("admin_adjusted"),
     FamilyDef.of[HoldPlaced]("hold_placed"),
     FamilyDef.of[HoldReleased]("hold_released"),

@@ -127,6 +127,33 @@ class AttributionRecordSuite extends munit.FunSuite with LogCapturing:
     assert(k.call(AttributionRecord.money)(bc.copy(kind = "other", dedupeId = "x")).isError)
   }
 
+  /** Spec 011, "Free-rounds cost from free_spins_settled": the reward's cost is its settlements, never its wallet credit. */
+  test("a free-rounds reward's restricted provider credit costs nothing; its settlements and other credits do") {
+    val k = kit
+    k.call(AttributionRecord.registered)(Register(t0, None, Some(binding()), None)): Unit
+    assertEquals(k.call(AttributionRecord.freeRounds)(FreeRoundsReward("rw-4")).events, Vector(FreeRoundsSeen("rw-4")))
+    assert(!k.call(AttributionRecord.freeRounds)(FreeRoundsReward("rw-4")).persisted)
+    val credit = MoneyEvent(MoneyEvent.BonusCost, "EUR", 400, "rw-4", at(10), "provider_credited/t1/aw-1")
+    assert(!k.call(AttributionRecord.money)(credit).persisted)
+    val settled = MoneyEvent(MoneyEvent.BonusCost, "EUR", 400, "rw-4/settled/1", at(11), "free_spins_settled/rw-4/1/400")
+    assertEquals(k.call(AttributionRecord.money)(settled).events, Vector(BonusCostRecorded(settled, binding())))
+    val other = MoneyEvent(MoneyEvent.BonusCost, "EUR", 300, "prov-9", at(12), "provider_credited/t2/aw-1")
+    assertEquals(k.call(AttributionRecord.money)(other).events, Vector(BonusCostRecorded(other, binding())))
+  }
+
+  test("a free-rounds reward learned after its credit was held pending drops the credit, so the binding emits none") {
+    val k = kit
+    k.call(AttributionRecord.registered)(Register(t0, None, None, None)): Unit
+    val credit = MoneyEvent(MoneyEvent.BonusCost, "EUR", 400, "rw-4", at(10), "provider_credited/t1/aw-1")
+    val funds  = MoneyEvent(MoneyEvent.BonusCost, "EUR", 2000, "rw-1", at(11), "restricted_funds_awarded/t2/rw-1")
+    k.call(AttributionRecord.money)(credit): Unit
+    k.call(AttributionRecord.money)(funds): Unit
+    k.call(AttributionRecord.freeRounds)(FreeRoundsReward("rw-4")): Unit
+    assertEquals(k.currentState.pending, Vector(funds))
+    val bound = k.call(AttributionRecord.bind)(binding(at(5), Binding.LaterCode))
+    assertEquals(bound.events, Vector(Bound(binding(at(5), Binding.LaterCode), None, Vector(funds), None)))
+  }
+
   test("close once") {
     val k = kit
     k.call(AttributionRecord.registered)(Register(t0, None, Some(binding()), None)): Unit

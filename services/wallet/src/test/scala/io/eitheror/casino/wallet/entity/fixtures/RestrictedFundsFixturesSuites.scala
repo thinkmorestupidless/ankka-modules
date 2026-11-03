@@ -122,7 +122,7 @@ class ClosePendingCapBonusFixturesSuite extends FixtureSuite("close-pending-cap-
     given Case = c
     val kit    = FixtureRunner.kit(c, opening(c, c.recordTwins.map(record)))
     val before = kit.currentState
-    val result = kit.call(WalletEntity.closePendingCap)(ClosePendingCap("fixture-close", c.at))
+    val result = kit.call(WalletEntity.closePendingCap)(ClosePendingCap("fixture-close", None, c.at))
     val o      = result.replyValue
     c.error match
       case Some(error) => assertRefused(error, before, kit, result.events, o)

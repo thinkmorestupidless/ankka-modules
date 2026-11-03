@@ -8,11 +8,15 @@ import java.time.Instant
 
 final case class CloseRecord(category: String, at: Instant)
 
+/** A free-rounds reward of the player's, from `free_spins_granted` or `free_spins_settled`. */
+final case class FreeRoundsReward(rewardId: String)
+
 object RecordCodecs:
   given Serializer[Record.State]    = AttributionCodecs.serializer[Record.State]("record")
   given Serializer[Record.Event]    = AttributionCodecs.serializer[Record.Event]("record-event")
   given Serializer[Record.Register] = AttributionCodecs.serializer[Record.Register]("register")
   given Serializer[CloseRecord]     = AttributionCodecs.serializer[CloseRecord]("close-record")
+  given Serializer[FreeRoundsReward] = AttributionCodecs.serializer[FreeRoundsReward]("free-rounds-reward")
 
 import RecordCodecs.given
 import AttributionCodecs.given
@@ -52,6 +56,8 @@ final class AttributionRecord(@scala.annotation.unused context: EventSourcedEnti
 
   def erase(at: Instant): Effect[Record.State] = record(Record.erase(currentState, at))
 
+  def freeRounds(cmd: FreeRoundsReward): Effect[Record.State] = record(Record.freeRounds(currentState, cmd.rewardId))
+
   def get: ReadOnlyEffect[Record.State] = effects.reply(currentState)
 
 object AttributionRecord extends EventSourcedEntity.Companion[AttributionRecord, Record.State, Record.Event](
@@ -69,4 +75,5 @@ object AttributionRecord extends EventSourcedEntity.Companion[AttributionRecord,
   val money      = command("money")(_.money)
   val close      = command("close")(_.close)
   val erase      = command("erase")(_.erase)
+  val freeRounds = command("free-rounds")(_.freeRounds)
   val get        = query("get")(_.get)

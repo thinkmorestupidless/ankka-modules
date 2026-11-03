@@ -44,7 +44,12 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
       VipTierChanged(Some("silver"), "gold", Some("op-1"), at) -> VipTierFact("p-1", Some("silver"), "gold", "op-1", at),
       ConsentChanged("messages", false, "operator", Some("op-1"), at) -> PlayerConsentChanged("p-1", "messages", false, "operator", at),
       DuplicateFlagged("c-1", Set("p-2"), Set("identity", "device"), at) -> PlayerFraudFlagged("p-1", "c-1", "device,identity", at),
-      DuplicateCleared("c-1", Some("op-1"), at) -> PlayerFraudCleared("p-1", "c-1", at)
+      DuplicateCleared("c-1", Some("op-1"), at) -> PlayerFraudCleared("p-1", "c-1", at),
+      // spec 011 FR-034 to FR-036
+      DuplicateCheckStarted(at.minusSeconds(2), at) -> PlayerDuplicateCheckStarted("p-1", at.minusSeconds(2), at),
+      DuplicateCheckEnded(CheckOutcome.Weak, at) -> PlayerDuplicateCheckEnded("p-1", "weak", at),
+      NoDepositBlocked(Set("email_variant"), at) -> PlayerNoDepositBlocked("p-1", at),
+      NoDepositBlockCleared("op-1", at) -> PlayerNoDepositBlockCleared("p-1", "op-1", at)
     )
     cases.foreach { (event, fact) =>
       val out = players(event)
@@ -106,6 +111,10 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
     assert(!dob.messages.head.text.contains("1990-01-03"), dob.messages.head.text)
     assertEquals(audit.onMessage(Closed(Status.Active, Actor.Player, Some("p-1"), "x", at), "p-1", 5).messages, Vector.empty,
       "a player's own close is not an operator action")
+    val cleared = audit.onMessage(NoDepositBlockCleared("op-1", at), "p-1", 6).payloads.head.asInstanceOf[AuditRecord]
+    assertEquals((cleared.action, cleared.actorId, cleared.subjectId, cleared.changes),
+      ("no-deposit-block-clear", "op-1", "p-1", Vector(AuditChange("noDepositOfferBlocked", Some("true"), Some("false")))))
+    assertEquals(audit.onMessage(NoDepositBlocked(Set("email_variant"), at), "p-1", 7).messages, Vector.empty, "the detector's block is no operator's")
 
     val note = ConsumerTestKit.of(NoteAudit).onMessage(NoteState("p-1", Personal("secret text"), "op-1", Some(at)), "n-1", 1)
     assertEquals(note.payloads.head.asInstanceOf[AuditRecord].action, "note")
