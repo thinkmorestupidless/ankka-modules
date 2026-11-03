@@ -71,10 +71,6 @@
           {
             "name": "KEYCLOAK_JWKS_BASE",
             "key": "keycloak-jwks-base"
-          },
-          {
-            "name": "PUSH_PROVIDER_KEY",
-            "key": "push-provider-key"
           }
         ]
       }
@@ -147,11 +143,6 @@
       "key": "keycloak-jwks-base",
       "type": "url",
       "secret": false
-    },
-    {
-      "key": "push-provider-key",
-      "type": "string",
-      "secret": true
     }
   ],
   "retention": "30d"

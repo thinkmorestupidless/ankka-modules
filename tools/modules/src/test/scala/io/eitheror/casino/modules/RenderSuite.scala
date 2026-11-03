@@ -46,7 +46,8 @@ class RenderSuite extends munit.FunSuite:
     "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
     // spec 011 R13: the programme's code document.
     "rewards"       -> Set("REWARDS_CODE_DOCUMENT_URL"),
-    "engagement"    -> Set("PUSH_PROVIDER_KEY"),
+    // spec 014 R12: the Customer.io secrets enter through the configuration route, not the manifest.
+    "engagement"    -> Set(),
     "support-agent" -> Set("MODEL_PROVIDER_KEY"),
     // spec 012 plan research R12, R7, R5, R3, R10, R15: attribution's own settings.
     "attribution"   -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "COUNTRY_HEADER", "DOCUMENT_TIMEOUT", "CLOSE_GRACE", "WEBHOOK_TIMEOUT")
@@ -152,8 +153,8 @@ class RenderSuite extends munit.FunSuite:
       "route:psp-gateway GET /v1/payments/withdrawal-terminals", "erasure"), "what shared payments now makes per brand")
   }
 
-  test("all five modules render spec 001's eleven services, the support switch gone, once the brand names the two secrets") {
-    val more = values.copy(secrets = values.secrets ++ Vector(SecretRef("goldvibe-push", Vector("API_KEY")), SecretRef("goldvibe-model", Vector("API_KEY"))))
+  test("all five modules render spec 001's eleven services, the support switch gone, once the brand names the support secret") {
+    val more = values.copy(secrets = values.secrets ++ Vector(SecretRef("goldvibe-model", Vector("API_KEY"))))
     val p = plan(Vector("casino", "engagement", "reporting", "support"), more)
     assertEquals(p.held, Vector.empty)
     assertEquals(p.services.map(_.name).toSet, spec001.map(_.name).toSet)
@@ -161,10 +162,10 @@ class RenderSuite extends munit.FunSuite:
     assert(!p.services.exists(_.service.env.exists(_.name == "SUPPORT_AGENT_ENABLED")))
   }
 
-  test("without the secrets engagement and support name, those modules are held, naming the keys (FR-009)") {
+  test("without the secret support names, that module is held, naming the key; engagement names none (FR-009)") {
     val p = plan(Vector("casino", "engagement", "support"))
-    assertEquals(p.modules.map(_.name), Vector("core", "casino"))
-    assertEquals(p.missing.toSet, Set("engagement" -> "push-provider-key", "support" -> "model-provider-key"))
+    assertEquals(p.modules.map(_.name), Vector("core", "casino", "engagement"))
+    assertEquals(p.missing.toSet, Set("support" -> "model-provider-key"))
   }
 
   test("a brand entitled to predictions and not casino runs markets and exchange on the core, and no game-provider (spec 023 SC-004)") {

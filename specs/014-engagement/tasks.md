@@ -31,7 +31,7 @@ another session's: do not touch it.
       currency: Option, appliesAt, occurredAt)`, registered in the topic; the family added to
       `specs/001-brands-and-projects/contracts/topics.md`; then `just schemas` (the diff shows one new
       family), `just test` green, `CASINO_VERSION=0.2.0-014-SNAPSHOT sbt -batch contract/publishLocal`.
-- [ ] T002 Remove `push-provider-key` (research R6 P5): the `PUSH_PROVIDER_KEY` env entry and the
+- [X] T002 Remove `push-provider-key` (research R6 P5): the `PUSH_PROVIDER_KEY` env entry and the
       `push-provider-key` key from `modules/engagement/module.json`; the row from `contract/keys.md`;
       `tools/modules/src/test/scala/io/eitheror/casino/modules/RenderSuite.scala` (`"engagement" ->
       Set()` at line 49; the `missing` set at line 167 loses the engagement pair) and
