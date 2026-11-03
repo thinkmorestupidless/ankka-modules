@@ -63,6 +63,7 @@ object RewardsService:
     .withExtension(timers)
     .withExtension(HttpServer.of(RewardsService.endpoints(() => Oidc.authenticate())*))
     .start(name = "rewards")
+  // Until this runs, consumers, timers and steps that need the wiring fail and are retried (`WalletSteps.unwired`).
   RewardsService.started(timers)
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

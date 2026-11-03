@@ -104,8 +104,8 @@ object Steps:
 
 /**
  * Where a timer, or anything finalising free rounds, starts a wallet command: `WalletStep` (research R5), wired by
- * `RewardsService` once it exists (task T027). Until then a timer that needs the wallet fails, so it runs again
- * rather than being lost.
+ * `RewardsService.started` once the service is up. Between `.start` and then, a timer or consumer that needs the
+ * wallet fails, and runs again rather than being lost.
  */
 trait WalletSteps:
   /** A timer's step, `<reward>/<step>`, ending the reward with `ending` on the wallet's answer. */
@@ -115,7 +115,7 @@ trait WalletSteps:
 
 object WalletSteps:
   val unwired: WalletSteps = new WalletSteps:
-    private def fail(step: String) = throw IllegalStateException(s"no wallet step is wired for '$step' (WalletStep, task T027)")
+    private def fail(step: String) = throw IllegalStateException(s"no wallet step is wired for '$step' yet (RewardsService.started)")
     def timed(client: ComponentClient, rewardId: String, step: String, ending: Ending): Unit = fail(step)
     def pay(client: ComponentClient, rewardId: String, payment: Payment): Unit              = fail(payment.step)
 

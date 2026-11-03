@@ -65,8 +65,8 @@ object RewardsRuntime:
     _ => clients.Programme.http(settings)
 
   /**
-   * Where a `WalletStep` hands the wallet's answer (research R5): the reward the step is for. Wired to `Reward` once
-   * it exists; until then a step's delivery fails and is tried again.
+   * Where a `WalletStep` hands the wallet's answer (research R5): the reward the step is for. Wired to `Reward` by
+   * `RewardsService.started`; until then a step's delivery fails and is tried again.
    */
   @volatile var delivery: com.thinkmorestupidless.ankka.sdk.ComponentClient => steps.Delivery =
     _ => (rewardId, _, _) => throw IllegalStateException(s"the wallet step's delivery is not wired (reward $rewardId)")
