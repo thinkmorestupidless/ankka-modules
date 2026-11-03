@@ -1,6 +1,6 @@
 package io.eitheror.casino.rg.features
 
-import io.eitheror.casino.contract.facts.RgLimitApplied
+import io.eitheror.casino.contract.facts.{RgLimitApplied, RgLimitLooseningRequested}
 import io.eitheror.casino.rg.Json.*
 
 import java.time.{Duration, Instant}
@@ -50,6 +50,13 @@ class LimitsFeatures extends RgFeatures("limits.feature"):
     val p = pending(status(), Daily)
     assertEquals(p.flatMap(_.text("pendingValue")), Vector(minor(v).toString))
     assert(near(appliesAt(Daily), kit.now().plus(Duration.ofHours(hours.toLong))))
+  }
+
+  Then("one {string} fact names the limit, {string} and that time at once") { (name: String, v: String) =>
+    assertEquals(name, "rg_limit_loosening_requested")
+    val f = eventually("the fact")(facts.collectFirst { case f: RgLimitLooseningRequested => f })
+    assertEquals((f.limitType, f.period, f.value, f.currency, f.appliesAt), (Daily, Some("daily"), Some(minor(v)), Some(currency), appliesAt(Daily)))
+    assertEquals(facts.count { case _: RgLimitLooseningRequested => true; case _ => false }, 1)
   }
 
   Then("at that time {string} applies and the pending change is gone") { (v: String) =>

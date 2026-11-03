@@ -65,7 +65,7 @@ another session's: do not touch it.
 
 **Neighbours** (research R6). Each with its suite written first.
 
-- [ ] T008 `services/responsible-gambling/` (R6 P1): produce `rg_limit_loosening_requested` when a
+- [X] T008 `services/responsible-gambling/` (R6 P1): produce `rg_limit_loosening_requested` when a
       raise or a removal is staged (the pending change), from the limits publisher, keyed by the
       player; a suite case in the publisher's suite; the step added to the raise scenario of
       `features/responsible-gambling/limits.feature` bound in the service's `GherkinSuite`;

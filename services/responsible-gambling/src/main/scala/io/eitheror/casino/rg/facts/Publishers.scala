@@ -8,7 +8,7 @@ import io.eitheror.casino.rg.RgRuntime
 import io.eitheror.casino.rg.profile.{ProfileEntity, ProfileEvent}
 import io.eitheror.casino.rg.settings.{BrandSettingsEntity, SettingsChanged}
 
-/** `rg_limit_applied`, `rg_case_opened` and `rg_case_closed` on `casino.players`, keyed by the player (FR-030). */
+/** `rg_limit_applied`, `rg_limit_loosening_requested`, `rg_case_opened` and `rg_case_closed` on `casino.players`, keyed by the player (FR-030). */
 final class RgPublisher extends Consumer[ProfileEvent, CasinoPlayersFact]:
   def onMessage(event: ProfileEvent): Effect =
     Facts.players(messageContext.subject, messageContext.sequenceNumber, event).fold(effects.ignore())(p =>
