@@ -58,6 +58,8 @@ lazy val root = project
     Test / envVars += "CASINO_BRAND" -> "goldvibe",
     run / envVars += "CASINO_BRAND" -> sys.env.getOrElse("CASINO_BRAND", "goldvibe"),
     run / fork := true,
+    // The forked run sees only what is passed on: `just rewards-run`'s `-Dankka.local-services.*` name its neighbours.
+    run / javaOptions ++= sys.props.toSeq.collect { case (k, v) if k.startsWith("ankka.") => s"-D$k=$v" },
     // The test kit starts a throwaway Postgres in Docker; a forked JVM keeps its lifecycle out of
     // sbt's own process.
     Test / fork := true,
