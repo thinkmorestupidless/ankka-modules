@@ -79,9 +79,9 @@ object Parity:
       "a code is live as soon as its offer is written; the original's code index caught up moments later",
       steps(Dup)(9, 10)),
     Divergence("Free-rounds winnings to the bonus balance are a reward of their own", Seq(".status", ".body"),
-      "free-rounds winnings are a wallet record of their reward and its face value, not a reward of their own",
-      (r, i) => winningsClaim(r, i) || steps("TestScenario244_CancelWithBaselineClawsBackOnlyWinnings")(32)(r, i) ||
-        steps("TestScenario244_CancelWithoutBaselineSucceedsWithZeroClawback")(31)(r, i) ||
+      "free-rounds winnings to the bonus balance are a reward of their own, under the free-rounds reward as its offer; the free-rounds reward's face value is what the rounds won; the player's cancel of them claws back nothing where the original clawed back the winnings since activation (scenario 244 step 32, a known gap)",
+      (r, i) => winningsClaim(r, i) ||
+        steps("TestScenario244_CancelWithBaselineClawsBackOnlyWinnings")(32)(r, i) ||
         steps("TestScenarioFreeSpinsPlay_BonusBalanceDestination")(23)(r, i) || steps("TestScenarioFreeSpinsPlay_CustomerIOGrant")(28)(r, i) ||
         steps("TestScenarioFreeSpinsPlay_RealBalanceDestination")(20)(r, i) || steps("TestScenarioFreeSpinsPlay_StacksOnActiveBonus")(24)(r, i)),
     Divergence("Segments and the tier floor are dormant", Seq(".status", ".body"),

@@ -557,3 +557,15 @@ behaviour unless it says otherwise.
   a wagering deadline apart from its claim deadline.
 - **One pull request** (2026-11-03, the user, "One PR"): the neighbours' amendments stay on this
   branch, the review's split declined. The pull request body lists them by service.
+- **Known gaps for the pull request** (2026-11-03, from the review):
+  - The player's cancel of a winnings reward claws back nothing; the original clawed back the winnings
+    since activation (scenario 244 step 32, marked in `Parity`). The wallet's baseline for an award made
+    by the `winnings` step is the follow-up.
+  - A free-rounds create the provider does not answer marks the reward failed with no cancel at the
+    provider, as the original (`FreeSpinsProvisioner.scala:192-201`); rounds the provider did create
+    would settle against a cancelled reward.
+  - The grants route's ACL is composed in rewards (`PlayerGrants.acl`), not in `contract.access.Routes`;
+    a `Routes` combinator for "the player, or this project's named service" is a contract follow-up.
+  - The winnings reward's deadline is the offer's wagering window, else 30 days; the original's was a
+    fixed 30 days, with a separate wagering expiry only when the campaign set one. Kept: the offer's
+    window is what the wallet's own award for the offer uses.
