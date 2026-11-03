@@ -20,7 +20,10 @@ sealed trait WalletCall:
 object WalletCall:
   @named("award") final case class Award(terms: AwardTerms) extends WalletCall:
     def step = "award"
-  /** Free rounds' winnings as restricted funds: as `award`, the caller setting priority and expiry. */
+  /**
+   * Free rounds' winnings as restricted funds, the award of a reward of their own (`<reward>/winnings`, or
+   * `<reward>/late/<round>` for a late round): as `award`, below every open record unless a priority is set.
+   */
   @named("winnings") final case class Winnings(terms: AwardTerms) extends WalletCall:
     def step = "winnings"
   @named("forfeit") case object Forfeit extends WalletCall:
@@ -43,9 +46,6 @@ object WalletCall:
   /** Free rounds' winnings as real balance; `providerRef` is the reward id. */
   @named("credit") final case class Credit(amount: Long, reason: String, actor: String) extends WalletCall:
     def step = "credit"
-  /** A round after finalisation paid as restricted funds (FR-024). */
-  @named("late-award") final case class LateAward(round: String, terms: AwardTerms) extends WalletCall:
-    def step = s"late/$round"
   /** A round after finalisation paid as real balance (FR-024). */
   @named("late-credit") final case class LateCredit(round: String, amount: Long, reason: String, actor: String) extends WalletCall:
     def step = s"late/$round"
@@ -58,9 +58,9 @@ object WalletCall:
 final case class StepRequest(rewardId: String, playerId: String, currency: String, call: WalletCall, byTimer: Boolean = false,
     ending: Option[Ending] = None):
   def id: String = WalletStep.id(rewardId, call)
-  /** The wallet's key: the reward id for the award, which the wallet names its record by; the step's id otherwise. */
+  /** The wallet's key: the reward id for an award, which the wallet names its record by; the step's id otherwise. */
   def key: String = call match
-    case _: WalletCall.Award => rewardId
+    case _: WalletCall.Award | _: WalletCall.Winnings => rewardId
     case _                   => id
 
 /**
@@ -163,7 +163,6 @@ final class WalletStep(context: WorkflowContext) extends Workflow[StepState]:
     r.call match
       case WalletCall.Award(t)       => wallet.award(player, currency, key, t).map(WalletAnswer.Awarded(_))
       case WalletCall.Winnings(t)    => wallet.award(player, currency, key, WalletStep.below(wallet, player, currency, t)).map(WalletAnswer.Awarded(_))
-      case WalletCall.LateAward(_, t) => wallet.award(player, currency, key, WalletStep.below(wallet, player, currency, t)).map(WalletAnswer.Awarded(_))
       case WalletCall.Forfeit        => wallet.forfeit(player, currency, key, r.rewardId).map(WalletAnswer.Forfeited(_))
       case WalletCall.Cancel(base)   => wallet.cancel(player, currency, key, r.rewardId, base).map(WalletAnswer.Cancelled(_))
       case WalletCall.Revoke(RevokeMode.Forfeit) => wallet.forfeit(player, currency, key, r.rewardId).map(WalletAnswer.Forfeited(_))
@@ -198,8 +197,8 @@ object WalletStep
   def id(rewardId: String, call: WalletCall): String = s"$rewardId/${call.step}"
 
   /**
-   * Winnings' terms with no priority set: the open records' lowest priority less one, so they are spent after every
-   * open record (research R5, `award_bonus/handler.go:140-191`); none when nothing is open or the wallet cannot be read.
+   * Winnings' terms with no priority set: the open records' lowest priority less one, so they are the primary, spent
+   * before every open record (research R5, `award_bonus/handler.go:140-191`); none when nothing is open or the wallet cannot be read.
    * A retry may read another priority: the wallet answers the key with its first award.
    */
   def below(wallet: Wallet, player: String, currency: Currency, t: AwardTerms): AwardTerms =

@@ -547,3 +547,13 @@ behaviour unless it says otherwise.
     responsible-gambling answering game-provider's launch and bet checks (the run used a stub).
   - `just rewards-run`'s `-Dankka.local-services.*` never reached the forked run; `build.sbt` now
     passes `ankka.*` properties on.
+- **Winnings, a reward of their own** (2026-11-03, the user, "Own reward", after the review's blocking
+  finding): free-rounds winnings paid to the bonus balance were a bare wallet record that nothing
+  expired, cap-closed, cancelled or switched. They are now a reward of their own, under the wallet
+  key they already had (`<reward>/winnings`, `<reward>/late/<round>`), opened from the free-rounds
+  reward and awarded through the `winnings` step, which activates it as an award does. The original
+  did the same (`award_bonus/handler.go:210-238`, a grant `ACTIVE` with a 30-day expiry). Its
+  activation publishes `bonus_granted`, as any reward's. `Clock.Wagering` stays unused: no reward has
+  a wagering deadline apart from its claim deadline.
+- **One pull request** (2026-11-03, the user, "One PR"): the neighbours' amendments stay on this
+  branch, the review's split declined. The pull request body lists them by service.

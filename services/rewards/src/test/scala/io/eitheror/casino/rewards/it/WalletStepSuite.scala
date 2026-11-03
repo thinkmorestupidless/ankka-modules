@@ -65,10 +65,10 @@ class WalletStepSuite extends munit.FunSuite:
     assertEquals(run(StepRequest(reward, player, "EUR", WalletCall.Award(terms))),
       WalletAnswer.Refused(409, "BONUS_ALREADY_ACTIVE", "BONUS_ALREADY_ACTIVE"))
 
-  test("winnings, a switch and a credit: each keyed <reward>/<step>, the grant the reward id"):
+  test("winnings under their own reward <reward>/winnings; a switch and a credit keyed <reward>/<step>, the grant the reward id"):
     val (reward, player) = fresh()
     awarded(reward, player)
-    run(StepRequest(reward, player, "EUR", WalletCall.Winnings(terms))) match
+    run(StepRequest(s"$reward/winnings", player, "EUR", WalletCall.Winnings(terms))) match
       case WalletAnswer.Awarded(a) => assertEquals(a.recordId, Some(s"$reward/winnings"))
       case other                   => fail(s"not awarded: $other")
     run(StepRequest(reward, player, "EUR", WalletCall.Switch(1))) match

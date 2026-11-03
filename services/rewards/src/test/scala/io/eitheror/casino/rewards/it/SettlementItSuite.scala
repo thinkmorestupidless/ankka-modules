@@ -93,6 +93,10 @@ class SettlementItSuite extends munit.FunSuite:
     val expires = Instant.parse(award.text("expiresAt").get)
     assert(JDuration.between(kit.now().plus(30, ChronoUnit.DAYS), expires).abs.compareTo(JDuration.ofMinutes(5)) < 0, s"$expires")
     assertEquals(until(id, RewardStatus.Closed).status, RewardStatus.Closed)
+    // A reward of their own, active until the same deadline, so its claim timer forfeits them as any reward's.
+    val own = until(s"$id/winnings", RewardStatus.Active)
+    assertEquals((own.playerId, own.faceValue, own.source), (player, 400L, Source.System))
+    assert(own.expiresAt.exists(e => JDuration.between(expires, e).abs.compareTo(JDuration.ofMinutes(1)) < 0), s"${own.expiresAt}")
 
   test("restricted funds with a reward active: the winnings stack beside it, below every open record"):
     val player = unique("st-p")

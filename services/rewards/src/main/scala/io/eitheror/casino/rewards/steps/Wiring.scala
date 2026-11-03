@@ -4,12 +4,14 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.personal.Personal
 import io.eitheror.casino.rewards.RewardsRuntime
-import io.eitheror.casino.rewards.clients.AwardTerms
+import io.eitheror.casino.contract.money.Currency
+import io.eitheror.casino.rewards.clients.{AwardTerms, Awarded}
+import io.eitheror.casino.rewards.eligibility.Decision
+import io.eitheror.casino.rewards.offers.PayloadType
 import io.eitheror.casino.rewards.reward
 import io.eitheror.casino.rewards.reward.*
 
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 /** What a step's answer does to its reward: a `Reward` command, or nothing. */
 enum Landing:
@@ -43,10 +45,9 @@ object Wiring:
   def move(request: StepRequest, answer: WalletAnswer, at: Instant): Landing =
     import WalletAnswer as A
     (request.call, answer) match
-      case (WalletCall.Award(t), A.Awarded(a)) =>
-        Landing.Activate(reward.Activate(Some(WalletAward(a.recordId, a.wageringRequirement, Some(t.amount), Some(t.wageringMultiplier),
-          Some(t.maxWin), Some(request.currency))), at))
-      case (_: WalletCall.Award, A.Refused(_, code, _)) => Landing.RefuseAward(reward.RefuseAward(code, at))
+      case (WalletCall.Award(t), A.Awarded(a))    => activation(request, t, a, at)
+      case (WalletCall.Winnings(t), A.Awarded(a)) => activation(request, t, a, at)
+      case (_: WalletCall.Award | _: WalletCall.Winnings, A.Refused(_, code, _)) => Landing.RefuseAward(reward.RefuseAward(code, at))
       // A timer's step: the reward ends as the timer decided, whether the wallet closed the record or it was not open.
       case (WalletCall.Forfeit | WalletCall.CloseCap, A.Forfeited(_) | A.CapClosed(_) | A.NotOpen(_)) =>
         request.ending match
@@ -77,6 +78,10 @@ object Wiring:
       case WalletAnswer.Refused(_, code, _) => Left(code)
       case WalletAnswer.NotOpen(code)       => Left(code)
       case other                            => Left(s"unexpected_${other.getClass.getSimpleName}")
+
+  private def activation(request: StepRequest, t: AwardTerms, a: Awarded, at: Instant): Landing =
+    Landing.Activate(reward.Activate(Some(WalletAward(a.recordId, a.wageringRequirement, Some(t.amount), Some(t.wageringMultiplier),
+      Some(t.maxWin), Some(request.currency))), at))
 
   private def switchNumber(call: WalletCall): Int = call match
     case WalletCall.Switch(n) => n
@@ -119,23 +124,36 @@ object Wiring:
     def pay(client: ComponentClient, rewardId: String, payment: Payment): Unit =
       val s   = client.forEventSourcedEntity(EntityId(rewardId)).call(Reward.get).invoke()
       val now = RewardsRuntime.now()
-      val call = (payment.destination, payment.lateRound) match
-        case (Destination.RealBalance, None)    => WalletCall.Credit(payment.amount, CreditReason, CreditActor)
-        case (Destination.RealBalance, Some(r)) => WalletCall.LateCredit(r, payment.amount, CreditReason, CreditActor)
-        case (Destination.RestrictedFunds, round) =>
-          val terms = winnings(s, payment.amount, now)
-          round.fold[WalletCall](WalletCall.Winnings(terms))(WalletCall.LateAward(_, terms))
-      start(client, StepRequest(rewardId, s.playerId, s.currency, call))
+      (payment.destination, payment.lateRound) match
+        case (Destination.RealBalance, None) =>
+          start(client, StepRequest(rewardId, s.playerId, s.currency, WalletCall.Credit(payment.amount, CreditReason, CreditActor)))
+        case (Destination.RealBalance, Some(r)) =>
+          start(client, StepRequest(rewardId, s.playerId, s.currency, WalletCall.LateCredit(r, payment.amount, CreditReason, CreditActor)))
+        case (Destination.RestrictedFunds, _) =>
+          // A reward of their own, as the original's `award_bonus` grant: its claim deadline, cap, cancel and switch are any reward's.
+          val own = payment.key(rewardId)
+          client.forEventSourcedEntity(EntityId(own)).call(Reward.open).invoke(Open(winningsOpening(s, payment.amount), RewardStatus.Available, now)): Unit
+          start(client, StepRequest(own, s.playerId, s.currency, WalletCall.Winnings(winnings(s, payment.amount, now))))
+
+  /**
+   * The winnings' own reward, opened from the free rounds' (`award_bonus/handler.go:210-238`): the same offer, bonus
+   * funds of the amount won at the offer's multiplier and maximum convertible, given by the system.
+   */
+  def winningsOpening(s: RewardState, amount: Long): Opening =
+    Opening(s.playerId, s.offerId, s.offerName, s.offerType, PayloadType.BonusFunds,
+      Decision(amount, amount * s.wageringMultiplier, s.maxConvertible, s.wageringMultiplier, Currency.unsafe(s.currency)),
+      source = Source.System, snapshot = s.snapshot)
 
   /** The provider credit's reason and actor, as the original's `game_provider_credit`. */
   val CreditReason = "free_spins_winnings"
   val CreditActor  = "rewards"
 
   /**
-   * Winnings as restricted funds: the offer's multiplier and maximum convertible, a 30-day expiry (research R5). The
-   * priority, below every open record, is the step's to read from the wallet when it asks (`WalletStep.below`).
+   * Winnings as restricted funds: the offer's multiplier and maximum convertible, expiring with the reward's claim
+   * deadline, the offer's wagering window or 30 days (research R5). The priority, below every open record's, is the
+   * step's to read from the wallet when it asks (`WalletStep.below`).
    */
   def winnings(s: RewardState, amount: Long, at: Instant): AwardTerms =
     AwardTerms(bonusRef = s.offerId, amount = amount, wageringMultiplier = s.wageringMultiplier, maxWin = s.maxConvertible,
-      priority = None, expiresAt = Some(at.plus(Windows.WageringDays.toLong, ChronoUnit.DAYS)),
+      priority = None, expiresAt = Some(Reward.activeDeadline(s.snapshot, freeRounds = false, at)),
       rules = Awards.rules(s.snapshot.betRules), maxConcurrentGrants = s.snapshot.maxConcurrentGrants)
