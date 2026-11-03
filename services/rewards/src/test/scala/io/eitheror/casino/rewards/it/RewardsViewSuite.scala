@@ -101,7 +101,7 @@ class RewardsViewSuite extends munit.FunSuite:
     assertEquals(RewardsView.page(view, f).pageSize, 25)
     assertEquals((RewardsView.validPageSize(0), RewardsView.validPageSize(200), RewardsView.validPageSize(201)), (false, true, false))
 
-  test("free rounds: the oldest active grant for the game the provider has not failed; spins remaining follow the rounds"):
+  test("free rounds: live ones, oldest first, those the provider failed left out; spins remaining follow the rounds"):
     val p = s"vp-$tag-5"
     def spins(game: String) = Some(FreeRoundsTerms(game, "st8", 3, 10L, Destination.RealBalance))
     val failed = open(s"v-$tag-5-f", opening(p, "o-f", rounds = spins("g-1")), 0)
@@ -114,12 +114,8 @@ class RewardsViewSuite extends munit.FunSuite:
     val played = row(oldest, _.freeRounds.exists(_.spinsRemaining == 2))
     assertEquals(played.freeRounds.map(f => (f.spinCount, f.gameId, f.provider, f.providerStatus)), Some((3, "g-1", "st8", "active")))
     row(failed, _.freeRounds.exists(_.providerStatus == "rejected")): Unit
-    assertEquals(RewardsView.eligibleFreeRounds(view, p, "g-1").map(_.rewardId), Some(oldest))
-    assertEquals(RewardsView.eligibleFreeRounds(view, p, "g-1", Some("other")).map(_.rewardId), None)
-    assertEquals(RewardsView.eligibleFreeRounds(view, p, "g-2").map(_.rewardId), Some(other))
-    assertEquals(RewardsView.eligibleFreeRounds(view, p, "g-3"), None)
     assertEquals(RewardsView.liveFreeRounds(view, p).map(_.rewardId), Vector(oldest, newer, other))
     assertEquals(RewardsView.liveFreeRounds(view, p, Some("USD")), Vector.empty)
     reward(oldest).call(Reward.cancel).invoke(Cancel(CancelReason.ProviderFailed, 0L, start)): Unit
-    kit.eventually("the next oldest")(RewardsView.eligibleFreeRounds(view, p, "g-1").filter(_.rewardId == newer))
+    kit.eventually("the next oldest")(Option.when(RewardsView.liveFreeRounds(view, p).map(_.rewardId) == Vector(newer, other))(()))
 

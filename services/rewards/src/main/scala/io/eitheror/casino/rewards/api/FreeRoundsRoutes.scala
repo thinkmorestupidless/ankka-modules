@@ -5,9 +5,12 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.money.{Amounts as MoneyAmounts, Currency}
 import io.eitheror.casino.rewards.Json
 import io.eitheror.casino.rewards.clients.{Called, GameProvider}
-import io.eitheror.casino.rewards.player.PlayerRewardsState
+import io.eitheror.casino.rewards.player.{PlayerRewards, PlayerRewardsState}
+import io.eitheror.casino.rewards.reward.RewardStatus
 import io.eitheror.casino.rewards.reads.RewardsView
 import io.eitheror.casino.rewards.steps.{CancelRounds, FreeRounds, FreeRoundsFlow}
+
+import java.time.Instant
 
 import Answers.*
 
@@ -54,8 +57,23 @@ object FreeRoundsReads:
    */
   def eligible(ctx: Ctx, playerId: String, provider: Option[String], gameCode: Option[String]): Reply =
     gameCode.map(_.trim).filter(_.nonEmpty)
-      .flatMap(g => RewardsView.eligibleFreeRounds(view(ctx), playerId, g, provider.map(_.trim).filter(_.nonEmpty)))
-      .fold(Answers.Rewards.refuse("no_eligible_grant"))(r => ok(Json.obj("grantId" -> r.rewardId)))
+      .flatMap(g => eligibleNow(ctx, playerId, g, provider.map(_.trim).filter(_.nonEmpty)))
+      .fold(Answers.Rewards.refuse("no_eligible_grant"))(id => ok(Json.obj("grantId" -> id)))
+
+  /**
+   * Read from the player's record, which holds a reward from its claim, and each reward, not from the view, which
+   * trails them: a launch just after a grant would otherwise open a session without it, and the provider would play
+   * its rounds as ordinary ones (T071). A reward the record holds as ended has ended; the others are read.
+   */
+  private def eligibleNow(ctx: Ctx, playerId: String, gameId: String, provider: Option[String]): Option[String] =
+    val held = ctx.player(playerId).call(PlayerRewards.get).invoke().rewards
+    held.collect { case (id, h) if h.claiming || !h.status.isTerminal => ctx.rewardState(id) }.toVector
+      .filter(s => s.opened && s.playerId == playerId && s.status == RewardStatus.Active)
+      .flatMap(s => s.freeRounds.map(s -> _))
+      .filter((_, f) => f.terms.gameId == gameId && provider.forall(_ == f.terms.provider) &&
+        !f.providerStatus.exists(RewardsView.FailedProviderStatuses.contains))
+      .sortBy((s, _) => (s.grantedAt.getOrElse(Instant.MAX), s.rewardId))
+      .headOption.map(_._1.rewardId)
 
   /**
    * `GET /offers/free-rounds/spin-values` (FR-026; `BR:2969-3020`): the provider's values for the game in the currency,

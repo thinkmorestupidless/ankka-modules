@@ -6,6 +6,7 @@ import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.rewards.Json
 import io.eitheror.casino.rewards.clients.{Called, GameProvider, Wallet}
+import io.eitheror.casino.rewards.consumers.IndexConsumer
 import io.eitheror.casino.rewards.eligibility.Decision
 import io.eitheror.casino.rewards.offers.{Offer, SpinCheck}
 import io.eitheror.casino.rewards.player.{ClaimOffer, Flows, Outcome as PlayerOutcome, PlayerRewards, PlayerRewardsState}
@@ -129,7 +130,10 @@ object FreeRoundsGrants:
         case m: How.Manual => (Source.OperatorManual, None, None, Some(m.by))
       val opening = Opening.of(offer, playerId, decision.copy(amount = 0L, wageringRequirement = 0L), source, code, tag, terms, by)
       val typed   = if how.isInstanceOf[How.Manual] then opening.copy(offerType = ManualType) else opening
-      env.components.forEventSourcedEntity(EntityId(rewardId)).call(Reward.open).invoke(Open(typed, RewardStatus.Active, now)): Unit
+      val opened = env.components.forEventSourcedEntity(EntityId(rewardId)).call(Reward.open).invoke(Open(typed, RewardStatus.Active, now))
+      // The player's record holds the rounds at once (a claim reserved them already): a launch reads them from there.
+      IndexConsumer.current(opened.state, now).foreach(c =>
+        env.components.forEventSourcedEntity(EntityId(playerId)).call(PlayerRewards.rewardChanged).invoke(c): Unit)
       replaces.foreach(id => env.components.forEventSourcedEntity(EntityId(id)).call(Reward.expire).invoke(Expire(ExpireReason.Superseded, now)): Unit)
       val days = Windows.days(offer.freeSpinsExpiryDays, Windows.FreeRoundsDays).toInt
       val request = FreeRoundsRequest(rewardId, playerId, currency.code, offer.gameId.getOrElse(""), offer.spinCount.getOrElse(0), spinValue, days)

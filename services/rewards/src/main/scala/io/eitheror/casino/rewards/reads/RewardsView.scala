@@ -148,12 +148,3 @@ object RewardsView extends View.Companion[RewardsViewUpdater, RewardEvent, Rewar
     view.ordered(and(Vector(Some(player(playerId)), Some(isStatus(RewardStatus.Active)), Some(playable),
       currency.map(c => jsonText("currency") ++ sql" = $c")).flatten), oldestGrant, 1000)
 
-  /**
-   * The oldest active free rounds of the player for the game the provider names, not failed (FR-022b,
-   * `GET /{playerId}/free-rounds/eligible`); `provider`, when given, must match too.
-   */
-  def eligibleFreeRounds(view: ViewQueries[RewardRow], playerId: String, gameId: String, provider: Option[String] = None)
-      : Option[RewardRow] =
-    view.ordered(and(Vector(Some(player(playerId)), Some(isStatus(RewardStatus.Active)), Some(playable),
-      Some(jsonText("freeRounds", "gameId") ++ sql" = $gameId"),
-      provider.map(p => jsonText("freeRounds", "provider") ++ sql" = $p")).flatten), oldestGrant, 1).headOption

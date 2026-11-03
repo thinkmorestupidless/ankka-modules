@@ -30,6 +30,12 @@ object IndexConsumer
 
   /** The report for the reward as it stands after `event`; none for a reward not opened. */
   def report(s: RewardState, event: RewardEvent, at: Instant): Option[RewardChanged] =
+    current(s, at).map(_.copy(awardRefused = event.isInstanceOf[RewardEvent.AwardRefused]))
+
+  /**
+   * The report for the reward as it stands, which a path that opens a reward outside a claim sends at once, ahead of
+   * this consumer, so the player's record holds it before the view does: the same report, written once.
+   */
+  def current(s: RewardState, at: Instant): Option[RewardChanged] =
     Option.when(s.opened)(RewardChanged(s.rewardId, s.offerId, s.status,
-      providerFailed = s.terminationReason.contains(CancelReason.ProviderFailed.wire),
-      awardRefused = event.isInstanceOf[RewardEvent.AwardRefused], at))
+      providerFailed = s.terminationReason.contains(CancelReason.ProviderFailed.wire), awardRefused = false, at))

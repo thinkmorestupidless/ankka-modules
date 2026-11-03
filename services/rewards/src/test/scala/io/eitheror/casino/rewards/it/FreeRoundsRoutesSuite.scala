@@ -3,8 +3,10 @@ package io.eitheror.casino.rewards.it
 import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.rewards.Json.*
+import io.eitheror.casino.rewards.consumers.IndexConsumer
 import io.eitheror.casino.rewards.eligibility.Decision
 import io.eitheror.casino.rewards.offers.PayloadType
+import io.eitheror.casino.rewards.player.PlayerRewards
 import io.eitheror.casino.rewards.reads.RewardsView
 import io.eitheror.casino.rewards.reward.*
 
@@ -23,13 +25,19 @@ class FreeRoundsRoutesSuite extends munit.FunSuite:
   private def unique(p: String) = s"$p-${UUID.randomUUID().toString.take(8)}"
   private def entity(id: String) = kit.components.forEventSourcedEntity(EntityId(id))
 
-  /** Live free rounds of the player on `game`, opened now: the reward id once the view has it. */
-  private def live(player: String, game: String, gameName: Option[String] = Some("Book")): String =
+  /**
+   * Live free rounds of the player on `game`, opened now and reported to the player's record as the grant path does:
+   * the reward id, once the view has it unless `inView` is false.
+   */
+  private def live(player: String, game: String, gameName: Option[String] = Some("Book"), inView: Boolean = true): String =
     val id = unique("fx-r")
     val opening = Opening(player, unique("o"), "Spins", "FREE_SPINS", PayloadType.FreeSpins, Decision(0L, 0L, 0L, 0L, Eur),
       source = Source.OperatorManual, freeRounds = Some(FreeRoundsTerms(game, "st8", 10, 20L, Destination.RealBalance, gameName)))
-    entity(id).call(Reward.open).invoke(Open(opening, RewardStatus.Active, kit.now())): Unit
-    kit.eventually(s"$id in the view")(RewardsView.byPlayer(kit.views.forView(RewardsView), player).find(_.rewardId == id).map(_ => ()))
+    val opened = entity(id).call(Reward.open).invoke(Open(opening, RewardStatus.Active, kit.now()))
+    IndexConsumer.current(opened.state, kit.now()).foreach(c =>
+      kit.components.forEventSourcedEntity(EntityId(player)).call(PlayerRewards.rewardChanged).invoke(c): Unit)
+    if inView then
+      kit.eventually(s"$id in the view")(RewardsView.byPlayer(kit.views.forView(RewardsView), player).find(_.rewardId == id).map(_ => ()))
     id
 
   private def freeRounds(player: String, as: Seq[(String, String)]) = kit.request("GET", kit.rewardsPath(s"/$player/free-rounds"), None, as)
@@ -67,6 +75,12 @@ class FreeRoundsRoutesSuite extends munit.FunSuite:
     assertEquals((none.status, none.str("error")), (404, "no_eligible_grant"))
     assertEquals(eligible(player, "g-x", kit.asPlayer(player)).status, 403)
     assert(Set(401, 403).contains(eligible(player, "g-x", kit.asService("wallet")).status))
+
+  test("game-provider's read at a launch just after the grant finds the rounds: it does not wait for the view"):
+    val player = unique("fx-p")
+    val id     = live(player, "g-now", inView = false)
+    val r      = eligible(player, "g-now")
+    assertEquals((r.status, r.str("grantId")), (200, id), r.text)
 
   test("spin values: the provider's values in minor units, distinct and sorted, from st8"):
     kit.provider.spinValues("EUR", "0.50", "0.10", "0.20000000", "0.2")
