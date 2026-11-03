@@ -47,7 +47,9 @@ object Wiring:
     (request.call, answer) match
       case (WalletCall.Award(t), A.Awarded(a))    => activation(request, t, a, at)
       case (WalletCall.Winnings(t), A.Awarded(a)) => activation(request, t, a, at)
-      case (_: WalletCall.Award | _: WalletCall.Winnings, A.Refused(_, code, _)) => Landing.RefuseAward(reward.RefuseAward(code, at))
+      case (_: WalletCall.Award, A.Refused(_, code, _)) => Landing.RefuseAward(reward.RefuseAward(code, at))
+      // No claim stands behind winnings to try again: their reward ends, as the original's grant was never made.
+      case (_: WalletCall.Winnings, A.Refused(_, _, _)) => Landing.Expire(reward.Expire(ExpireReason.WinningsRefused, at))
       // A timer's step: the reward ends as the timer decided, whether the wallet closed the record or it was not open.
       case (WalletCall.Forfeit | WalletCall.CloseCap, A.Forfeited(_) | A.CapClosed(_) | A.NotOpen(_)) =>
         request.ending match
@@ -136,11 +138,13 @@ object Wiring:
           start(client, StepRequest(own, s.playerId, s.currency, WalletCall.Winnings(winnings(s, payment.amount, now))))
 
   /**
-   * The winnings' own reward, opened from the free rounds' (`award_bonus/handler.go:210-238`): the same offer, bonus
-   * funds of the amount won at the offer's multiplier and maximum convertible, given by the system.
+   * The winnings' own reward, opened from the free rounds' (`award_bonus/handler.go:210-238`): bonus funds of the
+   * amount won at the offer's multiplier and maximum convertible, given by the system. Its offer is the free-rounds
+   * reward, as the original's `offer_ref` was the free-spins grant: no offer's claim limit, conflicts or visibility
+   * count it. The name and the rule snapshot are the offer's, for the operator's lists and the bet-time rules.
    */
   def winningsOpening(s: RewardState, amount: Long): Opening =
-    Opening(s.playerId, s.offerId, s.offerName, s.offerType, PayloadType.BonusFunds,
+    Opening(s.playerId, s.rewardId, s.offerName, s.offerType, PayloadType.BonusFunds,
       Decision(amount, amount * s.wageringMultiplier, s.maxConvertible, s.wageringMultiplier, Currency.unsafe(s.currency)),
       source = Source.System, snapshot = s.snapshot)
 

@@ -23,19 +23,20 @@ class WiringSuite extends munit.FunSuite:
     assertEquals(Wiring.move(req(WalletCall.Award(terms)), WalletAnswer.Refused(409, "BONUS_ALREADY_ACTIVE", ""), at),
       Landing.RefuseAward(reward.RefuseAward("BONUS_ALREADY_ACTIVE", at)))
 
-  test("winnings are their own reward's award: keyed by that reward, activated or refused as an award is"):
+  test("winnings are their own reward's award: keyed by that reward, activated as an award is, ended when refused"):
     val own = req(WalletCall.Winnings(terms)).copy(rewardId = "r-1/winnings")
     assertEquals((own.key, own.id), ("r-1/winnings", "r-1/winnings/winnings"))
     assertEquals(Wiring.move(own, WalletAnswer.Awarded(clients.Awarded(Some("r-1/winnings"), 90000L, None, money)), at),
       Landing.Activate(reward.Activate(Some(WalletAward(Some("r-1/winnings"), 90000L, Some(3000L), Some(30L), Some(6000L), Some("EUR"))), at)))
     assertEquals(Wiring.move(own, WalletAnswer.Refused(409, "MAX_CONCURRENT_GRANTS", ""), at),
-      Landing.RefuseAward(reward.RefuseAward("MAX_CONCURRENT_GRANTS", at)))
+      Landing.Expire(reward.Expire(ExpireReason.WinningsRefused, at)))
 
-  test("the winnings' reward opens from the free rounds': same offer, bonus funds, the system's, active for the window"):
+  test("the winnings' reward opens from the free rounds': their reward as its offer, bonus funds, the system's"):
     val rounds = RewardState(rewardId = "r-1", opened = true, playerId = "p-1", offerId = "o-1", offerName = "Spins", offerType = "FREE_SPINS",
       wageringMultiplier = 10L, maxConvertible = 5000L, currency = "EUR")
     val o = Wiring.winningsOpening(rounds, 350L)
-    assertEquals((o.offerId, o.payloadType, o.source, o.freeRounds), ("o-1", io.eitheror.casino.rewards.offers.PayloadType.BonusFunds,
+    // The free-rounds reward, not the offer: the offer's claim limit, conflicts and visible offers never count the winnings.
+    assertEquals((o.offerId, o.offerName, o.payloadType, o.source, o.freeRounds), ("r-1", "Spins", io.eitheror.casino.rewards.offers.PayloadType.BonusFunds,
       Source.System, None))
     assertEquals((o.decision.amount, o.decision.wageringRequirement, o.decision.maxConvertible), (350L, 3500L, 5000L))
     assertEquals(Wiring.winnings(rounds, 350L, at).expiresAt, Some(at.plusSeconds(30L * 86400)))
