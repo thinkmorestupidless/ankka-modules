@@ -78,7 +78,7 @@ object Parity:
     Divergence("A code is live once its offer is written", Seq(".status", ".body"),
       "a code is live as soon as its offer is written; the original's code index caught up moments later",
       steps(Dup)(9, 10)),
-    Divergence("Free-rounds winnings stay their reward's", Seq(".status", ".body"),
+    Divergence("Free-rounds winnings to the bonus balance are a reward of their own", Seq(".status", ".body"),
       "free-rounds winnings are a wallet record of their reward and its face value, not a reward of their own",
       (r, i) => winningsClaim(r, i) || steps("TestScenario244_CancelWithBaselineClawsBackOnlyWinnings")(32)(r, i) ||
         steps("TestScenario244_CancelWithoutBaselineSucceedsWithZeroClawback")(31)(r, i) ||
