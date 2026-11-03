@@ -150,6 +150,8 @@ class FreeRoundsGrantSuite extends munit.FunSuite:
         case Result.Granted(id, _) =>
           val s = reward(id)
           assertEquals((s.offerType, s.source, s.openedBy, s.offerId), ("MANUAL", Source.OperatorManual, Some("op-9"), offer.id))
+          // Held by the player's record as the grant answers, with no claim behind it: a launch reads it from there.
+          assertEquals(paths.record(player).rewards.get(id).map(_.status), Some(RewardStatus.Active))
         case other => fail(s"not granted: $other")
 
   test("an offer that is not free rounds is refused before anything is asked"):
