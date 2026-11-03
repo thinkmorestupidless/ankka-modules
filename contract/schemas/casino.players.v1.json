@@ -902,6 +902,40 @@
       "required": ["type", "player_id", "limit_type", "caused_by", "occurred_at"],
       "title": "rg_limit_applied",
       "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "applies_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "limit_type": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "period": {
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "rg_limit_loosening_requested"
+        },
+        "value": {
+          "type": "integer"
+        }
+      },
+      "required": ["type", "player_id", "limit_type", "applies_at", "occurred_at"],
+      "title": "rg_limit_loosening_requested",
+      "type": "object"
     }
   ],
   "title": "casino.players.v1"

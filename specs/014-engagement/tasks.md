@@ -25,7 +25,7 @@ another session's: do not touch it.
 
 ## Phase 1: Setup
 
-- [ ] T001 The contract addition (contracts/facts.md; research R6 P4): in
+- [X] T001 The contract addition (contracts/facts.md; research R6 P4): in
       `contract/src/main/scala/io/eitheror/casino/contract/facts/CasinoPlayers.scala` the family
       `rg_limit_loosening_requested(playerId, limitType, period: Option, value: Option[Long],
       currency: Option, appliesAt, occurredAt)`, registered in the topic; the family added to
