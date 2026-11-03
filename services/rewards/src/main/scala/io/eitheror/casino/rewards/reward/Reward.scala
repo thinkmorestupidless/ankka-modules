@@ -106,15 +106,17 @@ final class Reward(context: EventSourcedEntityContext) extends EventSourcedEntit
 
   /**
    * A settled round (FR-024, `Settlement.round`): counted once per id, finalising the reward when it completes the
-   * count; after finalisation paid on its own. A repeated late round answers its payment again, so the caller's
-   * wallet step, keyed by the round, is started however often the round is delivered.
+   * count; after finalisation paid on its own. A repeated round answers its payment again (a late round's own, else
+   * the finalisation's once there is one), so the caller's wallet step is started however often the round is
+   * delivered: the `rounds-` timer that would otherwise retry the finalisation's was cancelled when it was written.
    */
   def roundSettled(c: RoundSettled): Effect[RewardAnswer] = rounds { (s, f) =>
     if !s.status.isTerminal && s.status != Active then skip(Skip.NotLive.reason)
     else
       Settlement.round(s.status, f.tally, f.terms.destination, c.roundId, c.win) match
         case Left(Skip.AlreadyCounted) =>
-          skip(Skip.AlreadyCounted.reason, f.latePaid.get(c.roundId).filter(_ > 0).map(Payment(f.terms.destination, _, Some(c.roundId))))
+          val late = f.latePaid.get(c.roundId).filter(_ > 0).map(Payment(f.terms.destination, _, Some(c.roundId)))
+          skip(Skip.AlreadyCounted.reason, late.orElse(s.finalPayment))
         case Left(other) => skip(other.reason)
         case Right(Settled.Counted(next, finalisation)) =>
           writePaying(finalisation.flatMap(_.payment),

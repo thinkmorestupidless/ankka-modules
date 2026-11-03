@@ -184,6 +184,15 @@ class RewardSuite extends munit.FunSuite:
     assertEquals(last.replyValue.payment, Some(Payment(Destination.RealBalance, 200L)))
     assertEquals(status(kit), RewardStatus.Closed)
 
+  test("the round that completed the count, delivered again, answers the finalisation's payment again"):
+    val kit = active(rounds)
+    kit.call(Reward.roundSettled)(RoundSettled("rd-1", 150L, at)): Unit
+    assertEquals(kit.call(Reward.roundSettled)(RoundSettled("rd-1", 150L, at)).replyValue.payment, None)
+    val last   = kit.call(Reward.roundSettled)(RoundSettled("rd-2", 50L, at)).replyValue.payment
+    val repeat = kit.call(Reward.roundSettled)(RoundSettled("rd-2", 50L, at))
+    assertEquals((repeat.events.toVector, repeat.replyValue.skipped), (Vector.empty, Some("already_counted")))
+    assertEquals((last, repeat.replyValue.payment), (Some(Payment(Destination.RealBalance, 200L)), last))
+
   test("a round after finalisation is LatePaid under its own step; a repeat answers the same payment and writes nothing"):
     val kit = active(rounds)
     kit.call(Reward.roundSettled)(RoundSettled("rd-1", 0L, at)): Unit
