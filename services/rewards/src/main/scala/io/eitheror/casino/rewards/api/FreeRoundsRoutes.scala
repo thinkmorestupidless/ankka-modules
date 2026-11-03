@@ -63,11 +63,12 @@ object FreeRoundsReads:
   /**
    * Read from the player's record, which holds a reward from its claim, and each reward, not from the view, which
    * trails them: a launch just after a grant would otherwise open a session without it, and the provider would play
-   * its rounds as ordinary ones (T071). A reward the record holds as ended has ended; the others are read.
+   * its rounds as ordinary ones (T071). Only rewards that can be live are read: one being claimed, or held neither
+   * ended nor unclaimed (an offer made visible and never claimed is no free rounds yet).
    */
   private def eligibleNow(ctx: Ctx, playerId: String, gameId: String, provider: Option[String]): Option[String] =
     val held = ctx.player(playerId).call(PlayerRewards.get).invoke().rewards
-    held.collect { case (id, h) if h.claiming || !h.status.isTerminal => ctx.rewardState(id) }.toVector
+    held.collect { case (id, h) if h.claiming || !(h.status.isTerminal || h.unclaimed) => ctx.rewardState(id) }.toVector
       .filter(s => s.opened && s.playerId == playerId && s.status == RewardStatus.Active)
       .flatMap(s => s.freeRounds.map(s -> _))
       .filter((_, f) => f.terms.gameId == gameId && provider.forall(_ == f.terms.provider) &&
