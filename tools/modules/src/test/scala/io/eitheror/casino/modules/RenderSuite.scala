@@ -76,7 +76,9 @@ class RenderSuite extends munit.FunSuite:
         assertEquals(d.service.resources.instanceType, size, d.name)
         d.copy(service = d.service.copy(resources = before.service.resources))
       }
-      val now = comparable(resized, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
+      // engagement runs on ankka 0.16.0 for its `Personal` (spec 014, research), spec 001 on 0.13.0.
+      val runtime = if d.name == "engagement" then resized.copy(service = resized.service.copy(runtime = before.service.runtime)) else resized
+      val now = comparable(runtime, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
       assertEquals(now, comparable(before, Set("SUPPORT_AGENT_ENABLED")), d.name)
       assertEquals(d.service.env.map(_.name).filter(NewIdentity), Vector("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE"), d.name)
     }

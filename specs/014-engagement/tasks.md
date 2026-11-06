@@ -37,14 +37,14 @@ another session's: do not touch it.
       Set()` at line 49; the `missing` set at line 167 loses the engagement pair) and
       `ValuesSuite.scala:79` (use `model-provider-key` as the uncovered secret). `just test` green;
       `just modules render goldvibe` shows `engagement` with no secret.
-- [ ] T003 Run `ankka init` for the service at `services/engagement/`, in the shape of
-      `services/rewards/`: `build.sbt` on `casino-contract` and ankka 0.13.0, Scala 3.9.0, munit,
+- [X] T003 Run `ankka init` for the service at `services/engagement/`, in the shape of
+      `services/rewards/`: `build.sbt` on `casino-contract` and ankka 0.16.0 (research, *Found during implementation*), Scala 3.9.0, munit,
       munit-scalacheck, postgresql, test `-Dcasino.root` and `CASINO_BRAND=goldvibe`, fork,
       `dockerExposedPorts := Seq(9000)`, the `schema` task; `service.json` (`engagement`, runtime
-      0.13.0); `docker-compose.yml` (Postgres on 5442); `src/main/resources/application.conf`
+      0.16.0); `docker-compose.yml` (Postgres on 5442); `src/main/resources/application.conf`
       (`ankka.service.name = engagement`, `ankka.service-client.timeout = 2s`); `README.md`
       (components, suites, local run).
-- [ ] T004 Remove the `engagement` row from `contract/keys.md`'s "Not yet built" table in the same
+- [X] T004 Remove the `engagement` row from `contract/keys.md`'s "Not yet built" table in the same
       commit as `services/engagement/build.sbt`; `ModuleManifestSuite`'s built set gains `engagement`;
       `just test` green.
 - [ ] T005 [P] `Justfile`: `engagement-test`, `engagement-it`, `engagement-run brand="goldvibe"` (HTTP

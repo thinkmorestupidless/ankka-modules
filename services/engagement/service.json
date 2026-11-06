@@ -1,0 +1,7 @@
+{
+  "name": "engagement",
+  "service": {
+    "image": "engagement:latest",
+    "runtime": "0.16.0"
+  }
+}
