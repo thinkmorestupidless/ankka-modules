@@ -112,7 +112,7 @@ another session's: do not touch it.
       `seedData`), `S/channel/Frames.scala` (the SSE frame texts of contracts/routes.md).
       `T/api/SignatureSuite.scala` (`CustomerIOWebhookRoutesSpec`'s verification cases),
       `T/config/MaskingSuite.scala`, `T/config/SeedSuite.scala`, `T/channel/FramesSuite.scala` first.
-- [ ] T016 [P] `S/profile/Model.scala` and `S/profile/Profile.scala` (key value entity, id = player):
+- [X] T016 [P] `S/profile/Model.scala` and `S/profile/Profile.scala` (key value entity, id = player):
       data-model.md's state, `apply(fact)` per family with the per-field time, `resetDepositDay`,
       `erase`, `get`, `attributes`; every *P* field `Personal`. `T/profile/ProfileSuite.scala`
       (`KeyValueEntityTestKit`) first: every family, a repeat fact changes nothing, erase.
