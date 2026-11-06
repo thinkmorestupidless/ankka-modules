@@ -77,7 +77,7 @@ another session's: do not touch it.
 - [X] T010 `services/players/` (R6 P3): `clients/Neighbours.scala` (lines 46-66) treats `refused` with
       its reason as a terminal answer like `suppressed`; `RegistrationWorkflow.scala` (322-363)
       records it and does not retry; suite cases.
-- [ ] T011 [P] `contract/access/routes.md`: the rows for `POST
+- [X] T011 [P] `contract/access/routes.md`: the rows for `POST
       /v1/casino/brands/{brand}/engagement/sends` (service, players → engagement), `POST
       …/engagement/erasure/players/{player}` (players → engagement, so the modules tool fills
       `ERASURE_TARGETS`) and the reverse row for `POST …/players/{player}/messages` (engagement →
