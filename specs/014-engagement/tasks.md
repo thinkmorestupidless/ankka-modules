@@ -47,11 +47,11 @@ another session's: do not touch it.
 - [X] T004 Remove the `engagement` row from `contract/keys.md`'s "Not yet built" table in the same
       commit as `services/engagement/build.sbt`; `ModuleManifestSuite`'s built set gains `engagement`;
       `just test` green.
-- [ ] T005 [P] `Justfile`: `engagement-test`, `engagement-it`, `engagement-run brand="goldvibe"` (HTTP
+- [X] T005 [P] `Justfile`: `engagement-test`, `engagement-it`, `engagement-run brand="goldvibe"` (HTTP
       9013, Postgres 5442, both issuers, `CRM_TRACK_URL`/`CRM_APP_URL` at the stub,
       `-Dankka.local-services.players=http://127.0.0.1:9003
       -Dankka.local-services.rewards=http://127.0.0.1:9008`), as `rewards-run`.
-- [ ] T006 [P] `.github/workflows/ci.yml`: an `engagement` paths filter (`*build`,
+- [X] T006 [P] `.github/workflows/ci.yml`: an `engagement` paths filter (`*build`,
       `services/engagement/**`, `features/engagement/**`, `tests/port/engagement/**`,
       `tests/stubs/crm-stub/**`) and a job as rewards', with a `-Dit=true` step; `crm-stub` built in
       the stubs job beside `psp-stub`.
