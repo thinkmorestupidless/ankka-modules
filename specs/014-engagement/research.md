@@ -424,6 +424,20 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   reconnect's `Last-Event-ID` is lost, and the page refetches anyway. A divergence (plan.md), and a
   note under *For ankka*.
 
+- **ankka 0.16.0 and its `Personal`** (2026-11-06, asked and settled): SC-006 needs the personal values
+  sealed at rest, and ankka 0.13 had no personal-data encryption. ankka 0.16.0 (feature 042) does:
+  `com.thinkmorestupidless.ankka.core.Personal[A]` (`Present(subject, value)` or `Erased(subject)`)
+  is sealed under a per-subject key by every `Serializer`, so the journal, the key value state, the
+  workflow state and the view rows hold only ciphertext. So engagement builds on 0.16.0 (the contract,
+  built on 0.13.0, is evicted to it as the predictions services do; its 250 tests pass on 0.16.0),
+  and R15's fields are ankka's `Personal` under `DataSubject("player/<id>")`, converted from the
+  contract's marker as a fact is read. A `Send` whose subject reads `Erased` makes no call. The kit's
+  `assertNoPersonalValue` is DumpSuite's check. The erasure route stays as R15 says (players calls it);
+  an `ErasureHandler` runs the same CRM deletion and discards, so an erasure filed at the installation
+  reaches the CRM too, and the keyring's shredding makes what is stored unreadable either way. A local
+  run takes `withLocalKeyring()` when `ANKKA_KEYRING_ADDRESS` is unset. The module's runtime is
+  0.16.0. A divergence from the plan's 0.13.0 (plan.md).
+
 ## Design finished
 
 2026-11-03: analyze reported nothing above LOW.
