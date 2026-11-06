@@ -85,7 +85,7 @@ another session's: do not touch it.
 
 **The service** (plan.md's structure; data-model.md).
 
-- [ ] T012 `S/Settings.scala` (`fromEnvironment: Either`: `CRM_TRACK_URL`, `CRM_APP_URL` overrides,
+- [X] T012 `S/Settings.scala` (`fromEnvironment: Either`: `CRM_TRACK_URL`, `CRM_APP_URL` overrides,
       `CRM_TIMEOUT` 10 s, `STALENESS_HOURS` 24, `MAX_CONNECTIONS` 10000, the instance id, the two
       issuers), `S/EngagementCodecs.scala` (manifests `engagement.<name>` for every stored type),
       `S/EngagementService.scala` (descriptors, endpoints, `started` registering the timers, `@main`
