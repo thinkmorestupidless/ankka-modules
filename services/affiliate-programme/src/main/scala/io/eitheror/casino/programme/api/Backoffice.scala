@@ -189,37 +189,53 @@ final class Backoffice(api: Api):
   /**
    * O7 (research R9): the brand's memberships with their accounts opened, filtered by search, status,
    * manager, group and tags here, since the sealed fields cannot be searched in the view; with each
-   * account's figures this month, read once for the brand.
+   * account's figures this month, read once for the brand. A page of `limit` (100, at most 500) from
+   * `offset`: the view's and the account's own fields are filtered first, and an identity is opened only
+   * for the page, or for every candidate when a search or a sort by name or email needs it.
    */
   def accounts(brand: String, q: String => Option[String]): Respond[Bytes] =
     val b      = api.brand(brand)
     val month  = Periods.Range.parse(Periods.periodOf(api.now(), b.zone)).get
+    val tags   = q("tags").fold(Set.empty[String])(_.split(',').map(_.trim).filter(_.nonEmpty).toSet)
+    val needle = q("search").map(_.trim.toLowerCase).filter(_.nonEmpty)
+    val limit  = q("limit").flatMap(_.toIntOption).fold(Backoffice.PageSize)(l => math.max(1, math.min(l, Backoffice.MaxPage)))
+    val offset = q("offset").flatMap(_.toIntOption).fold(0)(math.max(0, _))
+    val sortBy = q("sortBy").getOrElse("createdAt")
+    val desc   = q("sortDir").forall(_.equalsIgnoreCase("desc"))
+    val candidates = api.views.forView(Memberships).ask(Memberships.byBrand, "brand" -> brand)
+      .filter(m => q("status").forall(s => m.status.exists(_.equalsIgnoreCase(s))))
+      .flatMap(m => Some(api.account(m.affiliate)).filter(_.exists).map(m -> _))
+      .filter { (_, a) =>
+        q("affiliateManagerId").forall(x => a.managerId.contains(x)) && q("group").forall(g => a.group.contains(g)) &&
+          (tags.isEmpty || a.tags.exists(tags))
+      }
+    def opened(c: Vector[(MembershipState, AffiliateState)]) = c.map((m, a) => (m, a, api.identity(m.affiliate, a).toOption.flatten))
+    def ordered[K: Ordering](rows: Vector[(MembershipState, AffiliateState, Option[Identity])])(k: ((MembershipState, AffiliateState, Option[Identity])) => K) =
+      val up = rows.sortBy(k)
+      if desc then up.reverse else up
+    val page =
+      if needle.isDefined || sortBy == "name" || sortBy == "email" then
+        val found = opened(candidates).filter { (_, a, id) =>
+          needle.forall(n => (Vector(a.id) ++ id.toVector.flatMap(i => Vector(i.name, i.email) ++ i.displayName ++ i.companyName))
+            .exists(_.toLowerCase.contains(n)))
+        }
+        val sorted = sortBy match
+          case "name"   => ordered(found)(_._3.fold("")(i => i.displayName.getOrElse(i.name)).toLowerCase)
+          case "email"  => ordered(found)(_._3.fold("")(_.email).toLowerCase)
+          case "status" => ordered(found)(_._1.status.getOrElse(""))
+          case _        => ordered(found)(_._2.createdAt.getOrElse(Instant.EPOCH))
+        sorted.slice(offset, offset + limit)
+      else
+        val cheap = candidates.map((m, a) => (m, a, Option.empty[Identity]))
+        val sorted = if sortBy == "status" then ordered(cheap)(_._1.status.getOrElse("")) else ordered(cheap)(_._2.createdAt.getOrElse(Instant.EPOCH))
+        opened(sorted.slice(offset, offset + limit).map((m, a, _) => (m, a)))
     val (ledger, players) = Reading(api).rows(None, Vector(brand), month)
     val ledgerOf  = ledger.groupBy(_.affiliate)
     val playersOf = players.groupBy(_.affiliate)
-    val tags      = q("tags").fold(Set.empty[String])(_.split(',').map(_.trim).filter(_.nonEmpty).toSet)
-    val needle    = q("search").map(_.trim.toLowerCase).filter(_.nonEmpty)
-    val rows = api.views.forView(Memberships).ask(Memberships.byBrand, "brand" -> brand).flatMap { m =>
-      val a = api.account(m.affiliate)
-      if !a.exists then None
-      else
-        val id = api.identity(m.affiliate, a).toOption.flatten
-        val matches =
-          needle.forall(n => (Vector(a.id) ++ id.toVector.flatMap(i => Vector(i.name, i.email) ++ i.displayName ++ i.companyName))
-            .exists(_.toLowerCase.contains(n))) &&
-            q("status").forall(s => m.status.exists(_.equalsIgnoreCase(s))) &&
-            q("affiliateManagerId").forall(x => a.managerId.contains(x)) &&
-            q("group").forall(g => a.group.contains(g)) &&
-            (tags.isEmpty || a.tags.exists(tags))
-        Option.when(matches)(AccountRow(Answers.account(a, id, Vector(m), Some(m)),
-          Revenue.figures(ledgerOf.getOrElse(a.id, Vector.empty), playersOf.getOrElse(a.id, Vector.empty))))
-    }
-    val sorted = q("sortBy").getOrElse("createdAt") match
-      case "name"   => rows.sortBy(_.account.name.getOrElse("").toLowerCase)
-      case "email"  => rows.sortBy(_.account.email.getOrElse("").toLowerCase)
-      case "status" => rows.sortBy(_.account.status.getOrElse(""))
-      case _        => rows.sortBy(_.account.createdAt.getOrElse(Instant.EPOCH))
-    ok(if q("sortDir").forall(_.equalsIgnoreCase("desc")) then sorted.reverse else sorted)
+    ok(page.map { (m, a, id) =>
+      AccountRow(Answers.account(a, id, Vector(m), Some(m)),
+        Revenue.figures(ledgerOf.getOrElse(a.id, Vector.empty), playersOf.getOrElse(a.id, Vector.empty)))
+    })
 
   /**
    * O8: an account made active at the brand by a manager, on the plan named or the brand's default, and
@@ -255,3 +271,8 @@ final class Backoffice(api: Api):
                       answer(201, AccountCreated(affiliate, email, Membership.Active))
                     })
                 })
+
+object Backoffice:
+  /** O7's page: 100 rows unless the caller asks for fewer, or more up to 500. */
+  val PageSize = 100
+  val MaxPage  = 500

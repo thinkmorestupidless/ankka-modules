@@ -99,6 +99,24 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     assert(trail.exists(_.get("event").asText == "ACCOUNT_CREATED"), trail.mkString)
   }
 
+  test("O7 answers a page: limit (100 unless asked, at most 500) from offset, newest first, with or without a search") {
+    val h    = Hosted.add(kit)
+    val mgr  = kit.asManager(Seq(h.slug))
+    val plan = kit.plan(h.slug, kit.fresh("p"), Plan.Cpa, cpa = 1_000)
+    val made = (1 to 3).map { i =>
+      kit.moveClock(kit.now.plusSeconds(1))
+      kit.request("POST", s"/v1/affiliates/${h.slug}/accounts", Some(s"""{"email":"${kit.fresh(s"page$i")}@example.com","planId":"$plan"}"""), mgr)
+        .json.get("affiliateId").asText
+    }
+    def ids(q: String) = kit.request("GET", s"/v1/affiliates/${h.slug}/accounts?$q", headers = mgr).json.elements().asScala
+      .map(_.get("account").get("affiliateId").asText).toVector
+    kit.eventually("all three listed")(Option(ids("")).filter(_.size == 3)): Unit
+    assertEquals(ids("limit=2"), Vector(made(2), made(1)))
+    assertEquals(ids("limit=2&offset=2"), Vector(made(0)))
+    assertEquals(ids("limit=0").size, 1)
+    assertEquals(ids("limit=1&search=page1"), Vector(made(0)))
+  }
+
   test("a fraud flag is raised once per player, brand and reason; dismissing it tells the affiliate") {
     val s = Scene(kit, cpa = 0)
     val p = s.player()
