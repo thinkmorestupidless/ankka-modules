@@ -147,7 +147,9 @@ object PlayerAttribution extends EventSourcedEntity.Companion[PlayerAttribution,
           val total = math.max(0L, base.withdrawals.getOrElse(currency, 0L) - f.amount)
           base.copy(withdrawals = base.withdrawals.updated(currency, total),
             completedWithdrawals = f.reference.fold(base.completedWithdrawals)(base.completedWithdrawals - _))
-        case Outcome.Closed => base.copy(country = None, clickId = None, closed = Some(ClosedAs(f.category.getOrElse(""), f.occurredAt)))
+        case Outcome.Closed =>
+          base.copy(country = None, clickId = None, binding = base.binding.map(_.copy(clickId = None)),
+            closed = Some(ClosedAs(f.category.getOrElse(""), f.occurredAt)))
         case _              => base
 
   def entityId(brand: String, pseudonym: String): EntityId = EntityId(s"$brand/$pseudonym")

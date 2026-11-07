@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.accounts.{Affiliate, Erasure, ErasureRules, Secrets}
 import io.eitheror.casino.programme.brands.Plan
+import io.eitheror.casino.programme.players.PlayerAttribution
 import io.eitheror.casino.programme.sealing.Sealing
 
 import java.nio.charset.StandardCharsets.UTF_8
@@ -109,6 +110,24 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
     val again = kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"${marker("second email")}"}"""), kit.fromInternet)
     assertEquals(again.status, 201, again.text)
     assertNotEquals(again.json.get("affiliateId").asText, aff)
+  }
+
+  test("FR-038: a closed player's click id rests nowhere but the journal, its postback's address dropped once sent") {
+    val clickId = s"click-${UUID.randomUUID()}"
+    val aff     = kit.affiliate(kit.fresh("aff"), "goldvibe", kit.plan("goldvibe", kit.fresh("p"), Plan.Cpa, cpa = 1_000))
+    Messaging.postbackTo(kit, aff)
+    val facts  = Facts("goldvibe", aff, kit.link(kit.fresh("lnk"), aff, "goldvibe"), clickId = Some(clickId))
+    val player = kit.fresh("ps")
+    kit.publish(facts.registration(player, kit.now))
+    kit.publish(facts.firstDeposit(player, 5_000, kit.now))
+    kit.eventually("the postback, with the click id")(kit.postbacks.calls.find(_.query.get("click").contains(clickId))): Unit
+    kit.publish(facts.playerClosed(player, kit.now))
+    kit.eventually("closed")(Option(kit.components.forEventSourcedEntity(PlayerAttribution.entityId("goldvibe", player))
+      .call(PlayerAttribution.get).invoke()).filter(_.closed.isDefined)): Unit
+    Thread.sleep(1500) // the views' last poll
+    // The journal keeps the events the player's state is made from; their retention waits for ankka 042 (research).
+    val leaks = found(Vector(clickId)).filterNot(_.contains("event_journal"))
+    assert(leaks.isEmpty, leaks.mkString("\n"))
   }
 
   test("the search finds a value planted in a table (positive control)") {

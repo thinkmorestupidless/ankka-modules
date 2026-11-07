@@ -15,7 +15,8 @@ import scala.util.control.NonFatal
 /**
  * One postback to an affiliate's own system (FR-036, research R13), id `<affiliate>/<brand>/<event>/<factId>`.
  * `url` is the affiliate's address with the macros filled when the fact was written: what is sent is
- * what the address said then.
+ * what the address said then. It carries the player's click id, so it is dropped once the postback is
+ * sent or given up (FR-038): kept at most the 24 hours of retries.
  */
 final case class PostbackState(
     affiliate: String = "",
@@ -56,8 +57,8 @@ object PostbackRules:
     val counted = s.copy(firstAttemptAt = Some(first), attempts = s.attempts + 1,
       lastStatus = result.toOption.orElse(s.lastStatus), lastError = result.left.toOption)
     result match
-      case Right(code) if code / 100 == 2                 => (counted.copy(status = Sent, lastError = None), Next.Done)
-      case _ if !now.isBefore(first.plus(Life))            => (counted.copy(status = Undelivered), Next.Done)
+      case Right(code) if code / 100 == 2                 => (counted.copy(status = Sent, lastError = None, url = ""), Next.Done)
+      case _ if !now.isBefore(first.plus(Life))            => (counted.copy(status = Undelivered, url = ""), Next.Done)
       case _ => (counted.copy(status = Sending), Next.Retry(FiniteDuration(next(counted.attempts).toMillis, MILLISECONDS)))
 
 final class Postback(context: WorkflowContext) extends Workflow[PostbackState]:

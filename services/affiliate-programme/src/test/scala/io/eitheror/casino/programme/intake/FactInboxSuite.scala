@@ -6,7 +6,7 @@ import java.time.Instant
 
 class FactInboxSuite extends munit.FunSuite with LogCapturing:
   private val at  = Instant.parse("2026-11-01T10:00:00Z")
-  private def claim(channel: String) = ClaimFact("goldvibe", "f-1", "deposit", channel, "{}", at.minusSeconds(5), at)
+  private def claim(channel: String) = ClaimFact("goldvibe", "f-1", "deposit", channel, None, at.minusSeconds(5), at)
 
   test("claimed once; after that, on any channel, a duplicate counted") {
     val k = KeyValueEntityTestKit.of(FactInbox, "goldvibe/f-1")

@@ -665,3 +665,10 @@ implementation* that carries the detail.
   applicant. The person chose this over platform-admin-only writes and over a pending membership the
   affiliate accepts.
 - **Paying is refused when the payout's claims changed** (review B4): `409 claims_changed` on O42.
+- **A closed player's click id and country rest only in the journal** (review B7, FR-038). The fact
+  inbox kept every fact's body for ever, the registration's country and click id with it; it now keeps
+  the kind and currency the counts read. On `player-closed` the binding's click id goes with the state's
+  own, and a postback drops its rendered address, which carries the click id, once sent or given up (at
+  most the 24 hours of retries). The player's journal still holds the facts its state is made from;
+  journal retention is ankka spec 042's, as erasure is (`CLAUDE.md`), so FR-038 holds for every table
+  but the journal until then. LeakSuite searches every table for a closed player's click id.

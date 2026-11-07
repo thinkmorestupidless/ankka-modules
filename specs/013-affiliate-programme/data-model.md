@@ -134,7 +134,7 @@ status (settlement.feature).
 
 | Entity | Id | Holds | Commands |
 |---|---|---|---|
-| `FactInbox` | `<brand>/<factId>` | the fact, channel, received at, outcome | `claim(fact, channel)` → `new` or `duplicate`; `outcome(o)` |
+| `FactInbox` | `<brand>/<factId>` | its kind, currency, channel, received at and outcome; not its body (FR-038) | `claim(fact, channel)` → `new` or `duplicate`; `outcome(o)` |
 | `BrandProgramme` | brand slug | origin (`here`, `elsewhere`, `hosted`), fees (bp), fraud thresholds, payout cycle, reporting zone, GGR source and its change day, default plan, programme page, sender configuration (region, transactional ids), retired (a retired brand refuses applications and status changes; closes, payouts and reads continue), counts of duplicates and mismatches | `seed`, `add`, `update`, `setGgrSource(source, fromDay)`, `retire`, `countDuplicate`, `countMismatch`, `get` |
 | `Plan` | `<brand>/<planId>` | name, type, CPA amount and currency, RevShare bp, minimum deposit, window, status | `create` (refused `plan_already_exists` by name), `update`, `get` |
 | `EmailIndex` | HMAC of the email | affiliate id | `claim(affiliate)` (refused when another holds it), `release`, `get` |

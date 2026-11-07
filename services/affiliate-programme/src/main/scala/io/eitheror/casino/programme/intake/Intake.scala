@@ -70,7 +70,7 @@ final class Intake(calls: IntakeCalls, now: () => Instant):
       Received.Mismatched
     else
       val body    = new String(com.github.plokhotnyuk.jsoniter_scala.core.writeToArray(fact)(using AttributionFact.given_JsonValueCodec_AttributionFact), "UTF-8")
-      val claimed = calls.claim(ClaimFact(fact.brand, fact.factId, Intake.kindOf(fact), channel, body, fact.occurredAt, now()))
+      val claimed = calls.claim(ClaimFact(fact.brand, fact.factId, Intake.kindOf(fact), channel, FactInbox.currencyOf(body), fact.occurredAt, now()))
       // A claim with no outcome is a fact whose handling failed after the claim: it is handled again, the
       // player's own record of the fact ids it has seen keeping a second pass from writing twice.
       if !claimed.isNew && claimed.state.outcome.isDefined then

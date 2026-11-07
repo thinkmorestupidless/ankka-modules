@@ -104,7 +104,7 @@ class HostingSuite extends munit.FunSuite with LogCapturing:
     // The claim made, and nothing after it, as when the service stopped between the two.
     kit.components.forKeyValueEntity(io.eitheror.casino.programme.intake.FactInbox.entityId(h.slug, fd.factId))
       .call(io.eitheror.casino.programme.intake.FactInbox.claim)
-      .invoke(io.eitheror.casino.programme.intake.ClaimFact(h.slug, fd.factId, "first-deposit", s"webhook:${h.slug}", Hosted.json(fd), fd.occurredAt, kit.now)): Unit
+      .invoke(io.eitheror.casino.programme.intake.ClaimFact(h.slug, fd.factId, "first-deposit", s"webhook:${h.slug}", Some("EUR"), fd.occurredAt, kit.now)): Unit
     assertEquals(Hosted.post(kit, h.slug, h.secret, fd).json.get("outcome").asText, "new")
     s.rowsWhen("the CPA")(rs => s.sum(rs, FactType.Cpa) == 1_000): Unit
     assertEquals(Hosted.post(kit, h.slug, h.secret, fd).json.get("outcome").asText, "duplicate")

@@ -11,12 +11,10 @@ final case class InboxRow(brand: String = "", factId: String = "", kind: String 
 object InboxRow:
   given Serializer[InboxRow] = ProgrammeCodecs.serializer[InboxRow]("inbox-row")
 
-  private val CurrencyField = """"currency"\s*:\s*"([A-Z]{3})"""".r
-
   /** The day the fact was received, in UTC, and the instant, for a month in the brand's zone; the fact's currency, when it has an amount. */
   def of(s: InboxState): InboxRow =
     InboxRow(s.brand, s.factId, s.kind, s.channel, s.receivedAt.fold("")(_.toString.take(10)), s.outcome, s.duplicates, s.receivedAt,
-      CurrencyField.findFirstMatchIn(s.fact).map(_.group(1)))
+      s.currency)
 
 final class InboxView extends View[InboxState, InboxRow]:
   def onChange(s: InboxState): Effect = effects.updateRow(InboxRow.of(s))
