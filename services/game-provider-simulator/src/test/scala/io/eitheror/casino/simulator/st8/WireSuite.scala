@@ -1,7 +1,9 @@
 package io.eitheror.casino.simulator.st8
 
+import io.eitheror.casino.provider.st8.*
+
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
-import io.eitheror.casino.simulator.core.{Call, RoundRole}
+import io.eitheror.casino.provider.core.{Call, RoundRole}
 
 /**
  * Byte fidelity (plan, "What the next command needs to know"): every body and answer of

@@ -1,10 +1,10 @@
-package io.eitheror.casino.simulator.st8
+package io.eitheror.casino.provider.st8
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.fasterxml.jackson.databind.node.ObjectNode
-import io.eitheror.casino.simulator.core.{Call, Protocol, Reading, RoundRole}
-import io.eitheror.casino.simulator.st8.GoJson.Value
-import io.eitheror.casino.simulator.st8.GoJson.Value.*
+import io.eitheror.casino.provider.core.{Call, Protocol, Reading, RoundRole}
+import io.eitheror.casino.provider.st8.GoJson.Value
+import io.eitheror.casino.provider.st8.GoJson.Value.*
 
 import scala.util.Try
 

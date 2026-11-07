@@ -1,9 +1,9 @@
-package io.eitheror.casino.simulator.core
+package io.eitheror.casino.provider.core
 
 import com.thinkmorestupidless.ankka.core.*
 import com.thinkmorestupidless.ankka.core.Serializers.given
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.simulator.core.CallbackEvent.*
+import io.eitheror.casino.provider.core.CallbackEvent.*
 
 /**
  * A callback's record. Recording an attempt is idempotent on its number, so a workflow step that

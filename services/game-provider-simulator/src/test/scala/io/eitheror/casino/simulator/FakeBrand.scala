@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.thinkmorestupidless.ankka.sdk.ServiceResponse
 import com.thinkmorestupidless.ankka.testkit.ScriptedService
-import io.eitheror.casino.simulator.st8.{Keys, Signer}
+import io.eitheror.casino.provider.st8.{Keys, Signer}
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable

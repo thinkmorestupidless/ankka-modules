@@ -1,7 +1,7 @@
-package io.eitheror.casino.simulator.st8
+package io.eitheror.casino.provider.st8
 
 import com.thinkmorestupidless.ankka.sdk.SecretStore
-import io.eitheror.casino.simulator.core.KeyRing
+import io.eitheror.casino.provider.core.KeyRing
 
 import java.security.{PrivateKey, PublicKey}
 import java.time.LocalDate

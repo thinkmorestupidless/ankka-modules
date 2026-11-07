@@ -1,4 +1,4 @@
-package io.eitheror.casino.simulator.core
+package io.eitheror.casino.provider.core
 
 import com.fasterxml.jackson.databind.JsonNode
 

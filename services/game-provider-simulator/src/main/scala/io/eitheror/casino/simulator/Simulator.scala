@@ -3,8 +3,8 @@ package io.eitheror.casino.simulator
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.simulator.brands.BrandTable
-import io.eitheror.casino.simulator.core.Play
-import io.eitheror.casino.simulator.st8.{Catalogue, Keys}
+import io.eitheror.casino.provider.core.Play
+import io.eitheror.casino.provider.st8.{Catalogue, Keys}
 
 import java.util.concurrent.atomic.AtomicBoolean
 

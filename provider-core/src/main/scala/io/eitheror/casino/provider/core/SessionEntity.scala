@@ -1,9 +1,9 @@
-package io.eitheror.casino.simulator.core
+package io.eitheror.casino.provider.core
 
 import com.thinkmorestupidless.ankka.core.*
 import com.thinkmorestupidless.ankka.core.Serializers.given
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.simulator.core.SessionEvent.*
+import io.eitheror.casino.provider.core.SessionEvent.*
 
 /**
  * A session, keyed by its launch ticket. The rules about one session live here: a scenario is

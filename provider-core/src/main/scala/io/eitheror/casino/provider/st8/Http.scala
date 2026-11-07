@@ -1,4 +1,4 @@
-package io.eitheror.casino.simulator.st8
+package io.eitheror.casino.provider.st8
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.fasterxml.jackson.databind.node.ObjectNode

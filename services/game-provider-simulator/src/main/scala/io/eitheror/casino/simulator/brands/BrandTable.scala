@@ -1,24 +1,15 @@
 package io.eitheror.casino.simulator.brands
 
+import io.eitheror.casino.provider.brands.*
+
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-import io.eitheror.casino.simulator.core.Brands
+import io.eitheror.casino.provider.brands.Brand
+import io.eitheror.casino.provider.core.Brands
 
 import java.net.URI
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
-
-/** One brand the simulator serves (contracts/brand-config.md). */
-final case class Brand(
-    slug: String,
-    baseAddress: URI,
-    testBrand: Boolean,
-    providerWaitMillis: Long,
-    keyRefreshBoundSeconds: Long,
-    caPem: Option[String],
-    registerKeyAt: Option[URI],
-    site: String
-)
 
 /**
  * The brands the simulator serves (FR-025), from `SIMULATOR_BRANDS`, and the simulator's own

@@ -1,4 +1,4 @@
-package io.eitheror.casino.simulator.core
+package io.eitheror.casino.provider.core
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId}
 import com.thinkmorestupidless.ankka.runtime.ViewClient
@@ -18,6 +18,9 @@ object Sweep:
   @volatile var retention: FiniteDuration = 30.days
   @volatile var views: Option[ViewClient] = None
 
+  /** Told how many runs a sweep discarded, when any: the simulator counts them on its status. */
+  @volatile var onSwept: (ComponentClient, Int) => Unit = (_, _) => ()
+
   /** Discards every run that ended before `cutoff`; answers how many runs. */
   def run(client: ComponentClient, views: ViewClient, cutoff: Long): Int =
     val rows = views.forView(RunCallbacks).ask(RunCallbacks.endedBefore, 1000, "cutoff" -> cutoff.toString)
@@ -30,8 +33,7 @@ object Sweep:
       callbacks.foreach(c => client.forEventSourcedEntity(EntityId(c.callbackId)).call(CallbackEntity.discard).invoke())
       callbacks.map(_.sessionId).distinct.foreach(s => client.forEventSourcedEntity(EntityId(s)).call(SessionEntity.discard).invoke())
     }
-    if runs.nonEmpty then
-      client.forKeyValueEntity(EntityId(SimulatorStatusEntity.Id)).call(SimulatorStatusEntity.swept).invoke(SimulatorStatusEntity.Swept(runs.size.toLong, Wiring.now())): Unit
+    if runs.nonEmpty then onSwept(client, runs.size)
     runs.size
 
 final class SweepAction(context: TimedActionContext) extends TimedAction:

@@ -4,8 +4,11 @@ import com.thinkmorestupidless.ankka.core.{ComponentDescriptor, EntityId}
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, AnkkaService, ProjectionRuntime, TimerRuntime}
 import io.eitheror.casino.simulator.api.{Access, SimulatorEndpoint}
-import io.eitheror.casino.simulator.brands.{BrandTable, Sender}
+import io.eitheror.casino.provider.brands.Sender
+import io.eitheror.casino.simulator.brands.BrandTable
+import io.eitheror.casino.provider.core.*
 import io.eitheror.casino.simulator.core.*
+import io.eitheror.casino.provider.st8.*
 import io.eitheror.casino.simulator.st8.*
 
 import java.net.URI
@@ -37,14 +40,17 @@ object Simulation:
       holder.get()
     val factories: Seq[EndpointClients => HttpEndpoint] = Seq(
       c => OperatorApi(sim(c)), c => GamePage(sim(c)), c => Instructions(sim(c)),
-      c => KeyDocument(sim(c)), c => Health(sim(c)), c => SimulatorEndpoint(sim(c), access, Version)
+      c => KeyDocument(sim(c).keys), c => { val s = sim(c); Health(() => s.ready.get()) }, c => SimulatorEndpoint(sim(c), access, Version)
     )
     at.fold(HttpServer.of(factories*))((host, port) => HttpServer.at(host, port)(factories*))
 
   /** Installs the core's collaborators. Called once the service (and so its secret store) has started. */
   def install(service: AnkkaService, table: BrandTable, retention: FiniteDuration = 30.days): Keys =
     val keys = Keys(service.secrets)
-    Wiring.install(St8Protocol, Sender(table, keys), keys, table)
+    Wiring.install(St8Protocol, Sender(table.apply, keys), keys, table)
+    Sweep.onSwept = (client, runs) =>
+      client.forKeyValueEntity(EntityId(SimulatorStatusEntity.Id)).call(SimulatorStatusEntity.swept)
+        .invoke(SimulatorStatusEntity.Swept(runs.toLong, Wiring.now())): Unit
     Sweep.retention = retention
     Sweep.views = Some(service.viewClient)
     keys

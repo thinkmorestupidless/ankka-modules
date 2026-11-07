@@ -1,8 +1,8 @@
-package io.eitheror.casino.simulator.core
+package io.eitheror.casino.provider.core
 
 import com.thinkmorestupidless.ankka.core.{Codecs, ComponentId}
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.simulator.core.CallbackEvent.*
+import io.eitheror.casino.provider.core.CallbackEvent.*
 
 /** One callback of a run, as the run view lists it (FR-020). */
 final case class RunCallbackRow(

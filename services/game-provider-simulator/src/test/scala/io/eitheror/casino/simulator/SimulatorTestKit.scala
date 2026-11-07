@@ -6,8 +6,8 @@ import com.thinkmorestupidless.ankka.runtime.{ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
 import io.eitheror.casino.simulator.api.Access
 import io.eitheror.casino.simulator.brands.BrandTable
-import io.eitheror.casino.simulator.core.*
-import io.eitheror.casino.simulator.st8.Keys
+import io.eitheror.casino.provider.core.*
+import io.eitheror.casino.provider.st8.Keys
 
 import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -75,7 +75,7 @@ object SimulatorTestKit:
     private def rebuildTable(address: String): Unit =
       val rebuilt = table.copy(brands = table.brands.map(b => b.copy(baseAddress = URI.create(address))))
       current = rebuilt
-      Wiring.install(Wiring.protocol, io.eitheror.casino.simulator.brands.Sender(rebuilt, keys), keys, rebuilt, () => clock())
+      Wiring.install(Wiring.protocol, io.eitheror.casino.provider.brands.Sender(rebuilt.apply, keys), keys, rebuilt, () => clock())
 
     @volatile var offset: Long = 0L
     /** The core's clock, which a suite moves forward to age runs (FR-022). */

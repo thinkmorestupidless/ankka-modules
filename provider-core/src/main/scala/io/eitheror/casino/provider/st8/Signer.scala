@@ -1,4 +1,4 @@
-package io.eitheror.casino.simulator.st8
+package io.eitheror.casino.provider.st8
 
 import java.security.*
 import java.security.spec.{ECGenParameterSpec, PKCS8EncodedKeySpec, X509EncodedKeySpec}

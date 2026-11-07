@@ -1,7 +1,7 @@
-package io.eitheror.casino.simulator.st8
+package io.eitheror.casino.provider.st8
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
-import io.eitheror.casino.simulator.st8.GoJson.Value.*
+import io.eitheror.casino.provider.st8.GoJson.Value.*
 
 import scala.jdk.CollectionConverters.*
 

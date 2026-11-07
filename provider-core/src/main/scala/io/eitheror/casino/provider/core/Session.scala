@@ -1,4 +1,4 @@
-package io.eitheror.casino.simulator.core
+package io.eitheror.casino.provider.core
 
 /**
  * One launch (FR-002): the brand and the player id it passed, the currency and game, the launch

@@ -1,7 +1,7 @@
-package io.eitheror.casino.simulator.brands
+package io.eitheror.casino.provider.brands
 
-import io.eitheror.casino.simulator.core.{Attempt, Outbound, Wiring}
-import io.eitheror.casino.simulator.st8.{Keys, Signer}
+import io.eitheror.casino.provider.core.{Attempt, Outbound, Wiring}
+import io.eitheror.casino.provider.st8.{Keys, Signer}
 
 import java.io.ByteArrayInputStream
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
@@ -17,13 +17,13 @@ import scala.util.control.NonFatal
 /**
  * The outside path to a brand (research R3): the JDK client to the brand's base address, signed,
  * with the provider's wait as the request's timeout. Never ankka's service client, which would
- * present the simulator's certificate as a platform identity (FR-024).
+ * present the service's certificate as a platform identity (FR-024).
  *
  * A brand entry may name a CA to trust (`caPem`: a local installation's gateway certificate
  * authority, as PEM or as base64 of the PEM). Reaching a gateway hostname from inside a kind cluster
  * is the installation's to arrange, not this client's (`installation/overlays/dev-kind/gateway-dns.sh`).
  */
-final class Sender(table: BrandTable, keys: Keys) extends Outbound:
+final class Sender(brands: String => Brand, keys: Keys) extends Outbound:
 
   private val clients = ConcurrentHashMap[String, HttpClient]()
 
@@ -35,7 +35,7 @@ final class Sender(table: BrandTable, keys: Keys) extends Outbound:
     })
 
   def send(slug: String, route: String, body: Array[Byte], key: String, answerWait: FiniteDuration, attempt: Int): Attempt =
-    val brand = table(slug)
+    val brand = brands(slug)
     val (keyId, signature) = keys.signingKey(key) match
       case Some((kid, privateKey)) => kid -> Signer.sign(body, privateKey)
       case None                    => "none" -> ""

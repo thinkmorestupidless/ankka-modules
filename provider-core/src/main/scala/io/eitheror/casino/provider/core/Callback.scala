@@ -1,4 +1,4 @@
-package io.eitheror.casino.simulator.core
+package io.eitheror.casino.provider.core
 
 /**
  * One request sent to a brand (FR-020): what was sent, under which key, when, how often, and what
