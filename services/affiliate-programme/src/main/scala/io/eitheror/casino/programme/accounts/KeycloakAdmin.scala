@@ -7,7 +7,8 @@ import java.net.URI
 import java.net.URLEncoder
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.charset.StandardCharsets.UTF_8
-import java.time.Duration
+import java.time.{Duration, Instant}
+import java.util.concurrent.atomic.AtomicReference
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.Try
@@ -87,7 +88,14 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
 
   private def parse(body: String): Option[JsonNode] = Try(mapper.readTree(body)).toOption.filter(_ != null)
 
+  private final case class Held(token: String, until: Instant)
+  private val held = AtomicReference[Option[Held]](None)
+
+  /** The admin token, kept until shortly before it expires: one password grant per token's life, not per call. */
   private def token: Either[RealmError, String] =
+    held.get().filter(_.until.isAfter(Instant.now())).map(_.token).toRight(()).left.flatMap(_ => fresh)
+
+  private def fresh: Either[RealmError, String] =
     credentials() match
       case None => Left(RealmError.NotConfigured("no realm admin credentials"))
       case Some(c) =>
@@ -95,8 +103,14 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
         send(HttpRequest.newBuilder(URI.create(s"$base/realms/master/protocol/openid-connect/token"))
           .header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)))
           .flatMap { (status, body, _) =>
-            if status / 100 == 2 then parse(body).flatMap(j => Option(j.get("access_token"))).map(_.asText).toRight(RealmError.Failed("no access token"))
-            else Left(RealmError.Failed(s"admin token: $status"))
+            if status / 100 != 2 then Left(RealmError.Failed(s"admin token: $status"))
+            else
+              val j = parse(body)
+              j.flatMap(j => Option(j.get("access_token"))).map(_.asText).toRight(RealmError.Failed("no access token")).map { t =>
+                val life = j.flatMap(j => Option(j.get("expires_in"))).filter(_.canConvertToLong).fold(60L)(_.asLong)
+                held.set(Some(Held(t, Instant.now().plusSeconds(math.max(0L, life - 15)))))
+                t
+              }
           }
 
   private def send(b: HttpRequest.Builder): Either[RealmError, (Int, String, Option[String])] =
@@ -105,11 +119,15 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
       .map(r => (r.statusCode, r.body, r.headers.firstValue("Location").toScala))
 
   private def call(method: String, path: String, body: Option[JsonNode] = None): Either[RealmError, (Int, String, Option[String])] =
-    token.flatMap { t =>
+    def once(t: String) =
       val b = HttpRequest.newBuilder(URI.create(admin + path)).header("Authorization", s"Bearer $t")
         .method(method, body.fold(HttpRequest.BodyPublishers.noBody())(j => HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(j))))
       if body.isDefined then b.header("Content-Type", "application/json")
       send(b)
+    // A token the realm no longer takes (revoked, or its clock ahead of ours) is fetched again, once.
+    token.flatMap(once).flatMap {
+      case (401, _, _) => held.set(None); fresh.flatMap(once)
+      case r           => Right(r)
     }
 
   private def ok(userId: String)(r: (Int, String, Option[String])): Either[RealmError, Unit] = r match
@@ -134,7 +152,9 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
 
   private def roleMapping(method: String, userId: String, role: String): Either[RealmError, Unit] =
     call("GET", s"/roles/${enc(role)}").flatMap {
-      case (200, body, _) => call(method, s"/users/$userId/role-mappings/realm", Some(nodes.arrayNode().add(parse(body).get))).flatMap(ok(userId))
+      case (200, body, _) =>
+        parse(body).toRight(RealmError.Failed(s"role $role: not JSON"))
+          .flatMap(r => call(method, s"/users/$userId/role-mappings/realm", Some(nodes.arrayNode().add(r)))).flatMap(ok(userId))
       case (s, b, _)      => Left(RealmError.Failed(s"role $role: $s ${b.take(200)}"))
     }
 
@@ -155,9 +175,10 @@ private final class HttpKeycloak(base: String, realm: String, credentials: () =>
   def updateEmail(userId: String, email: String): Either[RealmError, Unit] =
     call("GET", s"/users/$userId").flatMap {
       case (200, body, _) =>
-        val user = parse(body).collect { case o: ObjectNode => o }.get
-        user.put("email", email).put("username", email).put("emailVerified", false)
-        call("PUT", s"/users/$userId", Some(user)).flatMap(ok(userId))
+        parse(body).collect { case o: ObjectNode => o }.toRight(RealmError.Failed(s"user $userId: not a JSON object")).flatMap { user =>
+          user.put("email", email).put("username", email).put("emailVerified", false)
+          call("PUT", s"/users/$userId", Some(user)).flatMap(ok(userId))
+        }
       case (404, _, _) => Left(RealmError.NotFound(userId))
       case (s, b, _)   => Left(RealmError.Failed(s"$s ${b.take(200)}"))
     }

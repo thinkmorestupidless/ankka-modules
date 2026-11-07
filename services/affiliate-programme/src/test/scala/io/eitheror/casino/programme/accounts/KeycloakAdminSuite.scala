@@ -41,3 +41,26 @@ class KeycloakAdminSuite extends munit.FunSuite:
       assert(KeycloakAdmin.http(stub.url, "eitheror", () => None).deleteUser("u").isLeft)
     finally stub.stop()
   }
+
+  test("one admin token serves its life; a 401 fetches another once; a body that is not JSON is a failure, not a throw") {
+    var rejectNext = false
+    val stub = Stub {
+      case ("POST", "/realms/master/protocol/openid-connect/token", _) => (200, """{"access_token":"t","expires_in":300}""", Map.empty)
+      case ("GET", "/admin/realms/eitheror/users/u-2", _) if rejectNext => rejectNext = false; (401, "", Map.empty)
+      case ("GET", "/admin/realms/eitheror/users/u-2", _) => (200, "<html>a proxy's page</html>", Map.empty)
+      case ("GET", "/admin/realms/eitheror/roles/broken", _) => (200, "not json", Map.empty)
+      case ("GET", p, _) if p.startsWith("/admin/realms/eitheror/users?email=") => (200, "[]", Map.empty)
+      case _ => (500, "unexpected", Map.empty)
+    }
+    try
+      val kc = KeycloakAdmin.http(stub.url, "eitheror", creds)
+      (1 to 3).foreach(_ => kc.findByEmail("x@example.com"): Unit)
+      def grants = stub.seen.count(_.path.endsWith("/token"))
+      assertEquals(grants, 1)
+      assert(kc.assignRole("u-1", "broken").isLeft)
+      assert(kc.updateEmail("u-2", "y@example.com").isLeft)
+      rejectNext = true
+      assert(kc.updateEmail("u-2", "y@example.com").isLeft)
+      assertEquals(grants, 2)
+    finally stub.stop()
+  }
