@@ -101,8 +101,9 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
             case (ft, bp) if bp != 0 => fact(s"${ft.wire}/${c.factId}", ft, Fees.on(c.amount, bp), c.occurredAt, c.zone, c.at)
           }
       val folded = (input +: fees).foldLeft(s.sums)(_.add(_))
+      // As the original (`InternalRoutes.scala:227`): no RevShare at 0, which would claw back all that was written.
       val revShare =
-        if !c.rate.payable then None
+        if !c.rate.payable || c.rate.revShareBp <= 0 then None
         else
           val d = RevShare.delta(c.rate.window, folded, input.period, c.rate.revShareBp)
           Option.when(d != 0)(fact(s"revshare/${c.factId}", FactType.RevShare, d, c.occurredAt, c.zone, c.at))

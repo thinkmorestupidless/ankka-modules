@@ -73,6 +73,13 @@ class CommissionAccountSuite extends munit.FunSuite with LogCapturing:
     assertEquals(payable(k, FactType.RevShare), Vector(3_000L))
   }
 
+  test("a plan at no RevShare writes none, and claws back nothing already written") {
+    val k = kit
+    ngr(k, "g1", "ggr", 10_000, oct, lifetime): Unit
+    ngr(k, "g2", "ggr", 4_000, nov, lifetime.copy(revShareBp = 0)): Unit
+    assertEquals(payable(k, FactType.RevShare), Vector(2_500L))
+  }
+
   test("CPA once per id; payable facts emit EarningsChanged for their period") {
     val k = kit
     val r = k.call(CommissionAccount.recordCpa)(RecordCpa("cpa/goldvibe/ps-1", 5_000, oct, "UTC", now))
