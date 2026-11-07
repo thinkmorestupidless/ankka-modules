@@ -1,0 +1,41 @@
+{
+  "project": {
+    "id": "games",
+    "name": "Games"
+  },
+  "ankka": {
+    "runtime": "0.13.0"
+  },
+  "keycloak": {
+    "issuerBase": "https://auth-casino.127.0.0.1.sslip.io:8443"
+  },
+  "services": [
+    {
+      "name": "provider",
+      "image": "europe-west1-docker.pkg.dev/eitheror/casino/provider:0.1.0",
+      "expose": true,
+      "env": {
+        "PROVIDER_EXTERNAL_URL": "https://provider-games.127.0.0.1.sslip.io:8443",
+        "PROVIDER_RETENTION_DAYS": "90",
+        "PROVIDER_RETRY_SCHEDULE": "{\"intervals\":[{\"every\":\"30s\",\"for\":\"10m\"},{\"every\":\"10m\"}],\"cap\":\"8h\"}",
+        "PROVIDER_LOCAL_CA": "secret:games-provider/LOCAL_CA"
+      }
+    }
+  ],
+  "secrets": [
+    {
+      "name": "games-provider",
+      "keys": ["LOCAL_CA"]
+    }
+  ],
+  "topics": [
+    {
+      "name": "platform.audit",
+      "partitions": 6,
+      "retention": "fact"
+    }
+  ],
+  "grants": {
+    "made": []
+  }
+}

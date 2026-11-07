@@ -92,6 +92,19 @@ when ankka-reasoning 0.2.0 is cut (R14).
 document for the brand. It is `none` when a brand writes none, and `rewards` then matches brand codes
 only, until spec 013 publishes a document.
 
+## The house provider's settings
+
+The `games` shared project (spec 026) is no module and has no brand values; its one service,
+`provider`, reads these from `shared/games/manifest.json`. Its staff issuer is rendered by the
+modules tool as every shared service's is.
+
+| Setting | Type | Secret | Default | Meaning |
+|---|---|---|---|---|
+| `PROVIDER_EXTERNAL_URL` | URL | no | (required) | the address brands and players reach; `game_url` and the key document are under it |
+| `PROVIDER_RETENTION_DAYS` | days | no | `90` | how long an ended session and its callbacks are kept |
+| `PROVIDER_RETRY_SCHEDULE` | JSON | no | `{"intervals":[{"every":"30s","for":"10m"},{"every":"10m"}],"cap":"8h"}` | when an unanswered callback is sent again; the scenario schema's `schedule` without `wait` |
+| `PROVIDER_LOCAL_CA` | PEM | yes, `games-provider/LOCAL_CA` | none | a local installation's CA, named by a brand entry's `caPem: env:PROVIDER_LOCAL_CA` |
+
 ## Not yet built
 
 Services a manifest names whose specs have not built them yet: no `services/<name>/build.sbt`

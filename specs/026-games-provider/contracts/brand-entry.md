@@ -50,11 +50,7 @@ The write is refused naming the field on a malformed value; the private key is n
         "PROVIDER_EXTERNAL_URL": "https://provider-games.127.0.0.1.sslip.io:8443",
         "PROVIDER_RETENTION_DAYS": "90",
         "PROVIDER_RETRY_SCHEDULE": "{\"intervals\":[{\"every\":\"30s\",\"for\":\"10m\"},{\"every\":\"10m\"}],\"cap\":\"8h\"}",
-        "PROVIDER_LOCAL_CA": "secret:games-provider/LOCAL_CA",
-        "ANKKA_AUTH_ISSUERS": "staff",
-        "ANKKA_AUTH_STAFF_ISSUER": "setting:STAFF_ISSUER",
-        "ANKKA_AUTH_STAFF_JWKS_URL": "setting:STAFF_JWKS_URL",
-        "ANKKA_AUTH_STAFF_AUDIENCE": "operator-console"
+        "PROVIDER_LOCAL_CA": "secret:games-provider/LOCAL_CA"
       }
     }
   ],
@@ -63,6 +59,9 @@ The write is refused naming the field on a malformed value; the private key is n
   "grants": {"made": []}
 }
 ```
+
+The staff issuer (`ANKKA_AUTH_*`, the `eitheror` realm) is not written here: the schema reserves
+those names and the modules tool renders them for every shared service from `keycloak.issuerBase`.
 
 The schema's enums gain `games` (project) and `provider` (service); 027 adds `pools`.
 `Layout.SharedProjects("games") = Vector("provider")`. The modules tool applies it on a real-money

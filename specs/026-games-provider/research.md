@@ -229,3 +229,10 @@ unchanged: they run against their scripted provider, and the amendment of R11 ke
 ## Found during implementation
 
 - **T014, TestGame's free rounds.** The task says the test game holds its free-round instances "in `BonusBook`". `BonusBook` is an entity, and the test game is a loopback fixture with no runtime of its own, so it holds them in memory in `BonusBook`'s shapes (`Bonus`, `Instance`), spending one as `BonusBook.spend` does. A real game service (spec 027) registers the entity itself.
+- **T015/T016, `shared/games/manifest.json`.** The example in `contracts/brand-entry.md` wrote
+  `ANKKA_AUTH_*` settings; the shared-manifest schema reserves those names, and the modules tool
+  renders the `eitheror` realm's staff issuer for every shared service, so they are dropped from the
+  manifest and the example (the provider's staff authentication is unchanged). `platform.audit`
+  joins `Layout.SharedTopics("games")`, since a shared project declares only its own topics.
+  `provider` is not put in `contract/keys.md`'s "Not yet built" table: its build exists since T002,
+  and the table lists only services without one.

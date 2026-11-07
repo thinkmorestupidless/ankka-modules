@@ -28,9 +28,11 @@ object Layout:
 
   /**
    * The shared projects and their services (FR-003). `tools` holds the game provider simulator
-   * (spec 020), which reaches a brand only through its public provider routes (constitution III).
+   * (spec 020), which reaches a brand only through its public provider routes (constitution III);
+   * `games` holds the house provider (spec 026), which reaches a brand the same way.
    */
   val SharedProjects: Map[String, Vector[String]] = Map(
+    "games"     -> Vector("provider"),
     "payments"  -> Vector("merchant", "psp-gateway", "ingest"),
     "programme" -> Vector("affiliate-programme"),
     "reasoner"  -> Vector("audit"),
@@ -71,7 +73,9 @@ object Layout:
 
   /** Topics of the shared projects that are part of the contract (FR-011). */
   val SharedTopics: Map[String, Vector[String]] = Map(
-    // platform.audit: merchant's and ingest's audit records (spec 004 FR-034, research R13), granted to reasoner/audit (SharedGrantsMade).
+    // platform.audit: merchant's and ingest's audit records (spec 004 FR-034, research R13), granted to reasoner/audit (SharedGrantsMade);
+    // and the house provider's operator actions (spec 026 R14).
+    "games"     -> Vector("platform.audit"),
     "payments"  -> Vector("payments.merchants", "platform.audit"),
     "programme" -> Vector.empty,
     "reasoner"  -> Vector.empty,
