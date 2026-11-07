@@ -99,7 +99,7 @@ another session's: do not touch it.
       single-mode cases and `G/payment_failed_test.go` ported case by case, the freshness cases marked
       as replaced by the claim; `T/events/ClassesSuite.scala`: every trigger of FR-006 and FR-014 in
       exactly one class.
-- [ ] T014 [P] `S/profile/Attributes.scala` (`Attributes.of(profile)`: FR-008 exactly as
+- [X] T014 [P] `S/profile/Attributes.scala` (`Attributes.of(profile)`: FR-008 exactly as
       `buildIdentifyAttributes`, the seven always sent, the numeric nine with the string fallback,
       `player_name`'s fallback, `rg_limit_types`'s form), `S/profile/Suppression.scala` (research
       R14: per channel, the reason order), `S/profile/DepositDay.scala` (the day beginning at 03:00
