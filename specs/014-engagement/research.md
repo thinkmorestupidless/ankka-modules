@@ -445,6 +445,14 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   here produces either, so nothing tracks them until the facts exist (kyc's awaiting-deposit state, a
   bank account added at payouts). `seeded` is 32 (contracts/routes.md).
 
+- **The fact id** (2026-11-07, decided while building): R4 keys a send `<event>/<fact id>`, but the
+  contract's facts carry no id and ankka 0.16's consumer context names none (no `ce-id`; only the
+  subject and a sequence). A fact's id here is the first 16 bytes, in hex, of the SHA-256 of the
+  topic's name and the fact as the contract writes it (`consumers/Sends.factId`). A redelivery decodes
+  to the same value and so the same id; two facts differ at least in their `occurredAt`. A recording's
+  ids are its own, so parity compares by event name, not key (T052). Under *For ankka*: a consumer
+  that could read the message's `ce-id` would use the producer's id.
+
 ## Design finished
 
 2026-11-03: analyze reported nothing above LOW.
