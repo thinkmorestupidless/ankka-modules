@@ -20,7 +20,8 @@ object EngagementService:
     consumers.PaymentsConsumer.descriptor,
     consumers.SessionsConsumer.descriptor,
     consumers.WithdrawalsConsumer.descriptor,
-    consumers.RewardsConsumer.descriptor
+    consumers.RewardsConsumer.descriptor,
+    timers.DepositDayTimer.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
@@ -32,6 +33,7 @@ object EngagementService:
   def started(timers: TimerRuntime, views: ViewClient): Unit =
     EngagementRuntime.timers = () => timers.timerScheduler
     EngagementRuntime.views = () => views
+    io.eitheror.casino.engagement.timers.DepositDayReset.schedule(EngagementRuntime.timers())
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
