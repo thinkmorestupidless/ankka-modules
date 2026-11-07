@@ -62,6 +62,7 @@ Named here because constitution I keeps the original's behaviour unless a change
 14. **A manager's override figure at approval is an adjustment.** Today it overwrites the payout's override and total with no fact behind them; now the difference is an adjustment fact the payout claims, so the total stays the fold of what it claims.
 15. **One clock.** Today a fact's period is the month in the server's zone, a period ends at a UTC month boundary, and day ranges are read in Europe/Berlin; now all three are the brand's reporting zone.
 16. **New for managers:** revoking a manager (the original has no route for it), and an export of approved payouts served by the programme (the original's backoffice builds its CSV in the browser, with fewer columns).
+17. **The audit names what happened, who did it and when, never who the affiliate is.** The original's audit rows are its event twins and carry the affiliate's email, name and, on an invitation, the set-password URL with its live token. The programme's rows are `{auditId, affiliateId, brandId, event, actorId, recordedAt, details}`, and identity stays sealed under the affiliate's key (change 9). A joiner's application by an invite link is a row of its own, as the original's `AFFILIATE_PENDING_APPROVAL` by `invite-link` (asked 2026-11-07).
 
 ### Session 2026-10-08 (reconciliation 2)
 

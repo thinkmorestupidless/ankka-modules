@@ -90,6 +90,8 @@ final class Invitations(api: Api):
               made.fold(e => refuse(503, "store_unavailable", e), { _ =>
                 api.components.forEventSourcedEntity(Membership.entityId(affiliate, l.brand)).call(Membership.applyFor)
                   .invoke(Apply(affiliate, l.brand, Application(api.now(), None, "invite-link", Some(l.affiliate)))): Unit
+                // As the original's first row for a joiner (change 17): the application, by the link, under its affiliate.
+                Networks(api).audit(affiliate, Some(l.brand), "AFFILIATE_PENDING_APPROVAL", "invite-link", Map("parentAffiliateId" -> l.affiliate))
                 answer(201, Answers.Applied(affiliate, Membership.Pending))
               })
           })

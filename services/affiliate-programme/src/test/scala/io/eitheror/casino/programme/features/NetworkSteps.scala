@@ -212,8 +212,10 @@ class NetworkSteps extends ProgrammeFeatures("network.feature"):
   Then("it is audited as the parent's action") { () =>
     def audited(a: String, n: Int) = kit.eventually(s"$a's audit")(Option(kit.views.forView(Activity).ask(Activity.ofAffiliate, "affiliate" -> a))
       .filter(_.size >= n))
-    assertEquals(audited(sub, 1).map(r => (r.action, r.actor)), Vector(("SUB_AFFILIATE_APPROVE", parent)))
-    assertEquals(audited(subs(1), 4).map(_.actor).distinct, Vector(parent))
+    // A joiner's application by the link is its own row (change 17); the actions on it are the parent's.
+    def acted(a: String, n: Int) = audited(a, n).filterNot(_.actor == "invite-link")
+    assertEquals(acted(sub, 2).map(r => (r.action, r.actor)), Vector(("SUB_AFFILIATE_APPROVE", parent)))
+    assertEquals(acted(subs(1), 4).map(_.actor).distinct, Vector(parent))
   }
 
   Given("a sub an operator has suspended") { () =>
@@ -261,7 +263,7 @@ class NetworkSteps extends ProgrammeFeatures("network.feature"):
   Then("it is refused") { () =>
     assertEquals(reply.status, 403)
     assertEquals(kit.request("GET", s"/v1/my/$parent/network/${id("root")}", headers = kit.asAffiliate(parent)).status, 403)
-    assertEquals(kit.request("GET", s"/v1/my/${id("root")}/network", headers = kit.asAffiliate(parent)).status, 404)
+    assertEquals(kit.request("GET", s"/v1/my/${id("root")}/network", headers = kit.asAffiliate(parent)).status, 403)
   }
 
   Given("a corrupted parent chain that forms a cycle") { () =>

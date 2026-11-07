@@ -28,7 +28,7 @@ class StartSuite extends munit.FunSuite:
     assertEquals(kit.request("GET", "/v1/programme/brands", headers = kit.asManager()).status, 403)
     assertEquals(kit.request("GET", "/v1/programme/brands", headers = kit.asPlatformAdmin()).status, 200)
     val other = kit.request("GET", "/v1/my/aff-other/account", headers = kit.asAffiliate("aff-me"))
-    assertEquals((other.status, other.json.get("error").asText), (404, "account_not_found"))
+    assertEquals((other.status, other.text), (403, "The supplied authentication is not authorized to access this resource"))
     assertEquals(kit.request("GET", "/v1/my/aff-me/account", headers = kit.asAffiliate("aff-me")).json.get("error").asText, "account_not_found")
     assertEquals(kit.request("GET", "/v1/my/aff-me/account", headers = kit.fromInternet).status, 401)
   }

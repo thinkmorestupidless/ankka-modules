@@ -143,7 +143,7 @@ class ImportSuite extends munit.FunSuite with LogCapturing:
     assert(r.json.get("counts").get("accounts").asInt == 3, r.text)
   }
 
-  test("a bundle is refused whole: another brand's, a brand the programme lacks, an email another account holds, or not a platform administrator") {
+  test("a bundle is refused whole: another brand's, a brand the programme lacks, or not a platform administrator; an email another account holds is a duplicate") {
     val s = Spinvibe(kit)
     assertEquals(s.post(as = kit.asManager(Seq("spinvibe"))).status, 403)
     val other = s.bundle.copy(brand = "goldvibe")
@@ -151,10 +151,10 @@ class ImportSuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.request("POST", "/v1/programme/imports/nowhere", Some(s.json), kit.asPlatformAdmin()).status, 404)
     val taken = kit.request("POST", "/v1/affiliates/spinvibe/apply", Some(s"""{"email":"${s.email(s.sub)}"}"""), kit.fromInternet)
     assertEquals(taken.status, 201, taken.text)
-    val refused = s.post()
-    assertEquals((refused.status, refused.json.get("error").asText), (409, "email_already_registered"))
-    assert(refused.json.get("message").asText.contains(s.sub))
-    assertEquals(account(s.parent).exists, false)
+    // The account the programme already has keeps the email; the imported one is its duplicate, imported whole.
+    val ran = s.run()
+    assertEquals(ran.json.get("duplicates").get(s.sub).asText, taken.json.get("affiliateId").asText)
+    assertEquals((account(s.sub).exists, account(s.sub).keycloakUser, account(s.parent).exists), (true, None, true))
   }
 
 object ImportSuite:

@@ -96,7 +96,10 @@ object Answers:
       /** At one brand (the operator's read): its status and plan, as the original's single-brand account. */
       status: Option[String],
       planId: Option[String],
-      memberships: Vector[MembershipAnswer]
+      memberships: Vector[MembershipAnswer],
+      /** The brand of `status` and `planId`, and the realm user the account signs in as, as the original's account. */
+      brandId: Option[String] = None,
+      keycloakUserId: Option[String] = None
   )
 
   def membership(m: MembershipState): MembershipAnswer =
@@ -111,7 +114,7 @@ object Answers:
     AccountAnswer(a.id, identity.map(_.email), identity.map(_.name), identity.flatMap(_.displayName), identity.flatMap(_.companyName),
       identity.flatMap(_.website), identity.flatMap(_.trafficSource), identity.flatMap(_.paymentMethod), a.parent, Percent.show(a.overrideBp),
       a.postbackUrl, a.minimumPayout, a.managerId, a.group, a.tags, a.createdAt, a.firstLoginAt, a.lastLoginAt, a.closed,
-      atBrand.flatMap(_.status), atBrand.flatMap(_.plan), memberships.map(membership))
+      atBrand.flatMap(_.status), atBrand.flatMap(_.plan), memberships.map(membership), atBrand.map(_.brand), a.keycloakUser)
 
   final case class PlanAnswer(planId: String, brandId: String, planName: String, planType: String, cpaAmount: Long, cpaCurrency: String,
       revSharePercent: BigDecimal, minimumDeposit: Long, negativeCarryover: Boolean, status: String)

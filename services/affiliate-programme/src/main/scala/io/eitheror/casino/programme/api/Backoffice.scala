@@ -23,6 +23,7 @@ object BackofficeAnswers:
       cpaCurrency: Option[String] = None, revSharePercent: Option[Percent] = None, minimumDepositThreshold: Option[Long] = None,
       negativeCarryover: Option[Boolean] = None, status: Option[String] = None)
   final case class PlanCreated(planId: String, planName: String)
+  final case class AccountCreated(affiliateId: String, email: String, status: String)
   final case class PlanChanged(planId: String)
 
   final case class SettingsBody(adminFeePercent: Option[Percent] = None, paymentFeePercent: Option[Percent] = None,
@@ -57,6 +58,7 @@ object BackofficeAnswers:
 
   given planBody: JsonValueCodec[PlanBody]           = ProgrammeCodecs.wire[PlanBody]
   given planCreated: JsonValueCodec[PlanCreated]     = ProgrammeCodecs.wire[PlanCreated]
+  given accountCreated: JsonValueCodec[AccountCreated] = ProgrammeCodecs.wire[AccountCreated]
   given planChanged: JsonValueCodec[PlanChanged]     = ProgrammeCodecs.wire[PlanChanged]
   given settingsBody: JsonValueCodec[SettingsBody]   = ProgrammeCodecs.wire[SettingsBody]
   given settingsAnswer: JsonValueCodec[SettingsAnswer] = ProgrammeCodecs.wire[SettingsAnswer]
@@ -252,6 +254,7 @@ final class Backoffice(api: Api):
                         .invoke(ActivateInvited(affiliate, brand, plan, Application(api.now(), None, "operator", b.parentAffiliateId), by)): Unit
                       if known.isEmpty then Networks(api).signIn(affiliate, brand)
                       audit(affiliate, brand, "ACCOUNT_CREATED", by, Map("planId" -> plan))
-                      answer(201, Applied(affiliate, Membership.Active))
+                      // As the original: the account and the address it was made for.
+                      answer(201, AccountCreated(affiliate, email, Membership.Active))
                     })
                 })

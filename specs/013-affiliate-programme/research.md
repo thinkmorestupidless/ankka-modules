@@ -337,6 +337,41 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
 
 2026-11-01: analyze reported nothing above LOW.
 
+## Changed at implementation (2026-11-07)
+
+What the decisions above became once built. Each line names the finding under *Found during
+implementation* that carries the detail.
+
+- **R5, R6**: a first deposit is counted once although spec 012 sends a `first-deposit` and a
+  `deposit`; a later deposit pays CPA while the guard is unset; a fact claimed but never handled is
+  handled when it comes again.
+- **R6, R20 (first item)**: a suspended affiliate is paid no CPA, as FR-016 says; the original's deposit
+  route never reads the status.
+- **R8**: a close below the threshold releases what it held; a rejected payout is frozen as a paid one
+  is; a repeated close answers the period's open payouts; moving a payout to pending is refused as a
+  transition; an override figure is an adjustment, not earnings; SC-006's thousand closes run at the
+  unit level.
+- **R9**: closing and erasing need every brand of the account; closing takes the realm roles; an
+  erasure is filed only for a closed account and its four actions run in one step; O18 lowercases
+  the address; the leak search reads every table over JDBC.
+- **R10**: the legacy withdrawal reads each brand's key document; a bonus code may name an offer;
+  link counts are rows counted.
+- **R11**: an invitation to a known email is refused; the invitation token names the account; revoking
+  a manager keeps the role while another brand's remains; a realm user deleted under an account
+  stalls no provisioning.
+- **R12**: the read-only view is six routes, and postback outcomes a seventh page; a revenue read
+  answers a list of figures per brand and currency.
+- **R13**: notifications the original did not write; which facts send a postback; a postback's last
+  outcome is an entity per affiliate, brand and event; a brand's Customer.io key is written on its
+  settings by an administrator.
+- **R15**: a brand is added in one request; the usage report counts memberships per plan currency;
+  the webhook's two channels are shown once each.
+- **R19**: the bundle is version 1, written by `tests/original/programme-export`, which derives
+  pseudonyms with a key read at run time; the import checks the whole bundle and seals identities
+  before keeping anything, runs a section at a time, 200 items a turn, sends and pays nothing, and a
+  commission account takes one import.
+- **R17**: the recordings were made last (T034), on the original at the commit their files name.
+
 ## Found during implementation
 
 - **A later deposit pays CPA while the guard is unset** (T019). data-model.md's kind table records a
@@ -597,3 +632,21 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
   `PUT /{brand}/settings` takes `customerIoKey`. Only `brand_admin` or `platform_admin` may send it;
   for an affiliate manager the request is `403`. It is written to the store, never kept in the brand's
   state, and never answered: `GET` says only `customerIoKeySet`.
+- **What the parity replays found** (T034's recordings, 2026-11-07).
+  - **An unreachable portal target is `403`** (asked 2026-11-07). The original refuses before it reads
+    the target, with its ACL's `403` and text; the contract had said `404 account_not_found`. A target
+    the caller reaches that does not exist stays `404`.
+  - **Account creation answers the email** (O8, asked 2026-11-07): `201 {affiliateId, email, status}`,
+    the original's two fields and the programme's status.
+  - **The audit keeps the programme's shape** (asked 2026-11-07): spec change 17. The invite-link
+    application is now a row, `AFFILIATE_PENDING_APPROVAL` by `invite-link`, as the original's.
+  - **The original keeps no bonus-cost or chargeback fact.** It writes them under `bonus-<tx>` and
+    `chargeback-<tx>`, which are not UUIDs, and the substrate refuses them without the route noticing.
+    Its revenue counts a deduction only in the request that carried it (`knownFacts`), so a chargeback's
+    recompute drops an earlier bonus cost: the recorded NGR leaves it out. The feature folds both, and
+    so does the programme; the replay marks it. The export has no such fact to carry, so an imported
+    figure's NGR is the original's with those deductions given back. The commission facts already
+    carry them, and the commission is the same; ImportParitySuite accepts exactly that difference.
+  - **Brand settings and the programme page carry the original's earlier runs.** Both runs read them
+    before changing them, and found what the runs before had left. The replay first sets them to that
+    answer, the state the run started from.

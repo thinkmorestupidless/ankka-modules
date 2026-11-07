@@ -17,8 +17,12 @@ import io.eitheror.casino.programme.tags.Tags
 import java.time.Instant
 import scala.concurrent.duration.*
 
-/** An account as the import keeps it: its identity already sealed and its email digested by the route. */
-final case class SealedAccount(account: BundleAccount, identity: Sealed, emailDigest: String)
+/**
+ * An account as the import keeps it: its identity already sealed and its email digested by the route.
+ * `duplicateOf`: the account that holds the same email, the earlier one; this one is imported without the
+ * email or sign-in, for a manager to merge or close (research.md, asked 2026-11-07).
+ */
+final case class SealedAccount(account: BundleAccount, identity: Sealed, emailDigest: String, duplicateOf: Option[String] = None)
 
 /**
  * One import of a brand's bundle (FR-039, research R19), id `<brand>/<digest of the bundle>`: the same
@@ -36,7 +40,8 @@ final case class ImportState(
     section: Int = 0,
     cursor: Int = 0,
     counts: Map[String, Int] = Map.empty,
-    finishedAt: Option[Instant] = None
+    finishedAt: Option[Instant] = None,
+    duplicates: Map[String, String] = Map.empty // an account → the one holding its email
 ):
   def started: Boolean  = startedAt.isDefined
   def finished: Boolean = finishedAt.isDefined
@@ -95,14 +100,20 @@ final class Sections(client: ComponentClient, secrets: SecretStore):
 
   private def enrol(brand: String, s: SealedAccount): Unit =
     val a = s.account
-    client.forKeyValueEntity(EntityId(s.emailDigest)).call(EmailIndex.claim).invoke(a.id): Unit
-    val fields = AccountFields(a.minimumPayout, a.postbackUrl, a.keycloakUser, a.termsVersion, a.termsAcceptedAt, a.managerId, a.group, a.tags)
+    // A duplicate neither claims the email nor keeps the realm user it signed in as: the earlier account has both.
+    if s.duplicateOf.isEmpty then client.forKeyValueEntity(EntityId(s.emailDigest)).call(EmailIndex.claim).invoke(a.id): Unit
+    val realmUser = a.keycloakUser.filter(_ => s.duplicateOf.isEmpty)
+    val fields = AccountFields(a.minimumPayout, a.postbackUrl, realmUser, a.termsVersion, a.termsAcceptedAt, a.managerId, a.group, a.tags)
     account(a.id).call(Affiliate.createAccount)
       .invoke(CreateAffiliate(a.id, s.identity, s.emailDigest, a.parent, a.overrideBp, fields, "import", a.createdAt)): Unit
     val m = a.membership
     val state = MembershipState(a.id, brand, Some(m.status), m.plan.map(Plan.idOf(brand, _)), m.revShareOverrideBp,
       Some(Application(m.appliedAt, a.termsVersion, m.source, a.parent)), m.suspendedBy, m.rejectedReason, m.since.orElse(Some(m.appliedAt)))
     membership(a.id, brand).call(Membership.importMembership).invoke(ImportMembership(state)): Unit
+    s.duplicateOf.foreach { other =>
+      client.forKeyValueEntity(EntityId(s"import-duplicate/${a.id}")).call(AuditEntry.write)
+        .invoke(Audit(a.id, Some(brand), "IMPORTED_DUPLICATE_EMAIL", "import", a.createdAt, details = Map("duplicateOf" -> other))): Unit
+    }
 
   private def link(brand: String, l: BundleLink): Unit =
     val ref = client.forKeyValueEntity(EntityId(l.id))
@@ -184,7 +195,8 @@ final class Import(context: WorkflowContext) extends Workflow[ImportState]:
   def start(c: StartImport): Effect[ImportState] =
     if currentState.started then effects.reply(currentState)
     else
-      effects.updateState(ImportState(c.brand, Some(c.bundle), c.accounts, c.by, Some(c.at)))
+      val duplicates = c.accounts.flatMap(a => a.duplicateOf.map(a.account.id -> _)).toMap
+      effects.updateState(ImportState(c.brand, Some(c.bundle), c.accounts, c.by, Some(c.at), duplicates = duplicates))
         .transitionTo(Import.run.ref).thenReplyState
 
   def runStep: StepEffect =

@@ -32,6 +32,8 @@ object Wire:
     val PayoutPaid       = "payout_paid"
     val Erased           = "erased"
     val NotBuilt         = "not_built"
+    /** The original's ACL refusal, its text as Akka HTTP wrote it. */
+    val NotAuthorised    = "The supplied authentication is not authorized to access this resource"
 
   def refuse(status: Int, code: String, message: String = ""): Respond[Bytes] =
     answer(status, Refusal(code, Option(message).filter(_.nonEmpty)))

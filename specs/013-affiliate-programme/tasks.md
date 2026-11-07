@@ -433,7 +433,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [ ] T095 Quickstart §6: `just programme-run`, the walk-through it describes
 - [ ] T096 Quickstart §7 on kind: `shared/programme` beside `brands/goldvibe`, the grant consumed, a hosted
   brand's webhook landing; settle research R20's second item (a removed brand's component)
-- [ ] T097 Record what changed at implementation in research.md *Changed at implementation*
+- [X] T097 Record what changed at implementation in research.md *Changed at implementation*
 
 ---
 

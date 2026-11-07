@@ -20,7 +20,7 @@ public by `withAcl(Routes.public)`.
 | O1–O3 | `GET /{brand}/managers`, `POST /{brand}/managers`, `POST /{brand}/managers/{user}/reset-password` | FR-031 |
 | new | `DELETE /{brand}/managers/{user}` | change 16: removes `brand_<slug>`, and `affiliate_manager` when the user holds no other `brand_*` role |
 | O4–O6 | `GET`, `POST /{brand}/commission-plans`; `PATCH /{brand}/commission-plans/{plan}` | + `cpaCurrency` (change 11) |
-| O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9); create active with a membership |
+| O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9); create active with a membership, `201 {affiliateId, email, status}` as the original |
 | O9, O10 | `GET /{brand}/accounts/{aff}/network-health`, `/network` | |
 | O11–O13 | `POST /{brand}/network/{sub}/{approve|suspend|reactivate}` | **reshaped** from `accounts/{aff}/network/{sub}/…` (two parameters) |
 | O14, O15 | `POST /{brand}/accounts/{aff}/approve`, `/reject` | FR-002 |
@@ -30,7 +30,7 @@ public by `withAcl(Routes.public)`.
 | new | `POST /{brand}/accounts/{aff}/close`, `POST /{brand}/accounts/{aff}/erasure` | FR-037: close disables sign-in; erasure files the hold |
 | O22 | `GET /{brand}/accounts/{aff}/revenue` | |
 | O23, O24 | `GET`, `POST /{brand}/accounts/{aff}/notes` | |
-| O25 | `GET /{brand}/accounts/{aff}/audit` | |
+| O25 | `GET /{brand}/accounts/{aff}/audit` | rows `{auditId, affiliateId, brandId, event, actorId, recordedAt, details}`, no identity or token (change 17) |
 | O26 | `GET /{brand}/accounts/{aff}/players` | pseudonyms, never a player id |
 | O27 | `GET /{brand}/accounts/{aff}/sub-affiliates` | |
 | O28 | `POST /{brand}/accounts/{aff}/adjustments` | `{type, amount, currency, reason}`; FR-022 |
@@ -51,7 +51,9 @@ public by `withAcl(Routes.public)`.
 ## `/v1/my` (`PortalEndpoint`)
 
 Admits `Routes.affiliate()`; the target is the caller (`eitheror_scope_id`) or a descendant, else
-`404 account_not_found` (the original's). Every read takes `?brand=` (absent: every brand the account
+`403` with the original's ACL text, `The supplied authentication is not authorized to access this
+resource` (recorded; asked 2026-11-07). A target the caller reaches that does not exist is
+`404 account_not_found`. Every read takes `?brand=` (absent: every brand the account
 has a membership at), and every figure is per brand and currency.
 
 A revenue read (M1, and O22 and O37 on the operator's side) answers

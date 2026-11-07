@@ -77,7 +77,7 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     earn(aff, 1_000, "2025-04-20T10:00:00Z")
     close("2025-04"): Unit
     // The row read before the approval reached the view is pending too; wait for the second close's.
-    val p = payout(aff, "2025-04")(p => p.get("status").asText == "pending" && p.get("supersededApprovals").size > 0)
+    val p = payout(aff, "2025-04")(p => p.get("status").asText == "pending" && Option(p.get("supersededApprovals")).exists(_.size > 0))
     assertEquals(p.get("totalPayable").asLong, 6_000L)
     assertEquals(p.get("supersededApprovals").elements().asScala.map(_.get("total").asLong).toVector, Vector(5_000L))
   }

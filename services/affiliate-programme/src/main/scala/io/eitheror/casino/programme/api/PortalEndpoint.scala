@@ -147,13 +147,18 @@ final class PortalEndpoint(api: Api) extends HttpEndpoint("/v1/my"):
     if !a.exists then refuse(404, "not_found")
     else
       val held = bs.map(api.membership(sub, _)).filter(_.exists)
-      api.identity(sub, a).fold(e => refuse(503, "store_unavailable", e), id => ok(Answers.account(a, id, held, None)))
+      // At the brand the portal names, the sub's status and plan there, as the original's single-brand node.
+      val atBrand = brandParam.flatMap(b => held.find(_.brand == b)).orElse(held.headOption.filter(_ => held.size == 1))
+      api.identity(sub, a).fold(e => refuse(503, "store_unavailable", e), id => ok(Answers.account(a, id, held, atBrand)))
 
-  /** The route's body when the caller reaches the target, else the original's 404. */
+  /**
+   * The route's body when the caller reaches the target, else the original's refusal: its ACL's `403`
+   * and text (recorded, `tests/port/programme`), before the target is read.
+   */
   private def asTarget(target: String)(f: String => Respond[Bytes]): Respond[Bytes] =
     Access.callerOf(principal) match
       case Some(caller) if Access.reaches(caller, target, api.parentOf) => f(caller)
-      case _ => refuse(404, Codes.AccountNotFound)
+      case _ => raw(403, "text/plain; charset=UTF-8", Codes.NotAuthorised)
 
   private def receives(m: MembershipState) = m.status.exists(s => s == Membership.Active || s == Membership.Suspended)
 

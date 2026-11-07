@@ -42,6 +42,7 @@ class ImportSteps extends ProgrammeFeatures("import.feature"):
   Given("the links and bonus codes of brand {string}") { (_: String) => exported() }
   Given("the import of brand {string}") { (_: String) => exported(); imported() }
   Given("the import of brand {string} ran") { (_: String) => exported(); imported() }
+  Given("the affiliate accounts of brand {string}, a later one with an earlier one's email") { (_: String) => s = Spinvibe(kit, withTwin = true) }
   When("they are imported") { () => imported() }
   When("it is imported") { () => imported() }
 
@@ -99,6 +100,21 @@ class ImportSteps extends ProgrammeFeatures("import.feature"):
     for tag <- Seq(linkTag.getOrElse(""), codeTag) do
       val header = new String(java.util.Base64.getUrlDecoder.decode(tag.split('.').head), "UTF-8")
       assert(tag.count(_ == '.') == 2 && header.contains(kid), s"$tag, header $header, the programme's key $kid")
+  }
+
+  Then("the earlier keeps the email and its sign-in") { () =>
+    val read = kit.request("GET", s"/v1/affiliates/$brand/accounts/${s.parent}", headers = kit.asManager(Seq(brand)))
+    assertEquals((read.json.get("email").asText, account(s.parent).keycloakUser), (s.email(s.parent).toLowerCase, Some(s"kc-${s.parent}")))
+  }
+  Then("the later keeps its membership and its ledger, without the email or a sign-in") { () =>
+    assertEquals((membership(s.twin).status, account(s.twin).keycloakUser), (Some(Membership.Pending), None))
+    assertEquals(ledger(s.twin).unsettled.map(_.amount), Vector(300L))
+  }
+  Then("the import names the later as a duplicate of the earlier") { () =>
+    assertEquals(first.json.get("duplicates").get(s.twin).asText, s.parent)
+    val audit = kit.eventually("the duplicate's audit")(Option(kit.views.forView(io.eitheror.casino.programme.activity.Activity)
+      .ask(io.eitheror.casino.programme.activity.Activity.ofAffiliate, "affiliate" -> s.twin)).filter(_.nonEmpty))
+    assertEquals(audit.map(r => (r.action, r.details.get("duplicateOf"))), Vector(("IMPORTED_DUPLICATE_EMAIL", Some(s.parent))))
   }
 
   When("a fact arrives from brand {string} for a player attributed before the import") { (_: String) =>

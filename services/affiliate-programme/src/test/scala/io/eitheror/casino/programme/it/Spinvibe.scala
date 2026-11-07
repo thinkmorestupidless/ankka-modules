@@ -13,11 +13,13 @@ import scala.concurrent.duration.*
  * with its btag, a bonus code, an invite link, a creative, a note, an audit entry, a dismissed flag, a
  * player with its first deposit, and a ledger over two periods with one payout paid and one approved.
  */
-final case class Spinvibe(kit: Kit, brand: String = Spinvibe.Brand):
+/** `withTwin`: a later pending account, `twin`, with the parent's email, as the original's racing duplicate check let through. */
+final case class Spinvibe(kit: Kit, brand: String = Spinvibe.Brand, withTwin: Boolean = false):
   val plan      = kit.fresh("Hybrid")
   val parent    = kit.fresh("imp")
   val sub       = kit.fresh("sub")
   val rejected  = kit.fresh("rej")
+  val twin      = kit.fresh("twin")
   val link      = java.util.UUID.randomUUID().toString
   val code      = kit.fresh("SPIN").toUpperCase
   val token     = kit.fresh("tok")
@@ -47,12 +49,13 @@ final case class Spinvibe(kit: Kit, brand: String = Spinvibe.Brand):
     fact("ov9", parent, "override", 150, "2026-09-30T23:59:59Z", Sep, source = Some(sub)),
     fact("rs9", sub, "revshare", 1_500, "2026-09-12T10:00:00Z", Sep),
     fact("adj9", sub, "adjustment", -200, "2026-09-15T10:00:00Z", Sep)
-  )
+  ) ++ Vector(fact("adj9", twin, "adjustment", 300, "2026-09-16T10:00:00Z", Sep)).filter(_ => withTwin)
 
-  private def account(id: String, status: String, parentOf: Option[String] = None, overrideBp: Int = 0, reason: Option[String] = None) =
-    BundleAccount(id, s"  ${email(id)} ", s"Name of $id", displayName = Some(s"display $id"), companyName = Some(s"company $id"),
+  private def account(id: String, status: String, parentOf: Option[String] = None, overrideBp: Int = 0, reason: Option[String] = None,
+      emailOf: Option[String] = None, created: String = "2026-07-01T09:00:00Z") =
+    BundleAccount(id, s"  ${email(emailOf.getOrElse(id))} ", s"Name of $id", displayName = Some(s"display $id"), companyName = Some(s"company $id"),
       parent = parentOf, overrideBp = overrideBp, keycloakUser = Some(s"kc-$id"), postbackUrl = Some(s"https://$id.example/pb?c={click_id}"),
-      minimumPayout = Some(Map("EUR" -> 5_000L)), tags = Some(Vector("vip")), createdAt = t("2026-07-01T09:00:00Z"),
+      minimumPayout = Some(Map("EUR" -> 5_000L)), tags = Some(Vector("vip")), createdAt = t(created),
       membership = BundleMembership(status, Option.when(status != "rejected")(plan), revShareOverrideBp = Option.when(id == parent)(3_500),
         appliedAt = t("2026-07-01T09:00:00Z"), rejectedReason = reason))
 
@@ -64,7 +67,8 @@ final case class Spinvibe(kit: Kit, brand: String = Spinvibe.Brand):
     programme = Some(ProgrammePage(payoutCycleDays = Some(30), minimumPayoutAmount = Some(5_000))),
     plans = Vector(BundlePlan(plan, "hybrid", 2_500, "EUR", 3_000, 1_000, createdAt = t("2026-06-01T00:00:00Z"))),
     accounts = Vector(account(parent, "active"), account(sub, "active", Some(parent), 1_000),
-      account(rejected, "rejected", reason = Some("no traffic"))),
+      account(rejected, "rejected", reason = Some("no traffic"))) ++
+      Vector(account(twin, "pending", emailOf = Some(parent), created = "2026-07-01T09:00:00.024Z")).filter(_ => withTwin),
     links = Vector(BundleLink(link, parent, Some("spring"), utm = Map("utmSource" -> "x"), legacyBtag = Some(link),
       createdAt = t("2026-07-02T00:00:00Z"))),
     bonusCodes = Vector(BundleCode(code, parent, link, createdAt = t("2026-07-03T00:00:00Z"))),

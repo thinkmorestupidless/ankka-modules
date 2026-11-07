@@ -185,7 +185,7 @@ class NetworkSuite extends munit.FunSuite with LogCapturing:
     assertEquals((health.get("totalSubs").asInt, health.get("activeSubs").asInt), (3, 3))
     val subs = kit.request("GET", s"/v1/my/$t1/sub-affiliates", headers = kit.asAffiliate(t1)).json
     assertEquals(subs.elements().asScala.map(_.get("affiliateId").asText).toSet, Set(t2, beside))
-    assertEquals(kit.request("GET", s"/v1/my/$t1/network", headers = kit.asAffiliate(t2)).json.get("error").asText, "account_not_found")
+    assertEquals(kit.request("GET", s"/v1/my/$t1/network", headers = kit.asAffiliate(t2)).status, 403)
     assertEquals(kit.request("GET", s"/v1/my/$t2/network/$beside", headers = kit.asAffiliate(t2)).status, 403)
     assertEquals(kit.request("GET", s"/v1/my/$t2/network/$t1", headers = kit.asAffiliate(t2)).status, 403)
     assertEquals(kit.request("POST", s"/v1/my/$t2/network/$beside/suspend?brand=goldvibe", headers = kit.asAffiliate(t2)).status, 403)

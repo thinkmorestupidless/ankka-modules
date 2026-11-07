@@ -137,7 +137,7 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
       ("ZA", s.affiliate, 1_500L))
     assertEquals(m23.find(_.get("playerRef").asText == q).get.get("referredByAffiliateId").asText, sub)
     assertEquals(kit.request("GET", s"/v1/my/$sub/players", headers = kit.asAffiliate(s.affiliate)).status, 200)
-    assertEquals(kit.request("GET", s"/v1/my/${s.affiliate}/players", headers = kit.asAffiliate(sub)).status, 404)
+    assertEquals(kit.request("GET", s"/v1/my/${s.affiliate}/players", headers = kit.asAffiliate(sub)).status, 403)
     s.send(s.facts.playerClosed(p, kit.now)): Unit
     for path <- Seq(s"/v1/affiliates/goldvibe/accounts/${s.affiliate}/players", s"/v1/my/${s.affiliate}/players") do
       val as = if path.startsWith("/v1/my") then kit.asAffiliate(s.affiliate) else kit.asManager()
