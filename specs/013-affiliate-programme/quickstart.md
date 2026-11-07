@@ -63,11 +63,18 @@ Expected: every recording replays; every difference is named by a change number.
 ## 6. A local run
 
 ```bash
-just programme-run                # the service, Postgres, an InMemoryBroker carrying goldvibe's topic
+(cd services/affiliate-programme && sbt schema && docker compose up -d)   # Postgres on 5441
+just programme-run                # the service on 9018; facts of a brand here are read in memory
+just programme-walk               # in another shell: the walk-through below, each step checked
 ```
 
-Apply as an affiliate to `goldvibe`, approve as a manager, create a link, publish a `registration` and
-a `first-deposit` fact on the topic, and read `/v1/my/{affiliate}/revenue?brand=goldvibe`: one CPA.
+`programme-walk` (`tests/local/programme-walk.py`) is the local run's staff issuer while it runs: a
+throwaway key under `target/`, its JWKS on `localhost:18180` where the recipe looks, and tokens with
+the claims ankka reads. A brand here's topic is in memory, out of reach, so the walk uses a hosted
+brand, whose webhook is the door a local run has. A platform administrator adds a hosted brand with a
+25.00 EUR CPA plan; an affiliate applies; the brand's manager approves; the affiliate creates a link;
+the brand posts a signed `registration` and a 50.00 EUR `first-deposit`. The affiliate's
+`/v1/my/{affiliate}/revenue?brand=…&period=<this month>` then shows one CPA, 25.00 EUR.
 
 ## 7. Kind
 

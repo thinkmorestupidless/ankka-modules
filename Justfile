@@ -261,7 +261,13 @@ programme-parity:
 # Export ANKKA_SECRET_KEY first (`openssl rand -base64 32`, kept: the store is encrypted under it). The
 # manager and affiliate routes trust dev-kind's eitheror realm through a port-forward on 18180.
 programme-run:
-    cd services/affiliate-programme && ANKKA_HTTP_PORT=9018 ANKKA_DB_PORT=5441       CASINO_PROJECT=programme PROGRAMME_BRANDS=goldvibe       AFFILIATE_PORTAL_BASE_URL=http://localhost:3013 AFFILIATE_BACKOFFICE_BASE_URL=http://localhost:3014 KEYCLOAK_REALM=eitheror       ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino       ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs       sbt run
+    # The secret store's key for local runs, made once and kept beside the build (never committed).
+    cd services/affiliate-programme && mkdir -p target && ([ -s target/local-secret-key ] || openssl rand -base64 32 > target/local-secret-key)
+    cd services/affiliate-programme && ANKKA_SECRET_KEY=$(cat target/local-secret-key) ANKKA_HTTP_PORT=9018 ANKKA_DB_PORT=5441       CASINO_PROJECT=programme PROGRAMME_BRANDS=goldvibe       AFFILIATE_PORTAL_BASE_URL=http://localhost:3013 AFFILIATE_BACKOFFICE_BASE_URL=http://localhost:3014 KEYCLOAK_REALM=eitheror       ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino       ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs       sbt run
+
+# Quickstart §6 against a running `programme-run`: an affiliate earns one CPA through a hosted brand's webhook.
+programme-walk:
+    python3 -I tests/local/programme-walk.py
 
 # The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
 psp-stub gateway="http://localhost:9001":

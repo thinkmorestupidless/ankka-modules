@@ -70,6 +70,7 @@ just programme-test     # unit suites
 just programme-it       # integration and feature suites (Docker)
 just programme-parity   # parity: tests/port/programme and the import's export (Docker)
 just programme-run      # locally on 9018 (quickstart §6)
+just programme-walk     # against it: one CPA end to end, a local issuer and a hosted brand's webhook
 ```
 
 Each integration suite shares one service per JVM (`SharedKit`), except those that move a clock or

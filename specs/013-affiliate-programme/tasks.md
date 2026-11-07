@@ -430,7 +430,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   recording replayed or named in `NotDriven`
 - [X] T094 [P] `services/affiliate-programme/README.md`: components, secrets, how to add a brand here
   (re-render, restart) and a hosted brand, the suites
-- [ ] T095 Quickstart §6: `just programme-run`, the walk-through it describes
+- [X] T095 Quickstart §6: `just programme-run`, the walk-through it describes
 - [ ] T096 Quickstart §7 on kind: `shared/programme` beside `brands/goldvibe`, the grant consumed, a hosted
   brand's webhook landing; settle research R20's second item (a removed brand's component)
 - [X] T097 Record what changed at implementation in research.md *Changed at implementation*
