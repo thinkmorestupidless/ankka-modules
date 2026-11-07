@@ -244,11 +244,14 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     }
 
   private def approved(brand: String, affiliate: String, planId: String, b: ApproveBody): Respond[Bytes] =
-    val account = api.components.forEventSourcedEntity(EntityId(affiliate))
+    val account    = api.components.forEventSourcedEntity(EntityId(affiliate))
+    val membership = api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand))
+    // Nothing of the account changes for an approval the membership refuses: its refusal is the answer.
+    if !api.membership(affiliate, brand).status.contains(Membership.Pending) then
+      membership.call(Membership.approve).invoke(Approve(planId, principal.subject, api.now())): Unit
     b.parentAffiliateId.foreach(p => account.call(Affiliate.setParent).invoke(SetParent(Some(p), principal.subject, api.now())): Unit)
     b.overridePercent.foreach(p => account.call(Affiliate.setOverride).invoke(SetOverride(p.bp, principal.subject, api.now())): Unit)
-    api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand)).call(Membership.approve)
-      .invoke(Approve(planId, principal.subject, api.now())): Unit
+    membership.call(Membership.approve).invoke(Approve(planId, principal.subject, api.now())): Unit
     networks.audit(affiliate, Some(brand), "APPLICATION_APPROVED", principal.subject,
       Map("planId" -> planId) ++ b.parentAffiliateId.map("parentAffiliateId" -> _) ++
         b.overridePercent.map(p => "overridePercent" -> Percent.show(p.bp).toString))

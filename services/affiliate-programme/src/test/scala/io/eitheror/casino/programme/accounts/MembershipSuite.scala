@@ -57,6 +57,15 @@ class MembershipSuite extends munit.FunSuite with LogCapturing:
     assertEquals(a.call(Membership.reactivate)(Reactivate("aff-0", Membership.Ancestor, at)).replyValue.status, Some("active"))
   }
 
+  test("an operator's suspension stands over an ancestor's reactivation when the ancestor suspended first, too") {
+    val k = active
+    k.call(Membership.suspend)(Suspend("aff-0", Membership.Ancestor, at)): Unit
+    assertEquals(k.call(Membership.suspend)(Suspend("m-1", Membership.Operator, at)).replyValue.suspendedBy, Some(Membership.Operator))
+    assert(k.call(Membership.reactivate)(Reactivate("aff-0", Membership.Ancestor, at)).errorMessage.startsWith("suspended_by_operator"))
+    // An ancestor's second suspension is still refused, naming the status.
+    assertEquals(k.call(Membership.suspend)(Suspend("aff-0", Membership.Ancestor, at)).errorMessage, "must be active, currently suspended")
+  }
+
   test("an invitation's membership is active at once; one already held is refused") {
     val k = kit
     val s = k.call(Membership.activateInvited)(ActivateInvited("aff-1", "goldvibe", "plan-1", app.copy(source = "invite"), "m-1")).replyValue

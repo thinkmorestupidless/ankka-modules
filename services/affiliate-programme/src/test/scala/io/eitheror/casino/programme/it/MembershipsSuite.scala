@@ -31,6 +31,15 @@ class MembershipsSuite extends munit.FunSuite with LogCapturing:
     entity.call(BrandProgramme.update).invoke(UpdateBrand(defaultPlan = Some(plan))): Unit
     try body(plan) finally before.foreach(p => entity.call(BrandProgramme.update).invoke(UpdateBrand(defaultPlan = Some(p))): Unit)
 
+  test("an approval the membership refuses changes nothing of the account: no parent, no override") {
+    val aff    = kit.affiliate(kit.fresh("done"), "goldvibe", kit.plan("goldvibe", kit.fresh("p")))
+    val parent = kit.affiliate(kit.fresh("par"), "goldvibe", kit.plan("goldvibe", kit.fresh("p")))
+    val r = approve("goldvibe", aff, s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}","parentAffiliateId":"$parent","overridePercent":7}""")
+    assertEquals(r.status, 409, r.text)
+    val a = kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke()
+    assertEquals((a.parent, a.overrideBp), (None, 0))
+  }
+
   test("an address whose index entry names an account never made registers all the same") {
     val email  = s"${kit.fresh("orphan")}@example.com"
     val key    = kit.eventually("the email index key")(Secrets(kit.secrets).emailIndexKey.toOption)

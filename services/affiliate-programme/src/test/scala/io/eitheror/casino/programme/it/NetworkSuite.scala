@@ -201,8 +201,9 @@ class NetworkSuite extends munit.FunSuite with LogCapturing:
       t.get("children").get(0).get("revenueForPeriod").elements().asScala.exists(_.get("cpaCommission").asLong == 10_000)))
     val child = n.get("children").get(0)
     assertEquals((child.get("affiliateId").asText, child.get("status").asText, child.get("overridePercent").asDouble), (t3, "active", 3.0))
-    val health = kit.request("GET", s"/v1/my/$t1/network-health", headers = kit.asAffiliate(t1)).json
-    assertEquals((health.get("totalSubs").asInt, health.get("activeSubs").asInt), (3, 3))
+    // The memberships view may still be settling `beside`'s activation.
+    kit.eventually("three active subs")(Option(kit.request("GET", s"/v1/my/$t1/network-health", headers = kit.asAffiliate(t1)).json)
+      .filter(h => (h.get("totalSubs").asInt, h.get("activeSubs").asInt) == (3, 3))): Unit
     val subs = kit.request("GET", s"/v1/my/$t1/sub-affiliates", headers = kit.asAffiliate(t1)).json
     assertEquals(subs.elements().asScala.map(_.get("affiliateId").asText).toSet, Set(t2, beside))
     assertEquals(kit.request("GET", s"/v1/my/$t1/network", headers = kit.asAffiliate(t2)).status, 403)

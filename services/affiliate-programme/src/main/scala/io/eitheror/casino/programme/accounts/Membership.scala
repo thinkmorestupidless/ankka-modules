@@ -142,7 +142,14 @@ final class Membership(@scala.annotation.unused context: EventSourcedEntityConte
 
   def reject(cmd: Reject): Effect[MembershipState] = from(Set(Pending))(ApplicationRejected(cmd.reason, cmd.by, cmd.at))
 
-  def suspend(cmd: Suspend): Effect[MembershipState] = from(Set(Active))(MembershipSuspended(cmd.by, cmd.kind, cmd.at))
+  /**
+   * Active → suspended; and an operator's suspension over an ancestor's, recorded as the operator's, so
+   * the ancestor's reactivation is refused whichever suspended first (FR-029).
+   */
+  def suspend(cmd: Suspend): Effect[MembershipState] =
+    if currentState.status.contains(Suspended) && cmd.kind == Operator && currentState.suspendedBy.contains(Ancestor) then
+      effects.persist(MembershipSuspended(cmd.by, cmd.kind, cmd.at)).thenReplyState
+    else from(Set(Active))(MembershipSuspended(cmd.by, cmd.kind, cmd.at))
 
   def reactivate(cmd: Reactivate): Effect[MembershipState] =
     if currentState.status.contains(Suspended) && cmd.kind == Ancestor && currentState.suspendedBy.contains(Operator) then
