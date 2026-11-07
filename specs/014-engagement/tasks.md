@@ -175,7 +175,7 @@ the views and the audit publisher green under their suites.
 - [X] T028 [US1] `S/api/BackofficeEndpoint.scala` (`/v1/casino/backoffice/<slug>`, `Routes.operator`),
       the `GET /engagement/status` route first (contracts/routes.md: configured, parked, lastHour,
       webhookRefusals, connections); the other routes come in US7.
-- [ ] T029 [US1] `T/it/ReplaySuite.scala` (SC-002: a year of facts delivered twice into an empty
+- [X] T029 [US1] `T/it/ReplaySuite.scala` (SC-002: a year of facts delivered twice into an empty
       journal; no call; every `Send` found or `skipped_stale`), `T/it/AttemptsSuite.scala` (the
       backoff under the test clock; 429, 5xx, a hang retried; 4xx not; parked with the last answer),
       `T/it/LatencySuite.scala` (SC-005: accepted within 60 s healthy and after one 503),
