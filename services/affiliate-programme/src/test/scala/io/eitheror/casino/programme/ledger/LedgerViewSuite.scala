@@ -59,13 +59,15 @@ class LedgerViewSuite extends munit.FunSuite with LogCapturing:
     assert(f.ledger.rows.values.filter(_.settledBy.isDefined).forall(_.paid))
   }
 
-  test("a close below the threshold after a claim releases the stamps and the counts") {
+  test("a close below the threshold after a claim leaves the stamps and the counts") {
     val f = fixture
     f.run(f.entity.call(CommissionAccount.close)(CloseAccount("p", octEnd, 0))): Unit
+    val stamped = f.ledger.rows.values.filter(_.settledBy.contains("p")).map(_.factId).toSet
+    val open    = f.unsettled.open
     f.run(f.entity.call(CommissionAccount.close)(CloseAccount("p", octEnd, 1_000_000))): Unit
-    assert(f.ledger.rows.values.forall(_.settledBy.isEmpty))
-    assertEquals(f.unsettled.open, Map("2026-10" -> 3, "2026-11" -> 1))
-    assertEquals(f.unsettled.earliest, Some("2026-10"))
+    assert(stamped.nonEmpty)
+    assertEquals(f.ledger.rows.values.filter(_.settledBy.contains("p")).map(_.factId).toSet, stamped)
+    assertEquals(f.unsettled.open, open)
   }
 
   test("the declared queries pass ankka's checks") {

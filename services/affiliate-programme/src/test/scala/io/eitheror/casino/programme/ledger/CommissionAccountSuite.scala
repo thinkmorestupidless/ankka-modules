@@ -109,14 +109,17 @@ class CommissionAccountSuite extends munit.FunSuite with LogCapturing:
     assert(!k.call(CommissionAccount.close)(CloseAccount("p-oct", octEnd, 1_000)).persisted)
   }
 
-  test("below the threshold nothing is claimed and earlier claims are released") {
+  test("below the threshold nothing more is claimed, earlier claims stand, and paying pays only them") {
     val k = kit
     k.call(CommissionAccount.recordCpa)(RecordCpa("cpa/1", 5_000, oct, "UTC", now)): Unit
     k.call(CommissionAccount.close)(CloseAccount("p-oct", octEnd, 1_000)): Unit
     k.call(CommissionAccount.recordAdjustment)(RecordAdjustment("adjustment/a", -4_500, "clawback", "m-1", oct, None, "UTC", now)): Unit
     val c = k.call(CommissionAccount.close)(CloseAccount("p-oct", octEnd, 1_000)).replyValue
     assertEquals((c.claimed, c.figures.total), (false, 500L))
-    assert(facts(k).unsettled.forall(_.settledBy.isEmpty))
+    assertEquals(facts(k).unsettled.filter(_.settledBy.contains("p-oct")).map(_.id), Vector("cpa/1"))
+    k.call(CommissionAccount.markPaid)("p-oct"): Unit
+    // The clawback was not in the paid payout: it is the next close's, and the CPA is not claimable again.
+    assertEquals(facts(k).unsettled.map(_.id), Vector("adjustment/a"))
   }
 
   test("paid: the claimed facts leave unsettled, the payout cannot close again, a late fact goes to the next close") {

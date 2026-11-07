@@ -3,7 +3,7 @@ package io.eitheror.casino.programme.it
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.brands.Plan
-import io.eitheror.casino.programme.ledger.{CommissionAccount, RecordCpa, Unsettled}
+import io.eitheror.casino.programme.ledger.{CommissionAccount, RecordAdjustment, RecordCpa, Unsettled}
 
 import java.time.Instant
 import java.util.concurrent.Executors
@@ -66,6 +66,24 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     earn(aff, 6_000, "2025-03-10T10:00:00Z")
     assertEquals(close("2025-03").status, 200)
     assertEquals(payout(aff, "2025-03")().get("totalPayable").asLong, 11_000L)
+  }
+
+  test("a re-close below the threshold leaves the payout as it was claimed; paid, its facts are not claimed again") {
+    val aff = affiliate()
+    assertEquals(kit.request("PATCH", s"/v1/affiliates/goldvibe/accounts/$aff", Some("""{"minimumPayout":{"EUR":1000}}"""), kit.asManager()).status, 200)
+    earn(aff, 5_000, "2025-08-10T10:00:00Z")
+    close("2025-08"): Unit
+    val id = payout(aff, "2025-08")().get("payoutId").asText
+    kit.components.forEventSourcedEntity(CommissionAccount.entityId(aff, "goldvibe", "EUR")).call(CommissionAccount.recordAdjustment)
+      .invoke(RecordAdjustment(kit.fresh("adjustment"), -4_500, "clawback", "mgr-1", Instant.parse("2025-08-20T10:00:00Z"), None, "UTC", kit.now)): Unit
+    kit.owed(aff, "goldvibe", "EUR")
+    assertEquals(close("2025-08").status, 200)
+    assertEquals(payout(aff, "2025-08")().get("totalPayable").asLong, 5_000L)
+    assertEquals(move(id, """{"status":"APPROVED"}""").status, 200)
+    assertEquals(move(id, """{"status":"PAID"}""").status, 200)
+    earn(aff, 6_000, "2025-09-10T10:00:00Z")
+    close("2025-09"): Unit
+    assertEquals(payout(aff, "2025-09")().get("totalPayable").asLong, 1_500L)
   }
 
   test("a late fact swept into an approved payout reverts it to pending, the approval superseded") {

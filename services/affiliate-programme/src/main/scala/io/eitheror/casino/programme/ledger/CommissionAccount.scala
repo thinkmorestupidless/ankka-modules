@@ -222,7 +222,7 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
 
   /**
    * Claims for the payout every unsettled payable fact up to the period's end plus its earlier claims;
-   * below the threshold it claims nothing, and releases what the payout held (settlement.feature).
+   * below the threshold it claims nothing, and what an earlier close claimed stays claimed.
    */
   def close(c: CloseAccount): Effect[Closing] =
     val s = currentState
@@ -237,12 +237,10 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
           else
             val newly = facts.filterNot(f => prior(f.id)).groupMapReduce(_.period)(_ => 1)(_ + _)
             effects.persist(FactsClaimed(c.payoutId, ids, figures, newly)).thenReply(_ => reply)
-        case Claim.Outcome.BelowThreshold(figures) =>
-          val reply = Closing(claimed = false, figures, 0)
-          if prior.isEmpty then effects.reply(reply)
-          else
-            val held = s.unsettled.filter(_.settledBy.contains(c.payoutId)).groupMapReduce(_.period)(_ => 1)(_ + _)
-            effects.persist(FactsReleased(c.payoutId, held)).thenReply(_ => reply)
+        // As the original (`CommissionEngine.scala:884`): an earlier close's claims stand, and its payout with
+        // them, so what it pays is what it claimed; the late facts wait for the next close. Releasing them
+        // would leave a payable payout whose facts a later close claims again.
+        case Claim.Outcome.BelowThreshold(figures) => effects.reply(Closing(claimed = false, figures, 0))
 
   def markPaid(payoutId: String): Effect[AccountState] =
     if currentState.paid(payoutId) then effects.reply(currentState)
