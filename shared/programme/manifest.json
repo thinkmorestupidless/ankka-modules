@@ -14,6 +14,9 @@
       "name": "affiliate-programme",
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/affiliate-programme:0.1.0",
       "expose": true,
+      "resources": {
+        "instanceType": "medium"
+      },
       "env": {
         "AFFILIATE_PORTAL_BASE_URL": "https://affiliates.127.0.0.1.sslip.io:8443",
         "AFFILIATE_BACKOFFICE_BASE_URL": "https://affiliates-backoffice.127.0.0.1.sslip.io:8443",

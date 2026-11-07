@@ -650,3 +650,8 @@ implementation* that carries the detail.
   - **Brand settings and the programme page carry the original's earlier runs.** Both runs read them
     before changing them, and found what the runs before had left. The replay first sets them to that
     answer, the state the run started from.
+- **A brand taken out of `PROGRAMME_BRANDS` leaves the service starting cleanly** (T096, R20's second
+  item). Run on 2026-11-07: the local programme ran with `goldvibe`, registering `attribution-goldvibe`
+  and its offsets in Postgres, then started again over the same database with `silvervibe` only. ankka
+  0.13 registered `attribution-silvervibe`, logged no error for the consumer that was gone, and served
+  the walk-through to its CPA. The fallback (keep the component, consuming nothing new) is not needed.

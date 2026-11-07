@@ -8,6 +8,10 @@ A local run reads a brand here's facts from an in-memory topic nothing outside t
 the facts go in through the other door, a hosted brand's signed webhook (contracts/inbound.md).
 
 Stdlib and the `openssl` CLI only. Run `just programme-run` first, then `python3 tests/local/programme-walk.py`.
+
+On an installation (quickstart §7) there is a real realm, so nothing is minted: `PROGRAMME` names the
+service and `STAFF_TOKEN` is a `platform_admin`'s token from it. That one token adds the brand, approves
+and makes the link (O36), and the affiliate's revenue is read through the back office.
 """
 import base64, hashlib, hmac, http.server, json, os, pathlib, subprocess, sys, threading, time, urllib.error, urllib.request, uuid
 
@@ -65,6 +69,9 @@ def serve(document: dict) -> None:
     threading.Thread(target=server.serve_forever, daemon=True).start()
 
 
+CA = os.environ.get("PROGRAMME_CA")
+
+
 def call(method: str, path: str, body=None, bearer=None, headers=None, raw: bytes | None = None):
     data = raw if raw is not None else (json.dumps(body).encode() if body is not None else None)
     req = urllib.request.Request(PROGRAMME + path, data=data, method=method)
@@ -74,7 +81,9 @@ def call(method: str, path: str, body=None, bearer=None, headers=None, raw: byte
     for k, v in (headers or {}).items():
         req.add_header(k, v)
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
+        import ssl
+        context = ssl.create_default_context(cafile=CA) if CA else None
+        with urllib.request.urlopen(req, timeout=30, context=context) as r:
             text = r.read().decode()
             return r.status, json.loads(text) if text else None
     except urllib.error.HTTPError as e:
@@ -108,11 +117,15 @@ def post_fact(brand: str, secret: str, f: dict):
 
 
 def main():
-    pem = key()
-    serve(jwks(pem))
+    staff = os.environ.get("STAFF_TOKEN")
     brand = f"local-{uuid.uuid4().hex[:6]}"
-    admin   = token(pem, "local-admin", ["platform_admin"])
-    manager = token(pem, "local-manager", ["affiliate_manager", f"brand_{brand}"])
+    if staff:
+        admin = manager = staff
+    else:
+        pem = key()
+        serve(jwks(pem))
+        admin   = token(pem, "local-admin", ["platform_admin"])
+        manager = token(pem, "local-manager", ["affiliate_manager", f"brand_{brand}"])
 
     added = step(f"a platform administrator adds hosted brand {brand}, CPA 25.00 EUR", *call("POST", "/v1/programme/brands", {
         "brandId": brand, "origin": "hosted", "name": f"Local {brand}", "reportingZone": "UTC",
@@ -124,9 +137,15 @@ def main():
     aff = applied["affiliateId"]
     step("the brand's manager approves them on the default plan", *call("POST", f"/v1/affiliates/{brand}/accounts/{aff}/approve", {}, manager), 200)
 
-    affiliate = token(pem, f"kc-{aff}", ["affiliate"], eitheror_scope_id=aff)
-    link = step("the affiliate creates a link", *call("POST", f"/v1/my/{aff}/tracking-links?brand={brand}",
-                {"campaign": "walk", "landingPath": "/"}, affiliate), 201)["btag"]
+    if staff:
+        link = step("the manager creates the affiliate a link", *call("POST", f"/v1/affiliates/{brand}/tracking-links",
+                    {"affiliateId": aff, "campaign": "walk", "landingPath": "/"}, manager), 201)["btag"]
+        revenue_path, reader = f"/v1/affiliates/{brand}/accounts/{aff}/revenue", manager
+    else:
+        affiliate = token(pem, f"kc-{aff}", ["affiliate"], eitheror_scope_id=aff)
+        link = step("the affiliate creates a link", *call("POST", f"/v1/my/{aff}/tracking-links?brand={brand}",
+                    {"campaign": "walk", "landingPath": "/"}, affiliate), 201)["btag"]
+        revenue_path, reader = f"/v1/my/{aff}/revenue", affiliate
 
     player = f"ps-{uuid.uuid4().hex[:10]}"
     step("the brand posts a registration", *post_fact(brand, secret, fact("registration", brand, aff, link, player, country="GB")), 200)
@@ -134,13 +153,13 @@ def main():
          currency="EUR", amount=5000, reference=uuid.uuid4().hex[:8])), 200)
 
     for _ in range(40):
-        status, revenue = call("GET", f"/v1/my/{aff}/revenue?brand={brand}&period={time.strftime('%Y-%m', time.gmtime())}", bearer=affiliate)
+        status, revenue = call("GET", f"{revenue_path}?brand={brand}&period={time.strftime('%Y-%m', time.gmtime())}", bearer=reader)
         figures = (revenue or {}).get("figures", []) if isinstance(revenue, dict) else []
         cpa = sum(f.get("cpaCommission", 0) for f in figures)
         if status == 200 and cpa:
             break
         time.sleep(0.5)
-    step(f"the affiliate reads their revenue: one CPA, {cpa / 100:.2f} EUR", status if cpa == 2500 else 599, revenue, 200)
+    step(f"their revenue reads: one CPA, {cpa / 100:.2f} EUR", status if cpa == 2500 else 599, revenue, 200)
 
 
 if __name__ == "__main__":

@@ -80,8 +80,15 @@ the brand posts a signed `registration` and a 50.00 EUR `first-deposit`. The aff
 
 ```bash
 just modules apply goldvibe --installation dev-kind
-ankka services apply shared/programme --context kind-…   # never the default context
+just modules apply shared/programme/manifest.json --installation dev-kind --secrets <file>
+#   <file>, outside the repository: keycloak-operators-admin/USERNAME=… and /PASSWORD=… (dev-kind: admin/admin)
+PROGRAMME=https://affiliate-programme-programme.127.0.0.1.sslip.io:8443 PROGRAMME_CA=~/.ankka/local-ca.crt \
+  STAFF_TOKEN=<a platform_admin's access token from the casino realm> just programme-walk
 ```
 
-Expected: the programme consumes `goldvibe`'s `affiliates.attribution` through `core`'s grant; a hosted
-brand added by `POST /v1/programme/brands` posts a signed fact and it lands in the ledger.
+Expected: the programme's log says it subscribed to `goldvibe/affiliates.attribution` through `core`'s
+grant; the walk adds a hosted brand, whose signed registration and first deposit land in the ledger as
+one 25.00 EUR CPA. With a real realm nothing is minted: the one staff token adds the brand, approves,
+and makes the link through the back office (O36). The programme is `medium` (1 CPU, 1Gi): at 512Mi it
+was killed under its 19 views. On a single kind node, other projects' services may need pausing for it
+to be scheduled. Run on 2026-11-07, with goldvibe's `game-provider` and `rewards` paused.
