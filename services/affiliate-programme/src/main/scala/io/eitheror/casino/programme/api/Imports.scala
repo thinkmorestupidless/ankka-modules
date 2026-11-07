@@ -76,7 +76,9 @@ final class Imports(api: Api):
 
   private def seal(bundle: Bundle, digests: Map[String, String]): Either[String, Vector[SealedAccount]] =
     val store = Secrets(api.secrets)
-    val each = Imports.concurrently(bundle.accounts) { a =>
+    // An account the programme already holds, an erased one too, is left as it is: no key is minted for it
+    // again, and its identity is not sealed anew (an erased account's would be restored).
+    val each = Imports.concurrently(bundle.accounts.filterNot(a => api.account(a.id).exists)) { a =>
       store.dataKey(a.id).left.map(_.reason).map { key =>
         val identity = Identity(a.name, a.displayName, Digest.normalised(a.email), a.companyName, a.website, a.trafficSource, a.paymentMethod)
         SealedAccount(a.copy(email = "", name = "", displayName = None, companyName = None, website = None, trafficSource = None,

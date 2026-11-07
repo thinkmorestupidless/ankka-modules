@@ -98,7 +98,11 @@ final class Sections(client: ComponentClient, secrets: SecretStore):
         p.negativeCarryover, "import", p.createdAt)): Unit
       if p.status != Plan.Active then ref.call(Plan.update).invoke(UpdatePlan(status = Some(p.status))): Unit
 
+  /** Held already (the request leaves those out; one may have arrived since): the email index is not moved. */
   private def enrol(brand: String, s: SealedAccount): Unit =
+    if !account(s.account.id).call(Affiliate.get).invoke().exists then enrolNew(brand, s)
+
+  private def enrolNew(brand: String, s: SealedAccount): Unit =
     val a = s.account
     // A duplicate neither claims the email nor keeps the realm user it signed in as: the earlier account has both.
     if s.duplicateOf.isEmpty then client.forKeyValueEntity(EntityId(s.emailDigest)).call(EmailIndex.claim).invoke(a.id): Unit

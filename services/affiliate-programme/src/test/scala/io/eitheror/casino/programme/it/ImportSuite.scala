@@ -137,6 +137,22 @@ class ImportSuite extends munit.FunSuite with LogCapturing:
     assertEquals(again.json.get("counts").get("ledger").asInt, 2)
   }
 
+  test("an account erased since an import stays erased when a later export of it is imported: no key, no identity, no email") {
+    val s = Spinvibe(kit)
+    s.run(): Unit
+    // Erased as the erasure's last step leaves it: the key destroyed, the identity and the digest gone.
+    val digest = account(s.sub).emailDigest
+    Secrets(kit.secrets).destroy(s.sub): Unit
+    kit.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.release).invoke(s.sub): Unit
+    kit.components.forEventSourcedEntity(EntityId(s.sub)).call(Affiliate.erased).invoke(kit.now): Unit
+    Secrets(kit.secrets).invalidate()
+    s.run(s.again): Unit
+    val after = account(s.sub)
+    assertEquals((after.erased.isDefined, after.emailDigest), (true, ""))
+    assertEquals(Secrets(kit.secrets).existingDataKey(s.sub).map(_.isDefined), Right(false))
+    assertEquals(kit.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.get).invoke().affiliate, None)
+  }
+
   test("the import's state keeps no identity in clear") {
     val s = Spinvibe(kit)
     val r = s.run()
