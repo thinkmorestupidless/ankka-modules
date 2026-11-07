@@ -142,6 +142,7 @@ final class Networks(api: Api):
   private def transitionAt(sub: String, brand: String, action: String, actor: String, kind: String): Respond[Bytes] =
     val m = api.membership(sub, brand)
     if !m.exists then refuse(409, Codes.NotAMember, brand)
+    else if kind == Membership.Ancestor && !holds(actor, brand) then notTheirs
     else
       val entity = api.components.forEventSourcedEntity(Membership.entityId(sub, brand))
       val done: Either[Respond[Bytes], Unit] = action match
@@ -157,6 +158,15 @@ final class Networks(api: Api):
         ok(Answers.Ok(true))
       })
 
+  /**
+   * An ancestor acts on a sub at a brand only where it is active itself (FR-029), as the original's ancestry
+   * is walked within one brand: elsewhere the brand's managers decide, and a second account of the same
+   * person must not approve itself past them.
+   */
+  private def holds(ancestor: String, brand: String): Boolean = api.membership(ancestor, brand).active
+
+  private def notTheirs: Respond[Bytes] = raw(403, "text/plain; charset=UTF-8", Codes.NotAuthorised)
+
   /** M16: a parent changes a sub's plan at `brand` and its override percentage. */
   def patch(sub: String, brand: Option[String], p: SubPatch, actor: String): Respond[Bytes] =
     if p.planId.isEmpty && p.overridePercent.isEmpty then invalid("no updatable fields provided")
@@ -165,6 +175,8 @@ final class Networks(api: Api):
         case Some(_) if brand.isEmpty => invalid("brand is required to change a plan")
         case Some(plan) if !api.plan(brand.get, plan).exists => refuse(404, Codes.PlanNotFound, plan)
         case Some(_) if !api.membership(sub, brand.get).exists => refuse(409, Codes.NotAMember, brand.get)
+        case Some(_) if !holds(actor, brand.get) => notTheirs
+        case Some(plan) if api.plan(brand.get, plan).status != Plan.Active => refuse(400, "plan_not_active", plan)
         case _ =>
           p.planId.foreach { plan =>
             api.components.forEventSourcedEntity(Membership.entityId(sub, brand.get)).call(Membership.setPlan)

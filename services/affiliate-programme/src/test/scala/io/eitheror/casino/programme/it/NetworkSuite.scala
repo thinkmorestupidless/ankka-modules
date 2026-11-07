@@ -5,7 +5,7 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.activity.Activity
-import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Sender, UpdateBrand}
+import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, Sender, UpdateBrand, UpdatePlan}
 import io.eitheror.casino.programme.commission.FactType
 import io.eitheror.casino.programme.intake.FactInbox
 import io.eitheror.casino.programme.comms.{Notices, Notification}
@@ -169,6 +169,26 @@ class NetworkSuite extends munit.FunSuite with LogCapturing:
     assertEquals(status(t3), Some(Membership.Suspended))
     val seen = kit.request("GET", s"/v1/my/$t2/network/$t3?brand=goldvibe", headers = kit.asAffiliate(t2))
     assertEquals(seen.json.get("memberships").get(0).get("status").asText, "suspended")
+  }
+
+  test("a parent acts on a sub only at a brand it holds itself, and only onto an active plan") {
+    val gold   = plan()
+    val silver = plan("silvervibe")
+    val parent = kit.affiliate(kit.fresh("par"), "goldvibe", gold)
+    val sub    = kit.affiliate(kit.fresh("sub"), "goldvibe", gold, parent = Some(parent))
+    kit.components.forEventSourcedEntity(Membership.entityId(sub, "silvervibe")).call(Membership.applyFor)
+      .invoke(Apply(sub, "silvervibe", Application(kit.now, None, "kit"))): Unit
+    def status = kit.components.forEventSourcedEntity(Membership.entityId(sub, "silvervibe")).call(Membership.get).invoke().status
+    // The sub's application to silvervibe is silvervibe's managers' to decide, not the goldvibe parent's.
+    for what <- Seq("approve", "suspend", "reactivate") do
+      assertEquals(kit.request("POST", s"/v1/my/$parent/network/$sub/$what?brand=silvervibe", headers = kit.asAffiliate(parent)).status, 403, what)
+    assertEquals(status, Some(Membership.Pending))
+    val elsewhere = kit.request("PATCH", s"/v1/my/$parent/network/$sub?brand=silvervibe", Some(s"""{"planId":"$silver"}"""), kit.asAffiliate(parent))
+    assertEquals(elsewhere.status, 403)
+    val retired = plan()
+    kit.components.forKeyValueEntity(Plan.entityId("goldvibe", retired)).call(Plan.update).invoke(UpdatePlan(status = Some(Plan.Inactive))): Unit
+    val inactive = kit.request("PATCH", s"/v1/my/$parent/network/$sub?brand=goldvibe", Some(s"""{"planId":"$retired"}"""), kit.asAffiliate(parent))
+    assertEquals((inactive.status, inactive.json.get("error").asText), (400, "plan_not_active"))
   }
 
   test("an affiliate reads every descendant, and nothing above or beside them") {
