@@ -11,6 +11,7 @@ import io.eitheror.casino.programme.ledger.{AccountState, CommissionAccount, Pay
 import io.eitheror.casino.programme.periods.Periods
 import io.eitheror.casino.programme.settlement.*
 
+import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration.*
@@ -152,8 +153,11 @@ final class Settlement(api: Api):
 
   private def claimedBy(s: AccountState, payoutId: String): Claim.Figures = Claim.figures(s.unsettled.filter(_.settledBy.contains(payoutId)))
 
-  /** O28 (FR-022): a signed adjustment at the brand in a currency, a payable fact the next close claims. */
-  def adjust(brand: String, affiliate: String, b: AdjustmentBody, by: String): Respond[Bytes] =
+  /**
+   * O28 (FR-022): a signed adjustment at the brand in a currency, a payable fact the next close claims.
+   * With an `Idempotency-Key` its id is the key's, so a request sent again writes nothing and answers that id.
+   */
+  def adjust(brand: String, affiliate: String, b: AdjustmentBody, by: String, key: Option[String] = None): Respond[Bytes] =
     val kind = b.`type`.map(_.toUpperCase)
     (kind, b.amount, b.currency, b.reason.filter(_.trim.nonEmpty)) match
       case (None, _, _, _)                                    => invalid("type is required")
@@ -163,13 +167,16 @@ final class Settlement(api: Api):
       case (_, _, c, _) if !c.exists(_.matches("[A-Z]{3}"))   => invalid("currency is required, ISO 4217")
       case (_, _, _, None)                                    => invalid("reason is required")
       case (Some(t), Some(a), Some(c), Some(reason)) =>
-        val id     = s"adjustment/${UUID.randomUUID()}"
+        val id = key.map(_.trim).filter(_.nonEmpty)
+          .fold(s"adjustment/${UUID.randomUUID()}")(k => s"adjustment/${UUID.nameUUIDFromBytes(s"$affiliate/$brand/$k".getBytes(UTF_8))}")
         val signed = if t == "CREDIT" then a else -a
         val now    = api.now()
-        api.components.forEventSourcedEntity(CommissionAccount.entityId(affiliate, brand, c)).call(CommissionAccount.recordAdjustment)
-          .invoke(RecordAdjustment(id, signed, reason, by, now, None, api.brand(brand).reportingZone, now)): Unit
-        networks.audit(affiliate, Some(brand), "ADJUSTMENT_CREATED", by,
-          Map("adjustmentId" -> id, "type" -> t, "amount" -> a.toString, "currency" -> c, "reason" -> reason))
+        val account = api.components.forEventSourcedEntity(CommissionAccount.entityId(affiliate, brand, c))
+        val again   = account.call(CommissionAccount.get).invoke().has(id)
+        if !again then
+          account.call(CommissionAccount.recordAdjustment).invoke(RecordAdjustment(id, signed, reason, by, now, None, api.brand(brand).reportingZone, now)): Unit
+          networks.audit(affiliate, Some(brand), "ADJUSTMENT_CREATED", by,
+            Map("adjustmentId" -> id, "type" -> t, "amount" -> a.toString, "currency" -> c, "reason" -> reason))
         answer(201, Adjusted(id, affiliate, brand, t, a, c, reason, now))
       case _ => invalid("the body is not the route's shape")
 

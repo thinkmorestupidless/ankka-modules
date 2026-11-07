@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.brands.Plan
 import io.eitheror.casino.programme.Wiring
+import io.eitheror.casino.programme.commission.FactType
 import io.eitheror.casino.programme.ledger.{CommissionAccount, RecordAdjustment, RecordCpa}
 import io.eitheror.casino.programme.settlement.Payout
 
@@ -161,6 +162,20 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     val again = close("2025-11")
     assertEquals(again.status, 200, again.text)
     assertEquals(again.json.get("payouts").elements().asScala.find(_.get("affiliateId").asText == fine).map(_.get("totalPayable").asLong), Some(3_000L))
+  }
+
+  test("an adjustment sent again under its Idempotency-Key is written once and answers the same id") {
+    val aff = affiliate()
+    def adjust(key: Option[String]) =
+      kit.request("POST", s"/v1/affiliates/goldvibe/accounts/$aff/adjustments",
+        Some("""{"type":"CREDIT","amount":2500,"currency":"EUR","reason":"bonus"}"""), kit.asManager() ++ key.map("Idempotency-Key" -> _))
+    val (first, again) = (adjust(Some("k-1")), adjust(Some("k-1")))
+    assertEquals((first.status, again.status), (201, 201), again.text)
+    assertEquals(again.json.get("adjustmentId").asText, first.json.get("adjustmentId").asText)
+    assertNotEquals(adjust(None).json.get("adjustmentId").asText, first.json.get("adjustmentId").asText)
+    // Two adjustments, the keyed one once.
+    val held = kit.components.forEventSourcedEntity(CommissionAccount.entityId(aff, "goldvibe", "EUR")).call(CommissionAccount.get).invoke()
+    assertEquals(held.unsettled.filter(_.kind == FactType.Adjustment).map(_.amount), Vector(2_500L, 2_500L))
   }
 
   test("a transition the status machine does not allow is refused, naming the status") {

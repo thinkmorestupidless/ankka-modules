@@ -113,7 +113,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       attempt(withBody[SettlementAnswers.StatusBody](body)(settlement.transition(brand, payout, _, principal.subject)))
     }
     postBody("/{brand}/accounts/{affiliate}/adjustments") { (brand: String, aff: String, body: String) =>
-      attempt(withBody[SettlementAnswers.AdjustmentBody](body)(b => member(brand, aff)(_ => settlement.adjust(brand, aff, b, principal.subject))))
+      attempt(withBody[SettlementAnswers.AdjustmentBody](body)(b => member(brand, aff)(_ => settlement.adjust(brand, aff, b, principal.subject, request.header("Idempotency-Key")))))
     }
     get("/{brand}/revenue") { (brand: String) => attempt(reading.revenue(None, Vector(brand), query.raw("period"))) }
     get("/{brand}/revenue/by-campaign") { (brand: String) =>
