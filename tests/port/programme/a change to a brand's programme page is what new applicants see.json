@@ -1,7 +1,7 @@
 {
   "scenario": "a change to a brand's programme page is what new applicants see",
   "requirement": "013/FR-034",
-  "recorded_at": "2026-11-07T09:39:46.924142Z",
+  "recorded_at": "2026-11-07T10:15:10.210656Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+          "affiliateId": "01815601-f648-4a29-a2b3-14b85acedc09",
           "email": "affiliate-{run}@example.com"
         }
       },
@@ -83,7 +86,7 @@
       "response": {
         "status": 201,
         "body": {
-          "noteId": "e9a309c1-0f9d-4296-8d16-6d6880f12a9a"
+          "noteId": "1f5008a7-1eaa-4cb4-b4ba-58be4bbdb44c"
         }
       },
       "vary": {
@@ -117,31 +120,10 @@
       },
       "response": {
         "status": 200,
-        "body": [
-          {
-            "properties": {
-              "actorId": "operator",
-              "affiliateId": "{affiliate}",
-              "brandId": "{brand}",
-              "dashboardUrl": "http://localhost:5175",
-              "displayName": "Driver affiliate",
-              "email": "affiliate-{run}@example.com",
-              "eventType": "AFFILIATE_APPROVED",
-              "planId": "{plan}",
-              "primaryType": "AffiliateAccountEvent",
-              "recordedAt": "{period}-07T09:39:47.054587250Z",
-              "setPasswordExpiresAt": "1794303587",
-              "setPasswordUrl": "http://localhost:5175/accept-invitation?token=077961d3-5e2c-4afd-8457-5c054947a1af"
-            },
-            "twinId": "affiliate-audit-{brand}-{affiliate}/0917d9c9-4295-4f52-94f7-e7b0bfe911f4"
-          }
-        ]
+        "body": []
       },
       "vary": {
-        "$[0].properties.recordedAt": "differs between two runs of the original",
-        "$[0].properties.setPasswordExpiresAt": "differs between two runs of the original",
-        "$[0].properties.setPasswordUrl": "differs between two runs of the original",
-        "$[0].twinId": "differs between two runs of the original"
+        "$": "differs between two runs of the original"
       }
     },
     {
@@ -293,7 +275,7 @@
       "response": {
         "status": 201,
         "body": {
-          "creativeId": "2ce2eace-20d6-42ff-8b3d-342a311d6b42"
+          "creativeId": "6d957d07-7c4b-47cb-99b4-73bf4d225713"
         }
       },
       "capture": {
@@ -315,15 +297,10 @@
       },
       "response": {
         "status": 200,
-        "body": [
-          {
-            "properties": {},
-            "twinId": "affiliate-creatives-{brand}/{creative}"
-          }
-        ]
+        "body": []
       },
       "vary": {
-        "$": "differs between two runs of the original"
+        "$": "the brand's creatives include earlier runs'"
       }
     },
     {
@@ -361,7 +338,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+          "affiliateId": "93965977-41a2-4891-980c-6cde9747fee4",
           "status": "PENDING"
         }
       },

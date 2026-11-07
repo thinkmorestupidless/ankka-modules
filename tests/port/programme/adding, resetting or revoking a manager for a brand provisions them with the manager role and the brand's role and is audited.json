@@ -1,7 +1,7 @@
 {
   "scenario": "adding, resetting or revoking a manager for a brand provisions them with the manager role and the brand's role and is audited",
   "requirement": "013/FR-031",
-  "recorded_at": "2026-11-07T09:39:45.690874Z",
+  "recorded_at": "2026-11-07T10:15:09.225443Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -28,7 +28,7 @@
         "status": 201,
         "body": {
           "email": "manager-{run}@example.com",
-          "keycloakUserId": "f4da173f-94c5-4a2c-b014-bc8b130e327b",
+          "keycloakUserId": "4143116b-76c2-489d-bd17-807ac21ceb58",
           "name": "Driver manager",
           "pending": true
         }
@@ -82,9 +82,9 @@
             "pending": true
           },
           {
-            "email": "manager-{run}@example.com",
-            "keycloakUserId": "{manager}",
-            "name": "manager-{run}",
+            "email": "manager-07ec0b59@example.com",
+            "keycloakUserId": "f4da173f-94c5-4a2c-b014-bc8b130e327b",
+            "name": "manager-07ec0b59",
             "pending": true
           },
           {
@@ -97,6 +97,18 @@
             "email": "manager-0fe86718@example.com",
             "keycloakUserId": "4d59c77d-d997-4841-bb47-8bc29ba7e9e6",
             "name": "manager-0fe86718",
+            "pending": true
+          },
+          {
+            "email": "manager-{run}@example.com",
+            "keycloakUserId": "{manager}",
+            "name": "manager-{run}",
+            "pending": true
+          },
+          {
+            "email": "manager-71d454ce@example.com",
+            "keycloakUserId": "1453dae1-e722-4228-9834-9fd8dd4043b0",
+            "name": "manager-71d454ce",
             "pending": true
           },
           {

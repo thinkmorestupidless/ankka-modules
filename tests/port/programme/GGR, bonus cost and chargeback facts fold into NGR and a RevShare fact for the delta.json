@@ -1,7 +1,7 @@
 {
   "scenario": "GGR, bonus cost and chargeback facts fold into NGR and a RevShare fact for the delta",
   "requirement": "013/FR-014",
-  "recorded_at": "2026-11-07T09:39:40.754923Z",
+  "recorded_at": "2026-11-07T10:15:05.313415Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -58,6 +58,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -83,6 +86,9 @@
           "planId": "{planCarryover}",
           "planName": "Plan {run}Carryover"
         }
+      },
+      "capture": {
+        "planCarryover": "$.planId"
       }
     },
     {
@@ -104,7 +110,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "61cae615-85a9-4e44-b18d-e53a6b88978b",
+          "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
           "email": "affiliate-{run}@example.com"
         }
       },
@@ -133,7 +139,7 @@
       "response": {
         "status": 201,
         "body": {
-          "btag": "ceaaaa03-45d4-445c-a247-cc71001c4fc4"
+          "btag": "73ec2531-b4ab-4932-80ad-f946d9fa75ea"
         }
       },
       "capture": {
@@ -156,7 +162,7 @@
           "btag": "{affiliateBtag}",
           "country": "GB",
           "playerId": "{player}",
-          "registeredAt": "{period}-07T09:39:40Z"
+          "registeredAt": "{period}-07T10:15:05Z"
         }
       },
       "response": {
@@ -331,7 +337,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "dac21fbe-9af0-4fc1-bbdb-6da7e7432329",
+          "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
           "email": "carrier-{run}@example.com"
         }
       },
@@ -360,7 +366,7 @@
       "response": {
         "status": 201,
         "body": {
-          "btag": "6f46b1de-7cb1-41f3-bef8-ff07d80cf636"
+          "btag": "1808bb93-11a7-4341-a47d-13d7cd7dad17"
         }
       },
       "capture": {
@@ -383,7 +389,7 @@
           "btag": "{carrierBtag}",
           "country": "GB",
           "playerId": "{carriedPlayer}",
-          "registeredAt": "{period}-07T09:39:41Z"
+          "registeredAt": "{period}-07T10:15:05Z"
         }
       },
       "response": {

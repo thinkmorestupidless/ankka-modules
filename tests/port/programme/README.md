@@ -70,8 +70,12 @@ A parity test that differs by design names the change of the spec it demonstrate
 | 2, the lifetime first-deposit guard | not in `cpa once`: the original's period is its server's month, which a run cannot move, so its deposits are in one month; `CommissionSuite` holds the rule |
 | 6, per-currency payouts | `close and pay`: the original names a payout by affiliate and period only |
 | 11, CPA in the plan's currency | `cpa once`: the original's CPA fact takes the deposit's currency |
-| 13, no raw status | not driven: the original's `PATCH accounts/{aff}/status` is not served by the programme |
+| 13, status only through its transitions | `close and pay`: a refused payout transition is `409 status_transition` naming the status; the original answered `400 invalid status transition` for pending and `409 invalid_status_transition` for the rest. Its `PATCH accounts/{aff}/status` is not served, so not driven |
 | 14, the override figure as an adjustment | `close and pay`: the original rewrites the payout's override and total with no fact |
+| research.md T076, notifications the original did not write | `notifications`: the programme also tells an affiliate of an invitation, a reset request and a payment; those kinds are left out of a list the original answered without them, and marking all read counts them |
+| 17, the audit without identity | `network invite`: the joiner's audit rows are the programme's shape, the original's were event twins with the email and the set-password URL |
+| research.md, a lost bonus cost | `ggr fold`: the original never stores a bonus-cost or chargeback fact (its id is not a UUID), so its chargeback's recompute left the bonus cost out; the programme folds it, as the feature says |
+| 6, figures per currency | `manager view`: the dashboard and stats pages answer figures per brand and currency, none for a period with no facts; the original answered zero counts flat |
 | 15, one clock | every recording with a period: the original's fact period is its server's month, a period ends at a UTC boundary |
 
 Two answers of the original differ from their feature and are recorded as they are: a payout moved

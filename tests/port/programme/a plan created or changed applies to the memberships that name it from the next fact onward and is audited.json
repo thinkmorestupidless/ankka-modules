@@ -1,7 +1,7 @@
 {
   "scenario": "a plan created or changed applies to the memberships that name it from the next fact onward and is audited",
   "requirement": "013/FR-006",
-  "recorded_at": "2026-11-07T09:39:40.114151Z",
+  "recorded_at": "2026-11-07T10:15:04.608881Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -759,6 +762,18 @@
               "cpaAmount": "50.00",
               "minimumDepositThreshold": "20.00",
               "negativeCarryover": "false",
+              "planName": "Plan ffeb1884",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/f07a526a-6363-3b3b-b4c4-2f1000549ded"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
               "planName": "Plan 59851307",
               "planType": "CPA",
               "status": "ACTIVE"
@@ -963,6 +978,18 @@
               "cpaAmount": "50.00",
               "minimumDepositThreshold": "20.00",
               "negativeCarryover": "false",
+              "planName": "Plan 95fed70b",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/bd57b383-7009-365a-ba9a-408a2495700b"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
               "planName": "Plan aea0a413",
               "planType": "CPA",
               "status": "ACTIVE"
@@ -1011,11 +1038,23 @@
               "cpaAmount": "75.00",
               "minimumDepositThreshold": "25.00",
               "negativeCarryover": "false",
-              "planName": "Plan {run}",
+              "planName": "Plan 1f6cd905",
               "planType": "CPA",
               "status": "ACTIVE"
             },
-            "twinId": "affiliate-plans-{brand}/{plan}"
+            "twinId": "affiliate-plans-{brand}/de03558f-0c25-38e9-9528-a4ba90922b3f"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan ed6d2ad6",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/acac81ac-3a4d-35ac-94ae-b8047a140742"
           },
           {
             "properties": {
@@ -1052,6 +1091,282 @@
               "status": "ACTIVE"
             },
             "twinId": "affiliate-plans-{brand}/fa427829-9ac5-3194-8ca5-c4e6c17880fb"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "minimumDepositThreshold": "0",
+              "negativeCarryover": "false",
+              "planName": "Plan 655e0f8c",
+              "planType": "REVSHARE",
+              "revSharePercent": "25",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/1357ce32-a33e-3833-9140-1767d03f671f"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "minimumDepositThreshold": "0",
+              "negativeCarryover": "true",
+              "planName": "Plan 655e0f8cCarryover",
+              "planType": "REVSHARE",
+              "revSharePercent": "25",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/98fda736-9a11-31eb-bbd9-79123b51e917"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan e34c95d1",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/dd7e3775-d513-3afe-b582-bcb8f09c195f"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan f39e7e39",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/3c03ff48-ffaa-37ed-bcd2-5894afe4bebc"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan ee894a07",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/9fa60438-355e-3d1c-8d4f-f36fb44c5d5a"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "75.00",
+              "minimumDepositThreshold": "25.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 424251c9",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/b4630c38-21bd-3238-8015-e7ec713ca07f"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan d17d6201",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/f0d9920d-7bf8-3aa3-8edb-f0572fe6fc91"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 2d71a4cf",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/ef42027e-1b66-3b00-8d66-14e0171dd86a"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 08bb9cae",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/3c2f3a6b-4767-3fc8-96e4-6ac81a618935"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 3b008691",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/933855bf-0c5f-3d15-9da5-b1f3d3e927b9"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 7c46dc63",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/a8d10158-fa19-3d51-af23-9f04655869a9"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan c33dee7e",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/19a41935-85a5-33dd-98e4-16f9e64bb13b"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "minimumDepositThreshold": "0",
+              "negativeCarryover": "false",
+              "planName": "Plan 1e4e8a6a",
+              "planType": "REVSHARE",
+              "revSharePercent": "25",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/114cd344-4f87-37a5-a770-dd21864c1446"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "minimumDepositThreshold": "0",
+              "negativeCarryover": "true",
+              "planName": "Plan 1e4e8a6aCarryover",
+              "planType": "REVSHARE",
+              "revSharePercent": "25",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/bead140c-dca5-3d21-8f21-b87f338afe8a"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 6e7d6984",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/e8821640-f4fb-39a0-a96d-c4b34570e675"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 0d7f1437",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/5fa4393f-5034-3b29-b791-78e40d5d297b"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan ccc462a8",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/e597c2b8-3dea-3bc6-ad44-36bf31ec9d9f"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 8958cf2b",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/8f50c3ac-097b-3db1-a266-8812fbca8ed4"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 09fc12e6",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/d1c668ef-6139-3f4f-9adc-53024c7565ad"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan bd652679",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/e37bedaf-5e28-3790-98f6-5efa51558c7b"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan e3fc0be9",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/c6c193a7-2604-377a-b0b2-07f4d8591393"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "50.00",
+              "minimumDepositThreshold": "20.00",
+              "negativeCarryover": "false",
+              "planName": "Plan 9a56d928",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/d67f3444-17cb-399a-9703-8e29e334d0f3"
+          },
+          {
+            "properties": {
+              "brandId": "{brand}",
+              "cpaAmount": "75.00",
+              "minimumDepositThreshold": "25.00",
+              "negativeCarryover": "false",
+              "planName": "Plan {run}",
+              "planType": "CPA",
+              "status": "ACTIVE"
+            },
+            "twinId": "affiliate-plans-{brand}/{plan}"
           }
         ]
       },

@@ -1,7 +1,7 @@
 {
   "scenario": "each ancestor is written an override fact for its percentage of the source's earnings, recomputed as a delta",
   "requirement": "013/FR-015",
-  "recorded_at": "2026-11-07T09:39:41.477722Z",
+  "recorded_at": "2026-11-07T10:15:05.98934Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
+          "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
           "email": "parent-{run}@example.com"
         }
       },
@@ -83,7 +86,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "bfb7ea41-7181-4ae5-ada8-29700ba66cd2",
+          "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
           "email": "sub-{run}@example.com"
         }
       },
@@ -113,7 +116,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "b84cb8d9-a10b-4798-8cc4-fe3de33c6f7d",
+          "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
           "email": "outsider-{run}@example.com"
         }
       },
@@ -142,7 +145,7 @@
       "response": {
         "status": 201,
         "body": {
-          "btag": "4b8b133f-a940-4bd8-94d6-f06934d03b91"
+          "btag": "278aa053-dde2-4e9e-838b-1ed921f4b3fc"
         }
       },
       "capture": {
@@ -165,7 +168,7 @@
           "btag": "{subBtag}",
           "country": "GB",
           "playerId": "{player}",
-          "registeredAt": "{period}-07T09:39:41Z"
+          "registeredAt": "{period}-07T10:15:06Z"
         }
       },
       "response": {
@@ -306,9 +309,9 @@
         "body": {
           "affiliateId": "{sub}",
           "brandId": "{brand}",
-          "createdAt": "{period}-07T09:39:41.698128712Z",
+          "createdAt": "{period}-07T10:15:06.160489863Z",
           "email": "sub-{run}@example.com",
-          "keycloakUserId": "e5902663-d58d-4ffc-b2bc-2aaa778c12b5",
+          "keycloakUserId": "7a885f7f-38e7-409a-ae8a-df21a6a73bc6",
           "overridePercent": "10",
           "parentAffiliateId": "{parent}",
           "planId": "{plan}",

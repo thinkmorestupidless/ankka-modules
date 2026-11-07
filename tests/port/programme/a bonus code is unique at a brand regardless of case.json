@@ -1,7 +1,7 @@
 {
   "scenario": "a bonus code is unique at a brand regardless of case",
   "requirement": "013/FR-025",
-  "recorded_at": "2026-11-07T09:39:45.361874Z",
+  "recorded_at": "2026-11-07T10:15:09.01404Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+          "affiliateId": "54a1f6f8-e00e-479b-b02a-4cecfc2a7fd9",
           "email": "affiliate-{run}@example.com"
         }
       },
@@ -83,7 +86,7 @@
       "response": {
         "status": 201,
         "body": {
-          "btag": "5b50a649-f57a-4c2f-a5d1-fc86143c99f1"
+          "btag": "245256a0-2ecc-446c-8aa7-259cbd4b5d3f"
         }
       },
       "capture": {
@@ -112,7 +115,7 @@
               "brandId": "{brand}",
               "btag": "{affiliateBtag}",
               "campaign": "autumn",
-              "createdAt": "{period}-07T09:39:45.610781606Z",
+              "createdAt": "{period}-07T10:15:09.144359376Z",
               "landingPath": "/welcome"
             },
             "twinId": "affiliate-links-{brand}/{affiliateBtag}"
@@ -143,8 +146,8 @@
         "body": {
           "btag": "{affiliateBtag}",
           "code": "{code}",
-          "codeId": "49dd632d-9037-388a-bf72-e1e4a5f652d4",
-          "createdAt": "{period}-07T09:39:45.628799068Z",
+          "codeId": "29ae2ae2-a02e-3349-9967-c2c3ceeea0da",
+          "createdAt": "{period}-07T10:15:09.154529478Z",
           "status": "ACTIVE"
         }
       },
@@ -198,8 +201,8 @@
         "body": {
           "btag": "{affiliateBtag}",
           "code": "{raceCode}",
-          "codeId": "687578d3-839e-3b89-8efe-602d26ae068c",
-          "createdAt": "{period}-07T09:39:45.660846108Z",
+          "codeId": "5fed9cb6-8c7a-34c6-9fb9-12907f05fb13",
+          "createdAt": "{period}-07T10:15:09.179090471Z",
           "status": "ACTIVE"
         }
       },
@@ -268,7 +271,7 @@
           "btag": "{affiliateBtag}",
           "code": "{code}",
           "codeId": "{codeId}",
-          "createdAt": "{period}-07T09:39:45.688126897Z",
+          "createdAt": "{period}-07T10:15:09.204825661Z",
           "status": "ACTIVE"
         }
       },
@@ -295,22 +298,22 @@
               "affiliateId": "{affiliate}",
               "brandId": "{brand}",
               "btag": "{affiliateBtag}",
-              "code": "{code}",
-              "createdAt": "{period}-07T09:39:45.628799068Z",
-              "status": "REVOKED"
+              "code": "{raceCode}",
+              "createdAt": "{period}-07T10:15:09.179090471Z",
+              "status": "ACTIVE"
             },
-            "twinId": "{codeId}"
+            "twinId": "5fed9cb6-8c7a-34c6-9fb9-12907f05fb13"
           },
           {
             "properties": {
               "affiliateId": "{affiliate}",
               "brandId": "{brand}",
               "btag": "{affiliateBtag}",
-              "code": "{raceCode}",
-              "createdAt": "{period}-07T09:39:45.660846108Z",
-              "status": "ACTIVE"
+              "code": "{code}",
+              "createdAt": "{period}-07T10:15:09.154529478Z",
+              "status": "REVOKED"
             },
-            "twinId": "687578d3-839e-3b89-8efe-602d26ae068c"
+            "twinId": "{codeId}"
           }
         ]
       },

@@ -1,7 +1,7 @@
 {
   "scenario": "a fraud flag is raised once per player, brand and reason when a brand's thresholds are crossed",
   "requirement": "013/FR-032",
-  "recorded_at": "2026-11-07T09:39:46.046705Z",
+  "recorded_at": "2026-11-07T10:15:09.42224Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -59,6 +59,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -80,7 +83,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+          "affiliateId": "f2f5ae34-4e52-495b-b6c6-25d245c79bf7",
           "email": "affiliate-{run}@example.com"
         }
       },
@@ -109,7 +112,7 @@
       "response": {
         "status": 201,
         "body": {
-          "btag": "d6e6ca6a-6b8a-470f-b893-44b5dac88d1f"
+          "btag": "2ea5ee62-1622-4791-a662-559841919d46"
         }
       },
       "capture": {
@@ -132,7 +135,7 @@
           "btag": "{affiliateBtag}",
           "country": "GB",
           "playerId": "{player}",
-          "registeredAt": "{period}-07T09:39:46Z"
+          "registeredAt": "{period}-07T10:15:09Z"
         }
       },
       "response": {
@@ -311,10 +314,40 @@
           },
           {
             "properties": {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:39:46.674222327Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:39:46.412576972Z",
+              "period": "{period}",
+              "playerId": "57aa686c-5a46-42ee-ac88-4df249fecbbe",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/5bec3d3d-9749-3e6d-9734-701b6922c7e9"
+          },
+          {
+            "properties": {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:39:56.637886560Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:39:56.371954690Z",
+              "period": "{period}",
+              "playerId": "87b1b8e1-538a-45ad-af24-f49c8b20b02b",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/ff031c71-a835-3bb1-9d85-aa291b69e512"
+          },
+          {
+            "properties": {
               "affiliateId": "{affiliate}",
               "brandId": "{brand}",
               "dismissed": "false",
-              "flaggedAt": "{period}-07T09:39:46.412576972Z",
+              "flaggedAt": "{period}-07T10:15:09.683993700Z",
               "period": "{period}",
               "playerId": "{player}",
               "reason": "3+ bonus deductions"
@@ -365,10 +398,10 @@
           {
             "properties": {
               "body": "A fraud flag raised against your account has been reviewed and dismissed.",
-              "createdAt": "{period}-07T09:39:46.678490636Z",
+              "createdAt": "{period}-07T10:15:09.955947860Z",
               "type": "FRAUD_DISMISSED"
             },
-            "twinId": "affiliate-notifications-{affiliate}/a43b3871-e799-44eb-a376-a0984149ef93"
+            "twinId": "affiliate-notifications-{affiliate}/d696d52e-652c-4000-a078-b3f082302aea"
           }
         ]
       },

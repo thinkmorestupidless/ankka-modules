@@ -1,0 +1,1126 @@
+{
+ "03a28a5b-3cee-4621-a482-bce4a130f732": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "05ec35b2-9d14-41d5-a4ac-6f8b91351d0b": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ },
+ "068626b9-76d1-4291-8b40-483d8d0e6868": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "0b12d299-204e-4e4d-a5d0-36db4b443f3b": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "1028a5c5-de58-4e67-b441-886395fc4816": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ },
+ "1917246e-4a28-4cbd-b448-8f55ce3e033e": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "1de59110-3c6a-4abd-b660-22c5e75a0cbf": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "2010ee5d-839d-4452-b25e-7f95e96f3646": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "2363b904-6601-49fe-98ec-89eafb7ebec0": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "259b13a3-2a44-4f17-8a29-2480d286f2a9": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ },
+ "2ff9d87a-6c69-4538-9df3-eed396b508ab": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "315d7ac8-4c78-456b-be3f-7dc16d2d2307": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "38851044-cab6-4584-bf8b-d0bde6003d64": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "3fee1415-64a3-4fd9-b1d4-20fc51134284": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "41562d19-eb63-407f-86bf-3ba1633ffff1": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ },
+ "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "44c7ead0-e655-4372-ac29-6e8c9e29063d": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "45471fef-aba4-4afe-a868-5310f2e0a81f": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "48ed21e0-6894-44a8-ac18-1117f32ec546": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "4aa3f430-1745-468a-a0de-e337eed8df8e": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "4b79e869-746a-4a1d-b96b-a2eeba803689": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "4f483437-15d5-4ef7-9e87-17857af80d87": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 500,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 500
+  }
+ },
+ "4f510e29-95db-4d14-9643-5c70f9fc6054": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "5ade94e0-6052-4721-844c-bf8c392e2e4f": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "60c94f0d-a624-4c8c-a209-caa1ede26764": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "61cae615-85a9-4e44-b18d-e53a6b88978b": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ },
+ "6df70f0d-2660-4719-bd53-320a72643cf2": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 500,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 500
+  }
+ },
+ "73808d46-487d-491c-b88a-4767e0ef9211": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "75f3dd73-0913-4ab5-bbae-682638777f90": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ },
+ "76004447-cf68-4653-ac84-6d6ed91c18ff": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "7f34ac5f-10f6-4084-8602-9c0449b7a05d": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "8add1a37-43af-4702-a948-21bdb1d57173": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "9124d913-9fe2-4bdd-9521-9c8dbe5e336b": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "9453f3e9-317f-4d7c-addf-12b70b4e4a15": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "97acb39f-2f0a-4274-84dc-b336d7e1b0f0": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ },
+ "980f4b0e-ac94-4cc6-9540-00ed135b076e": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "9b23486d-4ba2-4416-9b82-7b5690dcca07": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "acd2e517-c5dd-4efa-8e23-5099a5a2d0a0": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "b1d852f6-0970-47ad-a45f-9dd211124f97": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "b204ef8f-36d6-449d-a1b1-8a750d74cb80": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "b289bcc8-4271-4328-8ba9-75c22e81a43f": {
+  "2026-11": {
+   "adjustments": 3000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 3000
+  }
+ },
+ "bc089848-092c-49d5-b867-22e0cda22111": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 1000,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": -1000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  }
+ },
+ "bfb7ea41-7181-4ae5-ada8-29700ba66cd2": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "cc9e2aa1-f577-43cd-bfdd-09dac919564d": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "d33d9710-d6dc-4ca7-9128-8024434165a2": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "d88c75a3-4cd5-4048-8283-d1e9f59f06f6": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "dac21fbe-9af0-4fc1-bbdb-6da7e7432329": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "dc59591f-567d-4bbb-b7ad-4ac2a95a88cf": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 4750,
+   "totalCommission": 4750
+  }
+ },
+ "ee141d0b-7d45-4261-ad1d-91efa6c5c5c9": {
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 5000,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 5000
+  }
+ },
+ "ee717317-84de-4ab6-8ea4-2e35f2bbbfac": {
+  "2026-11": {
+   "adjustments": 25000,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 0,
+   "ngr": 0,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 25000
+  }
+ },
+ "f5a705c0-e636-4fc9-b881-b08e0c46cb46": {
+  "2026-10": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 0,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": -10000,
+   "ngr": -10000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 0,
+   "totalCommission": 0
+  },
+  "2026-11": {
+   "adjustments": 0,
+   "adminFees": 0,
+   "bonusCosts": 0,
+   "chargebacks": 1000,
+   "cpaCommission": 0,
+   "excludedGgr": 0,
+   "ggr": 30000,
+   "ngr": 29000,
+   "overrideCommission": 0,
+   "paymentFees": 0,
+   "providerFees": 0,
+   "revShareCommission": 7250,
+   "totalCommission": 7250
+  }
+ }
+}

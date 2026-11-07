@@ -1,7 +1,7 @@
 {
   "scenario": "an email invitation makes the sub active at once on the parent's plan unless it says otherwise",
   "requirement": "013/FR-027",
-  "recorded_at": "2026-11-07T09:39:42.09457Z",
+  "recorded_at": "2026-11-07T10:15:06.49506Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+          "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
           "email": "parent-{run}@example.com"
         }
       },
@@ -83,7 +86,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
+          "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
           "email": "sub-{run}@example.com"
         }
       },
@@ -109,9 +112,9 @@
         "body": {
           "affiliateId": "{sub}",
           "brandId": "{brand}",
-          "createdAt": "{period}-07T09:39:42.309858165Z",
+          "createdAt": "{period}-07T10:15:06.656408310Z",
           "email": "sub-{run}@example.com",
-          "keycloakUserId": "757dcd40-9b1f-46ff-8191-90b421446421",
+          "keycloakUserId": "138fefff-4545-4d49-8fa0-32651709ff83",
           "overridePercent": "5",
           "parentAffiliateId": "{parent}",
           "planId": "{plan}",
@@ -138,9 +141,9 @@
       "response": {
         "status": 201,
         "body": {
-          "createdAt": "{period}-07T09:39:42.443509919Z",
-          "linkId": "03c6fda0-c64c-4286-914e-6d86cbce2f67",
-          "token": "24b7b7b25da646c99fbc3f8242883556"
+          "createdAt": "{period}-07T10:15:06.729563963Z",
+          "linkId": "dd9076f6-3646-4caf-9362-745bb36f90fd",
+          "token": "6c666da7ca2e454d9b08a2d1a2f2e65a"
         }
       },
       "capture": {
@@ -185,7 +188,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "b8035c5e-b653-42b0-ba5c-0f9185e633fe",
+          "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
           "status": "PENDING"
         }
       },
@@ -230,10 +233,10 @@
         "body": {
           "affiliateId": "{joiner}",
           "brandId": "{brand}",
-          "createdAt": "{period}-07T09:39:42.728774351Z",
+          "createdAt": "{period}-07T10:15:06.993076754Z",
           "displayName": "Driver joiner",
           "email": "joiner-{run}@example.com",
-          "keycloakUserId": "130414d7-e905-4710-b6bf-c4eb750e753b",
+          "keycloakUserId": "ea74f68e-d574-42a5-8c4c-3fef4aa79a1d",
           "parentAffiliateId": "{parent}",
           "primaryType": "AffiliateAccount",
           "status": "ACTIVE"
@@ -259,6 +262,22 @@
         "body": [
           {
             "properties": {
+              "actorId": "8a474efe-63be-4db9-be4b-f94ff589ca06",
+              "affiliateId": "{joiner}",
+              "brandId": "{brand}",
+              "dashboardUrl": "http://localhost:5175",
+              "displayName": "Driver joiner",
+              "email": "joiner-{run}@example.com",
+              "eventType": "AFFILIATE_APPROVED",
+              "primaryType": "AffiliateAccountEvent",
+              "recordedAt": "{period}-07T10:15:07.112105178Z",
+              "setPasswordExpiresAt": "1794305707",
+              "setPasswordUrl": "http://localhost:5175/accept-invitation?token=99c6c8d9-1dcb-4647-b9ed-baee27123542"
+            },
+            "twinId": "affiliate-audit-{brand}-{joiner}/c397351a-e765-4c81-a1c4-6044878826ab"
+          },
+          {
+            "properties": {
               "actorId": "invite-link",
               "affiliateId": "{joiner}",
               "brandId": "{brand}",
@@ -267,35 +286,19 @@
               "eventType": "AFFILIATE_PENDING_APPROVAL",
               "parentAffiliateId": "{parent}",
               "primaryType": "AffiliateAccountEvent",
-              "recordedAt": "{period}-07T09:39:42.740094196Z"
+              "recordedAt": "{period}-07T10:15:06.998747528Z"
             },
-            "twinId": "affiliate-audit-{brand}-{joiner}/e6ca1d4b-6b96-48d0-830d-744d22e55fbe"
-          },
-          {
-            "properties": {
-              "actorId": "1d2dd600-fcfe-460b-80d0-9f9297dd252f",
-              "affiliateId": "{joiner}",
-              "brandId": "{brand}",
-              "dashboardUrl": "http://localhost:5175",
-              "displayName": "Driver joiner",
-              "email": "joiner-{run}@example.com",
-              "eventType": "AFFILIATE_APPROVED",
-              "primaryType": "AffiliateAccountEvent",
-              "recordedAt": "{period}-07T09:39:42.852975049Z",
-              "setPasswordExpiresAt": "1794303582",
-              "setPasswordUrl": "http://localhost:5175/accept-invitation?token=8ba74e77-180f-4b6d-b14a-371bdc132b1a"
-            },
-            "twinId": "affiliate-audit-{brand}-{joiner}/1a6302be-04e2-44e2-97fe-afc48aa63b5a"
+            "twinId": "affiliate-audit-{brand}-{joiner}/d2bf9f74-72e2-4df5-b5e8-783888ecb841"
           }
         ]
       },
       "vary": {
+        "$[0].properties.actorId": "differs between two runs of the original",
         "$[0].properties.recordedAt": "differs between two runs of the original",
+        "$[0].properties.setPasswordExpiresAt": "differs between two runs of the original",
+        "$[0].properties.setPasswordUrl": "differs between two runs of the original",
         "$[0].twinId": "differs between two runs of the original",
-        "$[1].properties.actorId": "differs between two runs of the original",
         "$[1].properties.recordedAt": "differs between two runs of the original",
-        "$[1].properties.setPasswordExpiresAt": "differs between two runs of the original",
-        "$[1].properties.setPasswordUrl": "differs between two runs of the original",
         "$[1].twinId": "differs between two runs of the original"
       }
     }

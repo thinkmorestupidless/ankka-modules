@@ -1,7 +1,7 @@
 {
   "scenario": "reading notifications or marking all read marks them read for that affiliate only",
   "requirement": "013/FR-035",
-  "recorded_at": "2026-11-07T09:39:47.264518Z",
+  "recorded_at": "2026-11-07T10:15:10.45696Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+          "affiliateId": "53a44339-a1ef-4fa5-80af-a2c7b5b23b69",
           "email": "affiliate-{run}@example.com"
         }
       },
@@ -106,7 +109,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+          "affiliateId": "d82902f5-5eeb-4ff0-8913-0c1e5b0de7fe",
           "email": "other-{run}@example.com"
         }
       },
@@ -155,10 +158,10 @@
           {
             "properties": {
               "body": "Driver message",
-              "createdAt": "{period}-07T09:39:47.376643395Z",
+              "createdAt": "{period}-07T10:15:10.542046991Z",
               "type": "OPERATOR_MESSAGE"
             },
-            "twinId": "affiliate-notifications-{affiliate}/9d1640e3-418f-45c4-802f-cfbdb24b8fc6"
+            "twinId": "affiliate-notifications-{affiliate}/55bf1294-3360-4391-8e54-fb8a91450851"
           }
         ]
       },
@@ -202,17 +205,15 @@
           {
             "properties": {
               "body": "Driver message",
-              "createdAt": "{period}-07T09:39:47.376643395Z",
-              "readAt": "{period}-07T09:39:47.613416981Z",
+              "createdAt": "{period}-07T10:15:10.542046991Z",
               "type": "OPERATOR_MESSAGE"
             },
-            "twinId": "affiliate-notifications-{affiliate}/9d1640e3-418f-45c4-802f-cfbdb24b8fc6"
+            "twinId": "affiliate-notifications-{affiliate}/55bf1294-3360-4391-8e54-fb8a91450851"
           }
         ]
       },
       "vary": {
         "$[0].properties.createdAt": "differs between two runs of the original",
-        "$[0].properties.readAt": "differs between two runs of the original",
         "$[0].twinId": "differs between two runs of the original"
       }
     },
@@ -232,10 +233,10 @@
           {
             "properties": {
               "body": "Driver message",
-              "createdAt": "{period}-07T09:39:47.532352069Z",
+              "createdAt": "{period}-07T10:15:10.683382682Z",
               "type": "OPERATOR_MESSAGE"
             },
-            "twinId": "affiliate-notifications-{other}/061b43c2-6773-448c-aa3d-73330855400f"
+            "twinId": "affiliate-notifications-{other}/b1744823-4460-4388-8376-2218893a0466"
           }
         ]
       },

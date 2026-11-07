@@ -208,7 +208,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T039 [US2] CPA in the plan's currency, the payment fee per deposit, and FR-016 for a suspended
   membership in `ToLedger`; settle research R20's first item against `S/InternalRoutes.scala:761-1171`
   and record the answer in research.md *Changed at implementation*
-- [ ] T040 [US2] Parity: the ledger reads of the eight `tests/port/attribution/` driver recordings and the
+- [X] T040 [US2] Parity: the ledger reads of the eight `tests/port/attribution/` driver recordings and the
   programme driver's `cpa once` and `revshare and carryover` in `ParitySuite`, each divergence named by
   change number
 
@@ -242,7 +242,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   currencies: portal M1–M5 and operator O22, O37–O39 in `p/api/PortalEndpoint.scala` and
   `OperatorEndpoint.scala`, over `Ledger`; portal M6–M10 (`account`, `plan`, `available-plans`,
   `programme`)
-- [ ] T047 [US1] Parity: `apply, approve, reject, reapply`
+- [X] T047 [US1] Parity: `apply, approve, reject, reapply`
 
 **Checkpoint**: memberships.feature green; SC-003.
 
@@ -266,7 +266,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `?brand=`, `sub-affiliates/invite` with `brands`, `sub-affiliates`); the email invitation through
   `Membership.activateInvited`, `Token.issue` and an `EmailSend`; operator O9–O13 (O11–O13 reshaped,
   routes.md) and O27; `setParent` refused `parent_cycle` through `Network.wouldCycle`
-- [ ] T053 [US3] Parity: `network override`, `invite and join`
+- [X] T053 [US3] Parity: `network override`, `invite and join`
 
 ---
 
@@ -288,7 +288,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `override-figure/<payoutId>` claimed by the payout before approval (FR-019); `markPaid` on the account
 - [X] T058 [US4] O28 adjustments (FR-022); the export route and its `payment_details_read` audit
   (FR-021, `p/csv/Export.scala`); portal M5
-- [ ] T059 [US4] Parity: `close and pay`
+- [X] T059 [US4] Parity: `close and pay`
 
 ---
 
@@ -312,7 +312,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   included), `LegacyTags.scala`, the `Revocations` timed action, the four document routes of
   `ProgrammeEndpoint` (contracts/inbound.md *The documents*) and the legacy withdrawal route
   (contracts/routes.md)
-- [ ] T065 [US5] Parity: `links and codes`
+- [X] T065 [US5] Parity: `links and codes`
 
 ---
 
@@ -339,7 +339,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `GET /{brand}/unattributed` (contracts/routes.md); a retired brand refusing applications and status
   changes (data-model.md `BrandProgramme`)
 - [X] T072 [US6] O29–O34, the read-only view (`view/{page}`, `commission` with `?period=`)
-- [ ] T073 [US6] Parity: `plans`, `managers`, `fraud flags`, `notes, messages, creatives, settings,
+- [X] T073 [US6] Parity: `plans`, `managers`, `fraud flags`, `notes, messages, creatives, settings,
   programme page`, `read-only view`
 
 ---
@@ -362,7 +362,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
   `PostbackOutcome`, queued by `ToLedger` for registration, first deposit, deposit and RevShare; the
   portal's `postbacks` route
 - [X] T078 [US7] P5, P6 (forgot password, accept invitation, `mode=reset`), O16, O17; M34, M35; M26, M27
-- [ ] T079 [US7] Parity: `notifications`
+- [X] T079 [US7] Parity: `notifications`
 
 ---
 

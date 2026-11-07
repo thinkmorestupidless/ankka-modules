@@ -1,7 +1,7 @@
 {
   "scenario": "a manager for a brand approves an application on that brand's default plan and a manager for another brand cannot see it",
   "requirement": "013/FR-003",
-  "recorded_at": "2026-11-07T09:39:39.376613Z",
+  "recorded_at": "2026-11-07T10:15:03.270312Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "6203f7e7-e58d-4c6d-89eb-d103be57467c",
+          "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
           "status": "PENDING"
         }
       },
@@ -85,7 +88,7 @@
             "properties": {
               "affiliateId": "{affiliate}",
               "brandId": "{brand}",
-              "createdAt": "{period}-07T09:39:39.445910492Z",
+              "createdAt": "{period}-07T10:15:03.358885198Z",
               "displayName": "Driver affiliate",
               "email": "affiliate-{run}@example.com",
               "name": "Driver affiliate",
@@ -95,6 +98,710 @@
               "website": "https://example.com"
             },
             "twinId": "affiliates-{brand}/{affiliate}"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.564315909Z",
+              "email": "other-e3fc0be9@example.com",
+              "keycloakUserId": "4bb45207-e2c1-456c-b378-f31dc3ac8be2",
+              "name": "Driver other",
+              "planId": "c6c193a7-2604-377a-b0b2-07f4d8591393",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/a7b12d28-c015-4427-a0e1-43b17f1edb70"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.400912647Z",
+              "email": "affiliate-e3fc0be9@example.com",
+              "keycloakUserId": "81323408-028c-4d95-941e-5753a80b1fa6",
+              "name": "Driver affiliate",
+              "planId": "c6c193a7-2604-377a-b0b2-07f4d8591393",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/635af210-8b93-4782-a54b-dcb49a5856df"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.224975636Z",
+              "email": "affiliate-09fc12e6@example.com",
+              "keycloakUserId": "a1de0973-695d-42f7-95d3-bcd9e8edfd59",
+              "name": "Driver affiliate",
+              "planId": "d1c668ef-6139-3f4f-9adc-53024c7565ad",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/015b2e39-b9dc-4f42-9654-2b3e40bce25e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.161494069Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-bd652679@example.com",
+              "name": "Driver applicant",
+              "status": "PENDING",
+              "tags": [],
+              "termsAcceptedAt": "{period}-07T09:39:57.161494069Z",
+              "termsVersion": "{period}"
+            },
+            "twinId": "affiliates-{brand}/865d2891-c584-49d7-aa2c-98dde304420b"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:56.980088343Z",
+              "email": "affiliate-bd652679@example.com",
+              "keycloakUserId": "13b87987-bb80-41f7-b5db-2636e6ebaca3",
+              "name": "Driver affiliate",
+              "planId": "e37bedaf-5e28-3790-98f6-5efa51558c7b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/43335180-27b3-4d00-83d9-c54e58dfcc8f"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "-10.00",
+            "properties": {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:55.982158251Z",
+              "email": "affiliate-ee894a07@example.com",
+              "keycloakUserId": "19d089bf-e932-4c6b-b722-d4313461404f",
+              "name": "Driver affiliate",
+              "planId": "9fa60438-355e-3d1c-8d4f-f36fb44c5d5a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/76004447-cf68-4653-ac84-6d6ed91c18ff"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:54.903406469Z",
+              "email": "affiliate-8958cf2b@example.com",
+              "keycloakUserId": "b2dc7eab-39ce-40f2-901a-fb168a5b1de2",
+              "name": "Driver affiliate",
+              "planId": "8f50c3ac-097b-3db1-a266-8812fbca8ed4",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/9a504aa2-1282-49db-8219-9d7e726e65fa"
+          },
+          {
+            "currentMonthCommission": "30.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:52.224893563Z",
+              "email": "rejected-ccc462a8@example.com",
+              "keycloakUserId": "59007b43-9c1f-4320-9f65-f976edd2f2b0",
+              "minimumPayoutThreshold": "10.00",
+              "name": "Driver rejected",
+              "planId": "e597c2b8-3dea-3bc6-ad44-36bf31ec9d9f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/44c7ead0-e655-4372-ac29-6e8c9e29063d"
+          },
+          {
+            "currentMonthCommission": "250.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:52.131725479Z",
+              "email": "affiliate-ccc462a8@example.com",
+              "keycloakUserId": "858d08b2-e935-490f-b1d6-c6d0844abb64",
+              "minimumPayoutThreshold": "100.00",
+              "name": "Driver affiliate",
+              "planId": "e597c2b8-3dea-3bc6-ad44-36bf31ec9d9f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/433b8d94-0fa8-4937-bcb1-cc7f19ec09c9"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.940647390Z",
+              "displayName": "Driver joiner",
+              "email": "joiner-0d7f1437@example.com",
+              "keycloakUserId": "38dada1d-94cc-4546-85c2-9cfb46f49d1a",
+              "parentAffiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "primaryType": "AffiliateAccount",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.599651721Z",
+              "email": "sub-0d7f1437@example.com",
+              "keycloakUserId": "bd6b2165-3c8d-4fed-be79-5e8e34c9b42d",
+              "overridePercent": "5",
+              "parentAffiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "planId": "5fa4393f-5034-3b29-b791-78e40d5d297b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4dce22f4-7341-4a21-80e0-f778e654aaba"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.417966277Z",
+              "email": "parent-0d7f1437@example.com",
+              "keycloakUserId": "1acd425d-d44a-4583-b941-ae215be81b79",
+              "name": "Driver parent",
+              "planId": "5fa4393f-5034-3b29-b791-78e40d5d297b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/8c85eeb7-8327-40ea-9e78-26d079253eb9"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.111167989Z",
+              "email": "outsider-6e7d6984@example.com",
+              "keycloakUserId": "fb11a0fd-ba3a-4a0c-96c7-7d124700e2a0",
+              "name": "Driver outsider",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/3ec43328-c2d7-4d05-96bd-bfeb5b11fab8"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.019071034Z",
+              "email": "sub-6e7d6984@example.com",
+              "keycloakUserId": "614b7c05-a56c-4f8f-a001-54f82254d4ff",
+              "overridePercent": "10",
+              "parentAffiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4f510e29-95db-4d14-9643-5c70f9fc6054"
+          },
+          {
+            "currentMonthCommission": "5.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.866809261Z",
+              "email": "parent-6e7d6984@example.com",
+              "keycloakUserId": "c8010d81-6311-4b40-a119-58365d2547bb",
+              "name": "Driver parent",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4f483437-15d5-4ef7-9e87-17857af80d87"
+          },
+          {
+            "currentMonthCommission": "47.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.538964562Z",
+              "email": "carrier-1e4e8a6a@example.com",
+              "keycloakUserId": "51241d5e-3d65-476f-963d-616863df6941",
+              "name": "Driver carrier",
+              "planId": "bead140c-dca5-3d21-8f21-b87f338afe8a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/9453f3e9-317f-4d7c-addf-12b70b4e4a15"
+          },
+          {
+            "currentMonthCommission": "72.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.162708216Z",
+              "email": "affiliate-1e4e8a6a@example.com",
+              "keycloakUserId": "ba4592ef-df64-420a-ae26-ca9bd11b3cca",
+              "name": "Driver affiliate",
+              "planId": "114cd344-4f87-37a5-a770-dd21864c1446",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/291a05e8-d1ae-4922-8f35-9ec4b98ac1b9"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:49.794690521Z",
+              "email": "affiliate-3b008691@example.com",
+              "keycloakUserId": "b5f66264-f020-4ffc-8c05-9923b081f42e",
+              "name": "Driver affiliate",
+              "planId": "933855bf-0c5f-3d15-9da5-b1f3d3e927b9",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/980f4b0e-ac94-4cc6-9540-00ed135b076e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:49.022495680Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-c33dee7e@example.com",
+              "name": "Driver applicant",
+              "reappliedAt": "{period}-07T09:39:49.444202134Z",
+              "rejectionReason": "",
+              "status": "PENDING",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/3e8db006-f63f-4801-9db9-d4db715f0efd"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:48.705129004Z",
+              "displayName": "Driver affiliate",
+              "email": "affiliate-c33dee7e@example.com",
+              "keycloakUserId": "230aec49-40f9-43af-9b08-422f26f060f7",
+              "name": "Driver affiliate",
+              "planId": "19a41935-85a5-33dd-98e4-16f9e64bb13b",
+              "status": "ACTIVE",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/a2d9d360-5dc0-41fa-ae24-29bf80a36ec0"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.461098756Z",
+              "email": "other-08bb9cae@example.com",
+              "keycloakUserId": "0ee9c3e4-7e7d-40eb-9f1d-bb139cf05001",
+              "name": "Driver other",
+              "planId": "3c2f3a6b-4767-3fc8-96e4-6ac81a618935",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/5f5ec978-3ead-477e-98aa-401b9eef6c57"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.307205501Z",
+              "email": "affiliate-08bb9cae@example.com",
+              "keycloakUserId": "f81ce47c-e28b-470a-9e85-459ba40f2999",
+              "name": "Driver affiliate",
+              "planId": "3c2f3a6b-4767-3fc8-96e4-6ac81a618935",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/ca85271c-5d36-4caa-aa33-b4dd9f7f93ec"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.176745637Z",
+              "email": "affiliate-7c46dc63@example.com",
+              "keycloakUserId": "8b039658-1443-4a85-b10d-161617dfd9d1",
+              "name": "Driver affiliate",
+              "planId": "a8d10158-fa19-3d51-af23-9f04655869a9",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/77f380a7-f1f5-41c0-99b4-f2f0326de32e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.132037528Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-2d71a4cf@example.com",
+              "name": "Driver applicant",
+              "status": "PENDING",
+              "tags": [],
+              "termsAcceptedAt": "{period}-07T09:39:47.132037528Z",
+              "termsVersion": "{period}"
+            },
+            "twinId": "affiliates-{brand}/c71e1b49-c427-4540-9ac8-e45414f0ef08"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:46.971630261Z",
+              "email": "affiliate-2d71a4cf@example.com",
+              "keycloakUserId": "f6350ee7-f60f-495f-841d-91668530b7ea",
+              "name": "Driver affiliate",
+              "planId": "ef42027e-1b66-3b00-8d66-14e0171dd86a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/1e556eee-afcd-49b3-8fc2-f96f3213bbc3"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "-10.00",
+            "properties": {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:46.107020794Z",
+              "email": "affiliate-95fed70b@example.com",
+              "keycloakUserId": "55c907da-86b0-4371-8296-a8e3e7c13856",
+              "name": "Driver affiliate",
+              "planId": "bd57b383-7009-365a-ba9a-408a2495700b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/2ff9d87a-6c69-4538-9df3-eed396b508ab"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:45.425053578Z",
+              "email": "affiliate-d17d6201@example.com",
+              "keycloakUserId": "d020deb0-195d-4637-9b1e-f6c706fb3e73",
+              "name": "Driver affiliate",
+              "planId": "f0d9920d-7bf8-3aa3-8edb-f0572fe6fc91",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/d0f00320-4791-401b-bf1b-39ca06b709bb"
+          },
+          {
+            "currentMonthCommission": "30.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:43.042728288Z",
+              "email": "rejected-f39e7e39@example.com",
+              "keycloakUserId": "3aecb447-e48f-4ea0-b977-4d6bd552edc1",
+              "minimumPayoutThreshold": "10.00",
+              "name": "Driver rejected",
+              "planId": "3c03ff48-ffaa-37ed-bcd2-5894afe4bebc",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/1917246e-4a28-4cbd-b448-8f55ce3e033e"
+          },
+          {
+            "currentMonthCommission": "250.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.925884466Z",
+              "email": "affiliate-f39e7e39@example.com",
+              "keycloakUserId": "7845775b-6e6f-4831-bc9d-e8821bf8ce0d",
+              "minimumPayoutThreshold": "100.00",
+              "name": "Driver affiliate",
+              "planId": "3c03ff48-ffaa-37ed-bcd2-5894afe4bebc",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/8add1a37-43af-4702-a948-21bdb1d57173"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "b8035c5e-b653-42b0-ba5c-0f9185e633fe",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.728774351Z",
+              "displayName": "Driver joiner",
+              "email": "joiner-ffeb1884@example.com",
+              "keycloakUserId": "130414d7-e905-4710-b6bf-c4eb750e753b",
+              "parentAffiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "primaryType": "AffiliateAccount",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/b8035c5e-b653-42b0-ba5c-0f9185e633fe"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.309858165Z",
+              "email": "sub-ffeb1884@example.com",
+              "keycloakUserId": "757dcd40-9b1f-46ff-8191-90b421446421",
+              "overridePercent": "5",
+              "parentAffiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "planId": "f07a526a-6363-3b3b-b4c4-2f1000549ded",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/facbfa47-6b14-4ef5-8fdb-55b9d66d3c53"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.139576390Z",
+              "email": "parent-ffeb1884@example.com",
+              "keycloakUserId": "1d2dd600-fcfe-460b-80d0-9f9297dd252f",
+              "name": "Driver parent",
+              "planId": "f07a526a-6363-3b3b-b4c4-2f1000549ded",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4d17d229-fabe-4e62-b4ae-9b3fa2391529"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "b84cb8d9-a10b-4798-8cc4-fe3de33c6f7d",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.779636906Z",
+              "email": "outsider-e34c95d1@example.com",
+              "keycloakUserId": "191417e3-4935-4d8c-9df8-a465e56c843b",
+              "name": "Driver outsider",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/b84cb8d9-a10b-4798-8cc4-fe3de33c6f7d"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "bfb7ea41-7181-4ae5-ada8-29700ba66cd2",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.698128712Z",
+              "email": "sub-e34c95d1@example.com",
+              "keycloakUserId": "e5902663-d58d-4ffc-b2bc-2aaa778c12b5",
+              "overridePercent": "10",
+              "parentAffiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/bfb7ea41-7181-4ae5-ada8-29700ba66cd2"
+          },
+          {
+            "currentMonthCommission": "5.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.516234125Z",
+              "email": "parent-e34c95d1@example.com",
+              "keycloakUserId": "ac10ff78-e189-45a4-8fa5-544deecde77e",
+              "name": "Driver parent",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/6df70f0d-2660-4719-bd53-320a72643cf2"
+          },
+          {
+            "currentMonthCommission": "47.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "dac21fbe-9af0-4fc1-bbdb-6da7e7432329",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.181559491Z",
+              "email": "carrier-655e0f8c@example.com",
+              "keycloakUserId": "b10f81e8-0291-4d42-9dec-141e81cca000",
+              "name": "Driver carrier",
+              "planId": "98fda736-9a11-31eb-bbd9-79123b51e917",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/dac21fbe-9af0-4fc1-bbdb-6da7e7432329"
+          },
+          {
+            "currentMonthCommission": "72.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "61cae615-85a9-4e44-b18d-e53a6b88978b",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:40.813924170Z",
+              "email": "affiliate-655e0f8c@example.com",
+              "keycloakUserId": "c78b9d41-b6c6-4d56-87e8-cd55ca1810eb",
+              "name": "Driver affiliate",
+              "planId": "1357ce32-a33e-3833-9140-1767d03f671f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/61cae615-85a9-4e44-b18d-e53a6b88978b"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4aa3f430-1745-468a-a0de-e337eed8df8e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:40.453141698Z",
+              "email": "affiliate-ed6d2ad6@example.com",
+              "keycloakUserId": "52b0b240-c6b0-4ba4-91be-8473822c4a0c",
+              "name": "Driver affiliate",
+              "planId": "acac81ac-3a4d-35ac-94ae-b8047a140742",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4aa3f430-1745-468a-a0de-e337eed8df8e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "f40f685c-d51f-440b-941d-400b1dc27a43",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:39.733610608Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-45333b76@example.com",
+              "name": "Driver applicant",
+              "reappliedAt": "{period}-07T09:39:40.116445251Z",
+              "rejectionReason": "",
+              "status": "PENDING",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/f40f685c-d51f-440b-941d-400b1dc27a43"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "6203f7e7-e58d-4c6d-89eb-d103be57467c",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:39.445910492Z",
+              "displayName": "Driver affiliate",
+              "email": "affiliate-45333b76@example.com",
+              "keycloakUserId": "0137e537-3fab-4737-8f52-075324cc14f7",
+              "name": "Driver affiliate",
+              "planId": "fa427829-9ac5-3194-8ca5-c4e6c17880fb",
+              "status": "ACTIVE",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/6203f7e7-e58d-4c6d-89eb-d103be57467c"
           },
           {
             "currentMonthCommission": "0.00",
@@ -2253,10 +2960,10 @@
           "properties": {
             "affiliateId": "{affiliate}",
             "brandId": "{brand}",
-            "createdAt": "{period}-07T09:39:39.445910492Z",
+            "createdAt": "{period}-07T10:15:03.358885198Z",
             "displayName": "Driver affiliate",
             "email": "affiliate-{run}@example.com",
-            "keycloakUserId": "0137e537-3fab-4737-8f52-075324cc14f7",
+            "keycloakUserId": "78e9c49c-2338-46fc-b085-e93ce172a372",
             "name": "Driver affiliate",
             "planId": "{plan}",
             "status": "ACTIVE",
@@ -2291,10 +2998,10 @@
             "properties": {
               "affiliateId": "{affiliate}",
               "brandId": "{brand}",
-              "createdAt": "{period}-07T09:39:39.445910492Z",
+              "createdAt": "{period}-07T10:15:03.358885198Z",
               "displayName": "Driver affiliate",
               "email": "affiliate-{run}@example.com",
-              "keycloakUserId": "0137e537-3fab-4737-8f52-075324cc14f7",
+              "keycloakUserId": "78e9c49c-2338-46fc-b085-e93ce172a372",
               "name": "Driver affiliate",
               "planId": "{plan}",
               "status": "ACTIVE",
@@ -2303,6 +3010,710 @@
               "website": "https://example.com"
             },
             "twinId": "affiliates-{brand}/{affiliate}"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.564315909Z",
+              "email": "other-e3fc0be9@example.com",
+              "keycloakUserId": "4bb45207-e2c1-456c-b378-f31dc3ac8be2",
+              "name": "Driver other",
+              "planId": "c6c193a7-2604-377a-b0b2-07f4d8591393",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/a7b12d28-c015-4427-a0e1-43b17f1edb70"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.400912647Z",
+              "email": "affiliate-e3fc0be9@example.com",
+              "keycloakUserId": "81323408-028c-4d95-941e-5753a80b1fa6",
+              "name": "Driver affiliate",
+              "planId": "c6c193a7-2604-377a-b0b2-07f4d8591393",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/635af210-8b93-4782-a54b-dcb49a5856df"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.224975636Z",
+              "email": "affiliate-09fc12e6@example.com",
+              "keycloakUserId": "a1de0973-695d-42f7-95d3-bcd9e8edfd59",
+              "name": "Driver affiliate",
+              "planId": "d1c668ef-6139-3f4f-9adc-53024c7565ad",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/015b2e39-b9dc-4f42-9654-2b3e40bce25e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.161494069Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-bd652679@example.com",
+              "name": "Driver applicant",
+              "status": "PENDING",
+              "tags": [],
+              "termsAcceptedAt": "{period}-07T09:39:57.161494069Z",
+              "termsVersion": "{period}"
+            },
+            "twinId": "affiliates-{brand}/865d2891-c584-49d7-aa2c-98dde304420b"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:56.980088343Z",
+              "email": "affiliate-bd652679@example.com",
+              "keycloakUserId": "13b87987-bb80-41f7-b5db-2636e6ebaca3",
+              "name": "Driver affiliate",
+              "planId": "e37bedaf-5e28-3790-98f6-5efa51558c7b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/43335180-27b3-4d00-83d9-c54e58dfcc8f"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "-10.00",
+            "properties": {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:55.982158251Z",
+              "email": "affiliate-ee894a07@example.com",
+              "keycloakUserId": "19d089bf-e932-4c6b-b722-d4313461404f",
+              "name": "Driver affiliate",
+              "planId": "9fa60438-355e-3d1c-8d4f-f36fb44c5d5a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/76004447-cf68-4653-ac84-6d6ed91c18ff"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:54.903406469Z",
+              "email": "affiliate-8958cf2b@example.com",
+              "keycloakUserId": "b2dc7eab-39ce-40f2-901a-fb168a5b1de2",
+              "name": "Driver affiliate",
+              "planId": "8f50c3ac-097b-3db1-a266-8812fbca8ed4",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/9a504aa2-1282-49db-8219-9d7e726e65fa"
+          },
+          {
+            "currentMonthCommission": "30.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:52.224893563Z",
+              "email": "rejected-ccc462a8@example.com",
+              "keycloakUserId": "59007b43-9c1f-4320-9f65-f976edd2f2b0",
+              "minimumPayoutThreshold": "10.00",
+              "name": "Driver rejected",
+              "planId": "e597c2b8-3dea-3bc6-ad44-36bf31ec9d9f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/44c7ead0-e655-4372-ac29-6e8c9e29063d"
+          },
+          {
+            "currentMonthCommission": "250.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:52.131725479Z",
+              "email": "affiliate-ccc462a8@example.com",
+              "keycloakUserId": "858d08b2-e935-490f-b1d6-c6d0844abb64",
+              "minimumPayoutThreshold": "100.00",
+              "name": "Driver affiliate",
+              "planId": "e597c2b8-3dea-3bc6-ad44-36bf31ec9d9f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/433b8d94-0fa8-4937-bcb1-cc7f19ec09c9"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.940647390Z",
+              "displayName": "Driver joiner",
+              "email": "joiner-0d7f1437@example.com",
+              "keycloakUserId": "38dada1d-94cc-4546-85c2-9cfb46f49d1a",
+              "parentAffiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "primaryType": "AffiliateAccount",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.599651721Z",
+              "email": "sub-0d7f1437@example.com",
+              "keycloakUserId": "bd6b2165-3c8d-4fed-be79-5e8e34c9b42d",
+              "overridePercent": "5",
+              "parentAffiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "planId": "5fa4393f-5034-3b29-b791-78e40d5d297b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4dce22f4-7341-4a21-80e0-f778e654aaba"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.417966277Z",
+              "email": "parent-0d7f1437@example.com",
+              "keycloakUserId": "1acd425d-d44a-4583-b941-ae215be81b79",
+              "name": "Driver parent",
+              "planId": "5fa4393f-5034-3b29-b791-78e40d5d297b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/8c85eeb7-8327-40ea-9e78-26d079253eb9"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.111167989Z",
+              "email": "outsider-6e7d6984@example.com",
+              "keycloakUserId": "fb11a0fd-ba3a-4a0c-96c7-7d124700e2a0",
+              "name": "Driver outsider",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/3ec43328-c2d7-4d05-96bd-bfeb5b11fab8"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.019071034Z",
+              "email": "sub-6e7d6984@example.com",
+              "keycloakUserId": "614b7c05-a56c-4f8f-a001-54f82254d4ff",
+              "overridePercent": "10",
+              "parentAffiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4f510e29-95db-4d14-9643-5c70f9fc6054"
+          },
+          {
+            "currentMonthCommission": "5.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.866809261Z",
+              "email": "parent-6e7d6984@example.com",
+              "keycloakUserId": "c8010d81-6311-4b40-a119-58365d2547bb",
+              "name": "Driver parent",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4f483437-15d5-4ef7-9e87-17857af80d87"
+          },
+          {
+            "currentMonthCommission": "47.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.538964562Z",
+              "email": "carrier-1e4e8a6a@example.com",
+              "keycloakUserId": "51241d5e-3d65-476f-963d-616863df6941",
+              "name": "Driver carrier",
+              "planId": "bead140c-dca5-3d21-8f21-b87f338afe8a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/9453f3e9-317f-4d7c-addf-12b70b4e4a15"
+          },
+          {
+            "currentMonthCommission": "72.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.162708216Z",
+              "email": "affiliate-1e4e8a6a@example.com",
+              "keycloakUserId": "ba4592ef-df64-420a-ae26-ca9bd11b3cca",
+              "name": "Driver affiliate",
+              "planId": "114cd344-4f87-37a5-a770-dd21864c1446",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/291a05e8-d1ae-4922-8f35-9ec4b98ac1b9"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:49.794690521Z",
+              "email": "affiliate-3b008691@example.com",
+              "keycloakUserId": "b5f66264-f020-4ffc-8c05-9923b081f42e",
+              "name": "Driver affiliate",
+              "planId": "933855bf-0c5f-3d15-9da5-b1f3d3e927b9",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/980f4b0e-ac94-4cc6-9540-00ed135b076e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:49.022495680Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-c33dee7e@example.com",
+              "name": "Driver applicant",
+              "reappliedAt": "{period}-07T09:39:49.444202134Z",
+              "rejectionReason": "",
+              "status": "PENDING",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/3e8db006-f63f-4801-9db9-d4db715f0efd"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:48.705129004Z",
+              "displayName": "Driver affiliate",
+              "email": "affiliate-c33dee7e@example.com",
+              "keycloakUserId": "230aec49-40f9-43af-9b08-422f26f060f7",
+              "name": "Driver affiliate",
+              "planId": "19a41935-85a5-33dd-98e4-16f9e64bb13b",
+              "status": "ACTIVE",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/a2d9d360-5dc0-41fa-ae24-29bf80a36ec0"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.461098756Z",
+              "email": "other-08bb9cae@example.com",
+              "keycloakUserId": "0ee9c3e4-7e7d-40eb-9f1d-bb139cf05001",
+              "name": "Driver other",
+              "planId": "3c2f3a6b-4767-3fc8-96e4-6ac81a618935",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/5f5ec978-3ead-477e-98aa-401b9eef6c57"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.307205501Z",
+              "email": "affiliate-08bb9cae@example.com",
+              "keycloakUserId": "f81ce47c-e28b-470a-9e85-459ba40f2999",
+              "name": "Driver affiliate",
+              "planId": "3c2f3a6b-4767-3fc8-96e4-6ac81a618935",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/ca85271c-5d36-4caa-aa33-b4dd9f7f93ec"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.176745637Z",
+              "email": "affiliate-7c46dc63@example.com",
+              "keycloakUserId": "8b039658-1443-4a85-b10d-161617dfd9d1",
+              "name": "Driver affiliate",
+              "planId": "a8d10158-fa19-3d51-af23-9f04655869a9",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/77f380a7-f1f5-41c0-99b4-f2f0326de32e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.132037528Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-2d71a4cf@example.com",
+              "name": "Driver applicant",
+              "status": "PENDING",
+              "tags": [],
+              "termsAcceptedAt": "{period}-07T09:39:47.132037528Z",
+              "termsVersion": "{period}"
+            },
+            "twinId": "affiliates-{brand}/c71e1b49-c427-4540-9ac8-e45414f0ef08"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:46.971630261Z",
+              "email": "affiliate-2d71a4cf@example.com",
+              "keycloakUserId": "f6350ee7-f60f-495f-841d-91668530b7ea",
+              "name": "Driver affiliate",
+              "planId": "ef42027e-1b66-3b00-8d66-14e0171dd86a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/1e556eee-afcd-49b3-8fc2-f96f3213bbc3"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "-10.00",
+            "properties": {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:46.107020794Z",
+              "email": "affiliate-95fed70b@example.com",
+              "keycloakUserId": "55c907da-86b0-4371-8296-a8e3e7c13856",
+              "name": "Driver affiliate",
+              "planId": "bd57b383-7009-365a-ba9a-408a2495700b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/2ff9d87a-6c69-4538-9df3-eed396b508ab"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:45.425053578Z",
+              "email": "affiliate-d17d6201@example.com",
+              "keycloakUserId": "d020deb0-195d-4637-9b1e-f6c706fb3e73",
+              "name": "Driver affiliate",
+              "planId": "f0d9920d-7bf8-3aa3-8edb-f0572fe6fc91",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/d0f00320-4791-401b-bf1b-39ca06b709bb"
+          },
+          {
+            "currentMonthCommission": "30.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:43.042728288Z",
+              "email": "rejected-f39e7e39@example.com",
+              "keycloakUserId": "3aecb447-e48f-4ea0-b977-4d6bd552edc1",
+              "minimumPayoutThreshold": "10.00",
+              "name": "Driver rejected",
+              "planId": "3c03ff48-ffaa-37ed-bcd2-5894afe4bebc",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/1917246e-4a28-4cbd-b448-8f55ce3e033e"
+          },
+          {
+            "currentMonthCommission": "250.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.925884466Z",
+              "email": "affiliate-f39e7e39@example.com",
+              "keycloakUserId": "7845775b-6e6f-4831-bc9d-e8821bf8ce0d",
+              "minimumPayoutThreshold": "100.00",
+              "name": "Driver affiliate",
+              "planId": "3c03ff48-ffaa-37ed-bcd2-5894afe4bebc",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/8add1a37-43af-4702-a948-21bdb1d57173"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "b8035c5e-b653-42b0-ba5c-0f9185e633fe",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.728774351Z",
+              "displayName": "Driver joiner",
+              "email": "joiner-ffeb1884@example.com",
+              "keycloakUserId": "130414d7-e905-4710-b6bf-c4eb750e753b",
+              "parentAffiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "primaryType": "AffiliateAccount",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/b8035c5e-b653-42b0-ba5c-0f9185e633fe"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.309858165Z",
+              "email": "sub-ffeb1884@example.com",
+              "keycloakUserId": "757dcd40-9b1f-46ff-8191-90b421446421",
+              "overridePercent": "5",
+              "parentAffiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "planId": "f07a526a-6363-3b3b-b4c4-2f1000549ded",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/facbfa47-6b14-4ef5-8fdb-55b9d66d3c53"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.139576390Z",
+              "email": "parent-ffeb1884@example.com",
+              "keycloakUserId": "1d2dd600-fcfe-460b-80d0-9f9297dd252f",
+              "name": "Driver parent",
+              "planId": "f07a526a-6363-3b3b-b4c4-2f1000549ded",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4d17d229-fabe-4e62-b4ae-9b3fa2391529"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "b84cb8d9-a10b-4798-8cc4-fe3de33c6f7d",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.779636906Z",
+              "email": "outsider-e34c95d1@example.com",
+              "keycloakUserId": "191417e3-4935-4d8c-9df8-a465e56c843b",
+              "name": "Driver outsider",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/b84cb8d9-a10b-4798-8cc4-fe3de33c6f7d"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "bfb7ea41-7181-4ae5-ada8-29700ba66cd2",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.698128712Z",
+              "email": "sub-e34c95d1@example.com",
+              "keycloakUserId": "e5902663-d58d-4ffc-b2bc-2aaa778c12b5",
+              "overridePercent": "10",
+              "parentAffiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/bfb7ea41-7181-4ae5-ada8-29700ba66cd2"
+          },
+          {
+            "currentMonthCommission": "5.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.516234125Z",
+              "email": "parent-e34c95d1@example.com",
+              "keycloakUserId": "ac10ff78-e189-45a4-8fa5-544deecde77e",
+              "name": "Driver parent",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/6df70f0d-2660-4719-bd53-320a72643cf2"
+          },
+          {
+            "currentMonthCommission": "47.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "dac21fbe-9af0-4fc1-bbdb-6da7e7432329",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.181559491Z",
+              "email": "carrier-655e0f8c@example.com",
+              "keycloakUserId": "b10f81e8-0291-4d42-9dec-141e81cca000",
+              "name": "Driver carrier",
+              "planId": "98fda736-9a11-31eb-bbd9-79123b51e917",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/dac21fbe-9af0-4fc1-bbdb-6da7e7432329"
+          },
+          {
+            "currentMonthCommission": "72.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "61cae615-85a9-4e44-b18d-e53a6b88978b",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:40.813924170Z",
+              "email": "affiliate-655e0f8c@example.com",
+              "keycloakUserId": "c78b9d41-b6c6-4d56-87e8-cd55ca1810eb",
+              "name": "Driver affiliate",
+              "planId": "1357ce32-a33e-3833-9140-1767d03f671f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/61cae615-85a9-4e44-b18d-e53a6b88978b"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4aa3f430-1745-468a-a0de-e337eed8df8e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:40.453141698Z",
+              "email": "affiliate-ed6d2ad6@example.com",
+              "keycloakUserId": "52b0b240-c6b0-4ba4-91be-8473822c4a0c",
+              "name": "Driver affiliate",
+              "planId": "acac81ac-3a4d-35ac-94ae-b8047a140742",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4aa3f430-1745-468a-a0de-e337eed8df8e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "f40f685c-d51f-440b-941d-400b1dc27a43",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:39.733610608Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-45333b76@example.com",
+              "name": "Driver applicant",
+              "reappliedAt": "{period}-07T09:39:40.116445251Z",
+              "rejectionReason": "",
+              "status": "PENDING",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/f40f685c-d51f-440b-941d-400b1dc27a43"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "6203f7e7-e58d-4c6d-89eb-d103be57467c",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:39.445910492Z",
+              "displayName": "Driver affiliate",
+              "email": "affiliate-45333b76@example.com",
+              "keycloakUserId": "0137e537-3fab-4737-8f52-075324cc14f7",
+              "name": "Driver affiliate",
+              "planId": "fa427829-9ac5-3194-8ca5-c4e6c17880fb",
+              "status": "ACTIVE",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/6203f7e7-e58d-4c6d-89eb-d103be57467c"
           },
           {
             "currentMonthCommission": "0.00",
@@ -4443,7 +5854,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "f40f685c-d51f-440b-941d-400b1dc27a43",
+          "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
           "status": "PENDING"
         }
       },
@@ -4495,7 +5906,7 @@
             "properties": {
               "affiliateId": "{applicant}",
               "brandId": "{brand}",
-              "createdAt": "{period}-07T09:39:39.733610608Z",
+              "createdAt": "{period}-07T10:15:04.247523753Z",
               "displayName": "Driver applicant",
               "email": "applicant-{run}@example.com",
               "name": "Driver applicant",
@@ -4514,10 +5925,10 @@
             "properties": {
               "affiliateId": "{affiliate}",
               "brandId": "{brand}",
-              "createdAt": "{period}-07T09:39:39.445910492Z",
+              "createdAt": "{period}-07T10:15:03.358885198Z",
               "displayName": "Driver affiliate",
               "email": "affiliate-{run}@example.com",
-              "keycloakUserId": "0137e537-3fab-4737-8f52-075324cc14f7",
+              "keycloakUserId": "78e9c49c-2338-46fc-b085-e93ce172a372",
               "name": "Driver affiliate",
               "planId": "{plan}",
               "status": "ACTIVE",
@@ -4526,6 +5937,710 @@
               "website": "https://example.com"
             },
             "twinId": "affiliates-{brand}/{affiliate}"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.564315909Z",
+              "email": "other-e3fc0be9@example.com",
+              "keycloakUserId": "4bb45207-e2c1-456c-b378-f31dc3ac8be2",
+              "name": "Driver other",
+              "planId": "c6c193a7-2604-377a-b0b2-07f4d8591393",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/a7b12d28-c015-4427-a0e1-43b17f1edb70"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.400912647Z",
+              "email": "affiliate-e3fc0be9@example.com",
+              "keycloakUserId": "81323408-028c-4d95-941e-5753a80b1fa6",
+              "name": "Driver affiliate",
+              "planId": "c6c193a7-2604-377a-b0b2-07f4d8591393",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/635af210-8b93-4782-a54b-dcb49a5856df"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.224975636Z",
+              "email": "affiliate-09fc12e6@example.com",
+              "keycloakUserId": "a1de0973-695d-42f7-95d3-bcd9e8edfd59",
+              "name": "Driver affiliate",
+              "planId": "d1c668ef-6139-3f4f-9adc-53024c7565ad",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/015b2e39-b9dc-4f42-9654-2b3e40bce25e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:57.161494069Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-bd652679@example.com",
+              "name": "Driver applicant",
+              "status": "PENDING",
+              "tags": [],
+              "termsAcceptedAt": "{period}-07T09:39:57.161494069Z",
+              "termsVersion": "{period}"
+            },
+            "twinId": "affiliates-{brand}/865d2891-c584-49d7-aa2c-98dde304420b"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:56.980088343Z",
+              "email": "affiliate-bd652679@example.com",
+              "keycloakUserId": "13b87987-bb80-41f7-b5db-2636e6ebaca3",
+              "name": "Driver affiliate",
+              "planId": "e37bedaf-5e28-3790-98f6-5efa51558c7b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/43335180-27b3-4d00-83d9-c54e58dfcc8f"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "-10.00",
+            "properties": {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:55.982158251Z",
+              "email": "affiliate-ee894a07@example.com",
+              "keycloakUserId": "19d089bf-e932-4c6b-b722-d4313461404f",
+              "name": "Driver affiliate",
+              "planId": "9fa60438-355e-3d1c-8d4f-f36fb44c5d5a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/76004447-cf68-4653-ac84-6d6ed91c18ff"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:54.903406469Z",
+              "email": "affiliate-8958cf2b@example.com",
+              "keycloakUserId": "b2dc7eab-39ce-40f2-901a-fb168a5b1de2",
+              "name": "Driver affiliate",
+              "planId": "8f50c3ac-097b-3db1-a266-8812fbca8ed4",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/9a504aa2-1282-49db-8219-9d7e726e65fa"
+          },
+          {
+            "currentMonthCommission": "30.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:52.224893563Z",
+              "email": "rejected-ccc462a8@example.com",
+              "keycloakUserId": "59007b43-9c1f-4320-9f65-f976edd2f2b0",
+              "minimumPayoutThreshold": "10.00",
+              "name": "Driver rejected",
+              "planId": "e597c2b8-3dea-3bc6-ad44-36bf31ec9d9f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/44c7ead0-e655-4372-ac29-6e8c9e29063d"
+          },
+          {
+            "currentMonthCommission": "250.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:52.131725479Z",
+              "email": "affiliate-ccc462a8@example.com",
+              "keycloakUserId": "858d08b2-e935-490f-b1d6-c6d0844abb64",
+              "minimumPayoutThreshold": "100.00",
+              "name": "Driver affiliate",
+              "planId": "e597c2b8-3dea-3bc6-ad44-36bf31ec9d9f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/433b8d94-0fa8-4937-bcb1-cc7f19ec09c9"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.940647390Z",
+              "displayName": "Driver joiner",
+              "email": "joiner-0d7f1437@example.com",
+              "keycloakUserId": "38dada1d-94cc-4546-85c2-9cfb46f49d1a",
+              "parentAffiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "primaryType": "AffiliateAccount",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.599651721Z",
+              "email": "sub-0d7f1437@example.com",
+              "keycloakUserId": "bd6b2165-3c8d-4fed-be79-5e8e34c9b42d",
+              "overridePercent": "5",
+              "parentAffiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "planId": "5fa4393f-5034-3b29-b791-78e40d5d297b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4dce22f4-7341-4a21-80e0-f778e654aaba"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.417966277Z",
+              "email": "parent-0d7f1437@example.com",
+              "keycloakUserId": "1acd425d-d44a-4583-b941-ae215be81b79",
+              "name": "Driver parent",
+              "planId": "5fa4393f-5034-3b29-b791-78e40d5d297b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/8c85eeb7-8327-40ea-9e78-26d079253eb9"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.111167989Z",
+              "email": "outsider-6e7d6984@example.com",
+              "keycloakUserId": "fb11a0fd-ba3a-4a0c-96c7-7d124700e2a0",
+              "name": "Driver outsider",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/3ec43328-c2d7-4d05-96bd-bfeb5b11fab8"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:51.019071034Z",
+              "email": "sub-6e7d6984@example.com",
+              "keycloakUserId": "614b7c05-a56c-4f8f-a001-54f82254d4ff",
+              "overridePercent": "10",
+              "parentAffiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4f510e29-95db-4d14-9643-5c70f9fc6054"
+          },
+          {
+            "currentMonthCommission": "5.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.866809261Z",
+              "email": "parent-6e7d6984@example.com",
+              "keycloakUserId": "c8010d81-6311-4b40-a119-58365d2547bb",
+              "name": "Driver parent",
+              "planId": "e8821640-f4fb-39a0-a96d-c4b34570e675",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4f483437-15d5-4ef7-9e87-17857af80d87"
+          },
+          {
+            "currentMonthCommission": "47.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.538964562Z",
+              "email": "carrier-1e4e8a6a@example.com",
+              "keycloakUserId": "51241d5e-3d65-476f-963d-616863df6941",
+              "name": "Driver carrier",
+              "planId": "bead140c-dca5-3d21-8f21-b87f338afe8a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/9453f3e9-317f-4d7c-addf-12b70b4e4a15"
+          },
+          {
+            "currentMonthCommission": "72.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:50.162708216Z",
+              "email": "affiliate-1e4e8a6a@example.com",
+              "keycloakUserId": "ba4592ef-df64-420a-ae26-ca9bd11b3cca",
+              "name": "Driver affiliate",
+              "planId": "114cd344-4f87-37a5-a770-dd21864c1446",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/291a05e8-d1ae-4922-8f35-9ec4b98ac1b9"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:49.794690521Z",
+              "email": "affiliate-3b008691@example.com",
+              "keycloakUserId": "b5f66264-f020-4ffc-8c05-9923b081f42e",
+              "name": "Driver affiliate",
+              "planId": "933855bf-0c5f-3d15-9da5-b1f3d3e927b9",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/980f4b0e-ac94-4cc6-9540-00ed135b076e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:49.022495680Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-c33dee7e@example.com",
+              "name": "Driver applicant",
+              "reappliedAt": "{period}-07T09:39:49.444202134Z",
+              "rejectionReason": "",
+              "status": "PENDING",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/3e8db006-f63f-4801-9db9-d4db715f0efd"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:48.705129004Z",
+              "displayName": "Driver affiliate",
+              "email": "affiliate-c33dee7e@example.com",
+              "keycloakUserId": "230aec49-40f9-43af-9b08-422f26f060f7",
+              "name": "Driver affiliate",
+              "planId": "19a41935-85a5-33dd-98e4-16f9e64bb13b",
+              "status": "ACTIVE",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/a2d9d360-5dc0-41fa-ae24-29bf80a36ec0"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.461098756Z",
+              "email": "other-08bb9cae@example.com",
+              "keycloakUserId": "0ee9c3e4-7e7d-40eb-9f1d-bb139cf05001",
+              "name": "Driver other",
+              "planId": "3c2f3a6b-4767-3fc8-96e4-6ac81a618935",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/5f5ec978-3ead-477e-98aa-401b9eef6c57"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.307205501Z",
+              "email": "affiliate-08bb9cae@example.com",
+              "keycloakUserId": "f81ce47c-e28b-470a-9e85-459ba40f2999",
+              "name": "Driver affiliate",
+              "planId": "3c2f3a6b-4767-3fc8-96e4-6ac81a618935",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/ca85271c-5d36-4caa-aa33-b4dd9f7f93ec"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.176745637Z",
+              "email": "affiliate-7c46dc63@example.com",
+              "keycloakUserId": "8b039658-1443-4a85-b10d-161617dfd9d1",
+              "name": "Driver affiliate",
+              "planId": "a8d10158-fa19-3d51-af23-9f04655869a9",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/77f380a7-f1f5-41c0-99b4-f2f0326de32e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:47.132037528Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-2d71a4cf@example.com",
+              "name": "Driver applicant",
+              "status": "PENDING",
+              "tags": [],
+              "termsAcceptedAt": "{period}-07T09:39:47.132037528Z",
+              "termsVersion": "{period}"
+            },
+            "twinId": "affiliates-{brand}/c71e1b49-c427-4540-9ac8-e45414f0ef08"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:46.971630261Z",
+              "email": "affiliate-2d71a4cf@example.com",
+              "keycloakUserId": "f6350ee7-f60f-495f-841d-91668530b7ea",
+              "name": "Driver affiliate",
+              "planId": "ef42027e-1b66-3b00-8d66-14e0171dd86a",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/1e556eee-afcd-49b3-8fc2-f96f3213bbc3"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "-10.00",
+            "properties": {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:46.107020794Z",
+              "email": "affiliate-95fed70b@example.com",
+              "keycloakUserId": "55c907da-86b0-4371-8296-a8e3e7c13856",
+              "name": "Driver affiliate",
+              "planId": "bd57b383-7009-365a-ba9a-408a2495700b",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/2ff9d87a-6c69-4538-9df3-eed396b508ab"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:45.425053578Z",
+              "email": "affiliate-d17d6201@example.com",
+              "keycloakUserId": "d020deb0-195d-4637-9b1e-f6c706fb3e73",
+              "name": "Driver affiliate",
+              "planId": "f0d9920d-7bf8-3aa3-8edb-f0572fe6fc91",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/d0f00320-4791-401b-bf1b-39ca06b709bb"
+          },
+          {
+            "currentMonthCommission": "30.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:43.042728288Z",
+              "email": "rejected-f39e7e39@example.com",
+              "keycloakUserId": "3aecb447-e48f-4ea0-b977-4d6bd552edc1",
+              "minimumPayoutThreshold": "10.00",
+              "name": "Driver rejected",
+              "planId": "3c03ff48-ffaa-37ed-bcd2-5894afe4bebc",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/1917246e-4a28-4cbd-b448-8f55ce3e033e"
+          },
+          {
+            "currentMonthCommission": "250.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.925884466Z",
+              "email": "affiliate-f39e7e39@example.com",
+              "keycloakUserId": "7845775b-6e6f-4831-bc9d-e8821bf8ce0d",
+              "minimumPayoutThreshold": "100.00",
+              "name": "Driver affiliate",
+              "planId": "3c03ff48-ffaa-37ed-bcd2-5894afe4bebc",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/8add1a37-43af-4702-a948-21bdb1d57173"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "b8035c5e-b653-42b0-ba5c-0f9185e633fe",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.728774351Z",
+              "displayName": "Driver joiner",
+              "email": "joiner-ffeb1884@example.com",
+              "keycloakUserId": "130414d7-e905-4710-b6bf-c4eb750e753b",
+              "parentAffiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "primaryType": "AffiliateAccount",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/b8035c5e-b653-42b0-ba5c-0f9185e633fe"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.309858165Z",
+              "email": "sub-ffeb1884@example.com",
+              "keycloakUserId": "757dcd40-9b1f-46ff-8191-90b421446421",
+              "overridePercent": "5",
+              "parentAffiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "planId": "f07a526a-6363-3b3b-b4c4-2f1000549ded",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/facbfa47-6b14-4ef5-8fdb-55b9d66d3c53"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:42.139576390Z",
+              "email": "parent-ffeb1884@example.com",
+              "keycloakUserId": "1d2dd600-fcfe-460b-80d0-9f9297dd252f",
+              "name": "Driver parent",
+              "planId": "f07a526a-6363-3b3b-b4c4-2f1000549ded",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4d17d229-fabe-4e62-b4ae-9b3fa2391529"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "b84cb8d9-a10b-4798-8cc4-fe3de33c6f7d",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.779636906Z",
+              "email": "outsider-e34c95d1@example.com",
+              "keycloakUserId": "191417e3-4935-4d8c-9df8-a465e56c843b",
+              "name": "Driver outsider",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/b84cb8d9-a10b-4798-8cc4-fe3de33c6f7d"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "bfb7ea41-7181-4ae5-ada8-29700ba66cd2",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.698128712Z",
+              "email": "sub-e34c95d1@example.com",
+              "keycloakUserId": "e5902663-d58d-4ffc-b2bc-2aaa778c12b5",
+              "overridePercent": "10",
+              "parentAffiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/bfb7ea41-7181-4ae5-ada8-29700ba66cd2"
+          },
+          {
+            "currentMonthCommission": "5.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.516234125Z",
+              "email": "parent-e34c95d1@example.com",
+              "keycloakUserId": "ac10ff78-e189-45a4-8fa5-544deecde77e",
+              "name": "Driver parent",
+              "planId": "dd7e3775-d513-3afe-b582-bcb8f09c195f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/6df70f0d-2660-4719-bd53-320a72643cf2"
+          },
+          {
+            "currentMonthCommission": "47.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "dac21fbe-9af0-4fc1-bbdb-6da7e7432329",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:41.181559491Z",
+              "email": "carrier-655e0f8c@example.com",
+              "keycloakUserId": "b10f81e8-0291-4d42-9dec-141e81cca000",
+              "name": "Driver carrier",
+              "planId": "98fda736-9a11-31eb-bbd9-79123b51e917",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/dac21fbe-9af0-4fc1-bbdb-6da7e7432329"
+          },
+          {
+            "currentMonthCommission": "72.50",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "290.00",
+            "properties": {
+              "affiliateId": "61cae615-85a9-4e44-b18d-e53a6b88978b",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:40.813924170Z",
+              "email": "affiliate-655e0f8c@example.com",
+              "keycloakUserId": "c78b9d41-b6c6-4d56-87e8-cd55ca1810eb",
+              "name": "Driver affiliate",
+              "planId": "1357ce32-a33e-3833-9140-1767d03f671f",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/61cae615-85a9-4e44-b18d-e53a6b88978b"
+          },
+          {
+            "currentMonthCommission": "50.00",
+            "currentMonthFtds": 1,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "4aa3f430-1745-468a-a0de-e337eed8df8e",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:40.453141698Z",
+              "email": "affiliate-ed6d2ad6@example.com",
+              "keycloakUserId": "52b0b240-c6b0-4ba4-91be-8473822c4a0c",
+              "name": "Driver affiliate",
+              "planId": "acac81ac-3a4d-35ac-94ae-b8047a140742",
+              "status": "ACTIVE",
+              "tags": []
+            },
+            "twinId": "affiliates-{brand}/4aa3f430-1745-468a-a0de-e337eed8df8e"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "f40f685c-d51f-440b-941d-400b1dc27a43",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:39.733610608Z",
+              "displayName": "Driver applicant",
+              "email": "applicant-45333b76@example.com",
+              "name": "Driver applicant",
+              "reappliedAt": "{period}-07T09:39:40.116445251Z",
+              "rejectionReason": "",
+              "status": "PENDING",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/f40f685c-d51f-440b-941d-400b1dc27a43"
+          },
+          {
+            "currentMonthCommission": "0.00",
+            "currentMonthFtds": 0,
+            "currentMonthNgr": "0.00",
+            "properties": {
+              "affiliateId": "6203f7e7-e58d-4c6d-89eb-d103be57467c",
+              "brandId": "{brand}",
+              "createdAt": "{period}-07T09:39:39.445910492Z",
+              "displayName": "Driver affiliate",
+              "email": "affiliate-45333b76@example.com",
+              "keycloakUserId": "0137e537-3fab-4737-8f52-075324cc14f7",
+              "name": "Driver affiliate",
+              "planId": "fa427829-9ac5-3194-8ca5-c4e6c17880fb",
+              "status": "ACTIVE",
+              "tags": [],
+              "trafficSource": "seo",
+              "website": "https://example.com"
+            },
+            "twinId": "affiliates-{brand}/6203f7e7-e58d-4c6d-89eb-d103be57467c"
           },
           {
             "currentMonthCommission": "0.00",

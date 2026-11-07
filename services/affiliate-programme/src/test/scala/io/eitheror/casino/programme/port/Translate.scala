@@ -63,7 +63,25 @@ object Translate:
     "amount", "cpaAmount", "minimumDeposit", "minimumPayout", "overrideCommission", "adjustments", "adminFees", "bonusCosts",
     "chargebacks", "cpaCommission", "excludedGgr", "ggr", "ngr", "paymentFees", "providerFees", "revShareCommission",
     "totalCommission", "totalDepositAmount", "total", "cpa", "revShare", "override", "earnings", "commission", "balance",
-    "carryover", "pending", "paid", "netRevenue", "deposits", "withdrawals")
+    "carryover", "pending", "paid", "netRevenue", "deposits", "withdrawals", "minimumDepositThreshold",
+    "minimumPayoutThreshold", "minimumPayoutAmount", "totalPayable")
+
+  /** Whole numbers the original's bodies carry as strings, numbers here. */
+  val CountFields: Set[String] = Set("bonusCostThreshold", "chargebackThreshold", "payoutCycleDay", "payoutCycleDays")
+
+  /** The original's words in upper case, the programme's in lower case (contracts/routes.md). */
+  val WordFields: Set[String] = Set("status", "planType")
+
+  /** A recorded path into a twin answer, as the path into its properties (`translated` unwraps twins). */
+  def unwrapped(path: String): String = path.replace(".properties.", ".").stripSuffix(".properties")
+
+  /** Whether an answer's field agrees with the recorded one: the original's words and codes in any case. */
+  def same(at: String, expected: String, observed: String): Boolean =
+    val field = at.split("[.\\[]").last
+    expected == observed || ((WordFields(field) || field == "code") && expected.equalsIgnoreCase(observed))
+
+  /** Flags the original's bodies carry as `"true"` or `"false"`, booleans here. */
+  val FlagFields: Set[String] = Set("negativeCarryover")
 
   // ── routes ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -113,6 +131,25 @@ object Translate:
     out.set("figures", nodes.arrayNode().add(figure)): Unit
     out
 
+  /** A network answer with each node's `revenueForPeriod`, one flat object in the original's, the programme's figure list. */
+  def nodeFigures(node: JsonNode, currency: String, brand: String): JsonNode = node match
+    case o: com.fasterxml.jackson.databind.node.ObjectNode =>
+      val out = o.deepCopy()
+      o.properties().asScala.foreach { e =>
+        val v = e.getValue
+        if e.getKey == "revenueForPeriod" && v.isObject then
+          val f = v.deepCopy[com.fasterxml.jackson.databind.node.ObjectNode]()
+          f.put("currency", currency).put("brandId", brand): Unit
+          out.set(e.getKey, nodes.arrayNode().add(f)): Unit
+        else out.set(e.getKey, nodeFigures(v, currency, brand)): Unit
+      }
+      out
+    case a: com.fasterxml.jackson.databind.node.ArrayNode =>
+      val out = nodes.arrayNode()
+      a.elements().asScala.foreach(e => out.add(nodeFigures(e, currency, brand)))
+      out
+    case other => other
+
   /** A recorded `vary` path in a revenue answer, moved to where `asFigures` puts its field. */
   def figurePath(path: String): String =
     path.stripPrefix("$.").takeWhile(c => c != '.' && c != '[') match
@@ -122,7 +159,12 @@ object Translate:
   /** A body or an answer with its money fields in minor units and every `playerId` its pseudonym. */
   def translated(node: JsonNode, currency: String, pseudonym: String => String): JsonNode =
     def go(n: JsonNode, cur: String): JsonNode =
-      if n.isObject then
+      // The original answers a twin, `{properties, twinId}`; the programme answers the properties.
+      if n.isObject && n.has("twinId") && Option(n.get("properties")).exists(_.isObject) then go(n.get("properties"), cur)
+      else if n.isObject && n.has("primaryType") then
+        // The twin's type is the original's storage, not its answer.
+        val o = n.deepCopy[com.fasterxml.jackson.databind.node.ObjectNode](); o.remove("primaryType"); go(o, cur)
+      else if n.isObject then
         val here = Option(n.get("currency")).filter(_.isTextual).map(_.asText).getOrElse(cur)
         val out  = nodes.objectNode()
         n.properties().asScala.foreach { e =>
@@ -130,6 +172,9 @@ object Translate:
           if k == "playerId" && v.isTextual then out.put("pseudonym", pseudonym(v.asText)): Unit
           else if MoneyFields(k) && v.isTextual && minorUnits(v.asText, here).isRight then
             out.put(k, minorUnits(v.asText, here).toOption.get): Unit
+          else if WordFields(k) && v.isTextual then out.put(k, v.asText.toLowerCase): Unit
+          else if CountFields(k) && v.isTextual && v.asText.trim.toIntOption.isDefined then out.put(k, v.asText.trim.toInt): Unit
+          else if FlagFields(k) && v.isTextual && Set("true", "false")(v.asText) then out.put(k, v.asText.toBoolean): Unit
           else out.set(k, go(v, here)): Unit
         }
         out
@@ -171,6 +216,7 @@ object Translate:
   private val PlanTwin   = """/twins/affiliate-plans-[^/]+/([^/?]+)""".r
   private val AccountTwin = """/twins/affiliates-[^/]+/([^/?]+)""".r
   private val LinkTwin   = """/twins/affiliate-links(?:-[^/]+)?/([^/?]+)""".r
+  private val RevenueRoute = """/v1/(my/[^/]+|affiliates/[^/]+/accounts/[^/]+)/revenue""".r
   private val Revenue    = """/twins/affiliate-revenue-(.+)-[^-/]+/([^/?]+)""".r
   private val FactsTwin  = """/twins/affiliate-facts-[^/]+-[^/?]+""".r
   private val Round      = """/twins/casino-rounds-[^/]+/([^/?]+)""".r
@@ -242,10 +288,32 @@ object Translate:
 
     private def request(s: Recording.Step): Request =
       val currency = text(s.request.body, "currency").getOrElse(DefaultCurrency)
-      val body     = s.request.body.map(b => mapper.writeValueAsString(translated(b, currency, p => pseudonym(local(p)))))
+      // An adjustment is in a currency here (change 6); the original's were in the brand's one.
+      val withCurrency = s.request.body.map {
+        case o: com.fasterxml.jackson.databind.node.ObjectNode if s.request.path.endsWith("/adjustments") && !o.has("currency") =>
+          o.deepCopy().put("currency", currency)
+        // A plan's CPA is in its own currency here (change 11); the driver's deposits were in the default one.
+        case o: com.fasterxml.jackson.databind.node.ObjectNode if s.request.path.endsWith("/commission-plans") && !o.has("cpaCurrency") =>
+          o.deepCopy().put("cpaCurrency", currency)
+        case b => b
+      }
+      // An account's threshold is per currency here (change 6); the original's was one figure.
+      def perCurrency(b: JsonNode): JsonNode = b match
+        case o: com.fasterxml.jackson.databind.node.ObjectNode if o.has("minimumPayoutThreshold") =>
+          val out = o.deepCopy()
+          val threshold = out.remove("minimumPayoutThreshold")
+          out.set("minimumPayout", nodes.objectNode().set(currency, threshold)): Unit
+          out
+        case other => other
+      val body     = withCurrency.map(b => mapper.writeValueAsString(perCurrency(translated(b, currency, p => pseudonym(local(p))))))
       val setup    = s.name.startsWith("setup:")
+      // A revenue read answers a figure per brand and currency (contracts/routes.md); the original's, one flat object.
+      val revenue  = s.request.method == "GET" && RevenueRoute.matches(s.request.path.takeWhile(_ != '?'))
+      val expected = s.response.body.map(translated(_, DefaultCurrency, p => pseudonym(local(p))))
+        .map(b => if revenue && b.isObject then asFigures(b, DefaultCurrency, brand) else nodeFigures(b, DefaultCurrency, brand))
       Request(s.name, s.request.method, route(s.request.path, brand), body, authOf(s.request.headers), s.response.status,
-        s.response.body.map(translated(_, DefaultCurrency, p => pseudonym(local(p)))), s.capture, s.vary.keySet, compare = !setup)
+        expected, s.capture.map((k, v) => k -> unwrapped(v)),
+        s.vary.keySet.map(unwrapped).map(p => if revenue then Translate.figurePath(p) else p), compare = !setup)
 
     private def plan(s: Recording.Step, id: String): SetupPlan =
       val currency = text(s.request.body, "cpaCurrency").getOrElse(DefaultCurrency)

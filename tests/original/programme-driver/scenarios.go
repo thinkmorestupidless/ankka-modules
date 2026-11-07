@@ -88,6 +88,8 @@ func Plan(s *Session, suffix string, fields map[string]any) Response {
 	if id := r.Str("planId"); id != "" && id != s.Value("plan"+suffix) {
 		s.t.Errorf("%s: the original named the plan %s, not %s", s.rec.Scenario, id, s.Value("plan"+suffix))
 	}
+	// Captured, not only remembered: the programme names a plan its own way, and a replay takes its id.
+	s.Grab("plan"+suffix, "$.planId", r.Str("planId"))
 	return r
 }
 

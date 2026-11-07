@@ -1,7 +1,7 @@
 {
   "scenario": "a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing",
   "requirement": "013/FR-033",
-  "recorded_at": "2026-11-07T09:39:47.127521Z",
+  "recorded_at": "2026-11-07T10:15:10.342442Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+          "affiliateId": "fe928f9d-c1db-4f76-a710-7439601c065d",
           "email": "affiliate-{run}@example.com"
         }
       },

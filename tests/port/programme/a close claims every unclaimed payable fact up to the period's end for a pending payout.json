@@ -1,7 +1,7 @@
 {
   "scenario": "a close claims every unclaimed payable fact up to the period's end for a pending payout",
   "requirement": "013/FR-018",
-  "recorded_at": "2026-11-07T09:39:42.882112Z",
+  "recorded_at": "2026-11-07T10:15:07.138869Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -55,7 +58,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+          "affiliateId": "fcea6e62-71bb-4ff9-b7c8-9aea1cace001",
           "email": "affiliate-{run}@example.com"
         }
       },
@@ -86,7 +89,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+          "affiliateId": "3c9b9694-ae07-4aca-8f8d-5fa756fcdc9a",
           "email": "rejected-{run}@example.com"
         }
       },
@@ -118,7 +121,7 @@
       "response": {
         "status": 201,
         "body": {
-          "adjustmentId": "9476aa35-eab0-48b9-966f-0681351dc7dc"
+          "adjustmentId": "7b03055f-aac3-4d7e-a8a4-8fbda945876e"
         }
       },
       "vary": {
@@ -146,7 +149,7 @@
       "response": {
         "status": 201,
         "body": {
-          "adjustmentId": "54e8c647-0da8-4b1b-91e8-886780affce9"
+          "adjustmentId": "b853a900-78c3-4e2b-b94d-2d3f40e0ff2f"
         }
       },
       "vary": {
@@ -166,7 +169,7 @@
       "response": {
         "status": 200,
         "body": {
-          "created": 125,
+          "created": 163,
           "payouts": [
             {
               "affiliateId": "a1bb14b7-9a38-4d63-8982-689e4616e6b9",
@@ -699,6 +702,11 @@
               "totalPayable": "0.00"
             },
             {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "payoutId": "2c2374e7-9447-3294-8976-5d2f21c94843",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "f12c92ff-415e-42b6-85e4-f12f94d4b4bc",
               "payoutId": "6ea46012-9feb-30e4-bdb8-97ff0d334aaf",
               "totalPayable": "0.00"
@@ -784,14 +792,199 @@
               "totalPayable": "50.00"
             },
             {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "payoutId": "7c9cb888-bd6c-302c-bb0f-17f9603c95cb",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
               "payoutId": "121bdfce-45b1-325f-a401-1296440d3476",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "payoutId": "e110012c-a822-362e-ac48-b3414206c40a",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "payoutId": "5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "payoutId": "c25c2b1c-2c77-3524-aa42-3e5d99927ba3",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "payoutId": "7b3c2585-0236-3dd7-a4a8-3dc280c20f75",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "payoutId": "3d1b00a1-a536-336f-bf5d-6d314e8eb302",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "payoutId": "9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "payoutId": "1a76902d-b25d-3483-864d-3ae691850f1b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "payoutId": "7a2be6ed-27db-3523-91bf-a5d7b2d76ca1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "payoutId": "1473cfed-373b-315e-a9cd-abdeed924889",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "payoutId": "07c2822c-4f39-3d55-9a6f-7761f7a16cd0",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "payoutId": "e5dc2978-408d-3703-ad30-595122308d7f",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "payoutId": "386c071a-1965-3953-9ecb-eefd239455af",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "payoutId": "46a68069-ecfa-36ea-b4e5-2686828f3dad",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "payoutId": "b18d01dd-6e10-382e-904a-6aefc7125dae",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "payoutId": "7f82785d-31db-354e-950b-6e0aa4a86efc",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "payoutId": "9fe94735-29d5-3d83-966e-826a4c8d5e9c",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "payoutId": "8103c6e1-325d-35f7-86df-d0dddd173b0d",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "payoutId": "8591e621-90ee-324b-938f-b5578bb23703",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "payoutId": "c309f5d2-9e98-3f00-866c-d6878629c0fb",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "payoutId": "3c4a457a-426f-3bb1-949d-9d33f61121d1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "payoutId": "eab5e111-54da-38b4-a468-bb98165c5cd1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "payoutId": "24a4d420-5361-3eb0-bd8d-4caf17dd6388",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "payoutId": "e4aa280b-904e-3753-8a52-705d8d513899",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "payoutId": "626c57b0-04b6-39ce-91b2-ab6d67c09799",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "payoutId": "0daad01c-5d99-3cd5-aaa2-be8deb90b26e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "payoutId": "b080357e-a9d7-38e3-8738-6faf91401826",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "payoutId": "cfb4a78e-1ca1-3510-bf1a-d7b370e8db6c",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "payoutId": "18a8ecd1-3ab1-3fe8-b1ef-2b092dfd566e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "payoutId": "e884d854-0694-325d-9e72-1068120edfca",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "payoutId": "ec7ee0a6-1ad8-394b-8085-7c4cf38cd933",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "payoutId": "ebb9af59-e977-343a-b3d5-d9040129ea33",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "payoutId": "f8cd6051-62c5-30be-a886-12469989daff",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "payoutId": "c64c0c7b-5957-3bac-abbb-1c9403f813d8",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "payoutId": "895413d8-4a27-3717-b6a8-42c0f9394536",
               "totalPayable": "0.00"
             },
             {
               "affiliateId": "{rejected}",
               "payoutId": "{rejectedPayout}",
               "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "payoutId": "4a9c3194-81aa-3c01-8670-f1cd43567f5b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "payoutId": "a9a61efb-2638-3060-a780-9cefc6ac579e",
+              "totalPayable": "0.00"
             }
           ],
           "period": "{period}"
@@ -2389,6 +2582,23 @@
           },
           {
             "properties": {
+              "adjustments": "130.00",
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+              "approvedAt": "{period}-07T09:39:44.467387806Z",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:44.148563129Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PAID",
+              "totalPayable": "130.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7ef2be61-6f6a-329f-851b-4969df008e64"
+          },
+          {
+            "properties": {
               "adjustments": "0.00",
               "affiliateId": "63487014-4aff-4dcf-85e6-5a9f27592b59",
               "brandId": "{brand}",
@@ -2528,6 +2738,21 @@
           {
             "properties": {
               "adjustments": "0.00",
+              "affiliateId": "2363b904-6601-49fe-98ec-89eafb7ebec0",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.530699286Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b3b912a8-b21f-3a5c-bb0d-1dab44a13cdd"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
               "affiliateId": "a20ac08c-cef9-4b7e-a96e-d5387ea10d04",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -2603,6 +2828,143 @@
           {
             "properties": {
               "adjustments": "0.00",
+              "affiliateId": "3e9adb9a-8d7d-48ef-a202-2aea210b8997",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.530716742Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7e8fc9af-28fd-3405-8148-4251ee726b8c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "41bf661a-b4d9-4d14-a751-dec8f86f60fc",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.531012751Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b7cd8e11-dd32-3869-9c0f-d262a1e78e8a"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "6203f7e7-e58d-4c6d-89eb-d103be57467c",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.530646625Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/a7e6c05e-9a29-35a5-9045-8eca82502b07"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "bfb7ea41-7181-4ae5-ada8-29700ba66cd2",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:43.536875129Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/ff335e30-a4fc-375f-aa43-d38c23ed7854"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "dac21fbe-9af0-4fc1-bbdb-6da7e7432329",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.536064262Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/86414bb6-241e-3c93-8c7b-75089b77ed39"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.536755517Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1b210a09-c407-3f25-8bbc-49daf85580a0"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.566005250Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/121bdfce-45b1-325f-a401-1296440d3476"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4aa3f430-1745-468a-a0de-e337eed8df8e",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:43.537037860Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/72011246-c5f3-356f-8d6c-08bd93b7d1e5"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.726418611Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/2c2374e7-9447-3294-8976-5d2f21c94843"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
               "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -2659,6 +3021,375 @@
               "totalPayable": "0.00"
             },
             "twinId": "affiliate-payouts-{brand}/cf791151-0c0f-3ace-a1c9-b56d3cb9f55f"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:43.566394122Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/e110012c-a822-362e-ac48-b3414206c40a"
+          },
+          {
+            "properties": {
+              "adjustments": "130.00",
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "approvedAt": "{period}-07T09:39:53.487759555Z",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:53.195245151Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PAID",
+              "totalPayable": "130.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c88c38fa-246a-3a79-8424-567e6268e513"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754856852Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3d1b00a1-a536-336f-bf5d-6d314e8eb302"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.755220019Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1a76902d-b25d-3483-864d-3ae691850f1b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754569718Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757163008Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7c9cb888-bd6c-302c-bb0f-17f9603c95cb"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.779762243Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7a2be6ed-27db-3523-91bf-a5d7b2d76ca1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784033343Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/07c2822c-4f39-3d55-9a6f-7761f7a16cd0"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.786866730Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1473cfed-373b-315e-a9cd-abdeed924889"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.788333773Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/46a68069-ecfa-36ea-b4e5-2686828f3dad"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787436041Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9fe94735-29d5-3d83-966e-826a4c8d5e9c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787528614Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/e5dc2978-408d-3703-ad30-595122308d7f"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784940948Z",
+              "overrideCommission": "5.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b18d01dd-6e10-382e-904a-6aefc7125dae"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.814088609Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8103c6e1-325d-35f7-86df-d0dddd173b0d"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.816550080Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8591e621-90ee-324b-938f-b5578bb23703"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757121971Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757002818Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7b3c2585-0236-3dd7-a4a8-3dc280c20f75"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757319073Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c25c2b1c-2c77-3524-aa42-3e5d99927ba3"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.780921236Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/386c071a-1965-3953-9ecb-eefd239455af"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.781240117Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7f82785d-31db-354e-950b-6e0aa4a86efc"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.631876251Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/0daad01c-5d99-3cd5-aaa2-be8deb90b26e"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632110873Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3c4a457a-426f-3bb1-949d-9d33f61121d1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:07.632655867Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b080357e-a9d7-38e3-8738-6faf91401826"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.633242945Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c309f5d2-9e98-3f00-866c-d6878629c0fb"
           }
         ]
       },
@@ -2734,7 +3465,7 @@
       "response": {
         "status": 201,
         "body": {
-          "adjustmentId": "1a9c5958-a8c4-48d3-87d9-e0ceb862264c"
+          "adjustmentId": "a09258ca-9963-425d-9412-9efc0a1356d3"
         }
       },
       "vary": {
@@ -2754,7 +3485,7 @@
       "response": {
         "status": 200,
         "body": {
-          "created": 126,
+          "created": 164,
           "payouts": [
             {
               "affiliateId": "a1bb14b7-9a38-4d63-8982-689e4616e6b9",
@@ -3287,6 +4018,11 @@
               "totalPayable": "0.00"
             },
             {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "payoutId": "2c2374e7-9447-3294-8976-5d2f21c94843",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "f12c92ff-415e-42b6-85e4-f12f94d4b4bc",
               "payoutId": "6ea46012-9feb-30e4-bdb8-97ff0d334aaf",
               "totalPayable": "0.00"
@@ -3342,11 +4078,6 @@
               "totalPayable": "0.00"
             },
             {
-              "affiliateId": "{affiliate}",
-              "payoutId": "{payout}",
-              "totalPayable": "120.00"
-            },
-            {
               "affiliateId": "41bf661a-b4d9-4d14-a751-dec8f86f60fc",
               "payoutId": "b7cd8e11-dd32-3869-9c0f-d262a1e78e8a",
               "totalPayable": "0.00"
@@ -3377,14 +4108,204 @@
               "totalPayable": "50.00"
             },
             {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "payoutId": "7c9cb888-bd6c-302c-bb0f-17f9603c95cb",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
               "payoutId": "121bdfce-45b1-325f-a401-1296440d3476",
               "totalPayable": "0.00"
             },
             {
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "payoutId": "e110012c-a822-362e-ac48-b3414206c40a",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "payoutId": "5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "payoutId": "c25c2b1c-2c77-3524-aa42-3e5d99927ba3",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "payoutId": "7b3c2585-0236-3dd7-a4a8-3dc280c20f75",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "payoutId": "3d1b00a1-a536-336f-bf5d-6d314e8eb302",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "payoutId": "9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "payoutId": "1a76902d-b25d-3483-864d-3ae691850f1b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "payoutId": "7a2be6ed-27db-3523-91bf-a5d7b2d76ca1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "payoutId": "1473cfed-373b-315e-a9cd-abdeed924889",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "payoutId": "07c2822c-4f39-3d55-9a6f-7761f7a16cd0",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "payoutId": "e5dc2978-408d-3703-ad30-595122308d7f",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "payoutId": "386c071a-1965-3953-9ecb-eefd239455af",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "payoutId": "46a68069-ecfa-36ea-b4e5-2686828f3dad",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "payoutId": "b18d01dd-6e10-382e-904a-6aefc7125dae",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "payoutId": "7f82785d-31db-354e-950b-6e0aa4a86efc",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "payoutId": "9fe94735-29d5-3d83-966e-826a4c8d5e9c",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "payoutId": "8103c6e1-325d-35f7-86df-d0dddd173b0d",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "payoutId": "8591e621-90ee-324b-938f-b5578bb23703",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "payoutId": "c309f5d2-9e98-3f00-866c-d6878629c0fb",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "payoutId": "3c4a457a-426f-3bb1-949d-9d33f61121d1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "payoutId": "eab5e111-54da-38b4-a468-bb98165c5cd1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "payoutId": "24a4d420-5361-3eb0-bd8d-4caf17dd6388",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "payoutId": "e4aa280b-904e-3753-8a52-705d8d513899",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "payoutId": "626c57b0-04b6-39ce-91b2-ab6d67c09799",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "payoutId": "0daad01c-5d99-3cd5-aaa2-be8deb90b26e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "payoutId": "b080357e-a9d7-38e3-8738-6faf91401826",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "payoutId": "cfb4a78e-1ca1-3510-bf1a-d7b370e8db6c",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "payoutId": "18a8ecd1-3ab1-3fe8-b1ef-2b092dfd566e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "payoutId": "e884d854-0694-325d-9e72-1068120edfca",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "payoutId": "ec7ee0a6-1ad8-394b-8085-7c4cf38cd933",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "payoutId": "ebb9af59-e977-343a-b3d5-d9040129ea33",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "payoutId": "f8cd6051-62c5-30be-a886-12469989daff",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "payoutId": "c64c0c7b-5957-3bac-abbb-1c9403f813d8",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "payoutId": "895413d8-4a27-3717-b6a8-42c0f9394536",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "{affiliate}",
+              "payoutId": "{payout}",
+              "totalPayable": "120.00"
+            },
+            {
               "affiliateId": "{rejected}",
               "payoutId": "{rejectedPayout}",
               "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "payoutId": "4a9c3194-81aa-3c01-8670-f1cd43567f5b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "payoutId": "a9a61efb-2638-3060-a780-9cefc6ac579e",
+              "totalPayable": "0.00"
             }
           ],
           "period": "{period}"
@@ -4982,18 +5903,20 @@
           },
           {
             "properties": {
-              "adjustments": "120.00",
-              "affiliateId": "{affiliate}",
+              "adjustments": "130.00",
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+              "approvedAt": "{period}-07T09:39:44.467387806Z",
+              "approvedBy": "driver",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
               "createdAt": "{period}-07T09:39:44.148563129Z",
               "overrideCommission": "0.00",
               "period": "{period}",
               "revShareCommission": "0.00",
-              "status": "PENDING",
-              "totalPayable": "120.00"
+              "status": "PAID",
+              "totalPayable": "130.00"
             },
-            "twinId": "affiliate-payouts-{brand}/{payout}"
+            "twinId": "affiliate-payouts-{brand}/7ef2be61-6f6a-329f-851b-4969df008e64"
           },
           {
             "properties": {
@@ -5348,6 +6271,21 @@
           {
             "properties": {
               "adjustments": "0.00",
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.726418611Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/2c2374e7-9447-3294-8976-5d2f21c94843"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
               "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -5408,7 +6346,7 @@
           {
             "properties": {
               "adjustments": "30.00",
-              "affiliateId": "{rejected}",
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
               "approvedBy": "driver",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -5420,7 +6358,602 @@
               "status": "REJECTED",
               "totalPayable": "30.00"
             },
+            "twinId": "affiliate-payouts-{brand}/e110012c-a822-362e-ac48-b3414206c40a"
+          },
+          {
+            "properties": {
+              "adjustments": "130.00",
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "approvedAt": "{period}-07T09:39:53.487759555Z",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:53.195245151Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PAID",
+              "totalPayable": "130.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c88c38fa-246a-3a79-8424-567e6268e513"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754856852Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3d1b00a1-a536-336f-bf5d-6d314e8eb302"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.755220019Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1a76902d-b25d-3483-864d-3ae691850f1b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754569718Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757163008Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7c9cb888-bd6c-302c-bb0f-17f9603c95cb"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.779762243Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7a2be6ed-27db-3523-91bf-a5d7b2d76ca1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784033343Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/07c2822c-4f39-3d55-9a6f-7761f7a16cd0"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.786866730Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1473cfed-373b-315e-a9cd-abdeed924889"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.788333773Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/46a68069-ecfa-36ea-b4e5-2686828f3dad"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787436041Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9fe94735-29d5-3d83-966e-826a4c8d5e9c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787528614Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/e5dc2978-408d-3703-ad30-595122308d7f"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784940948Z",
+              "overrideCommission": "5.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b18d01dd-6e10-382e-904a-6aefc7125dae"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.814088609Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8103c6e1-325d-35f7-86df-d0dddd173b0d"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.816550080Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8591e621-90ee-324b-938f-b5578bb23703"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757121971Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757002818Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7b3c2585-0236-3dd7-a4a8-3dc280c20f75"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757319073Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c25c2b1c-2c77-3524-aa42-3e5d99927ba3"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.780921236Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/386c071a-1965-3953-9ecb-eefd239455af"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.781240117Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7f82785d-31db-354e-950b-6e0aa4a86efc"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.658255392Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c64c0c7b-5957-3bac-abbb-1c9403f813d8"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660916281Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/ec7ee0a6-1ad8-394b-8085-7c4cf38cd933"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660791365Z",
+              "overrideCommission": "5.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/cfb4a78e-1ca1-3510-bf1a-d7b370e8db6c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:07.661937228Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/f8cd6051-62c5-30be-a886-12469989daff"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.658066560Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/e884d854-0694-325d-9e72-1068120edfca"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660510368Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/895413d8-4a27-3717-b6a8-42c0f9394536"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.661994603Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/ebb9af59-e977-343a-b3d5-d9040129ea33"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.671742584Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/a9a61efb-2638-3060-a780-9cefc6ac579e"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "{rejected}",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660258163Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
             "twinId": "affiliate-payouts-{brand}/{rejectedPayout}"
+          },
+          {
+            "properties": {
+              "adjustments": "120.00",
+              "affiliateId": "{affiliate}",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.966579423Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "120.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/{payout}"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.631876251Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/0daad01c-5d99-3cd5-aaa2-be8deb90b26e"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632110873Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3c4a457a-426f-3bb1-949d-9d33f61121d1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.671563461Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/4a9c3194-81aa-3c01-8670-f1cd43567f5b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:07.632655867Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b080357e-a9d7-38e3-8738-6faf91401826"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.633242945Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c309f5d2-9e98-3f00-866c-d6878629c0fb"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632138665Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/eab5e111-54da-38b4-a468-bb98165c5cd1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632741242Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/e4aa280b-904e-3753-8a52-705d8d513899"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.634645722Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/24a4d420-5361-3eb0-bd8d-4caf17dd6388"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.634761512Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/626c57b0-04b6-39ce-91b2-ab6d67c09799"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.657087279Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/18a8ecd1-3ab1-3fe8-b1ef-2b092dfd566e"
           }
         ]
       },
@@ -5473,7 +7006,7 @@
       "response": {
         "status": 201,
         "body": {
-          "adjustmentId": "69891f5d-e343-49de-a0d0-a3adfd7ddd94"
+          "adjustmentId": "222fa653-5739-4d23-a052-79ccc4353bbd"
         }
       },
       "vary": {
@@ -5493,7 +7026,7 @@
       "response": {
         "status": 200,
         "body": {
-          "created": 126,
+          "created": 164,
           "payouts": [
             {
               "affiliateId": "a1bb14b7-9a38-4d63-8982-689e4616e6b9",
@@ -6026,6 +7559,11 @@
               "totalPayable": "0.00"
             },
             {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "payoutId": "2c2374e7-9447-3294-8976-5d2f21c94843",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "f12c92ff-415e-42b6-85e4-f12f94d4b4bc",
               "payoutId": "6ea46012-9feb-30e4-bdb8-97ff0d334aaf",
               "totalPayable": "0.00"
@@ -6081,11 +7619,6 @@
               "totalPayable": "0.00"
             },
             {
-              "affiliateId": "{affiliate}",
-              "payoutId": "{payout}",
-              "totalPayable": "130.00"
-            },
-            {
               "affiliateId": "41bf661a-b4d9-4d14-a751-dec8f86f60fc",
               "payoutId": "b7cd8e11-dd32-3869-9c0f-d262a1e78e8a",
               "totalPayable": "0.00"
@@ -6116,14 +7649,204 @@
               "totalPayable": "50.00"
             },
             {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "payoutId": "7c9cb888-bd6c-302c-bb0f-17f9603c95cb",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
               "payoutId": "121bdfce-45b1-325f-a401-1296440d3476",
               "totalPayable": "0.00"
             },
             {
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "payoutId": "e110012c-a822-362e-ac48-b3414206c40a",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "payoutId": "5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "payoutId": "c25c2b1c-2c77-3524-aa42-3e5d99927ba3",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "payoutId": "7b3c2585-0236-3dd7-a4a8-3dc280c20f75",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "payoutId": "3d1b00a1-a536-336f-bf5d-6d314e8eb302",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "payoutId": "9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "payoutId": "1a76902d-b25d-3483-864d-3ae691850f1b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "payoutId": "7a2be6ed-27db-3523-91bf-a5d7b2d76ca1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "payoutId": "1473cfed-373b-315e-a9cd-abdeed924889",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "payoutId": "07c2822c-4f39-3d55-9a6f-7761f7a16cd0",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "payoutId": "e5dc2978-408d-3703-ad30-595122308d7f",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "payoutId": "386c071a-1965-3953-9ecb-eefd239455af",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "payoutId": "46a68069-ecfa-36ea-b4e5-2686828f3dad",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "payoutId": "b18d01dd-6e10-382e-904a-6aefc7125dae",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "payoutId": "7f82785d-31db-354e-950b-6e0aa4a86efc",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "payoutId": "9fe94735-29d5-3d83-966e-826a4c8d5e9c",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "payoutId": "8103c6e1-325d-35f7-86df-d0dddd173b0d",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "payoutId": "8591e621-90ee-324b-938f-b5578bb23703",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "payoutId": "c309f5d2-9e98-3f00-866c-d6878629c0fb",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "payoutId": "3c4a457a-426f-3bb1-949d-9d33f61121d1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "payoutId": "eab5e111-54da-38b4-a468-bb98165c5cd1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "payoutId": "24a4d420-5361-3eb0-bd8d-4caf17dd6388",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "payoutId": "e4aa280b-904e-3753-8a52-705d8d513899",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "payoutId": "626c57b0-04b6-39ce-91b2-ab6d67c09799",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "payoutId": "0daad01c-5d99-3cd5-aaa2-be8deb90b26e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "payoutId": "b080357e-a9d7-38e3-8738-6faf91401826",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "payoutId": "cfb4a78e-1ca1-3510-bf1a-d7b370e8db6c",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "payoutId": "18a8ecd1-3ab1-3fe8-b1ef-2b092dfd566e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "payoutId": "e884d854-0694-325d-9e72-1068120edfca",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "payoutId": "ec7ee0a6-1ad8-394b-8085-7c4cf38cd933",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "payoutId": "ebb9af59-e977-343a-b3d5-d9040129ea33",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "payoutId": "f8cd6051-62c5-30be-a886-12469989daff",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "payoutId": "c64c0c7b-5957-3bac-abbb-1c9403f813d8",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "payoutId": "895413d8-4a27-3717-b6a8-42c0f9394536",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "{affiliate}",
+              "payoutId": "{payout}",
+              "totalPayable": "130.00"
+            },
+            {
               "affiliateId": "{rejected}",
               "payoutId": "{rejectedPayout}",
               "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "payoutId": "4a9c3194-81aa-3c01-8670-f1cd43567f5b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "payoutId": "a9a61efb-2638-3060-a780-9cefc6ac579e",
+              "totalPayable": "0.00"
             }
           ],
           "period": "{period}"
@@ -7722,8 +9445,8 @@
           {
             "properties": {
               "adjustments": "130.00",
-              "affiliateId": "{affiliate}",
-              "approvedAt": "{period}-07T09:39:44.170116940Z",
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+              "approvedAt": "{period}-07T09:39:44.467387806Z",
               "approvedBy": "driver",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -7731,10 +9454,10 @@
               "overrideCommission": "0.00",
               "period": "{period}",
               "revShareCommission": "0.00",
-              "status": "PENDING",
+              "status": "PAID",
               "totalPayable": "130.00"
             },
-            "twinId": "affiliate-payouts-{brand}/{payout}"
+            "twinId": "affiliate-payouts-{brand}/7ef2be61-6f6a-329f-851b-4969df008e64"
           },
           {
             "properties": {
@@ -8089,6 +9812,21 @@
           {
             "properties": {
               "adjustments": "0.00",
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.726418611Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/2c2374e7-9447-3294-8976-5d2f21c94843"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
               "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -8149,7 +9887,7 @@
           {
             "properties": {
               "adjustments": "30.00",
-              "affiliateId": "{rejected}",
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
               "approvedBy": "driver",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -8161,7 +9899,604 @@
               "status": "REJECTED",
               "totalPayable": "30.00"
             },
+            "twinId": "affiliate-payouts-{brand}/e110012c-a822-362e-ac48-b3414206c40a"
+          },
+          {
+            "properties": {
+              "adjustments": "130.00",
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "approvedAt": "{period}-07T09:39:53.487759555Z",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:53.195245151Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PAID",
+              "totalPayable": "130.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c88c38fa-246a-3a79-8424-567e6268e513"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754856852Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3d1b00a1-a536-336f-bf5d-6d314e8eb302"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.755220019Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1a76902d-b25d-3483-864d-3ae691850f1b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754569718Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757163008Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7c9cb888-bd6c-302c-bb0f-17f9603c95cb"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.779762243Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7a2be6ed-27db-3523-91bf-a5d7b2d76ca1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784033343Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/07c2822c-4f39-3d55-9a6f-7761f7a16cd0"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.786866730Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1473cfed-373b-315e-a9cd-abdeed924889"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.788333773Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/46a68069-ecfa-36ea-b4e5-2686828f3dad"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787436041Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9fe94735-29d5-3d83-966e-826a4c8d5e9c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787528614Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/e5dc2978-408d-3703-ad30-595122308d7f"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784940948Z",
+              "overrideCommission": "5.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b18d01dd-6e10-382e-904a-6aefc7125dae"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.814088609Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8103c6e1-325d-35f7-86df-d0dddd173b0d"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.816550080Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8591e621-90ee-324b-938f-b5578bb23703"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757121971Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757002818Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7b3c2585-0236-3dd7-a4a8-3dc280c20f75"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757319073Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c25c2b1c-2c77-3524-aa42-3e5d99927ba3"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.780921236Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/386c071a-1965-3953-9ecb-eefd239455af"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.781240117Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7f82785d-31db-354e-950b-6e0aa4a86efc"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.658255392Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c64c0c7b-5957-3bac-abbb-1c9403f813d8"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660916281Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/ec7ee0a6-1ad8-394b-8085-7c4cf38cd933"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660791365Z",
+              "overrideCommission": "5.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/cfb4a78e-1ca1-3510-bf1a-d7b370e8db6c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:07.661937228Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/f8cd6051-62c5-30be-a886-12469989daff"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.658066560Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/e884d854-0694-325d-9e72-1068120edfca"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660510368Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/895413d8-4a27-3717-b6a8-42c0f9394536"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.661994603Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/ebb9af59-e977-343a-b3d5-d9040129ea33"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.671742584Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/a9a61efb-2638-3060-a780-9cefc6ac579e"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "{rejected}",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660258163Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
             "twinId": "affiliate-payouts-{brand}/{rejectedPayout}"
+          },
+          {
+            "properties": {
+              "adjustments": "130.00",
+              "affiliateId": "{affiliate}",
+              "approvedAt": "{period}-07T10:15:07.980795983Z",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.966579423Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "130.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/{payout}"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.631876251Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/0daad01c-5d99-3cd5-aaa2-be8deb90b26e"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632110873Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3c4a457a-426f-3bb1-949d-9d33f61121d1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.671563461Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/4a9c3194-81aa-3c01-8670-f1cd43567f5b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:07.632655867Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b080357e-a9d7-38e3-8738-6faf91401826"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.633242945Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c309f5d2-9e98-3f00-866c-d6878629c0fb"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632138665Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/eab5e111-54da-38b4-a468-bb98165c5cd1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632741242Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/e4aa280b-904e-3753-8a52-705d8d513899"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.634645722Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/24a4d420-5361-3eb0-bd8d-4caf17dd6388"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.634761512Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/626c57b0-04b6-39ce-91b2-ab6d67c09799"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.657087279Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/18a8ecd1-3ab1-3fe8-b1ef-2b092dfd566e"
           }
         ]
       },
@@ -8258,7 +10593,7 @@
       "response": {
         "status": 201,
         "body": {
-          "adjustmentId": "881171bd-ebd7-421f-b59e-1144a8152dad"
+          "adjustmentId": "cd7e28e3-478a-4286-bd5e-d7e82307a6fd"
         }
       },
       "vary": {
@@ -8278,7 +10613,7 @@
       "response": {
         "status": 200,
         "body": {
-          "created": 125,
+          "created": 163,
           "payouts": [
             {
               "affiliateId": "a1bb14b7-9a38-4d63-8982-689e4616e6b9",
@@ -8811,6 +11146,11 @@
               "totalPayable": "0.00"
             },
             {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "payoutId": "2c2374e7-9447-3294-8976-5d2f21c94843",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "f12c92ff-415e-42b6-85e4-f12f94d4b4bc",
               "payoutId": "6ea46012-9feb-30e4-bdb8-97ff0d334aaf",
               "totalPayable": "0.00"
@@ -8896,14 +11236,199 @@
               "totalPayable": "50.00"
             },
             {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "payoutId": "7c9cb888-bd6c-302c-bb0f-17f9603c95cb",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
               "payoutId": "121bdfce-45b1-325f-a401-1296440d3476",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
+              "payoutId": "e110012c-a822-362e-ac48-b3414206c40a",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "payoutId": "5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "payoutId": "c25c2b1c-2c77-3524-aa42-3e5d99927ba3",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "payoutId": "7b3c2585-0236-3dd7-a4a8-3dc280c20f75",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "payoutId": "3d1b00a1-a536-336f-bf5d-6d314e8eb302",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "payoutId": "9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "payoutId": "1a76902d-b25d-3483-864d-3ae691850f1b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "payoutId": "7a2be6ed-27db-3523-91bf-a5d7b2d76ca1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "payoutId": "1473cfed-373b-315e-a9cd-abdeed924889",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "payoutId": "07c2822c-4f39-3d55-9a6f-7761f7a16cd0",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "payoutId": "e5dc2978-408d-3703-ad30-595122308d7f",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "payoutId": "386c071a-1965-3953-9ecb-eefd239455af",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "payoutId": "46a68069-ecfa-36ea-b4e5-2686828f3dad",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "payoutId": "b18d01dd-6e10-382e-904a-6aefc7125dae",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "payoutId": "7f82785d-31db-354e-950b-6e0aa4a86efc",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "payoutId": "9fe94735-29d5-3d83-966e-826a4c8d5e9c",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "payoutId": "8103c6e1-325d-35f7-86df-d0dddd173b0d",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "payoutId": "8591e621-90ee-324b-938f-b5578bb23703",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "payoutId": "c309f5d2-9e98-3f00-866c-d6878629c0fb",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "payoutId": "3c4a457a-426f-3bb1-949d-9d33f61121d1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "payoutId": "eab5e111-54da-38b4-a468-bb98165c5cd1",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "payoutId": "24a4d420-5361-3eb0-bd8d-4caf17dd6388",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "payoutId": "e4aa280b-904e-3753-8a52-705d8d513899",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "payoutId": "626c57b0-04b6-39ce-91b2-ab6d67c09799",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "payoutId": "0daad01c-5d99-3cd5-aaa2-be8deb90b26e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "payoutId": "b080357e-a9d7-38e3-8738-6faf91401826",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "payoutId": "cfb4a78e-1ca1-3510-bf1a-d7b370e8db6c",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "payoutId": "18a8ecd1-3ab1-3fe8-b1ef-2b092dfd566e",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "payoutId": "e884d854-0694-325d-9e72-1068120edfca",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "payoutId": "ec7ee0a6-1ad8-394b-8085-7c4cf38cd933",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "payoutId": "ebb9af59-e977-343a-b3d5-d9040129ea33",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "payoutId": "f8cd6051-62c5-30be-a886-12469989daff",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "payoutId": "c64c0c7b-5957-3bac-abbb-1c9403f813d8",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "payoutId": "895413d8-4a27-3717-b6a8-42c0f9394536",
               "totalPayable": "0.00"
             },
             {
               "affiliateId": "{rejected}",
               "payoutId": "{rejectedPayout}",
               "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "payoutId": "4a9c3194-81aa-3c01-8670-f1cd43567f5b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "payoutId": "a9a61efb-2638-3060-a780-9cefc6ac579e",
+              "totalPayable": "0.00"
             }
           ],
           "period": "{period}"
@@ -10502,7 +13027,7 @@
           {
             "properties": {
               "adjustments": "130.00",
-              "affiliateId": "{affiliate}",
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
               "approvedAt": "{period}-07T09:39:44.467387806Z",
               "approvedBy": "driver",
               "brandId": "{brand}",
@@ -10514,7 +13039,7 @@
               "status": "PAID",
               "totalPayable": "130.00"
             },
-            "twinId": "affiliate-payouts-{brand}/{payout}"
+            "twinId": "affiliate-payouts-{brand}/7ef2be61-6f6a-329f-851b-4969df008e64"
           },
           {
             "properties": {
@@ -10869,6 +13394,21 @@
           {
             "properties": {
               "adjustments": "0.00",
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.726418611Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/2c2374e7-9447-3294-8976-5d2f21c94843"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
               "affiliateId": "6df70f0d-2660-4719-bd53-320a72643cf2",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -10929,7 +13469,7 @@
           {
             "properties": {
               "adjustments": "30.00",
-              "affiliateId": "{rejected}",
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
               "approvedBy": "driver",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -10941,7 +13481,604 @@
               "status": "REJECTED",
               "totalPayable": "30.00"
             },
+            "twinId": "affiliate-payouts-{brand}/e110012c-a822-362e-ac48-b3414206c40a"
+          },
+          {
+            "properties": {
+              "adjustments": "130.00",
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "approvedAt": "{period}-07T09:39:53.487759555Z",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:53.195245151Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PAID",
+              "totalPayable": "130.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c88c38fa-246a-3a79-8424-567e6268e513"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754856852Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3d1b00a1-a536-336f-bf5d-6d314e8eb302"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.755220019Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1a76902d-b25d-3483-864d-3ae691850f1b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.754569718Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/5b89c2e5-94f6-3ddc-8d8c-e1c6023ac698"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757163008Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7c9cb888-bd6c-302c-bb0f-17f9603c95cb"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.779762243Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7a2be6ed-27db-3523-91bf-a5d7b2d76ca1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784033343Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/07c2822c-4f39-3d55-9a6f-7761f7a16cd0"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.786866730Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1473cfed-373b-315e-a9cd-abdeed924889"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.788333773Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/46a68069-ecfa-36ea-b4e5-2686828f3dad"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787436041Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9fe94735-29d5-3d83-966e-826a4c8d5e9c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.787528614Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/e5dc2978-408d-3703-ad30-595122308d7f"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.784940948Z",
+              "overrideCommission": "5.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b18d01dd-6e10-382e-904a-6aefc7125dae"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.814088609Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8103c6e1-325d-35f7-86df-d0dddd173b0d"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.816550080Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/8591e621-90ee-324b-938f-b5578bb23703"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757121971Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9cc7c2ee-c1ee-3c40-b602-80a1b2a9f0df"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757002818Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7b3c2585-0236-3dd7-a4a8-3dc280c20f75"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.757319073Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c25c2b1c-2c77-3524-aa42-3e5d99927ba3"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:52.780921236Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/386c071a-1965-3953-9ecb-eefd239455af"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:52.781240117Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7f82785d-31db-354e-950b-6e0aa4a86efc"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.658255392Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c64c0c7b-5957-3bac-abbb-1c9403f813d8"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660916281Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/ec7ee0a6-1ad8-394b-8085-7c4cf38cd933"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660791365Z",
+              "overrideCommission": "5.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/cfb4a78e-1ca1-3510-bf1a-d7b370e8db6c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:07.661937228Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/f8cd6051-62c5-30be-a886-12469989daff"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.658066560Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/e884d854-0694-325d-9e72-1068120edfca"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660510368Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/895413d8-4a27-3717-b6a8-42c0f9394536"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.661994603Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/ebb9af59-e977-343a-b3d5-d9040129ea33"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.671742584Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/a9a61efb-2638-3060-a780-9cefc6ac579e"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "{rejected}",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.660258163Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "rejectionReason": "driver rejection",
+              "revShareCommission": "0.00",
+              "status": "REJECTED",
+              "totalPayable": "30.00"
+            },
             "twinId": "affiliate-payouts-{brand}/{rejectedPayout}"
+          },
+          {
+            "properties": {
+              "adjustments": "130.00",
+              "affiliateId": "{affiliate}",
+              "approvedAt": "{period}-07T10:15:08.256565228Z",
+              "approvedBy": "driver",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.966579423Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PAID",
+              "totalPayable": "130.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/{payout}"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.631876251Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/0daad01c-5d99-3cd5-aaa2-be8deb90b26e"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632110873Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/3c4a457a-426f-3bb1-949d-9d33f61121d1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.671563461Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/4a9c3194-81aa-3c01-8670-f1cd43567f5b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:07.632655867Z",
+              "currency": "GBP",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b080357e-a9d7-38e3-8738-6faf91401826"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.633242945Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c309f5d2-9e98-3f00-866c-d6878629c0fb"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632138665Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/eab5e111-54da-38b4-a468-bb98165c5cd1"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.632741242Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/e4aa280b-904e-3753-8a52-705d8d513899"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.634645722Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/24a4d420-5361-3eb0-bd8d-4caf17dd6388"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.634761512Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/626c57b0-04b6-39ce-91b2-ab6d67c09799"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:07.657087279Z",
+              "overrideCommission": "0.00",
+              "period": "{period}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/18a8ecd1-3ab1-3fe8-b1ef-2b092dfd566e"
           }
         ]
       },
@@ -10962,7 +14099,7 @@
       "response": {
         "status": 200,
         "body": {
-          "created": 132,
+          "created": 172,
           "payouts": [
             {
               "affiliateId": "a1bb14b7-9a38-4d63-8982-689e4616e6b9",
@@ -11525,6 +14662,11 @@
               "totalPayable": "250.00"
             },
             {
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "payoutId": "d9aeb430-1d58-33de-8d9f-c80e05ca5c31",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "f12c92ff-415e-42b6-85e4-f12f94d4b4bc",
               "payoutId": "e8cd6549-0603-32cd-a477-7d3d0734b81b",
               "totalPayable": "0.00"
@@ -11580,8 +14722,8 @@
               "totalPayable": "0.00"
             },
             {
-              "affiliateId": "{affiliate}",
-              "payoutId": "{nextPayout}",
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
+              "payoutId": "6639c993-505b-34b7-bfd8-68f3b030badc",
               "totalPayable": "250.00"
             },
             {
@@ -11615,14 +14757,209 @@
               "totalPayable": "50.00"
             },
             {
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "payoutId": "926aa08c-7b66-3c10-873a-f67f2381dc26",
+              "totalPayable": "0.00"
+            },
+            {
               "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
               "payoutId": "25a6148c-6bea-3bad-bee0-60bcdddc62b7",
               "totalPayable": "0.00"
             },
             {
-              "affiliateId": "{rejected}",
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
               "payoutId": "90f6f100-2385-3094-b034-af0973477668",
               "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "payoutId": "c0533145-eba8-3860-ab5a-d3a1fd8585e9",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "payoutId": "5279e6c7-42db-37f2-b1ee-3f3a4cd86420",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "payoutId": "bf8562d1-1aef-3fc8-bf55-8b0635d29715",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "payoutId": "a6e6797b-31a2-34fa-a83d-a9f5aa52e24f",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "payoutId": "5850a2e4-db7a-3a52-9f01-12afae50f77f",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "payoutId": "13dbba51-f51a-34d2-b1e0-23fa8ef91f1c",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "payoutId": "f1984032-3865-3f87-8295-6c5efa2f662a",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "payoutId": "facb026e-e440-30ab-a1fe-f6802049b6a7",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "payoutId": "4f6d6913-92da-3382-bc8b-77e47c96fc04",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "payoutId": "089d1eb8-323b-378c-8369-f2a4f3f52544",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "payoutId": "7cb5449f-fba5-3de9-b477-03003df7c9ac",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "payoutId": "1d8fd3cc-fcfb-3ba9-8980-71a84a33789f",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "payoutId": "55677021-3673-3130-8e83-957d46938fc0",
+              "totalPayable": "250.00"
+            },
+            {
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "payoutId": "9d0ce430-9375-3ff8-8391-6c296b88b481",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "payoutId": "59d38e0c-79f5-3548-8fdf-188d164b7d4a",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "payoutId": "2c41598b-fcff-34c4-a711-6f2e57d786fc",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "payoutId": "1964abdb-c2f4-38c7-a5db-a4486f970417",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "payoutId": "5c63dda2-5336-3ae2-8a4a-7c60c4107580",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "payoutId": "bcbc07a3-6eef-3dda-a947-f374b6356df3",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "payoutId": "ba9ea5ed-cd19-3f41-b3b8-bf59d7cbdb12",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "payoutId": "b1059a47-497e-3c14-a3ba-433e4aee30a4",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "payoutId": "bbcdac65-0999-317c-aa08-f4f03893b291",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "payoutId": "7ffda1f7-80b8-3597-b9bd-42470466f6c7",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "payoutId": "35dafce3-eafb-3ce3-907d-e7ac283dd38d",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "payoutId": "65a6ef7f-329e-3840-a032-9f2f85122b23",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "payoutId": "33d980b1-9f7d-301c-8196-1a7ae1cae0ba",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "payoutId": "17b9a34c-c22b-3fd0-a388-d6e46008f542",
+              "totalPayable": "5.00"
+            },
+            {
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "payoutId": "b68b2772-ca49-3c93-bbd2-2379b1bde653",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "payoutId": "4c35dbe6-da72-3795-9d4c-19d4dbb2392a",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "payoutId": "c279317e-af75-3ac7-9f61-d1609cc5cb73",
+              "totalPayable": "72.50"
+            },
+            {
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "payoutId": "c713d9d5-ee74-3049-857c-247b00bf608d",
+              "totalPayable": "47.50"
+            },
+            {
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "payoutId": "d52f97d5-a482-3eb7-bdb5-603aef470dea",
+              "totalPayable": "50.00"
+            },
+            {
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "payoutId": "1fb233db-0bf7-300b-ad93-92c2f3b54e4b",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "payoutId": "1519bb0a-152c-349e-b704-b14247d2cf50",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "{affiliate}",
+              "payoutId": "{nextPayout}",
+              "totalPayable": "250.00"
+            },
+            {
+              "affiliateId": "{rejected}",
+              "payoutId": "0ee658f6-1ace-38a4-8b14-86a8b65bbc4a",
+              "totalPayable": "30.00"
+            },
+            {
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "payoutId": "705b1bde-0f54-332f-b9bf-12e5737100bc",
+              "totalPayable": "0.00"
+            },
+            {
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "payoutId": "4fe6cbdd-eca4-312b-9c09-c1a6cb2a53f0",
+              "totalPayable": "0.00"
             }
           ],
           "period": "{nextPeriod}"
@@ -13479,6 +16816,21 @@
           {
             "properties": {
               "adjustments": "0.00",
+              "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.363014527Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/d9aeb430-1d58-33de-8d9f-c80e05ca5c31"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
               "affiliateId": "f40f685c-d51f-440b-941d-400b1dc27a43",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
@@ -13599,7 +16951,7 @@
           {
             "properties": {
               "adjustments": "250.00",
-              "affiliateId": "{affiliate}",
+              "affiliateId": "8add1a37-43af-4702-a948-21bdb1d57173",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
               "createdAt": "{period}-07T09:39:45.066367744Z",
@@ -13609,12 +16961,12 @@
               "status": "PENDING",
               "totalPayable": "250.00"
             },
-            "twinId": "affiliate-payouts-{brand}/{nextPayout}"
+            "twinId": "affiliate-payouts-{brand}/6639c993-505b-34b7-bfd8-68f3b030badc"
           },
           {
             "properties": {
               "adjustments": "30.00",
-              "affiliateId": "{rejected}",
+              "affiliateId": "1917246e-4a28-4cbd-b448-8f55ce3e033e",
               "brandId": "{brand}",
               "cpaCommission": "0.00",
               "createdAt": "{period}-07T09:39:45.084668799Z",
@@ -13625,6 +16977,591 @@
               "totalPayable": "30.00"
             },
             "twinId": "affiliate-payouts-{brand}/90f6f100-2385-3094-b034-af0973477668"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "1e556eee-afcd-49b3-8fc2-f96f3213bbc3",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.410311842Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/c0533145-eba8-3860-ab5a-d3a1fd8585e9"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3ec43328-c2d7-4d05-96bd-bfeb5b11fab8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.453507455Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/59d38e0c-79f5-3548-8fdf-188d164b7d4a"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "c71e1b49-c427-4540-9ac8-e45414f0ef08",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.406674337Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/a6e6797b-31a2-34fa-a83d-a9f5aa52e24f"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.407543572Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/5279e6c7-42db-37f2-b1ee-3f3a4cd86420"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.410078702Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/926aa08c-7b66-3c10-873a-f67f2381dc26"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.410052330Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/bf8562d1-1aef-3fc8-bf55-8b0635d29715"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3e8db006-f63f-4801-9db9-d4db715f0efd",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.409831772Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/5850a2e4-db7a-3a52-9f01-12afae50f77f"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a2d9d360-5dc0-41fa-ae24-29bf80a36ec0",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.410295511Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/13dbba51-f51a-34d2-b1e0-23fa8ef91f1c"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "980f4b0e-ac94-4cc6-9540-00ed135b076e",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:54.459118445Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/facb026e-e440-30ab-a1fe-f6802049b6a7"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f510e29-95db-4d14-9643-5c70f9fc6054",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T09:39:54.459069368Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7cb5449f-fba5-3de9-b477-03003df7c9ac"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8c85eeb7-8327-40ea-9e78-26d079253eb9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.458749070Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/2c41598b-fcff-34c4-a711-6f2e57d786fc"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4f483437-15d5-4ef7-9e87-17857af80d87",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.459360043Z",
+              "overrideCommission": "5.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/9d0ce430-9375-3ff8-8391-6c296b88b481"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "291a05e8-d1ae-4922-8f35-9ec4b98ac1b9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.459159399Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/4f6d6913-92da-3382-bc8b-77e47c96fc04"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9453f3e9-317f-4d7c-addf-12b70b4e4a15",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.464497795Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/089d1eb8-323b-378c-8369-f2a4f3f52544"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "77f380a7-f1f5-41c0-99b4-f2f0326de32e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.464718395Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/f1984032-3865-3f87-8295-6c5efa2f662a"
+          },
+          {
+            "properties": {
+              "adjustments": "250.00",
+              "affiliateId": "433b8d94-0fa8-4937-bcb1-cc7f19ec09c9",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.465200341Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "250.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/55677021-3673-3130-8e83-957d46938fc0"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "cd1f06a9-b4fc-462c-8cd5-1e5fbae97a9e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.465124349Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1d8fd3cc-fcfb-3ba9-8980-71a84a33789f"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "44c7ead0-e655-4372-ac29-6e8c9e29063d",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.491873448Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "30.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/5c63dda2-5336-3ae2-8a4a-7c60c4107580"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "4dce22f4-7341-4a21-80e0-f778e654aaba",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T09:39:54.493935548Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1964abdb-c2f4-38c7-a5db-a4486f970417"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "865d2891-c584-49d7-aa2c-98dde304420b",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.690237367Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b1059a47-497e-3c14-a3ba-433e4aee30a4"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "015b2e39-b9dc-4f42-9654-2b3e40bce25e",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.693387542Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/35dafce3-eafb-3ce3-907d-e7ac283dd38d"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "635af210-8b93-4782-a54b-dcb49a5856df",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.693470375Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/65a6ef7f-329e-3840-a032-9f2f85122b23"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a7b12d28-c015-4427-a0e1-43b17f1edb70",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.693274544Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/7ffda1f7-80b8-3597-b9bd-42470466f6c7"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.717619373Z",
+              "overrideCommission": "5.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "5.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/17b9a34c-c22b-3fd0-a388-d6e46008f542"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.717255377Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1fb233db-0bf7-300b-ad93-92c2f3b54e4b"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9b9ac8d1-6031-40ae-a4e1-0f98c8ac0cee",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.718424906Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/1519bb0a-152c-349e-b704-b14247d2cf50"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "d97c5047-416b-4ad1-b502-ffb36bf8577a",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.719989473Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "47.50",
+              "status": "PENDING",
+              "totalPayable": "47.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/c713d9d5-ee74-3049-857c-247b00bf608d"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b9c1119f-7b23-4006-bec5-280ca78c2486",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.715648727Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "72.50",
+              "status": "PENDING",
+              "totalPayable": "72.50"
+            },
+            "twinId": "affiliate-payouts-{brand}/c279317e-af75-3ac7-9f61-d1609cc5cb73"
+          },
+          {
+            "properties": {
+              "adjustments": "250.00",
+              "affiliateId": "{affiliate}",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.718456281Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "250.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/{nextPayout}"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "014570e2-198d-4c2f-865a-17e65fb4de16",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.720518301Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/b68b2772-ca49-3c93-bbd2-2379b1bde653"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "5dbc230b-d61f-4bf8-ad32-bac1278d830f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.732004681Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/705b1bde-0f54-332f-b9bf-12e5737100bc"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "b20a8a17-66b5-47c7-95ee-6bedbdb2d359",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.733316084Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/4fe6cbdd-eca4-312b-9c09-c1a6cb2a53f0"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.690391199Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/bcbc07a3-6eef-3dda-a947-f374b6356df3"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:08.693806830Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/33d980b1-9f7d-301c-8196-1a7ae1cae0ba"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "9a504aa2-1282-49db-8219-9d7e726e65fa",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.696552009Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/ba9ea5ed-cd19-3f41-b3b8-bf59d7cbdb12"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "43335180-27b3-4d00-83d9-c54e58dfcc8f",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.690324408Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/bbcdac65-0999-317c-aa08-f4f03893b291"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+              "brandId": "{brand}",
+              "cpaCommission": "50.00",
+              "createdAt": "{period}-07T10:15:08.715791225Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "50.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/d52f97d5-a482-3eb7-bdb5-603aef470dea"
+          },
+          {
+            "properties": {
+              "adjustments": "0.00",
+              "affiliateId": "8e5294b4-4253-423a-a22e-39c2ee2e43e8",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.715506145Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "0.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/4c35dbe6-da72-3795-9d4c-19d4dbb2392a"
+          },
+          {
+            "properties": {
+              "adjustments": "30.00",
+              "affiliateId": "{rejected}",
+              "brandId": "{brand}",
+              "cpaCommission": "0.00",
+              "createdAt": "{period}-07T10:15:08.718020952Z",
+              "overrideCommission": "0.00",
+              "period": "{nextPeriod}",
+              "revShareCommission": "0.00",
+              "status": "PENDING",
+              "totalPayable": "30.00"
+            },
+            "twinId": "affiliate-payouts-{brand}/0ee658f6-1ace-38a4-8b14-86a8b65bbc4a"
           }
         ]
       },

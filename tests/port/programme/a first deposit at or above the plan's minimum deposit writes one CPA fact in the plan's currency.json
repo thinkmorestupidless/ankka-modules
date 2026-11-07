@@ -1,7 +1,7 @@
 {
   "scenario": "a first deposit at or above the plan's minimum deposit writes one CPA fact in the plan's currency",
   "requirement": "013/FR-013",
-  "recorded_at": "2026-11-07T09:39:40.405403Z",
+  "recorded_at": "2026-11-07T10:15:04.880789Z",
   "original": {
     "brand": "spinvibe",
     "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
@@ -33,6 +33,9 @@
           "planId": "{plan}",
           "planName": "Plan {run}"
         }
+      },
+      "capture": {
+        "plan": "$.planId"
       }
     },
     {
@@ -54,7 +57,7 @@
       "response": {
         "status": 201,
         "body": {
-          "affiliateId": "4aa3f430-1745-468a-a0de-e337eed8df8e",
+          "affiliateId": "3dab9ecf-499c-48c4-8bc1-eb7607ca3fb8",
           "email": "affiliate-{run}@example.com"
         }
       },
@@ -83,7 +86,7 @@
       "response": {
         "status": 201,
         "body": {
-          "btag": "129c92c3-25bc-480e-baba-8827e14424f1"
+          "btag": "58f9204c-f027-4124-bce9-4a0c9da10000"
         }
       },
       "capture": {
@@ -106,7 +109,7 @@
           "btag": "{affiliateBtag}",
           "country": "GB",
           "playerId": "{player}",
-          "registeredAt": "{period}-07T09:39:40Z"
+          "registeredAt": "{period}-07T10:15:05Z"
         }
       },
       "response": {
@@ -130,7 +133,7 @@
           "btag": "{affiliateBtag}",
           "country": "GB",
           "playerId": "{player}",
-          "registeredAt": "{period}-07T09:39:40Z"
+          "registeredAt": "{period}-07T10:15:05Z"
         }
       },
       "response": {
@@ -290,8 +293,8 @@
         "body": [
           {
             "cpaAmount": "50.00",
-            "depositDate": "{period}-07T09:39:40.694115934Z",
-            "playerRef": "97132222"
+            "depositDate": "{period}-07T10:15:05.256546093Z",
+            "playerRef": "ff146a5c"
           }
         ]
       },
