@@ -44,13 +44,18 @@ final class Managers(api: Api):
   def list(brand: String): Respond[Bytes] =
     of(brand).fold(unavailable, us => ok(us.map(u => ManagerAnswer(u.id, u.email, u.name, u.pending))))
 
-  def add(brand: String, b: ManagerBody, by: String): Respond[Bytes] =
+  /** `resume`: a brand's add run again (Hosting), whose first manager may have been made before it stopped. */
+  def add(brand: String, b: ManagerBody, by: String, resume: Boolean = false): Respond[Bytes] =
     Enrolment(api).address(b.email) match
       case None => invalid("email is required")
       case Some(email) =>
         val (first, last) = KeycloakAdmin.names(b.name)
         // A manager's authority is its two roles; it names no account (no `eitheror_scope_id`), as the original.
-        api.realm.createUser(email, first, last, Map("eitheror_actor_type" -> "affiliate", "eitheror_scope_level" -> "affiliate")) match
+        val made = api.realm.createUser(email, first, last, Map("eitheror_actor_type" -> "affiliate", "eitheror_scope_level" -> "affiliate")) match
+          case Left(RealmError.AlreadyExists(_)) if resume =>
+            api.realm.findByEmail(email).flatMap(_.toRight(RealmError.Failed(s"$email exists and cannot be found")))
+          case other => other
+        made match
           case Left(RealmError.AlreadyExists(_)) => refuse(409, "user_already_exists")
           case Left(e)                           => unavailable(e)
           case Right(user) =>

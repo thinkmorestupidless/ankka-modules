@@ -7,6 +7,7 @@ import io.eitheror.casino.programme.Wiring
 import io.eitheror.casino.programme.brands.{BrandProgramme, Plan}
 import io.eitheror.casino.programme.commission.FactType
 import io.eitheror.casino.programme.intake.{Intake, IntakeCalls}
+import io.eitheror.casino.programme.ledger.{CommissionAccount, RecordAdjustment}
 import io.eitheror.casino.programme.players.PlayerAttribution
 
 import java.time.YearMonth
@@ -132,6 +133,22 @@ class HostingSuite extends munit.FunSuite with LogCapturing:
     assertEquals(here.json.get("memberships").elements().asScala.map(_.get("brandId").asText).toSet, Set("goldvibe"))
   }
 
+  test("an add that stopped before its webhook secret completes when sent again; once it has one, the brand exists") {
+    val slug  = kit.fresh("stopped").toLowerCase
+    val email = s"${kit.fresh("mgr")}@hosted.example"
+    // As an add that failed after the brand and its first manager were made.
+    kit.components.forKeyValueEntity(EntityId(slug)).call(BrandProgramme.add)
+      .invoke(io.eitheror.casino.programme.brands.AddBrand(slug, BrandProgramme.Hosted, Some(slug), "Europe/Malta", "admin", kit.now)): Unit
+    kit.realm.createUser(email, None, None, Map.empty): Unit
+    val body = s"""{"brandId":"$slug","origin":"hosted","reportingZone":"Europe/Malta",
+                  |"defaultPlan":{"planName":"Standard","planType":"cpa","cpaAmount":2500,"cpaCurrency":"EUR"},
+                  |"firstManager":{"email":"$email"}}""".stripMargin
+    val again = kit.request("POST", "/v1/programme/brands", Some(body), kit.asPlatformAdmin())
+    assertEquals(again.status, 201, again.text)
+    assert(again.json.get("webhookSecret").asText.length == 64, again.text)
+    assertEquals(kit.request("POST", "/v1/programme/brands", Some(body), kit.asPlatformAdmin()).status, 409)
+  }
+
   test("FR-042: the usage report gives the brand's month per currency and no fee; a manager is refused") {
     val h = Hosted.add(kit, cpa = 2_500)
     val s = Scene(kit, h.slug, planType = Plan.Cpa, cpa = 2_500)
@@ -139,14 +156,18 @@ class HostingSuite extends munit.FunSuite with LogCapturing:
     Seq(s.facts.registration(p, kit.now), s.facts.firstDeposit(p, 5_000, kit.now), s.facts.deposit(p, 1_000, kit.now, currency = "USD"))
       .foreach(f => assertEquals(Hosted.post(kit, h.slug, h.secret, f).status, 200))
     s.rowsWhen("the CPA")(rs => s.sum(rs, FactType.Cpa) == 2_500): Unit
+    // A correction of a period long closed, recorded this month: this month's commission recorded.
+    kit.components.forEventSourcedEntity(CommissionAccount.entityId(s.affiliate, h.slug, "EUR")).call(CommissionAccount.recordAdjustment)
+      .invoke(RecordAdjustment(kit.fresh("late"), 500, "a late correction", "mgr-1", java.time.Instant.parse("2025-01-10T10:00:00Z"), None,
+        "Europe/Malta", kit.now)): Unit
     val month = YearMonth.from(kit.now.atZone(java.time.ZoneId.of("Europe/Malta"))).toString
     val usage = kit.eventually("the usage")(Option(kit.request("GET", s"/v1/programme/brands/${h.slug}/usage?month=$month", headers = kit.asPlatformAdmin()))
-      .filter(r => r.status == 200 && Option(r.json.get("commissionRecorded")).exists(_.has("EUR"))
+      .filter(r => r.status == 200 && Option(r.json.get("commissionRecorded")).exists(_.path("EUR").asLong == 3_000L)
         && Option(r.json.get("factsReceived")).exists(_.path("EUR").asInt == 1)))
     val u = usage.json
     assertEquals((u.get("factsReceived").get("none").asInt, u.get("factsReceived").get("EUR").asInt, u.get("factsReceived").get("USD").asInt), (1, 1, 1))
     assertEquals(u.get("activeMemberships").get("EUR").asInt, 1)
-    assertEquals(u.get("commissionRecorded").get("EUR").asLong, 2_500L)
+    assertEquals(u.get("commissionRecorded").get("EUR").asLong, 3_000L)
     assert(!u.has("fee") && !usage.text.toLowerCase.contains("fee"), usage.text)
     val earlier = kit.request("GET", s"/v1/programme/brands/${h.slug}/usage?month=2020-01", headers = kit.asPlatformAdmin())
     assertEquals((earlier.status, earlier.json.path("activeMemberships").path("EUR").asInt(0)), (200, 0))

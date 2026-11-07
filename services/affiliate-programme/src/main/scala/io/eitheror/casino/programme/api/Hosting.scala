@@ -118,19 +118,20 @@ final class Hosting(api: Api):
       case Some(slug) if !Slug.matches(slug)      => invalid("brandId is lower case letters, digits and dashes")
       case Some(_) if b.defaultPlan.exists(_.planName.forall(_.trim.isEmpty)) => invalid("defaultPlan.planName is required")
       case Some(_) if b.firstManager.exists(_.email.forall(_.trim.isEmpty))   => invalid("firstManager.email is required")
-      case Some(slug) if api.brand(slug).exists   => refuse(409, "brand_exists", slug)
+      case Some(slug) if api.brand(slug).exists && !unfinished(slug) => refuse(409, "brand_exists", slug)
       case Some(slug) =>
-        val zone = b.reportingZone.getOrElse("UTC")
+        val zone    = b.reportingZone.getOrElse("UTC")
+        val resumed = api.brand(slug).exists
         if Try(ZoneId.of(zone)).isFailure then invalid(s"reportingZone: '$zone' is not a time zone")
         else
           val entity = api.components.forKeyValueEntity(EntityId(slug))
-          entity.call(BrandProgramme.add).invoke(AddBrand(slug, origin, b.name, zone, by, api.now(), b.keyDocumentUrl)): Unit
+          if !resumed then entity.call(BrandProgramme.add).invoke(AddBrand(slug, origin, b.name, zone, by, api.now(), b.keyDocumentUrl)): Unit
           val planId = b.defaultPlan.map(p => Plan.idOf(slug, p.planName.get.trim))
           step(b.settings.fold(noContent)(backoffice.putSettings(slug, _, by, admin = true))) {
             step(b.defaultPlan.fold(noContent)(backoffice.createPlan(slug, _, by))) {
               val page = b.programme.getOrElse(ProgrammeBody()).copy(defaultPlanId = planId.orElse(b.programme.flatMap(_.defaultPlanId)))
               step(backoffice.putProgramme(slug, page, by)) {
-                val manager = b.firstManager.map(managers.add(slug, _, by))
+                val manager = b.firstManager.map(managers.add(slug, _, by, resume = resumed))
                 manager.filter(_.status >= 300).getOrElse {
                   val secret = { val bytes = new Array[Byte](32); random.nextBytes(bytes); HexFormat.of().formatHex(bytes) }
                   Secrets(api.secrets).putBrandSecret(slug, Secrets.WebhookSecret, secret) match
@@ -143,6 +144,15 @@ final class Hosting(api: Api):
               }
             }
           }
+
+  /**
+   * An added brand whose add stopped before its webhook secret was issued: adding it again completes the
+   * steps (each re-runnable), or FR-040's webhook could never be issued. One with its secret is added.
+   */
+  private def unfinished(slug: String): Boolean =
+    val b = api.brand(slug)
+    Set(BrandProgramme.Elsewhere, BrandProgramme.Hosted).contains(b.origin) &&
+      Secrets(api.secrets).brandSecret(slug, Secrets.WebhookSecret).exists(_.isEmpty)
 
   def patch(slug: String, p: BrandPatch, by: String): Respond[Bytes] =
     val b = api.brand(slug)
@@ -176,8 +186,9 @@ final class Hosting(api: Api):
             "to" -> to.plusSeconds(86_400).toString.take(10)).filter(_.receivedAt.exists(within))
           val active = api.views.forView(Memberships).ask(Memberships.byBrand, "brand" -> slug)
             .filter(m => m.active && m.since.forall(_.isBefore(to)))
-          val recorded = api.views.forView(Ledger).ask(Ledger.ofBrand, "brand" -> slug, "from" -> ym.minusMonths(1).toString,
-            "to" -> ym.plusMonths(1).toString).filter(r => r.kind.payable && within(r.recordedAt))
+          // By when it was recorded, not its period: a fact of an older period recorded this month is this month's.
+          val recorded = api.views.forView(Ledger).ask(Ledger.recordedAtBrand, "brand" -> slug, "from" -> from.minusSeconds(86_400).toString.take(10),
+            "to" -> to.plusSeconds(86_400).toString.take(10)).filter(r => r.kind.payable && within(r.recordedAt))
           val paid = api.views.forView(Payouts).ask(Payouts.byBrand, "brand" -> slug).filter(_.paidAt.exists(within))
           ok(Usage(slug, ym.toString, b.reportingZone, from, to,
             facts.groupMapReduce(_.currency.getOrElse(NoCurrency))(_ => 1)(_ + _),

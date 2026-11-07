@@ -89,6 +89,15 @@ object Ledger extends KeyedView.Companion[LedgerView, LedgerRow](
       "AND payload::jsonb->>'period' >= :from AND payload::jsonb->>'period' <= :to ORDER BY row_key"
   )
 
+  /**
+   * A brand's facts recorded on the days `from` to `to` (`yyyy-MM-dd`, inclusive), whatever period they
+   * are of: the usage report's "commission recorded" (FR-042), a late correction or an import included.
+   */
+  val recordedAtBrand = query("recorded-at-brand")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand " +
+      "AND substr(payload::jsonb->>'recordedAt', 1, 10) >= :from AND substr(payload::jsonb->>'recordedAt', 1, 10) <= :to ORDER BY row_key"
+  )
+
   def create(ctx: ViewComponentContext) = new LedgerView
 
 /** The folds every read makes of ledger rows: sums by type, per brand and currency, never across currencies. */
