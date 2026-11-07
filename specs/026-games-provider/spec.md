@@ -47,6 +47,28 @@ the KYC service gains an Anjouan licence profile. Game clients are needed now, s
 TypeScript client built into its image. The simulator and the product share one core as a library
 and are two services: scripted misbehaviour must not be deployable in a real-money provider.
 
+## Clarifications
+
+### Session 2026-11-07
+
+- Q: What are the Anjouan licence profile's values? → A: Curaçao's defaults under the new name,
+  confirmed by the compliance officer before a brand under it takes real money (FR-027).
+- Q: Do the 13 proposed glossary terms stand (house provider, game service, game page, brand table,
+  brand entry, pending debit, unanswered call, retry schedule, key rotation, demo round, claim
+  deadline, day export, test game)? → A: All accepted as defined; `key document` and `licence
+  profile` widened.
+- Q: Who may write the brand table, rotate the key and abandon unanswered calls? → A: Operators of
+  the installation holding a `games` permission in the staff realm, as `markets` is a permission for
+  prediction markets; a brand's own operators read only their brand (FR-024).
+- Q: How does a game leave the list of games? → A: Explicitly only: a game stays registered until
+  its game service deregisters it or an operator removes it; a game service that is down leaves its
+  games listed and a launch of one is answered unavailable (FR-007, FR-008).
+- Q: What decides which house games a brand may run? → A: The brand entry's games, for now;
+  eitheror operates both sides, and a vendor entitlement that writes the brand entry is a later spec
+  (FR-017).
+- Q: How long are the provider's records kept? → A: 90 days, an installation setting (FR-023); the
+  brand's rounds remain the books of record.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A brand plays a first-party game exactly as it plays an ST8 game (Priority: P1)
@@ -71,7 +93,7 @@ in the simulator's place and the simulator's operator API recordings against the
 **Acceptance Scenarios**:
 
 - added `features/games/brand.feature`: a brand configures the house provider as a second game provider of the same protocol and lists its games after the refresh
-- added `features/games/brand.feature`: a launch at the brand reaches the provider signed with the brand's operator key and answers the game's page address
+- added `features/games/brand.feature`: a launch at the brand reaches the house provider signed with the brand's credential and answers the game page's address
 - added `features/games/brand.feature`: the game page's load checks the launch ticket with the brand and the game learns the player, brand and currency
 - added `features/games/brand.feature`: a round opened and settled by a game moves the brand's wallet as any game provider's round does and produces one round settled fact
 - added `features/games/brand.feature`: a launch signed with a key that is not the brand's is refused and nothing is stored
@@ -110,6 +132,8 @@ late, answers `error`, and never answers.
 - added `features/games/contract.feature`: a cancel asked by a game references the debit's transaction id and the round is closed as cancelled on the brand's acknowledgement
 - added `features/games/contract.feature`: a round asked on a demo session sends no money callback and the game is told so
 - added `features/games/contract.feature`: a game asking for a round on a session of another game is refused
+- added `features/games/contract.feature`: a game stays registered until its game service deregisters it or an operator removes it, and a game service that is down leaves its games listed
+- added `features/games/contract.feature`: a launch in fun mode of a game that does not support demo play is answered unknown game
 
 ---
 
@@ -135,6 +159,7 @@ brand's sessions, rounds and games list.
 - added `features/games/brands.feature`: a brand's games list holds only the games the brand may run
 - added `features/games/brands.feature`: a session of one brand is never answered to another brand's game page or callback
 - added `features/games/brands.feature`: an operator's reads of sessions and rounds are per brand
+- added `features/games/brands.feature`: only an operator holding the games permission writes a brand entry, and a brand's own operator reads only that brand
 
 ---
 
@@ -257,6 +282,11 @@ provider is not a Curaçao brand by default.
 - The provider's key is switched while a brand still holds the old one: every callback at that
   brand fails signature until the operator fixes the configuration; the switch is the operator's
   act and the unacknowledged list shows the failures at once.
+- A brand launches in fun mode a game that does not support demo play: refused as `unknown_game`;
+  the list of games says per game whether demo play is supported, so the brand's catalogue does not
+  offer it.
+- A game service deregisters a game while sessions of it are open: no new launch is answered for
+  the code; open sessions and their rounds are served until settled.
 - A test brand is marked real money at the brand (its manifest's `realMoney`): the provider
   refuses to serve it while its entry names the key document instead of holding a key.
 - The brand's launch carries a `player_profile` with a birth date and a registration country: the
@@ -308,12 +338,17 @@ provider is not a Curaçao brand by default.
   each, a code unique across the provider, a name, a category, a developer (`eitheror`), the
   catalogue fields spec 003 FR-021 lists (bonus types, features, themes, restricted and prohibited
   territories, deprecation date), whether it supports demo play, and the address of its game page;
-  a code another game holds MUST be refused naming it.
+  a code another game holds MUST be refused naming it. A game MUST stay registered until its game
+  service deregisters it or an operator removes it; nothing else removes a game, and a game service
+  that is down leaves its games listed.
 - **FR-008**: Launch MUST store the session (brand, player id, currency, game code, demo or not,
   the brand's language, the country from the profile when given) and answer the registered game's
   page address carrying the launch ticket; a code no game registered MUST be answered
   `unknown_game` as 020 FR-007 answers it; a game the brand may not run MUST be answered the same; a
-  game service that does not answer MUST be answered as unavailable and nothing MUST be stored.
+  game service that does not answer MUST be answered as unavailable and nothing MUST be stored; a
+  launch in fun mode of a game that does not support demo play MUST be refused the same way, and
+  the list of games MUST say per game whether it supports demo play (the provider's `fun_mode`
+  field).
 - **FR-009**: The provider MUST serve a game service a check of a launch ticket: it sends the signed
   `check` to the brand once and answers the session (brand, player id, currency, country, demo,
   language, the session ticket) on "ok" and the brand's refusal otherwise; a game MUST only be
@@ -357,7 +392,9 @@ provider is not a Curaçao brand by default.
   entry per brand: slug, the address of its game-provider, its site id, its operator public key,
   its language, whether it is a test brand, the games it may run (every registered game by default),
   and, for a test brand only, whether it names the key document; a change MUST apply without a
-  redeploy; a brand absent from the table MUST be refused at launch.
+  redeploy; a brand absent from the table MUST be refused at launch. The entry's games are the
+  brand's entitlement to house games for now (Clarifications); a vendor entitlement that writes the
+  entry is a later spec.
 - **FR-018**: A session, a round, a callback and a game's state MUST belong to one brand; no read,
   page or callback MUST answer one brand's data to another; a game service MUST key its state by
   brand and MUST be given the brand with every session.
@@ -382,15 +419,17 @@ provider is not a Curaçao brand by default.
 - **FR-022**: Every operator act (a brand entry written, a rotation act, an abandonment) MUST be a
   record on `platform.audit` carrying the actor from the staff token, as the shared `payments`
   records its own.
-- **FR-023**: Records MUST be kept for the installation's retention for the provider (shipping
-  default 90 days) and swept after it; the `player_profile` answer MUST be recorded with its personal
+- **FR-023**: Records MUST be kept for the installation's retention for the provider (an
+  installation setting, shipping default 90 days; the brand's rounds remain the books of record) and
+  swept after it; the `player_profile` answer MUST be recorded with its personal
   fields redacted (020 FR-023), and the profile a launch carries MUST NOT be kept beyond the
   session's country.
 - **FR-024**: The provider's routes MUST fall in spec 001's route classes and no other: the
   operator API, the key document and the game contract's launch handoff are public (the operator
   API admitted by the brand's signature, FR-004; the contract's routes admitted in-project to the
   game services, service class); the brand table, reads, abandon and export are operator routes
-  admitted with a staff identity of the installation through the gateway; a game's page is public
+  admitted through the gateway with a staff token of the installation holding the `games`
+  permission (writes, rotation, abandon) or, for the reads of one brand, that brand's operator role; a game's page is public
   and admitted by its launch ticket.
 - **FR-025**: Metrics MUST count callbacks sent per brand and kind, callbacks unacknowledged per
   brand, and launches per brand and game.

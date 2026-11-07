@@ -13,7 +13,7 @@ Feature: A brand plays a house provider game exactly as it plays any game provid
     And the nightly refresh of the catalogue runs
     Then the house provider's games are in the catalogue under the game provider "eitheror" with the developer "eitheror"
 
-  Scenario: a launch at the brand reaches the provider signed with the brand's operator key and answers the game's page address
+  Scenario: a launch at the brand reaches the house provider signed with the brand's credential and answers the game page's address
     Given a player at the brand and a house provider game in the catalogue
     When the player launches the house provider game
     Then the house provider is asked to launch it under the brand's credentials for it

@@ -30,3 +30,9 @@ Feature: One house provider serves many brands, each held apart
     Given rounds played at "goldvibe" and at "spinvibe"
     When an operator reads the sessions and rounds of "goldvibe"
     Then only the sessions and rounds of "goldvibe" are listed
+
+  Scenario: only an operator holding the games permission writes a brand entry, and a brand's own operator reads only that brand
+    Given an operator of the installation holding the "games" permission and an operator of "goldvibe" without it
+    When each writes a brand entry and reads the sessions of "goldvibe" and of "spinvibe"
+    Then the installation's operator writes the entry and reads both brands
+    And the operator of "goldvibe" is refused the write and the read of "spinvibe", and reads "goldvibe"

@@ -67,3 +67,16 @@ Feature: A game service joins the house provider through one contract
     When the second game service asks for a debit on that session
     Then the house provider refuses it
     And nothing is sent
+
+  Scenario: a game stays registered until its game service deregisters it or an operator removes it, and a game service that is down leaves its games listed
+    Given a game service that registered "loteca" and is then down
+    When the brand asks for the list of games
+    Then "loteca" is still listed
+    And a launch of "loteca" is answered as unavailable until the game service is back
+    And "loteca" leaves the list only when the game service deregisters it or an operator removes it
+
+  Scenario: a launch in fun mode of a game that does not support demo play is answered unknown game
+    Given a game service that registered "loteca" without demo play
+    When the brand asks the house provider to launch "loteca" in fun mode
+    Then the answer is "unknown_game"
+    And the list of games says "loteca" does not support demo play
