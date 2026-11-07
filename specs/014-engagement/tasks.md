@@ -129,13 +129,13 @@ another session's: do not touch it.
       per-call refusal), `T/it/FakePlayers.scala`, `T/it/FakeRewards.scala` (scriptable answers,
       `down`, a record of every call), `T/it/SseReader.scala` (`java.net.http` over a stream, frames
       parsed, a close observed).
-- [ ] T020 `T/it/Kit.scala` and `SharedKit`: `AnkkaTestKit.start` over Postgres with `FakePlayers` and
+- [X] T020 `T/it/Kit.scala` and `SharedKit`: `AnkkaTestKit.start` over Postgres with `FakePlayers` and
       `FakeRewards` under `localServices`, `FakeCrm`'s URLs in `Settings`, `InMemoryBroker` for the
       six topics in and the two out, `TimerRuntime(200.millis)` with a `MovableClock`,
       `testKit.secrets`, callers `asPlayer`, `asOperator(roles)`, `asService(name)`, `publish(topic,
       key, fact)`, `facts(topic)`, `timerExists`, `fireTimer`, `restartService`, `eventually`, as
       rewards'.
-- [ ] T021 `S/send/Model.scala`, `S/send/Attempts.scala` (500 ms doubling, ±25 %, four attempts) and
+- [X] T021 `S/send/Model.scala`, `S/send/Attempts.scala` (500 ms doubling, ±25 %, four attempts) and
       `S/send/Send.scala` (workflow, id = the send key; research R4, R5): `start` as the claim with
       staleness, configuration and address judged, the steps `identify` → `track` → `transactional`
       each reading `Profile.attributes` first and the credentials through `Secrets`, the pauses, `parked`,

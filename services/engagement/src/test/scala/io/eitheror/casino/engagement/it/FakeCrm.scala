@@ -26,6 +26,7 @@ final class FakeCrm:
     case Fail(status: Int)
     case Hang
     case Refuse(status: Int, body: String)
+    case Pass
 
   private val log    = mutable.ArrayBuffer.empty[CrmCall]
   private val script = mutable.Queue.empty[Step]
@@ -46,8 +47,8 @@ final class FakeCrm:
         case Some(Some(Step.Fail(status)))      => FakeCrm.meta(status, s"HTTP $status")
         case Some(Some(Step.Refuse(status, b))) => Answer(status, b)
         case Some(Some(Step.Hang))              => Answer(504, """{"error":"hung"}""")
-        case Some(None) if Json.parse(r.body).isEmpty => FakeCrm.meta(400, "the body is not JSON")
-        case Some(None)                         => answer(r)
+        case Some(Some(Step.Pass) | None) if Json.parse(r.body).isEmpty => FakeCrm.meta(400, "the body is not JSON")
+        case Some(Some(Step.Pass) | None)       => answer(r)
       log.synchronized(log += CrmCall(name, r.path, r.headers, r.body, a.status))
       if step.contains(Some(Step.Hang)) then Thread.sleep(hangMillis)
       a
@@ -77,6 +78,8 @@ final class FakeCrm:
   def hang(count: Int = 1): Unit = enqueue(count, Step.Hang)
   /** The next `count` calls are refused with `status` and `body`, as a 4xx the provider means. */
   def refuse(status: Int, body: String, count: Int = 1): Unit = enqueue(count, Step.Refuse(status, body))
+  /** The next `count` calls are answered as unscripted, so a later step applies to a later call. */
+  def pass(count: Int = 1): Unit = enqueue(count, Step.Pass)
 
   def reset(): Unit =
     script.synchronized(script.clear())

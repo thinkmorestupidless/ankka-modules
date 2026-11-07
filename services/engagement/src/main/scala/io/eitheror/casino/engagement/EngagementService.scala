@@ -7,7 +7,11 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionR
 
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
 object EngagementService:
-  val descriptors: Seq[ComponentDescriptor] = Seq.empty
+  val descriptors: Seq[ComponentDescriptor] = Seq(
+    profile.Profile.descriptor,
+    config.Configuration.descriptor,
+    send.Send.descriptor
+  )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq.empty
