@@ -10,7 +10,7 @@ by `site`, and a failure is `200 {"status":"error","error":"auth_failed"}` with 
 
 | Route | What |
 |---|---|
-| `POST /launch` | body `game_code, currency, token, player, fun_mode, site, player_profile`; answers `{game_url}`; `unknown_game` for a code not registered or not in the brand's games; `unavailable` when the game's health fails; `unknown_game` for `fun_mode` on a game without demo |
+| `POST /launch` | body `game_code, currency, token, player, fun_mode, site, player_profile`; answers `{game_url}`; `unknown_game` for a code not registered or not in the brand's games; `{"status":"error","error":"unavailable"}` when the game's health fails; `unknown_game` for `fun_mode` on a game without demo |
 | `GET\|POST /games` | the games list in the provider's shape, filtered to the brand's games, each with `fun_mode` per game |
 | `POST /bonus/create` | research R9 |
 | `GET /bonus/get` | by `bonus_id`, routed by the index |

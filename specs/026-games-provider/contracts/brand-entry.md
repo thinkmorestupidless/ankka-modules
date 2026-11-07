@@ -29,7 +29,7 @@
 | `keyDocument` | no (false) | refused `true` unless `testBrand` |
 | `providerWaitMillis`, `keyRefreshBoundSeconds` | no | as the simulator's |
 | `caPem` | no | `env:<VAR>` or PEM |
-| `realMoney` | yes | what the brand's manifest says; with `keyDocument: true` every launch is refused naming the entry (FR-020) |
+| `realMoney` | yes | the operator's statement of what the brand's manifest says (the provider cannot read the manifest; the quickstart compares the two); with `keyDocument: true` every launch is refused naming the entry (FR-020) |
 
 The write is refused naming the field on a malformed value; the private key is never accepted
 (`operatorPrivateKey` in the body is a refusal).

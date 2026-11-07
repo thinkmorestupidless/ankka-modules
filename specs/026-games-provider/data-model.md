@@ -39,12 +39,12 @@ or an operator.
 | providerWaitMillis | int (5000) | the answer wait |
 | keyRefreshBoundSeconds | int (60) | |
 | caPem | string? | a CA to trust for `baseAddress` (local installations) |
-| realMoney | boolean | what the brand's manifest says; an entry with `realMoney=true` and `keyDocument=true` refuses every launch (FR-020) |
+| realMoney | boolean | required; the operator's statement of what the brand's manifest says (the provider cannot read it; the quickstart compares the two as the simulator's does); an entry with `realMoney=true` and `keyDocument=true` refuses every launch (FR-020) |
 
 ## Session (library)
 
-`SessionEntity`, event sourced, id the launch ticket. The simulator's shape with three fields
-added for the product: `demo`, `language`, `country`. Events: `Launched`, `Checked`,
+`SessionEntity`, event sourced, id the launch ticket. The simulator's shape with two fields
+added for the product: `demo`, `language`. Nothing of the launch's `player_profile` is read. Events: `Launched`, `Checked`,
 `CallbackPlanned`, `CallbackEnded` (the simulator's), unchanged in meaning.
 
 | Field | Rule |
@@ -52,7 +52,6 @@ added for the product: `demo`, `language`, `country`. Events: `Launched`, `Check
 | launchToken, brand, playerId, currency, gameCode | from the launch |
 | demo | `fun_mode` of the launch |
 | language | the entry's |
-| country | the profile's `reg_country` upper-cased when given, else absent |
 | walletToken | the session ticket, from the check |
 | rounds, roundOrder, sent | rounds by the game's round id; transaction and cancel ids sent |
 | state | `empty`, `launched`, `checked`, `refused` |

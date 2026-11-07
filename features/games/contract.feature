@@ -22,7 +22,8 @@ Feature: A game service joins the house provider through one contract
     Given a launch ticket the brand issued for "loteca"
     When the game service asks the house provider to check it
     Then the house provider sends one signed check to the brand
-    And the game service is answered the brand, the player id, the currency, the country, the language and whether the session is in fun mode
+    And the game service is answered the brand, the player id, the currency, the language and whether the session is in fun mode
+    And nothing of the launch's player profile is kept or answered
     And a launch ticket the brand answers "session_expired" is answered to the game service as refused, and the game page shows the session expired page
 
   Scenario: a debit asked by a game is sent once, signed, under a new transaction id, and the brand's status and balance are answered to the game

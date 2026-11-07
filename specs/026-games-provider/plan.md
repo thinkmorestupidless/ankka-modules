@@ -45,7 +45,7 @@ the gateway; local mode on a laptop beside a brand.
 loses nothing (SC-004); the retry schedule's cap of 8 hours.
 
 **Constraints**: no key, address or scenario reachable from a game service; no personal field
-beyond the player id, currency and country; no grant under ankka 040; six endpoints at distinct
+beyond the player id and currency; no grant under ankka 040; six endpoints at distinct
 prefixes with at most two path parameters.
 
 **Scale/Scope**: a handful of brands on one installation; rounds that stay open for days (a pools
@@ -59,7 +59,7 @@ coupon); tens of launches a second at most. Nothing here is high-frequency.
 |---|---|---|
 | I. The original is the specification | The plan names the recordings it replays and the parity tests it leaves | Pass with the spec's *Changes*: the original has no first-party provider, so everything is new except the protocol, which is held to the simulator's recordings (`tests/port/simulator/OperatorApi_*`, replayed by `OperatorApiParitySuite`, research R15) and spec 003's brand-side suites, kept green under the R11 amendment. The one divergence from an original recording (the known-profile list gains Anjouan) is named in spec 009's *Changes*. |
 | II. Money is exact, the wallet is the ledger | No balance of its own; minor units where money is ours | Pass: the provider holds no balance; a game's amounts are minor units as `Long` and the wire's decimal strings are rendered by the currency's exponent at the edge (R6); the brand's answered balances are recorded as strings for the operator's reads only. |
-| III. A brand is a project | A shared project reaches a brand by grant or, for a public route, as the internet does; no player data beyond the id | Pass: `games` is the fifth shared project (R2); it reaches a brand's public callback routes under signature with no grant (FR-002); a session holds the player id, currency and a country code and the launch's profile is not kept (FR-023); a brand's entry, sessions and rounds are keyed by slug and read only by that brand's operators or the `games` role (R8). |
+| III. A brand is a project | A shared project reaches a brand by grant or, for a public route, as the internet does; no player data beyond the id | Pass: `games` is the fifth shared project (R2); it reaches a brand's public callback routes under signature with no grant (FR-002); a session holds the player id and currency and nothing of the launch's profile (FR-008, FR-023); a brand's entry, sessions and rounds are keyed by slug and read only by that brand's operators or the `games` role (R8). |
 | IV. Commands over HTTP, facts over topics | | Pass: every command is HTTP; the one topic is `platform.audit` with the contract's family (R14); the game contract is in-project HTTP (R7); no store is read across services. |
 | V. Personal data marked, erasure honoured | | Pass: no personal field (FR-023); `player_profile` answers redacted before recording (020 FR-023 carried in the library); the player id is a pseudonym (spec 001 FR-024). |
 | VI. Scala by default, a reason for anything else | | Pass: Scala everywhere but the game clients, which are browser code and not the money path (FR-015, R12); each service owns its database. |

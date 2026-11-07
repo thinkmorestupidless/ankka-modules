@@ -107,7 +107,7 @@ A game service starts in the `games` project and registers its games with the ed
 category, the fields a brand's catalogue filters on, whether the game supports demo play, and the
 address of its page. From then on the edge answers launches for those codes with the game's page
 address carrying the launch ticket; the game asks the edge to check a ticket and receives the
-session (brand, player id, currency, country, demo or not, language); the game opens a round by
+session (brand, player id, currency, demo or not, language); the game opens a round by
 asking the edge for a debit and gets the brand's answer or `pending`; the game settles a round by
 asking for a credit, which the edge sends and retries until the brand answers; a game cancels a
 debit the same way. The game never holds a key, never knows a brand's address, and never sends a
@@ -287,10 +287,11 @@ provider is not a Curaçao brand by default.
   offer it.
 - A game service deregisters a game while sessions of it are open: no new launch is answered for
   the code; open sessions and their rounds are served until settled.
-- A test brand is marked real money at the brand (its manifest's `realMoney`): the provider
-  refuses to serve it while its entry names the key document instead of holding a key.
+- A brand entry written with `realMoney` (an operator's statement of what the brand's manifest
+  says; the provider cannot read the manifest) and `keyDocument`: the provider refuses to serve the
+  brand while the entry names the key document instead of holding a key.
 - The brand's launch carries a `player_profile` with a birth date and a registration country: the
-  edge reads the country for the session and keeps nothing else of the profile.
+  edge keeps, reads and forwards none of it; the session holds the player id and the currency.
 
 ## Requirements *(mandatory)*
 
@@ -301,7 +302,7 @@ provider is not a Curaçao brand by default.
 - **FR-001**: `games` MUST be a shared project of the installation (constitution III), beside
   `payments`, `programme`, `reasoner` and `tools`, deployed from `shared/games/manifest.json` by
   the modules tool, holding the `provider` service and one service per game; it MUST hold no
-  player data beyond the player id, the currency and the country code of a session, and it MUST be
+  player data beyond the player id and the currency of a session, and it MUST be
   deployable on an installation that takes real money (unlike `tools`).
 - **FR-002**: The provider MUST reach a brand only as an outside caller through the installation's
   gateway, admitted by the brand's signature verification (spec 003 FR-003), with no grant under
@@ -309,11 +310,12 @@ provider is not a Curaçao brand by default.
   provider's exposed address as it reaches ST8's.
 - **FR-003**: The provider MUST speak ST8's protocol as spec 020's ST8 adapter speaks it and
   nothing else: the operator API (launch, games, bonus create, get and cancel, spin values), the
-  game page handoff and `check`, and the callbacks `check`, `balance`, `player_profile`, `debit`,
-  `credit` and `cancel` with the bodies of 020 FR-009, the signature of 020 FR-010, the answers of
-  020 FR-012, a loss as a credit of "0.00" and a free round as a zero debit of kind `free_debit`
-  followed by a credit (020 FR-013). `buyin` and `payout` MUST NOT be sent: no game of this
-  provider plays outside a round.
+  game page handoff and `check`, and the callbacks `check`, `balance`, `debit`, `credit` and
+  `cancel` with the bodies of 020 FR-009, the signature of 020 FR-010, the answers of 020 FR-012, a
+  loss as a credit of "0.00" and a free round as a zero debit of kind `free_debit` followed by a
+  credit (020 FR-013). `buyin` and `payout` MUST NOT be sent (no game of this provider plays
+  outside a round), and `player_profile` MUST NOT be sent: no game of this provider needs a
+  player's details, and a shared project holds none (constitution III).
 - **FR-004**: The provider MUST verify a brand's operator API calls (launch, games, bonus) against
   the operator public key the brand table holds for that brand, refusing a call whose signature
   does not verify, whose brand the table does not hold, or whose `site` is not that brand's; this is
@@ -329,8 +331,11 @@ provider is not a Curaçao brand by default.
   scripted misbehaviour is deployable in the product.
 - **FR-006**: A brand talking to the provider MUST see what it sees talking to the simulator in its
   default scenario: the simulator's operator API recordings (`tests/port/simulator/OperatorApi_*`)
-  MUST replay against the provider with the test kit's game registered, and spec 003's brand-side
-  parity suites MUST pass with the provider in the simulator's place.
+  MUST replay against the provider with the test kit's game registered, with the one named
+  difference that the launch answer's page address is the game's; spec 003's brand-side suites MUST
+  stay green under FR-026's amendment; and a brand on `dev-kind` configured with the provider MUST
+  play a round of the first deployable game (spec 027) with its wallet, rounds and `casino.rounds`
+  showing what an ST8 round shows.
 
 **The game contract**
 
@@ -342,17 +347,18 @@ provider is not a Curaçao brand by default.
   service deregisters it or an operator removes it; nothing else removes a game, and a game service
   that is down leaves its games listed.
 - **FR-008**: Launch MUST store the session (brand, player id, currency, game code, demo or not,
-  the brand's language, the country from the profile when given) and answer the registered game's
-  page address carrying the launch ticket; a code no game registered MUST be answered
+  the brand's language) and nothing of the launch's `player_profile`, and answer the registered
+  game's page address carrying the launch ticket; a code no game registered MUST be answered
   `unknown_game` as 020 FR-007 answers it; a game the brand may not run MUST be answered the same; a
-  game service that does not answer MUST be answered as unavailable and nothing MUST be stored; a
+  game service that does not answer MUST be answered `unavailable` in the operator API's error
+  shape (HTTP 200, `status` `error`, `error` `unavailable`) and nothing MUST be stored; a
   launch in fun mode of a game that does not support demo play MUST be refused the same way, and
   the list of games MUST say per game whether it supports demo play (the provider's `fun_mode`
   field).
 - **FR-009**: The provider MUST serve a game service a check of a launch ticket: it sends the signed
-  `check` to the brand once and answers the session (brand, player id, currency, country, demo,
-  language, the session ticket) on "ok" and the brand's refusal otherwise; a game MUST only be
-  answered sessions of its own codes.
+  `check` to the brand once and answers the session (brand, player id, currency, demo, language,
+  the session ticket) on "ok" and the brand's refusal otherwise; a game MUST only be answered
+  sessions of its own codes.
 - **FR-010**: A game MUST open a round by asking the provider for a debit on a session (amount in
   minor units, the round id the game chooses, the kind `debit` or `free_debit`): the provider
   assigns a new transaction id, converts the amount to the wire's decimal string by the currency's
@@ -421,9 +427,8 @@ provider is not a Curaçao brand by default.
   records its own.
 - **FR-023**: Records MUST be kept for the installation's retention for the provider (an
   installation setting, shipping default 90 days; the brand's rounds remain the books of record) and
-  swept after it; the `player_profile` answer MUST be recorded with its personal
-  fields redacted (020 FR-023), and the profile a launch carries MUST NOT be kept beyond the
-  session's country.
+  swept after it; the profile a launch carries MUST NOT be kept, read or forwarded (FR-008), and the
+  library's redaction of a `player_profile` answer (020 FR-023) stays for the simulator.
 - **FR-024**: The provider's routes MUST fall in spec 001's route classes and no other: the
   operator API, the key document and the game contract's launch handoff are public (the operator
   API admitted by the brand's signature, FR-004; the contract's routes admitted in-project to the
@@ -459,7 +464,7 @@ provider is not a Curaçao brand by default.
   client; a party to the game contract.
 - **Brand entry**: a row of the brand table: slug, address, site, operator public key, language,
   test flag, games it may run, key document flag.
-- **Session**: one launch: brand, player id, currency, game code, demo, language, country, launch
+- **Session**: one launch: brand, player id, currency, game code, demo, language, launch
   ticket, session ticket.
 - **Round**: one round in a session: round id, state (open, pending, won, lost, cancelled), the
   transaction ids sent, the acknowledgement of each.
@@ -473,8 +478,9 @@ provider is not a Curaçao brand by default.
 
 ### Measurable Outcomes
 
-- **SC-001**: Spec 003's brand-side parity suites pass with the provider in the simulator's place,
-  and the simulator's operator API recordings replay against the provider, with zero differences.
+- **SC-001**: The simulator's operator API recordings replay against the provider with zero
+  differences beyond the named page address, and spec 003's brand-side suites stay green under the
+  amendment; the first round on `dev-kind` through a real brand is spec 027's acceptance.
 - **SC-002**: A new game reaches a brand with no change to the brand beyond its next nightly
   refresh: zero brand-side writes per game added.
 - **SC-003**: A launch is answered and the game page's check completes within 2 seconds at the
@@ -497,9 +503,10 @@ parity suites, and the edge is held to them (FR-006).
 Changes from `fake-st8` and the simulator, beyond spec 020's own list:
 
 - Tightened: the brand's operator API calls are verified against the brand's operator public key
-  (FR-004); `fake-st8` and the simulator verify nothing.
+  (FR-004); `fake-st8` and the simulator verify nothing. Nothing of the launch's profile is kept
+  (FR-008); the simulator keeps the player id only, as before.
 - Dropped: scenarios, instruction routes, the load profile, the run export, the seeded generator,
-  the provider's own game page, `buyin` and `payout`.
+  the provider's own game page, `buyin`, `payout` and `player_profile`.
 - Added: the game contract (FR-007 to FR-014), game services and their clients, the brand's games
   entitlement and language, the three-act rotation, the audit records, the day export.
 - Changed: the retry schedule is one setting of the provider, not per scenario.

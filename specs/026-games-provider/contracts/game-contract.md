@@ -11,7 +11,7 @@ session is refused `forbidden` when the caller's service name is not the code's 
 |---|---|---|
 | `PUT /v1/games/registry/{code}` | `{name, category, bonusTypes[], features[], themes[], restrictedTerritories[], prohibitedTerritories[], deprecationDate?, demo, pageAddress}` | `200 {code, owner}`; `409 {error:"code_taken", owner}` when another service holds it |
 | `DELETE /v1/games/registry/{code}` | | `200`; open sessions of the code keep being served |
-| `POST /v1/games/sessions/{token}/check` | | `200 {brand, playerId, currency, country?, demo, language, sessionTicket}` on the brand's `ok`; `200 {refused: "<word>"}` on any other answer (`session_expired`, `player_locked`); `404` for a token no session holds; `403` for another game's session |
+| `POST /v1/games/sessions/{token}/check` | | `200 {brand, playerId, currency, demo, language, sessionTicket}` on the brand's `ok`; `200 {refused: "<word>"}` on any other answer (`session_expired`, `player_locked`); `404` for a token no session holds; `403` for another game's session |
 | `GET /v1/games/sessions/{token}` | | the session as above plus its rounds |
 | `POST /v1/games/sessions/{token}/rounds/{roundId}/stake` | `{amount, kind: "debit"\|"free_debit"}` | within the wait: `200 {status:"ok", balance}` or `200 {status:"<refusal word>", balance?}`; past it: `202 {status:"pending", callbackId}`; a demo session: `200 {status:"demo"}` and nothing sent; a round id already used: `409` |
 | `POST /v1/games/sessions/{token}/rounds/{roundId}/settle` | `{amount}` (0 for a loss) | `202 {status:"accepted", callbackId}`; `409` when the round is not open or already settled |

@@ -71,8 +71,8 @@ store has no listing); a brand value at the vendor (deferred by the clarificatio
 
 **Decision**: the provider's `OperatorApi` is its own (the stand-in's selects scenarios and
 hardcodes `game_url`): it verifies the brand's signature (R5), finds the brand by `site`, stores the
-session through `SessionEntity.launch` with the registered game's code, demo flag, the entry's
-language and the profile's country, and answers `game_url` as the game's registered page address
+session through `SessionEntity.launch` with the registered game's code, demo flag and the entry's
+language, reads nothing of `player_profile`, and answers `game_url` as the game's registered page address
 with `?token=<launch ticket>` appended. The game page is served by the game service; on load the
 game service calls the provider's in-project route `POST /v1/games/sessions/{token}/check` (R7),
 and the provider sends the signed `check` to the brand through `Play.send`, records it
@@ -135,7 +135,7 @@ contract is reachable from outside the project (Assumptions).
 path parameters): `/api/operator/v1` (public, brand-signed: launch, games, bonus create/get/cancel),
 `/.well-known` (public: `st8-keys`), `/health` (public), `/v1/games` (service class: registration,
 sessions, callbacks, bonus handoff), `/v1/provider` (operator: brands, sessions, rounds, unanswered,
-abandon, export, keys), `/v1/provider-reads` is not needed: reads of one brand live under
+abandon, export, keys). Reads of one brand live under
 `/v1/provider/brands/{slug}/...` with `Routes.operatorHolding(slug, "games")` for writes and
 `Routes.operator(slug)` (the brand's own operators) or `operatorHolding("games")` for reads. The
 `games` permission is a realm role in `brands/_realm`, as `markets` is. Every route: `contracts/provider-routes.md`.
@@ -220,4 +220,8 @@ unchanged: they run against their scripted provider, and the amendment of R11 ke
 
 ## Declined remediations
 
-(none yet)
+(none)
+
+## Design finished
+
+2026-11-07: analyze reported nothing above LOW.

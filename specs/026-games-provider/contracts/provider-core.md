@@ -22,7 +22,7 @@ publishes both before running a task in a service build. The simulator's and the
 
 | Package | Classes |
 |---|---|
-| `core` | `Session`, `SessionEntity` (+ `demo`, `language`, `country`), `Callback`, `CallbackEntity` (+ `Abandoned`), `Play`, `Protocol`, `Call`, `Reading`, `RoundRole`, `Schedule`, `Durations`, `Sweep`, `KeyRotation`, `Wiring` (`Outbound`, `KeyRing`, `Brands`), `RunCallbacks`, **`Deliver`** (new) |
+| `core` | `Session`, `SessionEntity` (+ `demo`, `language`), `Callback`, `CallbackEntity` (+ `Abandoned`), `Play`, `Protocol`, `Call`, `Reading`, `RoundRole`, `Schedule`, `Durations`, `Sweep`, `KeyRotation`, `Wiring` (`Outbound`, `KeyRing`, `Brands`), `RunCallbacks`, **`Deliver`** (new) |
 | `st8` | `St8Protocol`, `Signer`, `Keys`, `GoJson`, `Http`, `Catalogue`, `BonusBook`, `KeyDocument`, `Health` |
 | `brands` | `Brand`, `Sender` |
 
