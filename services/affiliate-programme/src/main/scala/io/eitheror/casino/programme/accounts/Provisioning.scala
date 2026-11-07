@@ -84,7 +84,10 @@ final class Provisioner(calls: ProvisioningCalls, realm: KeycloakAdmin, now: () 
         val found = done(realm.findByEmail(id.email)).flatten
         val user  = found.orElse {
           val (first, last) = KeycloakAdmin.names(id.displayName.orElse(Some(id.name)))
-          done(realm.createUser(id.email, first, last, KeycloakAdmin.affiliateAttributes(affiliate)))
+          realm.createUser(id.email, first, last, KeycloakAdmin.affiliateAttributes(affiliate)) match
+            // Another brand's approval made it between the look and the make: it is this account's.
+            case Left(RealmError.AlreadyExists(_)) => done(realm.findByEmail(id.email)).flatten
+            case made                              => done(made)
         }
         user.foreach(calls.setKeycloakUser(affiliate, _))
         user
