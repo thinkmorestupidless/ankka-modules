@@ -121,6 +121,12 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
     assertEquals(read.json.get("email").asText, s"${s.affiliate}@example.com")
   }
 
+  test("ErasureRules: a realm user is gone when deleted or not there; a realm not configured deleted nothing") {
+    assert(ErasureRules.realmDeleted(Right(())) && ErasureRules.realmDeleted(Left(RealmError.NotFound("u"))))
+    assert(!ErasureRules.realmDeleted(Left(RealmError.NotConfigured("no credentials"))))
+    assert(!ErasureRules.realmDeleted(Left(RealmError.Failed("500"))))
+  }
+
   test("ErasureRules: the hold ends at the start of the UTC day the retention names") {
     assertEquals(ErasureRules.holdUntil(Instant.parse("2026-11-02T23:59:59Z"), 1825), Instant.parse("2031-11-01T00:00:00Z"))
     assertEquals(ErasureRules.holdUntil(Instant.parse("2026-11-02T00:00:00Z"), 0), Instant.parse("2026-11-02T00:00:00Z"))

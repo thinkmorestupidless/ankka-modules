@@ -26,6 +26,15 @@ object ErasureRules:
   val Held   = "held"
   val Erased = "erased"
 
+  /**
+   * Whether the account's realm user is gone: deleted, or one the realm no longer has. A realm that is not
+   * configured deleted nothing: the account has a user only because a configured realm made it, so an
+   * erasure that cannot reach it must stop, not record the account erased.
+   */
+  def realmDeleted(r: Either[RealmError, Unit]): Boolean = r match
+    case Right(_) | Left(RealmError.NotFound(_)) => true
+    case Left(_)                                 => false
+
   /** The hold's end: the start of the day `days` after the UTC day the erasure is filed. */
   def holdUntil(filedAt: Instant, days: Int): Instant =
     LocalDate.ofInstant(filedAt, ZoneOffset.UTC).plusDays(days.toLong).atStartOfDay(ZoneOffset.UTC).toInstant
@@ -69,9 +78,8 @@ final class Erasure(context: WorkflowContext) extends Workflow[ErasureState]:
     Option(account.emailDigest).filter(_.nonEmpty)
       .foreach(d => client.forKeyValueEntity(EntityId(d)).call(EmailIndex.release).invoke(affiliate): Unit)
     account.keycloakUser.foreach { user =>
-      Wiring.realm.get().deleteUser(user) match
-        case Right(_) | Left(RealmError.NotFound(_)) | Left(RealmError.NotConfigured(_)) => ()
-        case Left(e) => throw IllegalStateException(s"the realm: $e")
+      val deleted = Wiring.realm.get().deleteUser(user)
+      if !ErasureRules.realmDeleted(deleted) then throw IllegalStateException(s"the realm: ${deleted.left.toOption.get}")
     }
     val at = Wiring.clock.get().instant()
     client.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.erased).invoke(at): Unit
