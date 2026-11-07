@@ -125,7 +125,7 @@ another session's: do not touch it.
       region with the overrides, basic and bearer, the timeout), `S/clients/Players.scala` (the
       message route), `S/clients/Rewards.scala` (target, award), each passing the neighbour's answer
       through as contracts/routes.md's *Calls out*.
-- [ ] T019 [P] `T/it/FakeCrm.scala` (both hosts; every call recorded; scriptable 429, 5xx, hang, and a
+- [X] T019 [P] `T/it/FakeCrm.scala` (both hosts; every call recorded; scriptable 429, 5xx, hang, and a
       per-call refusal), `T/it/FakePlayers.scala`, `T/it/FakeRewards.scala` (scriptable answers,
       `down`, a record of every call), `T/it/SseReader.scala` (`java.net.http` over a stream, frames
       parsed, a close observed).
