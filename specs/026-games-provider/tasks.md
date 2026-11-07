@@ -56,7 +56,7 @@ provider, `TestGame` and `FakeBrand`.
 - [X] T024 [US2] `GamesEndpoint` session routes: `POST /sessions/{token}/check` (one signed `check` through `Play.send`, `SessionEntity.check` on `ok`, the session answered; refusal word on anything else; `403` for another game's session), `GET /sessions/{token}`
 - [X] T025 [US2] `GamesEndpoint` round routes: `stake` (synchronous `Play.send` within the brand's wait; `pending` + `Deliver` past it or on a retryable answer; `demo` on a fun-mode session with nothing sent; `409` on a reused round id or an unchecked session), `settle` (always `Deliver`, `409` unless open), `cancel` (`Deliver`, new cancel id), `GET /callbacks/{id}`; the wire amounts rendered by the currency's exponent from `contract.money`
 - [X] T026 [US2] Bind `features/games/contract.feature` in `E/test/.../edge/steps/ContractFeatures.scala` through `GherkinSuite` with `TestGame` and `FakeBrand` (late, error and silent answers scripted)
-- [ ] T027 [US2] Integration suite `E/test/.../edge/ProviderIntegrationSuite.scala` over Postgres (Docker): a brand silent for 15 minutes (clock advanced) then answering; every debit and credit acknowledged after, the balance moved once per callback (SC-004); a restart mid-`Deliver` resumes the schedule
+- [X] T027 [US2] Integration suite `E/test/.../edge/ProviderIntegrationSuite.scala` over Postgres (Docker): a brand silent for 15 minutes (clock advanced) then answering; every debit and credit acknowledged after, the balance moved once per callback (SC-004); a restart mid-`Deliver` resumes the schedule
 
 ## Phase 4: User Story 1 — a brand plays a house game exactly as an ST8 game (P1)
 

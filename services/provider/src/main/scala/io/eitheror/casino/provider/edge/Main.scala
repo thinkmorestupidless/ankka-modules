@@ -45,19 +45,27 @@ object Provider:
     at.fold(HttpServer.of(factories*))((host, port) => HttpServer.at(host, port)(factories*))
 
   /** The core's collaborators, once the service (and its secret store) has started. */
-  def install(service: AnkkaService, settings: Settings, cache: BrandCache): Keys =
-    val keys = Keys(service.secrets)
-    Wiring.install(St8Protocol, HouseOutbound(Sender(cache.apply, keys)), keys, cache)
+  def install(service: AnkkaService, settings: Settings, cache: BrandCache, keys: Option[Keys] = None, clock: () => Long = () => System.currentTimeMillis()): Keys =
+    val ring = keys.getOrElse(Keys(service.secrets))
+    Wiring.install(St8Protocol, HouseOutbound(Sender(cache.apply, ring)), ring, cache, clock)
     Deliver.schedule = settings.schedule
     Sweep.retention = settings.retentionDays.days
     Sweep.views = Some(service.viewClient)
-    keys
+    ring
 
-  /** The work done once at start: a signing key, the brand entries read, the retention sweep. */
-  def prepare(service: AnkkaService, cache: BrandCache, keys: Keys, timers: Option[TimerRuntime], parts: => Option[Parts]): Unit =
+  /**
+   * The work done once at start: a signing key, the brand entries read, the retention sweep, and
+   * the wake that brings back a `Deliver` whose pause no timer in memory holds any more.
+   */
+  def prepare(service: AnkkaService, cache: BrandCache, keys: Keys, timers: Option[TimerRuntime], parts: => Option[Parts],
+      wakeEvery: FiniteDuration = 30.seconds): Unit =
     keys.ensureCurrent(): Unit
     cache.refresh(service.componentClient)
-    timers.foreach(_.timerScheduler.createRecurringTimer(SweepAction.TimerName, 1.minute, 1.hour, SweepAction.sweep.deferred))
+    Sweep.wakeEvery = wakeEvery
+    timers.foreach { t =>
+      t.timerScheduler.createRecurringTimer(SweepAction.TimerName, 1.minute, 1.hour, SweepAction.sweep.deferred)
+      t.timerScheduler.createRecurringTimer(SweepAction.WakeTimerName, wakeEvery, wakeEvery, SweepAction.wake.deferred)
+    }
     parts.foreach(_.ready.set(true))
 
 @main def run(): Unit =

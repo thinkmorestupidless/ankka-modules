@@ -18,6 +18,9 @@ object Sweep:
   @volatile var retention: FiniteDuration = 30.days
   @volatile var views: Option[ViewClient] = None
 
+  /** How often the timer `wake-deliveries` fires: a retry falls due at most this late. */
+  @volatile var wakeEvery: FiniteDuration = 30.seconds
+
   /** Told how many runs a sweep discarded, when any: the simulator counts them on its status. */
   @volatile var onSwept: (ComponentClient, Int) => Unit = (_, _) => ()
 
@@ -36,12 +39,30 @@ object Sweep:
     if runs.nonEmpty then onSwept(client, runs.size)
     runs.size
 
+  /**
+   * Wakes every `Deliver` whose retry falls due before `before`, by asking it its state. A pause's
+   * deadline is a timer in the workflow's memory (ankka 0.13): a workflow passivated while it
+   * waits, or one a restart stopped, keeps its deadline in its journal and re-arms it only when it
+   * is next brought back, which nothing else does. Brought back past its deadline it sends at
+   * once. Answers how many were woken.
+   */
+  def wake(client: ComponentClient, views: ViewClient, before: Long): Int =
+    val due = views.forView(RunCallbacks).ask(RunCallbacks.retryDue, 1000, "before" -> before.toString)
+    due.foreach(c => client.forWorkflow(EntityId(c.callbackId)).call(Deliver.get).invoke(): Unit)
+    due.size
+
 final class SweepAction(context: TimedActionContext) extends TimedAction:
   def sweep: Effect =
     Sweep.views.foreach(v => Sweep.run(context.componentClient, v, Wiring.now() - Sweep.retention.toMillis))
     effects.done()
 
+  def wake: Effect =
+    Sweep.views.foreach(v => Sweep.wake(context.componentClient, v, Wiring.now() + Sweep.wakeEvery.toMillis))
+    effects.done()
+
 object SweepAction extends TimedAction.Companion[SweepAction](ComponentId("sweep")):
   def create(ctx: TimedActionContext) = new SweepAction(ctx)
   val sweep = handler("sweep")(_.sweep)
-  val TimerName = "sweep-runs"
+  val wake  = handler("wake")(_.wake)
+  val TimerName     = "sweep-runs"
+  val WakeTimerName = "wake-deliveries"

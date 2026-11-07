@@ -70,6 +70,15 @@ object RunCallbacks
        |ORDER BY (payload::jsonb->>'firstSentAt')::bigint, payload::jsonb->>'callbackId'""".stripMargin
   )
 
+  /** Callbacks waiting on a retry that falls due before `before`, for the wake. */
+  val retryDue = query("retry-due")(
+    s"""SELECT payload FROM $table
+       |WHERE payload::jsonb->>'outcome' = '${Callback.Pending}'
+       |  AND payload::jsonb->>'nextRetryAt' IS NOT NULL
+       |  AND (payload::jsonb->>'nextRetryAt')::bigint < (:before)::bigint
+       |ORDER BY (payload::jsonb->>'nextRetryAt')::bigint""".stripMargin
+  )
+
   /** Runs whose last answer is older than a cutoff, for the sweep (FR-022). */
   val endedBefore = query("ended-before")(
     s"""SELECT payload FROM $table
