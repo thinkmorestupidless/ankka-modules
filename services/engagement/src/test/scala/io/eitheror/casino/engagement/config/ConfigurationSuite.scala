@@ -14,11 +14,16 @@ class ConfigurationSuite extends munit.FunSuite:
   test("a put keeps the configuration and answers the fields it changed, by name") {
     TestKeyring.around { _ =>
       val kit = KeyValueEntityTestKit.of(Configuration, "goldvibe")
-      assertEquals(kit.call(Configuration.put)(config).replyValue.changed, Vector("siteId", "region", "fromEmail", "triggers.DepositConfirmed"))
+      assertEquals(kit.call(Configuration.put)(ConfigChange(config, "op-1")).replyValue.changed,
+        Vector("siteId", "region", "fromEmail", "triggers.DepositConfirmed"))
       val next = config.copy(triggers = Map("DepositConfirmed" -> "8", "PaymentFailed" -> "9"))
-      assertEquals(kit.call(Configuration.put)(next).replyValue.changed, Vector("triggers.DepositConfirmed", "triggers.PaymentFailed"))
-      assertEquals(kit.call(Configuration.put)(next).replyValue.changed, Vector.empty)
-      assertEquals(kit.call(Configuration.get).replyValue, next)
+      assertEquals(kit.call(Configuration.put)(ConfigChange(next, "op-1", Vector("trackApiKey"))).replyValue.changed,
+        Vector("triggers.DepositConfirmed", "triggers.PaymentFailed", "trackApiKey"))
+      assertEquals(kit.call(Configuration.put)(ConfigChange(next, "op-1")).replyValue.changed, Vector.empty)
+      val kept = kit.call(Configuration.get).replyValue
+      assertEquals(kept.copy(updatedAt = None, lastChange = None), next)
+      assertEquals(kept.lastChange.map(n => (n.version, n.by, n.fields)),
+        Some((2, "op-1", Vector("triggers.DepositConfirmed", "triggers.PaymentFailed", "trackApiKey"))))
     }
   }
 

@@ -12,10 +12,13 @@ final case class Put(config: CrmConfig, changed: Vector[String])
 final class Configuration(@scala.annotation.unused context: KeyValueEntityContext) extends KeyValueEntity[CrmConfig]:
   def emptyState: CrmConfig = CrmConfig()
 
-  def put(next: CrmConfig): Effect[Put] =
-    val changed = currentState.changes(next)
+  def put(change: ConfigChange): Effect[Put] =
+    val changed = currentState.changes(change.config) ++ change.keys
     if changed.isEmpty then effects.reply(Put(currentState, changed))
-    else effects.updateState(next).thenReply(c => Put(c, changed))
+    else
+      val at   = io.eitheror.casino.engagement.EngagementRuntime.now()
+      val note = ConfigNote(currentState.lastChange.fold(1)(_.version + 1), change.by, changed, at)
+      effects.updateState(change.config.copy(updatedAt = Some(at), lastChange = Some(note))).thenReply(c => Put(c, changed))
 
   def get: ReadOnlyEffect[CrmConfig] = effects.reply(currentState)
 
@@ -27,6 +30,7 @@ object Configuration
   given JsonValueCodec[CrmConfig] = EngagementCodecs.stored[CrmConfig]
   given Serializer[CrmConfig]     = EngagementCodecs.serializer[CrmConfig]("crm-config-reply")
   given Serializer[Put]           = EngagementCodecs.serializer[Put]("crm-config-put")
+  given Serializer[ConfigChange]  = EngagementCodecs.serializer[ConfigChange]("crm-config-change")
 
   def create(context: KeyValueEntityContext) = new Configuration(context)
 

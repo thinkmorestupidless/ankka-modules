@@ -41,6 +41,12 @@ object Kind:
   val Transactional = "transactional"
   val Delete        = "delete"
 
+/**
+ * What an audit record says of a send (contracts/facts.md): `refused` for FR-011's refusal, `retried` and `discarded` for
+ * an operator's act. `at` is the update that made it, so the audit consumer writes the record for that update only.
+ */
+final case class Note(kind: String, seq: Int, by: Option[String], at: Instant)
+
 /** One call of a send: `identify`, `track`, `transactional` or `delete`, its attempts, and what it came to. */
 final case class Call(kind: String, attempts: Int, outcome: String, status: Option[Int], lastAnswer: Option[String], at: Instant)
 
@@ -59,8 +65,16 @@ final case class SendState(
     parkedAt: Option[Instant] = None,
     discardedBy: Option[String] = None,
     discardReason: Option[Personal[String]] = None,
-    updatedAt: Option[Instant] = None
+    updatedAt: Option[Instant] = None,
+    note: Option[Note] = None
 ):
+  /** The note `kind` made by this update at `at`, numbered after the last. */
+  def noted(kind: String, by: Option[String], at: Instant): SendState =
+    copy(note = Some(Note(kind, note.fold(1)(_.seq + 1), by, at)), updatedAt = Some(at))
+
+  /** The note made by the update that produced this state, if any. */
+  def freshNote: Option[Note] = note.filter(n => updatedAt.contains(n.at))
+
   def attemptsAt(kind: String): Int = calls.find(_.kind == kind).fold(0)(_.attempts)
 
   /** The call recorded, replacing an earlier record of the same kind. */

@@ -12,7 +12,9 @@ object EngagementService:
     config.Configuration.descriptor,
     send.Send.descriptor,
     reads.SendsView.descriptor,
-    reads.ProfilesView.descriptor
+    reads.ProfilesView.descriptor,
+    facts.SendAudit.descriptor,
+    facts.ConfigAudit.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */

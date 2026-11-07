@@ -3,7 +3,7 @@ package io.eitheror.casino.engagement.it
 import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.personal.Personal
-import io.eitheror.casino.engagement.config.{Configuration, CrmConfig, Secrets}
+import io.eitheror.casino.engagement.config.{ConfigChange, Configuration, CrmConfig, Secrets}
 import io.eitheror.casino.engagement.profile.{PlayersFact, Profile, ProfileState}
 import io.eitheror.casino.engagement.send.*
 
@@ -177,6 +177,10 @@ class SendSuite extends munit.FunSuite:
     assertEquals(kit.crm.identifies(p).size, 1)
     assertEquals(kit.crm.attributes(kit.crm.identifies(p).head).get("marketing_suppressed").map(_.asBoolean), Some(true))
     assertEquals((kit.crm.tracks(p), kit.crm.sends), (Vector.empty, Vector.empty))
+    val record = kit.eventually("the refusal audited")(kit.facts(f.PlatformAudit).collectFirst {
+      case a: f.AuditRecord if a.subjectId == p && a.action == "engagement.send.refused" => a
+    })
+    assertEquals(record.reasonCode, Some("marketing_suppressed"))
   }
 
   test("a service send for a suppressed player is made") {
@@ -249,13 +253,13 @@ class SendSuite extends munit.FunSuite:
   test("a brand with no site is no_configuration") {
     val slug = kit.slug
     val was  = kit.components.forKeyValueEntity(EntityId(slug)).call(Configuration.get).invoke()
-    kit.components.forKeyValueEntity(EntityId(slug)).call(Configuration.put).invoke(CrmConfig()): Unit
+    kit.components.forKeyValueEntity(EntityId(slug)).call(Configuration.put).invoke(ConfigChange(CrmConfig(), "kit")): Unit
     try
       val r = deposit(player())
       start(r)
       assertEquals(settled(r).outcome, Outcome.NoConfiguration)
       assertEquals(kit.crm.calls, Vector.empty)
-    finally kit.components.forKeyValueEntity(EntityId(slug)).call(Configuration.put).invoke(was): Unit
+    finally kit.components.forKeyValueEntity(EntityId(slug)).call(Configuration.put).invoke(ConfigChange(was, "kit")): Unit
   }
 
   test("a key rotated between attempts is read at the next attempt") {

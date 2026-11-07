@@ -147,7 +147,7 @@ another session's: do not touch it.
 - [X] T022 `S/reads/SendsView.scala` (`stateOf(Send)`: `byPlayer`, `parked` with `search`, `counts(since)`,
       `oldestParked`) and `S/reads/ProfilesView.scala` (`stateOf(Profile)`: `dailyCountAbove(day)` paged
       by 500). `T/it/ViewsSuite.scala`.
-- [ ] T023 `S/facts/AuditPublisher.scala` (`Send` states → `engagement.send.refused | retried |
+- [X] T023 `S/facts/AuditPublisher.scala` (`Send` states → `engagement.send.refused | retried |
       discarded`; `Configuration` changes → `engagement.config.changed`, keys named, no value) through
       `AuditCompanion`. `T/facts/AuditSuite.scala` first: no `Personal` value on a record.
 - [ ] T024 `S/api/Answers.scala`: refusals as `{error, …}` with contracts/routes.md's statuses; the

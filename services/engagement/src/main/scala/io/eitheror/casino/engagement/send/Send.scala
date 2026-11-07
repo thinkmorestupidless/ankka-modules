@@ -57,7 +57,7 @@ final class Send(context: WorkflowContext) extends Workflow[SendState]:
     else
       val kind = currentState.step.getOrElse(Kind.Identify)
       val next = currentState.copy(outcome = Outcome.Pending, parkedAt = None, parkAt = currentState.attemptsAt(kind) + 1,
-        reason = None, updatedAt = Some(now))
+        reason = None).noted(Send.Retried, Some(r.operator), now)
       log.info(s"send ${context.workflowId}: retried by ${r.operator}")
       effects.updateState(next).transitionTo(Send.call.ref).thenReply(next)
 
@@ -67,7 +67,7 @@ final class Send(context: WorkflowContext) extends Workflow[SendState]:
     else
       val playerId = currentState.request.fold("")(_.playerId)
       val next = currentState.copy(outcome = Outcome.Discarded, step = None, discardedBy = Some(d.operator),
-        discardReason = Some(ProfileState.personal(playerId, d.reason)), updatedAt = Some(now))
+        discardReason = Some(ProfileState.personal(playerId, d.reason))).noted(Send.DiscardedNote, Some(d.operator), now)
       effects.updateState(next).transitionTo(Send.finish.ref).thenReply(next)
 
   /** Erasure's end of an open send (R15): any state not ended. */
@@ -146,8 +146,13 @@ final class Send(context: WorkflowContext) extends Workflow[SendState]:
 
   private def advance(kind: String): StepEffect = next(currentState, kind)
 
+  /** FR-011's refusals are audited; every other end is not. */
   private def end(outcome: String, reason: Option[String]): StepEffect =
-    stepEffects.updateState(currentState.copy(outcome = outcome, reason = reason, step = None, updatedAt = Some(now))).thenEnd
+    val ended = currentState.copy(outcome = outcome, reason = reason, step = None)
+    val s =
+      if outcome == Outcome.MarketingSuppressed || outcome == Outcome.AccountClosed then ended.noted(Send.RefusedNote, None, now)
+      else ended.copy(updatedAt = Some(now))
+    stepEffects.updateState(s).thenEnd
 
 object Send
     extends Workflow.Companion[Send, SendState](
@@ -168,6 +173,10 @@ object Send
   val Erased    = "erased"
   val Retrying  = "retrying"
   val NotParked = "not_parked"
+
+  val RefusedNote   = "refused"
+  val Retried       = "retried"
+  val DiscardedNote = "discarded"
 
   /** The original's built-in transactional ids, used when the brand set none (FR-013). */
   val Fallbacks: Map[String, String] = Map("EmailAddressVerification" -> "email_address_verification")

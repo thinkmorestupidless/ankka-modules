@@ -11,7 +11,7 @@ import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.engagement.{EngagementRuntime, EngagementService, Json, Settings}
-import io.eitheror.casino.engagement.config.{Configuration, CrmConfig, Secrets}
+import io.eitheror.casino.engagement.config.{ConfigChange, Configuration, CrmConfig, Secrets}
 import org.slf4j.LoggerFactory
 
 import java.net.URI
@@ -74,7 +74,7 @@ final class Kit(base: Settings = Kit.Base):
   /** The brand configured against the fake: its site, its three keys in the secret store, and `triggers`. */
   def configure(triggers: Map[String, String] = Map.empty, region: String = "us"): CrmConfig =
     val c = CrmConfig(FakeCrm.SiteId, region, s"hello@$slug.example", triggers)
-    components.forKeyValueEntity(EntityId(slug)).call(Configuration.put).invoke(c): Unit
+    components.forKeyValueEntity(EntityId(slug)).call(Configuration.put).invoke(ConfigChange(c, "kit")): Unit
     secrets.put(Secrets.track(slug), FakeCrm.TrackKey)
     secrets.put(Secrets.app(slug), FakeCrm.AppKey)
     secrets.put(Secrets.signing(slug), Kit.SigningKey)
