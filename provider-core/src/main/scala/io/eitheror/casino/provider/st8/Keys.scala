@@ -39,21 +39,33 @@ final class Keys(store: SecretStore) extends KeyRing:
       kid
     }
 
+  /** The key signing stopped with at the last switch, still listed until it is withdrawn. */
+  def previousKeyId: Option[String] = store.get("keys/previous")
+
+  /**
+   * The switch (spec 026 FR-020): every later call is signed with the next key. The old key stays
+   * in the document, as `previous`, until it is withdrawn, so a call it signed that is still on its
+   * way verifies.
+   */
   def promote(): String =
     nextKeyId match
       case None => currentKeyId
       case Some(next) =>
         val old = currentKeyId
-        store.put("keys/withdrawn", old)
+        store.put("keys/previous", old)
         store.put("keys/current", next)
         store.delete("keys/next")
         next
 
   /**
-   * The old key left the document when the next was promoted; its pair stays under
+   * The withdrawal: the key signing stopped with leaves the document. Its pair stays under
    * `keys/withdrawn` so the rotated-key scenario can sign with a key the document no longer lists.
    */
-  def withdrawOld(): Unit = ()
+  def withdrawOld(): Unit =
+    previousKeyId.foreach { old =>
+      store.put("keys/withdrawn", old)
+      store.delete("keys/previous")
+    }
 
   /** The key a choice names, with its id, or `None` when there is no such key yet. */
   def signingKey(choice: String): Option[(String, PrivateKey)] = choice match
@@ -67,13 +79,21 @@ final class Keys(store: SecretStore) extends KeyRing:
 
   def publicOf(kid: String): Option[PublicKey] = store.get(s"keys/$kid/public").map(Signer.publicKey)
 
-  /** The key document (contracts/st8-wire.md): the current key and, during a rotation, the next. */
+  /**
+   * The key document (contracts/st8-wire.md): the current key and, during a rotation, the next;
+   * and `keys`, every key a call may be signed with now (the current, the next, and the previous
+   * until it is withdrawn), as `{kid, publicKey}`, the shape spec 003's brand reads.
+   */
   def document(): GoJson.Value =
     val current = currentKeyId
     def entry(kid: String) = store.get(s"keys/$kid/public").map(spki => GoJson.obj("kid" -> GoJson.str(kid), "spki" -> GoJson.str(spki)))
+    val listed = (Vector(current) ++ nextKeyId ++ previousKeyId).distinct.flatMap { kid =>
+      store.get(s"keys/$kid/public").map(spki => GoJson.obj("kid" -> GoJson.str(kid), "publicKey" -> GoJson.str(spki)))
+    }
     val fields = Vector(
       Some("current" -> entry(current).get),
       nextKeyId.flatMap(entry).map("next" -> _),
+      Some("keys" -> GoJson.Value.Arr(listed)),
       Some("cacheSeconds" -> GoJson.Value.Num("60"))
     ).flatten
     GoJson.Value.Obj(fields)

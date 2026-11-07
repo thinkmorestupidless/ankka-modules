@@ -62,9 +62,11 @@ final class OperatorApi(
         admitted(OperatorApi.site(body.raw.get("site")), text) { entry =>
           val code = body.string("game_code")
           val demo = Option(body.raw.get("fun_mode")).exists(_.asBoolean(false))
-          game(code).filter(g => entry.runs(g.code) && (!demo || g.demo)) match
+          // A brand that takes real money holds the key itself; an entry naming the document for one
+          // refuses every launch, whatever it asks for (FR-020).
+          if entry.launchesRefused then refused(s"${OperatorApi.KeyDocumentWithRealMoney} in the entry of ${entry.slug}")
+          else game(code).filter(g => entry.runs(g.code) && (!demo || g.demo)) match
             case None => refused(OperatorApi.UnknownGame)
-            case Some(_) if entry.launchesRefused => refused(OperatorApi.KeyDocumentWithRealMoney)
             case Some(g) if !health(g.owner, g.code) => refused(OperatorApi.Unavailable)
             case Some(g) if heldByAnother(body.string("token"), entry.slug) =>
               // A session belongs to one brand (FR-018): a ticket another brand launched is not

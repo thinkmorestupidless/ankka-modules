@@ -25,7 +25,7 @@ import scala.concurrent.duration.*
 object Provider:
 
   val descriptors: Seq[ComponentDescriptor] = Seq(
-    SessionEntity.descriptor, CallbackEntity.descriptor, Deliver.descriptor, KeyRotation.descriptor,
+    SessionEntity.descriptor, CallbackEntity.descriptor, Deliver.descriptor,
     RunCallbacks.descriptor, SweepAction.descriptor,
     GameEntity.descriptor, GameIndex.descriptor, BrandEntryEntity.descriptor, BrandIndex.descriptor, SessionsByBrand.descriptor
   )
@@ -45,7 +45,7 @@ object Provider:
       c => { val p = parts(c); Health(() => p.ready.get()) },
       c => GamesEndpoint(c.componentClient),
       c => OperatorApi(c.componentClient, cache, GameHealth(name => c.services(name)).apply),
-      c => ProviderEndpoint(c.componentClient, c.viewClient, cache, authenticate.getOrElse(Oidc.authenticate()))
+      c => ProviderEndpoint(c.componentClient, c.viewClient, cache, parts(c).keys, authenticate.getOrElse(Oidc.authenticate()))
     )
     at.fold(HttpServer.of(factories*))((host, port) => HttpServer.at(host, port)(factories*))
 

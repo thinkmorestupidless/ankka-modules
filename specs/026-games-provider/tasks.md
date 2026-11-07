@@ -86,9 +86,9 @@ crosses brands. **Independent test**: `features/games/brands.feature`.
 **Goal**: one key pair, a key document, rotation by an operator in three acts; a real-money brand
 holds the key. **Independent test**: `features/games/keys.feature`.
 
-- [ ] T038 [US4] `ProviderEndpoint` `GET /keys`, `POST /keys/start|switch|withdraw` (`installationOperatorHolding("games")`) over the library's `KeyRotation` (`publishNext`, `promote`, `withdrawOld`); no timer anywhere switches a key (FR-020)
-- [ ] T039 [US4] The real-money rule in `OperatorApi.launch` and `BrandCache`: an entry with `realMoney` and `keyDocument` refuses every launch naming the entry; `PUT /brands/{slug}` with that pair is refused
-- [ ] T040 [US4] Bind `features/games/keys.feature` in `E/test/.../edge/steps/KeysFeatures.scala`: two `FakeBrand`s, one holding the key, one refreshing the document within its bound (SC-005)
+- [X] T038 [US4] `ProviderEndpoint` `GET /keys`, `POST /keys/start|switch|withdraw` (`installationOperatorHolding("games")`) over the library's `KeyRotation` (`publishNext`, `promote`, `withdrawOld`); no timer anywhere switches a key (FR-020)
+- [X] T039 [US4] The real-money rule in `OperatorApi.launch` and `BrandCache`: an entry with `realMoney` and `keyDocument` refuses every launch naming the entry; `PUT /brands/{slug}` with that pair is refused
+- [X] T040 [US4] Bind `features/games/keys.feature` in `E/test/.../edge/steps/KeysFeatures.scala`: two `FakeBrand`s, one holding the key, one refreshing the document within its bound (SC-005)
 
 ## Phase 7: User Story 5 — free rounds reach a game as they reach ST8's (P2)
 

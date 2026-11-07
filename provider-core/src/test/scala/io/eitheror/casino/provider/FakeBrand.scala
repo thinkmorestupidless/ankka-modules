@@ -67,7 +67,7 @@ final class FakeBrand(keys: Keys):
 
   private def verifiedKid(r: ScriptedService.Request): Option[String] =
     r.header(Signer.Header).flatMap { sig =>
-      (Vector(keys.currentKeyId) ++ keys.nextKeyId).filterNot(withdrawn.contains).find { kid =>
+      (Vector(keys.currentKeyId) ++ keys.nextKeyId ++ keys.previousKeyId).filterNot(withdrawn.contains).find { kid =>
         keys.publicOf(kid).exists(Signer.verify(r.body, sig, _))
       }
     }

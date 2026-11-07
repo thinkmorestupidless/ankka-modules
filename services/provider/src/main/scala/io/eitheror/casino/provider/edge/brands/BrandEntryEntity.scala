@@ -38,6 +38,7 @@ object BrandEntry:
   def problems(e: BrandEntry): Vector[String] = Vector(
     Option.when(!Languages.contains(e.language))(s"language '${e.language}' must be es or pt"),
     Option.when(e.keyDocument && !e.testBrand)("keyDocument may be true only for a test brand"),
+    Option.when(e.keyDocument && e.realMoney)("keyDocument may not be named by a brand that takes real money: it holds the key itself"),
     Option.when(e.providerWaitMillis <= 0)("providerWaitMillis must be more than 0"),
     Option.when(e.keyRefreshBoundSeconds <= 0)("keyRefreshBoundSeconds must be more than 0"),
     Option.when(e.site.isEmpty)("site is required"),

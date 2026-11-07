@@ -11,7 +11,7 @@ import com.thinkmorestupidless.ankka.runtime.ViewClient
 import io.eitheror.casino.provider.core.{Round, RunCallbackRow, RunCallbacks, Session, SessionEntity}
 import io.eitheror.casino.provider.edge.brands.{BrandCache, BrandEntry, BrandEntryEntity, BrandIndex}
 import io.eitheror.casino.provider.edge.views.SessionsByBrand
-import io.eitheror.casino.provider.st8.{GoJson, Http, Signer}
+import io.eitheror.casino.provider.st8.{GoJson, Http, Keys, Signer}
 import io.eitheror.casino.provider.st8.GoJson.Value.*
 
 import scala.jdk.CollectionConverters.*
@@ -24,7 +24,7 @@ import scala.util.Try
  * `games` role, in `Routes`' own words, since one provider serves many brands and the slug is the
  * path's.
  */
-final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: BrandCache, authenticate: => Acl = Oidc.authenticate())
+final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: BrandCache, keys: Keys, authenticate: => Acl = Oidc.authenticate())
     extends HttpEndpoint("/v1/provider"):
 
   val acl: Acl = Routes.staff(authenticate)
@@ -109,6 +109,43 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
           "rounds"    -> Arr(s.roundOrder.flatMap(s.rounds.get).map(r => ProviderEndpoint.roundJson(s, r))),
           "callbacks" -> Arr(callbacks.map(ProviderEndpoint.callbackJson))
         ))
+    }
+  }
+
+  // ---- the signing key (T038): three operator acts, never a timer (FR-020) -----------------------
+
+  private def keyState: GoJson.Value = GoJson.obj(
+    "current" -> Str(keys.currentKeyId), "next" -> keys.nextKeyId.fold(Null)(Str(_)),
+    "previous" -> keys.previousKeyId.fold(Null)(Str(_)), "withdrawn" -> keys.withdrawnKeyId.fold(Null)(Str(_))
+  )
+
+  get("/keys") { () => asInstallationOperator(Http.json(200, keyState)) }
+
+  /** Publishes the next key; signing is unchanged. Starting again during a rotation answers it as it stands. */
+  post("/keys/start") { () =>
+    asInstallationOperator {
+      keys.publishNext(): Unit
+      Http.json(200, keyState)
+    }
+  }
+
+  /** Signs every later call with the next key; the old one stays listed until it is withdrawn. */
+  post("/keys/switch") { () =>
+    asInstallationOperator {
+      if keys.nextKeyId.isEmpty then Http.error(409, "no_rotation: start a rotation before switching")
+      else
+        keys.promote(): Unit
+        Http.json(200, keyState)
+    }
+  }
+
+  /** Removes the key signing stopped with from the document. */
+  post("/keys/withdraw") { () =>
+    asInstallationOperator {
+      if keys.previousKeyId.isEmpty then Http.error(409, "nothing_to_withdraw: switch before withdrawing")
+      else
+        keys.withdrawOld()
+        Http.json(200, keyState)
     }
   }
 
