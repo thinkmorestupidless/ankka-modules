@@ -77,6 +77,21 @@ A parity test that differs by design names the change of the spec it demonstrate
 | research.md, a lost bonus cost | `ggr fold`: the original never stores a bonus-cost or chargeback fact (its id is not a UUID), so its chargeback's recompute left the bonus cost out; the programme folds it, as the feature says |
 | 6, figures per currency | `manager view`: the dashboard and stats pages answer figures per brand and currency, none for a period with no facts; the original answered zero counts flat |
 | 15, one clock | every recording with a period: the original's fact period is its server's month, a period ends at a UTC boundary |
+| 13, an approval stands while it does | `close and pay`: a rejection is the payout's `rejectedBy`, and an approval a close supersedes moves to `supersededApprovals`; the original left `approvedBy` and `approvedAt` on both. Held only when the programme's field is absent |
+| 14, the override figure stays | `close and pay`, the lists after the approval: the figure's adjustment stays in the total; the original's next close counted the facts alone. Held only when the difference is the recording's override figure |
+| research.md, a close claims only unsettled facts | `close and pay`, the next period's list: the original's next close claimed again what its paid and rejected payouts held (its stamps did not hold); FR-018 claims only unsettled facts |
+| research.md T070, a flag's reason | `fraud flags`: the reason is the kind (`bonus-cost`), the original's text the description. Held only for a kind |
+| 1, a rejection is a membership's | `applications`: the reason is `memberships[].rejectionReason`; the original's account was the brand's |
+| 6, an account row's figures | `applications`: this month's figures per currency under `currentMonth` (research.md T069); the original's were flat |
+
+A list the original's runs share (`$` varied: payouts, flags, plans, managers, accounts) holds rows
+earlier runs left, so its rows are not compared by place: the rows a replay made, those whose key
+(`payoutId`, `affiliateId`, `flagId`, …) is a value it bound, are found by key and compared field by
+field, the rest left. In such a row a timestamp and an actor are present, not compared, as is a field
+the recording varies elsewhere (an id the original minted on that run). An account's row is unwrapped
+from `{account, currentMonth}`, and a flag's `playerId` is the pseudonym the translation names
+`pseudonym`. Paying a rejected payout, allowed on purpose, turns `close and pay` red (checked
+2026-11-07).
 
 Two answers of the original differ from their feature and are recorded as they are: a payout moved
 from paid to pending is refused `400` before the payout is read, so the refusal does not name the

@@ -672,3 +672,9 @@ implementation* that carries the detail.
   most the 24 hours of retries). The player's journal still holds the facts its state is made from;
   journal retention is ankka spec 042's, as erasure is (`CLAUDE.md`), so FR-038 holds for every table
   but the journal until then. LeakSuite searches every table for a closed player's click id.
+- **The parity replays compare the brand-wide lists' own rows** (review B6). A list varied at `$`
+  compared nothing, and divergence 13 waived any refused status PATCH. A replay's own rows are now found
+  by key and compared, and 13 holds only for `409 status_transition`. The first run found the payout's
+  figures named `cpa`, `revShare` and `override` where the original says `cpaCommission`, … (fixed), and
+  the original's next close claiming again what its paid and rejected payouts held: its stamps did not
+  hold, which FR-018 does not allow, so the programme's single claim is a marked divergence.

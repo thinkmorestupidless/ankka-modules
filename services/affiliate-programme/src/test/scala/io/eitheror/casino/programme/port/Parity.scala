@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.eitheror.casino.contract.port.{JsonPath, Recording}
 import io.eitheror.casino.programme.it.{FakeServer, Kit, Reply, SharedKit}
 import io.eitheror.casino.programme.activity.FraudFlag
+import io.eitheror.casino.programme.api.Wire.Codes
 import io.eitheror.casino.programme.ledger.{Ledger, LedgerRow}
 import io.eitheror.casino.programme.settlement.Payouts
 import io.eitheror.casino.programme.port.Translate.*
@@ -43,9 +44,13 @@ object Parity:
    * *Changes from the original* it demonstrates (0 for a decision research.md records, named in `why`), the steps it holds at, the fields it covers (`*` for every
    * one at the step) and why (tests/port/programme/README.md *Marked divergences*).
    */
-  final case class Divergence(change: Int, why: String, holds: Recording.Step => Boolean, fields: Seq[String]):
+  /** `accepts`: what the programme answered that the divergence allows; anything else is a difference still. */
+  final case class Divergence(change: Int, why: String, holds: Recording.Step => Boolean, fields: Seq[String],
+      accepts: Difference => Boolean = _ => true):
+    /** A field of a list's row is covered as the field of the answer (`$[2].currency` as `$.currency`). */
     def covers(field: String): Boolean =
-      fields.contains("*") || fields.exists(f => field == f || field.startsWith(f + ".") || field.startsWith(f + "["))
+      val plain = field.replaceFirst("""^\$\[\d+\]""", "\\$")
+      fields.contains("*") || Seq(field, plain).exists(at => fields.exists(f => at == f || at.startsWith(f + ".") || at.startsWith(f + "[")))
 
   private def path(p: String)(s: Recording.Step) = s.request.path.matches(p)
 
@@ -62,9 +67,27 @@ object Parity:
       s => s.name.startsWith("read revenue for the period: "),
       Seq("bonusCosts", "ngr", "revShareCommission", "totalCommission").map(f => s"$$.figures[0].$f")),
     Divergence(13, "a payout moves only through its transitions and is refused as one, naming the status (research.md T057); the original answered 400 for pending and spelt its codes two ways",
-      s => s.request.method == "PATCH" && s.request.path.endsWith("/status") && s.response.status >= 400, Seq(".status", "$.error", "$.message")),
+      s => s.request.method == "PATCH" && s.request.path.endsWith("/status") && s.response.status >= 400, Seq(".status", "$.error", "$.message"),
+      // Refused as a transition, and nothing else: a refused move the programme made would be a difference.
+      d => d.at match
+        case ".status"  => d.observed.startsWith("409 ") && d.observed.contains(Codes.StatusTransition)
+        case "$.error"  => d.observed == Codes.StatusTransition
+        case _          => true),
     Divergence(14, "an override figure is an adjustment fact; the original rewrote the payout's override and total",
       s => s.request.method == "PATCH" && s.request.path.contains("/payouts/"), Seq("$.overrideCommission", "$.total", "$.adjustments")),
+    Divergence(14, "the override figure's adjustment stays in the payout's total; the original's next close counted only the facts, so its total lost the figure",
+      s => s.request.method == "GET" && s.request.path.contains("/payouts?"), Seq("$.adjustments", "$.totalPayable"),
+      d => scala.util.Try(d.observed.toLong - d.expected.toLong).toOption.contains(overrideFigures(d.recording))),
+    Divergence(13, "a payout's approval stands while it does: a rejection is recorded as rejectedBy, and an approval a close supersedes moves to supersededApprovals; the original left approvedBy and approvedAt on both",
+      s => s.request.method == "GET" && s.request.path.contains("/payouts?"), Seq("$.approvedBy", "$.approvedAt"), _.observed == "absent"),
+    Divergence(0, "a close claims only unsettled facts (FR-018): the original's next close claimed again what its paid and rejected payouts held, its stamps not holding (CommissionEngine.scala:759)",
+      s => s.name == "list the next period's payouts", Seq("$.affiliateId", "$.adjustments", "$.totalPayable")),
+    Divergence(0, "a flag's reason is its kind and the original's text its description (research.md T070)",
+      path(""".*/fraud-flags.*"""), Seq("$.reason"), d => Set("bonus-cost", "chargeback")(d.observed)),
+    Divergence(1, "a rejection is a membership's, and its reason with it (memberships[].rejectionReason); the original's account was the brand's",
+      path(""".*/accounts(\?.*)?"""), Seq("$.rejectionReason"), _.observed == "absent"),
+    Divergence(6, "an account's row carries this month's figures per currency, under currentMonth (research.md T069); the original's were flat, in one currency",
+      path(""".*/accounts(\?.*)?"""), Seq("$.currentMonthFtds", "$.currentMonthNgr", "$.currentMonthCommission")),
     Divergence(15, "a period ends at a UTC boundary by one clock; the original's was its server's month",
       path(""".*"""), Seq("$.period")),
     Divergence(17, "an audit row names the event, the actor and when, never the affiliate's identity or a token; the original's rows were its event twins",
@@ -74,7 +97,7 @@ object Parity:
   )
 
   def divergence(recording: Recording)(d: Difference): Option[Divergence] =
-    recording.steps.find(_.name == d.step).flatMap(step => divergences.find(v => v.holds(step) && v.covers(d.at)))
+    recording.steps.find(_.name == d.step).flatMap(step => divergences.find(v => v.holds(step) && v.covers(d.at) && v.accepts(d)))
 
   /** A player's pseudonym in a replay: stable for the player, as a brand's key makes it. */
   def pseudonym(player: String): String =
@@ -125,10 +148,10 @@ object Parity:
             val once = Iterator.continually(send())
               .tapEach(x => if x.status == 404 && r.status != 404 && System.nanoTime() < deadline then Thread.sleep(500))
               .find(x => x.status != 404 || r.status == 404 || System.nanoTime() >= deadline).get
-            (once, if r.compare then compare(recording, r, once, fill) else Vector.empty)
+            (once, if r.compare then compare(recording, r, once, fill, values.values.toSet) else Vector.empty)
           else
             val deadline = System.nanoTime() + 20_000_000_000L
-            Iterator.continually { val x = send(); (x, compare(recording, r, x, fill)) }
+            Iterator.continually { val x = send(); (x, compare(recording, r, x, fill, values.values.toSet)) }
               .tapEach(x => if x._2.nonEmpty && System.nanoTime() < deadline then Thread.sleep(500))
               .find(x => x._2.isEmpty || System.nanoTime() >= deadline).get
         if sys.env.contains("PARITY_TRACE") then println(s"TRACE ${r.name} ${r.method} ${fill(r.path)} -> ${reply.status} ${reply.text.take(600)}")
@@ -157,6 +180,11 @@ object Parity:
   private def parse(reply: Reply): Option[JsonNode] =
     scala.util.Try(FakeServer.mapper.readTree(reply.text)).toOption.filter(n => n != null && !n.isMissingNode)
 
+  /** The override figures a recording's approvals carry, in minor units, summed. */
+  private def overrideFigures(path: Path): Long =
+    Recording.load(path).toOption.toVector.flatMap(_.steps).flatMap(_.request.body).flatMap(b => Option(b.get("overrideCommission")))
+      .map(n => scala.util.Try(n.asText.toLong).getOrElse(0L)).sum
+
   /** The ledger's GGR facts for the round's player, summed, as the original's facts twin answered. */
   private def expectGgr(recording: Recording, kit: Kit, e: ExpectGgr): Vector[Difference] =
     val ids = e.factIds.map(id => s"ggr/$id").toSet
@@ -171,7 +199,7 @@ object Parity:
         "to" -> "9999-99").map(r => s"${r.currency} ${r.factId} ${r.amount}").mkString("[", ", ", "]")} for ${ids.mkString(",")}")).toVector
 
   /** The status and every recorded field of the answer; a field that varied between the original's runs, for presence only. */
-  private def compare(recording: Recording, r: Request, reply: Reply, fill: String => String): Vector[Difference] =
+  private def compare(recording: Recording, r: Request, reply: Reply, fill: String => String, bound: Set[String]): Vector[Difference] =
     def diff(at: String, expected: String, observed: String) = Difference(recording.path, r.name, at, expected, observed)
     val status   = Option.when(reply.status != r.status)(diff(".status", r.status.toString, s"${reply.status} ${reply.text.take(200)}"))
     // A text answer (the original's ACL refusal) is compared as the one string it is.
@@ -192,7 +220,46 @@ object Parity:
         case (Some(value), false) if !Translate.same(at, expected, value) => Some(diff(at, expected, value))
         case _                                               => None
     }
-    status.toVector ++ fields
+    status.toVector ++ fields ++ ownRows(recording, r, varied, expectedFilled, orderedObserved, bound)
+
+  /**
+   * A list varied at `$` holds rows earlier runs of the original left, so its rows are not compared by
+   * place. The rows this replay made, those whose key is a value it bound, are compared by that key, every
+   * field but the ones that varied between the original's runs; the rest are left.
+   */
+  private def ownRows(recording: Recording, r: Request, varied: Set[String], expected: Option[JsonNode], observed: Option[JsonNode],
+      bound: Set[String]): Vector[Difference] =
+    def rows(n: Option[JsonNode]) = n.filter(_.isArray).toVector.flatMap(_.elements().asScala.filter(_.isObject))
+    val mine = rows(expected)
+    RowKeys.find(k => mine.nonEmpty && mine.forall(_.has(k))).filter(_ => varied("$")).toVector.flatMap { key =>
+      def keyOf(n: JsonNode) = Option(n.get(key)).map(Translate.scalar).getOrElse("")
+      // An account's row is `{account, currentMonth}` (research.md T069): its fields are the account's.
+      val others  = rows(observed).map(o => Option(o.get("account")).filter(_.isObject).fold(o) { a =>
+        val merged = a.deepCopy[com.fasterxml.jackson.databind.node.ObjectNode]()
+        o.properties().asScala.filter(_.getKey != "account").foreach(e => merged.set(e.getKey, e.getValue): Unit)
+        merged
+      })
+      // A field varied at any row (`$[3].createdAt`) varies at every row, as does one the recording varies
+      // in an answer of its own (`$.properties.keycloakUserId`): an id the original minted on that run.
+      val elsewhere = recording.steps.flatMap(_.vary.keys).filter(_.startsWith("$.")).map(v => "." + v.split('.').last).toSet
+      val waived  = varied.collect { case v if v.startsWith("$[") => v.dropWhile(_ != ']').drop(1) } ++ elsewhere
+      mine.filter(row => bound.exists(_.equalsIgnoreCase(keyOf(row)))).flatMap { row =>
+        val at = s"$$[${mine.indexOf(row)}]"
+        others.find(o => keyOf(o).equalsIgnoreCase(keyOf(row))) match
+          case None => Vector(Difference(recording.path, r.name, s"$at.$key", keyOf(row), "absent"))
+          case Some(o) =>
+            flatten(at, row).flatMap { (field, value) =>
+              val rel = field.drop(at.length)
+              if waived.exists(w => rel == w || rel.startsWith(w + ".") || rel.startsWith(w + "[")) then None
+              else
+                // A player is a pseudonym (FR-038), which a flag carries under the original's `playerId`.
+                val got = lookup(o, s"$$$rel").orElse(Option.when(rel == ".pseudonym")(lookup(o, "$.playerId")).flatten)
+                if got.isEmpty then Some(Difference(recording.path, r.name, field, value, "absent"))
+                else if presenceOnly(rel, value) then None
+                else Option.when(!Translate.same(s"$$$rel", value, got.get))(Difference(recording.path, r.name, field, value, got.get))
+            }
+      }
+    }
 
   /** A brand's settings and programme page, the singletons every run of the original shares. */
   private val Singleton = """/v1/affiliates/\{brand\}/(settings|programme)""".r
@@ -231,6 +298,10 @@ object Parity:
       val out = FakeServer.mapper.createArrayNode()
       observed.elements().asScala.filterNot(n => NewNotificationKinds(kind(n))).foreach(out.add)
       out
+
+  /** In a row of its own, when the run did something and who did it differ on every run, the original's too: present, not compared. */
+  private def presenceOnly(field: String, value: String): Boolean =
+    field.endsWith("By") || scala.util.Try(java.time.Instant.parse(value)).isSuccess
 
   /** The fields a list's rows are told apart by, in the order they are tried. */
   private val RowKeys = Vector("code", "btag", "linkId", "flagId", "payoutId", "affiliateId", "action", "type", "period", "planName")
