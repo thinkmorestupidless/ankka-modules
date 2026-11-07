@@ -116,7 +116,7 @@ unknown, another brand, used, or older than 30 s; `delete` after redemption.
 
 ## `Configuration` (key value, id = slug, FR-004)
 
-`siteId, region (us | eu), fromEmail, triggers: Map[String, String]` (the thirty `CrmEvent` keys →
+`siteId, region (us | eu), fromEmail, triggers: Map[String, String]` (the thirty-two `CrmEvent` keys →
 transactional id; absent is disabled), `secretNames: Map[track | app | signing, String]`,
 `updatedAt`. Commands `put(config)` (answers the changed keys for the audit record), `get`. The
 secrets are `clients.secrets` under `crm/<slug>/track-key`, `crm/<slug>/app-key`,

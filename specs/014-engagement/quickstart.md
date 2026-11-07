@@ -58,7 +58,7 @@ just engagement-it        # Postgres (Docker): the SC suites below
 | `WebhookSuite` | each action relayed, each answer passed through, `FakeRewards` and `FakePlayers` scripted |
 | `StreamSuite` | `ready`, heartbeat, `signal`, `closing`; `revalidation_failed`, `connection_recycled`, `shutting_down`; `capacity` |
 | `AgentStreamSuite` | the ticket once, 30 s, another brand; `player_online` frames within 5 s; the 16-frame drop |
-| `ConfigSuite` | masking, the masked round trip, the secret store holding the values, the seed's 30 pairs |
+| `ConfigSuite` | masking, the masked round trip, the secret store holding the values, the seed's 32 pairs |
 
 ## 5. Run it
 
@@ -68,7 +68,7 @@ just engagement-run goldvibe                 # 9013, Postgres 5442; CRM_TRACK_UR
 ```
 
 As an operator, `PUT /v1/casino/crm-config/goldvibe` with the stub's keys and a transactional id for
-`DepositConfirmed`; `POST …/seed` and read 30 pairs at `__received`. Register a player, deposit
+`DepositConfirmed`; `POST …/seed` and read 32 pairs at `__received`. Register a player, deposit
 through the wallet, and read the identify, the `deposit_confirmed` and `first_deposit_confirmed`
 tracks and the send at the stub; read the player's sends at `GET /v1/casino/backoffice/goldvibe/players/<id>/sends`.
 Open `GET /v1/stream` with the player's token in two terminals, send the player an operator message,

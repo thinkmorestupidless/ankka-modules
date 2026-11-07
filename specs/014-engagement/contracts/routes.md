@@ -74,7 +74,7 @@ ACL `Routes.operatorHolding(slug, "brand_admin", "resource_admin", "platform_adm
 |---|---|---|---|
 | `GET /{brand}` | — | `{siteId, region, fromEmail, trackApiKey, appApiKey, webhookSigningKey, triggers: {<CrmEvent>: {transactionalId}}}`; every trigger key present, `""` when absent; each secret masked as its first three characters and `len − 3` asterisks, `""` when none | — |
 | `PUT /{brand}` | the same shape; a secret that is non-empty and all `*` after its third character preserves the stored one; `region` `us` \| `eu` (anything else is `us`, as the original) | 200 the masked answer | 400 `invalid_config` naming the field |
-| `POST /{brand}/seed` | — | 200 `{seeded: 30, person: "_seed_<slug>"}` | 422 `credentials_not_configured` (no site id); 503 `crm_unavailable` when the stub refuses every call |
+| `POST /{brand}/seed` | — | 200 `{seeded: 32, person: "_seed_<slug>"}` | 422 `credentials_not_configured` (no site id); 503 `crm_unavailable` when the stub refuses every call |
 
 The secrets are written to the secret store under `crm/<slug>/track-key`, `app-key`, `signing-key`
 and never to the entity; a `PUT` is an audit record naming the keys changed.

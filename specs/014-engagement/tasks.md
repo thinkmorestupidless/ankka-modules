@@ -106,7 +106,7 @@ another session's: do not touch it.
       UTC; the next 03:05). `T/profile/AttributesSuite.scala` (`handler_test.go`'s encoding cases),
       `T/profile/SuppressionSuite.scala`, `T/profile/DepositDaySuite.scala`
       (`G/daily_deposit_count_test.go`) first.
-- [ ] T015 [P] `S/api/Signature.scala` (FR-017's verification in order; `CW:895-971`),
+- [X] T015 [P] `S/api/Signature.scala` (FR-017's verification in order; `CW:895-971`),
       `S/config/Masking.scala` (first three characters and asterisks; a masked value preserves),
       `S/config/Seed.scala` (the thirty-two `CrmEvent` keys with the original's `seedAttributes` and
       `seedData`), `S/channel/Frames.scala` (the SSE frame texts of contracts/routes.md).

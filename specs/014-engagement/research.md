@@ -335,13 +335,13 @@ never a value). The one contract addition is 010's `rg_limit_loosening_requested
 
 ## R12. Configuration, secrets and the seed
 
-**Decision**: `Configuration` holds `siteId`, `region`, `fromEmail`, the trigger table (the thirty
+**Decision**: `Configuration` holds `siteId`, `region`, `fromEmail`, the trigger table (the thirty-two
 `CrmEvent` keys, each a transactional id or absent) and the three secret names
 `crm/<slug>/track-key`, `crm/<slug>/app-key`, `crm/<slug>/signing-key`; the values go to
 `clients.secrets` from the `PUT` and nowhere else. The `GET` answers every key with `""` when absent,
 and each secret masked as its first three characters plus `len − 3` asterisks; a submitted secret
 that is non-empty and all `*` after the third character preserves the stored one (`S/CustomerIOConfigRoutes.scala:46-52`).
-The seed sends thirty identify+track pairs with the original's `seedAttributes` and `seedData` to
+The seed sends thirty-two identify+track pairs with the original's `seedAttributes` and `seedData` to
 `_seed_<slug>`, 422 `credentials_not_configured` on an empty site id, and answers
 `{seeded: 30, person}`; a repeat re-tracks (the original did; the identify upserts).
 
@@ -437,6 +437,13 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   reaches the CRM too, and the keyring's shredding makes what is stored unreadable either way. A local
   run takes `withLocalKeyring()` when `ANKKA_KEYRING_ADDRESS` is unset. The module's runtime is
   0.16.0. A divergence from the plan's 0.13.0 (plan.md).
+
+- **Thirty-two triggers** (2026-11-07, asked and settled): the original's `CrmEvent` gained
+  `KycAwaitingDeposit` (`kyc_awaiting_deposit`, seed data `doc_type: payment_method`; 2026-11-04) and
+  `BankAccountAdded` (`bank_account_added`, `account_name`, `masked_iban`; 2026-11-06) after the spec.
+  Both are configuration keys and seeded, so the configuration and the seed are the original's; no fact
+  here produces either, so nothing tracks them until the facts exist (kyc's awaiting-deposit state, a
+  bank account added at payouts). `seeded` is 32 (contracts/routes.md).
 
 ## Design finished
 

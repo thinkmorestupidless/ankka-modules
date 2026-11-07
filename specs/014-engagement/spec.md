@@ -665,7 +665,7 @@ count.
   configuration (FR-004) with secrets masked to their first three characters and asterisks, a
   masked value sent back unchanged preserving the stored secret, at the original's paths
   (`/v1/casino/crm-config/<brand>`); and MUST be able to seed the event catalogue: one identify and
-  one track for each of the thirty `CrmEvent` values at the person `_seed_<brand>` with the
+  one track for each of the thirty-two `CrmEvent` values (the thirty below, and `KycAwaitingDeposit` and `BankAccountAdded`, which the original added on 2026-11-04 and 2026-11-06 and no fact here produces yet) at the person `_seed_<brand>` with the
   original's seed data, refused as `credentials_not_configured` without a site id, answering the
   count and the person; a repeat seeds the same person again. (Source: `CustomerIOConfigRoutes`.)
 - **FR-027**: The brand's status MUST say whether Customer.io is configured, the dead letter's size
