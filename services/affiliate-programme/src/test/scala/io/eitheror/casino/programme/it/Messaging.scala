@@ -35,7 +35,7 @@ object Messaging:
     kit.eventually(s"$aff told $kind")(notifications(kit, aff).find(_.get("type").asText == kind))
 
   def emailed(kit: Kit, email: String, kind: String) =
-    kit.eventually(s"$kind to $email")(kit.customerIo.to(email).find(_.transactionalId == s"tid-$kind"))
+    kit.eventually(s"$kind to $email")(kit.customerIo.to(email).find(s => s.transactionalId == s"tid-$kind" && s.delivered))
 
   def postbackTo(kit: Kit, affiliate: String): Unit =
     kit.components.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.update)

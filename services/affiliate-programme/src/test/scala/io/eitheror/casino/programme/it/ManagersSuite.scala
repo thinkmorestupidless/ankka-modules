@@ -20,8 +20,10 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     kit.request(method, s"/v1/affiliates$path", Some(body), as)
   private def items(r: Reply): Vector[JsonNode] = { assertEquals(r.status, 200, r.text); r.json.elements().asScala.toVector }
   private def admin(brands: Seq[String] = Seq("goldvibe")) = kit.asManager(brands, "admin-1", "brand_admin")
-  private def audited(action: String, brand: String): Boolean =
-    kit.views.forView(Activity).ask(Activity.byAction, "action" -> action).exists(_.brand.contains(brand))
+  /** An audit row of `action` at `brand` for this test's own plan or user: the database is shared with earlier runs. */
+  private def audited(action: String, brand: String, detail: (String, String)): Boolean =
+    kit.views.forView(Activity).ask(Activity.byAction, "action" -> action)
+      .exists(r => r.brand.contains(brand) && r.details.get(detail._1).contains(detail._2))
 
   test("a manager of one brand reads only that brand; naming another is refused brand_not_held") {
     val gold   = Scene(kit)
@@ -51,7 +53,7 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(send("PATCH", s"/goldvibe/commission-plans/$id", "{}").status, 400)
     val p = kit.eventually("listed")(items(get("/goldvibe/commission-plans")).find(p => p.get("planId").asText == id && p.get("cpaAmount").asLong == 7000))
     assertEquals((p.get("planType").asText, p.get("revSharePercent").asDouble), (Plan.Hybrid, 25.0))
-    kit.eventually("audited")(Option(audited("PLAN_CREATED", "goldvibe") && audited("PLAN_UPDATED", "goldvibe")).filter(identity)): Unit
+    kit.eventually("audited")(Option(audited("PLAN_CREATED", "goldvibe", "planId" -> id) && audited("PLAN_UPDATED", "goldvibe", "planId" -> id)).filter(identity)): Unit
   }
 
   test("settings and the programme page are read and changed; an applicant reads the new page") {
@@ -173,7 +175,7 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.realm.user(user).get.roles, Set("affiliate_manager", "brand_silvervibe"))
     assertEquals(kit.request("DELETE", s"/v1/affiliates/silvervibe/managers/$user", headers = admin(Seq("silvervibe"))).status, 204)
     assertEquals(kit.realm.user(user).get.roles, Set.empty[String])
-    kit.eventually("audited")(Option(Seq("MANAGER_ADDED", "MANAGER_PASSWORD_RESET", "MANAGER_REVOKED").forall(audited(_, "goldvibe"))).filter(identity)): Unit
+    kit.eventually("audited")(Option(Seq("MANAGER_ADDED", "MANAGER_PASSWORD_RESET", "MANAGER_REVOKED").forall(audited(_, "goldvibe", "userId" -> user))).filter(identity)): Unit
   }
 
   test("a retired brand takes no application and changes no status; its reads go on") {

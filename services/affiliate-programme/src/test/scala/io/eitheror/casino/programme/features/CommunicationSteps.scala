@@ -86,8 +86,8 @@ class CommunicationSteps extends ProgrammeFeatures("communications.feature"):
   Given("an affiliate") { () =>
     brand = Messaging.brand(kit)
     email = s"${id("aff")}@example.com"
-    // The first attempt at every send fails: what is asked must be done all the same.
-    kit.customerIo.default = Left("Customer.io is down")
+    // The first attempt at every send fails, and the next succeeds: what is asked must be done all the same.
+    kit.customerIo.failFirst = true
   }
 
   private def applied(): Unit =
@@ -140,12 +140,16 @@ class CommunicationSteps extends ProgrammeFeatures("communications.feature"):
   }
   Then("an in-portal notification is written") { () => Messaging.told(kit, aff, kind): Unit }
   Then("a transactional email is sent with the brand's sender configuration") { () =>
+    // The first attempt failed; the retry delivers it (the kit's waits between attempts are seconds).
+    kit.eventually("the failed first attempt")(kit.customerIo.to(email).find(s => s.transactionalId == s"tid-${ids("email")}" && !s.delivered)): Unit
     val sent = Messaging.emailed(kit, email, ids("email"))
     assertEquals(sent.apiKey, "cio-key")
   }
   Then("a failed send never blocks the action") { () =>
     assert(answered.status / 100 == 2, answered.text)
-    assert(kit.customerIo.to(email).nonEmpty)
+    val attempts = kit.eventually("a failed attempt, then a delivered one")(Option(kit.customerIo.to(email))
+      .filter(a => a.exists(!_.delivered) && a.exists(_.delivered)))
+    assert(attempts.indexWhere(!_.delivered) < attempts.indexWhere(_.delivered), attempts.toString)
   }
 
   // ── a parent, and marking read ──────────────────────────────────────────────────────────────────

@@ -25,7 +25,7 @@ class ImportParitySuite extends munit.FunSuite with LogCapturing:
   private lazy val bundle = readFromString[Bundle](body)
   private lazy val kit    = Kit(Vector(bundle.brand))
 
-  override def afterAll(): Unit = { super.afterAll(); if Files.exists(directory.resolve("bundle.json")) then kit.stop() }
+  override def afterAll(): Unit = { if Files.exists(directory.resolve("bundle.json")) then kit.stop(); super.afterAll() }
 
   private def post(): JsonNode =
     val r = kit.request("POST", s"/v1/programme/imports/${bundle.brand}", Some(body), kit.asPlatformAdmin())
@@ -39,8 +39,11 @@ class ImportParitySuite extends munit.FunSuite with LogCapturing:
 
   test("the recorded bundle imports and folds to the original's revenue for every affiliate and period") {
     assume(Files.exists(directory.resolve("bundle.json")), "the export is not recorded yet")
-    kit.eventually("the import's end", within = scala.concurrent.duration.Duration(300, "s"))(
-      Option(post()).filter(_.get("status").asText == "finished")): Unit
+    val done = kit.eventually("the import's end", within = scala.concurrent.duration.Duration(300, "s"))(
+      Option(post()).filter(_.get("status").asText == "finished"))
+    // Run again, the same bundle is the same import, finished, with the same counts: nothing is written twice.
+    val again = post()
+    assertEquals((again.get("importId").asText, again.get("status").asText, again.get("counts")), (done.get("importId").asText, "finished", done.get("counts")))
     val revenue = FakeServer.mapper.readTree(read("revenue.json"))
     val differences = for
       affiliate <- revenue.fieldNames().asScala.toVector
@@ -65,9 +68,15 @@ class ImportParitySuite extends munit.FunSuite with LogCapturing:
     Set("bonusCosts", "chargebacks", "ngr")(field) && p("bonusCosts") == 0 && p("chargebacks") == 0 &&
       p("ngr") == o("ngr") + o("bonusCosts") + o("chargebacks")
 
-  /** The programme's EUR figure, waited for until its total is the original's or the wait ends. */
+  /** The currency the bundle's facts are in: the recorded original's brand ran in one. */
+  private lazy val currency: String =
+    bundle.facts.map(_.currency).distinct match
+      case Vector(one) => one
+      case several     => fail(s"the bundle's facts are in ${several.mkString(", ")}; the parity reads one currency")
+
+  /** The programme's figure in the bundle's currency, waited for until its total is the original's or the wait ends. */
   private def figureOf(affiliate: String, period: String, total: Long): JsonNode =
     def read = kit.request("GET", s"/v1/affiliates/${bundle.brand}/accounts/$affiliate/revenue?period=$period",
-      headers = kit.asManager(Seq(bundle.brand))).json.get("figures").elements().asScala.toVector
+      headers = kit.asManager(Seq(bundle.brand))).json.get("figures").elements().asScala.toVector.filter(_.path("currency").asText == currency)
     val wanted = scala.util.Try(kit.eventually(s"$affiliate $period")(read.find(_.path("totalCommission").asLong == total)))
     wanted.getOrElse(read.headOption.getOrElse(FakeServer.mapper.createObjectNode()))

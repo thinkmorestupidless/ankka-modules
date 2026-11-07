@@ -17,7 +17,9 @@ class StartSuite extends munit.FunSuite:
   test("a fact on a brand's topic is claimed once") {
     val f = Facts("goldvibe", "aff-x", "lnk-x").registration("ps-1", kit.now)
     kit.publish(f); kit.publish(f)
-    kit.eventually("the claim")(Option(kit.components.forKeyValueEntity(EntityId(s"goldvibe/${f.factId}")).call(FactInbox.get).invoke()).filter(_.outcome.nonEmpty))
+    val claim = kit.eventually("the claim and its duplicate")(Option(kit.components.forKeyValueEntity(EntityId(s"goldvibe/${f.factId}"))
+      .call(FactInbox.get).invoke()).filter(c => c.outcome.nonEmpty && c.duplicates >= 1))
+    assertEquals(claim.duplicates, 1)
   }
 
   test("a manager is held to the brands they hold; an affiliate to their own account") {

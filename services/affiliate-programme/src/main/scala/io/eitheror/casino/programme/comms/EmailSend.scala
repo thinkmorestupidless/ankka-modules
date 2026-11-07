@@ -59,12 +59,12 @@ object EmailRules:
     case object Done                             extends Next
     final case class Retry(after: FiniteDuration) extends Next
 
-  def attempted(s: EmailState, now: Instant, result: Either[String, Int]): (EmailState, Next) =
+  def attempted(s: EmailState, now: Instant, result: Either[String, Int], delays: Vector[FiniteDuration] = Delays): (EmailState, Next) =
     val counted = s.copy(attempts = s.attempts + 1, lastStatus = result.toOption.orElse(s.lastStatus), lastError = result.left.toOption)
     result match
       case Right(code) if code / 100 == 2 => (counted.copy(status = Sent, lastError = None, finishedAt = Some(now)), Next.Done)
-      case _ if counted.attempts > Delays.size => (counted.copy(status = Failed, finishedAt = Some(now)), Next.Done)
-      case _                                   => (counted.copy(status = Sending), Next.Retry(Delays(counted.attempts - 1)))
+      case _ if counted.attempts > delays.size => (counted.copy(status = Failed, finishedAt = Some(now)), Next.Done)
+      case _                                   => (counted.copy(status = Sending), Next.Retry(delays(counted.attempts - 1)))
 
 final class EmailSend(context: WorkflowContext) extends Workflow[EmailState]:
   def emptyState: EmailState = EmailState()
@@ -86,7 +86,7 @@ final class EmailSend(context: WorkflowContext) extends Workflow[EmailState]:
         val result =
           try EmailSend.customerIo.get().send(message.apiKey, message.region, message.transactionalId, message.to, message.data)
           catch case NonFatal(e) => Left(Option(e.getMessage).getOrElse(e.getClass.getSimpleName))
-        val (next, decision) = EmailRules.attempted(s, now, result)
+        val (next, decision) = EmailRules.attempted(s, now, result, Wiring.emailDelays.get())
         decision match
           case EmailRules.Next.Done         => stepEffects.updateState(next).thenEnd
           case EmailRules.Next.Retry(after) => stepEffects.updateState(next).thenPause(after, EmailSend.send.ref)

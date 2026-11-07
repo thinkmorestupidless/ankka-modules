@@ -13,7 +13,7 @@ import scala.jdk.CollectionConverters.*
 class LatencySuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout = Duration(300, "s")
   private def kit = LatencySuite.kit
-  override def afterAll(): Unit = { super.afterAll(); LatencySuite.kit.stop() }
+  override def afterAll(): Unit = { LatencySuite.kit.stop(); super.afterAll() }
 
   private val Within  = 10.seconds
   private val Period  = "2026-10"
@@ -25,9 +25,18 @@ class LatencySuite extends munit.FunSuite with LogCapturing:
 
   test("a fact is in the affiliate's revenue within 10 s of its delivery while others' facts stream in") {
     val busy = Vector.fill(10)(Scene(kit)).map(s => s -> s.player())
+    val probing = java.util.concurrent.atomic.AtomicBoolean(true)
+    val failed  = java.util.concurrent.atomic.AtomicReference[Throwable]()
+    val sent    = java.util.concurrent.atomic.AtomicInteger()
+    // The load streams for as long as the probes run, so every probe is measured under it.
     val load = new Thread(() =>
-      for round <- 1 to 30; (s, p) <- busy do
-        kit.publish(s.facts.ggrDaily(p, Day, stake = 1_000L + round, win = 500, at = kit.now))
+      try
+        var round = 0
+        while probing.get() do
+          round += 1
+          busy.foreach((s, p) => { kit.publish(s.facts.ggrDaily(p, Day, stake = 1_000L + round, win = 500, at = kit.now)); sent.incrementAndGet(): Unit })
+          Thread.sleep(200) // ten facts every 200 ms, the stream SC-005 means, not a flood
+      catch case e: Throwable => failed.set(e)
     )
     load.start()
     val probes = Vector.fill(5)(Scene(kit)).map(s => s -> s.player())
@@ -37,7 +46,10 @@ class LatencySuite extends munit.FunSuite with LogCapturing:
       kit.eventually(s"${s.affiliate}'s GGR in revenue", within = Within)(Option(ggrIn(s.affiliate)).filter(_ == 2_000L)): Unit
       (System.nanoTime() - start).nanos.toMillis
     }
+    probing.set(false)
     load.join()
+    Option(failed.get()).foreach(e => fail("the load failed", e))
+    assert(sent.get() >= busy.size * 5, s"only ${sent.get()} facts of load were sent")
     println(s"SC-005: a fact in revenue after ${took.mkString(", ")} ms")
     assert(took.forall(_ < Within.toMillis), took.toString)
   }

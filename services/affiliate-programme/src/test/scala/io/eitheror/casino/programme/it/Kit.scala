@@ -76,6 +76,8 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     ProgrammeService.wireViews(views)
     io.eitheror.casino.programme.postbacks.Postback.timers.set(Some(timers.timerScheduler))
     io.eitheror.casino.programme.accounts.Erasure.timers.set(Some(timers.timerScheduler))
+    // An email's retry pauses in real time: seconds here, so a suite sees the retry deliver.
+    io.eitheror.casino.programme.Wiring.emailDelays.set(Vector(scala.concurrent.duration.Duration(1, "s"), scala.concurrent.duration.Duration(2, "s")))
 
   def stop(): Unit = { testKit.stop(); postbacks.stop() }
 

@@ -16,6 +16,10 @@ object Wiring:
   /** The clock facts are received by: the system's in a cluster, the kit's movable one in the suites. */
   val clock: AtomicReference[Clock] = AtomicReference(Clock.systemUTC())
 
+  /** The waits between an email's attempts: EmailRules.Delays in a cluster; seconds in the suites, whose pauses are real time. */
+  val emailDelays: AtomicReference[Vector[scala.concurrent.duration.FiniteDuration]] =
+    AtomicReference(io.eitheror.casino.programme.comms.EmailRules.Delays)
+
   /** The realm `Provisioning` gives affiliates their sign-in and roles in. */
   val realm: AtomicReference[KeycloakAdmin] = AtomicReference(KeycloakAdmin.unconfigured)
 
