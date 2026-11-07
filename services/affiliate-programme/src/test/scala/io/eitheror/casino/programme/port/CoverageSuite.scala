@@ -53,7 +53,11 @@ class CoverageSuite extends munit.FunSuite with LogCapturing:
     val loaded = paths.map(p => Recording.load(p))
     assertEquals(loaded.flatMap(_.left.toOption), Vector.empty)
     val recordings = loaded.flatMap(_.toOption)
-    assert(recordings.size >= 13, s"${recordings.size} recordings in tests/port/programme (T034 records thirteen)")
+    // Exactly the driver's: each `Def`'s Name, a constant of scenarios.go, is one recording's scenario.
+    val constants = "(?m)^\\s*(\\w+)\\s*=\\s*\"((?:[^\"\\\\]|\\\\.)*)\"".r.findAllMatchIn(driver).map(m => m.group(1) -> m.group(2)).toMap
+    val defs = "\\{Driver: \"[^\"]*\", Name: (\\w+)".r.findAllMatchIn(driver).map(m => constants.getOrElse(m.group(1), m.group(1))).toVector
+    assertEquals(defs.size, 13, "contracts/recording.md names thirteen recordings")
+    assertEquals(recordings.map(_.scenario).toSet, defs.toSet)
     assertEquals(recordings.filter(_.runs < 2).map(_.scenario), Vector.empty)
     val all = files.flatMap(scenarios).toSet
     assertEquals(recordings.map(_.scenario).filterNot(n => all(n.takeWhile(_ != '[').trim)), Vector.empty)

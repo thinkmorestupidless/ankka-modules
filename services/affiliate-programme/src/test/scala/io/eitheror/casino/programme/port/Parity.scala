@@ -55,12 +55,8 @@ object Parity:
   private def path(p: String)(s: Recording.Step) = s.request.path.matches(p)
 
   val divergences: Vector[Divergence] = Vector(
-    Divergence(6, "a payout is per currency; the original named one by affiliate and period",
-      path(""".*/payouts.*"""), Seq("$.id", "$.payoutId", "$.payouts", "$.currency")),
     Divergence(6, "a view page's figures are per brand and currency, and a period with no facts has none; the original answered its counts flat, zero",
       path(""".*/view/(dashboard|stats).*"""), Seq("$.fraudFlagCount", "$.registrationCount")),
-    Divergence(11, "CPA is in the plan's currency; the original took the deposit's",
-      path(""".*revenue.*"""), Seq("$.cpaCommission", "$.currency")),
     Divergence(0, "the programme also tells an affiliate in the portal of an invitation, a reset request and a payment (research.md T076), so marking all read marks those too",
       s => s.request.path.contains("/notifications"), Seq("$.marked")),
     Divergence(0, "a bonus cost lowers NGR (research.md, found during implementation); the original never stored the bonus-cost fact (its id is not a UUID), so the chargeback's recompute left it out",
@@ -73,8 +69,6 @@ object Parity:
         case ".status"  => d.observed.startsWith("409 ") && d.observed.contains(Codes.StatusTransition)
         case "$.error"  => d.observed == Codes.StatusTransition
         case _          => true),
-    Divergence(14, "an override figure is an adjustment fact; the original rewrote the payout's override and total",
-      s => s.request.method == "PATCH" && s.request.path.contains("/payouts/"), Seq("$.overrideCommission", "$.total", "$.adjustments")),
     Divergence(14, "the override figure's adjustment stays in the payout's total; the original's next close counted only the facts, so its total lost the figure",
       s => s.request.method == "GET" && s.request.path.contains("/payouts?"), Seq("$.adjustments", "$.totalPayable"),
       d => scala.util.Try(d.observed.toLong - d.expected.toLong).toOption.contains(overrideFigures(d.recording))),
@@ -86,18 +80,22 @@ object Parity:
       path(""".*/fraud-flags.*"""), Seq("$.reason"), d => Set("bonus-cost", "chargeback")(d.observed)),
     Divergence(1, "a rejection is a membership's, and its reason with it (memberships[].rejectionReason); the original's account was the brand's",
       path(""".*/accounts(\?.*)?"""), Seq("$.rejectionReason"), _.observed == "absent"),
-    Divergence(6, "an account's row carries this month's figures per currency, under currentMonth (research.md T069); the original's were flat, in one currency",
-      path(""".*/accounts(\?.*)?"""), Seq("$.currentMonthFtds", "$.currentMonthNgr", "$.currentMonthCommission")),
-    Divergence(15, "a period ends at a UTC boundary by one clock; the original's was its server's month",
-      path(""".*"""), Seq("$.period")),
     Divergence(17, "an audit row names the event, the actor and when, never the affiliate's identity or a token; the original's rows were its event twins",
-      path(""".*/audit.*"""), Seq("$")),
-    Divergence(38, "no player id leaves the brand: players are pseudonyms (FR-038)",
-      _ => true, Seq("$.playerId", "$.players"))
+      path(""".*/audit.*"""), Seq("$.eventType", "$.email", "$.displayName", "$.dashboardUrl", "$.parentAffiliateId", "$.setPasswordUrl",
+        "$.setPasswordExpiresAt")),
+    Divergence(0, "a deduction is a fold of the facts (FR-017); the original's read only the FTD namespace's twins without a transactionId, which held neither the bonus cost nor the chargeback (AffiliateRoutes.scala:433)",
+      s => s.name.startsWith("read the period's deductions"), Seq("$[#]"), _.expected == "0")
   )
 
   def divergence(recording: Recording)(d: Difference): Option[Divergence] =
-    recording.steps.find(_.name == d.step).flatMap(step => divergences.find(v => v.holds(step) && v.covers(d.at) && v.accepts(d)))
+    val found = recording.steps.find(_.name == d.step).flatMap(step => divergences.find(v => v.holds(step) && v.covers(d.at) && v.accepts(d)))
+    found.foreach(v => used.add(divergences.indexOf(v)): Unit)
+    found
+
+  private val used = java.util.concurrent.ConcurrentHashMap.newKeySet[Int]()
+
+  /** The divergences no replay of this run has needed: stale, or wider than what they mark. */
+  def unused: Vector[Divergence] = divergences.zipWithIndex.collect { case (v, i) if !used.contains(i) => v }
 
   /** A player's pseudonym in a replay: stable for the player, as a brand's key makes it. */
   def pseudonym(player: String): String =
@@ -134,6 +132,8 @@ object Parity:
           case Auth.Manager       => kit.asManager(Seq(brand), role = "brand_admin")
           case Auth.Affiliate(who) => kit.asAffiliate(fill(s"{$who}"))
           case Auth.AffiliateId(id) => kit.asAffiliate(id)
+        // A second between requests, as the original's steps were apart: rows a list orders by time keep the original's order.
+        kit.moveClock(kit.now.plusSeconds(1))
         def send() = kit.request(r.method, fill(r.path), r.body.map(fill), headers)
         // A close reads the accounts' unclaimed facts from a view; the original read them in the request.
         if r.path.contains("/payouts/close") then
@@ -322,9 +322,15 @@ object Parity:
         out
       case other => other
 
+  /**
+   * Every leaf of the answer by its path; an array's length too (`$.rows[#]`), and an empty object as `{}`,
+   * so a list that grew or an object that filled is a difference, not nothing to compare.
+   */
   private def flatten(prefix: String, node: JsonNode): Vector[(String, String)] =
-    if node.isObject then node.properties().asScala.toVector.flatMap(e => flatten(s"$prefix.${e.getKey}", e.getValue))
-    else if node.isArray then node.elements().asScala.toVector.zipWithIndex.flatMap((n, i) => flatten(s"$prefix[$i]", n))
+    if node.isObject && node.isEmpty then Vector(prefix -> "{}")
+    else if node.isObject then node.properties().asScala.toVector.flatMap(e => flatten(s"$prefix.${e.getKey}", e.getValue))
+    else if node.isArray then
+      (prefix + "[#]" -> node.size.toString) +: node.elements().asScala.toVector.zipWithIndex.flatMap((n, i) => flatten(s"$prefix[$i]", n))
     else Vector(prefix -> Translate.scalar(node))
 
   private def lookup(node: JsonNode, at: String): Option[String] = flatten("$", node).find(_._1 == at).map(_._2)

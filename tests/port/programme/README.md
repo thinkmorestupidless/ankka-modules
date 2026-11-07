@@ -68,21 +68,21 @@ A parity test that differs by design names the change of the spec it demonstrate
 | Change | Where it shows |
 |---|---|
 | 2, the lifetime first-deposit guard | not in `cpa once`: the original's period is its server's month, which a run cannot move, so its deposits are in one month; `CommissionSuite` holds the rule |
-| 6, per-currency payouts | `close and pay`: the original names a payout by affiliate and period only |
-| 11, CPA in the plan's currency | `cpa once`: the original's CPA fact takes the deposit's currency |
 | 13, status only through its transitions | `close and pay`: a refused payout transition is `409 status_transition` naming the status; the original answered `400 invalid status transition` for pending and `409 invalid_status_transition` for the rest. Its `PATCH accounts/{aff}/status` is not served, so not driven |
-| 14, the override figure as an adjustment | `close and pay`: the original rewrites the payout's override and total with no fact |
 | research.md T076, notifications the original did not write | `notifications`: the programme also tells an affiliate of an invitation, a reset request and a payment; those kinds are left out of a list the original answered without them, and marking all read counts them |
-| 17, the audit without identity | `network invite`: the joiner's audit rows are the programme's shape, the original's were event twins with the email and the set-password URL |
+| 17, the audit without identity | `network invite`: the joiner's audit rows are the programme's shape, the original's were event twins with the email and the set-password URL; held for those twins' fields only |
+| FR-017, deductions are the facts' | `ggr fold`: the period's deductions list the bonus cost and the chargeback; the original's read a namespace that held neither and answered `[]`. Held only where the original's list was empty |
 | research.md, a lost bonus cost | `ggr fold`: the original never stores a bonus-cost or chargeback fact (its id is not a UUID), so its chargeback's recompute left the bonus cost out; the programme folds it, as the feature says |
 | 6, figures per currency | `manager view`: the dashboard and stats pages answer figures per brand and currency, none for a period with no facts; the original answered zero counts flat |
-| 15, one clock | every recording with a period: the original's fact period is its server's month, a period ends at a UTC boundary |
 | 13, an approval stands while it does | `close and pay`: a rejection is the payout's `rejectedBy`, and an approval a close supersedes moves to `supersededApprovals`; the original left `approvedBy` and `approvedAt` on both. Held only when the programme's field is absent |
 | 14, the override figure stays | `close and pay`, the lists after the approval: the figure's adjustment stays in the total; the original's next close counted the facts alone. Held only when the difference is the recording's override figure |
 | research.md, a close claims only unsettled facts | `close and pay`, the next period's list: the original's next close claimed again what its paid and rejected payouts held (its stamps did not hold); FR-018 claims only unsettled facts |
 | research.md T070, a flag's reason | `fraud flags`: the reason is the kind (`bonus-cost`), the original's text the description. Held only for a kind |
 | 1, a rejection is a membership's | `applications`: the reason is `memberships[].rejectionReason`; the original's account was the brand's |
-| 6, an account row's figures | `applications`: this month's figures per currency under `currentMonth` (research.md T069); the original's were flat |
+
+Changes 6 (per-currency payouts, an account row's figures), 11, 14's rewrite and 15 show in no recording
+now: the replays agree on those fields, so no divergence marks them, and one that no replay needs fails
+`ParitySuite`. Every array is compared by its length too (`$.rows[#]`), and an empty object as `{}`.
 
 A list the original's runs share (`$` varied: payouts, flags, plans, managers, accounts) holds rows
 earlier runs left, so its rows are not compared by place: the rows a replay made, those whose key
