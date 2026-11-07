@@ -116,7 +116,7 @@ another session's: do not touch it.
       data-model.md's state, `apply(fact)` per family with the per-field time, `resetDepositDay`,
       `erase`, `get`, `attributes`; every *P* field `Personal`. `T/profile/ProfileSuite.scala`
       (`KeyValueEntityTestKit`) first: every family, a repeat fact changes nothing, erase.
-- [ ] T017 [P] `S/config/Model.scala`, `S/config/Configuration.scala` (key value, id = slug: `put`
+- [X] T017 [P] `S/config/Model.scala`, `S/config/Configuration.scala` (key value, id = slug: `put`
       answering the changed keys, `get`), `S/config/Secrets.scala` (the three names under
       `crm/<slug>/…`, read through `clients.secrets`, cached 30 s per instance).
       `T/config/ConfigurationSuite.scala` first.
