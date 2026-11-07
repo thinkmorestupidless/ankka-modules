@@ -30,8 +30,18 @@ final class Play(client: ComponentClient):
       key: String,
       answerWait: FiniteDuration,
       step: Option[Int],
-      callbackId: String = java.util.UUID.randomUUID().toString
+      callbackId: String = java.util.UUID.randomUUID().toString,
+      awaitingAnswer: Boolean = false
   ): Sent =
+    val (route, body) = plan(session, call, shape, step, callbackId, awaitingAnswer)
+    attempt(session, callbackId, route, body, key, answerWait, 1)
+
+  /**
+   * Schedules a callback and plans it on the session, sending nothing: the house provider's
+   * `Deliver` workflow sends it (spec 026 R6). `send` is this followed by the first attempt.
+   * Answers the route and the exact bytes that will be signed.
+   */
+  def plan(session: Session, call: Call, shape: String, step: Option[Int], callbackId: String, awaitingAnswer: Boolean = false): (String, Array[Byte]) =
     val protocol = Wiring.protocol
     val body     = protocol.body(shape, call)
     val route    = protocol.route(call.kind)
@@ -42,10 +52,11 @@ final class Play(client: ComponentClient):
       SessionEvent.CallbackPlanned(
         callbackId, call.kind, call.round,
         transactionId = call.transactionId.getOrElse(""), cancelId = call.cancelId, role = role.toString,
-        free = call.providerKind.exists(_.startsWith("free_")) && role == RoundRole.Stake, step = step
+        free = call.providerKind.exists(_.startsWith("free_")) && role == RoundRole.Stake, step = step,
+        awaitingAnswer = awaitingAnswer && role == RoundRole.Stake
       )
     )
-    attempt(session, callbackId, route, body, key, answerWait, 1)
+    route -> body
 
   /** Sends a scheduled callback again, as attempt `n`, with the body recorded the first time. */
   def resend(session: Session, callbackId: String, key: String, answerWait: FiniteDuration, n: Int): Sent =

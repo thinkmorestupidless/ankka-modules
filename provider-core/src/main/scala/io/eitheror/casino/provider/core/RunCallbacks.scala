@@ -20,7 +20,9 @@ final case class RunCallbackRow(
     outcome: String,
     status: Option[String],
     balance: Option[String],
-    attemptsDetail: Vector[Attempt]
+    attemptsDetail: Vector[Attempt],
+    nextRetryAt: Option[Long] = None,
+    abandoned: Option[Abandonment] = None
 )
 
 /**
@@ -46,7 +48,10 @@ final class RunCallbacksView extends View[CallbackEvent, RunCallbackRow]:
             balance = a.balance.orElse(row.balance)
           ))
         }
-      case Ended(outcome) => rowState.fold(effects.ignore())(row => effects.updateRow(row.copy(outcome = outcome)))
+      case Ended(outcome) => rowState.fold(effects.ignore())(row => effects.updateRow(row.copy(outcome = outcome, nextRetryAt = None)))
+      case RetryPlanned(at) => rowState.fold(effects.ignore())(row => effects.updateRow(row.copy(nextRetryAt = Some(at))))
+      case AbandonedBy(a) =>
+        rowState.fold(effects.ignore())(row => effects.updateRow(row.copy(outcome = Callback.Abandoned, abandoned = Some(a), nextRetryAt = None)))
       case Discarded      => effects.deleteRow()
 
 object RunCallbacks

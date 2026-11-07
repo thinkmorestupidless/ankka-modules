@@ -18,7 +18,9 @@ final class CallbackEntity(context: EventSourcedEntityContext) extends EventSour
     case Scheduled(run, session, brand, kind, route, body, step, at) =>
       currentState.copy(runId = run, sessionId = session, brand = brand, kind = kind, route = route, body = body, step = step, scheduledAt = at)
     case AttemptRecorded(a) => currentState.copy(attempts = currentState.attempts.filterNot(_.attempt == a.attempt) :+ a)
-    case Ended(outcome)     => currentState.copy(outcome = outcome)
+    case Ended(outcome)     => currentState.copy(outcome = outcome, nextRetryAt = None)
+    case RetryPlanned(at)   => currentState.copy(nextRetryAt = Some(at))
+    case AbandonedBy(a)     => currentState.copy(outcome = Callback.Abandoned, abandoned = Some(a), nextRetryAt = None)
     case Discarded          => currentState
 
   def schedule(s: Scheduled): Effect[Done] =
@@ -31,8 +33,24 @@ final class CallbackEntity(context: EventSourcedEntityContext) extends EventSour
     else effects.persist(AttemptRecorded(attempt)).thenReply(identity)
 
   def end(outcome: String): Effect[Done] =
-    if currentState.outcome == outcome then effects.reply(Done)
+    if currentState.outcome == outcome || currentState.outcome == Callback.Abandoned then effects.reply(Done)
     else effects.persist(Ended(outcome)).thenReply(_ => Done)
+
+  def retryAt(at: Long): Effect[Done] =
+    if !currentState.scheduled then effects.error("callback not scheduled", ErrorCode.NotFound)
+    else if Callback.Final.contains(currentState.outcome) || currentState.nextRetryAt.contains(at) then effects.reply(Done)
+    else effects.persist(RetryPlanned(at)).thenReply(_ => Done)
+
+  /**
+   * An operator gives up on a callback that has not ended (spec 026 FR-021). Abandoning one that
+   * ended is refused naming its outcome; abandoning it twice answers the first abandonment.
+   */
+  def abandon(a: Abandonment): Effect[Callback] =
+    if !currentState.scheduled then effects.error("callback not found", ErrorCode.NotFound)
+    else if currentState.abandoned.isDefined then effects.reply(currentState)
+    else if Callback.Final.contains(currentState.outcome) then
+      effects.error(s"callback_ended: the callback ended ${currentState.outcome}", ErrorCode.Conflict)
+    else effects.persist(AbandonedBy(a)).thenReply(identity)
 
   def discard: Effect[Done] =
     if !currentState.scheduled then effects.reply(Done)
@@ -51,12 +69,15 @@ object CallbackEntity
 
   given Serializer[Scheduled] = Codecs.serializer[Scheduled]("callback-scheduled")
   given Serializer[Attempt]   = Codecs.serializer[Attempt]("callback-attempt")
-  given Serializer[Callback]  = Codecs.serializer[Callback]("callback")
+  given Serializer[Callback]    = Codecs.serializer[Callback]("callback")
+  given Serializer[Abandonment] = Codecs.serializer[Abandonment]("callback-abandonment")
 
   def create(context: EventSourcedEntityContext) = new CallbackEntity(context)
 
   val schedule = command("schedule")(_.schedule)
   val record   = command("record")(_.record)
   val end      = command("end")(_.end)
+  val retryAt  = command("retry-at")(_.retryAt)
+  val abandon  = command("abandon")(_.abandon)
   val discard  = command("discard")(_.discard)
   val get      = query("get")(_.get)

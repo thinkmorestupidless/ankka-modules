@@ -18,6 +18,8 @@ final class SessionEntity(context: EventSourcedEntityContext) extends EventSourc
     case e: Launched         => currentState.onLaunched(e)
     case ScenarioSelected(n, seed) => currentState.copy(scenario = n, scenarioSelected = true, seed = seed.getOrElse(currentState.seed))
     case Checked(w)          => currentState.copy(walletToken = Some(w), state = Session.Checked)
+    case CheckRefused(_)     => currentState.copy(state = Session.Refused)
+    case e: RoundAnswered    => currentState.onAnswered(e)
     case e: CallbackPlanned  => currentState.onPlanned(e)
     case BalanceSeen(b)      => currentState.copy(lastBalance = Some(b))
     case StepJudged(v)       => currentState.copy(verdicts = currentState.verdicts.filterNot(_.step == v.step) :+ v)
@@ -25,7 +27,8 @@ final class SessionEntity(context: EventSourcedEntityContext) extends EventSourc
 
   def launch(request: SessionEntity.Launch): Effect[Session] =
     effects
-      .persist(Launched(request.brand, request.playerId, request.currency, request.gameCode, request.scenario, request.runId, request.seed, request.at))
+      .persist(Launched(request.brand, request.playerId, request.currency, request.gameCode, request.scenario, request.runId, request.seed, request.at,
+        request.demo, request.language))
       .thenReply(identity)
 
   def selectScenario(selection: SessionEntity.Selection): Effect[Done] =
@@ -38,6 +41,15 @@ final class SessionEntity(context: EventSourcedEntityContext) extends EventSourc
   def check(walletToken: String): Effect[Session] =
     if !currentState.launched then effects.error("session not found", ErrorCode.NotFound)
     else effects.persist(Checked(walletToken)).thenReply(identity)
+
+  def refuseCheck(word: String): Effect[Session] =
+    if !currentState.launched then effects.error("session not found", ErrorCode.NotFound)
+    else if currentState.refused then effects.reply(currentState)
+    else effects.persist(CheckRefused(word)).thenReply(identity)
+
+  def answered(answer: RoundAnswered): Effect[Session] =
+    if !currentState.round(answer.roundId).exists(_.state == Round.Pending) then effects.reply(currentState)
+    else effects.persist(answer).thenReply(identity)
 
   def plan(planned: CallbackPlanned): Effect[Session] =
     if !currentState.launched then effects.error("session not found", ErrorCode.NotFound)
@@ -69,13 +81,15 @@ object SessionEntity
   /** A scenario for a session, and the seed its run draws from when the tester fixes one (SC-003). */
   final case class Selection(name: String, seed: Option[Long])
 
-  final case class Launch(brand: String, playerId: String, currency: String, gameCode: String, scenario: String, runId: String, seed: Long, at: Long)
+  final case class Launch(brand: String, playerId: String, currency: String, gameCode: String, scenario: String, runId: String, seed: Long, at: Long,
+      demo: Boolean = false, language: String = "")
 
   given Serializer[Launch]          = Codecs.serializer[Launch]("session-launch")
   given Serializer[Selection]       = Codecs.serializer[Selection]("session-selection")
   given Serializer[Session]         = Codecs.serializer[Session]("session")
   given Serializer[CallbackPlanned] = Codecs.serializer[CallbackPlanned]("session-callback-planned")
   given Serializer[Verdict]         = Codecs.serializer[Verdict]("session-verdict")
+  given Serializer[RoundAnswered]   = Codecs.serializer[RoundAnswered]("session-round-answered")
 
   def create(context: EventSourcedEntityContext) = new SessionEntity(context)
 
@@ -83,6 +97,8 @@ object SessionEntity
   val selectScenario = command("select-scenario")(_.selectScenario)
   val check          = command("record-check")(_.check)
   val plan           = command("plan")(_.plan)
+  val refuseCheck    = command("refuse-check")(_.refuseCheck)
+  val answered       = command("round-answered")(_.answered)
   val sawBalance     = command("saw-balance")(_.sawBalance)
   val judge          = command("judge")(_.judge)
   val discard        = command("discard")(_.discard)
