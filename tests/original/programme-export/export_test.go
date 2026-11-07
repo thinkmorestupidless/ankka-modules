@@ -40,7 +40,8 @@ func original() memory {
 		"affiliate-bonus-codes-spinvibe": {twin("c-1", "code", "ann10", "affiliateId", "a-1", "btag", "btag-1", "status", "REVOKED",
 			"createdAt", "2025-01-03T00:00:00Z")},
 		"affiliate-audit-spinvibe-a-1": {twin("au-1", "eventType", "AFFILIATE_APPROVED", "actorId", "mgr", "recordedAt", "2025-01-01T11:00:00Z",
-			"email", "ann@example.com", "setPasswordUrl", "https://x/?token=secret", "planId", "plan-1")},
+			"email", "ann@example.com", "setPasswordUrl", "https://x/?token=secret", "planId", "plan-1",
+			"paymentMethod", "IBAN GB82WEST", "website", "ann-site.example", "trafficSource", "ann-traffic")},
 		"affiliate-payouts-spinvibe": {twin("po-1", "affiliateId", "a-1", "period", "2025-01", "status", "PAID", "cpaCommission", "25.00",
 			"revShareCommission", "10.50", "createdAt", "2025-02-01T00:00:00Z", "approvedBy", "fin", "approvedAt", "2025-02-02T00:00:00Z")},
 		"affiliate-facts-spinvibe-a-1": {
@@ -114,7 +115,7 @@ func TestFactsKeepTheirPayoutUnderTheProgrammesIdAndPayoutsTheirStatus(t *testin
 func TestNoPlayerIdOrPersonalAuditKeyLeavesInClear(t *testing.T) {
 	b := export(t, original())
 	out, _ := json.Marshal(b)
-	for _, clear := range []string{"player-1", "setPasswordUrl", "token=secret"} {
+	for _, clear := range []string{"player-1", "setPasswordUrl", "token=secret", "GB82WEST", "ann-site.example", "ann-traffic"} {
 		if strings.Contains(string(out), clear) {
 			t.Fatalf("%q in the bundle", clear)
 		}

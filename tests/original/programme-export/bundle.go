@@ -216,6 +216,8 @@ var payoutStatuses = map[string]string{"PENDING": "pending", "APPROVED": "approv
 var personal = map[string]bool{
 	"email": true, "displayName": true, "companyName": true, "name": true, "setPasswordUrl": true,
 	"setPasswordExpiresAt": true, "dashboardUrl": true,
+	// What FR-037 seals besides the identity: an account change's audit twin can carry any of them.
+	"website": true, "trafficSource": true, "paymentMethod": true,
 }
 
 // auditShape are an audit twin's own keys, not its details.
