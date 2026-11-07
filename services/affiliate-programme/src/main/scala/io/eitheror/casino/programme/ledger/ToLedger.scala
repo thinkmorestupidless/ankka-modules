@@ -60,10 +60,13 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
       lazy val m     = calls.membership(b.affiliate, f.brand)
       lazy val plan  = m.plan.map(calls.plan(f.brand, _)).filter(_.exists)
       def account(currency: String) = CommissionAccount.entityId(b.affiliate, f.brand, currency)
+      lazy val rate = Rate(plan.filter(_.paysRevShare).fold(0)(p => m.revShareOverride.getOrElse(p.revShareBp)), plan.fold(Window.Period)(_.window),
+        payable = m.active)
       // Once per deposit: the brand's `deposit` fact, never the `first-deposit` it also emits for the first.
       def paymentFee(): Unit =
         f.currency.filter(_ => f.kind == PlayerFact.Deposit).foreach { c =>
-          calls.recordPaymentFee(account(c), RecordPaymentFee(f.factId, f.amount, brand.fees.payment, f.occurredAt, brand.reportingZone, now()))
+          calls.recordPaymentFee(account(c), RecordPaymentFee(f.factId, f.amount, brand.fees.payment, f.occurredAt, brand.reportingZone, now(),
+            Some(rate)))
         }
       lazy val clickId = if f.kind == PlayerFact.Registration then f.clickId else calls.player(f.brand, f.pseudonym).clickId
       def postback(event: String, payout: Option[String], status: String): Unit =
@@ -88,8 +91,6 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
           postback(LedgerWriter.Deposit, Some("0"), "ok")
         case Outcome.Ngr(kind, amount) =>
           f.currency.foreach { c =>
-            val bp   = plan.filter(_.paysRevShare).fold(0)(p => m.revShareOverride.getOrElse(p.revShareBp))
-            val rate = Rate(bp, plan.fold(Window.Period)(_.window), payable = m.active)
             val fees = FeeRates(brand.fees.admin, brand.fees.payment, brand.fees.provider)
             val after = calls.recordNgr(account(c), RecordNgr(f.factId, kind, amount, f.occurredAt, rate, fees, brand.reportingZone, now()))
             after.unsettled.find(_.id == s"revshare/${f.factId}").filter(_.amount > 0)

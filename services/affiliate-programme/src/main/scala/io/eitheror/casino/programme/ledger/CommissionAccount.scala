@@ -34,7 +34,9 @@ final case class FeeRates(admin: Int = 0, payment: Int = 0, provider: Int = 0)
 /** An NGR input: `kind` is `ggr`, `bonus-cost` or `chargeback`; `factId` the brand's fact. */
 final case class RecordNgr(factId: String, kind: String, amount: Long, occurredAt: Instant, rate: Rate, fees: FeeRates, zone: String, at: Instant)
 final case class RecordCpa(id: String, amount: Long, occurredAt: Instant, zone: String, at: Instant)
-final case class RecordPaymentFee(factId: String, deposit: Long, bp: Int, occurredAt: Instant, zone: String, at: Instant)
+/** `rate`: the plan's at the deposit, so the fee's NGR is folded into RevShare as any NGR fact's (FR-014); none in an old command. */
+final case class RecordPaymentFee(factId: String, deposit: Long, bp: Int, occurredAt: Instant, zone: String, at: Instant,
+    rate: Option[Rate] = None)
 final case class RecordAdjustment(id: String, amount: Long, reason: String, by: String, occurredAt: Instant, claimedBy: Option[String],
     zone: String, at: Instant, source: Option[String] = None)
 final case class RecomputeOverride(source: String, period: String, sourceEarnings: Long, bp: Int, zone: String, at: Instant)
@@ -104,14 +106,15 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
             case (ft, bp) if bp != 0 => fact(s"${ft.wire}/${c.factId}", ft, Fees.on(c.amount, bp), c.occurredAt, c.zone, c.at)
           }
       val folded = (input +: fees).foldLeft(s.sums)(_.add(_))
-      // As the original (`InternalRoutes.scala:227`): no RevShare at 0, which would claw back all that was written.
-      val revShare =
-        if !c.rate.payable || c.rate.revShareBp <= 0 then None
-        else
-          val d = RevShare.delta(c.rate.window, folded, input.period, c.rate.revShareBp)
-          Option.when(d != 0)(fact(s"revshare/${c.factId}", FactType.RevShare, d, c.occurredAt, c.zone, c.at))
-      ((input +: fees) ++ revShare).map(FactWritten(_))
+      ((input +: fees) ++ revShare(folded, input.period, c.rate, s"revshare/${c.factId}", c.occurredAt, c.zone, c.at)).map(FactWritten(_))
     }
+
+  /** The RevShare delta NGR's change makes in `period`. As the original (`InternalRoutes.scala:227`): none at 0, which would claw back all that was written. */
+  def revShare(folded: Sums, period: String, rate: Rate, id: String, occurredAt: Instant, zone: String, at: Instant): Option[LedgerFact] =
+    if !rate.payable || rate.revShareBp <= 0 then None
+    else
+      val d = RevShare.delta(rate.window, folded, period, rate.revShareBp)
+      Option.when(d != 0)(fact(id, FactType.RevShare, d, occurredAt, zone, at))
 
   /** The facts a command writes, and `EarningsChanged` for every period whose payable earnings moved. */
   def withEarnings(s: AccountState, written: Vector[FactWritten]): Vector[Event] =
@@ -188,8 +191,10 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
     val id = s"payment-fee/${c.factId}"
     if currentState.has(id) || c.bp == 0 then effects.reply(currentState)
     else
-      write(Vector(FactWritten(LedgerFact(id, FactType.PaymentFee, Fees.on(c.deposit, c.bp), c.occurredAt, c.at,
-        Periods.periodOf(c.occurredAt, ZoneId.of(c.zone))))))
+      val fee   = LedgerFact(id, FactType.PaymentFee, Fees.on(c.deposit, c.bp), c.occurredAt, c.at, Periods.periodOf(c.occurredAt, ZoneId.of(c.zone)))
+      // The original recomputes after the fee (`InternalRoutes.scala:1062-1117`): a deposit after the period's last GGR moves RevShare too.
+      val delta = c.rate.flatMap(r => CommissionAccount.revShare(currentState.sums.add(fee), fee.period, r, s"revshare/$id", c.occurredAt, c.zone, c.at))
+      write(withEarnings(currentState, (fee +: delta.toVector).map(FactWritten(_))))
 
   /** A manager's adjustment (FR-020), or the difference an approval's override figure makes, claimed by that payout. */
   def recordAdjustment(c: RecordAdjustment): Effect[AccountState] =

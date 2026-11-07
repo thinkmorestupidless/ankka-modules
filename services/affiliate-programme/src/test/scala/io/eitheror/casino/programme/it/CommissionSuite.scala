@@ -74,6 +74,19 @@ class CommissionSuite extends munit.FunSuite with LogCapturing:
     }
   }
 
+  test("a deposit after the period's last GGR moves RevShare by its payment fee (FR-014)") {
+    Scene.withFees(kit, "silvervibe", Fees(admin = 0, payment = 200, provider = 0)) {
+      val s = Scene(kit, brand = "silvervibe")
+      val p = s.player()
+      s.send(s.facts.ggrDaily(p, "2026-10-25", 10_000, 0, kit.now)): Unit
+      s.rowsWhen("RevShare on the GGR")(rs => s.sum(rs, RevShare) == 3_000)
+      s.send(s.facts.deposit(p, 5_000, kit.now)): Unit
+      // NGR = 10,000 - 100 payment = 9,900; RevShare 30% = 2,970.
+      val rows = s.rowsWhen("RevShare after the fee")(rs => s.sum(rs, RevShare) == 2_970)
+      assertEquals(s.sum(rows, PaymentFee), 100L)
+    }
+  }
+
   test("the GGR source switch takes effect from its day; the other kind is recorded, not folded") {
     // A switch makes every earlier day the previous source's, so the test sets its own starting point.
     Scene.setGgrSource(kit, "silvervibe", GgrSource.Daily, "2026-03-01")
