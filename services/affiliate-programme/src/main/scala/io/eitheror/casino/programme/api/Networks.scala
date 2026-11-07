@@ -94,8 +94,16 @@ final class Networks(api: Api):
   private def figures(affiliate: String, brands: Vector[String], range: Option[Periods.Range]): Option[Vector[Figure]] =
     range.map(r => Revenue.read(api.reads, Some(affiliate), brands.map(b => b -> api.brand(b).zone), r))
 
+  /**
+   * The subs a read shows: an affiliate's own network whole (M14, M13, M21); a manager's (`members`) only
+   * those with a membership at the brands read, nor anything below one without (FR-041): another brand's
+   * accounts and names are not theirs.
+   */
+  private def shown(subs: Vector[AffiliateState], brands: Vector[String], members: Boolean): Vector[AffiliateState] =
+    if members then subs.filter(a => held(a.id, brands).nonEmpty) else subs
+
   /** M14, O10: the subtree to `maxDepth` (3 by default, 6 at most, as the original), revenue for `period` when named. */
-  def tree(root: String, brands: Vector[String], maxDepth: Option[String], period: Option[String]): Respond[Bytes] =
+  def tree(root: String, brands: Vector[String], maxDepth: Option[String], period: Option[String], members: Boolean = false): Respond[Bytes] =
     val depth = maxDepth.flatMap(_.toIntOption).map(d => math.max(0, math.min(d, 6))).getOrElse(3)
     period.map(p => Periods.Range.parse(p).toRight(p)) match
       case Some(Left(_)) => refuse(400, Codes.InvalidPeriod, "period is yyyy-MM, yyyy-MM..yyyy-MM, yyyy-MM-dd..yyyy-MM-dd or all")
@@ -103,25 +111,28 @@ final class Networks(api: Api):
         val range = other.flatMap(_.toOption)
         def node(a: AffiliateState, d: Int, seen: Set[String]): Node =
           val h        = held(a.id, brands)
-          val children = if d >= depth || seen(a.id) then Vector.empty else childrenOf(a.id).map(node(_, d + 1, seen + a.id))
+          val children = if d >= depth || seen(a.id) then Vector.empty else shown(childrenOf(a.id), brands, members).map(node(_, d + 1, seen + a.id))
           Node(a.id, name(a), statusOf(h), h.headOption.flatMap(_.planId).getOrElse(""), Percent.show(a.overrideBp), h, children,
             figures(a.id, brands, range))
         val a = api.account(root)
         if !a.exists then refuse(404, Codes.AccountNotFound) else ok(node(a, 0, Set.empty))
 
   /** M13, O9: counts over the whole subtree. */
-  def health(root: String, brands: Vector[String]): Respond[Bytes] =
-    val statuses = descendants(root).map(d => statusOf(held(d, brands)))
+  def health(root: String, brands: Vector[String], members: Boolean = false): Respond[Bytes] =
+    val reached =
+      if !members then descendants(root)
+      else Network.descendants(root, a => shown(childrenOf(a), brands, members).map(_.id), Access.MaxDepth).map(_._1)
+    val statuses = reached.map(d => statusOf(held(d, brands)))
     ok(Health(statuses.size, statuses.count(_ == Membership.Active), statuses.count(_ == Membership.Pending),
       statuses.count(_ == Membership.Suspended)))
 
   /** M21, O27: the direct subs, revenue for `period` when named. */
-  def subs(parent: String, brands: Vector[String], period: Option[String]): Respond[Bytes] =
+  def subs(parent: String, brands: Vector[String], period: Option[String], members: Boolean = false): Respond[Bytes] =
     period.map(p => Periods.Range.parse(p).toRight(p)) match
       case Some(Left(_)) => refuse(400, Codes.InvalidPeriod, "period is yyyy-MM, yyyy-MM..yyyy-MM, yyyy-MM-dd..yyyy-MM-dd or all")
       case other =>
         val range = other.flatMap(_.toOption)
-        ok(childrenOf(parent).map { a =>
+        ok(shown(childrenOf(parent), brands, members).map { a =>
           val h = held(a.id, brands)
           Sub(a.id, name(a), statusOf(h), Percent.show(a.overrideBp), h.headOption.flatMap(_.planId).getOrElse(""), a.createdAt, h,
             figures(a.id, brands, range))

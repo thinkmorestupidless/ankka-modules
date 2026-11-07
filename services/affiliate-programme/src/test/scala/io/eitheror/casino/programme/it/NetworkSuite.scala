@@ -191,6 +191,22 @@ class NetworkSuite extends munit.FunSuite with LogCapturing:
     assertEquals((inactive.status, inactive.json.get("error").asText), (400, "plan_not_active"))
   }
 
+  test("FR-041: a manager reads an account's network at their brand alone: a sub of another brand is not shown, nor counted") {
+    val parent = kit.affiliate(kit.fresh("par"), "goldvibe", plan())
+    val here   = kit.affiliate(kit.fresh("here"), "goldvibe", plan(), parent = Some(parent))
+    // A sub at silvervibe only, whose name a goldvibe manager has no business reading.
+    val there  = kit.affiliate(kit.fresh("there"), "silvervibe", plan("silvervibe"), parent = Some(parent))
+    kit.eventually("both subs listed for the parent")(Option(kit.request("GET", s"/v1/my/$parent/sub-affiliates", headers = kit.asAffiliate(parent)).json)
+      .filter(_.size == 2)): Unit
+    val mgr  = kit.asManager(Seq("goldvibe"))
+    val base = s"/v1/affiliates/goldvibe/accounts/$parent"
+    val tree = kit.request("GET", s"$base/network", headers = mgr).json
+    assertEquals(tree.get("children").elements().asScala.map(_.get("affiliateId").asText).toSet, Set(here))
+    assertEquals(kit.request("GET", s"$base/sub-affiliates", headers = mgr).json.elements().asScala.map(_.get("affiliateId").asText).toSet, Set(here))
+    assertEquals(kit.request("GET", s"$base/network-health", headers = mgr).json.get("totalSubs").asInt, 1)
+    assert(!kit.request("GET", s"$base/network", headers = mgr).text.contains(there))
+  }
+
   test("an affiliate reads every descendant, and nothing above or beside them") {
     val (t1, t2, t3) = tiers()
     val beside = kit.affiliate(kit.fresh("t2b"), "goldvibe", plan(), parent = Some(t1))

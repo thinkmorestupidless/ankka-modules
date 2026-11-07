@@ -86,13 +86,13 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     }
     // US3: an account's network at the brand, and the operator's transitions of a sub there.
     get("/{brand}/accounts/{affiliate}/network-health") { (brand: String, aff: String) =>
-      attempt(member(brand, aff)(_ => networks.health(aff, Vector(brand))))
+      attempt(member(brand, aff)(_ => networks.health(aff, Vector(brand), members = true)))
     }
     get("/{brand}/accounts/{affiliate}/network") { (brand: String, aff: String) =>
-      attempt(member(brand, aff)(_ => networks.tree(aff, Vector(brand), query.raw("maxDepth"), query.raw("period"))))
+      attempt(member(brand, aff)(_ => networks.tree(aff, Vector(brand), query.raw("maxDepth"), query.raw("period"), members = true)))
     }
     get("/{brand}/accounts/{affiliate}/sub-affiliates") { (brand: String, aff: String) =>
-      attempt(member(brand, aff)(_ => networks.subs(aff, Vector(brand), query.raw("period"))))
+      attempt(member(brand, aff)(_ => networks.subs(aff, Vector(brand), query.raw("period"), members = true)))
     }
     for action <- Seq("approve", "suspend", "reactivate") do
       post(s"/{brand}/network/{sub}/$action") { (brand: String, sub: String) =>
