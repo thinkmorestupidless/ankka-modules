@@ -1,4 +1,4 @@
-package io.eitheror.casino.simulator
+package io.eitheror.casino.provider
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.fasterxml.jackson.databind.node.ObjectNode
@@ -11,13 +11,13 @@ import scala.collection.mutable
 
 /**
  * A brand's provider routes, as spec 003 describes them, small enough to read: signatures verified
- * against the simulator's key document (current and next), a malformed body answered HTTP 400,
+ * against the provider's key document (current and next), a malformed body answered HTTP 400,
  * check consuming a launch ticket once, a wallet per player starting at 100.00, and every money
  * callback idempotent under its transaction id (cancel id for a cancel). Scenarios script it to be
  * slow or to fail for a number of calls.
  *
- * It is a test double of a rebuilt brand for this service's own suites; the parity of a real brand
- * under the simulator is spec 003's kit's.
+ * It is a test double of a rebuilt brand for the simulator's and the house provider's own suites;
+ * the parity of a real brand under either is spec 003's kit's.
  */
 final class FakeBrand(keys: Keys):
 

@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Principal}
 import com.thinkmorestupidless.ankka.runtime.{ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
+import io.eitheror.casino.provider.FakeBrand
 import io.eitheror.casino.simulator.api.Access
 import io.eitheror.casino.simulator.brands.BrandTable
 import io.eitheror.casino.provider.core.*

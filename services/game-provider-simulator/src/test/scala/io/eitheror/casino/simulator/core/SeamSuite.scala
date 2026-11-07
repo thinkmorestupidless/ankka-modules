@@ -6,9 +6,9 @@ import java.nio.file.{Files, Path, Paths}
 import scala.jdk.CollectionConverters.*
 
 /**
- * The seam of FR-006 and FR-015, enforced: the core names no protocol's route, field or status
- * word, and imports nothing from an adapter. A second real provider is then a second adapter and
- * no change here.
+ * The seam of FR-006 and FR-015, enforced on what of the core stays in the simulator (the scenarios,
+ * their play, the load profile): no protocol's route, field or status word, nothing imported from an
+ * adapter. The library's own core is held to the same by `provider-core`'s `SeamSuite` (spec 026).
  */
 class SeamSuite extends munit.FunSuite with LogCapturing:
 
@@ -29,7 +29,7 @@ class SeamSuite extends munit.FunSuite with LogCapturing:
     }
 
   test("the core imports nothing from an adapter") {
-    assertEquals(offences(l => l.contains("simulator.st8") || l.contains("simulator.brands")), Vector.empty)
+    assertEquals(offences(l => l.contains("simulator.st8") || l.contains("simulator.brands") || l.contains("provider.st8") || l.contains("provider.brands")), Vector.empty)
   }
 
   test("the core names no protocol route") {
