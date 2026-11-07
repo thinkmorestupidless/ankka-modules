@@ -95,15 +95,16 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
     val filed = kit.request("POST", s"/v1/affiliates/goldvibe/accounts/$aff/erasure", headers = mgr)
     assertEquals(filed.status, 202, filed.text)
     val sealedBefore = kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke().identity
+    val keyBefore    = Secrets(kit.secrets).existingDataKey(aff).toOption.flatten.getOrElse(fail("no data key before the erasure"))
+    assert(Sealing.open(sealedBefore, keyBefore, aff).isRight)
     val hold = ErasureRules.holdUntil(kit.now, 1825)
     assertEquals(filed.json.get("holdUntil").asText, hold.toString)
     kit.moveClock(hold.plus(Duration.ofMinutes(1)))
     kit.eventually("erased", 60.seconds)(
       Option(kit.components.forWorkflow(EntityId(aff)).call(Erasure.status).invoke()).filter(_.status == ErasureRules.Erased)): Unit
     Secrets(kit.secrets).invalidate()
+    // The key that opened it is the store's no longer: the sealed value stays, and nothing opens it.
     assertEquals(Secrets(kit.secrets).existingDataKey(aff).map(_.isDefined), Right(false))
-    val anyKey = new Array[Byte](32)
-    assert(Sealing.open(sealedBefore, anyKey, aff).isLeft)
     assertEquals(kit.realm.byEmail(marker("second email")), None)
     val after = kit.request("GET", s"/v1/affiliates/goldvibe/accounts/$aff", headers = mgr)
     assertEquals((after.json.get("email").asText, after.json.get("name").asText), ("erased", "erased"))
@@ -127,6 +128,23 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
     Thread.sleep(1500) // the views' last poll
     // The journal keeps the events the player's state is made from; their retention waits for ankka 042 (research).
     val leaks = found(Vector(clickId)).filterNot(_.contains("event_journal"))
+    assert(leaks.isEmpty, leaks.mkString("\n"))
+  }
+
+  test("an invitation's and a reset's token rest nowhere: only its hash, as the token's id (managers' share the step)") {
+    val brand = Messaging.brand(kit)
+    val email = s"${kit.fresh("tok")}@example.com"
+    val aff   = Messaging.apply(kit, brand, email).json.get("affiliateId").asText
+    assertEquals(Messaging.approve(kit, brand, aff).status, 200)
+    kit.eventually("the realm user")(kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke().keycloakUser): Unit
+    val mgr = kit.asManager(Seq(brand))
+    assertEquals(kit.request("POST", s"/v1/affiliates/$brand/accounts/$aff/reset-password", headers = mgr).status, 204)
+    assertEquals(kit.request("POST", s"/v1/affiliates/$brand/accounts/$aff/resend-invitation", headers = mgr).status, 204)
+    val links  = Seq("AffiliatePasswordReset", "AffiliateInvite").map(k => Messaging.emailed(kit, email, k).data("link"))
+    val tokens = links.map(_.split("token=").last)
+    assertEquals(tokens.count(_.length >= 40), 2, links.mkString(", "))
+    Thread.sleep(1500) // the views' last poll
+    val leaks = found(tokens.toVector)
     assert(leaks.isEmpty, leaks.mkString("\n"))
   }
 

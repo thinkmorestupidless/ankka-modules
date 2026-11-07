@@ -7,7 +7,7 @@ import com.thinkmorestupidless.ankka.core.CommandError
 import io.eitheror.casino.programme.ProgrammeCodecs
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Wire.*
-import io.eitheror.casino.programme.comms.{EmailSend, Notice, Notices, SendEmail}
+import io.eitheror.casino.programme.comms.{EmailSend, Notice, Notices, SendEmail, TokenLink}
 
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -110,12 +110,9 @@ final class Passwords(api: Api):
     else a.keycloakUser.fold(refuse(409, "no_keycloak_account"))(f)
 
   private def send(aff: String, brand: String, purpose: String, kind: String, page: String): Unit =
-    val token = Token.mint()
-    api.components.forKeyValueEntity(Token.idOf(token)).call(Token.issue)
-      .invoke(IssueToken(aff, purpose, Some(brand), api.now().plus(Token.life(purpose)))): Unit
-    val link = s"${api.settings.portalBaseUrl}/$page?token=$token"
-    api.components.forWorkflow(EntityId(s"$purpose-${Token.idOf(token)}")).call(EmailSend.start)
-      .invoke(SendEmail(aff, brand, kind, Map("invitation_link" -> link, "link" -> link, "user_id" -> aff))): Unit
+    val link = TokenLink(purpose, aff, brand, api.settings.portalBaseUrl, page, Seq("invitation_link", "link"))
+    api.components.forWorkflow(EmailSend.newId(purpose)).call(EmailSend.start)
+      .invoke(SendEmail(aff, brand, kind, Map("user_id" -> aff), link = Some(link))): Unit
 
   private def tell(aff: String, brand: String, kind: String, body: String): Unit =
     val at = api.now()

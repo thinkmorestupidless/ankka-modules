@@ -3,7 +3,7 @@ package io.eitheror.casino.programme.comms
 import com.thinkmorestupidless.ankka.core.*
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.programme.{ProgrammeCodecs, Wiring}
-import io.eitheror.casino.programme.accounts.{Affiliate, Secrets}
+import io.eitheror.casino.programme.accounts.{Affiliate, IssueToken, Secrets, Token}
 import io.eitheror.casino.programme.brands.BrandProgramme
 import io.eitheror.casino.programme.sealing.Sealing
 
@@ -28,11 +28,20 @@ final case class EmailState(
     status: String = EmailRules.New,
     finishedAt: Option[Instant] = None,
     /** A manager's address: a manager is not an affiliate, has no sealed identity, and the realm holds it anyway. */
-    to: Option[String] = None
+    to: Option[String] = None,
+    /** The link a send carries a token in: minted by the step, so only its hash is stored (as `Token`'s id). */
+    link: Option[TokenLink] = None
 )
 
+/**
+ * A link with a new token of `purpose` for `user`, put in each of `fields` as `<base>/<page>?token=<token>`.
+ * Each attempt mints its own; one that was not delivered is never used, and each lives as `Token.life` says.
+ */
+final case class TokenLink(purpose: String, user: String, brand: String, base: String, page: String, fields: Seq[String])
+
 /** To an affiliate by id; or, with `to`, to a manager (O2, O3), `affiliate` then the manager's user id. */
-final case class SendEmail(affiliate: String, brand: String, kind: String, data: Map[String, String], to: Option[String] = None)
+final case class SendEmail(affiliate: String, brand: String, kind: String, data: Map[String, String], to: Option[String] = None,
+    link: Option[TokenLink] = None)
 
 /** Up to three attempts over five minutes: the second a minute after the first, the third four minutes later. */
 object EmailRules:
@@ -64,7 +73,7 @@ final class EmailSend(context: WorkflowContext) extends Workflow[EmailState]:
   def start(c: SendEmail): Effect[EmailState] =
     if currentState.status != EmailRules.New then effects.reply(currentState)
     else
-      effects.updateState(EmailState(c.affiliate, c.brand, c.kind, c.data, status = EmailRules.Sending, to = c.to))
+      effects.updateState(EmailState(c.affiliate, c.brand, c.kind, c.data, status = EmailRules.Sending, to = c.to, link = c.link))
         .transitionTo(EmailSend.send.ref).thenReplyState
 
   def sendStep: StepEffect =
@@ -72,7 +81,8 @@ final class EmailSend(context: WorkflowContext) extends Workflow[EmailState]:
     val now = EmailSend.clock.get().instant()
     EmailSend.resolve(context, s) match
       case Left(why) => stepEffects.updateState(s.copy(status = EmailRules.Skipped, lastError = Some(why), finishedAt = Some(now))).thenEnd
-      case Right(message) =>
+      case Right(resolved) =>
+        val message = resolved.copy(data = resolved.data ++ s.link.map(EmailSend.issue(context, _, now)).getOrElse(Map.empty))
         val result =
           try EmailSend.customerIo.get().send(message.apiKey, message.region, message.transactionalId, message.to, message.data)
           catch case NonFatal(e) => Left(Option(e.getMessage).getOrElse(e.getClass.getSimpleName))
@@ -112,6 +122,17 @@ object EmailSend extends Workflow.Companion[EmailSend, EmailState](
             val named = Map("name" -> identity.name) ++ identity.companyName.map("company_name" -> _)
             Message(apiKey, region, tid, identity.email, named ++ s.data)
     yield message
+
+  /** A token minted and issued for this attempt, and the link's fields it fills: given to the send, never stored. */
+  def issue(context: WorkflowContext, l: TokenLink, now: Instant): Map[String, String] =
+    val token = Token.mint()
+    context.componentClient.forKeyValueEntity(Token.idOf(token)).call(Token.issue)
+      .invoke(IssueToken(l.user, l.purpose, Some(l.brand), now.plus(Token.life(l.purpose)))): Unit
+    val url = s"${l.base}/${l.page}?token=$token"
+    l.fields.map(_ -> url).toMap
+
+  /** A send's workflow id: one per request, as the token's hash was. */
+  def newId(purpose: String): EntityId = EntityId(s"$purpose-${java.util.UUID.randomUUID()}")
 
   given Serializer[SendEmail] = ProgrammeCodecs.serializer[SendEmail]("send-email")
 

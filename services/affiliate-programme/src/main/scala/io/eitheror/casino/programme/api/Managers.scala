@@ -7,7 +7,7 @@ import io.eitheror.casino.programme.ProgrammeCodecs
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.activity.{Audit, AuditEntry}
 import io.eitheror.casino.programme.api.Wire.*
-import io.eitheror.casino.programme.comms.{EmailSend, SendEmail}
+import io.eitheror.casino.programme.comms.{EmailSend, SendEmail, TokenLink}
 
 /** The manager routes' shapes (O1 to O3), the original's. */
 object ManagerAnswers:
@@ -86,12 +86,9 @@ final class Managers(api: Api):
         }))
 
   private def send(brand: String, user: String, email: String, purpose: String, kind: String, page: String): Unit =
-    val token = Token.mint()
-    api.components.forKeyValueEntity(Token.idOf(token)).call(Token.issue)
-      .invoke(IssueToken(user, purpose, Some(brand), api.now().plus(Token.life(purpose)))): Unit
-    val link = s"${api.settings.backofficeBaseUrl}/$page?token=$token"
-    api.components.forWorkflow(EntityId(s"$purpose-${Token.idOf(token)}")).call(EmailSend.start)
-      .invoke(SendEmail(user, brand, kind, Map("invitation_link" -> link, "user_id" -> user), Some(email))): Unit
+    val link = TokenLink(purpose, user, brand, api.settings.backofficeBaseUrl, page, Seq("invitation_link"))
+    api.components.forWorkflow(EmailSend.newId(purpose)).call(EmailSend.start)
+      .invoke(SendEmail(user, brand, kind, Map("user_id" -> user), Some(email), Some(link))): Unit
 
   private def audit(brand: String, action: String, by: String, user: String): Unit =
     api.components.forKeyValueEntity(EntityId(AuditEntry.newId())).call(AuditEntry.write)
