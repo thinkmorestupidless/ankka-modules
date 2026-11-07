@@ -126,7 +126,7 @@ final class Hosting(api: Api):
           val entity = api.components.forKeyValueEntity(EntityId(slug))
           entity.call(BrandProgramme.add).invoke(AddBrand(slug, origin, b.name, zone, by, api.now(), b.keyDocumentUrl)): Unit
           val planId = b.defaultPlan.map(p => Plan.idOf(slug, p.planName.get.trim))
-          step(b.settings.fold(noContent)(backoffice.putSettings(slug, _, by))) {
+          step(b.settings.fold(noContent)(backoffice.putSettings(slug, _, by, admin = true))) {
             step(b.defaultPlan.fold(noContent)(backoffice.createPlan(slug, _, by))) {
               val page = b.programme.getOrElse(ProgrammeBody()).copy(defaultPlanId = planId.orElse(b.programme.flatMap(_.defaultPlanId)))
               step(backoffice.putProgramme(slug, page, by)) {

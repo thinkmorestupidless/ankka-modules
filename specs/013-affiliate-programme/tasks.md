@@ -425,10 +425,10 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ## Phase 13: Polish & Cross-Cutting Concerns
 
-- [ ] T092 [P] `p-test/it/LatencySuite.scala`: a fact in revenue within 10 s (SC-005)
-- [ ] T093 [P] `p-test/port/CoverageSuite.scala`: every scenario of `features/programme/` bound, every
+- [X] T092 [P] `p-test/it/LatencySuite.scala`: a fact in revenue within 10 s (SC-005)
+- [X] T093 [P] `p-test/port/CoverageSuite.scala`: every scenario of `features/programme/` bound, every
   recording replayed or named in `NotDriven`
-- [ ] T094 [P] `services/affiliate-programme/README.md`: components, secrets, how to add a brand here
+- [X] T094 [P] `services/affiliate-programme/README.md`: components, secrets, how to add a brand here
   (re-render, restart) and a hosted brand, the suites
 - [ ] T095 Quickstart §6: `just programme-run`, the walk-through it describes
 - [ ] T096 Quickstart §7 on kind: `shared/programme` beside `brands/goldvibe`, the grant consumed, a hosted

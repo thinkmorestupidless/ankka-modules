@@ -3,6 +3,7 @@ package io.eitheror.casino.programme.api
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
+import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.programme.ProgrammeCodecs
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Answers.{AccountAnswer, Applied, Ok, given}
@@ -28,11 +29,11 @@ object BackofficeAnswers:
       providerFeePercent: Option[Percent] = None, bonusCostThreshold: Option[Int] = None, chargebackThreshold: Option[Int] = None,
       payoutCycleDay: Option[Int] = None, reportingZone: Option[String] = None, ggrSource: Option[String] = None,
       ggrSourceFrom: Option[String] = None, senderRegion: Option[String] = None, senderMessages: Option[Map[String, String]] = None,
-      defaultPlanId: Option[String] = None)
+      defaultPlanId: Option[String] = None, customerIoKey: Option[String] = None)
   final case class SettingsAnswer(brandId: String, origin: String, adminFeePercent: BigDecimal, paymentFeePercent: BigDecimal,
       providerFeePercent: BigDecimal, bonusCostThreshold: Int, chargebackThreshold: Int, payoutCycleDay: Option[Int], reportingZone: String,
       ggrSource: String, ggrSourceFrom: Option[String], previousGgrSource: String, senderRegion: Option[String],
-      senderMessages: Map[String, String], defaultPlanId: Option[String], retiredAt: Option[Instant])
+      senderMessages: Map[String, String], defaultPlanId: Option[String], retiredAt: Option[Instant], customerIoKeySet: Boolean)
 
   final case class ProgrammeBody(terms: Option[String] = None, termsVersion: Option[String] = None, contact: Option[String] = None,
       description: Option[String] = None, payoutCycleDays: Option[Int] = None, minimumPayoutAmount: Option[Long] = None,
@@ -48,10 +49,11 @@ object BackofficeAnswers:
   /** O7's row: the account at the brand, and its figures this month in the brand's zone, per currency. */
   final case class AccountRow(account: AccountAnswer, currentMonth: Vector[Figure])
 
-  def settings(b: BrandState): SettingsAnswer =
+  /** The settings, and whether a Customer.io key is held: the key itself is never answered. */
+  def settings(b: BrandState, keySet: Boolean): SettingsAnswer =
     SettingsAnswer(b.slug, b.origin, Percent.show(b.fees.admin), Percent.show(b.fees.payment), Percent.show(b.fees.provider),
       b.thresholds.bonusCost, b.thresholds.chargeback, b.payoutCycleDay, b.reportingZone, b.ggrSource.current, b.ggrSource.from,
-      b.ggrSource.previous, b.sender.region, b.sender.messages, b.defaultPlan, b.retired)
+      b.ggrSource.previous, b.sender.region, b.sender.messages, b.defaultPlan, b.retired, keySet)
 
   given planBody: JsonValueCodec[PlanBody]           = ProgrammeCodecs.wire[PlanBody]
   given planCreated: JsonValueCodec[PlanCreated]     = ProgrammeCodecs.wire[PlanCreated]
@@ -102,11 +104,21 @@ final class Backoffice(api: Api):
 
   // ── settings and the programme page (O43 to O46) ──────────────────────────────────────────────
 
-  def settings(brand: String): Respond[Bytes] = ok(BackofficeAnswers.settings(api.brand(brand)))
+  def settings(brand: String): Respond[Bytes] =
+    Secrets(api.secrets).brandSecret(brand, Secrets.CustomerIoKey) match
+      case Left(u)    => refuse(503, "store_unavailable", u.reason)
+      case Right(key) => ok(BackofficeAnswers.settings(api.brand(brand), key.isDefined))
 
-  def putSettings(brand: String, b: SettingsBody, by: String): Respond[Bytes] =
-    val s = api.brand(brand)
+  /**
+   * `customerIoKey` is the brand's Customer.io app API key (research R13): written to the store, never
+   * answered, and set only by a brand or platform administrator (`admin`).
+   */
+  def putSettings(brand: String, b: SettingsBody, by: String, admin: Boolean): Respond[Bytes] =
+    val s   = api.brand(brand)
+    val key = b.customerIoKey.map(_.trim)
     b.defaultPlanId.filter(p => !api.plan(brand, p).exists) match
+      case _ if key.isDefined && !admin => refuse(403, Routes.NotAffiliateManager, "customerIoKey: brand_admin or platform_admin is required")
+      case _ if key.exists(_.isEmpty)   => invalid("customerIoKey is empty")
       case Some(missing) => refuse(404, Codes.PlanNotFound, missing)
       case None if b.ggrSource.isDefined && b.ggrSourceFrom.isEmpty => invalid("ggrSourceFrom is required with ggrSource: the day it takes effect")
       case None =>
@@ -121,11 +133,14 @@ final class Backoffice(api: Api):
           case Some(p) if p == Codes.BrandUnknown => refuse(404, p, brand)
           case Some(p)                            => invalid(p)
           case None =>
-            val entity = api.components.forKeyValueEntity(EntityId(brand))
-            entity.call(BrandProgramme.update).invoke(u): Unit
-            b.ggrSource.foreach(g => entity.call(BrandProgramme.setGgrSource).invoke(SetGgrSource(g, b.ggrSourceFrom.get)): Unit)
-            audit("", brand, "SETTINGS_CHANGED", by, changed(b).view.mapValues(_ => "changed").toMap)
-            ok(Ok(true))
+            key.map(k => Secrets(api.secrets).putBrandSecret(brand, Secrets.CustomerIoKey, k)) match
+              case Some(Left(unavailable)) => refuse(503, "store_unavailable", unavailable.reason)
+              case _ =>
+                val entity = api.components.forKeyValueEntity(EntityId(brand))
+                entity.call(BrandProgramme.update).invoke(u): Unit
+                b.ggrSource.foreach(g => entity.call(BrandProgramme.setGgrSource).invoke(SetGgrSource(g, b.ggrSourceFrom.get)): Unit)
+                audit("", brand, "SETTINGS_CHANGED", by, changed(b).view.mapValues(_ => "changed").toMap)
+                ok(Ok(true))
 
   def programme(brand: String): Respond[Bytes] = ok(Answers.programme(api.brand(brand)))
 

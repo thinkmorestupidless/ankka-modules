@@ -41,7 +41,7 @@ public by `withAcl(Routes.public)`.
 | O41 | `GET /{brand}/payouts` | |
 | O42 | `PATCH /{brand}/payouts/{payout}/status` | `{status, overrideCommission?, reason?}`; the figure as an adjustment (FR-019) |
 | new | `GET /{brand}/payouts/export?period=` | FR-021: `text/csv` (below) |
-| O43, O44 | `GET`, `PUT /{brand}/settings` | + `ggrSource`, `reportingZone`, sender configuration |
+| O43, O44 | `GET`, `PUT /{brand}/settings` | + `ggrSource`, `reportingZone`, sender configuration; `customerIoKey`, write-only, set by `brand_admin` or `platform_admin` only (`403` otherwise) and answered only as `customerIoKeySet` |
 | O45, O46 | `GET`, `PUT /{brand}/programme` | + terms, contact, description, default plan |
 | O47 | `POST /{brand}/messages` | |
 | O48, O49 | `GET /{brand}/fraud-flags`, `PATCH /{brand}/fraud-flags/{flag}/dismiss` | |

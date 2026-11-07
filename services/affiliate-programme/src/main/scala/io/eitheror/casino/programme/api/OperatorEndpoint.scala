@@ -132,7 +132,7 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     }
     get("/{brand}/settings") { (brand: String) => attempt(backoffice.settings(brand)) }
     putBody("/{brand}/settings") { (brand: String, body: String) =>
-      attempt(withBody[BackofficeAnswers.SettingsBody](body)(backoffice.putSettings(brand, _, principal.subject)))
+      attempt(withBody[BackofficeAnswers.SettingsBody](body)(backoffice.putSettings(brand, _, principal.subject, principal.roles.exists(Access.ManagerAdminRoles))))
     }
     get("/{brand}/programme") { (brand: String) => attempt(backoffice.programme(brand)) }
     putBody("/{brand}/programme") { (brand: String, body: String) =>

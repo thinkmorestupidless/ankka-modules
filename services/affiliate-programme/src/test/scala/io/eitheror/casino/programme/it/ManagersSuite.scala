@@ -71,6 +71,19 @@ class ManagersSuite extends munit.FunSuite with LogCapturing:
     assertEquals((page.status, page.json.get("terms").asText), (200, "Version two"), page.text)
   }
 
+  test("a brand administrator sets the brand's Customer.io key; it is stored, never answered, and a manager may not set it") {
+    val brand = fresh()
+    val refused = send("PUT", s"/$brand/settings", """{"customerIoKey":"cio-secret"}""", kit.asManager(Seq(brand)))
+    assertEquals(refused.status, 403, refused.text)
+    assertEquals(get(s"/$brand/settings", kit.asManager(Seq(brand))).json.get("customerIoKeySet").asBoolean, false)
+    assertEquals(send("PUT", s"/$brand/settings", """{"customerIoKey":"  "}""", admin(Seq(brand))).status, 400)
+    assertEquals(send("PUT", s"/$brand/settings", """{"customerIoKey":"cio-secret"}""", admin(Seq(brand))).status, 200)
+    val read = get(s"/$brand/settings", kit.asManager(Seq(brand)))
+    assert(read.json.get("customerIoKeySet").asBoolean && !read.text.contains("cio-secret"), read.text)
+    assertEquals(io.eitheror.casino.programme.accounts.Secrets(kit.secrets).brandSecret(brand, io.eitheror.casino.programme.accounts.Secrets.CustomerIoKey),
+      Right(Some("cio-secret")))
+  }
+
   test("a manager makes an account active at the brand, finds it by search, notes it and reads its audit") {
     val email = s"${kit.fresh("made")}@example.com"
     val plan  = kit.plan("goldvibe", kit.fresh("p"), Plan.Cpa, cpa = 1_000)
