@@ -8,6 +8,8 @@ import io.eitheror.casino.programme.ledger.{CloseAccount, Closing, CommissionAcc
 
 import java.time.Instant
 import scala.concurrent.duration.*
+import scala.util.{Failure, Success, Try}
+import scala.util.control.NonFatal
 
 /** A payout a close wrote or brought up to date, as the original's close answers it, in minor units. */
 final case class ClosedPayout(affiliateId: String, payoutId: String, brandId: String, currency: String, totalPayable: Long)
@@ -56,9 +58,17 @@ final case class CloseState(
     payouts: Vector[ClosedPayout] = Vector.empty,
     by: String = "",
     startedAt: Option[Instant] = None,
-    endedAt: Option[Instant] = None
+    endedAt: Option[Instant] = None,
+    /** The accounts whose part failed, and why: their facts stay unclaimed for the next close. */
+    failed: Vector[CloseFailure] = Vector.empty,
+    /** How many of `payouts` the finish has brought up to date. */
+    finished: Int = 0,
+    /** Why the run was given up, when a step failed past its retries: it ended all the same. */
+    abandoned: Option[String] = None
 ):
   def started: Boolean = brand.nonEmpty
+
+final case class CloseFailure(account: String, reason: String)
 
 /** `carried`: what the period's previous run wrote, which a close that finds nothing new still answers (FR-020). */
 final case class StartClose(brand: String, period: String, run: Int, periodEnd: Instant, by: String, at: Instant,
@@ -72,7 +82,13 @@ final case class StartClose(brand: String, period: String, run: Int, periodEnd: 
 final class Close(context: WorkflowContext) extends Workflow[CloseState]:
   def emptyState: CloseState = CloseState()
 
-  override def settings: WorkflowSettings = WorkflowSettings.builder.defaultStepTimeout(30.seconds).build
+  // A page or a finish that fails past its retries gives the run up, so `CloseRun` is never left running
+  // and the next close is a new run, which claims what this one did not.
+  override def settings: WorkflowSettings =
+    WorkflowSettings.builder.defaultStepTimeout(30.seconds)
+      .stepRecovery(Close.page, RecoverStrategy.maxRetries(2).failoverTo(Close.abandon))
+      .stepRecovery(Close.finish, RecoverStrategy.maxRetries(2).failoverTo(Close.abandon))
+      .build
 
   /** A start of one already started rejoins it. */
   def start(c: StartClose): Effect[CloseState] =
@@ -85,21 +101,47 @@ final class Close(context: WorkflowContext) extends Workflow[CloseState]:
     val s      = currentState
     val rows   = Wiring.owed.get()(s.brand, s.period, s.cursor)
     val closer = Closer(CloseCalls.of(context.componentClient), () => Wiring.clock.get().instant())
-    val closed = rows.flatMap(r => closer.closeOne(r, s.period, s.periodEnd.get))
+    // One account that fails (a payout paid meanwhile, a timeout) is recorded and passed over; the page goes on.
+    val parts  = rows.map(r => r -> Try(closer.closeOne(r, s.period, s.periodEnd.get)))
+    val closed = parts.collect { case (_, Success(Some(p))) => p }
+    val failed = parts.collect { case (r, Failure(NonFatal(e))) =>
+      Close.log.warn(s"close ${s.brand}/${s.period}/${s.run}: ${r.account} failed: ${e.getMessage}")
+      CloseFailure(r.account, Option(e.getMessage).getOrElse(e.getClass.getSimpleName))
+    }
     val swept  = closed.map(_.payoutId).toSet
-    val next   = s.copy(cursor = rows.lastOption.fold(s.cursor)(_.account), payouts = s.payouts.filterNot(p => swept(p.payoutId)) ++ closed)
+    val next   = s.copy(cursor = rows.lastOption.fold(s.cursor)(_.account), payouts = s.payouts.filterNot(p => swept(p.payoutId)) ++ closed,
+      failed = s.failed ++ failed)
     if rows.size < Close.PageSize then stepEffects.updateState(next).thenTransitionTo(Close.finish.ref)
     else stepEffects.updateState(next).thenTransitionTo(Close.page.ref)
 
-  /** The payouts carried from the previous run as they stand now: a paid or rejected one is no longer the close's. */
+  /**
+   * The payouts carried from the previous run as they stand now, 50 a step as the pages: a paid or
+   * rejected one is no longer the close's.
+   */
   def finishStep: StepEffect =
-    val calls = CloseCalls.of(context.componentClient)
-    val s = currentState.copy(payouts = currentState.payouts.flatMap { p =>
-      val now = calls.payout(Payout.entityId(p.affiliateId, p.brandId, p.currency, currentState.period))
+    val calls      = CloseCalls.of(context.componentClient)
+    val s          = currentState
+    val (done, todo) = s.payouts.splitAt(s.finished)
+    val (page, rest) = todo.splitAt(Close.PageSize)
+    val current = page.flatMap { p =>
+      val now = calls.payout(Payout.entityId(p.affiliateId, p.brandId, p.currency, s.period))
       Option.when(now.status.exists(st => st == Payout.Pending || st == Payout.Approved))(p.copy(totalPayable = now.total))
-    })
+    }
+    val next = s.copy(payouts = done ++ current ++ rest, finished = done.size + current.size)
+    if rest.nonEmpty then stepEffects.updateState(next).thenTransitionTo(Close.finish.ref)
+    else
+      endRun(next)
+      stepEffects.updateState(next.copy(endedAt = Some(Wiring.clock.get().instant()))).thenEnd
+
+  /** The failover: the run ends with what it wrote, so a close asked for after it starts a new run rather than joining this one for ever. */
+  def abandonStep: StepEffect =
+    val s = currentState
+    Close.log.warn(s"close ${s.brand}/${s.period}/${s.run} given up after its retries; the next close is a new run")
+    endRun(s)
+    stepEffects.updateState(s.copy(abandoned = Some("a step failed past its retries"), endedAt = Some(Wiring.clock.get().instant()))).thenEnd
+
+  private def endRun(s: CloseState): Unit =
     context.componentClient.forKeyValueEntity(CloseRun.entityId(s.brand, s.period)).call(CloseRun.ended).invoke(s.run): Unit
-    stepEffects.updateState(s.copy(endedAt = Some(Wiring.clock.get().instant()))).thenEnd
 
   def get: ReadOnlyEffect[CloseState] = effects.reply(currentState)
 
@@ -115,8 +157,11 @@ object Close extends Workflow.Companion[Close, CloseState](
 
   def create(context: WorkflowContext) = new Close(context)
 
-  val page   = step("page")(_.pageStep)
-  val finish = step("finish")(_.finishStep)
+  private[settlement] val log = org.slf4j.LoggerFactory.getLogger(classOf[Close])
+
+  val page    = step("page")(_.pageStep)
+  val finish  = step("finish")(_.finishStep)
+  val abandon = step("abandon")(_.abandonStep)
 
   val start = command("start")(_.start)
   val get   = query("get")(_.get)

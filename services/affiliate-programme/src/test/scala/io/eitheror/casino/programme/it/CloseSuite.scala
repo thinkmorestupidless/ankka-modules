@@ -3,7 +3,9 @@ package io.eitheror.casino.programme.it
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.brands.Plan
+import io.eitheror.casino.programme.Wiring
 import io.eitheror.casino.programme.ledger.{CommissionAccount, RecordAdjustment, RecordCpa, Unsettled}
+import io.eitheror.casino.programme.settlement.Payout
 
 import java.time.Instant
 import java.util.concurrent.Executors
@@ -137,6 +139,28 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
       assertEquals(payout(aff, "2025-08")().get("totalPayable").asLong, 5_000L)
       assertEquals(payoutsOf(aff, "2025-08").size, 1)
     finally pool.shutdown()
+  }
+
+  test("an account whose part fails is passed over and the rest close; a page that keeps failing ends its run") {
+    val (broken, fine) = (affiliate(), affiliate())
+    earn(broken, 5_000, "2025-10-10T10:00:00Z")
+    earn(fine, 5_000, "2025-10-11T10:00:00Z")
+    // The ledger says paid where no payout does: its close refuses `paid`.
+    kit.components.forEventSourcedEntity(CommissionAccount.entityId(broken, "goldvibe", "EUR")).call(CommissionAccount.markPaid)
+      .invoke(Payout.idOf(broken, "goldvibe", "EUR", "2025-10")): Unit
+    val r = close("2025-10")
+    assertEquals(r.status, 200, r.text)
+    val closed = r.json.get("payouts").elements().asScala.map(_.get("affiliateId").asText).toSet
+    assert(closed(fine) && !closed(broken), r.text)
+
+    val owed = Wiring.owed.get()
+    Wiring.owed.set((_, _, _) => throw IllegalStateException("the view is down"))
+    try kit.eventually("the run given up", 30.seconds)(Option(close("2025-11")).filter(_.status == 200)): Unit
+    finally Wiring.owed.set(owed)
+    earn(fine, 3_000, "2025-11-10T10:00:00Z")
+    val again = close("2025-11")
+    assertEquals(again.status, 200, again.text)
+    assertEquals(again.json.get("payouts").elements().asScala.find(_.get("affiliateId").asText == fine).map(_.get("totalPayable").asLong), Some(3_000L))
   }
 
   test("a transition the status machine does not allow is refused, naming the status") {
