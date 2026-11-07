@@ -95,3 +95,9 @@ Feature: A player launches a game and the game provider opens the session
     Given a player with eligible free rounds for a game
     When the player launches that game naming no free rounds
     Then the oldest eligible free rounds are attached to the launch ticket and echoed back
+
+  Scenario: a second game provider of the same protocol under its own name has its provider calls served under its own name and never under the first's
+    Given a brand that holds credentials for two game providers of the same protocol, the second named "eitheror"
+    When the second game provider sends a provider call under its own name
+    Then it is served under that name
+    And a provider call of the second game provider sent under the first's name or under none is not served
