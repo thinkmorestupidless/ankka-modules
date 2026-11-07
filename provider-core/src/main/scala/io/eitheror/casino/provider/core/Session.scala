@@ -87,6 +87,20 @@ object Session:
   def empty(token: String): Session =
     Session(token, "", "", "", "", None, "default", scenarioSelected = false, token, 0L, Map.empty, Vector.empty, Vector.empty, Vector.empty, None, 0L, Empty)
 
+  /** One event folded into a session: the entity's fold, and a view's that keeps the session as its row. */
+  def applied(s: Session, event: SessionEvent): Session =
+    import SessionEvent.{Launched as L, ScenarioSelected, Checked as Ch, CheckRefused, RoundAnswered, CallbackPlanned, BalanceSeen, StepJudged, Discarded}
+    event match
+      case e: L                      => s.onLaunched(e)
+      case ScenarioSelected(n, seed) => s.copy(scenario = n, scenarioSelected = true, seed = seed.getOrElse(s.seed))
+      case Ch(w)                     => s.copy(walletToken = Some(w), state = Session.Checked)
+      case CheckRefused(_)           => s.copy(state = Session.Refused)
+      case e: RoundAnswered          => s.onAnswered(e)
+      case e: CallbackPlanned        => s.onPlanned(e)
+      case BalanceSeen(b)            => s.copy(lastBalance = Some(b))
+      case StepJudged(v)             => s.copy(verdicts = s.verdicts.filterNot(_.step == v.step) :+ v)
+      case Discarded                 => s
+
 /** One round in a session (FR-003): its state and the transaction ids sent for it. */
 final case class Round(
     roundId: String,

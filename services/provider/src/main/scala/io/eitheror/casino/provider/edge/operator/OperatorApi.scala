@@ -44,6 +44,13 @@ final class OperatorApi(
       case Some(entry) if signedBy(entry, signed) => f(entry)
       case _                                      => refused(OperatorApi.AuthFailed)
 
+  private def heldByAnother(token: String, slug: String): Boolean =
+    token.nonEmpty &&
+      (try
+        val s = client.forEventSourcedEntity(EntityId(token)).call(SessionEntity.get).invoke()
+        s.launched && s.brand != slug
+      catch case _: CommandError => false) // a ticket never launched is held by no one
+
   private def game(code: String): Option[Game] =
     try Some(client.forKeyValueEntity(EntityId(code)).call(GameEntity.get).invoke())
     catch case _: CommandError => None
@@ -59,6 +66,11 @@ final class OperatorApi(
             case None => refused(OperatorApi.UnknownGame)
             case Some(_) if entry.launchesRefused => refused(OperatorApi.KeyDocumentWithRealMoney)
             case Some(g) if !health(g.owner, g.code) => refused(OperatorApi.Unavailable)
+            case Some(g) if heldByAnother(body.string("token"), entry.slug) =>
+              // A session belongs to one brand (FR-018): a ticket another brand launched is not
+              // this brand's to launch again, and its session is never answered across.
+              GameHealth.log.warn(s"launch from ${entry.slug} refused: its ticket is a session of another brand")
+              refused(OperatorApi.AuthFailed)
             case Some(g) =>
               val token = body.string("token")
               // Nothing of `player_profile` is read or kept (data-model, Session).

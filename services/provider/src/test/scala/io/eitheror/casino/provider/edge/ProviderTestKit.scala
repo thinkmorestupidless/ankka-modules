@@ -2,7 +2,7 @@ package io.eitheror.casino.provider.edge
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Caller, HttpServer}
+import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.sdk.SecretStore
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
@@ -35,6 +35,23 @@ object ProviderTestKit:
    */
   val schedule: Schedule = Schedule(1.second, Vector(Schedule.Interval(300.millis, None)), 1.hour, St8Protocol.defaultRetryOn)
 
+  /** Stands in for ankka-auth-oidc's verifier, as the contract's suites do: a token is `<issuer>|<iss>|<roles,...>`. */
+  val verified: Acl = Acl.Authenticate { context =>
+    context.header("authorization").map(_.stripPrefix("Bearer ")) match
+      case None => AuthDecision.Unauthenticated("realm=\"eitheror\"")
+      case Some(token) =>
+        token.split('|') match
+          case Array(issuer, iss, roles) =>
+            AuthDecision.Allow(Principal("staff-user", roles = roles.split(',').filter(_.nonEmpty).toSet, claims = Map("iss" -> iss), issuer = Some(issuer)))
+          case _ => AuthDecision.Unauthenticated("realm=\"eitheror\", error=\"invalid_token\"")
+  }
+
+  /** A staff token at the eitheror realm holding `roles`. */
+  def staff(roles: String*): String = s"staff|https://auth-casino.example/realms/eitheror|${roles.mkString(",")}"
+
+  /** A token from a brand's player realm, which no operator route admits. */
+  def playerToken: String = "player|https://auth-casino.example/realms/goldvibe|brand_goldvibe,games"
+
   lazy val kit: Kit = Kit()
 
   final class Kit:
@@ -65,7 +82,7 @@ object ProviderTestKit:
 
     def start(): Unit = synchronized {
       if started == null then
-        server = Provider.server(settings, cache, holder, Some(("127.0.0.1", 0)))
+        server = Provider.server(settings, cache, holder, Some(("127.0.0.1", 0)), Some(ProviderTestKit.verified))
         timers = TimerRuntime(200.millis)
         started = AnkkaTestKit.start(Provider.descriptors, Seq(ProjectionRuntime(), timers, server),
           localServices = Map(game.name -> game.address))
@@ -107,6 +124,28 @@ object ProviderTestKit:
       testKit.componentClient.forKeyValueEntity(EntityId(e.slug)).call(BrandEntryEntity.put).invoke(e): Unit
       testKit.componentClient.forKeyValueEntity(EntityId(BrandIndex.Id)).call(BrandIndex.add).invoke(e.slug): Unit
       cache.put(e)
+
+    /** An entry gone, as an operator's removal leaves it: the entity, the index, the cache. */
+    def removeEntry(slug: String): Unit =
+      testKit.componentClient.forKeyValueEntity(EntityId(slug)).call(BrandEntryEntity.remove).invoke(): Unit
+      testKit.componentClient.forKeyValueEntity(EntityId(BrandIndex.Id)).call(BrandIndex.drop).invoke(slug): Unit
+      cache.remove(slug)
+
+    /** goldvibe's entry as the kit wrote it at start, for a suite that changed it. */
+    def restoreGoldvibe(): Unit = putEntry(entry("goldvibe", brand.address))
+
+    /** An entry's body as an operator writes it with `PUT /v1/provider/brands/{slug}`. */
+    def entryBody(site: String, address: String, games: Seq[String] = Nil, key: KeyPair = operator): String =
+      val listed = games.map(g => s"\"$g\"").mkString(",")
+      s"""{"baseAddress":"$address","site":"$site","operatorPublicKey":"${Signer.publicKeyText(key.getPublic)}","language":"pt",""" +
+        s""""testBrand":true,"games":[$listed],"providerWaitMillis":1000,"keyRefreshBoundSeconds":1,"realMoney":false}"""
+
+    /** A call to the operator routes with a staff token. */
+    def asStaff(method: String, path: String, token: String, body: Option[String] = None): Answer =
+      call(method, path, body, Seq("Authorization" -> s"Bearer $token"))
+
+    /** A second brand, `spinvibe`, on its own fake; its entry is a suite's to write. */
+    lazy val spinvibe: FakeBrand = { start(); FakeBrand(keys) }
 
     def stop(): Unit = synchronized {
       if started != null then

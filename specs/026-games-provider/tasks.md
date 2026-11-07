@@ -76,10 +76,10 @@ and sees what it sees from ST8. **Independent test**: `OperatorApiParitySuite` a
 **Goal**: operators write the brand table; a launch is admitted only under its brand's key; nothing
 crosses brands. **Independent test**: `features/games/brands.feature`.
 
-- [ ] T034 [US3] `ProviderEndpoint` `/v1/provider/brands` routes in `E/main/.../edge/admin/ProviderEndpoint.scala` (`contracts/provider-routes.md`, `contracts/brand-entry.md`): `GET /brands` (`installationOperatorHolding("games")`), `PUT /brands/{slug}` (`operatorHolding(slug, "games")`; malformed fields refused by name; `keyDocument` only with `testBrand`; a private key in the body refused), `GET /brands/{slug}` (`operator(slug)`); the cache refreshed on write
-- [ ] T035 [US3] Per-brand checks in `GamesEndpoint` and `OperatorApi`: a session answered only to its brand's game and callbacks; a launch for a brand the table does not hold refused; the games list filtered by the entry (FR-018)
-- [ ] T036 [US3] `SessionsByBrand` view and `GET /brands/{slug}/sessions`, `GET /brands/{slug}/rounds`, `GET /brands/{slug}/rounds/{token}` (`RunCallbacks`) in `E/main/.../edge/views/SessionsByBrand.scala` and `ProviderEndpoint.scala`, `operator(slug)`
-- [ ] T037 [US3] Bind `features/games/brands.feature` in `E/test/.../edge/steps/BrandsFeatures.scala`: two `FakeBrand`s, the `games` role versus a brand operator (SC-006 in the integration suite: 1,000 rounds each, no shared row)
+- [X] T034 [US3] `ProviderEndpoint` `/v1/provider/brands` routes in `E/main/.../edge/admin/ProviderEndpoint.scala` (`contracts/provider-routes.md`, `contracts/brand-entry.md`): `GET /brands` (`installationOperatorHolding("games")`), `PUT /brands/{slug}` (`operatorHolding(slug, "games")`; malformed fields refused by name; `keyDocument` only with `testBrand`; a private key in the body refused), `GET /brands/{slug}` (`operator(slug)`); the cache refreshed on write
+- [X] T035 [US3] Per-brand checks in `GamesEndpoint` and `OperatorApi`: a session answered only to its brand's game and callbacks; a launch for a brand the table does not hold refused; the games list filtered by the entry (FR-018)
+- [X] T036 [US3] `SessionsByBrand` view and `GET /brands/{slug}/sessions`, `GET /brands/{slug}/rounds`, `GET /brands/{slug}/rounds/{token}` (`RunCallbacks`) in `E/main/.../edge/views/SessionsByBrand.scala` and `ProviderEndpoint.scala`, `operator(slug)`
+- [X] T037 [US3] Bind `features/games/brands.feature` in `E/test/.../edge/steps/BrandsFeatures.scala`: two `FakeBrand`s, the `games` role versus a brand operator (SC-006 in the integration suite: 1,000 rounds each, no shared row)
 
 ## Phase 6: User Story 4 — keys and the three-act rotation (P2)
 

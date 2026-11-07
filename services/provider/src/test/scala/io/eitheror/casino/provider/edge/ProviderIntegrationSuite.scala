@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.provider.core.Callback
 
 import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 
 /**
  * The provider over Postgres (Docker) against `FakeBrand`, for what only a running service shows: a
@@ -68,6 +69,58 @@ class ProviderIntegrationSuite extends munit.FunSuite with LogCapturing:
     assert(sent.size >= 5, s"the debit was sent ${sent.size} times")
     assertEquals(sent.distinct.size, 1, "every retry carries the same body")
     assertEquals(kit.brand.balanceOf(player), before - BigDecimal("2.00") + BigDecimal("3.00"))
+  }
+
+  test("two brands playing 1,000 rounds each share no session, round or callback (SC-006)") {
+    kit.putEntry(kit.entry("spinvibe", kit.spinvibe.address))
+    try
+      val perBrand = 1000
+      val sessions = 10
+      def playAt(site: String): Set[String] =
+        val fake = if site == "goldvibe" then kit.brand else kit.spinvibe
+        val tickets = (1 to sessions).map { i =>
+          val t = s"L-sc006-$site-$i-${System.nanoTime()}"
+          fake.issue(t, s"p-sc006-$site-$i")
+          assert(kit.launch(t, s"p-sc006-$site-$i", "test-slot", site = site, issue = false).json.has("game_url"))
+          assertEquals(game.check(t).status, 200)
+          t
+        }
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(10)
+        try
+          val calls = tickets.flatMap(t => (1 to perBrand / sessions).map(r => (() => game.stake(t, s"r-$r", 1).text("status")): java.util.concurrent.Callable[Option[String]]))
+          val answered = pool.invokeAll(calls.asJava)
+          assertEquals(answered.asScala.count(_.get().contains("ok")), perBrand)
+        finally pool.shutdown()
+        tickets.toSet
+
+      kit.open(ticket(), "p-sc006-warm")
+      val gold = playAt("goldvibe")
+      val spin = playAt("spinvibe")
+
+      def listedRounds(slug: String): Vector[(String, String)] =
+        var after: Option[String] = None
+        var all = Vector.empty[(String, String)]
+        var more = true
+        while more do
+          val a = kit.asStaff("GET", s"/v1/provider/brands/$slug/rounds${after.fold("")(c => s"?after=$c")}", ProviderTestKit.staff("games"))
+          assertEquals(a.status, 200, a.body)
+          val page = a.json.get("rounds").elements().asScala
+            .map(r => (r.get("launchToken").asText(), r.get("roundId").asText())).toVector
+          all ++= page
+          after = Option(a.json.get("next")).filter(!_.isNull).map(_.asText())
+          more = after.isDefined
+        all
+
+      val goldRounds = kit.eventually(60.seconds)(Option(listedRounds("goldvibe").filter((t, _) => gold.contains(t))).filter(_.size == perBrand))
+      val spinRounds = kit.eventually(60.seconds)(Option(listedRounds("spinvibe").filter((t, _) => spin.contains(t))).filter(_.size == perBrand))
+      assertEquals(listedRounds("goldvibe").map(_._1).toSet.intersect(spin), Set.empty)
+      assertEquals(listedRounds("spinvibe").map(_._1).toSet.intersect(gold), Set.empty)
+      assertEquals(goldRounds.distinct.size, perBrand)
+      assertEquals(spinRounds.distinct.size, perBrand)
+      // Each brand was sent only its own players' debits.
+      assertEquals(kit.spinvibe.requestsTo("debit").count(r => gold.exists(t => r.text.contains(s"s-$t"))), 0)
+      assertEquals(kit.brand.requestsTo("debit").count(r => spin.exists(t => r.text.contains(s"s-$t"))), 0)
+    finally kit.removeEntry("spinvibe")
   }
 
   test("a restart while a credit waits on its schedule resumes the schedule, and the credit is acknowledged once") {

@@ -14,16 +14,7 @@ final class SessionEntity(context: EventSourcedEntityContext) extends EventSourc
 
   def emptyState: Session = Session.empty(context.entityId)
 
-  def applyEvent(event: SessionEvent): Session = event match
-    case e: Launched         => currentState.onLaunched(e)
-    case ScenarioSelected(n, seed) => currentState.copy(scenario = n, scenarioSelected = true, seed = seed.getOrElse(currentState.seed))
-    case Checked(w)          => currentState.copy(walletToken = Some(w), state = Session.Checked)
-    case CheckRefused(_)     => currentState.copy(state = Session.Refused)
-    case e: RoundAnswered    => currentState.onAnswered(e)
-    case e: CallbackPlanned  => currentState.onPlanned(e)
-    case BalanceSeen(b)      => currentState.copy(lastBalance = Some(b))
-    case StepJudged(v)       => currentState.copy(verdicts = currentState.verdicts.filterNot(_.step == v.step) :+ v)
-    case Discarded           => currentState
+  def applyEvent(event: SessionEvent): Session = Session.applied(currentState, event)
 
   def launch(request: SessionEntity.Launch): Effect[Session] =
     effects

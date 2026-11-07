@@ -1,7 +1,9 @@
 package io.eitheror.casino.provider.edge
 
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
-import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
+import com.thinkmorestupidless.ankka.auth.oidc.Oidc
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
+import io.eitheror.casino.provider.edge.admin.ProviderEndpoint
 import com.thinkmorestupidless.ankka.runtime.{Ankka, AnkkaService, ProjectionRuntime, TimerRuntime}
 import io.eitheror.casino.provider.brands.Sender
 import io.eitheror.casino.provider.core.*
@@ -9,6 +11,7 @@ import io.eitheror.casino.provider.edge.brands.{BrandCache, BrandEntryEntity, Br
 import io.eitheror.casino.provider.edge.games.GamesEndpoint
 import io.eitheror.casino.provider.edge.operator.{GameHealth, OperatorApi}
 import io.eitheror.casino.provider.edge.registry.{GameEntity, GameIndex}
+import io.eitheror.casino.provider.edge.views.SessionsByBrand
 import io.eitheror.casino.provider.st8.*
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
@@ -24,7 +27,7 @@ object Provider:
   val descriptors: Seq[ComponentDescriptor] = Seq(
     SessionEntity.descriptor, CallbackEntity.descriptor, Deliver.descriptor, KeyRotation.descriptor,
     RunCallbacks.descriptor, SweepAction.descriptor,
-    GameEntity.descriptor, GameIndex.descriptor, BrandEntryEntity.descriptor, BrandIndex.descriptor
+    GameEntity.descriptor, GameIndex.descriptor, BrandEntryEntity.descriptor, BrandIndex.descriptor, SessionsByBrand.descriptor
   )
 
   /** What the endpoints share: built once, from the first clients offered. */
@@ -32,7 +35,8 @@ object Provider:
     val keys  = Keys(clients.secrets)
     val ready = AtomicBoolean(false)
 
-  def server(settings: Settings, cache: BrandCache, holder: AtomicReference[Parts], at: Option[(String, Int)] = None): HttpServer =
+  def server(settings: Settings, cache: BrandCache, holder: AtomicReference[Parts], at: Option[(String, Int)] = None,
+      authenticate: Option[Acl] = None): HttpServer =
     def parts(c: EndpointClients): Parts =
       holder.compareAndSet(null, Parts(c, settings, cache))
       holder.get()
@@ -40,7 +44,8 @@ object Provider:
       c => KeyDocument(parts(c).keys),
       c => { val p = parts(c); Health(() => p.ready.get()) },
       c => GamesEndpoint(c.componentClient),
-      c => OperatorApi(c.componentClient, cache, GameHealth(name => c.services(name)).apply)
+      c => OperatorApi(c.componentClient, cache, GameHealth(name => c.services(name)).apply),
+      c => ProviderEndpoint(c.componentClient, c.viewClient, cache, authenticate.getOrElse(Oidc.authenticate()))
     )
     at.fold(HttpServer.of(factories*))((host, port) => HttpServer.at(host, port)(factories*))
 
