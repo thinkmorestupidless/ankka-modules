@@ -16,7 +16,12 @@
 //
 // The original keeps no currency on most facts, its payouts or its thresholds: the brand's one
 // currency, `-currency`, is given them. Where the original keeps no time for a revocation or a
-// deletion, the export's own time stands for it.
+// deletion, the export's own time stands for it; a fact, a payout or an account with no time of its own
+// is refused, never dated now. A revoked invite link is left out: its token opens nothing.
+//
+// A bundle of a real brand (spec 019's Spinvibe) is personal data: affiliates' identities, payment
+// details and notes in clear. It is written readable by its owner alone (0600), never committed, and
+// deleted once imported. Only a bundle of a local original's driver-made data goes to tests/port.
 package main
 
 import (
@@ -104,7 +109,7 @@ func main() {
 	fail(err)
 	w := io.Writer(os.Stdout)
 	if *out != "" {
-		f, err := os.Create(*out)
+		f, err := private(*out)
 		fail(err)
 		defer f.Close()
 		w = f
@@ -115,13 +120,18 @@ func main() {
 	if *expected != "" {
 		r, err := Revenue(src, *brand, b.Accounts)
 		fail(err)
-		f, err := os.Create(*expected)
+		f, err := private(*expected)
 		fail(err)
 		defer f.Close()
 		enc := json.NewEncoder(f)
 		enc.SetIndent("", " ")
 		fail(enc.Encode(r))
 	}
+}
+
+// private opens a file only its owner reads: a bundle is personal data.
+func private(path string) (*os.File, error) {
+	return os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 }
 
 func fail(err error) {
@@ -175,8 +185,27 @@ func (p props) at(k string) (*time.Time, error) {
 	return &t, nil
 }
 
-// minor is a decimal major-unit amount in minor units; more than two places is refused, not rounded.
-func minor(v string) (int64, error) {
+// exponents are the currencies whose minor unit is not a hundredth (ISO 4217); every other has two places.
+var exponents = map[string]int64{
+	"BIF": 0, "CLP": 0, "DJF": 0, "GNF": 0, "ISK": 0, "JPY": 0, "KMF": 0, "KRW": 0, "PYG": 0, "RWF": 0, "UGX": 0, "UYI": 0,
+	"VND": 0, "VUV": 0, "XAF": 0, "XOF": 0, "XPF": 0,
+	"BHD": 3, "IQD": 3, "JOD": 3, "KWD": 3, "LYD": 3, "OMR": 3, "TND": 3,
+}
+
+// minorIn is a decimal major-unit amount in the currency's minor units; more places than it has is refused,
+// not rounded, as is an amount past an int64.
+func minorIn(v, currency string) (int64, error) {
+	places, ok := exponents[strings.ToUpper(currency)]
+	if !ok {
+		places = 2
+	}
+	return scaled(v, places)
+}
+
+// minor is a decimal in hundredths: a percentage's basis points, or a two-place currency.
+func minor(v string) (int64, error) { return scaled(v, 2) }
+
+func scaled(v string, places int64) (int64, error) {
 	if strings.TrimSpace(v) == "" {
 		return 0, nil
 	}
@@ -184,9 +213,12 @@ func minor(v string) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("%q is not an amount", v)
 	}
-	r.Mul(r, big.NewRat(100, 1))
+	r.Mul(r, new(big.Rat).SetInt(new(big.Int).Exp(big.NewInt(10), big.NewInt(places), nil)))
 	if !r.IsInt() {
-		return 0, fmt.Errorf("%q has more than two decimal places", v)
+		return 0, fmt.Errorf("%q has more than %d decimal places", v, places)
+	}
+	if !r.Num().IsInt64() {
+		return 0, fmt.Errorf("%q is past an int64 in minor units", v)
 	}
 	return r.Num().Int64(), nil
 }

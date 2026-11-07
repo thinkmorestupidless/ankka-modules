@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -165,5 +166,60 @@ func TestRevenueIsTheMonthlyTwinsFiguresInMinorUnits(t *testing.T) {
 	}
 	if f := r["a-1"]["2025-01"]; f["cpaCommission"] != 2500 || f["ngr"] != -300 || f["ggr"] != 0 {
 		t.Fatalf("revenue %+v", r)
+	}
+}
+
+func TestAFactOrPayoutWithNoTimeOfItsOwnIsRefusedNeverDatedNow(t *testing.T) {
+	m := original()
+	m["affiliate-facts-spinvibe-a-1"] = []Twin{twin("f-9", "factType", "GGR", "amountCents", "1", "playerId", "player-1", "period", "2025-01")}
+	if _, err := Export(m, "spinvibe", "EUR", Pseudonyms([]byte("k")), now); err == nil || !strings.Contains(err.Error(), "no occurredAt") {
+		t.Fatalf("err %v", err)
+	}
+	m = original()
+	m["affiliate-payouts-spinvibe"] = []Twin{twin("po-9", "affiliateId", "a-1", "period", "2025-01", "status", "PENDING")}
+	if _, err := Export(m, "spinvibe", "EUR", Pseudonyms([]byte("k")), now); err == nil || !strings.Contains(err.Error(), "no createdAt") {
+		t.Fatalf("err %v", err)
+	}
+}
+
+func TestAmountsTakeTheirCurrencysPlacesAndNeverWrap(t *testing.T) {
+	cases := []struct {
+		v, cur string
+		want   int64
+	}{{"1500", "JPY", 1500}, {"1.234", "KWD", 1234}, {"12.34", "EUR", 1234}}
+	for _, c := range cases {
+		if got, err := minorIn(c.v, c.cur); err != nil || got != c.want {
+			t.Fatalf("%s %s: %d %v", c.v, c.cur, got, err)
+		}
+	}
+	if _, err := minorIn("1.5", "JPY"); err == nil {
+		t.Fatal("a yen has no places")
+	}
+	if _, err := minorIn("99999999999999999999", "EUR"); err == nil {
+		t.Fatal("past an int64 is refused, not wrapped")
+	}
+}
+
+func TestARevokedInviteLinkIsLeftOut(t *testing.T) {
+	m := original()
+	m["affiliate-invite-links-spinvibe"] = []Twin{
+		twin("i-1", "token", "live", "affiliateId", "a-1", "createdAt", "2025-01-01T00:00:00Z"),
+		twin("i-2", "token", "dead", "affiliateId", "a-1", "status", "REVOKED", "createdAt", "2025-01-01T00:00:00Z"),
+	}
+	b := export(t, m)
+	if len(b.InviteLinks) != 1 || b.InviteLinks[0].Token != "live" {
+		t.Fatalf("invites %+v", b.InviteLinks)
+	}
+}
+
+func TestTheBundleIsReadableByItsOwnerAlone(t *testing.T) {
+	path := t.TempDir() + "/bundle.json"
+	f, err := private(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	if st, _ := os.Stat(path); st.Mode().Perm() != 0o600 {
+		t.Fatalf("mode %v", st.Mode().Perm())
 	}
 }

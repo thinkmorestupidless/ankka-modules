@@ -255,6 +255,17 @@ func (e *exporter) check(what string, err error) {
 	}
 }
 
+// must is a time the record cannot be without: missing, it is an error, never the export's own time.
+func (e *exporter) must(what string, p props, k string) time.Time {
+	t, err := p.at(k)
+	e.check(what, err)
+	if t == nil {
+		e.check(what, fmt.Errorf("no %s", k))
+		return e.now
+	}
+	return *t
+}
+
 func (e *exporter) at(what string, p props, k string) time.Time {
 	t, err := p.at(k)
 	e.check(what, err)
@@ -270,8 +281,8 @@ func (e *exporter) optAt(what string, p props, k string) *time.Time {
 	return t
 }
 
-func (e *exporter) money(what string, v string) int64 {
-	n, err := minor(v)
+func (e *exporter) money(what, v, currency string) int64 {
+	n, err := minorIn(v, currency)
 	e.check(what, err)
 	return n
 }
@@ -337,7 +348,7 @@ func (e *exporter) programme() *Programme {
 		p := props(t.Props)
 		page := &Programme{PayoutCycleDays: e.int("payoutCycleDays", p)}
 		if v := p.str("minimumPayoutAmount"); v != "" {
-			n := e.money("minimumPayoutAmount", v)
+			n := e.money("minimumPayoutAmount", v, e.currency)
 			page.MinimumPayoutAmount = &n
 		}
 		return page
@@ -365,8 +376,8 @@ func (e *exporter) plans() plans {
 			kind = "cpa"
 		}
 		out.list = append(out.list, Plan{
-			Name: p.str("planName"), PlanType: kind, CpaAmount: e.money("cpaAmount", p.str("cpaAmount")), CpaCurrency: e.currency,
-			RevShareBp: rs, MinimumDeposit: e.money("minimumDepositThreshold", p.str("minimumDepositThreshold")),
+			Name: p.str("planName"), PlanType: kind, CpaAmount: e.money("cpaAmount", p.str("cpaAmount"), e.currency), CpaCurrency: e.currency,
+			RevShareBp: rs, MinimumDeposit: e.money("minimumDepositThreshold", p.str("minimumDepositThreshold"), e.currency),
 			NegativeCarryover: p.str("negativeCarryover") == "true", Status: status, CreatedAt: e.at("plan", p, "createdAt"),
 		})
 		out.names[t.ID] = p.str("planName")
@@ -384,7 +395,7 @@ func (e *exporter) accounts(planNames map[string]string) []Account {
 		}
 		override, err := bp(p.str("overridePercent"))
 		e.check("overridePercent", err)
-		created := e.at("account "+t.ID, p, "createdAt")
+		created := e.must("account "+t.ID, p, "createdAt")
 		a := Account{
 			ID: t.ID, Email: p.str("email"), Name: p.str("name"), DisplayName: p.opt("displayName"), CompanyName: p.opt("companyName"),
 			Website: p.opt("website"), TrafficSource: p.opt("trafficSource"), PaymentMethod: p.opt("paymentMethod"),
@@ -393,7 +404,7 @@ func (e *exporter) accounts(planNames map[string]string) []Account {
 			TermsVersion: p.opt("termsVersion"), TermsAcceptedAt: e.optAt("termsAcceptedAt", p, "termsAcceptedAt"), CreatedAt: created,
 		}
 		if v := p.str("minimumPayoutThreshold"); v != "" {
-			a.MinimumPayout = map[string]int64{e.currency: e.money("minimumPayoutThreshold", v)}
+			a.MinimumPayout = map[string]int64{e.currency: e.money("minimumPayoutThreshold", v, e.currency)}
 		}
 		if v := p.str("tags"); v != "" {
 			e.check("tags", json.Unmarshal([]byte(v), &a.Tags))
@@ -463,8 +474,10 @@ func (e *exporter) invites() []Invite {
 	var out []Invite
 	for _, t := range e.list("affiliate-invite-links-" + e.brand) {
 		p := props(t.Props)
-		out = append(out, Invite{Token: p.str("token"), Link: t.ID, Affiliate: p.str("affiliateId"), CreatedAt: e.at("invite", p, "createdAt"),
-			RevokedAt: e.revoked(p)})
+		if e.revoked(p) != nil {
+			continue
+		}
+		out = append(out, Invite{Token: p.str("token"), Link: t.ID, Affiliate: p.str("affiliateId"), CreatedAt: e.at("invite", p, "createdAt")})
 	}
 	return out
 }
@@ -529,9 +542,9 @@ func (e *exporter) payouts() ([]Payout, map[string]string) {
 		}
 		cur := or(p.str("currency"), e.currency)
 		po := Payout{Affiliate: p.str("affiliateId"), Currency: cur, Period: p.str("period"), Status: status,
-			Cpa: e.money("cpaCommission", p.str("cpaCommission")), RevShare: e.money("revShareCommission", p.str("revShareCommission")),
-			OverrideAmount: e.money("overrideCommission", p.str("overrideCommission")), Adjustments: e.money("adjustments", p.str("adjustments")),
-			CreatedAt: e.at("payout", p, "createdAt")}
+			Cpa: e.money("cpaCommission", p.str("cpaCommission"), cur), RevShare: e.money("revShareCommission", p.str("revShareCommission"), cur),
+			OverrideAmount: e.money("overrideCommission", p.str("overrideCommission"), cur), Adjustments: e.money("adjustments", p.str("adjustments"), cur),
+			CreatedAt: e.must("payout", p, "createdAt")}
 		// The original writes its one actor, `approvedBy`, on every transition.
 		actor := p.opt("approvedBy")
 		switch status {
@@ -561,7 +574,7 @@ func (e *exporter) facts(affiliate string, payouts map[string]string) []Fact {
 		_, err := fmt.Sscanf(or(p.str("amountCents"), "0"), "%d", &amount)
 		e.check("amountCents of "+t.ID, err)
 		f := Fact{ID: t.ID, Affiliate: affiliate, Currency: e.currency, Kind: kind, Amount: amount,
-			OccurredAt: e.at("fact "+t.ID, p, "occurredAt"), RecordedAt: e.at("fact "+t.ID, p, "recordedAt"), Period: p.str("period"),
+			OccurredAt: e.must("fact "+t.ID, p, "occurredAt"), RecordedAt: e.must("fact "+t.ID, p, "recordedAt"), Period: p.str("period"),
 			SourceAffiliate: p.opt("sourceAffiliateId")}
 		if kind == "cpa" {
 			f.Currency = or(p.str("currency"), e.currency)
@@ -609,10 +622,10 @@ func (e *exporter) players() []Player {
 		if p.str("transactionId") == "" || p.str("type") == "withdrawal_marker" || p.str("playerId") == "" {
 			continue
 		}
-		d := Deposit{Currency: e.currency, At: e.at("ftd", p, "recordedAt")}
+		d := Deposit{Currency: e.currency, At: e.must("ftd", p, "recordedAt")}
 		if f, ok := cpa[p.str("transactionId")]; ok {
-			d.Amount = e.money("deposit "+p.str("transactionId"), f.str("amount"))
 			d.Currency = or(f.str("currency"), e.currency)
+			d.Amount = e.money("deposit "+p.str("transactionId"), f.str("amount"), d.Currency)
 		}
 		if prev, ok := deposits[p.str("playerId")]; !ok || d.At.Before(prev.At) {
 			deposits[p.str("playerId")] = d
@@ -623,7 +636,7 @@ func (e *exporter) players() []Player {
 		p := props(t.Props)
 		player := or(p.str("playerId"), t.ID)
 		pl := Player{Pseudonym: e.pseudonym(player), Affiliate: p.str("affiliateId"), Link: p.str("btag"), Campaign: p.opt("campaign"),
-			ClickID: p.opt("affiliateClickId"), Country: p.opt("country"), RegisteredAt: e.at("registration", p, "registeredAt")}
+			ClickID: p.opt("affiliateClickId"), Country: p.opt("country"), RegisteredAt: e.must("registration", p, "registeredAt")}
 		if d, ok := deposits[player]; ok {
 			d := d
 			pl.FirstDeposit = &d
@@ -649,7 +662,7 @@ func Revenue(src Source, brand string, accounts []Account) (map[string]map[strin
 			p := props(t.Props)
 			figures := map[string]int64{}
 			for _, k := range revenueFields {
-				figures[k] = e.money(k+" of "+t.ID, p.str(k))
+				figures[k] = e.money(k+" of "+t.ID, p.str(k), e.currency)
 			}
 			if out[a.ID] == nil {
 				out[a.ID] = map[string]map[string]int64{}
