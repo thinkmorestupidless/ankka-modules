@@ -120,7 +120,7 @@ another session's: do not touch it.
       answering the changed keys, `get`), `S/config/Secrets.scala` (the three names under
       `crm/<slug>/…`, read through `clients.secrets`, cached 30 s per instance).
       `T/config/ConfigurationSuite.scala` first.
-- [ ] T018 [P] `S/clients/Crm.scala` (trait: `identify`, `track`, `send`, `delete`, answering
+- [X] T018 [P] `S/clients/Crm.scala` (trait: `identify`, `track`, `send`, `delete`, answering
       `Accepted | Retryable(status) | Refused(status, body)`; `CustomerIo` over the two hosts by
       region with the overrides, basic and bearer, the timeout), `S/clients/Players.scala` (the
       message route), `S/clients/Rewards.scala` (target, award), each passing the neighbour's answer
