@@ -188,15 +188,15 @@ the views and the audit publisher green under their suites.
 
 **Independent test**: `profiles.feature`; the identify calls read from `FakeCrm` by name and type.
 
-- [ ] T030 [US2] Bind `features/engagement/profiles.feature` in `T/features/ProfilesFeatures.scala`;
+- [X] T030 [US2] Bind `features/engagement/profiles.feature` in `T/features/ProfilesFeatures.scala`;
       it fails first.
-- [ ] T031 [US2] `S/timers/DepositDayTimer.scala` (timed action `reset(day)`: pages
+- [X] T031 [US2] `S/timers/DepositDayTimer.scala` (timed action `reset(day)`: pages
       `ProfilesView.dailyCountAbove`, `Profile.resetDepositDay`, `Send.start(deposit-day/<day>/<player>,
       identify)`) and its registration in `EngagementService.started` as the recurring
       `deposit-day-<slug>`, first due at the next 03:05 UTC, idempotent at every start.
       `T/it/DepositDaySuite.scala`: the clock moved past 03:05 identifies the players above zero with
       an earlier stamp and no other; a second firing identifies no one.
-- [ ] T032 [US2] `T/it/IdentifySuite.scala`: the identify before any track over a registration, a
+- [X] T032 [US2] `T/it/IdentifySuite.scala`: the identify before any track over a registration, a
       login, a deposit, a bet, an RG limit and a consent withdrawal, every attribute by name and type
       against FR-008; a tier change identifies and tracks nothing; the balance attributes absent
       before any movement.
