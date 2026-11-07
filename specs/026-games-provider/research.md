@@ -225,3 +225,7 @@ unchanged: they run against their scripted provider, and the amendment of R11 ke
 ## Design finished
 
 2026-11-07: analyze reported nothing above LOW.
+
+## Found during implementation
+
+- **T014, TestGame's free rounds.** The task says the test game holds its free-round instances "in `BonusBook`". `BonusBook` is an entity, and the test game is a loopback fixture with no runtime of its own, so it holds them in memory in `BonusBook`'s shapes (`Bonus`, `Instance`), spending one as `BonusBook.spend` does. A real game service (spec 027) registers the entity itself.
