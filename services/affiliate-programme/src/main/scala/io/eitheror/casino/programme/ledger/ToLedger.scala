@@ -53,7 +53,8 @@ object LedgerCalls:
  * affiliate's address, when they have one (FR-036).
  */
 final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
-  def write(e: PlayerAttribution.Applied): Unit =
+  /** `source`: the event's id and number at `PlayerAttribution`, which makes a redelivery, however late, write nothing. */
+  def write(e: PlayerAttribution.Applied, source: Option[SourceEvent] = None): Unit =
     e.binding.filterNot(_ => e.imported).foreach { b =>
       val f          = e.fact
       lazy val brand = calls.brand(f.brand)
@@ -66,7 +67,7 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
       def paymentFee(): Unit =
         f.currency.filter(_ => f.kind == PlayerFact.Deposit).foreach { c =>
           calls.recordPaymentFee(account(c), RecordPaymentFee(f.factId, f.amount, brand.fees.payment, f.occurredAt, brand.reportingZone, now(),
-            Some(rate)))
+            Some(rate), source))
         }
       lazy val clickId = if f.kind == PlayerFact.Registration then f.clickId else calls.player(f.brand, f.pseudonym).clickId
       def postback(event: String, payout: Option[String], status: String): Unit =
@@ -80,7 +81,7 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
           val cpa = plan.filter(p => qualifies && m.active && p.paysCpa)
           cpa.foreach { p =>
             calls.recordCpa(account(p.cpaCurrency),
-              RecordCpa(s"cpa/${f.brand}/${f.pseudonym}", p.cpaAmount, f.occurredAt, brand.reportingZone, now()))
+              RecordCpa(s"cpa/${f.brand}/${f.pseudonym}", p.cpaAmount, f.occurredAt, brand.reportingZone, now(), source))
           }
           paymentFee()
           // As the original: the CPA paid, or 0 on a plan that pays RevShare; nothing on a CPA plan that did not pay.
@@ -92,7 +93,7 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
         case Outcome.Ngr(kind, amount) =>
           f.currency.foreach { c =>
             val fees = FeeRates(brand.fees.admin, brand.fees.payment, brand.fees.provider)
-            val after = calls.recordNgr(account(c), RecordNgr(f.factId, kind, amount, f.occurredAt, rate, fees, brand.reportingZone, now()))
+            val after = calls.recordNgr(account(c), RecordNgr(f.factId, kind, amount, f.occurredAt, rate, fees, brand.reportingZone, now(), source))
             after.unsettled.find(_.id == s"revshare/${f.factId}").filter(_.amount > 0)
               .foreach(d => postback(LedgerWriter.RevShare, Some(major(d.amount, c)), "approved"))
           }
@@ -131,7 +132,8 @@ object LedgerWriter:
 
 final class ToLedger(context: ConsumerContext) extends Consumer[PlayerAttribution.Event, Unit]:
   def onMessage(event: PlayerAttribution.Event): Effect =
-    LedgerWriter(LedgerCalls.of(context.componentClient), () => Wiring.clock.get().instant()).write(event)
+    LedgerWriter(LedgerCalls.of(context.componentClient), () => Wiring.clock.get().instant())
+      .write(event, Some(SourceEvent(messageContext.subject, messageContext.sequenceNumber)))
     effects.done()
 
 object ToLedger extends Consumer.Companion[ToLedger, PlayerAttribution.Event, Unit](

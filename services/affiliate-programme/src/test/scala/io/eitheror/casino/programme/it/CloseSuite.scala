@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.brands.Plan
 import io.eitheror.casino.programme.Wiring
-import io.eitheror.casino.programme.ledger.{CommissionAccount, RecordAdjustment, RecordCpa, Unsettled}
+import io.eitheror.casino.programme.ledger.{CommissionAccount, RecordAdjustment, RecordCpa}
 import io.eitheror.casino.programme.settlement.Payout
 
 import java.time.Instant
