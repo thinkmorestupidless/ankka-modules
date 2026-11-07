@@ -53,7 +53,11 @@ object Wire:
       case ErrorCode.Conflict  => 409
       case ErrorCode.NotFound  => 404
       case ErrorCode.Forbidden => 403
-      case _                   => 400
+      case ErrorCode.BadRequest   => 400
+      case ErrorCode.Unauthorized => 401
+      // A fault of the service's, not the caller's mistake: a client must not read it as its own.
+      case ErrorCode.Timeout | ErrorCode.Unavailable => 503
+      case _                                       => 500
     if code.matches("[a-z_]+") then refuse(status, code, text.drop(code.length).stripPrefix(":").trim)
     else refuse(status, text)
 
