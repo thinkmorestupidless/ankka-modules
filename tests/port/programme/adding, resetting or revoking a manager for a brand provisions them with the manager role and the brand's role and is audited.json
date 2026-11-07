@@ -1,0 +1,143 @@
+{
+  "scenario": "adding, resetting or revoking a manager for a brand provisions them with the manager role and the brand's role and is audited",
+  "requirement": "013/FR-031",
+  "recorded_at": "2026-11-07T09:39:45.690874Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "add a manager",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/managers",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "manager-{run}@example.com",
+          "name": "Driver manager"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "email": "manager-{run}@example.com",
+          "keycloakUserId": "f4da173f-94c5-4a2c-b014-bc8b130e327b",
+          "name": "Driver manager",
+          "pending": true
+        }
+      },
+      "capture": {
+        "manager": "$.keycloakUserId"
+      },
+      "vary": {
+        "$.keycloakUserId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "add the same manager again",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/managers",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "manager-{run}@example.com",
+          "name": "Driver manager"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "user_already_exists"
+        }
+      }
+    },
+    {
+      "name": "list the managers",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/managers",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "email": "manager-00c06721@example.com",
+            "keycloakUserId": "756297ca-6863-41ea-9e6d-008d0018b088",
+            "name": "manager-00c06721",
+            "pending": true
+          },
+          {
+            "email": "manager-{run}@example.com",
+            "keycloakUserId": "{manager}",
+            "name": "manager-{run}",
+            "pending": true
+          },
+          {
+            "email": "manager-0e0ee366@example.com",
+            "keycloakUserId": "8d0cca8d-102d-492c-b469-768c3baaf99d",
+            "name": "manager-0e0ee366",
+            "pending": true
+          },
+          {
+            "email": "manager-0fe86718@example.com",
+            "keycloakUserId": "4d59c77d-d997-4841-bb47-8bc29ba7e9e6",
+            "name": "manager-0fe86718",
+            "pending": true
+          },
+          {
+            "email": "manager-79963b15@example.com",
+            "keycloakUserId": "a8b04e6f-1138-4fb9-88f2-ec3af9580651",
+            "name": "manager-79963b15",
+            "pending": true
+          },
+          {
+            "email": "manager-9b953ea2@example.com",
+            "keycloakUserId": "43f36b93-802b-4295-b092-e4ad3e02db03",
+            "name": "manager-9b953ea2",
+            "pending": true
+          },
+          {
+            "email": "manager-9d201729@example.com",
+            "keycloakUserId": "15b88e0e-9be5-48d7-aff9-a43c93749513",
+            "name": "manager-9d201729",
+            "pending": true
+          }
+        ]
+      },
+      "vary": {
+        "$": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "reset the manager's password",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/managers/{manager}/reset-password",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 204
+      }
+    }
+  ]
+}

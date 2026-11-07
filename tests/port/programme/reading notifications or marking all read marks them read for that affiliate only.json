@@ -1,0 +1,248 @@
+{
+  "scenario": "reading notifications or marking all read marks them read for that affiliate only",
+  "requirement": "013/FR-035",
+  "recorded_at": "2026-11-07T09:39:47.264518Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      }
+    },
+    {
+      "name": "create the account: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "affiliate-{run}@example.com",
+          "name": "Driver affiliate",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "ca85271c-5d36-4caa-aa33-b4dd9f7f93ec",
+          "email": "affiliate-{run}@example.com"
+        }
+      },
+      "capture": {
+        "affiliate": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: a message to affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/messages",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "body": "Driver message",
+          "targetAffiliateId": "{affiliate}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "sent": 1
+        }
+      }
+    },
+    {
+      "name": "create the account: other",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "other-{run}@example.com",
+          "name": "Driver other",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "5f5ec978-3ead-477e-98aa-401b9eef6c57",
+          "email": "other-{run}@example.com"
+        }
+      },
+      "capture": {
+        "other": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: a message to other",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/messages",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "body": "Driver message",
+          "targetAffiliateId": "{other}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "sent": 1
+        }
+      }
+    },
+    {
+      "name": "read the notifications",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/notifications",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "body": "Driver message",
+              "createdAt": "{period}-07T09:39:47.376643395Z",
+              "type": "OPERATOR_MESSAGE"
+            },
+            "twinId": "affiliate-notifications-{affiliate}/9d1640e3-418f-45c4-802f-cfbdb24b8fc6"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].properties.createdAt": "differs between two runs of the original",
+        "$[0].twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "mark all read",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/my/{affiliate}/notifications/read-all",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "marked": 1
+        }
+      }
+    },
+    {
+      "name": "read the notifications again",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/notifications",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "body": "Driver message",
+              "createdAt": "{period}-07T09:39:47.376643395Z",
+              "readAt": "{period}-07T09:39:47.613416981Z",
+              "type": "OPERATOR_MESSAGE"
+            },
+            "twinId": "affiliate-notifications-{affiliate}/9d1640e3-418f-45c4-802f-cfbdb24b8fc6"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].properties.createdAt": "differs between two runs of the original",
+        "$[0].properties.readAt": "differs between two runs of the original",
+        "$[0].twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the other affiliate's notifications",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{other}/notifications",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {otherToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "body": "Driver message",
+              "createdAt": "{period}-07T09:39:47.532352069Z",
+              "type": "OPERATOR_MESSAGE"
+            },
+            "twinId": "affiliate-notifications-{other}/061b43c2-6773-448c-aa3d-73330855400f"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].properties.createdAt": "differs between two runs of the original",
+        "$[0].twinId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

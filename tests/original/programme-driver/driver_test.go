@@ -147,14 +147,14 @@ func (o *stub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				answer(200, map[string]any{"ok": true, "duplicate": true})
 			case amount < 20:
 				o.txns[txn] = true
-				answer(200, map[string]any{"ok": true, "affiliateId": aff, "below_minimum_deposit": true})
+				answer(200, map[string]any{"ok": true}) // as the original answered on kind, 2026-11-07
 			case !o.ftd[player]:
 				o.txns[txn], o.ftd[player] = true, true
 				o.ftdCount[aff]++
 				if p := o.accounts[aff]["parentAffiliateId"]; p != "" {
 					o.override[p] = true
 				}
-				answer(200, map[string]any{"ok": true, "affiliateId": aff, "ftd": true})
+				answer(200, map[string]any{"ok": true, "affiliateId": aff})
 			default:
 				o.txns[txn] = true
 				answer(200, map[string]any{"ok": true, "affiliateId": aff})
@@ -282,6 +282,12 @@ func (o *stub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			var rows []map[string]string
 			for name := range o.plans {
 				rows = append(rows, map[string]string{"planName": name, "cpaAmount": "75.00"})
+			}
+			answer(200, rows)
+		case rest == "accounts" && m == http.MethodGet:
+			var rows []map[string]any
+			for id, f := range o.accounts {
+				rows = append(rows, map[string]any{"properties": map[string]string{"affiliateId": id, "status": f["status"]}, "twinId": id})
 			}
 			answer(200, rows)
 		case rest == "accounts" && m == http.MethodPost:

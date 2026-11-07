@@ -1,0 +1,303 @@
+{
+  "scenario": "an email invitation makes the sub active at once on the parent's plan unless it says otherwise",
+  "requirement": "013/FR-027",
+  "recorded_at": "2026-11-07T09:39:42.09457Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      }
+    },
+    {
+      "name": "create the account: parent",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "parent-{run}@example.com",
+          "name": "Driver parent",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "4d17d229-fabe-4e62-b4ae-9b3fa2391529",
+          "email": "parent-{run}@example.com"
+        }
+      },
+      "capture": {
+        "parent": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "invite a sub by email",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{parent}/sub-affiliates/invite",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "sub-{run}@example.com",
+          "overridePercent": "5"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "facbfa47-6b14-4ef5-8fdb-55b9d66d3c53",
+          "email": "sub-{run}@example.com"
+        }
+      },
+      "capture": {
+        "sub": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the invited sub",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{parent}/network/{sub}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{sub}",
+          "brandId": "{brand}",
+          "createdAt": "{period}-07T09:39:42.309858165Z",
+          "email": "sub-{run}@example.com",
+          "keycloakUserId": "757dcd40-9b1f-46ff-8191-90b421446421",
+          "overridePercent": "5",
+          "parentAffiliateId": "{parent}",
+          "planId": "{plan}",
+          "status": "ACTIVE"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.keycloakUserId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create an invite link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{parent}/invite-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "createdAt": "{period}-07T09:39:42.443509919Z",
+          "linkId": "03c6fda0-c64c-4286-914e-6d86cbce2f67",
+          "token": "24b7b7b25da646c99fbc3f8242883556"
+        }
+      },
+      "capture": {
+        "inviteLink": "$.linkId",
+        "inviteToken": "$.token"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.linkId": "differs between two runs of the original",
+        "$.token": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "open the invite link",
+      "request": {
+        "method": "GET",
+        "path": "/v1/join/{inviteToken}?brandId={brand}",
+        "service": "programme"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateName": "Driver parent",
+          "brandId": "{brand}"
+        }
+      }
+    },
+    {
+      "name": "join through the invite link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/join/{inviteToken}?brandId={brand}",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "joiner-{run}@example.com",
+          "name": "Driver joiner"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "b8035c5e-b653-42b0-ba5c-0f9185e633fe",
+          "status": "PENDING"
+        }
+      },
+      "capture": {
+        "joiner": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "approve the joiner as its parent",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{parent}/network/{joiner}/approve",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read the joiner",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{parent}/network/{joiner}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{joiner}",
+          "brandId": "{brand}",
+          "createdAt": "{period}-07T09:39:42.728774351Z",
+          "displayName": "Driver joiner",
+          "email": "joiner-{run}@example.com",
+          "keycloakUserId": "130414d7-e905-4710-b6bf-c4eb750e753b",
+          "parentAffiliateId": "{parent}",
+          "primaryType": "AffiliateAccount",
+          "status": "ACTIVE"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.keycloakUserId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the joiner's audit",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{joiner}/audit",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "actorId": "invite-link",
+              "affiliateId": "{joiner}",
+              "brandId": "{brand}",
+              "displayName": "Driver joiner",
+              "email": "joiner-{run}@example.com",
+              "eventType": "AFFILIATE_PENDING_APPROVAL",
+              "parentAffiliateId": "{parent}",
+              "primaryType": "AffiliateAccountEvent",
+              "recordedAt": "{period}-07T09:39:42.740094196Z"
+            },
+            "twinId": "affiliate-audit-{brand}-{joiner}/e6ca1d4b-6b96-48d0-830d-744d22e55fbe"
+          },
+          {
+            "properties": {
+              "actorId": "1d2dd600-fcfe-460b-80d0-9f9297dd252f",
+              "affiliateId": "{joiner}",
+              "brandId": "{brand}",
+              "dashboardUrl": "http://localhost:5175",
+              "displayName": "Driver joiner",
+              "email": "joiner-{run}@example.com",
+              "eventType": "AFFILIATE_APPROVED",
+              "primaryType": "AffiliateAccountEvent",
+              "recordedAt": "{period}-07T09:39:42.852975049Z",
+              "setPasswordExpiresAt": "1794303582",
+              "setPasswordUrl": "http://localhost:5175/accept-invitation?token=8ba74e77-180f-4b6d-b14a-371bdc132b1a"
+            },
+            "twinId": "affiliate-audit-{brand}-{joiner}/1a6302be-04e2-44e2-97fe-afc48aa63b5a"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].properties.recordedAt": "differs between two runs of the original",
+        "$[0].twinId": "differs between two runs of the original",
+        "$[1].properties.actorId": "differs between two runs of the original",
+        "$[1].properties.recordedAt": "differs between two runs of the original",
+        "$[1].properties.setPasswordExpiresAt": "differs between two runs of the original",
+        "$[1].properties.setPasswordUrl": "differs between two runs of the original",
+        "$[1].twinId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

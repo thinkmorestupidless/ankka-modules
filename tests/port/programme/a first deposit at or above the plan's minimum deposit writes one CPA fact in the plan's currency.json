@@ -1,0 +1,304 @@
+{
+  "scenario": "a first deposit at or above the plan's minimum deposit writes one CPA fact in the plan's currency",
+  "requirement": "013/FR-013",
+  "recorded_at": "2026-11-07T09:39:40.405403Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      }
+    },
+    {
+      "name": "create the account: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "affiliate-{run}@example.com",
+          "name": "Driver affiliate",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "4aa3f430-1745-468a-a0de-e337eed8df8e",
+          "email": "affiliate-{run}@example.com"
+        }
+      },
+      "capture": {
+        "affiliate": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create a tracking link: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/tracking-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "campaign": "autumn",
+          "landingPath": "/welcome"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "129c92c3-25bc-480e-baba-8827e14424f1"
+        }
+      },
+      "capture": {
+        "affiliateBtag": "$.btag"
+      },
+      "vary": {
+        "$.btag": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "notify the registration of player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "{period}-07T09:39:40Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify the registration again",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "{period}-07T09:39:40Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "duplicate": true,
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify a deposit below the minimum",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/deposit",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{txn1}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify the first deposit at the minimum or above",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/deposit",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{txn2}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify the same deposit again",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/deposit",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{txn2}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "duplicate": true,
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify a later deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/deposit",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "30.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{txn3}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read revenue for the period",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/revenue?period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "{affiliate}",
+          "bonusCosts": "0.00",
+          "brandId": "{brand}",
+          "chargebacks": "0.00",
+          "cpaCommission": "50.00",
+          "deposit2Count": "1",
+          "deposit3Count": "1",
+          "depositCount": "3",
+          "excludedGgr": "0.00",
+          "fraudFlagCount": "0",
+          "ftdCount": "1",
+          "ggr": "0.00",
+          "ngr": "0.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "{period}",
+          "providerFees": "0.00",
+          "registrationCount": "1",
+          "revShareCommission": "0.00",
+          "totalCommission": "50.00",
+          "totalDepositAmount": "90.00"
+        }
+      }
+    },
+    {
+      "name": "read the period's breakdown",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/revenue/{period}/breakdown",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "cpaAmount": "50.00",
+            "depositDate": "{period}-07T09:39:40.694115934Z",
+            "playerRef": "97132222"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].depositDate": "differs between two runs of the original",
+        "$[0].playerRef": "differs between two runs of the original"
+      }
+    }
+  ]
+}

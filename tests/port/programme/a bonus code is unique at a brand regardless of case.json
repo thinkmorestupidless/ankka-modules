@@ -1,0 +1,329 @@
+{
+  "scenario": "a bonus code is unique at a brand regardless of case",
+  "requirement": "013/FR-025",
+  "recorded_at": "2026-11-07T09:39:45.361874Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      }
+    },
+    {
+      "name": "create the account: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "affiliate-{run}@example.com",
+          "name": "Driver affiliate",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "d0f00320-4791-401b-bf1b-39ca06b709bb",
+          "email": "affiliate-{run}@example.com"
+        }
+      },
+      "capture": {
+        "affiliate": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create a tracking link: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/tracking-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "campaign": "autumn",
+          "landingPath": "/welcome"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "5b50a649-f57a-4c2f-a5d1-fc86143c99f1"
+        }
+      },
+      "capture": {
+        "affiliateBtag": "$.btag"
+      },
+      "vary": {
+        "$.btag": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "list the tracking links",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/tracking-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "affiliateId": "{affiliate}",
+              "brandId": "{brand}",
+              "btag": "{affiliateBtag}",
+              "campaign": "autumn",
+              "createdAt": "{period}-07T09:39:45.610781606Z",
+              "landingPath": "/welcome"
+            },
+            "twinId": "affiliate-links-{brand}/{affiliateBtag}"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].properties.createdAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create a bonus code",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/bonus-codes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{code}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{code}",
+          "codeId": "49dd632d-9037-388a-bf72-e1e4a5f652d4",
+          "createdAt": "{period}-07T09:39:45.628799068Z",
+          "status": "ACTIVE"
+        }
+      },
+      "capture": {
+        "codeId": "$.codeId"
+      },
+      "vary": {
+        "$.codeId": "differs between two runs of the original",
+        "$.createdAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create the same code in lower case",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/bonus-codes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{codeLower}"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "code_already_exists"
+        }
+      }
+    },
+    {
+      "name": "create the same code twice at once (1 of 2)",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/bonus-codes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{raceCode}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{raceCode}",
+          "codeId": "687578d3-839e-3b89-8efe-602d26ae068c",
+          "createdAt": "{period}-07T09:39:45.660846108Z",
+          "status": "ACTIVE"
+        }
+      },
+      "vary": {
+        "$.codeId": "differs between two runs of the original",
+        "$.createdAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create the same code twice at once (2 of 2)",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/bonus-codes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{raceCode}"
+        }
+      },
+      "response": {
+        "status": 409,
+        "body": {
+          "error": "code_already_exists"
+        }
+      }
+    },
+    {
+      "name": "revoke the bonus code",
+      "request": {
+        "method": "DELETE",
+        "path": "/v1/my/{affiliate}/bonus-codes/{codeId}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "create the revoked code's text again",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/bonus-codes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{code}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "{affiliateBtag}",
+          "code": "{code}",
+          "codeId": "{codeId}",
+          "createdAt": "{period}-07T09:39:45.688126897Z",
+          "status": "ACTIVE"
+        }
+      },
+      "vary": {
+        "$.codeId": "the original names a code by its text, so the id may repeat; the port mints its own",
+        "$.createdAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "list the bonus codes",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/bonus-codes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "affiliateId": "{affiliate}",
+              "brandId": "{brand}",
+              "btag": "{affiliateBtag}",
+              "code": "{code}",
+              "createdAt": "{period}-07T09:39:45.628799068Z",
+              "status": "REVOKED"
+            },
+            "twinId": "{codeId}"
+          },
+          {
+            "properties": {
+              "affiliateId": "{affiliate}",
+              "brandId": "{brand}",
+              "btag": "{affiliateBtag}",
+              "code": "{raceCode}",
+              "createdAt": "{period}-07T09:39:45.660846108Z",
+              "status": "ACTIVE"
+            },
+            "twinId": "687578d3-839e-3b89-8efe-602d26ae068c"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].properties.code": "differs between two runs of the original",
+        "$[0].properties.createdAt": "differs between two runs of the original",
+        "$[0].properties.status": "differs between two runs of the original",
+        "$[0].twinId": "differs between two runs of the original",
+        "$[1].properties.code": "differs between two runs of the original",
+        "$[1].properties.createdAt": "differs between two runs of the original",
+        "$[1].properties.status": "differs between two runs of the original",
+        "$[1].twinId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

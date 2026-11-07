@@ -180,7 +180,7 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 - [X] T033 [P] Write `p-test/port/Translate.scala` (contracts/recording.md: money, ids, player ids to
   pseudonyms, the brand as a filter, the reshaped routes) and `p-test/port/ParitySuite.scala`, one test
   per file in `tests/port/programme/` and per ledger read in `tests/port/attribution/`
-- [ ] T034 Run the driver (T006) on the original's kind stack with the affiliate service installed;
+- [X] T034 Run the driver (T006) on the original's kind stack with the affiliate service installed;
   commit the recordings to `tests/port/programme/`
 
 **Checkpoint**: a fact on a brand's topic is claimed once and reaches its player and the ledger.

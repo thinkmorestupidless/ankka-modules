@@ -76,7 +76,16 @@ type Response struct {
 }
 
 // Str reads a top-level JSON field as a string, whatever its JSON type, or "" when absent.
-func (r Response) Str(field string) string { return str(r.Body[field]) }
+func (r Response) Str(field string) string { return str(props(r.Body)[field]) }
+
+// props is a twin's `properties` when the answer is a twin, as the original's reads answer
+// `{"properties": {...}, "twinId": ...}`, else the answer itself.
+func props(m map[string]any) map[string]any {
+	if p, ok := m["properties"].(map[string]any); ok {
+		return p
+	}
+	return m
+}
 
 // Field reads the first field of that name anywhere in the answer, depth first, as a string: the
 // original nests its revenue figures differently per route.
@@ -117,8 +126,8 @@ func (r Response) Field(name string) string {
 func (r Response) Find(field, value string) (map[string]any, string) {
 	look := func(list []any, at string) (map[string]any, string) {
 		for i, e := range list {
-			if m, ok := e.(map[string]any); ok && str(m[field]) == value {
-				return m, fmt.Sprintf("%s[%d]", at, i)
+			if m, ok := e.(map[string]any); ok && str(props(m)[field]) == value {
+				return props(m), fmt.Sprintf("%s[%d]", at, i)
 			}
 		}
 		return nil, ""
@@ -371,6 +380,18 @@ func (s *Session) Settled(name, method, path string, auth Auth, until func(Respo
 	}
 }
 
+// StaffRow is Settled for a backoffice list at `suffix` until its row whose `key` is `id` has `field`
+// at `value` (any row when `field` is empty). The original's lists and its duplicate checks scan a
+// namespace that catches up with a write some time after it is answered.
+func (s *Session) StaffRow(name, suffix, key, id, field, value string) Response {
+	s.t.Helper()
+	r := s.Settled(name, http.MethodGet, "/v1/affiliates/"+s.Brand()+suffix, Staff, func(r Response) bool {
+		row, _ := r.Find(key, id)
+		return r.Status == http.StatusOK && row != nil && (field == "" || str(row[field]) == value)
+	})
+	return r
+}
+
 // Race sends the same request n times at once and records the answers in status order, as
 // `<name> (i of n)`: which of them the original served first is not the point, how many of each is.
 func (s *Session) Race(name string, n int, method, path string, body any, auth Auth) []Response {
@@ -543,7 +564,7 @@ func (s *Session) SignIn(who string) {
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
-	if _, status, err := s.keycloak(http.MethodPut, users+"/"+id, map[string]any{"emailVerified": true, "requiredActions": []string{}}); err != nil || status/100 != 2 {
+	if _, status, err := s.keycloak(http.MethodPut, users+"/"+id, map[string]any{"enabled": true, "emailVerified": true, "requiredActions": []string{}}); err != nil || status/100 != 2 {
 		s.t.Fatalf("sign in %s: clearing required actions answered %d: %v", who, status, err)
 	}
 	password := NewUUID()
@@ -551,6 +572,14 @@ func (s *Session) SignIn(who string) {
 		s.t.Fatalf("sign in %s: setting the password answered %d: %v", who, status, err)
 	}
 	token, err := PasswordToken(s.cfg.Client, s.cfg.KeycloakURL, s.cfg.Realm, s.cfg.PortalClient, email, password)
+	if err != nil && strings.Contains(err.Error(), "not fully set up") {
+		// The original's invitation makes the realm user without a name, which the realm's user profile
+		// requires; a sub accepting the invitation would give one.
+		if _, status, perr := s.keycloak(http.MethodPut, users+"/"+id, map[string]any{"firstName": "Driver", "lastName": who}); perr != nil || status/100 != 2 {
+			s.t.Fatalf("sign in %s: naming the user answered %d: %v", who, status, perr)
+		}
+		token, err = PasswordToken(s.cfg.Client, s.cfg.KeycloakURL, s.cfg.Realm, s.cfg.PortalClient, email, password)
+	}
 	if err != nil {
 		s.t.Fatalf("sign in %s: %v", who, err)
 	}
@@ -602,10 +631,15 @@ func PasswordToken(client *http.Client, keycloak, realm, clientID, user, passwor
 	defer resp.Body.Close()
 	var out struct {
 		AccessToken string `json:"access_token"`
+		Error       string `json:"error"`
+		Description string `json:"error_description"`
 	}
 	raw, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK || json.Unmarshal(raw, &out) != nil || out.AccessToken == "" {
-		return "", fmt.Errorf("realm %s answered %d for %s", realm, resp.StatusCode, user)
+		if out.Error == "" {
+			out.Description = strings.TrimSpace(string(raw[:min(len(raw), 200)]))
+		}
+		return "", fmt.Errorf("realm %s answered %d for %s: %s %s", realm, resp.StatusCode, user, out.Error, out.Description)
 	}
 	return out.AccessToken, nil
 }

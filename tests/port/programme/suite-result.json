@@ -1,0 +1,54 @@
+{
+  "GGR, bonus cost and chargeback facts fold into NGR and a RevShare fact for the delta": [
+    "pass",
+    "pass"
+  ],
+  "a bonus code is unique at a brand regardless of case": [
+    "pass",
+    "pass"
+  ],
+  "a change to a brand's programme page is what new applicants see": [
+    "pass",
+    "pass"
+  ],
+  "a close claims every unclaimed payable fact up to the period's end for a pending payout": [
+    "pass",
+    "pass"
+  ],
+  "a first deposit at or above the plan's minimum deposit writes one CPA fact in the plan's currency": [
+    "pass",
+    "pass"
+  ],
+  "a fraud flag is raised once per player, brand and reason when a brand's thresholds are crossed": [
+    "pass",
+    "pass"
+  ],
+  "a manager for a brand approves an application on that brand's default plan and a manager for another brand cannot see it": [
+    "pass",
+    "pass"
+  ],
+  "a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing": [
+    "pass",
+    "pass"
+  ],
+  "a plan created or changed applies to the memberships that name it from the next fact onward and is audited": [
+    "pass",
+    "pass"
+  ],
+  "adding, resetting or revoking a manager for a brand provisions them with the manager role and the brand's role and is audited": [
+    "pass",
+    "pass"
+  ],
+  "an email invitation makes the sub active at once on the parent's plan unless it says otherwise": [
+    "pass",
+    "pass"
+  ],
+  "each ancestor is written an override fact for its percentage of the source's earnings, recomputed as a delta": [
+    "pass",
+    "pass"
+  ],
+  "reading notifications or marking all read marks them read for that affiliate only": [
+    "pass",
+    "pass"
+  ]
+}

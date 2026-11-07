@@ -1,6 +1,6 @@
 # programme's recordings (spec 013, T006)
 
-Not recorded yet. This directory will hold thirteen recordings, one per driver scenario of
+Recorded 2026-11-07 on the original at `7630feb0`, both runs passing. Thirteen recordings, one per driver scenario of
 `specs/013-affiliate-programme/contracts/recording.md`, made by `tests/original/programme-driver/` on the
 original's KinD stack with `affiliate-service` installed, twice, on fresh run tokens, and merged with
 `tests/original/merge`. `services/affiliate-programme`'s
@@ -85,3 +85,17 @@ current status (`close and pay`); and the original's application reads nothing o
 pseudonym key read from its `attribution`'s store at run time. `services/affiliate-programme`'s
 `port/ImportParitySuite` imports the bundle and holds every affiliate's revenue, period by period and
 field by field, to the original's; it fails until both files are here.
+
+## What the first runs taught the driver
+
+- The original's reads answer a twin, `{"properties": {...}, "twinId": ...}`; the driver reads its
+  fields inside `properties`.
+- Its lists, its duplicate-email check and the join route scan a namespace that catches up some time
+  after a write is answered. The driver reads a list until the row it wants is there (`StaffRow`,
+  `Settled`) before a step that depends on it; a join spends its one attempt per email before the scan,
+  so the preview is read first.
+- An internal deposit below the minimum answers `{"ok":true}`; a first deposit at the minimum or above
+  answers the affiliate it pays.
+- The read-only view's dashboard and stats take `?period=`.
+- An invited sub's realm user has no name, which the realm's profile requires; the driver names it
+  before signing in, as accepting the invitation would.

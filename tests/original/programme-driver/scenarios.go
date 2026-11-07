@@ -212,17 +212,23 @@ func Scenarios() []Def {
 				}
 				r := s.WantField(s.Want(apply("apply", "affiliate"), http.StatusCreated), "status", "PENDING")
 				s.Grab("affiliate", "$.affiliateId", r.Str("affiliateId"))
+				s.StaffRow("wait for the application to be listed", "/accounts", "affiliateId", s.Value("affiliate"), "status", "PENDING")
+				s.Vary("$", "the brand's accounts include earlier runs'")
 				s.WantField(s.Want(apply("apply again while pending", "affiliate"), http.StatusConflict), "error", "email_already_registered")
 				// The original has no default plan on a brand: the backoffice sends the plan it picks.
 				s.WantOK(s.Staff("approve on the plan", http.MethodPost, "/accounts/"+s.Value("affiliate")+"/approve",
 					map[string]any{"planId": s.Value("plan")}))
 				s.WantField(s.Want(s.Staff("read the account", http.MethodGet, "/accounts/"+s.Value("affiliate"), nil), http.StatusOK), "status", "ACTIVE")
+				s.StaffRow("wait for the approval to be listed", "/accounts", "affiliateId", s.Value("affiliate"), "status", "ACTIVE")
+				s.Vary("$", "the brand's accounts include earlier runs'")
 				s.WantField(s.Want(apply("apply again while active", "affiliate"), http.StatusConflict), "error", "email_already_registered")
 
 				r = s.Want(apply("apply", "applicant"), http.StatusCreated)
 				s.Grab("applicant", "$.affiliateId", r.Str("affiliateId"))
 				s.WantOK(s.Staff("reject", http.MethodPost, "/accounts/"+s.Value("applicant")+"/reject",
 					map[string]any{"reason": "traffic source not accepted"}))
+				s.StaffRow("wait for the rejection to be listed", "/accounts", "affiliateId", s.Value("applicant"), "status", "REJECTED")
+				s.Vary("$", "the brand's accounts include earlier runs'")
 				r = s.WantField(s.Want(apply("apply again after rejection", "applicant"), http.StatusCreated), "status", "PENDING")
 				s.WantField(r, "affiliateId", s.Value("applicant")) // the original reuses the rejected account
 			}},
@@ -234,9 +240,8 @@ func Scenarios() []Def {
 					"error", "plan_already_exists")
 				s.WantOK(s.Staff("change the plan", http.MethodPatch, "/commission-plans/"+s.Value("plan"),
 					map[string]any{"cpaAmount": "75.00", "minimumDepositThreshold": "25.00"}))
-				r := s.Want(s.Staff("list the plans", http.MethodGet, "/commission-plans", nil), http.StatusOK)
+				s.StaffRow("list the plans", "/commission-plans", "planName", "Plan "+s.Value("run"), "cpaAmount", "75.00")
 				s.Vary("$", "the brand's plans include earlier runs'")
-				s.WantRow(r, "planName", "Plan "+s.Value("run"), "cpaAmount", "75.00")
 			}},
 		{Driver: "cpa once", Name: firstDepositCPA,
 			Covers:      []string{registrationRecorded, registrationDuplicate, laterDeposit, belowMinimum, consumedFactID},
@@ -245,12 +250,12 @@ func Scenarios() []Def {
 				Plan(s, "", CPA)
 				Attributed(s, "affiliate", "plan", "player")
 				s.WantField(s.Want(Register(s, "notify the registration again", "player", "affiliate"), http.StatusOK), "duplicate", "true")
-				s.WantField(s.Want(Deposit(s, "notify a deposit below the minimum", "player", "txn1", "10.00"), http.StatusOK), "below_minimum_deposit", "true")
-				s.WantField(s.Want(Deposit(s, "notify the first deposit at the minimum or above", "player", "txn2", "50.00"), http.StatusOK), "ftd", "true")
+				// The original answers a deposit below the minimum `{"ok":true}`, and a first deposit at the
+				// minimum or above with the affiliate it pays.
+				s.WantField(s.Want(Deposit(s, "notify a deposit below the minimum", "player", "txn1", "10.00"), http.StatusOK), "affiliateId", "")
+				s.WantField(s.Want(Deposit(s, "notify the first deposit at the minimum or above", "player", "txn2", "50.00"), http.StatusOK), "affiliateId", s.Value("affiliate"))
 				s.WantField(s.Want(Deposit(s, "notify the same deposit again", "player", "txn2", "50.00"), http.StatusOK), "duplicate", "true")
-				if r := s.Want(Deposit(s, "notify a later deposit", "player", "txn3", "30.00"), http.StatusOK); r.Str("ftd") == "true" {
-					s.t.Errorf("%s: a later deposit was a first deposit: %s", s.rec.Scenario, string(r.Raw))
-				}
+				s.Want(Deposit(s, "notify a later deposit", "player", "txn3", "30.00"), http.StatusOK)
 				s.Settled("read revenue for the period", http.MethodGet, "/v1/my/"+s.Value("affiliate")+"/revenue?period="+s.Value("period"),
 					As("affiliate"), func(r Response) bool { return r.Status == http.StatusOK && r.Field("ftdCount") == "1" })
 				s.Want(s.Portal("read the period's breakdown", "affiliate", "affiliate", http.MethodGet, "/revenue/"+s.Value("period")+"/breakdown", nil), http.StatusOK)
@@ -291,7 +296,7 @@ func Scenarios() []Def {
 				s.SignIn("sub")
 				Link(s, "sub")
 				s.WantField(s.Want(Register(s, "notify the registration of the sub's player", "player", "sub"), http.StatusOK), "affiliateId", s.Value("sub"))
-				s.WantField(s.Want(Deposit(s, "notify the sub's player's first deposit", "player", "txn", "50.00"), http.StatusOK), "ftd", "true")
+				s.WantField(s.Want(Deposit(s, "notify the sub's player's first deposit", "player", "txn", "50.00"), http.StatusOK), "affiliateId", s.Value("sub"))
 				s.Settled("read the parent's revenue for the period", http.MethodGet, "/v1/my/"+s.Value("parent")+"/revenue?period="+s.Value("period"),
 					As("parent"), func(r Response) bool { return r.Status == http.StatusOK && nonZero(r.Field("overrideCommission")) })
 				s.Want(s.Portal("read the parent's network", "parent", "parent", http.MethodGet, "/network?maxDepth=3&period="+s.Value("period"), nil), http.StatusOK)
@@ -309,18 +314,22 @@ func Scenarios() []Def {
 				r := s.Want(s.Portal("invite a sub by email", "parent", "parent", http.MethodPost, "/sub-affiliates/invite",
 					map[string]any{"email": s.Email("sub"), "overridePercent": "5"}), http.StatusCreated)
 				s.Grab("sub", "$.affiliateId", r.Str("affiliateId"))
-				r = s.WantField(s.Want(s.Portal("read the invited sub", "parent", "parent", http.MethodGet, "/network/"+s.Value("sub"), nil), http.StatusOK), "status", "ACTIVE")
+				r = s.Settled("read the invited sub", http.MethodGet, "/v1/my/"+s.Value("parent")+"/network/"+s.Value("sub"), As("parent"),
+					func(r Response) bool { return r.Status == http.StatusOK && r.Str("status") == "ACTIVE" })
 				s.WantField(r, "planId", s.Value("plan"))
 				r = s.Want(s.Portal("create an invite link", "parent", "parent", http.MethodPost, "/invite-links", map[string]any{}), http.StatusCreated)
 				s.Grab("inviteLink", "$.linkId", r.Str("linkId"))
 				s.Grab("inviteToken", "$.token", r.Str("token"))
 				join := "/v1/join/" + s.Value("inviteToken") + "?brandId=" + s.Brand()
-				s.Want(s.Call("open the invite link", http.MethodGet, join, nil, NoAuth), http.StatusOK)
+				// The original finds the link by scanning its namespace, and a join spends its one attempt
+				// per email before the scan: the preview is read until the link is found.
+				s.Settled("open the invite link", http.MethodGet, join, NoAuth, func(r Response) bool { return r.Status == http.StatusOK })
 				r = s.WantField(s.Want(s.Call("join through the invite link", http.MethodPost, join,
 					map[string]any{"email": s.Email("joiner"), "name": "Driver joiner"}, NoAuth), http.StatusCreated), "status", "PENDING")
 				s.Grab("joiner", "$.affiliateId", r.Str("affiliateId"))
 				s.WantOK(s.Portal("approve the joiner as its parent", "parent", "parent", http.MethodPost, "/network/"+s.Value("joiner")+"/approve", map[string]any{}))
-				s.WantField(s.Want(s.Portal("read the joiner", "parent", "parent", http.MethodGet, "/network/"+s.Value("joiner"), nil), http.StatusOK), "status", "ACTIVE")
+				s.Settled("read the joiner", http.MethodGet, "/v1/my/"+s.Value("parent")+"/network/"+s.Value("joiner"), As("parent"),
+					func(r Response) bool { return r.Status == http.StatusOK && r.Str("status") == "ACTIVE" })
 				s.Want(s.Staff("read the joiner's audit", http.MethodGet, "/accounts/"+s.Value("joiner")+"/audit", nil), http.StatusOK)
 			}},
 		{Driver: "close and pay", Name: closeClaims,
@@ -349,6 +358,10 @@ func Scenarios() []Def {
 					s.Vary("$", "the brand's payouts include earlier runs'")
 					return r
 				}
+				rows := func(name, period, want string) {
+					s.StaffRow(name, "/payouts?period="+s.Value(period), "affiliateId", s.Value("affiliate"), "status", want)
+					s.Vary("$", "the brand's payouts include earlier runs'")
+				}
 				status := func(name, payout string, body map[string]any, want int) Response {
 					return s.Want(s.Staff(name, http.MethodPatch, "/payouts/"+s.Value(payout)+"/status", body), want)
 				}
@@ -366,13 +379,13 @@ func Scenarios() []Def {
 
 				credit("credit 80.00", "affiliate", "80.00")
 				closing("close the period above the threshold", "period")
-				s.WantRow(payouts("list the period's payouts above the threshold", "period"), "affiliateId", s.Value("affiliate"), "status", "PENDING")
+				rows("list the period's payouts above the threshold", "period", "PENDING")
 
 				// The original rewrites the payout's figure and total and writes no fact (marked divergence 14).
 				status("approve with another override figure", "payout", map[string]any{"status": "APPROVED", "actorId": "driver", "overrideCommission": 5}, http.StatusOK)
 				credit("a late credit of 10.00", "affiliate", "10.00")
 				closing("close the period after the approval", "period")
-				s.WantRow(payouts("list the period's payouts after the late credit", "period"), "affiliateId", s.Value("affiliate"), "status", "PENDING")
+				rows("list the period's payouts after the late credit", "period", "PENDING")
 
 				status("approve again", "payout", map[string]any{"status": "APPROVED", "actorId": "driver"}, http.StatusOK)
 				status("pay", "payout", map[string]any{"status": "PAID", "actorId": "driver"}, http.StatusOK)
@@ -381,9 +394,9 @@ func Scenarios() []Def {
 				status("move the paid payout back to pending", "payout", map[string]any{"status": "PENDING", "actorId": "driver"}, http.StatusBadRequest)
 				credit("a late credit of 120.00 after payment", "affiliate", "120.00")
 				closing("close the period after payment", "period")
-				s.WantRow(payouts("list the period's payouts after payment", "period"), "affiliateId", s.Value("affiliate"), "status", "PAID")
+				rows("list the period's payouts after payment", "period", "PAID")
 				closing("close the next period", "nextPeriod")
-				s.WantRow(payouts("list the next period's payouts", "nextPeriod"), "affiliateId", s.Value("affiliate"), "status", "PENDING")
+				rows("list the next period's payouts", "nextPeriod", "PENDING")
 			}},
 		{Driver: "links and codes", Name: codeUnique, Covers: []string{newLink, codeConcurrent, codeRevoked}, Requirement: "013/FR-025",
 			Run: func(t testing.TB, s *Session) {
@@ -479,7 +492,9 @@ func Scenarios() []Def {
 				Plan(s, "", CPA)
 				Account(s, "affiliate", "plan", nil)
 				view := "/accounts/" + s.Value("affiliate") + "/view/"
-				for _, page := range []string{"dashboard", "stats", "commission/" + s.Value("period"), "links", "payouts", "notifications"} {
+				// The dashboard and stats take the period as a query (OperatorRoutes.scala:2601-2640).
+				for _, page := range []string{"dashboard?period=" + s.Value("period"), "stats?period=" + s.Value("period"),
+					"commission/" + s.Value("period"), "links", "payouts", "notifications"} {
 					s.Want(s.Staff("view the affiliate's "+page, http.MethodGet, view+page, nil), http.StatusOK)
 				}
 			}},

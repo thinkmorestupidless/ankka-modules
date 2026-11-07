@@ -1,0 +1,543 @@
+{
+  "scenario": "GGR, bonus cost and chargeback facts fold into NGR and a RevShare fact for the delta",
+  "requirement": "013/FR-014",
+  "recorded_at": "2026-11-07T09:39:40.754923Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "setup: the brand's settings at the original's defaults, fees at zero",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/affiliates/{brand}/settings",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "adminFeePercent": "0",
+          "bonusCostThreshold": "3",
+          "chargebackThreshold": "2",
+          "paymentFeePercent": "0",
+          "payoutCycleDay": "1",
+          "providerFeePercent": "0"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "REVSHARE",
+          "revSharePercent": "25"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      }
+    },
+    {
+      "name": "create the planCarryover",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "negativeCarryover": "true",
+          "planName": "Plan {run}Carryover",
+          "planType": "REVSHARE",
+          "revSharePercent": "25"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{planCarryover}",
+          "planName": "Plan {run}Carryover"
+        }
+      }
+    },
+    {
+      "name": "create the account: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "affiliate-{run}@example.com",
+          "name": "Driver affiliate",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "61cae615-85a9-4e44-b18d-e53a6b88978b",
+          "email": "affiliate-{run}@example.com"
+        }
+      },
+      "capture": {
+        "affiliate": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create a tracking link: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/tracking-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "campaign": "autumn",
+          "landingPath": "/welcome"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "ceaaaa03-45d4-445c-a247-cc71001c4fc4"
+        }
+      },
+      "capture": {
+        "affiliateBtag": "$.btag"
+      },
+      "vary": {
+        "$.btag": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "notify the registration of player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "{period}-07T09:39:40Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify last period's GGR: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/ggr",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "eventId": "{affiliateRound1}",
+          "ggr": "-100.00",
+          "occurredAt": "{previousPeriod}-15T12:00:00Z",
+          "period": "{previousPeriod}",
+          "playerId": "{player}",
+          "wageredAmount": "100.00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify this period's GGR: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/ggr",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "eventId": "{affiliateRound2}",
+          "ggr": "300.00",
+          "period": "{period}",
+          "playerId": "{player}",
+          "wageredAmount": "900.00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify a bonus cost: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/bonus-cost",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "20.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{affiliateBonus}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify a chargeback: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/chargeback",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{affiliateChargeback}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read revenue for the period: affiliate",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/revenue?period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "{affiliate}",
+          "bonusCosts": "0.00",
+          "brandId": "{brand}",
+          "chargebacks": "10.00",
+          "cpaCommission": "0.00",
+          "excludedGgr": "0.00",
+          "fraudFlagCount": "0",
+          "ftdCount": "0",
+          "ggr": "300.00",
+          "ngr": "290.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "{period}",
+          "providerFees": "0.00",
+          "registrationCount": "1",
+          "revShareCommission": "72.50",
+          "totalCommission": "72.50"
+        }
+      }
+    },
+    {
+      "name": "read the period's deductions: affiliate",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/deductions/{period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "name": "create the account: carrier",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "carrier-{run}@example.com",
+          "name": "Driver carrier",
+          "planId": "{planCarryover}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "dac21fbe-9af0-4fc1-bbdb-6da7e7432329",
+          "email": "carrier-{run}@example.com"
+        }
+      },
+      "capture": {
+        "carrier": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create a tracking link: carrier",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{carrier}/tracking-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {carrierToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "campaign": "autumn",
+          "landingPath": "/welcome"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "6f46b1de-7cb1-41f3-bef8-ff07d80cf636"
+        }
+      },
+      "capture": {
+        "carrierBtag": "$.btag"
+      },
+      "vary": {
+        "$.btag": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "notify the registration of carriedPlayer",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{carrierBtag}",
+          "country": "GB",
+          "playerId": "{carriedPlayer}",
+          "registeredAt": "{period}-07T09:39:41Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{carrier}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify last period's GGR: carrier",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/ggr",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "eventId": "{carrierRound1}",
+          "ggr": "-100.00",
+          "occurredAt": "{previousPeriod}-15T12:00:00Z",
+          "period": "{previousPeriod}",
+          "playerId": "{carriedPlayer}",
+          "wageredAmount": "100.00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify this period's GGR: carrier",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/ggr",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "eventId": "{carrierRound2}",
+          "ggr": "300.00",
+          "period": "{period}",
+          "playerId": "{carriedPlayer}",
+          "wageredAmount": "900.00"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify a bonus cost: carrier",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/bonus-cost",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "20.00",
+          "currency": "GBP",
+          "playerId": "{carriedPlayer}",
+          "transactionId": "{carrierBonus}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify a chargeback: carrier",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/chargeback",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "currency": "GBP",
+          "playerId": "{carriedPlayer}",
+          "transactionId": "{carrierChargeback}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read revenue for the period: carrier",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{carrier}/revenue?period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {carrierToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "{carrier}",
+          "bonusCosts": "0.00",
+          "brandId": "{brand}",
+          "chargebacks": "10.00",
+          "cpaCommission": "0.00",
+          "excludedGgr": "0.00",
+          "fraudFlagCount": "0",
+          "ftdCount": "0",
+          "ggr": "300.00",
+          "ngr": "290.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "{period}",
+          "providerFees": "0.00",
+          "registrationCount": "1",
+          "revShareCommission": "47.50",
+          "totalCommission": "47.50"
+        }
+      }
+    },
+    {
+      "name": "read the period's deductions: carrier",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{carrier}/deductions/{period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {carrierToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}
