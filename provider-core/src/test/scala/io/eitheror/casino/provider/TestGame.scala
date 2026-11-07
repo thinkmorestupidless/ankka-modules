@@ -28,7 +28,13 @@ final class TestGame(@volatile var provider: String = ""):
   def address: String         = server.address
 
   /** The service name the provider sees this game as; a suite maps it to `address`. */
-  val name = "test-game"
+  @volatile var name = "test-game"
+
+  /**
+   * Headers every call to the provider carries: the test kit's `asCaller` header, so the provider
+   * sees this game as the service `games/<name>` rather than as the local machine.
+   */
+  @volatile var identity: Seq[(String, String)] = Nil
 
   private val mapper = ObjectMapper()
   private val http   = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(JDuration.ofSeconds(5)).build()
@@ -152,6 +158,7 @@ final class TestGame(@volatile var provider: String = ""):
     val b = HttpRequest.newBuilder(URI.create(provider + path)).timeout(JDuration.ofSeconds(30))
       .method(method, body.fold(HttpRequest.BodyPublishers.noBody())(n => HttpRequest.BodyPublishers.ofByteArray(mapper.writeValueAsBytes(n))))
     body.foreach(_ => b.header("Content-Type", "application/json"))
+    identity.foreach((k, v) => b.header(k, v))
     val r    = http.send(b.build(), HttpResponse.BodyHandlers.ofString())
     val node = scala.util.Try(mapper.readTree(r.body)).toOption.filter(_ != null).getOrElse(mapper.createObjectNode())
     Answer(r.statusCode, node)
