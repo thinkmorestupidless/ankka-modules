@@ -222,9 +222,10 @@ final class Backoffice(api: Api):
     ok(if q("sortDir").forall(_.equalsIgnoreCase("desc")) then sorted.reverse else sorted)
 
   /**
-   * O8: an account made active at the brand by a manager, on the plan named or the brand's default. A
-   * new email is a new account and is sent the invitation to set a password; an account already known
-   * gains the membership and signs in as before.
+   * O8: an account made active at the brand by a manager, on the plan named or the brand's default, and
+   * sent the invitation to set a password. An email an account already holds is refused, at this brand or
+   * another (FR-041): a manager must not give another brand's affiliate a membership, and with it their
+   * identity, without them; they join by applying, as any applicant.
    */
   def createAccount(brand: String, b: CreateBody, by: String): Respond[Bytes] =
     val enrolment = Enrolment(api)
@@ -239,20 +240,16 @@ final class Backoffice(api: Api):
               case Some(missing) => refuse(400, Codes.ParentNotFound, missing)
               case None =>
                 enrolment.lookup(email).fold(e => refuse(503, "store_unavailable", e), { (digest, known) =>
-                  if known.exists(a => api.membership(a, brand).holds) then refuse(409, Codes.EmailRegistered)
+                  if known.isDefined then refuse(409, Codes.EmailRegistered)
                   else
-                    val affiliate = known.getOrElse(Affiliate.newId())
-                    val made =
-                      if known.isDefined then Right(())
-                      else
-                        val identity = Identity(b.name.getOrElse(email), b.displayName.orElse(b.name), email, b.companyName, b.website, None,
-                          b.paymentMethod)
-                        enrolment.open(affiliate, digest, identity, b.parentAffiliateId, b.overridePercent.fold(0)(_.bp),
-                          AccountFields(minimumPayout = b.minimumPayout), by)
-                    made.fold(e => refuse(503, "store_unavailable", e), { _ =>
+                    val affiliate = Affiliate.newId()
+                    val identity = Identity(b.name.getOrElse(email), b.displayName.orElse(b.name), email, b.companyName, b.website, None,
+                      b.paymentMethod)
+                    enrolment.open(affiliate, digest, identity, b.parentAffiliateId, b.overridePercent.fold(0)(_.bp),
+                      AccountFields(minimumPayout = b.minimumPayout), by).fold(e => refuse(503, "store_unavailable", e), { _ =>
                       api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand)).call(Membership.activateInvited)
                         .invoke(ActivateInvited(affiliate, brand, plan, Application(api.now(), None, "operator", b.parentAffiliateId), by)): Unit
-                      if known.isEmpty then Networks(api).signIn(affiliate, brand)
+                      Networks(api).signIn(affiliate, brand)
                       audit(affiliate, brand, "ACCOUNT_CREATED", by, Map("planId" -> plan))
                       // As the original: the account and the address it was made for.
                       answer(201, AccountCreated(affiliate, email, Membership.Active))

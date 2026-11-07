@@ -57,14 +57,14 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
     get("/{brand}/accounts/{affiliate}") { (brand: String, aff: String) => attempt(member(brand, aff)(m => accountAt(aff, m))) }
     // US7: an invitation sent again, and a reset sent by a manager (O16, O17).
     post("/{brand}/accounts/{affiliate}/resend-invitation") { (brand: String, aff: String) =>
-      attempt(member(brand, aff)(_ => passwords.resendInvitation(brand, aff, principal.subject)))
+      attempt(member(brand, aff)(_ => wholeAccount(aff)(passwords.resendInvitation(brand, aff, principal.subject))))
     }
     post("/{brand}/accounts/{affiliate}/reset-password") { (brand: String, aff: String) =>
-      attempt(member(brand, aff)(_ => passwords.reset(brand, aff, principal.subject)))
+      attempt(member(brand, aff)(_ => wholeAccount(aff)(passwords.reset(brand, aff, principal.subject))))
     }
     // US8: the account as a data subject (FR-037), and its players by pseudonym (O26, FR-038).
     postBody("/{brand}/accounts/{affiliate}/update-email") { (brand: String, aff: String, body: String) =>
-      attempt(withBody[EmailBody](body)(b => member(brand, aff)(_ => subjects.updateEmail(brand, aff, b, principal.subject))))
+      attempt(withBody[EmailBody](body)(b => member(brand, aff)(_ => wholeAccount(aff)(subjects.updateEmail(brand, aff, b, principal.subject)))))
     }
     post("/{brand}/accounts/{affiliate}/close") { (brand: String, aff: String) =>
       attempt(member(brand, aff)(_ => subjects.close(brand, aff, principal.subject, Routes.brandsOf(principal).holds)))
@@ -76,7 +76,10 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
       attempt(member(brand, aff)(_ => subjects.players(aff, Vector(brand), network = false)))
     }
     patchBody("/{brand}/accounts/{affiliate}") { (brand: String, aff: String, body: String) =>
-      attempt(withBody[AccountPatch](body)(p => member(brand, aff)(_ => patch(brand, aff, p, AccountPatch.clearsOverride(body)))))
+      attempt(withBody[AccountPatch](body)(p => member(brand, aff) { _ =>
+        val f = patch(brand, aff, p, AccountPatch.clearsOverride(body))
+        if AccountPatch.touchesAccount(p) then wholeAccount(aff)(f) else f
+      }))
     }
     get("/{brand}/accounts/{affiliate}/revenue") { (brand: String, aff: String) =>
       attempt(member(brand, aff)(_ => reading.revenue(Some(aff), Vector(brand), query.raw("period"))))
@@ -235,17 +238,25 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
             case Some(missing) => refuse(400, Codes.ParentNotFound, missing)
             case None if b.parentAffiliateId.exists(p => Network.wouldCycle(affiliate, p, api.parentOf)) =>
               refuse(409, Codes.ParentCycle, b.parentAffiliateId.get)
-            case None =>
-              val account = api.components.forEventSourcedEntity(EntityId(affiliate))
-              b.parentAffiliateId.foreach(p => account.call(Affiliate.setParent).invoke(SetParent(Some(p), principal.subject, api.now())): Unit)
-              b.overridePercent.foreach(p => account.call(Affiliate.setOverride).invoke(SetOverride(p.bp, principal.subject, api.now())): Unit)
-              api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand)).call(Membership.approve)
-                .invoke(Approve(planId, principal.subject, api.now())): Unit
-              networks.audit(affiliate, Some(brand), "APPLICATION_APPROVED", principal.subject,
-                Map("planId" -> planId) ++ b.parentAffiliateId.map("parentAffiliateId" -> _) ++
-                  b.overridePercent.map(p => "overridePercent" -> Percent.show(p.bp).toString))
-              ok(Ok(true))
+            case None if b.parentAffiliateId.isDefined || b.overridePercent.isDefined =>
+              wholeAccount(affiliate)(approved(brand, affiliate, planId, b))
+            case None => approved(brand, affiliate, planId, b)
     }
+
+  private def approved(brand: String, affiliate: String, planId: String, b: ApproveBody): Respond[Bytes] =
+    val account = api.components.forEventSourcedEntity(EntityId(affiliate))
+    b.parentAffiliateId.foreach(p => account.call(Affiliate.setParent).invoke(SetParent(Some(p), principal.subject, api.now())): Unit)
+    b.overridePercent.foreach(p => account.call(Affiliate.setOverride).invoke(SetOverride(p.bp, principal.subject, api.now())): Unit)
+    api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand)).call(Membership.approve)
+      .invoke(Approve(planId, principal.subject, api.now())): Unit
+    networks.audit(affiliate, Some(brand), "APPLICATION_APPROVED", principal.subject,
+      Map("planId" -> planId) ++ b.parentAffiliateId.map("parentAffiliateId" -> _) ++
+        b.overridePercent.map(p => "overridePercent" -> Percent.show(p.bp).toString))
+    ok(Ok(true))
+
+  /** An account-wide write, for a caller who holds every brand of the account (FR-041, `DataSubjects.whole`). */
+  private def wholeAccount(aff: String)(f: => Respond[Bytes]): Respond[Bytes] =
+    subjects.whole(aff, Routes.brandsOf(principal).holds)(_ => f)
 
   /** O20: the account as seen from one brand, its other memberships left out (FR-041). */
   private def accountAt(affiliate: String, m: MembershipState): Respond[Bytes] =

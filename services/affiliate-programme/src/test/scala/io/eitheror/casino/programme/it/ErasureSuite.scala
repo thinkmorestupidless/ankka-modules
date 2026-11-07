@@ -46,6 +46,37 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
     assert(account(s.affiliate).closed.isDefined)
   }
 
+  test("one brand's manager changes the account's membership there, and nothing that is the whole account's") {
+    val email = s"${kit.fresh("both")}@example.com"
+    val aff   = kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"$email"}"""), kit.fromInternet).json.get("affiliateId").asText
+    assertEquals(post(s"/goldvibe/accounts/$aff/approve", body = Some(s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}"}""")).status, 200)
+    silverToo(aff)
+    val parent = kit.affiliate(kit.fresh("par"), "goldvibe", kit.plan("goldvibe", kit.fresh("p")))
+    def shared(r: Reply)(using munit.Location) =
+      assertEquals(r.status, 409, r.text)
+      assertEquals(r.json.get("error").asText, "account_shared")
+    shared(post(s"/goldvibe/accounts/$aff/update-email", body = Some(s"""{"email":"${kit.fresh("taken")}@example.com"}""")))
+    shared(post(s"/goldvibe/accounts/$aff/reset-password"))
+    shared(post(s"/goldvibe/accounts/$aff/resend-invitation"))
+    def patch(body: String, as: Seq[(String, String)] = kit.asManager()) =
+      kit.request("PATCH", s"/v1/affiliates/goldvibe/accounts/$aff", Some(body), as)
+    shared(patch("""{"paymentMethod":"IBAN GB00 0000"}"""))
+    shared(patch("""{"postbackUrl":"https://example.com/pb"}"""))
+    shared(patch("""{"minimumPayout":{"EUR":1}}"""))
+    shared(post(s"/goldvibe/accounts/$aff/approve", body = Some(s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}","parentAffiliateId":"$parent"}""")))
+    // The brand's own: the plan and the RevShare override at it.
+    assertEquals(patch(s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}"}""").status, 200)
+    // A holder of both, or a platform administrator, may.
+    assertEquals(patch("""{"postbackUrl":"https://example.com/pb"}""", kit.asManager(Seq("goldvibe", "silvervibe"))).status, 200)
+    assertEquals(patch("""{"minimumPayout":{"EUR":1}}""", kit.asPlatformAdmin()).status, 200)
+    // Nor may a manager give another brand's affiliate a membership, and with it their identity, by email.
+    val hosted    = Hosted.add(kit)
+    val elsewhere = post(s"/${hosted.slug}/accounts", body = Some(s"""{"email":"$email"}"""), as = kit.asManager(Seq(hosted.slug)))
+    assertEquals(elsewhere.status, 409, elsewhere.text)
+    assertEquals(elsewhere.json.get("error").asText, "email_already_registered")
+    assert(!kit.components.forEventSourcedEntity(Membership.entityId(aff, hosted.slug)).call(Membership.get).invoke().exists)
+  }
+
   test("a platform administrator closes an account wherever it is a member") {
     val s = Scene(kit)
     silverToo(s.affiliate)

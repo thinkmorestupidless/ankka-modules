@@ -57,6 +57,11 @@ object Bodies:
   )
 
   object AccountPatch:
+    /** The fields that are the account's, not the brand's membership's (FR-041): every one but the plan and the RevShare override. */
+    def touchesAccount(p: AccountPatch): Boolean =
+      Seq(p.name, p.displayName, p.companyName, p.website, p.trafficSource, p.paymentMethod, p.postbackUrl, p.managerId, p.group,
+        p.tags, p.minimumPayout).exists(_.isDefined)
+
     private val ClearsOverride = """"revShareOverride"\s*:\s*null""".r
     def clearsOverride(body: String): Boolean = ClearsOverride.findFirstIn(body).isDefined
 

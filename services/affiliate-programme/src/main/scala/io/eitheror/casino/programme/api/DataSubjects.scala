@@ -42,7 +42,12 @@ import SubjectAnswers.{*, given}
 final class DataSubjects(api: Api):
   private val networks = Networks(api)
 
-  private def whole(aff: String, holds: String => Boolean)(f: AffiliateState => Respond[Bytes]): Respond[Bytes] =
+  /**
+   * What touches the account rather than one brand's membership of it (FR-041) is for a caller who holds
+   * every brand of the account, or a platform administrator: one brand's manager must not change what the
+   * account's other brands, another company's among them, rely on.
+   */
+  def whole(aff: String, holds: String => Boolean)(f: AffiliateState => Respond[Bytes]): Respond[Bytes] =
     val a = api.account(aff)
     if !a.exists then refuse(404, Codes.AccountNotFound)
     else if a.erased.isDefined then refuse(409, Codes.Erased)

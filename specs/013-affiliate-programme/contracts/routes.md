@@ -20,13 +20,13 @@ public by `withAcl(Routes.public)`.
 | O1–O3 | `GET /{brand}/managers`, `POST /{brand}/managers`, `POST /{brand}/managers/{user}/reset-password` | FR-031 |
 | new | `DELETE /{brand}/managers/{user}` | change 16: removes `brand_<slug>`, and `affiliate_manager` when the user holds no other `brand_*` role |
 | O4–O6 | `GET`, `POST /{brand}/commission-plans`; `PATCH /{brand}/commission-plans/{plan}` | + `cpaCurrency` (change 11) |
-| O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9); create active with a membership, `201 {affiliateId, email, status}` as the original |
+| O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9); create active with a membership, `201 {affiliateId, email, status}` as the original; an email an account already holds, at this brand or another, `409 email_already_registered` (the affiliate applies, FR-041) |
 | O9, O10 | `GET /{brand}/accounts/{aff}/network-health`, `/network` | |
 | O11–O13 | `POST /{brand}/network/{sub}/{approve|suspend|reactivate}` | **reshaped** from `accounts/{aff}/network/{sub}/…` (two parameters) |
-| O14, O15 | `POST /{brand}/accounts/{aff}/approve`, `/reject` | FR-002 |
-| O16–O18 | `POST /{brand}/accounts/{aff}/resend-invitation`, `/reset-password`, `/update-email` | update-email re-seals and moves the email index |
+| O14, O15 | `POST /{brand}/accounts/{aff}/approve`, `/reject` | FR-002; with `parentAffiliateId` or `overridePercent`, account-wide (below) |
+| O16–O18 | `POST /{brand}/accounts/{aff}/resend-invitation`, `/reset-password`, `/update-email` | update-email re-seals and moves the email index; all three account-wide (below) |
 | O19 | `PATCH /{brand}/accounts/{aff}/status` | **not served**: `404` (change 13) |
-| O20, O21 | `GET`, `PATCH /{brand}/accounts/{aff}` | `revShareOverride` is the membership's at `{brand}` |
+| O20, O21 | `GET`, `PATCH /{brand}/accounts/{aff}` | `revShareOverride` is the membership's at `{brand}`; a PATCH with any field but `planId` and `revShareOverride` is account-wide (below) |
 | new | `POST /{brand}/accounts/{aff}/close`, `POST /{brand}/accounts/{aff}/erasure` | FR-037: close disables sign-in; erasure files the hold |
 | O22 | `GET /{brand}/accounts/{aff}/revenue` | |
 | O23, O24 | `GET`, `POST /{brand}/accounts/{aff}/notes` | |
@@ -39,7 +39,7 @@ public by `withAcl(Routes.public)`.
 | O37–O39 | `GET /{brand}/revenue`, `/revenue/by-campaign`, `/revenue/geo` | per currency |
 | O40 | `POST /{brand}/payouts/close?period=` | starts or rejoins the `Close` workflow; answers when it ends or after 10 s with `202` and the workflow's id |
 | O41 | `GET /{brand}/payouts` | |
-| O42 | `PATCH /{brand}/payouts/{payout}/status` | `{status, overrideCommission?, reason?}`; the figure as an adjustment (FR-019) |
+| O42 | `PATCH /{brand}/payouts/{payout}/status` | `{status, overrideCommission?, reason?}`; the figure as an adjustment (FR-019); to `paid`, `409 claims_changed` when a close claimed for the payout since it was read: read it again and pay |
 | new | `GET /{brand}/payouts/export?period=` | FR-021: `text/csv` (below) |
 | O43, O44 | `GET`, `PUT /{brand}/settings` | + `ggrSource`, `reportingZone`, sender configuration; `customerIoKey`, write-only, set by `brand_admin` or `platform_admin` only (`403` otherwise) and answered only as `customerIoKeySet` |
 | O45, O46 | `GET`, `PUT /{brand}/programme` | + terms, contact, description, default plan |
@@ -47,6 +47,13 @@ public by `withAcl(Routes.public)`.
 | O48, O49 | `GET /{brand}/fraud-flags`, `PATCH /{brand}/fraud-flags/{flag}/dismiss` | |
 | new | `GET /{brand}/unattributed` | facts recorded unattributed, mismatched or disagreeing, with the reason (FR-011, edge cases), from `Inbox` and `Players` |
 | O50–O52 | `GET`, `POST /{brand}/creatives`, `DELETE /{brand}/creatives/{id}` | an address, not a file |
+
+**Account-wide writes** (FR-041): what is the account's rather than one brand's membership of it (its
+email, identity, payment details, `postbackUrl`, `minimumPayout`, manager fields, parent and override,
+and the sign-in links O16 and O17 send) is changed only by a caller who holds every brand the account is
+a member of, or a platform administrator; anyone else is answered `409 account_shared` naming the other
+brands, as close and erasure (`/close`, `/erasure`) are. The plan, the RevShare override and the status are the
+brand's.
 
 ## `/v1/my` (`PortalEndpoint`)
 

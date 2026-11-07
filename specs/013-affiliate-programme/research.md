@@ -655,3 +655,13 @@ implementation* that carries the detail.
   and its offsets in Postgres, then started again over the same database with `silvervibe` only. ankka
   0.13 registered `attribution-silvervibe`, logged no error for the consumer that was gone, and served
   the walk-through to its CPA. The fallback (keep the component, consuming nothing new) is not needed.
+- **Account-wide writes are for holders of every brand of the account** (review B1, decided
+  2026-11-07). The original's accounts were per brand; here one account spans brands, so a manager of
+  one brand could change the email, identity, payment details, `postbackUrl`, `minimumPayout`, parent
+  and override that every other brand of the account relies on, and update-email then reset-password
+  took the affiliate's portal. Those writes, and resend-invitation and reset-password, now need every
+  brand of the account or `platform_admin` (`409 account_shared`, as close and erasure). O8 with an email
+  an account already holds is refused (`409 email_already_registered`): the affiliate applies, as any
+  applicant. The person chose this over platform-admin-only writes and over a pending membership the
+  affiliate accepts.
+- **Paying is refused when the payout's claims changed** (review B4): `409 claims_changed` on O42.
