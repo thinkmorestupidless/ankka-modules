@@ -7,7 +7,7 @@ import io.eitheror.casino.programme.ProgrammeCodecs
 import io.eitheror.casino.programme.commission.{Claim, Earnings}
 import io.eitheror.casino.programme.csv.Export
 import io.eitheror.casino.programme.api.Wire.*
-import io.eitheror.casino.programme.ledger.{AccountState, CommissionAccount, RecordAdjustment}
+import io.eitheror.casino.programme.ledger.{AccountState, CommissionAccount, PayClaims, RecordAdjustment}
 import io.eitheror.casino.programme.periods.Periods
 import io.eitheror.casino.programme.settlement.*
 
@@ -129,7 +129,7 @@ final class Settlement(api: Api):
               entity.call(Payout.approve).invoke(ApprovePayout(by, api.now()))
             case Payout.Rejected => entity.call(Payout.reject).invoke(RejectPayout(by, b.reason, api.now()))
             case _ =>
-              account.call(CommissionAccount.markPaid).invoke(payoutId): Unit
+              account.call(CommissionAccount.payClaims).invoke(PayClaims(payoutId, p.figures)): Unit
               entity.call(Payout.pay).invoke(PayPayout(by, api.now()))
           networks.audit(p.affiliate, Some(brand), s"PAYOUT_${target.get.toUpperCase}", by,
             Map("payoutId" -> wireId, "period" -> p.period, "total" -> after.total.toString) ++ b.reason.map("reason" -> _))

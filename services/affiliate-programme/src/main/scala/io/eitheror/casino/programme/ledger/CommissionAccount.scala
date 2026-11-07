@@ -39,6 +39,9 @@ final case class RecordAdjustment(id: String, amount: Long, reason: String, by: 
     zone: String, at: Instant, source: Option[String] = None)
 final case class RecomputeOverride(source: String, period: String, sourceEarnings: Long, bp: Int, zone: String, at: Instant)
 final case class CloseAccount(payoutId: String, periodEnd: Instant, threshold: Long)
+
+/** Paying `payoutId`: its claims are marked paid only while they fold to the `figures` the payout carries. */
+final case class PayClaims(payoutId: String, figures: Claim.Figures)
 /** Facts carried from the original (FR-039) as it recorded them, and the payouts among those claiming them that it paid. */
 final case class ImportFacts(facts: Vector[LedgerFact], paid: Set[String])
 
@@ -137,6 +140,7 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
   val recomputeOverride = command("recompute-override")(_.recomputeOverride)
   val close             = command("close")(_.close)
   val markPaid          = command("mark-paid")(_.markPaid)
+  val payClaims         = command("pay-claims")(_.payClaims)
   val importFacts       = command("import-facts")(_.importFacts)
   val get               = query("get")(_.get)
   val sums              = query("sums")(_.sumsOf)
@@ -150,6 +154,7 @@ object LedgerCodecs:
   given Serializer[RecordAdjustment]  = ProgrammeCodecs.serializer[RecordAdjustment]("record-adjustment")
   given Serializer[RecomputeOverride] = ProgrammeCodecs.serializer[RecomputeOverride]("recompute-override")
   given Serializer[CloseAccount]      = ProgrammeCodecs.serializer[CloseAccount]("close-account")
+  given Serializer[PayClaims]         = ProgrammeCodecs.serializer[PayClaims]("pay-claims")
   given Serializer[ImportFacts]       = ProgrammeCodecs.serializer[ImportFacts]("import-facts")
   given Serializer[Closing]           = ProgrammeCodecs.serializer[Closing]("closing")
   given Serializer[Sums]              = Serializer.json[Sums]("programme.sums")
@@ -241,6 +246,19 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
         // them, so what it pays is what it claimed; the late facts wait for the next close. Releasing them
         // would leave a payable payout whose facts a later close claims again.
         case Claim.Outcome.BelowThreshold(figures) => effects.reply(Closing(claimed = false, figures, 0))
+
+  /**
+   * The account's half of paying (FR-019), made before the payout's: the claims are paid only if they still
+   * fold to what the payout shows, so a close that claimed a late fact meanwhile is refused here (`409
+   * claims_changed`) rather than the fact being stamped paid outside the paid total. Once paid, every close
+   * of the payout is refused, so the payout's own `pay` that follows cannot be raced; a retry pays again.
+   */
+  def payClaims(c: PayClaims): Effect[AccountState] =
+    val s = currentState
+    if s.paid(c.payoutId) then effects.reply(s)
+    else if Claim.figures(s.unsettled.filter(_.settledBy.contains(c.payoutId))) != c.figures then
+      effects.error("claims_changed", ErrorCode.Conflict)
+    else effects.persist(PayoutPaid(c.payoutId)).thenReplyState
 
   def markPaid(payoutId: String): Effect[AccountState] =
     if currentState.paid(payoutId) then effects.reply(currentState)

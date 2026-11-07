@@ -133,6 +133,21 @@ class CommissionAccountSuite extends munit.FunSuite with LogCapturing:
     assertEquals(k.call(CommissionAccount.close)(CloseAccount("p-nov", Instant.parse("2026-11-30T23:59:59.999Z"), 0)).replyValue.figures.total, 700L)
   }
 
+  test("paying pays the claims only while they fold to the payout's figures; once paid, a retry and a close change nothing") {
+    val k = kit
+    k.call(CommissionAccount.recordCpa)(RecordCpa("cpa/1", 5_000, oct, "UTC", now)): Unit
+    val shown = k.call(CommissionAccount.close)(CloseAccount("p-oct", octEnd, 0)).replyValue.figures
+    // A close claims a late fact before the payout shows it: paying what the manager saw is refused.
+    k.call(CommissionAccount.recordCpa)(RecordCpa("cpa/2", 1_000, oct, "UTC", now)): Unit
+    val grown = k.call(CommissionAccount.close)(CloseAccount("p-oct", octEnd, 0)).replyValue.figures
+    assert(k.call(CommissionAccount.payClaims)(PayClaims("p-oct", shown)).isError)
+    assert(!facts(k).paid("p-oct"))
+    k.call(CommissionAccount.payClaims)(PayClaims("p-oct", grown)): Unit
+    assert(facts(k).paid("p-oct"))
+    assert(!k.call(CommissionAccount.payClaims)(PayClaims("p-oct", shown)).persisted)
+    assert(k.call(CommissionAccount.close)(CloseAccount("p-oct", octEnd, 0)).isError)
+  }
+
   test("an adjustment claimed by a payout is stamped with it; one for a paid payout is refused") {
     val k = kit
     k.call(CommissionAccount.recordCpa)(RecordCpa("cpa/1", 5_000, oct, "UTC", now)): Unit
