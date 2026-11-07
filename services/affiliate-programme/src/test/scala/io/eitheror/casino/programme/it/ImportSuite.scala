@@ -69,7 +69,9 @@ class ImportSuite extends munit.FunSuite with LogCapturing:
     s.run()
     for (aff, period) <- s.periods do
       val expected = s.folded(aff, period)
-      val figure   = kit.eventually(s"$aff $period")(revenue(aff, period).filter(_.path("totalCommission").asLong == expected("totalCommission")))
+      // Every field, not the total alone: the views settle field by field.
+      val figure   = scala.util.Try(kit.eventually(s"$aff $period")(revenue(aff, period).filter(f => expected.forall((k, v) => f.path(k).asLong == v))))
+        .getOrElse(revenue(aff, period).getOrElse(fail(s"no EUR figure for $aff $period")))
       expected.foreach((k, v) => assertEquals(figure.path(k).asLong, v, s"$aff $period $k"))
     val paid = payout(s.parent, s.Aug)
     assertEquals((paid.status, paid.figures.cpa, paid.figures.revShare, paid.paidBy), (Some(Payout.Paid), 2_500L, 1_000L, Some("fin")))

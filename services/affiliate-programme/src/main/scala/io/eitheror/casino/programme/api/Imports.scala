@@ -37,7 +37,11 @@ final class Imports(api: Api):
   def start(brand: String, bundle: Bundle, body: String, by: String): Respond[Bytes] =
     if !api.brand(brand).exists then refuse(404, Codes.BrandUnknown, brand)
     else
-      Bundle.problem(bundle, brand) match
+      val id   = Import.entityId(brand, Imports.digest(body))
+      val held = api.components.forWorkflow(id).call(Import.get).invoke()
+      // The same bundle sent again is answered its import's state, with none of the lookups and sealing again.
+      if held.started then answer(if held.finished then 200 else 202, of(id.toString, held))
+      else Bundle.problem(bundle, brand) match
         case Some(p) => invalid(p)
         case None =>
           val enrolment = Enrolment(api)
@@ -45,7 +49,7 @@ final class Imports(api: Api):
           addresses.collectFirst { case (a, None) => a.id } match
             case Some(id) => invalid(s"account $id has no email the programme takes")
             case None =>
-              val looked = addresses.map((a, e) => a -> enrolment.lookup(e.get))
+              val looked = Imports.concurrently(addresses)((a, e) => a -> enrolment.lookup(e.get))
               looked.collectFirst { case (_, Left(e)) => e } match
                 case Some(e) => refuse(503, "store_unavailable", e)
                 case None =>
@@ -60,29 +64,39 @@ final class Imports(api: Api):
                       case Left(e) => refuse(503, "store_unavailable", e)
                       case Right(made) =>
                         val accounts = made.map(s => s.copy(duplicateOf = duplicateOf(s.account.id)))
-                        val id       = Import.entityId(brand, Imports.digest(body))
                         val workflow = api.components.forWorkflow(id)
                         // The identities leave the bundle here: the import keeps the sealed accounts only.
                         val kept = bundle.copy(accounts = Vector.empty)
                         workflow.call(Import.start).invoke(StartImport(brand, kept, accounts, by, api.now())): Unit
-                        try ok(of(id.toString, workflow.awaitEnd(Import, 10.seconds)))
+                        // A short wait: the lookups and the sealing above already took their share of the request's 20 s.
+                        try ok(of(id.toString, workflow.awaitEnd(Import, 2.seconds)))
                         catch
                           case e: CommandError if e.code == ErrorCode.Timeout =>
                             answer(202, of(id.toString, workflow.call(Import.get).invoke()))
 
   private def seal(bundle: Bundle, digests: Map[String, String]): Either[String, Vector[SealedAccount]] =
     val store = Secrets(api.secrets)
-    bundle.accounts.foldLeft[Either[String, Vector[SealedAccount]]](Right(Vector.empty)) { (acc, a) =>
-      acc.flatMap { done =>
-        store.dataKey(a.id).left.map(_.reason).map { key =>
-          val identity = Identity(a.name, a.displayName, Digest.normalised(a.email), a.companyName, a.website, a.trafficSource, a.paymentMethod)
-          done :+ SealedAccount(a.copy(email = "", name = "", displayName = None, companyName = None, website = None, trafficSource = None,
-            paymentMethod = None), Sealing.seal(identity, key, a.id), digests(a.id))
-        }
+    val each = Imports.concurrently(bundle.accounts) { a =>
+      store.dataKey(a.id).left.map(_.reason).map { key =>
+        val identity = Identity(a.name, a.displayName, Digest.normalised(a.email), a.companyName, a.website, a.trafficSource, a.paymentMethod)
+        SealedAccount(a.copy(email = "", name = "", displayName = None, companyName = None, website = None, trafficSource = None,
+          paymentMethod = None), Sealing.seal(identity, key, a.id), digests(a.id))
       }
     }
+    each.collectFirst { case Left(e) => e }.toLeft(each.collect { case Right(s) => s })
 
 object Imports:
+  /** How many accounts are looked up or sealed at once: each is a few calls, and done one by one a bundle outlasts the request. */
+  val Parallelism = 16
+
+  /** `f` over `as` on a pool of its own, `Parallelism` at a time, the answers in `as`'s order. */
+  def concurrently[A, B](as: Vector[A])(f: A => B): Vector[B] =
+    val pool = java.util.concurrent.Executors.newFixedThreadPool(Parallelism)
+    try
+      given scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.fromExecutor(pool)
+      scala.concurrent.Await.result(scala.concurrent.Future.traverse(as)(a => scala.concurrent.Future(f(a))), Duration.Inf)
+    finally pool.shutdown()
+
   /** The bundle's own id: the same bytes posted again are the same import. */
   def digest(body: String): String =
     HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(body.getBytes(UTF_8))).take(16)
