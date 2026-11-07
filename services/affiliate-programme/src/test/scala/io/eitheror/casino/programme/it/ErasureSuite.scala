@@ -68,6 +68,8 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
     assertEquals(patch(s"""{"planId":"${kit.plan("goldvibe", kit.fresh("p"))}"}""").status, 200)
     // A holder of both, or a platform administrator, may.
     assertEquals(patch("""{"postbackUrl":"https://example.com/pb"}""", kit.asManager(Seq("goldvibe", "silvervibe"))).status, 200)
+    val refused = patch("""{"postbackUrl":"ftp://example.com/pb"}""", kit.asManager(Seq("goldvibe", "silvervibe")))
+    assertEquals((refused.status, refused.json.get("error").asText), (400, "postback_url_refused"), refused.text)
     assertEquals(patch("""{"minimumPayout":{"EUR":1}}""", kit.asPlatformAdmin()).status, 200)
     // Nor may a manager give another brand's affiliate a membership, and with it their identity, by email.
     val hosted    = Hosted.add(kit)

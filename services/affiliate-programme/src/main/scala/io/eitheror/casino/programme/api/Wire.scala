@@ -31,6 +31,7 @@ object Wire:
     val StatusTransition = "status_transition"
     val PayoutPaid       = "payout_paid"
     val Erased           = "erased"
+    val PostbackUrlRefused = "postback_url_refused"
     val NotBuilt         = "not_built"
     /** The original's ACL refusal, its text as Akka HTTP wrote it. */
     val NotAuthorised    = "The supplied authentication is not authorized to access this resource"

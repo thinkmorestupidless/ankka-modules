@@ -110,6 +110,10 @@ The click (`POST /v1/track/click`, spec 012's), `/health` (the runtime's readine
 the caller's roles do not cover), `409 status_transition` (naming the status), `409 payout_paid`,
 `404 brand_unknown` (inbound or documents for a brand the programme does not serve), `409 erased`,
 `409 brand_retired` (an application, an account made or a status change at a retired brand).
+`400 postback_url_refused` (an account PATCH, the portal's or a manager's, whose `postbackUrl` is not
+`https` or names a loopback, private, link-local, CGNAT or metadata host; its message says which). A
+send to an address that resolves to one of those is not made, and its reason is the outcome's
+`lastError`.
 
 ## The export
 

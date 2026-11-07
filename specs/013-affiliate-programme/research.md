@@ -678,3 +678,13 @@ implementation* that carries the detail.
   figures named `cpa`, `revShare` and `override` where the original says `cpaCommission`, … (fixed), and
   the original's next close claiming again what its paid and rejected payouts held: its stamps did not
   hold, which FR-018 does not allow, so the programme's single claim is a marked divergence.
+- **Review decisions, 2026-11-07** (asked; the person's answers):
+  - A postback address is refused `400 postback_url_refused` at write time unless it is `https` (http
+    only under `plainHttp`) to a host that is not loopback, private, link-local, CGNAT or metadata, and
+    each send refuses an address that resolves to one; the reason is the outcome's `lastError`.
+  - O28 takes an optional `Idempotency-Key` header: the adjustment's id is derived from the
+    affiliate, the brand and the key, and a retry answers the first adjustment. Without it, as before.
+  - Hosting's `add` is re-runnable for a brand that has no webhook secret yet: it completes the
+    missing steps and answers `201` with the secret; once the secret exists, `409 brand_exists`.
+  - O7 takes `?limit=` (default 100, at most 500) and `?offset=`, and filters on the view's own
+    columns before it opens an identity.

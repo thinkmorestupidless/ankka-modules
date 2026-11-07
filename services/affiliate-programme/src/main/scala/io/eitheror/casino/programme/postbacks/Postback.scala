@@ -75,7 +75,7 @@ final class Postback(context: WorkflowContext) extends Workflow[PostbackState]:
     val s      = currentState
     val now    = Wiring.clock.get().instant()
     val result =
-      try Postback.http.get()(s.url)
+      try Addresses.resolvedRefusal(s.url, Wiring.settings.get().plainHttp).map(Left(_)).getOrElse(Postback.http.get()(s.url))
       catch case NonFatal(e) => Left(Option(e.getMessage).getOrElse(e.getClass.getSimpleName))
     val (next, decision) = PostbackRules.attempted(s, now, result)
     context.componentClient.forKeyValueEntity(PostbackOutcome.entityId(s.affiliate, s.brand, s.event)).call(PostbackOutcome.record)

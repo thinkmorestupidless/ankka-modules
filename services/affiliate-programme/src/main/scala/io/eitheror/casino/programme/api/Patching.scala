@@ -5,12 +5,18 @@ import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Bodies.AccountPatch
 import io.eitheror.casino.programme.api.Wire.*
+import io.eitheror.casino.programme.postbacks.Addresses
 import io.eitheror.casino.programme.sealing.Sealing
 
 /** An account's fields changed from a patch: the identity re-sealed under its key, the rest as named. */
 final class Patching(api: Api):
   /** None when done; a refusal otherwise. A manager may change the fields the affiliate cannot. */
   def apply(affiliate: String, p: AccountPatch, by: String, manager: Boolean): Option[Respond[Bytes]] =
+    p.postbackUrl.filter(_.trim.nonEmpty).flatMap(Addresses.refusal(_, api.settings.plainHttp))
+      .map(reason => refuse(400, Codes.PostbackUrlRefused, reason))
+      .orElse(patched(affiliate, p, by, manager))
+
+  private def patched(affiliate: String, p: AccountPatch, by: String, manager: Boolean): Option[Respond[Bytes]] =
     val entity = api.components.forEventSourcedEntity(EntityId(affiliate))
     val a      = api.account(affiliate)
     val identityChanged = Seq(p.name, p.displayName, p.companyName, p.website, p.trafficSource, p.paymentMethod).exists(_.isDefined)
