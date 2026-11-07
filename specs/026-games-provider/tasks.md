@@ -41,7 +41,7 @@ Paths: `P` = `provider-core/src`, `E` = `services/provider/src`, `SIM` =
 - [X] T016 [P] `shared/games/manifest.json` per `contracts/brand-entry.md`; `contract/keys.md` lists the provider's `PROVIDER_*` settings and `provider` in the "Not yet built" table until T022 lands (then move it)
 - [X] T017 [P] `Routes.installationOperatorHolding(roles*)` (a staff token at the eitheror realm holding one of the roles, no brand role needed; `contracts/provider-routes.md`) in `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`; suite in `contract/src/test/.../access/RoutesSuite.scala`; the `games` realm role in `brands/_realm/` beside `markets`
 - [X] T018 `Settings.fromEnvironment` in `E/main/.../edge/Settings.scala`: `PROVIDER_EXTERNAL_URL`, `PROVIDER_RETENTION_DAYS` (90), `PROVIDER_RETRY_SCHEDULE`, `PROVIDER_LOCAL_CA`, staff issuer settings; refusals naming the field; suite `E/test/.../edge/SettingsSuite.scala`
-- [ ] T019 `ProductSuite` in `E/test/.../edge/ProductSuite.scala`: no class under `io.eitheror.casino.simulator` on the classpath, no `scenarios/` resource, no endpoint at `/game` (FR-016); fails on any
+- [X] T019 `ProductSuite` in `E/test/.../edge/ProductSuite.scala`: no class under `io.eitheror.casino.simulator` on the classpath, no `scenarios/` resource, no endpoint at `/game` (FR-016); fails on any
 
 ## Phase 3: User Story 2 — a game service joins through one contract (P1)
 
