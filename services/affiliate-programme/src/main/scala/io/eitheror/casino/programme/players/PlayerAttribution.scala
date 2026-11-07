@@ -72,7 +72,7 @@ enum Outcome:
  * A fact to apply, with what the caller read for it: the brand's GGR source on the fact's day, and the
  * minimum deposit of a plan that pays CPA (`None` when the bound affiliate's plan pays none).
  */
-final case class ApplyFact(fact: PlayerFact, ggrSource: String, minimumDeposit: Option[Long])
+final case class ApplyFact(fact: PlayerFact, ggrSource: String, minimumDeposit: Option[Long], imported: Boolean = false)
 
 object PlayerAttribution extends EventSourcedEntity.Companion[PlayerAttribution, PlayerState, PlayerAttribution.Event](
       componentId = ComponentId("player-attribution"),
@@ -81,8 +81,12 @@ object PlayerAttribution extends EventSourcedEntity.Companion[PlayerAttribution,
     ):
   import PlayerCodecs.given
 
-  /** A fact applied, the binding it was applied to (none for an unattributed one), and what it recorded. */
-  final case class Applied(fact: PlayerFact, binding: Option[Binding], outcome: Outcome)
+  /**
+   * A fact applied, the binding it was applied to (none for an unattributed one), and what it recorded.
+   * `imported`: a fact the original recorded, carried by the import (FR-039); the ledger already holds
+   * what it wrote, so it writes nothing more and queues no postback.
+   */
+  final case class Applied(fact: PlayerFact, binding: Option[Binding], outcome: Outcome, imported: Boolean = false)
   type Event = Applied
 
   val MaxSeen = 1000
@@ -178,6 +182,6 @@ final class PlayerAttribution(@scala.annotation.unused context: EventSourcedEnti
       case o =>
         val f       = cmd.fact
         val binding = if o == Outcome.Bound then Some(Binding(f.affiliate, f.link, f.campaign, f.subIds, f.clickId, f.occurredAt)) else s.binding
-        effects.persist(PlayerAttribution.Applied(f, binding, o)).thenReply(_ => o)
+        effects.persist(PlayerAttribution.Applied(f, binding, o, cmd.imported)).thenReply(_ => o)
 
   def get: ReadOnlyEffect[PlayerState] = effects.reply(currentState)

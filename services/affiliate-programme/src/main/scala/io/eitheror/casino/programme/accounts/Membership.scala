@@ -38,6 +38,8 @@ final case class Reactivate(by: String, kind: String, at: Instant)
 final case class ActivateInvited(affiliate: String, brand: String, plan: String, application: Application, by: String)
 final case class SetPlan(plan: String, by: String, at: Instant)
 final case class SetRevShareOverride(bp: Option[Int], by: String, at: Instant)
+/** A membership carried from the original (FR-039), its status as it stood. */
+final case class ImportMembership(state: MembershipState)
 
 object Membership extends EventSourcedEntity.Companion[Membership, MembershipState, Membership.Event](
       componentId = ComponentId("membership"),
@@ -64,6 +66,9 @@ object Membership extends EventSourcedEntity.Companion[Membership, MembershipSta
     def at: Instant = application.appliedAt
   final case class PlanSet(plan: String, by: String, at: Instant) extends Event
   final case class RevShareOverrideSet(bp: Option[Int], by: String, at: Instant) extends Event
+  /** No notice is sent and no link made for it: the affiliate already had both in the original. */
+  final case class Imported(state: MembershipState) extends Event:
+    def at: Instant = state.since.orElse(state.application.map(_.appliedAt)).getOrElse(Instant.EPOCH)
 
   def next(s: MembershipState, e: Event): MembershipState = e match
     case Applied(aff, brand, app) =>
@@ -76,6 +81,7 @@ object Membership extends EventSourcedEntity.Companion[Membership, MembershipSta
       s.copy(affiliate = aff, brand = brand, status = Some(Active), plan = Some(plan), application = Some(app), since = Some(app.appliedAt))
     case PlanSet(plan, _, _)         => s.copy(plan = Some(plan))
     case RevShareOverrideSet(bp, _, _) => s.copy(revShareOverride = bp)
+    case Imported(state)             => state
 
   /** The original's refusal (`S/OperatorRoutes.scala:1392`), statuses as the programme spells them. */
   def mustBe(from: String, current: Option[String]): String = s"must be $from, currently ${current.getOrElse("none")}"
@@ -94,6 +100,7 @@ object Membership extends EventSourcedEntity.Companion[Membership, MembershipSta
   val activateInvited = command("activate-invited")(_.activateInvited)
   val setPlan         = command("set-plan")(_.setPlan)
   val setRevShareOverride = command("set-revshare-override")(_.setRevShareOverride)
+  val importMembership = command("import")(_.importMembership)
   val get             = query("get")(_.get)
 
 object MembershipCodecs:
@@ -107,6 +114,7 @@ object MembershipCodecs:
   given Serializer[ActivateInvited]     = ProgrammeCodecs.serializer[ActivateInvited]("activate-invited")
   given Serializer[SetPlan]             = ProgrammeCodecs.serializer[SetPlan]("set-plan")
   given Serializer[SetRevShareOverride] = ProgrammeCodecs.serializer[SetRevShareOverride]("set-revshare-override")
+  given Serializer[ImportMembership]    = ProgrammeCodecs.serializer[ImportMembership]("import-membership")
 
 import Membership.*
 
@@ -157,5 +165,9 @@ final class Membership(@scala.annotation.unused context: EventSourcedEntityConte
     else if cmd.bp.exists(b => b < 0 || b > 10_000) then effects.error("revShareOverride must be a number between 0 and 100", ErrorCode.BadRequest)
     else if currentState.revShareOverride == cmd.bp then effects.reply(currentState)
     else effects.persist(RevShareOverrideSet(cmd.bp, cmd.by, cmd.at)).thenReplyState
+
+  /** Once: a membership already applied for, or imported before, is left as it is. */
+  def importMembership(c: ImportMembership): Effect[MembershipState] =
+    if currentState.exists then effects.reply(currentState) else effects.persist(Imported(c.state)).thenReplyState
 
   def get: ReadOnlyEffect[MembershipState] = effects.reply(currentState)

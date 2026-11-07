@@ -37,6 +37,8 @@ final case class OpenPayout(affiliate: String, brand: String, currency: String, 
 final case class ApprovePayout(by: String, at: Instant)
 final case class RejectPayout(by: String, reason: Option[String], at: Instant)
 final case class PayPayout(by: String, at: Instant)
+/** A payout carried from the original (FR-039): its status, figures and approval as they stood. */
+final case class ImportPayout(state: PayoutState)
 
 object Payout extends EventSourcedEntity.Companion[Payout, PayoutState, Payout.Event](
       componentId = ComponentId("payout"),
@@ -58,6 +60,8 @@ object Payout extends EventSourcedEntity.Companion[Payout, PayoutState, Payout.E
   final case class PayoutApproved(by: String, at: Instant) extends Event
   final case class PayoutRejected(by: String, reason: Option[String], at: Instant) extends Event
   final case class PayoutPaid(by: String, at: Instant) extends Event
+  /** No notice is sent for it: the affiliate was told when the original paid. */
+  final case class Imported(state: PayoutState) extends Event
 
   def next(s: PayoutState, e: Event): PayoutState = e match
     case Opened(aff, brand, cur, period, figures, at) =>
@@ -68,6 +72,7 @@ object Payout extends EventSourcedEntity.Companion[Payout, PayoutState, Payout.E
     case PayoutApproved(by, at)         => s.copy(status = Some(Approved), approvedBy = Some(by), approvedAt = Some(at))
     case PayoutRejected(by, reason, _)  => s.copy(status = Some(Rejected), rejectedBy = Some(by), rejectedReason = reason)
     case PayoutPaid(by, at)             => s.copy(status = Some(Paid), paidBy = Some(by), paidAt = Some(at))
+    case Imported(state)                => state
 
   /** The original's refusal (`S/OperatorRoutes.scala:3074-3090`), statuses as the programme spells them. */
   def mustBe(from: String, current: Option[String]): String = s"must be $from, currently ${current.getOrElse("none")}"
@@ -82,6 +87,7 @@ object Payout extends EventSourcedEntity.Companion[Payout, PayoutState, Payout.E
   val approve = command("approve")(_.approve)
   val reject  = command("reject")(_.reject)
   val pay     = command("paid")(_.pay)
+  val importPayout = command("import")(_.importPayout)
   val get     = query("get")(_.get)
 
 object PayoutCodecs:
@@ -91,6 +97,7 @@ object PayoutCodecs:
   given Serializer[ApprovePayout] = ProgrammeCodecs.serializer[ApprovePayout]("approve-payout")
   given Serializer[RejectPayout]  = ProgrammeCodecs.serializer[RejectPayout]("reject-payout")
   given Serializer[PayPayout]     = ProgrammeCodecs.serializer[PayPayout]("pay-payout")
+  given Serializer[ImportPayout]  = ProgrammeCodecs.serializer[ImportPayout]("import-payout")
 
 import Payout.*
 
@@ -104,6 +111,10 @@ final class Payout(@scala.annotation.unused context: EventSourcedEntityContext) 
   def emptyState: PayoutState = PayoutState()
 
   def applyEvent(event: Payout.Event): PayoutState = Payout.next(currentState, event)
+
+  /** Once: a payout a close already opened, or one imported before, is left as it is. */
+  def importPayout(c: ImportPayout): Effect[PayoutState] =
+    if currentState.exists then effects.reply(currentState) else effects.persist(Imported(c.state)).thenReplyState
 
   def open(c: OpenPayout): Effect[PayoutState] =
     val s = currentState

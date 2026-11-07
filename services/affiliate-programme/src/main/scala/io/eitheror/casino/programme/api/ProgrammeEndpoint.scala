@@ -3,11 +3,12 @@ package io.eitheror.casino.programme.api
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.programme.api.HostingAnswers.{BrandBody, BrandPatch, given}
 import io.eitheror.casino.programme.api.Wire.*
+import io.eitheror.casino.programme.imports.Bundle
 
 /**
  * The programme's own surface (contracts/routes.md `/v1/programme`): the documents and the inbound
- * webhooks, public (the webhook checks its own signature); hosted brands, the legacy withdrawal and
- * the usage report for a platform administrator.
+ * webhooks, public (the webhook checks its own signature); hosted brands, the legacy withdrawal, the
+ * usage report and a brand's import for a platform administrator.
  */
 final class ProgrammeEndpoint(api: Api) extends HttpEndpoint("/v1/programme"):
   val acl: Acl = Acl.DenyAll
@@ -20,6 +21,7 @@ final class ProgrammeEndpoint(api: Api) extends HttpEndpoint("/v1/programme"):
   private val documents = Documents(api)
   private val inbound   = Inbound(api)
   private val hosting   = Hosting(api)
+  private val imports   = Imports(api)
 
   withAcl(Access.public) {
     get("/documents/keys") { () => attempt(documents.keys) }
@@ -38,6 +40,9 @@ final class ProgrammeEndpoint(api: Api) extends HttpEndpoint("/v1/programme"):
     postBody("/brands") { (body: String) => attempt(withBody[BrandBody](body)(hosting.add(_, principal.subject))) }
     patchBody("/brands/{brand}") { (brand: String, body: String) =>
       attempt(withBody[BrandPatch](body)(hosting.patch(brand, _, principal.subject)))
+    }
+    postBody("/imports/{brand}") { (brand: String, body: String) =>
+      attempt(withBody[Bundle](body)(imports.start(brand, _, body, principal.subject)))
     }
     get("/brands/{brand}/usage") { (brand: String) => attempt(hosting.usage(brand, query.raw("month").map(_.trim))) }
   }

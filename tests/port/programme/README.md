@@ -77,3 +77,11 @@ A parity test that differs by design names the change of the spec it demonstrate
 Two answers of the original differ from their feature and are recorded as they are: a payout moved
 from paid to pending is refused `400` before the payout is read, so the refusal does not name the
 current status (`close and pay`); and the original's application reads nothing of the programme page.
+
+## The import's export (T088)
+
+`import/` will hold `bundle.json` and `revenue.json`, written from the original's Spinvibe twins by
+`tests/original/programme-export` (`-out` and `-expected`) on the local KinD stack, with the brand's
+pseudonym key read from its `attribution`'s store at run time. `services/affiliate-programme`'s
+`port/ImportParitySuite` imports the bundle and holds every affiliate's revenue, period by period and
+field by field, to the original's; it fails until both files are here.

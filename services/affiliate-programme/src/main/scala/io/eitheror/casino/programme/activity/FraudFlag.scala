@@ -24,7 +24,9 @@ final case class FlagState(
     raisedAt: Option[Instant] = None,
     dismissedBy: Option[String] = None,
     dismissedAt: Option[Instant] = None,
-    dismissalReason: Option[String] = None
+    dismissalReason: Option[String] = None,
+    /** Carried from the original (FR-039): its dismissal was told there, and is not told again. */
+    imported: Boolean = false
 ):
   def raised: Boolean    = flagId.nonEmpty
   def dismissed: Boolean = dismissedAt.isDefined
@@ -32,11 +34,13 @@ final case class FlagState(
 final case class RaiseFlag(brand: String, pseudonym: String, affiliate: String, reason: String, description: String, period: String,
     at: Instant)
 final case class DismissFlag(by: String, reason: String, at: Instant)
+final case class RestoreFlag(state: FlagState)
 
 object FlagCodecs:
   given Serializer[FlagState]   = ProgrammeCodecs.serializer[FlagState]("fraud-flag")
   given Serializer[RaiseFlag]   = ProgrammeCodecs.serializer[RaiseFlag]("raise-flag")
   given Serializer[DismissFlag] = ProgrammeCodecs.serializer[DismissFlag]("dismiss-flag")
+  given Serializer[RestoreFlag] = ProgrammeCodecs.serializer[RestoreFlag]("restore-flag")
 
 import FlagCodecs.given
 
@@ -49,6 +53,10 @@ final class FraudFlag(context: KeyValueEntityContext) extends KeyValueEntity[Fla
     else
       val id = context.entityId.toString.split('/').last
       effects.updateState(FlagState(id, c.brand, c.pseudonym, c.affiliate, c.reason, c.description, c.period, Some(c.at))).thenReplyState
+
+  /** A flag carried from the original, as it stood; once. */
+  def restore(c: RestoreFlag): Effect[FlagState] =
+    if currentState.raised then effects.reply(currentState) else effects.updateState(c.state.copy(imported = true)).thenReplyState
 
   def dismiss(c: DismissFlag): Effect[FlagState] =
     if !currentState.raised then effects.error("not_found", ErrorCode.NotFound)
@@ -72,6 +80,7 @@ object FraudFlag extends KeyValueEntity.Companion[FraudFlag, FlagState](
   def create(context: KeyValueEntityContext) = new FraudFlag(context)
 
   val raise   = command("raise")(_.raise)
+  val restore  = command("restore")(_.restore)
   val dismiss = command("dismiss")(_.dismiss)
   val get     = query("get")(_.get)
 

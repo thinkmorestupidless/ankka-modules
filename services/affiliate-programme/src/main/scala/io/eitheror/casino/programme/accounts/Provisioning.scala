@@ -52,6 +52,8 @@ final class Provisioner(calls: ProvisioningCalls, realm: KeycloakAdmin, now: () 
         calls.createLink(CreateLink(Link.defaultIdOf(affiliate, brand), affiliate, brand, Some("default"), None, Map.empty,
           Vector.empty, None, None, "provisioning", now()))
       case _: Membership.MembershipReactivated => grant(affiliate, brand)
+      // An imported account keeps its realm user and roles as they were (research R19).
+      case _: Membership.Imported => ()
       case _ =>
         val m = calls.membership(affiliate, brand)
         if !m.status.exists(s => s == Membership.Active || s == Membership.Suspended) then

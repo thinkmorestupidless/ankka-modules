@@ -7,7 +7,7 @@ import io.eitheror.casino.programme.activity.{FlagState, FraudFlag}
 /** A dismissed fraud flag tells its affiliate (FR-032), with the original's type and words, once per flag. */
 final class FlagNotices(context: ConsumerContext) extends Consumer[FlagState, Unit]:
   def onMessage(s: FlagState): Effect =
-    s.dismissedAt.filter(_ => s.affiliate.nonEmpty).foreach { at =>
+    s.dismissedAt.filter(_ => s.affiliate.nonEmpty && !s.imported).foreach { at =>
       context.componentClient.forKeyValueEntity(EntityId(Notification.idFor(s"flag/${s.brand}/${s.flagId}/dismissed")))
         .call(Notification.write)
         .invoke(WriteNotification(s.affiliate, Some(s.brand), FlagNotices.Kind, FlagNotices.Body, at)): Unit

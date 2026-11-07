@@ -545,3 +545,55 @@ accepts the bundle. Keycloak users are kept, so sign-in is unchanged; their `bra
 - **The webhook's two channels are shown once each** (T084). No brand both publishes on a topic
   here and posts to the webhook, so HostingSuite hands the fact to `Intake` on the topic channel as
   a brand consumer does, then posts it; the claim answers the post `duplicate`.
+- **The import's bundle** (T090, T091; R19). Version 1, written by `tests/original/programme-export`
+  and read as `imports/Bundle.scala`: settings and the programme page, plans by name (the plan id is
+  `Plan.idOf(brand, name)`, as the original's `planId`), each account with its one membership, links
+  under their btag (kept as the legacy tag), bonus codes, invite links, creatives, notes, audit,
+  fraud flags, players by pseudonym with their first deposit, every commission fact with the payout
+  that claimed it as `<affiliate>/<brand>/<currency>/<period>`, and every payout. Money is in minor
+  units and percentages in basis points; a decimal of more than two places is refused, not rounded.
+  The original keeps no currency on most facts, payouts or thresholds, so the exporter gives them
+  the brand's one currency (`-currency`). Where it keeps no time for a revocation or a deletion, the
+  export's own time stands for it. An account status the programme lacks (the original reads
+  `TERMINATED`, though nothing writes it) stops the export rather than being guessed.
+- **The exporter derives pseudonyms itself, with the key read at run time** (T090). `attribution`
+  serves no route that turns a player id into a pseudonym, and 012 finding 7 says the import reads the
+  key from attribution's store, never a copy. The exporter takes the key as a file at run time
+  (`-pseudonym-key-file`; spec 019's runner supplies it from the store) and applies attribution's
+  own function, HMAC-SHA256 base64url, pinned by a test vector. No player id leaves in clear: the
+  audit's meta keys naming a person or carrying a token (`email`, `setPasswordUrl`, …) stay behind.
+- **The import checks the whole bundle first, and seals identities before keeping anything**
+  (T091). `POST /v1/programme/imports/{brand}` (`platform_admin`) refuses `400` a bundle of another
+  brand, another version, a repeated id, an unknown plan, fact kind or status; `404` a brand the
+  programme lacks; and `409 email_already_registered`, naming the accounts, when another account of
+  the programme already holds an account's email: an import does not merge two accounts. It then
+  seals each identity and digests each email in the route, so the import's state holds no identity
+  in clear (SC-007), and starts the workflow `import`, id `<brand>/<first 16 hex of the body's
+  SHA-256>`: the same bundle again is the same import, and answers it. It answers `200` with the
+  counts when the import ends within 10 s, else `202`; posting the bundle again reads it.
+- **The import runs as one workflow step per section, 200 items a turn** (T091). Plans, settings,
+  accounts, links, codes, invite links, creatives, notes, audit, flags, players, the ledger (one
+  write per commission account), payouts. A section past 200 items comes back to its step, so no
+  step outlasts its timeout or starts its section over when retried. The state drops the bundle at
+  the end.
+- **What an import writes sends nothing and pays nothing** (T091). Each imported record arrives by
+  a command of its own that its consumers recognise: `Membership.Imported` (no notice, no default
+  link, no role change: the realm user and its roles are the original's), `Payout.Imported` (no
+  notice), `FraudFlag.restore` marks the flag imported (its dismissal is not told again),
+  `PlayerAttribution.Applied(imported = true)` (no CPA, payment fee or postback; the binding and the
+  first-deposit guard are set, so a later first deposit pays no second CPA), and facts written with
+  the reason `import`, with no RevShare folded and no override recomputed: the original's are among
+  them. The player facts the import applies are counted by revenue as the original counted them
+  (registrations and first deposits); deposits before the import are not carried, since the
+  original keeps them per hashed player only.
+- **A commission account takes one import** (T091). An account remembers its latest 10,000 fact
+  ids, and a history longer than that would be written twice by a second import; an account that
+  an import wrote is marked, and takes none after. A later export of the same data writes nothing,
+  and a later export with more facts adds none to an account already imported: the import moves a
+  frozen brand (spec 019), not a running one.
+
+- **A brand's Customer.io key is set on its settings, by an administrator** (T094, asked 2026-11-07).
+  Nothing put `brand/<slug>/customerio-key` in the store, so every email failed "no Customer.io key".
+  `PUT /{brand}/settings` takes `customerIoKey`. Only `brand_admin` or `platform_admin` may send it;
+  for an affiliate manager the request is `403`. It is written to the store, never kept in the brand's
+  state, and never answered: `GET` says only `customerIoKeySet`.

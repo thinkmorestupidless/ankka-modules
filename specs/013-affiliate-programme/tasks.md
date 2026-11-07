@@ -409,16 +409,16 @@ facts in from a brand's topic, the ledger written, the outbound seams, the kit.
 
 ### Tests
 
-- [ ] T088 [P] [US9] `p-test/it/ImportSuite.scala`: a bundle exported from the recorded original imports,
+- [X] T088 [P] [US9] `p-test/it/ImportSuite.scala`: a bundle exported from the recorded original imports,
   folds to the original's revenue and payouts for every affiliate and period, keeps legacy tags and gains
   signed ones, attributes a later fact for an imported player, and imports again writing nothing (SC-008)
-- [ ] T089 [P] [US9] Bind `features/programme/import.feature` in `p-test/features/ImportSteps.scala`
+- [X] T089 [P] [US9] Bind `features/programme/import.feature` in `p-test/features/ImportSteps.scala`
 
 ### Implementation
 
-- [ ] T090 [US9] `tests/original/programme-export/` (Go): reads the original's twins per namespace of
+- [X] T090 [US9] `tests/original/programme-export/` (Go): reads the original's twins per namespace of
   research R1 into a bundle; player ids become pseudonyms through the brand's `attribution` (research R19)
-- [ ] T091 [US9] `p/imports/Import.scala` (workflow, one step per section, deterministic ids) and
+- [X] T091 [US9] `p/imports/Import.scala` (workflow, one step per section, deterministic ids) and
   `POST /v1/programme/imports/{brand}`
 
 ---

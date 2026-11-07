@@ -54,7 +54,7 @@ object LedgerCalls:
  */
 final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
   def write(e: PlayerAttribution.Applied): Unit =
-    e.binding.foreach { b =>
+    e.binding.filterNot(_ => e.imported).foreach { b =>
       val f          = e.fact
       lazy val brand = calls.brand(f.brand)
       lazy val m     = calls.membership(b.affiliate, f.brand)

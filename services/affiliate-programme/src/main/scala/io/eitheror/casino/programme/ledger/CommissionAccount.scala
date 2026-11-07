@@ -19,7 +19,9 @@ final case class AccountState(
     unsettled: Vector[LedgerFact] = Vector.empty,
     claims: Map[String, Set[String]] = Map.empty,
     paid: Set[String] = Set.empty,
-    written: Vector[String] = Vector.empty
+    written: Vector[String] = Vector.empty,
+    /** The import wrote this account's history (FR-039): a second import writes nothing, however long the history. */
+    imported: Boolean = false
 ):
   def has(id: String): Boolean = written.contains(id)
 
@@ -37,6 +39,8 @@ final case class RecordAdjustment(id: String, amount: Long, reason: String, by: 
     zone: String, at: Instant, source: Option[String] = None)
 final case class RecomputeOverride(source: String, period: String, sourceEarnings: Long, bp: Int, zone: String, at: Instant)
 final case class CloseAccount(payoutId: String, periodEnd: Instant, threshold: Long)
+/** Facts carried from the original (FR-039) as it recorded them, and the payouts among those claiming them that it paid. */
+final case class ImportFacts(facts: Vector[LedgerFact], paid: Set[String])
 
 /** What a close claimed: the payout's figures, or nothing because they were below the threshold. */
 final case class Closing(claimed: Boolean, figures: Claim.Figures, facts: Int)
@@ -61,9 +65,13 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
 
   val MaxWritten = 10_000
 
+  /** The reason an imported fact is written with. */
+  val ImportReason = "import"
+
   def next(s: AccountState, e: Event): AccountState = e match
-    case FactWritten(f, _, _) =>
+    case FactWritten(f, reason, _) =>
       s.copy(
+        imported = s.imported || reason.contains(ImportReason),
         sums = s.sums.add(f),
         unsettled = if f.kind.payable then s.unsettled :+ f else s.unsettled,
         claims = f.settledBy.fold(s.claims)(p => s.claims.updated(p, s.claims.getOrElse(p, Set.empty) + f.id)),
@@ -128,6 +136,7 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
   val recomputeOverride = command("recompute-override")(_.recomputeOverride)
   val close             = command("close")(_.close)
   val markPaid          = command("mark-paid")(_.markPaid)
+  val importFacts       = command("import-facts")(_.importFacts)
   val get               = query("get")(_.get)
   val sums              = query("sums")(_.sumsOf)
 
@@ -140,6 +149,7 @@ object LedgerCodecs:
   given Serializer[RecordAdjustment]  = ProgrammeCodecs.serializer[RecordAdjustment]("record-adjustment")
   given Serializer[RecomputeOverride] = ProgrammeCodecs.serializer[RecomputeOverride]("recompute-override")
   given Serializer[CloseAccount]      = ProgrammeCodecs.serializer[CloseAccount]("close-account")
+  given Serializer[ImportFacts]       = ProgrammeCodecs.serializer[ImportFacts]("import-facts")
   given Serializer[Closing]           = ProgrammeCodecs.serializer[Closing]("closing")
   given Serializer[Sums]              = Serializer.json[Sums]("programme.sums")
   given Serializer[String]            = com.thinkmorestupidless.ankka.core.Serializers.string
@@ -183,6 +193,19 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
       val f = LedgerFact(c.id, FactType.Adjustment, c.amount, c.occurredAt, c.at, Periods.periodOf(c.occurredAt, ZoneId.of(c.zone)),
         sourceAffiliate = c.source, settledBy = c.claimedBy)
       write(withEarnings(currentState, Vector(FactWritten(f, Some(c.reason), Some(c.by)))))
+
+  /**
+   * Facts imported as the original recorded them, in one write: each marked `import`, with the payout
+   * that claimed it; then the paid payouts, so their facts leave the unsettled set. Nothing is folded
+   * again and no override is recomputed: the original's overrides are among the facts. An account
+   * imported once takes no second import, since `written` remembers only the latest ids.
+   */
+  def importFacts(c: ImportFacts): Effect[AccountState] =
+    if currentState.imported then effects.reply(currentState)
+    else
+      val facts = c.facts.filterNot(f => currentState.has(f.id)).map(FactWritten(_, Some(ImportReason), None))
+      val paid  = c.paid.toVector.sorted.filterNot(currentState.paid).map(CommissionAccount.PayoutPaid(_))
+      write(facts ++ paid)
 
   /** The override for one source and period, written as the delta from what was written (FR-015). */
   def recomputeOverride(c: RecomputeOverride): Effect[AccountState] =

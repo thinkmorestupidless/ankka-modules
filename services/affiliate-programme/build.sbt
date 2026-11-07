@@ -51,7 +51,8 @@ lazy val root = project
     // The integration suites share one service per JVM (SharedKit). A suite that starts a service of its
     // own runs in a JVM of its own, since two services in one JVM disturb each other when one stops.
     Test / testGrouping := {
-      val own     = Set("LeakSuite", "LatencySuite", "CloseSuite", "DocumentsSuite", "DataSubjectSteps")
+      val own     = Set("LeakSuite", "LatencySuite", "CloseSuite", "DocumentsSuite", "DataSubjectSteps", "ImportSuite", "ImportSteps",
+        "ImportParitySuite")
       val options = ForkOptions().withRunJVMOptions((Test / javaOptions).value.toVector)
       val (alone, shared) = (Test / definedTests).value.partition(t => own.exists(n => t.name.endsWith(s".$n")))
       Tests.Group("shared", shared, Tests.SubProcess(options)) +: alone.map(t => Tests.Group(t.name, Seq(t), Tests.SubProcess(options)))

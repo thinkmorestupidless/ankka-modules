@@ -11,6 +11,7 @@ import io.eitheror.casino.programme.api.*
 import io.eitheror.casino.programme.brands.{BrandProgramme, Brands, Plan, Plans, Seed}
 import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend, FlagNotices, Notification, PayoutNotices}
 import io.eitheror.casino.programme.postbacks.{Postback, PostbackOutcome, PostbackOutcomes, PostbackRetry}
+import io.eitheror.casino.programme.imports.Import
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
 import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
 import io.eitheror.casino.programme.links.{BonusCode, BonusCodes, Clicks, InviteLink, InviteLinks, Link, Links, Revocations, RevocationsStamp, SigningKeys}
@@ -80,6 +81,7 @@ object ProgrammeService:
       PostbackOutcome.descriptor,
       PostbackOutcomes.descriptor,
       Erasure.descriptor,
+      Import.descriptor,
       ErasureDue.descriptor
     ) ++ BrandConsumers.of(settings.brands).map(_.descriptor)
 
