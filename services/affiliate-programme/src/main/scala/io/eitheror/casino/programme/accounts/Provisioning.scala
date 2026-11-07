@@ -39,7 +39,7 @@ object ProvisioningCalls:
 /**
  * What a membership's change means in the realm (research R11): on activation the account's realm user,
  * made once and found by email after, holds `affiliate` and `brand_<slug>`, and the affiliate is given
- * a default link at the brand; when the membership is neither active nor suspended the brand's role is
+ * a default link at the brand when an application is approved; when the membership is neither active nor suspended the brand's role is
  * removed. A realm that is not configured (a local run) is skipped; a realm that fails is retried.
  */
 final class Provisioner(calls: ProvisioningCalls, realm: KeycloakAdmin, now: () => Instant):
@@ -47,11 +47,13 @@ final class Provisioner(calls: ProvisioningCalls, realm: KeycloakAdmin, now: () 
 
   def provision(affiliate: String, brand: String, event: Membership.Event): Unit =
     event match
-      case _: Membership.Approved | _: Membership.ActivatedInvited =>
+      case _: Membership.Approved =>
         grant(affiliate, brand)
         calls.createLink(CreateLink(Link.defaultIdOf(affiliate, brand), affiliate, brand, Some("default"), None, Map.empty,
           Vector.empty, None, None, "provisioning", now()))
-      case _: Membership.MembershipReactivated => grant(affiliate, brand)
+      // An invitation's or a manager's account has no default link, as the original's had none
+      // (it made one on its three approvals only, NetworkTree.ensureDefaultBtag).
+      case _: Membership.ActivatedInvited | _: Membership.MembershipReactivated => grant(affiliate, brand)
       // An imported account keeps its realm user and roles as they were (research R19).
       case _: Membership.Imported => ()
       case _ =>

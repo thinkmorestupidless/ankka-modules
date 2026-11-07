@@ -86,6 +86,17 @@ class MembershipsSuite extends munit.FunSuite with LogCapturing:
     }
   }
 
+  test("an account a manager makes holds the roles and no default link, as the original's") {
+    val email = s"${kit.fresh("made")}@example.com"
+    val plan  = kit.plan("goldvibe", kit.fresh("p"), Plan.Cpa, cpa = 1_000)
+    val made  = kit.request("POST", "/v1/affiliates/goldvibe/accounts", Some(s"""{"email":"$email","planId":"$plan"}"""), kit.asManager())
+    assertEquals(made.status, 201, made.text)
+    val aff = made.json.get("affiliateId").asText
+    kit.eventually("the realm user")(kit.realm.byEmail(email).filter(_.roles == Set("affiliate", "brand_goldvibe"))): Unit
+    Thread.sleep(1000) // the provisioning consumer has had its turn
+    assertEquals(kit.components.forKeyValueEntity(EntityId(Link.defaultIdOf(aff, "goldvibe"))).call(Link.get).invoke().exists, false)
+  }
+
   test("a realm user deleted under the account stalls nothing: a suspension removes no role, an approval makes the user again") {
     val email = s"${kit.fresh("gone")}@example.com"
     val aff   = apply("goldvibe", email).json.get("affiliateId").asText

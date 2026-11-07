@@ -28,7 +28,7 @@ object ProgrammeCodecs:
     )
 
   inline def wire[A]: JsonValueCodec[A] =
-    JsonCodecMaker.make[A](CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withTransientEmpty(true).withTransientNone(true))
+    JsonCodecMaker.make[A](CodecMakerConfig.withDiscriminatorFieldName(Some("type")).withTransientEmpty(false).withTransientNone(true))
 
   inline def serializer[A](name: String): Serializer[A] = Serializer.json[A](s"programme.$name")(using stored[A])
 
