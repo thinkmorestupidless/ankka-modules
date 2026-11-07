@@ -3,7 +3,8 @@ package io.eitheror.casino.programme.it
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
-import io.eitheror.casino.programme.accounts.{Affiliate, Membership}
+import io.eitheror.casino.programme.accounts.{Affiliate, EmailIndex, Membership, Secrets}
+import io.eitheror.casino.programme.sealing.Digest
 import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, UpdateBrand}
 import io.eitheror.casino.programme.links.Link
 
@@ -29,6 +30,17 @@ class MembershipsSuite extends munit.FunSuite with LogCapturing:
     val before = entity.call(BrandProgramme.get).invoke().defaultPlan
     entity.call(BrandProgramme.update).invoke(UpdateBrand(defaultPlan = Some(plan))): Unit
     try body(plan) finally before.foreach(p => entity.call(BrandProgramme.update).invoke(UpdateBrand(defaultPlan = Some(p))): Unit)
+
+  test("an address whose index entry names an account never made registers all the same") {
+    val email  = s"${kit.fresh("orphan")}@example.com"
+    val key    = kit.eventually("the email index key")(Secrets(kit.secrets).emailIndexKey.toOption)
+    val digest = Digest.of(email, key)
+    kit.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.claim).invoke("aff-never-made"): Unit
+    val r = apply("goldvibe", email)
+    assertEquals(r.status, 201, r.text)
+    val aff = r.json.get("affiliateId").asText
+    assertEquals(kit.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.get).invoke().affiliate, Some(aff))
+  }
 
   private def status(aff: String, brand: String) =
     kit.components.forEventSourcedEntity(Membership.entityId(aff, brand)).call(Membership.get).invoke().status

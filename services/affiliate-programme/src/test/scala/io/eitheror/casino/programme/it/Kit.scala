@@ -142,7 +142,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "silvervibe"), b
     val store   = Secrets(secrets)
     val key     = store.dataKey(id).fold(e => throw AssertionError(e.reason), identity)
     val sealedId = Sealing.seal(Identity(id, None, address, None, None, None, None), key, id)
-    val digest  = Digest.of(address, store.emailIndexKey.fold(e => throw AssertionError(e.reason), identity))
+    val digest  = Digest.of(address, eventually("the seed's email index key")(store.emailIndexKey.toOption))
     components.forEventSourcedEntity(EntityId(id)).call(Affiliate.createAccount)
       .invoke(CreateAffiliate(id, sealedId, digest, parent, overrideBp, AccountFields(), "kit", now)): Unit
     val m = components.forEventSourcedEntity(Membership.entityId(id, brand))

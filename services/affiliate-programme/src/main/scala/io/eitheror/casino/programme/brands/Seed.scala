@@ -20,7 +20,7 @@ object Seeding:
     brands.foreach { slug =>
       components.forKeyValueEntity(EntityId(slug)).call(BrandProgramme.seed).invoke(SeedBrand(slug, now)): Unit
     }
-    Secrets(store).emailIndexKey.left.foreach(u => throw IllegalStateException(s"the secret store is unavailable: ${u.reason}"))
+    Secrets(store).makeEmailIndexKey().left.foreach(u => throw IllegalStateException(s"the secret store is unavailable: ${u.reason}"))
     val keys = components.forKeyValueEntity(EntityId(SigningKeys.Id))
     if keys.call(SigningKeys.get).invoke().live.isEmpty then
       val kid          = UUID.randomUUID().toString

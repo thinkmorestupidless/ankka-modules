@@ -19,10 +19,20 @@ final class Enrolment(api: Api):
       (digest, api.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.get).invoke().affiliate.filter(a => api.account(a).exists))
     }
 
+  /**
+   * The email's index entry for `affiliate`. One whose account was never made (an enrolment that failed
+   * after its claim) is let go first, or the address could never register again; a live holder refuses.
+   */
+  def claim(digest: String, affiliate: String): Unit =
+    val index = api.components.forKeyValueEntity(EntityId(digest))
+    index.call(EmailIndex.get).invoke().affiliate.filter(h => h != affiliate && !api.account(h).exists)
+      .foreach(orphan => index.call(EmailIndex.release).invoke(orphan): Unit)
+    index.call(EmailIndex.claim).invoke(affiliate): Unit
+
   /** A new account under `affiliate`, its email claimed in the index. */
   def open(affiliate: String, digest: String, identity: Identity, parent: Option[String], overrideBp: Int, fields: AccountFields,
       by: String): Either[String, Unit] =
-    api.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.claim).invoke(affiliate): Unit
+    claim(digest, affiliate)
     Secrets(api.secrets).dataKey(affiliate).left.map(_.reason).map { key =>
       val sealedIdentity = Sealing.seal(identity.copy(email = Digest.normalised(identity.email)), key, affiliate)
       api.components.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.createAccount)

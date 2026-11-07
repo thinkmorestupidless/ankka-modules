@@ -28,9 +28,12 @@ class SecretsSuite extends munit.FunSuite:
     assertEquals(s.brandSecret("goldvibe", Secrets.WebhookSecret), Right(Some("whsec")))
   }
 
-  test("the email index key is one key") {
-    val s = Secrets(InMemorySecretStore())
-    assert(java.util.Arrays.equals(s.emailIndexKey.toOption.get, s.emailIndexKey.toOption.get))
+  test("the email index key is one key, made by the seed alone: a read before it is unavailable") {
+    val store = InMemorySecretStore()
+    assert(Secrets(store).emailIndexKey.isLeft)
+    val made = Secrets(store).makeEmailIndexKey().toOption.get
+    assert(java.util.Arrays.equals(Secrets(store).makeEmailIndexKey().toOption.get, made))
+    assert(java.util.Arrays.equals(Secrets(store).emailIndexKey.toOption.get, made))
   }
 
   test("a store that cannot be read is unavailable, never none") {

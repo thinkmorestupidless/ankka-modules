@@ -95,13 +95,14 @@ final class DataSubjects(api: Api):
             case Right((_, Some(other))) if other != aff => refuse(409, "email_already_registered")
             case Right((digest, _)) =>
               val sealedAgain = for
-                key      <- Secrets(api.secrets).dataKey(aff).left.map(_.reason)
+                key      <- Secrets(api.secrets).existingDataKey(aff).left.map(_.reason).flatMap(_.toRight(Codes.Erased))
                 identity <- Sealing.open(a.identity, key, aff)
               yield Sealing.seal(identity.copy(email = Digest.normalised(email)), key, aff)
               sealedAgain match
-                case Left(e) => refuse(503, "store_unavailable", e)
+                case Left(Codes.Erased) => refuse(409, Codes.Erased)
+                case Left(e)            => refuse(503, "store_unavailable", e)
                 case Right(identity) =>
-                  api.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.claim).invoke(aff): Unit
+                  enrolment.claim(digest, aff)
                   api.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.updateIdentity)
                     .invoke(UpdateIdentity(identity, digest, by, api.now())): Unit
                   if a.emailDigest.nonEmpty && a.emailDigest != digest then

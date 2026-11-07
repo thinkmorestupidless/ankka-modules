@@ -65,8 +65,15 @@ final class Secrets(store: SecretStore, ttl: Duration = Secrets.Ttl, now: () => 
       Right(())
     catch case e: CommandError => Left(StoreUnavailable(s"${e.code}: ${e.getMessage}"))
 
-  /** The key of the email digest (research R9), made by `Seed` at start. */
-  def emailIndexKey: Either[StoreUnavailable, Array[Byte]] = keyMadeOnce(Secrets.EmailIndexKey)
+  /**
+   * The key of the email digest (research R9), unavailable until `Seed` has made it: made on a request's
+   * read, two requests could make two, and the digests under the one written over would name no one.
+   */
+  def emailIndexKey: Either[StoreUnavailable, Array[Byte]] =
+    key(Secrets.EmailIndexKey).flatMap(_.toRight(StoreUnavailable("the email index key is not made yet")))
+
+  /** `Seed`'s, its one writer: the key made the first time. */
+  def makeEmailIndexKey(): Either[StoreUnavailable, Array[Byte]] = keyMadeOnce(Secrets.EmailIndexKey)
 
   /** A brand's secret: `webhook-secret`, `customerio-key`. */
   def brandSecret(slug: String, name: String): Either[StoreUnavailable, Option[String]] = get(Secrets.brand(slug, name))
