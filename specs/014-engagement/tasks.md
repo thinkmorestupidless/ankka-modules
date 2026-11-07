@@ -150,7 +150,7 @@ another session's: do not touch it.
 - [X] T023 `S/facts/AuditPublisher.scala` (`Send` states → `engagement.send.refused | retried |
       discarded`; `Configuration` changes → `engagement.config.changed`, keys named, no value) through
       `AuditCompanion`. `T/facts/AuditSuite.scala` first: no `Personal` value on a record.
-- [ ] T024 `S/api/Answers.scala`: refusals as `{error, …}` with contracts/routes.md's statuses; the
+- [X] T024 `S/api/Answers.scala`: refusals as `{error, …}` with contracts/routes.md's statuses; the
       original's literal missing-field messages; a neighbour's answer passed through unchanged.
 
 **Checkpoint**: neighbours amended and green; the pure packages, `Profile`, `Configuration`, `Send`,
