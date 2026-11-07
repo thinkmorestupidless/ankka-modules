@@ -69,7 +69,7 @@ and sees what it sees from ST8. **Independent test**: `OperatorApiParitySuite` a
 - [X] T030 [US1] `KeyDocument` and `Health` endpoints wired from the library in `Main.scala`; `Health` ready once the key is held and the brand cache loaded
 - [ ] T031 [US1] `OperatorApiParitySuite` in `E/test/.../edge/port/OperatorApiParitySuite.scala`: replay `tests/port/simulator/OperatorApi_Launch.json`, `OperatorApi_Games.json`, `OperatorApi_BonusCreateUnknownGame.json`, `OperatorApi_BonusLifecycle.json` with `TestGame` registered and the recordings' key as a test brand's entry; the `game_url` host difference the one named exception (SC-001)
 - [X] T032 [US1] Bind `features/games/brand.feature` in `E/test/.../edge/steps/BrandFeatures.scala`: `FakeBrand` as the brand (catalogue refresh, launch, wallet moves and the `round_settled` fact asserted on the fake's side), a launch signed with another key refused
-- [ ] T033 [US1] `just provider-perf`: 100 launches and checks against `FakeBrand` and `TestGame`, p99 under 2 s (SC-003), in `E/test/.../edge/PerfSuite.scala` behind a tag
+- [X] T033 [US1] `just provider-perf`: 100 launches and checks against `FakeBrand` and `TestGame`, p99 under 2 s (SC-003), in `E/test/.../edge/PerfSuite.scala` behind a tag
 
 ## Phase 5: User Story 3 — one provider, many brands, each held apart (P1)
 
