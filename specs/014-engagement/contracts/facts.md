@@ -18,7 +18,7 @@ decimals. `bonus_name` is the offer id. The send key is `<event>/<fact id>` unle
 | `player_kyc_verified` | — | `kyc_approved` | — |
 | `player_kyc_rejected` | — | `kyc_rejected` | — |
 | `player_kyc_document_reviewed` | `decision = approved` | `kyc_document_accepted` | `doc_type` = `category` |
-| `player_kyc_document_reviewed` | `decision = declined` | `kyc_document_declined` | `doc_type`, `reason` = `reasonCode` |
+| `player_kyc_document_reviewed` | `decision = rejected` (kyc's word; `declined` read too) | `kyc_document_declined` | `doc_type`, `reason` = `reasonCode` |
 | `player_consent_changed` | `channel ∈ {email, sms}` | `consent_updated` | — |
 | `casino.sessions` `game_session_started` | — | `game_session_started` | `game_id`, `session_id` |
 | `game_session_ended` | — | `game_session_ended` | `game_id`, `session_id`, `session_duration_minutes` |

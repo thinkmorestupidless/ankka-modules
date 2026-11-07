@@ -91,7 +91,7 @@ another session's: do not touch it.
       `S/EngagementService.scala` (descriptors, endpoints, `started` registering the timers, `@main`
       with `TimerRuntime`, `ProjectionRuntime.fromEnv` else `InMemoryBroker`, `HttpServer.of(…
       Oidc.authenticate())`), as `RewardsService`. `T/SettingsSuite.scala`.
-- [ ] T013 [P] `S/events/Events.scala` (fact → events and data, contracts/facts.md's table in
+- [X] T013 [P] `S/events/Events.scala` (fact → events and data, contracts/facts.md's table in
       `handler.go`'s candidate order; the auto-login rule; `payment_failed`'s normalisation from
       `G/payment_failed.go`; `bonus_name` the offer id), `S/events/Classes.scala` (FR-011's two
       classes), `S/events/Amounts.scala` (minor → major, two decimals, `HALF_UP`).
@@ -108,7 +108,7 @@ another session's: do not touch it.
       (`G/daily_deposit_count_test.go`) first.
 - [ ] T015 [P] `S/api/Signature.scala` (FR-017's verification in order; `CW:895-971`),
       `S/config/Masking.scala` (first three characters and asterisks; a masked value preserves),
-      `S/config/Seed.scala` (the thirty `CrmEvent` keys with the original's `seedAttributes` and
+      `S/config/Seed.scala` (the thirty-two `CrmEvent` keys with the original's `seedAttributes` and
       `seedData`), `S/channel/Frames.scala` (the SSE frame texts of contracts/routes.md).
       `T/api/SignatureSuite.scala` (`CustomerIOWebhookRoutesSpec`'s verification cases),
       `T/config/MaskingSuite.scala`, `T/config/SeedSuite.scala`, `T/channel/FramesSuite.scala` first.
@@ -312,7 +312,7 @@ end in `just players-run` + `just engagement-run`.
       `invalid_config`, the audit record; `POST /{brand}/seed` (thirty pairs at `_seed_<slug>`,
       `credentials_not_configured`, `crm_unavailable`, `{seeded, person}`).
       `T/it/ConfigSuite.scala`: the round trip, `testKit.secrets` holding the values and the entity
-      none, the seed's thirty pairs at `FakeCrm`, a second seed at the same person.
+      none, the seed's thirty-two pairs at `FakeCrm`, a second seed at the same person.
 
 **Checkpoint**: US7's scenarios green; every scenario of `features/engagement/` bound.
 
