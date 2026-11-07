@@ -5,8 +5,9 @@ import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpSe
 import com.thinkmorestupidless.ankka.runtime.{Ankka, AnkkaService, ProjectionRuntime, TimerRuntime}
 import io.eitheror.casino.provider.brands.Sender
 import io.eitheror.casino.provider.core.*
-import io.eitheror.casino.provider.edge.brands.{BrandCache, BrandEntryEntity, BrandIndex}
+import io.eitheror.casino.provider.edge.brands.{BrandCache, BrandEntryEntity, BrandIndex, HouseOutbound}
 import io.eitheror.casino.provider.edge.games.GamesEndpoint
+import io.eitheror.casino.provider.edge.operator.{GameHealth, OperatorApi}
 import io.eitheror.casino.provider.edge.registry.{GameEntity, GameIndex}
 import io.eitheror.casino.provider.st8.*
 
@@ -38,14 +39,15 @@ object Provider:
     val factories: Seq[EndpointClients => HttpEndpoint] = Seq(
       c => KeyDocument(parts(c).keys),
       c => { val p = parts(c); Health(() => p.ready.get()) },
-      c => GamesEndpoint(c.componentClient)
+      c => GamesEndpoint(c.componentClient),
+      c => OperatorApi(c.componentClient, cache, GameHealth(name => c.services(name)).apply)
     )
     at.fold(HttpServer.of(factories*))((host, port) => HttpServer.at(host, port)(factories*))
 
   /** The core's collaborators, once the service (and its secret store) has started. */
   def install(service: AnkkaService, settings: Settings, cache: BrandCache): Keys =
     val keys = Keys(service.secrets)
-    Wiring.install(St8Protocol, Sender(cache.apply, keys), keys, cache)
+    Wiring.install(St8Protocol, HouseOutbound(Sender(cache.apply, keys)), keys, cache)
     Deliver.schedule = settings.schedule
     Sweep.retention = settings.retentionDays.days
     Sweep.views = Some(service.viewClient)
