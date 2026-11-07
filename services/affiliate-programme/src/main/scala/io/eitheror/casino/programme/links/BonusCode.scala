@@ -44,7 +44,7 @@ final class BonusCode(@scala.annotation.unused context: KeyValueEntityContext) e
   def claim(c: ClaimCode): Effect[BonusCodeState] =
     if currentState.live then effects.error("code_already_exists", ErrorCode.Conflict)
     else
-      effects.updateState(BonusCodeState(c.code.toUpperCase, c.brand, c.affiliate, c.link, c.offer, c.tag, Some(BonusCode.Active),
+      effects.updateState(BonusCodeState(c.code.toUpperCase(java.util.Locale.ROOT), c.brand, c.affiliate, c.link, c.offer, c.tag, Some(BonusCode.Active),
         Some(c.at), None, currentState.changes + 1, Some(c.at))).thenReplyState
 
   def revoke(c: RevokeCode): Effect[BonusCodeState] =
@@ -67,7 +67,7 @@ object BonusCode extends KeyValueEntity.Companion[BonusCode, BonusCodeState](
   /** The text a code may be: what a player types, and part of the entity's id. */
   val Text = "[A-Za-z0-9_-]{1,64}".r
 
-  def entityId(brand: String, code: String): EntityId = EntityId(s"$brand/${code.toUpperCase}")
+  def entityId(brand: String, code: String): EntityId = EntityId(s"$brand/${code.toUpperCase(java.util.Locale.ROOT)}")
 
   def create(context: KeyValueEntityContext) = new BonusCode(context)
 

@@ -52,7 +52,8 @@ final class Passwords(api: Api):
               send(aff, brand, Token.Reset, "AffiliatePasswordReset", "reset-password")
               tell(aff, brand, "PASSWORD_RESET_REQUESTED", "A password reset was requested for your account.")
           }
-        catch case NonFatal(_) => () // the answer is the same whatever happened
+        // The answer is the same whatever happened; the operator sees why nothing was sent.
+        catch case NonFatal(e) => Passwords.log.warn(s"a forgotten-password request for $brand sent nothing: ${e.getClass.getSimpleName}: ${e.getMessage}")
       ok(Answers.Ok(true))
 
   /** P6: the token claimed once; given back when the password could not be set, so it can be tried again. */
@@ -119,6 +120,7 @@ final class Passwords(api: Api):
     Notices.tell(api.components, java.util.UUID.randomUUID().toString, Notice(aff, brand, kind, body, None), at)
 
 object Passwords:
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[Passwords])
   private val Window = java.time.Duration.ofMinutes(5)
   private val recent = ConcurrentHashMap[String, Instant]()
 

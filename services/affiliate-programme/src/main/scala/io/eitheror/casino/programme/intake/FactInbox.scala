@@ -50,7 +50,7 @@ final class FactInbox(@scala.annotation.unused context: KeyValueEntityContext) e
       effects.updateState(InboxState(cmd.brand, cmd.factId, cmd.kind, cmd.channel, cmd.currency, Some(cmd.occurredAt), Some(cmd.at)))
         .thenReply(s => Claimed(FactInbox.New, s))
 
-  /** What became of the fact: `bound`, `recorded`, `unattributed:<reason>`, `ignored:<reason>`, `mismatched`, …; the first stands. */
+  /** What became of the fact: `bound`, `recorded`, `unattributed:<reason>`, `ignored:<reason>`, `mismatched`, …; the last recorded stands, and the same one again changes nothing. */
   def outcome(o: String): Effect[InboxState] =
     if currentState.outcome.contains(o) then effects.reply(currentState)
     else effects.updateState(currentState.copy(outcome = Some(o))).thenReplyState

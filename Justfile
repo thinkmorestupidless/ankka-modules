@@ -258,7 +258,7 @@ programme-parity:
 
 # affiliate-programme, locally on 9018 (`sbt schema && docker compose up -d` in services/affiliate-programme).
 # With no ANKKA_KAFKA_BOOTSTRAP_SERVERS goldvibe's affiliates.attribution is carried in memory (quickstart §6).
-# Export ANKKA_SECRET_KEY first (`openssl rand -base64 32`, kept: the store is encrypted under it). The
+# The secret store's key is made once in target/local-secret-key and kept: the store is encrypted under it. The
 # manager and affiliate routes trust dev-kind's eitheror realm through a port-forward on 18180.
 programme-run:
     # The secret store's key for local runs, made once and kept beside the build (never committed).

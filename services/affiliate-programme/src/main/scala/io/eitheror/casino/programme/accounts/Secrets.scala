@@ -14,8 +14,9 @@ final case class StoreUnavailable(reason: String)
 /**
  * The secrets this service keeps in its own store (data-model.md *Secrets*), as `merchant`'s: each
  * affiliate's data key at `affiliate/<id>/data-key`, the email digest's key at `email-index-key`, a
- * brand's secrets at `brand/<slug>/<name>`. Keys are base64. Reads go through a 60-second cache; a write
- * or a destroy here clears the name at once. A key once destroyed is gone: what it sealed reads as erased
+ * brand's secrets at `brand/<slug>/<name>`. Keys are base64. A `Secrets` is made per request or step, and
+ * its cache (60 seconds at most) lasts as long: a name read twice within it is asked once, and a write or a
+ * destroy here clears it. No cache outlives its caller, so no node reads a key another has destroyed. A key once destroyed is gone: what it sealed reads as erased
  * (FR-037).
  */
 final class Secrets(store: SecretStore, ttl: Duration = Secrets.Ttl, now: () => Instant = () => Instant.now()):

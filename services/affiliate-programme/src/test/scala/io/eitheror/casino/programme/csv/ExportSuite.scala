@@ -20,6 +20,7 @@ class ExportSuite extends munit.FunSuite:
 
   test("a value a spreadsheet would run as a formula is defused; a negative amount is not") {
     assertEquals(Export.field("=HYPERLINK(\"x\")"), "\"'=HYPERLINK(\"\"x\"\")\"")
+    assert(Export.field("\r=1+1").startsWith("\"'"), Export.field("\r=1+1"))
     assertEquals(Export.field("@SUM(A1)"), "'@SUM(A1)")
     assertEquals(Export.field("-cmd"), "'-cmd")
     assertEquals(Export.field("-100"), "-100")

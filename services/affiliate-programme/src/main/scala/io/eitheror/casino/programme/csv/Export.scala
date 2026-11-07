@@ -35,12 +35,12 @@ object Export:
     (Header +: rows.map(_.cells)).map(_.map(field).mkString(",")).mkString("", "\r\n", "\r\n")
 
   /**
-   * One field. A value starting `=`, `+`, `-`, `@` or a tab would be read as a formula by a spreadsheet;
+   * One field. A value starting `=`, `+`, `-`, `@`, a tab or a carriage return would be read as a formula by a spreadsheet;
    * an affiliate chose their display name, so such a value is prefixed with `'` (OWASP's advice). A
    * negative amount is our own number and keeps its sign.
    */
   def field(value: String): String =
-    val guarded = if value.nonEmpty && "=+@\t".contains(value.head) then s"'$value" else if value.startsWith("-") && !value.drop(1).forall(_.isDigit) then s"'$value" else value
+    val guarded = if value.nonEmpty && "=+@\t\r".contains(value.head) then s"'$value" else if value.startsWith("-") && !value.drop(1).forall(_.isDigit) then s"'$value" else value
     if guarded.exists(c => c == ',' || c == '"' || c == '\n' || c == '\r') || guarded.startsWith(" ") then
       "\"" + guarded.replace("\"", "\"\"") + "\""
     else guarded

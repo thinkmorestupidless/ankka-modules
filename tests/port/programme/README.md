@@ -99,11 +99,11 @@ current status (`close and pay`); and the original's application reads nothing o
 
 ## The import's export (T088)
 
-`import/` will hold `bundle.json` and `revenue.json`, written from the original's Spinvibe twins by
+`import/` holds `bundle.json` and `revenue.json`, written from the original's Spinvibe twins by
 `tests/original/programme-export` (`-out` and `-expected`) on the local KinD stack, with the brand's
 pseudonym key read from its `attribution`'s store at run time. `services/affiliate-programme`'s
 `port/ImportParitySuite` imports the bundle and holds every affiliate's revenue, period by period and
-field by field, to the original's; it fails until both files are here.
+field by field, to the original's; it fails, not passes empty, if either file is missing.
 
 ## What the first runs taught the driver
 
