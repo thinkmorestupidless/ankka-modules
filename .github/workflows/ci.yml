@@ -89,6 +89,11 @@ jobs:
             affiliate-programme:
               - *build
               - services/affiliate-programme/**
+              # attribution's sources build.sbt compiles into this service's tests (the tag verifier)
+              - services/attribution/src/main/scala/io/eitheror/casino/attribution/Types.scala
+              - services/attribution/src/main/scala/io/eitheror/casino/attribution/Json.scala
+              - services/attribution/src/main/scala/io/eitheror/casino/attribution/tag/**
+              - tests/original/programme-export/**
               - features/programme/**
               - tests/port/programme/**
               - tests/port/attribution/**
