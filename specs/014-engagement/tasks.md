@@ -161,18 +161,18 @@ the views and the audit publisher green under their suites.
 **Goal**: every fact family to its identify, track and transactional, once, with the dead letter.
 **Independent test**: `tracks.feature` through the kit with `FakeCrm`.
 
-- [ ] T025 [US1] Bind `features/engagement/tracks.feature` in `T/features/TracksFeatures.scala`
+- [X] T025 [US1] Bind `features/engagement/tracks.feature` in `T/features/TracksFeatures.scala`
       (`GherkinSuite`); it fails first.
-- [ ] T026 [US1] `S/consumers/MoneyConsumer.scala` (`money.transactions`: balances onto `Profile`,
+- [X] T026 [US1] `S/consumers/MoneyConsumer.scala` (`money.transactions`: balances onto `Profile`,
       `deposit_confirmed` with `first_deposit_confirmed` when the lifetime count becomes 1, an
       identify-only `Send` for a movement with no event); `ConsumerTestKit` suite.
-- [ ] T027 [US1] `S/consumers/PlayersConsumer.scala` (`Profile.apply`, `Events`, `Send.start` per
+- [X] T027 [US1] `S/consumers/PlayersConsumer.scala` (`Profile.apply`, `Events`, `Send.start` per
       event, the identify-only families of contracts/facts.md), `S/consumers/SessionsConsumer.scala`,
       `S/consumers/PaymentsConsumer.scala` (`payment.initiated` remembered; `payment.failed` |
       `expired` → `payment_failed/<paymentId>`), `S/consumers/WithdrawalsConsumer.scala`,
       `S/consumers/RewardsConsumer.scala`; a `ConsumerTestKit` suite each, the key of every `Send`
       asserted.
-- [ ] T028 [US1] `S/api/BackofficeEndpoint.scala` (`/v1/casino/backoffice/<slug>`, `Routes.operator`),
+- [X] T028 [US1] `S/api/BackofficeEndpoint.scala` (`/v1/casino/backoffice/<slug>`, `Routes.operator`),
       the `GET /engagement/status` route first (contracts/routes.md: configured, parked, lastHour,
       webhookRefusals, connections); the other routes come in US7.
 - [ ] T029 [US1] `T/it/ReplaySuite.scala` (SC-002: a year of facts delivered twice into an empty

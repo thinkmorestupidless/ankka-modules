@@ -21,6 +21,12 @@ object EngagementRuntime:
   @volatile var views: () => com.thinkmorestupidless.ankka.runtime.ViewClient =
     () => throw IllegalStateException("the views are not wired: EngagementService sets EngagementRuntime.views at start")
 
+  /** This instance's webhook refusals by code, and its open player streams, for the status route. */
+  val webhookRefusals: scala.collection.concurrent.TrieMap[String, Long] = scala.collection.concurrent.TrieMap.empty
+  val connections: java.util.concurrent.atomic.AtomicInteger              = java.util.concurrent.atomic.AtomicInteger(0)
+
+  def refused(code: String): Unit = webhookRefusals.updateWith(code)(n => Some(n.getOrElse(0L) + 1L)): Unit
+
   def wire(s: Settings, clock: () => Instant = () => Instant.now()): Unit =
     settings = s
     now = clock

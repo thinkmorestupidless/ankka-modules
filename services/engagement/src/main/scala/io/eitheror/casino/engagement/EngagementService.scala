@@ -14,11 +14,19 @@ object EngagementService:
     reads.SendsView.descriptor,
     reads.ProfilesView.descriptor,
     facts.SendAudit.descriptor,
-    facts.ConfigAudit.descriptor
+    facts.ConfigAudit.descriptor,
+    consumers.PlayersConsumer.descriptor,
+    consumers.MoneyConsumer.descriptor,
+    consumers.PaymentsConsumer.descriptor,
+    consumers.SessionsConsumer.descriptor,
+    consumers.WithdrawalsConsumer.descriptor,
+    consumers.RewardsConsumer.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
-  def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq.empty
+  def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
+    clients => api.BackofficeEndpoint(api.Ctx(authenticate, clients, project))
+  )
 
   /** Once the service has started: the timers and the views reachable from the components. */
   def started(timers: TimerRuntime, views: ViewClient): Unit =
