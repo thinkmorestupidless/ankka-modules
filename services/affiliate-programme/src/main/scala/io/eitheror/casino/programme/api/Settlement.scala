@@ -26,7 +26,7 @@ object SettlementAnswers:
   final case class Adjusted(adjustmentId: String, affiliateId: String, brandId: String, `type`: String, amount: Long, currency: String,
       reason: String, createdAt: Instant)
 
-  /** A payout as the routes list it: its figures flat, `payoutId` the one O42 takes. */
+  /** A payout as the routes list it: its figures flat under the original's names, `payoutId` the one O42 takes. */
   final case class PayoutAnswer(
       payoutId: String,
       affiliateId: String,
@@ -34,9 +34,9 @@ object SettlementAnswers:
       currency: String,
       period: String,
       status: String,
-      cpa: Long,
-      revShare: Long,
-      `override`: Long,
+      cpaCommission: Long,
+      revShareCommission: Long,
+      overrideCommission: Long,
       adjustments: Long,
       totalPayable: Long,
       createdAt: Option[Instant],

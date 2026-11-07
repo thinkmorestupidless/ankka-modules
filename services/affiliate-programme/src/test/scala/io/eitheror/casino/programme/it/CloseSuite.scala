@@ -53,7 +53,7 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
     assertEquals(mine.map(_.get("totalPayable").asLong), Some(5_000L))
     assertEquals(mine.map(_.get("payoutId").asText), Some(s"$aff:EUR:2025-01"))
     val p = payout(aff, "2025-01")()
-    assertEquals((p.get("status").asText, p.get("totalPayable").asLong, p.get("cpa").asLong), ("pending", 5_000L, 5_000L))
+    assertEquals((p.get("status").asText, p.get("totalPayable").asLong, p.get("cpaCommission").asLong), ("pending", 5_000L, 5_000L))
   }
 
   test("below the affiliate's threshold nothing is claimed, and the facts carry to the next close") {
