@@ -20,7 +20,7 @@ Paths: `P` = `provider-core/src`, `E` = `services/provider/src`, `SIM` =
 
 ## Phase 1: Setup
 
-- [ ] T001 Add the `providerCore` subproject to `build.sbt` per `contracts/provider-core.md` (`provider-core/`, name `casino-provider-core`, depends on `contract`, `commonTest`, ankka sdk/http/runtime, jackson, json-schema-validator, testkit and munit in Test, a `tests` classifier artifact for the kits); `sbt providerCore/compile` passes on an empty source tree
+- [X] T001 Add the `providerCore` subproject to `build.sbt` per `contracts/provider-core.md` (`provider-core/`, name `casino-provider-core`, depends on `contract`, `commonTest`, ankka sdk/http/runtime, jackson, json-schema-validator, testkit and munit in Test, a `tests` classifier artifact for the kits); `sbt providerCore/compile` passes on an empty source tree
 - [ ] T002 [P] Scaffold `services/provider/` with `ankka init` (ankka 0.13.0): `build.sbt` depending on `casino-contract` and `casino-provider-core` (both `CASINO_VERSION`), `service.json` (`provider`, runtime 0.13.0), `docker-compose.yml`, `README.md` (what it is, how to test, run locally beside a brand), an empty `Main.scala`
 - [ ] T003 [P] `Justfile`: `just service` publishes `providerCore` beside `contract` before a service task; recipes `provider-test`, `provider-it`, `provider-perf`; note in `README.md` at the root
 - [ ] T004 [P] `.github/workflows/ci.yml`: path filters `provider-core/**` and `services/provider/**`; a `provider` job (publish contract and providerCore locally, `sbt test` in `services/provider`); the simulator's and game-provider's jobs publish `providerCore` too
