@@ -49,7 +49,7 @@ Paths: `P` = `provider-core/src`, `E` = `services/provider/src`, `SIM` =
 by asking the provider. **Independent test**: `features/games/contract.feature` bound against the
 provider, `TestGame` and `FakeBrand`.
 
-- [ ] T020 [US2] `GameEntity` and `GameIndex` (data-model: Game) in `E/main/.../edge/registry/GameEntity.scala` and `GameIndex.scala`: register (refusing a code another owner holds, naming it), deregister, operator removal; entity suite `E/test/.../edge/registry/RegistrySuite.scala`
+- [X] T020 [US2] `GameEntity` and `GameIndex` (data-model: Game) in `E/main/.../edge/registry/GameEntity.scala` and `GameIndex.scala`: register (refusing a code another owner holds, naming it), deregister, operator removal; entity suite `E/test/.../edge/registry/RegistrySuite.scala`
 - [ ] T021 [US2] `BrandEntryEntity`, `BrandIndex` and `BrandCache` (the core's `Brands` over entities, refreshed on write and at start; research R3) in `E/main/.../edge/brands/`; suite `E/test/.../edge/brands/BrandCacheSuite.scala` (US3 adds the routes; the test kit writes entries directly)
 - [ ] T022 [US2] `Main.scala` in `E/main/.../edge/Main.scala`: register the library's `SessionEntity`, `CallbackEntity`, `Deliver`, `KeyRotation`, `RunCallbacks`, `Sweep` and the edge's `GameEntity`, `GameIndex`, `BrandEntryEntity`, `BrandIndex`, `BonusIndex`; `Wiring.install(St8Protocol, Sender(cache, keys), keys, cache)`; `Keys.ensureCurrent()` at start; the sweep timer; the six endpoints; `contract/keys.md`'s table moved
 - [ ] T023 [US2] `GamesEndpoint` `/v1/games` registration routes (`PUT|DELETE /registry/{code}`; `contracts/game-contract.md`) in `E/main/.../edge/games/GamesEndpoint.scala`, admitted by `Routes.service()`, the owner taken from the caller's service principal
