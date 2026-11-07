@@ -18,6 +18,9 @@ object EngagementRuntime:
   @volatile var timers: () => com.thinkmorestupidless.ankka.sdk.TimerScheduler =
     () => throw IllegalStateException("the timers are not wired: EngagementService sets EngagementRuntime.timers at start")
 
+  @volatile var views: () => com.thinkmorestupidless.ankka.runtime.ViewClient =
+    () => throw IllegalStateException("the views are not wired: EngagementService sets EngagementRuntime.views at start")
+
   def wire(s: Settings, clock: () => Instant = () => Instant.now()): Unit =
     settings = s
     now = clock

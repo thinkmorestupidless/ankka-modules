@@ -3,22 +3,25 @@ package io.eitheror.casino.engagement
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
-import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
+import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime, ViewClient}
 
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
 object EngagementService:
   val descriptors: Seq[ComponentDescriptor] = Seq(
     profile.Profile.descriptor,
     config.Configuration.descriptor,
-    send.Send.descriptor
+    send.Send.descriptor,
+    reads.SendsView.descriptor,
+    reads.ProfilesView.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq.empty
 
-  /** Once the service has started: the timers reachable from the components. */
-  def started(timers: TimerRuntime): Unit =
+  /** Once the service has started: the timers and the views reachable from the components. */
+  def started(timers: TimerRuntime, views: ViewClient): Unit =
     EngagementRuntime.timers = () => timers.timerScheduler
+    EngagementRuntime.views = () => views
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
@@ -45,6 +48,6 @@ object EngagementService:
       log.warn("ANKKA_KEYRING_ADDRESS is not set: personal fields are sealed under keys in this service's database (a local run)")
       builder.withLocalKeyring()
   val service = keyed.start(name = "engagement")
-  EngagementService.started(timers)
+  EngagementService.started(timers, service.viewClient)
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

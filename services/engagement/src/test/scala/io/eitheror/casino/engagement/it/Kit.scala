@@ -63,7 +63,7 @@ final class Kit(base: Settings = Kit.Base):
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server),
     localServices = Map(settings.players -> players.address, settings.rewards -> rewards.address)
   )
-  EngagementService.started(timers)
+  EngagementService.started(timers, testKit.service.viewClient)
 
   def views      = testKit.service.viewClient
   def components = testKit.componentClient
@@ -99,7 +99,7 @@ final class Kit(base: Settings = Kit.Base):
   /** The service stopped and started again on the same database, keyring and secrets; `whileStopped` runs between. */
   def restartService(whileStopped: => Unit = ()): Unit =
     testKit.restartService(whileStopped = whileStopped)
-    EngagementService.started(timers)
+    EngagementService.started(timers, testKit.service.viewClient)
 
   // ── HTTP ──────────────────────────────────────────────────────────────────
 

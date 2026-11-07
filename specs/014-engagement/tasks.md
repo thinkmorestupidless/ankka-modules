@@ -144,7 +144,7 @@ another session's: do not touch it.
       answering the first outcome, retry and discard from `parked` only, suppression and closure at
       the first attempt and at a retry, the identify of a withheld event still made, a key rotation
       between attempts, `restartService()` mid-attempt resuming.
-- [ ] T022 `S/reads/SendsView.scala` (`stateOf(Send)`: `byPlayer`, `parked` with `search`, `counts(since)`,
+- [X] T022 `S/reads/SendsView.scala` (`stateOf(Send)`: `byPlayer`, `parked` with `search`, `counts(since)`,
       `oldestParked`) and `S/reads/ProfilesView.scala` (`stateOf(Profile)`: `dailyCountAbove(day)` paged
       by 500). `T/it/ViewsSuite.scala`.
 - [ ] T023 `S/facts/AuditPublisher.scala` (`Send` states → `engagement.send.refused | retried |
