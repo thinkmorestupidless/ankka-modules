@@ -25,6 +25,8 @@ object ErasureRules:
   val New    = "new"
   val Held   = "held"
   val Erased = "erased"
+  /** The erase step gave up (the realm or the secret store refused every attempt): nothing was erased; file again once fixed. */
+  val Failed = "failed"
 
   /**
    * Whether the account's realm user is gone: deleted, or one the realm no longer has. A realm that is not
@@ -40,20 +42,22 @@ object ErasureRules:
     LocalDate.ofInstant(filedAt, ZoneOffset.UTC).plusDays(days.toLong).atStartOfDay(ZoneOffset.UTC).toInstant
 
 /**
- * Held until the retention ends, then the identity goes: the data key destroyed (every sealed value the
- * journal holds is unreadable after), the email index released, the realm user deleted, and the
- * account recorded erased. Each of the four is harmless done twice, so a step retried repeats none
- * wrongly. Facts, payouts and the audit are not touched: they name the affiliate by id only.
+ * Held until the retention ends, then the identity goes: the realm user deleted first, so a realm that
+ * refuses leaves everything as it was; then the data key destroyed (every sealed value the journal holds
+ * is unreadable after), the email index released, and the account recorded erased. Each of the four is
+ * harmless done twice, so a step retried repeats none wrongly; a step that gives up is recorded `failed`. Facts, payouts and the audit are not touched: they name the affiliate by id only.
  */
 final class Erasure(context: WorkflowContext) extends Workflow[ErasureState]:
   def emptyState: ErasureState = ErasureState()
 
   override def settings: WorkflowSettings =
-    WorkflowSettings.builder.defaultStepTimeout(1.minute).stepRecovery(Erasure.erase, RecoverStrategy.maxRetries(5)).build
+    WorkflowSettings.builder.defaultStepTimeout(1.minute).stepRecovery(Erasure.erase, RecoverStrategy.maxRetries(5).failoverTo(Erasure.failed)).build
 
-  /** Filed once; filing again answers the erasure already held. */
+  /** Filed once; filing again answers the erasure already held, or tries again one that failed, its hold kept. */
   def file(c: FileErasure): Effect[ErasureState] =
-    if currentState.status != ErasureRules.New then effects.reply(currentState)
+    if currentState.status == ErasureRules.Failed then
+      effects.updateState(currentState.copy(status = ErasureRules.Held)).transitionTo(Erasure.hold.ref).thenReplyState
+    else if currentState.status != ErasureRules.New then effects.reply(currentState)
     else
       effects.updateState(ErasureState(c.affiliate, c.by, Some(c.at), Some(c.holdUntil), ErasureRules.Held))
         .transitionTo(Erasure.hold.ref).thenReplyState
@@ -74,16 +78,21 @@ final class Erasure(context: WorkflowContext) extends Workflow[ErasureState]:
     val affiliate = currentState.affiliate
     val client    = context.componentClient
     val account   = client.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.get).invoke()
-    Secrets(context.secrets).destroy(affiliate).left.foreach(e => throw IllegalStateException(s"the secret store: ${e.reason}"))
-    Option(account.emailDigest).filter(_.nonEmpty)
-      .foreach(d => client.forKeyValueEntity(EntityId(d)).call(EmailIndex.release).invoke(affiliate): Unit)
     account.keycloakUser.foreach { user =>
       val deleted = Wiring.realm.get().deleteUser(user)
       if !ErasureRules.realmDeleted(deleted) then throw IllegalStateException(s"the realm: ${deleted.left.toOption.get}")
     }
+    Secrets(context.secrets).destroy(affiliate).left.foreach(e => throw IllegalStateException(s"the secret store: ${e.reason}"))
+    Option(account.emailDigest).filter(_.nonEmpty)
+      .foreach(d => client.forKeyValueEntity(EntityId(d)).call(EmailIndex.release).invoke(affiliate): Unit)
     val at = Wiring.clock.get().instant()
     client.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.erased).invoke(at): Unit
     stepEffects.updateState(currentState.copy(status = ErasureRules.Erased, erasedAt = Some(at))).thenEnd
+
+  /** The erase step's attempts are spent: recorded, read through the erasure's status, and logged. */
+  def failedStep: StepEffect =
+    Erasure.log.error(s"the erasure of ${currentState.affiliate} gave up: the realm or the secret store refused every attempt")
+    stepEffects.updateState(currentState.copy(status = ErasureRules.Failed)).thenEnd
 
   /** The hold's timer: the hold looked at again, the clock that set it deciding. */
   def due: Effect[ErasureState] =
@@ -106,7 +115,10 @@ object Erasure extends Workflow.Companion[Erasure, ErasureState](
   def create(context: WorkflowContext) = new Erasure(context)
 
   val hold  = step("hold")(_.holdStep)
-  val erase = step("erase")(_.eraseStep)
+  val erase  = step("erase")(_.eraseStep)
+  val failed = step("failed")(_.failedStep)
+
+  private val log = org.slf4j.LoggerFactory.getLogger(classOf[Erasure])
 
   val file   = command("file")(_.file)
   val due    = command("due")(_.due)
