@@ -139,7 +139,7 @@ access. Nothing story-specific starts before this phase ends.
 
 ### The kit, the endpoint and access
 
-- [ ] T030 `r-test/it/Kit.scala`: `AnkkaTestKit` over Postgres (5445) with `InMemoryBroker` carrying the
+- [X] T030 `r-test/it/Kit.scala`: `AnkkaTestKit` over Postgres (5445) with `InMemoryBroker` carrying the
   brand's topics and `MovableClock`; token helpers for each role; `r-test/it/FactSet.scala` publishing a
   known set of facts and computing every figure independently (research R17)
 - [X] T031 `r/api/ReportingEndpoint.scala` with `r/api/Access.scala` (the admission table of
