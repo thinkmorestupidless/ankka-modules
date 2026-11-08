@@ -38,6 +38,8 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     "/reports/players" -> reportRoles,
     "/reports/transactions" -> reportRoles,
     "/reports/transactions/export" -> reportRoles,
+    "/reports/bonus" -> reportRoles,
+    "/reports/psp" -> reportRoles,
     "/status"      -> everyOperator,
     "/settings"    -> Set("brand_admin", "platform_admin")
   ) ++ Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health")
@@ -126,5 +128,6 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     assertEquals((days.path("name").asText, days.path("completeFrom").asText, days.path("rebuilding").asBoolean),
       ("days", Kit.SeedDay.toString, false))
     assertEquals(j.path("views").elements.asScala.map(_.path("name").asText).toVector,
-      Vector("days", "wallets", "players", "sessions", "payments", "withdrawals", "rounds", "player-days", "activity", "transactions"))
+      Vector("days", "wallets", "players", "sessions", "payments", "withdrawals", "rounds", "player-days", "activity", "transactions",
+        "grants"))
   }

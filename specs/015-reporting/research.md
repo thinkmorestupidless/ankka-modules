@@ -467,3 +467,15 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T046, the email search**: reads every `Players` row and matches the decoded email case-insensitively, as the
   original filtered the brand's players; an erased email matches nothing. The search text is not recorded in an
   export's `Document` (only that one was given).
+- **T049, the bonus and provider CSVs' layout** (asked in the hand-back): routes.md gives the layout of the revenue CSV
+  only. These follow it: the summary first, under `all` (the filter's every-offer value) in the first column, then one
+  row per offer or provider, the columns the JSON rows' names (`currency` added to the provider rows; a `null` rate an
+  empty cell). The summary's `activeCount` has no column, as the offer rows have none.
+- **T049, the bonus report's grants**: those granted in the period in the brand's zone, in the currency answered; a
+  free-rounds grant (no currency until it wins, amount 0) counts in every currency. Offers are ordered by id (the
+  original's order was a map's); a grant with no offer is under `unknown`, its name and type `UNKNOWN` as the original
+  when none of its grants carries one. `expired` counts in the total only, as the original.
+- **T049, the provider report from `Days`**: attempts, captures and value per payment provider and requests,
+  completions and hours per gateway are the period's `BrandDay` sections, summed; a provider and a gateway of the same
+  name are one row, ordered by name. Test accounts are counted (the setting excludes them from the dashboard and the
+  revenue report only, spec Edge cases). `belowThreshold` is a rate under 95, false when the rate is `null`.

@@ -108,6 +108,19 @@ class ReadsSuite extends munit.FunSuite:
     assertEquals((row.registrationsTo(10, false), row.registrationsTo(23, false), row.registrationsTo(23, true)), (1L, 2L, 1L))
   }
 
+  test("a grant's row follows the entity: its offer, name and type from the grant, its status from the outcome") {
+    import GrantEvent.*
+    val events = Vector[GrantEvent](
+      Granted("f1", "b-1", "p-1", "o-1", "Welcome", "deposit_match", 1_000, Some("EUR"), at),
+      Converted("f2", "b-1", "p-1", at.plusSeconds(60)))
+    val row = events.foldLeft(GrantRow(1))((r, e) => GrantRow.of(1, r, e))
+    assertEquals((row.bonusId, row.offerId, row.name, row.offerType, row.currency, row.amount, row.grantedAt),
+      ("b-1", "o-1", "Welcome", "deposit_match", Some("EUR"), 1_000L, Some(at)))
+    assert(row.converted)
+    val spins = GrantRow.of(1, GrantRow(1), Granted("f3", "b-2", "p-1", "o-2", "Spins", "free_spins", 0, None, at, 10))
+    assertEquals((spins.currency, spins.status, spins.converted), (None, "active", false))
+  }
+
   test("a personal field of a player already erased is kept as erased, so a fact read again after the erasure folds") {
     io.eitheror.casino.reporting.TestKeyring.around { keyring =>
       val marked = io.eitheror.casino.contract.personal.Personal("ada@example.com")

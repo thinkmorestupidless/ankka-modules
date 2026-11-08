@@ -37,10 +37,6 @@ object ReportingFeatures:
   /** Every scenario of `file`, left to the task that binds it. */
   def pending(task: String, file: String): Map[String, String] = scenarios(file).map(_ -> s"$task (pending)").toMap
 
-/** features/reporting/bonus-and-providers.feature (US4), bound by T047. */
-class BonusAndProvidersFeatures extends ReportingFeatures("bonus-and-providers.feature"):
-  override protected def ranElsewhere = ReportingFeatures.pending("T047, US4", "bonus-and-providers.feature")
-
 /** features/reporting/disputes.feature (US5), bound by T050. */
 class DisputesFeatures extends ReportingFeatures("disputes.feature"):
   override protected def ranElsewhere = ReportingFeatures.pending("T050, US5", "disputes.feature")

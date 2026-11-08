@@ -53,6 +53,8 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/reports/players") { () => Reports.players(ctx, asked, query.raw("country"), query.raw("status")) }
     get("/reports/transactions") { () => Reports.transactions(ctx, asked, ledger) }
     get("/reports/transactions/export") { () => Reports.transactionsExport(ctx, asked, ledger) }
+    get("/reports/bonus") { () => Reports.bonus(ctx, asked, query.raw("offerId")) }
+    get("/reports/psp") { () => Reports.psp(ctx, asked) }
   }
 
   // The dashboard admits every operator of the brand and is never hidden by the Reports tab's flag (FR-023, FR-024).

@@ -214,9 +214,9 @@ access. Nothing story-specific starts before this phase ends.
 
 **Independent test**: the four scenarios of `bonus-and-providers.feature`.
 
-- [ ] T047 [P] [US4] Bind the four scenarios in `r-test/features/BonusAndProvidersSteps.scala`
-- [ ] T048 [US4] `r/reads/Grants.scala` (`grantedBetween`, `byOffer`)
-- [ ] T049 [US4] `r/api/Reports.scala` `GET /reports/bonus` (the original's converted statuses, truncated
+- [X] T047 [P] [US4] Bind the four scenarios in `r-test/features/BonusAndProvidersSteps.scala`
+- [X] T048 [US4] `r/reads/Grants.scala` (`grantedBetween`, `byOffer`)
+- [X] T049 [US4] `r/api/Reports.scala` `GET /reports/bonus` (the original's converted statuses, truncated
   rate) and `/reports/psp` (one row per provider, `belowThreshold`, `null` rates), each with `format=csv`
 
 ---
