@@ -803,6 +803,37 @@
         "reason": {
           "type": "string"
         },
+        "records": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "award_id": {
+                "type": "string"
+              },
+              "balance_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "progress_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "requirement_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": ["award_id", "status", "balance_cents", "progress_cents", "requirement_cents"],
+            "type": "object"
+          },
+          "type": "array"
+        },
         "restricted_balance_after": {
           "minimum": 0,
           "type": "integer",
@@ -862,6 +893,37 @@
         "real_balance_after": {
           "type": "integer",
           "x-unit": "minor"
+        },
+        "records": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "award_id": {
+                "type": "string"
+              },
+              "balance_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "progress_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "requirement_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": ["award_id", "status", "balance_cents", "progress_cents", "requirement_cents"],
+            "type": "object"
+          },
+          "type": "array"
         },
         "restricted_balance_after": {
           "minimum": 0,
@@ -1066,6 +1128,37 @@
         "real_balance_after": {
           "type": "integer",
           "x-unit": "minor"
+        },
+        "records": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "award_id": {
+                "type": "string"
+              },
+              "balance_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "progress_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "requirement_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": ["award_id", "status", "balance_cents", "progress_cents", "requirement_cents"],
+            "type": "object"
+          },
+          "type": "array"
         },
         "restricted_balance_after": {
           "minimum": 0,

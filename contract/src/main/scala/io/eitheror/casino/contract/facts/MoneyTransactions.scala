@@ -101,11 +101,13 @@ final case class RestrictedFundsClosed(playerId: String, currency: Currency, tra
 @named("admin_adjusted")
 final case class AdminAdjusted(playerId: String, currency: Currency, transactionId: String, amount: SignedMinorUnits,
     target: String, reason: String, actorId: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
-    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 @named("hold_placed")
 final case class HoldPlaced(playerId: String, currency: Currency, transactionId: String, withdrawalRequestId: String,
-    amountCents: MinorUnits, voidedCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None, voidedDepositCents: Option[MinorUnits] = None, voidedConvertedCents: Option[MinorUnits] = None)
+    amountCents: MinorUnits, voidedCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None, voidedDepositCents: Option[MinorUnits] = None, voidedConvertedCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None)
     extends MoneyTransactionsFact
 
 @named("hold_released")
@@ -127,7 +129,8 @@ final case class WalletWithdrawalReversed(playerId: String, currency: Currency, 
 @named("provider_credited")
 final case class ProviderCredited(playerId: String, currency: Currency, transactionId: String, providerRef: String,
     amountCents: MinorUnits, landedOn: String, awardId: Option[String], realBalanceAfter: SignedMinorUnits,
-    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 // ── spec 022: reservations, settlement, resolution payments, non-player accounts ──
 // The seven wallet-keyed families name what happened to the wallet and carry its reserved balance

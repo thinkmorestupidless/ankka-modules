@@ -358,3 +358,15 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   declares it for a local run. Until the vendor's format carries it, an installation gives the service no keyring
   notices, which is the same gap CLAUDE.md names for `erasure` ("not stated" until ankka spec 042). A finding for
   spec 021: the vendor schema needs `personal`.
+- **T009, records on three more families** (R11; asked 2026-11-08, answer "add records to the 3"): the wallet
+  also changes a restricted funds record's balance in `admin_adjusted` (restricted target), `provider_credited`
+  (landing on restricted) and `hold_placed` (a cap draw that does not close the record). Without `records` on
+  them the per-record liability and progress drift until the record's next listed movement, so the optional
+  `records` field is added to those three families too (contracts/facts.md updated; topics keep v1) and the
+  wallet writes it.
+- **T007, no audit for the test-account flag** (asked 2026-11-08, answer "no audit, as original"): the original
+  audits nothing for `isTestAccount`; `player_test_account_changed` carries the operator's id, and nothing more
+  is written.
+- **T009, a dispute closed with no amount and none opened**: published with no amount and no currency (the wallet
+  never substitutes the payment's initiated amount, which is not the dispute's). Reporting counts such a
+  chargeback by number only, with zero amount, and the day-end lists it as a difference (FR-018).

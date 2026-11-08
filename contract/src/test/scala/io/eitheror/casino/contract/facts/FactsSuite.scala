@@ -287,7 +287,8 @@ class FactsSuite extends munit.FunSuite:
 
   test("spec 015: the money families that change a restricted funds record carry each record after the movement") {
     val withRecords = Set("bet_placed", "win_credited", "bet_rolled_back", "restricted_funds_awarded",
-      "restricted_funds_converted", "restricted_funds_forfeited", "restricted_funds_closed")
+      "restricted_funds_converted", "restricted_funds_forfeited", "restricted_funds_closed", "admin_adjusted",
+      "provider_credited", "hold_placed")
     MoneyTransactions.families.foreach { f =>
       val records = f.fields.find(_._1 == "records")
       assertEquals(records.isDefined, withRecords(f.name), f.name)
