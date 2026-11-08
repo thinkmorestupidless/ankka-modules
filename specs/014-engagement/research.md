@@ -477,6 +477,10 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
 - **The original's inbox names no class** (T051): a CRM send's item carries `originName: "Customer.io
   campaign"` and no marketing or service class. The class is this port's (FR-018); parity compares
   the item's presence and origin.
+- **The original's reset identifies twice** (T051): `POST …/daily-deposit-count/reset` sends the
+  player who deposited two identifies with `daily_deposit_count` 0, in both runs; FR-009 and the
+  feature say one, which the send record's key (`deposit-day/<day>/<player>`) makes so here. The
+  parity suite names this as a divergence.
 
 ## Design finished
 

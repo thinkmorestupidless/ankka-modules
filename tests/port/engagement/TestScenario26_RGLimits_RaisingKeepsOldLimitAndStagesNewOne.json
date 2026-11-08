@@ -1,0 +1,1009 @@
+{
+  "scenario": "TestScenario26_RGLimits_RaisingKeepsOldLimitAndStagesNewOne",
+  "recorded_at": "2026-11-08T07:52:43.279325Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "engagement",
+  "steps": [
+    {
+      "name": "POST /v1/casino/players/spinvibe/register",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "e2e-bjpongmc@example.com",
+          "firstName": "E2E",
+          "language": "en",
+          "lastName": "Playerb398706c",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "c0": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /realms/master/protocol/openid-connect/token",
+      "request": {
+        "method": "POST",
+        "path": "/realms/master/protocol/openid-connect/token",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "body": "client_id=admin-cli&grant_type=password&password=<redacted>&username=admin"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access_token": "<redacted>",
+          "expires_in": 60,
+          "not-before-policy": 0,
+          "refresh_expires_in": 1800,
+          "refresh_token": "<redacted>",
+          "scope": "profile email",
+          "session_state": "08e4422d-2792-4125-b6ac-13f6bd8a8cfa",
+          "token_type": "Bearer"
+        }
+      },
+      "vary": {
+        "$.session_state": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users?email=e2e-bjpongmc%40example.com&exact=true",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "access": {
+              "impersonate": true,
+              "manage": true,
+              "manageGroupMembership": true,
+              "mapRoles": true,
+              "view": true
+            },
+            "createdTimestamp": 1794124363168,
+            "disableableCredentialTypes": [],
+            "email": "e2e-bjpongmc@example.com",
+            "emailVerified": false,
+            "enabled": true,
+            "firstName": "E2E",
+            "id": "d0f80713-9b5e-40cd-b2b2-f8fcee8441bf",
+            "lastName": "Playerb398706c",
+            "notBefore": 0,
+            "requiredActions": [
+              "VERIFY_EMAIL"
+            ],
+            "totp": false,
+            "username": "e2e-bjpongmc@example.com"
+          }
+        ]
+      },
+      "capture": {
+        "c1": "$[0].email",
+        "c2": "$[0].id"
+      },
+      "vary": {
+        "$[0].createdTimestamp": "differs between two runs of the original",
+        "$[0].email": "differs between two runs of the original",
+        "$[0].id": "differs between two runs of the original",
+        "$[0].lastName": "differs between two runs of the original",
+        "$[0].username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /admin/realms/casino-spinvibe/users/d0f80713-9b5e-40cd-b2b2-f8fcee8441bf",
+      "request": {
+        "method": "PUT",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "emailVerified": true,
+          "requiredActions": []
+        }
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "name": "GET /admin/realms/casino-spinvibe/users/d0f80713-9b5e-40cd-b2b2-f8fcee8441bf",
+      "request": {
+        "method": "GET",
+        "path": "/admin/realms/casino-spinvibe/users/{c2}",
+        "service": "realm"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "access": {
+            "impersonate": true,
+            "manage": true,
+            "manageGroupMembership": true,
+            "mapRoles": true,
+            "view": true
+          },
+          "attributes": {
+            "eitheror_twin_id": [
+              "casino.player/9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+            ]
+          },
+          "createdTimestamp": 1794124363168,
+          "disableableCredentialTypes": [],
+          "email": "e2e-bjpongmc@example.com",
+          "emailVerified": true,
+          "enabled": true,
+          "firstName": "E2E",
+          "id": "d0f80713-9b5e-40cd-b2b2-f8fcee8441bf",
+          "lastName": "Playerb398706c",
+          "notBefore": 0,
+          "requiredActions": [],
+          "totp": false,
+          "username": "e2e-bjpongmc@example.com"
+        }
+      },
+      "vary": {
+        "$.attributes.eitheror_twin_id[0]": "differs between two runs of the original",
+        "$.createdTimestamp": "differs between two runs of the original",
+        "$.email": "differs between two runs of the original",
+        "$.id": "differs between two runs of the original",
+        "$.lastName": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "POST /v1/casino/players/spinvibe/login",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{c1}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "PUT /v1/casino/rg/spinvibe/9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f/limits/DEPOSIT_DAILY",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/casino/rg/spinvibe/{c0}/limits/DEPOSIT_DAILY",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "value": "50"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "activeRestrictions": [],
+          "coolingOffUntil": null,
+          "isCoolingOff": false,
+          "limits": [
+            {
+              "limitType": "DEPOSIT_DAILY",
+              "value": 50
+            }
+          ],
+          "pendingChanges": [],
+          "realityCheckIntervalMinutes": null,
+          "usedAmounts": [
+            {
+              "limitType": "DEPOSIT_DAILY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "DEPOSIT_WEEKLY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "DEPOSIT_MONTHLY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "LOSS_DAILY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "LOSS_WEEKLY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "LOSS_MONTHLY",
+              "usedAmount": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "PUT /v1/casino/rg/spinvibe/9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f/limits/DEPOSIT_DAILY",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/casino/rg/spinvibe/{c0}/limits/DEPOSIT_DAILY",
+        "service": "players",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "value": "200"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "activeRestrictions": [],
+          "coolingOffUntil": null,
+          "isCoolingOff": false,
+          "limits": [
+            {
+              "limitType": "DEPOSIT_DAILY",
+              "value": 50
+            }
+          ],
+          "pendingChanges": [
+            {
+              "appliesAt": "2026-11-09T07:52:43.762112767Z",
+              "limitType": "DEPOSIT_DAILY",
+              "pendingValue": "200"
+            }
+          ],
+          "realityCheckIntervalMinutes": null,
+          "usedAmounts": [
+            {
+              "limitType": "DEPOSIT_DAILY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "DEPOSIT_WEEKLY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "DEPOSIT_MONTHLY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "LOSS_DAILY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "LOSS_WEEKLY",
+              "usedAmount": 0
+            },
+            {
+              "limitType": "LOSS_MONTHLY",
+              "usedAmount": 0
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.pendingChanges[0].appliesAt": "differs between two runs of the original"
+      }
+    }
+  ],
+  "outbound": [
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "event",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "name": "player_registered",
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-app",
+      "request": {
+        "method": "POST",
+        "path": "/v1/send/email",
+        "service": "",
+        "body": {
+          "identifiers": {
+            "email": "e2e-bjpongmc@example.com"
+          },
+          "message_data": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "country": "GB",
+            "created_at": "1794124363",
+            "currency": "EUR",
+            "daily_deposit_count": "0",
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "to": "e2e-bjpongmc@example.com",
+          "transactional_message_id": "stub-PlayerRegistered"
+        }
+      }
+    },
+    {
+      "stub": "crm-app",
+      "request": {
+        "method": "POST",
+        "path": "/v1/send/email",
+        "service": "",
+        "body": {
+          "identifiers": {
+            "email": "e2e-bjpongmc@example.com"
+          },
+          "message_data": {
+            "brand_name": "spinvibe",
+            "verification_link": "<redacted>"
+          },
+          "to": "e2e-bjpongmc@example.com",
+          "transactional_message_id": "stub-EmailAddressVerification"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "true",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "rg_limit_types": "rg_limit_DEPOSIT_DAILY",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "true",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "rg_limit_types": "rg_limit_DEPOSIT_DAILY",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "consent_source": "registration",
+            "email": "e2e-bjpongmc@example.com",
+            "player_name": "E2E",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "brand_id": "spinvibe",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "email_subscribed": "false",
+            "daily_deposit_count": 0,
+            "currency": "EUR",
+            "has_rg_limits": "true",
+            "real_money": 0.0,
+            "total_balance": 0.0,
+            "country": "GB",
+            "date_of_birth": "1990-01-01",
+            "language": "en",
+            "account_status": "active",
+            "created_at": 1794124363,
+            "pot_vip": "false",
+            "bonus_money": 0.0,
+            "sms_subscribed": "false",
+            "rg_limit_types": "DEPOSIT_DAILY",
+            "kyc_status": "unverified"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "event",
+          "attributes": {
+            "consent_source": "registration",
+            "email": "e2e-bjpongmc@example.com",
+            "player_name": "E2E",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "brand_id": "spinvibe",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "email_subscribed": "false",
+            "daily_deposit_count": 0,
+            "currency": "EUR",
+            "has_rg_limits": "true",
+            "real_money": 0.0,
+            "total_balance": 0.0,
+            "country": "GB",
+            "date_of_birth": "1990-01-01",
+            "language": "en",
+            "account_status": "active",
+            "limit_type": "DEPOSIT_DAILY",
+            "limit_value": "50",
+            "created_at": 1794124363,
+            "pot_vip": "false",
+            "bonus_money": 0.0,
+            "sms_subscribed": "false",
+            "rg_limit_types": "DEPOSIT_DAILY",
+            "kyc_status": "unverified"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "name": "deposit_limit_set",
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-app",
+      "request": {
+        "method": "POST",
+        "path": "/v1/send/email",
+        "service": "",
+        "body": {
+          "identifiers": {
+            "email": "e2e-bjpongmc@example.com"
+          },
+          "language": "en",
+          "message_data": {
+            "account_status": "active",
+            "bonus_money": "0.00",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": "1794124363",
+            "currency": "EUR",
+            "daily_deposit_count": "0",
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "true",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "limit_type": "DEPOSIT_DAILY",
+            "limit_value": "50",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": "0.00",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "rg_limit_types": "DEPOSIT_DAILY",
+            "sms_subscribed": "false",
+            "total_balance": "0.00"
+          },
+          "to": "e2e-bjpongmc@example.com",
+          "transactional_message_id": "stub-DepositLimitSet"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124363,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "true",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "rg_limit_types": "rg_limit_DEPOSIT_DAILY",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "consent_source": "registration",
+            "email": "e2e-bjpongmc@example.com",
+            "player_name": "E2E",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "brand_id": "spinvibe",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "email_subscribed": "false",
+            "daily_deposit_count": 0,
+            "currency": "EUR",
+            "has_rg_limits": "true",
+            "real_money": 0.0,
+            "total_balance": 0.0,
+            "country": "GB",
+            "date_of_birth": "1990-01-01",
+            "language": "en",
+            "account_status": "active",
+            "created_at": 1794124363,
+            "pot_vip": "false",
+            "bonus_money": 0.0,
+            "sms_subscribed": "false",
+            "rg_limit_types": "DEPOSIT_DAILY",
+            "kyc_status": "unverified"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "event",
+          "attributes": {
+            "consent_source": "registration",
+            "email": "e2e-bjpongmc@example.com",
+            "player_name": "E2E",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "brand_id": "spinvibe",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "email_subscribed": "false",
+            "daily_deposit_count": 0,
+            "currency": "EUR",
+            "has_rg_limits": "true",
+            "real_money": 0.0,
+            "total_balance": 0.0,
+            "country": "GB",
+            "date_of_birth": "1990-01-01",
+            "language": "en",
+            "account_status": "active",
+            "limit_type": "DEPOSIT_DAILY",
+            "limit_value": "200",
+            "created_at": 1794124363,
+            "pot_vip": "false",
+            "bonus_money": 0.0,
+            "sms_subscribed": "false",
+            "rg_limit_types": "DEPOSIT_DAILY",
+            "kyc_status": "unverified"
+          },
+          "identifiers": {
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f"
+          },
+          "name": "rg_limit_loosened",
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-app",
+      "request": {
+        "method": "POST",
+        "path": "/v1/send/email",
+        "service": "",
+        "body": {
+          "identifiers": {
+            "email": "e2e-bjpongmc@example.com"
+          },
+          "language": "en",
+          "message_data": {
+            "account_status": "active",
+            "bonus_money": "0.00",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": "1794124363",
+            "currency": "EUR",
+            "daily_deposit_count": "0",
+            "date_of_birth": "1990-01-01",
+            "email": "e2e-bjpongmc@example.com",
+            "email_subscribed": "false",
+            "has_rg_limits": "true",
+            "id": "9e307afe-ab5c-3c5a-9c3b-e2345ff4dc6f",
+            "kyc_status": "unverified",
+            "last_login_at": "2026-11-08T07:52:43.696443247Z",
+            "limit_type": "DEPOSIT_DAILY",
+            "limit_value": "200",
+            "player_name": "E2E",
+            "pot_vip": "false",
+            "real_money": "0.00",
+            "registration_date": "2026-11-08T07:52:43.189134139Z",
+            "rg_limit_types": "DEPOSIT_DAILY",
+            "sms_subscribed": "false",
+            "total_balance": "0.00"
+          },
+          "to": "e2e-bjpongmc@example.com",
+          "transactional_message_id": "stub-RgLimitLoosened"
+        }
+      }
+    }
+  ],
+  "requirement": "014/FR-006"
+}

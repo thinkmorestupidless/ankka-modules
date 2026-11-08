@@ -329,7 +329,7 @@ end in `just players-run` + `just engagement-run`.
       refusals and its `send_message` and `target_offer` paths, the daily reset route, the agent-stream
       ticket and stream, the player stream's frames, `GET /v1/presence`), on the original's routes,
       in the shape of `tests/original/rewards-driver/`.
-- [ ] T051 Record (needs the user: the original's kind stack with the stub, operator credentials for
+- [X] T051 Record (needs the user: the original's kind stack with the stub, operator credentials for
       the free-spins scenario, the brand configured against the stub): the spec's *Recordings* twice on
       fresh ids with `e2e-recording.patch` and the driver; merge into `tests/port/engagement/`; the
       webhook steps of scenarios 21 and stacking stay under `tests/port/rewards/`; `just modules
