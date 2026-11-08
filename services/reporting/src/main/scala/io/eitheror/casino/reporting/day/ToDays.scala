@@ -74,7 +74,8 @@ object ToDays:
       case _                              => Map.empty
 
   def player(e: PlayerLogEvent, zone: ZoneId): Map[String, Delta] = e match
-    case r: PlayerLogEvent.Registered => at(Days.dayOf(r.registeredAt, zone), Delta(registrations = 1, test = r.testAccount))
+    case r: PlayerLogEvent.Registered =>
+      at(Days.dayOf(r.registeredAt, zone), Delta(hour = hour(r.registeredAt, zone), registrations = 1, test = r.testAccount))
     case _                            => Map.empty
 
 /**

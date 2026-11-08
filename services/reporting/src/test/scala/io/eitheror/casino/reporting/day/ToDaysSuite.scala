@@ -69,9 +69,9 @@ class ToDaysSuite extends munit.FunSuite:
       Map("2026-11-08" -> Delta("EUR", 12, Money(bonusCost = 250))))
   }
 
-  test("a registration counts on its day, with its test flag") {
+  test("a registration counts on its day and hour, with its test flag") {
     val r = PlayerLogEvent.Registered("f", "p-1", at, None, None, None, testAccount = true, at)
-    assertEquals(ToDays.player(r, jhb), Map("2026-11-08" -> Delta(registrations = 1, test = true)))
+    assertEquals(ToDays.player(r, jhb), Map("2026-11-08" -> Delta(hour = 12, registrations = 1, test = true)))
   }
 
   private def recorded(test: Boolean) = Recorded(c => if c.method == "test-account" then test.toString.getBytes else "true".getBytes)

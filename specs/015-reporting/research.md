@@ -432,3 +432,23 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T031–T037, three contract additions** (asked 2026-11-08, each answered as recommended): `400 invalid_date {field}`
   for an unreadable `from`/`to`; the CSV export's file name, quoting, header and the revenue CSV's columns and
   summary row; `PUT /settings` as a partial update. contracts/routes.md carries all three.
+- **T040, the default currency from `Wallets`** (R6): with no `defaultCurrency` set, every route that takes a currency
+  answers in the held currency with the most wallets (`Wallets.count`, ties alphabetical), else EUR
+  (`api/Currencies.scala`). This replaces T036's most-days rule for the revenue report too.
+- **T042, yesterday to the same hour**: `BrandDay` kept GGR and NGR per hour only, so a section now also keeps
+  deposits and withdrawals per hour (`Flow`: amount and count) and the day its registrations per hour (the test
+  accounts' share too). Yesterday is read to the end of the current hour of the zone, an hour's granularity, as
+  the original's hourly buckets; the day's totals are unchanged and the new fields default empty, so stored days
+  read as before.
+- **T042, the session KPIs' yesterday**: `activeSessions` (the alias of `activeGames`), `activeGames` and
+  `playersOnline` answer yesterday 0 and trend `flat`, as the original does; no history of open sessions is kept.
+- **T042, `depositVolume` as a number**: payment health's `pspBreakdown[].depositVolume` is a JSON number in the
+  currency's places (the original's shape, typed `number` in the backoffice's `dashboardTypes.ts`), not the 2-place
+  string every other amount is. Asked as an open question in the hand-back.
+- **T042, payment health from `Days`**: today's attempts, captures and value per provider and the withdrawal hours
+  per gateway are read from the day's `BrandDay` sections, which already fold them, not from the `Payments` and
+  `Withdrawals` views, which serve the PSP and dispute reports.
+- **T040, view details ankka 0.16 imposes**: the `Players` query listing every row is `every`, since `all` is a
+  reserved name; open sessions are counted with an ad hoc `count` over `Sessions` rather than a declared query, so a
+  test-account exclusion can be added to it; `Sessions` rows leave the network address and user agent out (the
+  dispute report reads them from the `Session` entity).

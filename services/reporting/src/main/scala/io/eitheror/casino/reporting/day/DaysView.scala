@@ -23,15 +23,23 @@ final case class DayRow(
     currencies: Map[String, CurrencyDay] = Map.empty,
     differences: Vector[Difference] = Vector.empty,
     openingCorrections: Vector[OpeningCorrection] = Vector.empty,
-    corrections: Vector[Correction] = Vector.empty
+    corrections: Vector[Correction] = Vector.empty,
+    hourRegistrations: Vector[Long] = Section.NoHours,
+    hourTestRegistrations: Vector[Long] = Section.NoHours
 ):
   def state: DayState =
-    DayState(closed, zone, closedAt, registrations, testRegistrations, currencies, differences, openingCorrections, corrections)
+    DayState(closed, zone, closedAt, registrations, testRegistrations, currencies, differences, openingCorrections, corrections,
+      hourRegistrations = hourRegistrations, hourTestRegistrations = hourTestRegistrations)
+
+  /** The day's registrations to the end of hour `upTo` (23 for the whole day), without the test accounts' when asked. */
+  def registrationsTo(upTo: Int, excludeTestAccounts: Boolean): Long =
+    if upTo >= 23 then registrations - (if excludeTestAccounts then testRegistrations else 0L)
+    else hourRegistrations.take(upTo + 1).sum - (if excludeTestAccounts then hourTestRegistrations.take(upTo + 1).sum else 0L)
 
 object DayRow:
   def of(generation: Int, day: String, s: DayState): DayRow =
     DayRow(generation, day, s.closed, s.zone, s.closedAt, s.registrations, s.testRegistrations, s.currencies, s.differences,
-      s.openingCorrections, s.corrections)
+      s.openingCorrections, s.corrections, s.hourRegistrations, s.hourTestRegistrations)
 
   given Serializer[DayRow] = ReportingCodecs.row[DayRow]("day-row")
 
@@ -82,10 +90,14 @@ object Revenue:
    * rebuild that closes a day before its last fact is read answers the same figures (SC-004).
    */
   def dayMoney(row: DayRow, currency: String, excludeTestAccounts: Boolean): Money =
-    val fixed = row.currencies.get(currency).fold(Money())(_.section(excludeTestAccounts).money)
+    daySection(row, currency, excludeTestAccounts).money
+
+  /** The day's whole section in `currency` as `dayMoney` counts it: its hours and providers with the corrections in. */
+  def daySection(row: DayRow, currency: String, excludeTestAccounts: Boolean): Section =
+    val fixed = row.currencies.get(currency).fold(Section())(_.section(excludeTestAccounts))
     row.corrections
       .filter(c => c.delta.currency == currency && !(excludeTestAccounts && c.delta.test))
-      .foldLeft(fixed)(_ + _.delta.money)
+      .foldLeft(fixed)(_ + _.delta)
 
   def of(rows: Seq[DayRow], from: LocalDate, to: LocalDate, currency: String, excludeTestAccounts: Boolean): Revenue =
     val byDay = rows.map(r => r.day -> r).toMap

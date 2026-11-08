@@ -142,29 +142,36 @@ object Book:
         OpenRecord(r.awardId, r.status, r.balanceCents.value, r.progressCents.value, r.requirementCents.value))
       if changed.isEmpty then Vector(moved) else Vector(moved, RecordsChanged(factId, changed))
 
+  /** What a movement adds to the lifetimes (deposits, wagered, won); spec 022's families add nothing. */
+  def lifetimes(m: Moved): (Long, Long, Long) = if !m.casino then (0L, 0L, 0L) else m.family match
+    case "deposit_confirmed"                  => (m.amount, 0L, 0L)
+    case "bet_placed"                         => (0L, m.amount, 0L)
+    case "bet_rolled_back"                    => (0L, -m.amount, 0L)
+    case "win_credited" | "provider_credited" => (0L, 0L, m.amount)
+    case _                                    => (0L, 0L, 0L)
+
+  /** The open records after a change: an upsert by award, a record no longer open removed. */
+  def records(open: Map[String, OpenRecord], changed: Vector[OpenRecord]): Map[String, OpenRecord] =
+    changed.foldLeft(open)((acc, rec) => if OpenRecord.isOpen(rec.status) then acc.updated(rec.awardId, rec) else acc - rec.awardId)
+
   def apply(s: BookState, event: BookEvent): BookState = event match
     case m: Moved =>
-      val lifetimes = if !m.casino then s else m.family match
-        case "deposit_confirmed"                  => s.copy(deposits = s.deposits + m.amount)
-        case "bet_placed"                         => s.copy(wagered = s.wagered + m.amount)
-        case "bet_rolled_back"                    => s.copy(wagered = s.wagered - m.amount)
-        case "win_credited" | "provider_credited" => s.copy(won = s.won + m.amount)
-        case _                                    => s
+      val (d, w, n) = Book.lifetimes(m)
+      val lived = s.copy(deposits = s.deposits + d, wagered = s.wagered + w, won = s.won + n)
       val rounds = m.roundId match
         case Some(r) if m.family == "bet_placed" && s.roundDay(r).isEmpty =>
-          (lifetimes.rounds :+ RoundDay(r, m.roundDay.getOrElse(m.day))).takeRight(OpenRounds)
-        case _ => lifetimes.rounds
+          (lived.rounds :+ RoundDay(r, m.roundDay.getOrElse(m.day))).takeRight(OpenRounds)
+        case _ => lived.rounds
       val holds = m.family match
-        case "hold_placed"                            => (lifetimes.holds.filterNot(_.requestId == m.reference) :+ Hold(m.reference, m.amount)).takeRight(Holds)
-        case "hold_released" | "withdrawal_reversed" => lifetimes.holds.filterNot(_.requestId == m.reference)
-        case _                                        => lifetimes.holds
-      lifetimes.copy(player = m.player, currency = m.currency, real = m.realAfter, restricted = m.restrictedAfter,
+        case "hold_placed"                            => (lived.holds.filterNot(_.requestId == m.reference) :+ Hold(m.reference, m.amount)).takeRight(Holds)
+        case "hold_released" | "withdrawal_reversed" => lived.holds.filterNot(_.requestId == m.reference)
+        case _                                        => lived.holds
+      lived.copy(player = m.player, currency = m.currency, real = m.realAfter, restricted = m.restrictedAfter,
         depositPool = m.depositPoolAfter.getOrElse(s.depositPool), convertedPool = m.convertedPoolAfter.getOrElse(s.convertedPool),
         rounds = rounds, holds = holds, seen = FactId.remember(s.seen, m.factId))
     case r: RecordsChanged =>
       // Several facts of one movement carry the same list: an upsert by award, never an addition.
-      s.copy(records = r.records.foldLeft(s.records)((acc, rec) =>
-        if OpenRecord.isOpen(rec.status) then acc.updated(rec.awardId, rec) else acc - rec.awardId))
+      s.copy(records = records(s.records, r.records))
 
 /** A wallet fact and the zone its day is counted in. The contract's codec; the entity stores only its events. */
 final case class MoveFact(factId: String, zone: String, fact: f.MoneyTransactionsFact)

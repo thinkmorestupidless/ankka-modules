@@ -2,11 +2,10 @@ package io.eitheror.casino.reporting.api
 
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.thinkmorestupidless.ankka.core.EntityId
-import io.eitheror.casino.reporting.day.{DayRow, DaysView, Money as DayMoney, Revenue}
+import io.eitheror.casino.reporting.day.{DaysView, Money as DayMoney, Revenue}
 import io.eitheror.casino.reporting.documents.{Document, DocumentState}
 import io.eitheror.casino.reporting.figures.Figures
 import io.eitheror.casino.reporting.render.{Money, RevenueCsv}
-import io.eitheror.casino.reporting.settings.ReportingSettingsState
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.UUID
@@ -43,17 +42,6 @@ object Reports:
     def csv: Boolean = format.exists(_.trim.equalsIgnoreCase("csv"))
 
   /**
-   * The currency a report opens in with none asked: the brand's setting, else the currency held on most of the
-   * period's days (ties by name), else the first the brand holds, else the original's `EUR`. The wallets' count (R6)
-   * replaces the days' when the `Wallets` view is built (US2).
-   */
-  def defaultCurrency(settings: ReportingSettingsState, held: Vector[String], rows: Seq[DayRow]): String =
-    settings.defaultCurrency.getOrElse {
-      val onDays = rows.flatMap(_.currencies.keys).groupBy(identity).view.mapValues(_.size).toVector
-      onDays.sortBy((c, n) => (-n, c)).headOption.map(_._1).orElse(held.headOption).getOrElse("EUR")
-    }
-
-  /**
    * `GET /reports/ggr`: the period's days in one currency, every player's or without the test accounts'; as CSV, the
    * summary row then the daily rows, kept under `reports/report-export/<reference>.csv` with a `Document` record and
    * served as an attachment carrying the reference (FR-012, FR-021).
@@ -65,13 +53,12 @@ object Reports:
       answered(for
         period <- Wire.period(asked.from, asked.to, ctx.today)
         _      <- Wire.complete(period, Completeness.from(ctx.components, ctx.settings, Completeness.dayTopics(ctx.settings)))
-        rows    = DaysView.rows(ctx.views, ctx.settings.generation, period.from, period.to)
-        held    = DaysView.currencies(ctx.views, ctx.settings.generation)
-        c      <- Wire.currency(asked.currency, held, settings.defaultCurrency, defaultCurrency(settings, held, rows))
+        chosen <- Currencies.choose(ctx, asked.currency, settings)
       yield
-        val revenue = Revenue.of(rows, period.from, period.to, c, settings.excludeTestAccounts)
+        val rows    = DaysView.rows(ctx.views, ctx.settings.generation, period.from, period.to)
+        val revenue = Revenue.of(rows, period.from, period.to, chosen.currency, settings.excludeTestAccounts)
         if asked.csv then exported(ctx, asked, revenue, period.from.toString, period.to.toString)
-        else ok(GgrReport.of(revenue, period.from.toString, period.to.toString, (held ++ settings.defaultCurrency).distinct.sorted)))
+        else ok(GgrReport.of(revenue, period.from.toString, period.to.toString, chosen.currencies)))
 
   /** The synchronous document path (research R9): rendered, kept, recorded, served. */
   private def exported(ctx: Ctx, asked: Asked, revenue: Revenue, from: String, to: String): Answer =

@@ -16,6 +16,15 @@ object Personals:
 
   def of(playerId: String, value: Option[Marked[String]]): Option[Personal[String]] = value.flatMap(of(playerId, _))
 
+  /** What a report shows of a personal field (FR-025): its value, `[erased]` once its subject is erased, empty when absent. */
+  def shown(field: Option[Personal[String]]): String = field match
+    case Some(Personal.Present(_, v)) if v != null => v
+    case Some(Personal.Erased(_))                  => Erased
+    case _                                         => ""
+
+  /** How an erased value reads in a report and an export (research R10). */
+  val Erased = "[erased]"
+
   /** A personal field's value: none when absent, empty or erased. */
   def reveal(field: Option[Personal[String]]): Option[String] =
     field.collect { case Personal.Present(_, v) if v != null && v.nonEmpty => v }

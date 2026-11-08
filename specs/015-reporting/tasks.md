@@ -181,15 +181,15 @@ access. Nothing story-specific starts before this phase ends.
 
 **Independent test**: `DashboardSuite`; the eight scenarios of `features/reporting/dashboard.feature`.
 
-- [ ] T038 [P] [US2] Bind the eight scenarios of `dashboard.feature` in `r-test/features/DashboardSteps.scala`
-- [ ] T039 [P] [US2] `r-test/it/DashboardSuite.scala`: more than twenty players, open sessions, payment
+- [X] T038 [P] [US2] Bind the eight scenarios of `dashboard.feature` in `r-test/features/DashboardSteps.scala`
+- [X] T039 [P] [US2] `r-test/it/DashboardSuite.scala`: more than twenty players, open sessions, payment
   health per provider with a provider without attempts (`null`), the bonus summary's both names
-- [ ] T040 [P] [US2] `r/reads/Wallets.scala` (`byPlayers`, `withOpenRecords`), `r/reads/Players.scala`,
+- [X] T040 [P] [US2] `r/reads/Wallets.scala` (`byPlayers`, `withOpenRecords`), `r/reads/Players.scala`,
   `r/reads/Sessions.scala`, `r/reads/PaymentsView.scala`, `r/reads/WithdrawalsView.scala`,
   `r/reads/Rounds.scala` with their declared queries (data-model.md)
-- [ ] T041 [P] [US2] `r/reads/PlayerDays.scala` (keyed; the row keeps the source's last sequence, research
+- [X] T041 [P] [US2] `r/reads/PlayerDays.scala` (keyed; the row keeps the source's last sequence, research
   R20 item 4) and `r/reads/Activity.scala` (keyed over `PlayerLog` and `Grant` events)
-- [ ] T042 [US2] `r/api/Dashboard.scala`: `kpis`, `trend`, `kpi-history`, `geo`, `rankings`, `activity`,
+- [X] T042 [US2] `r/api/Dashboard.scala`: `kpis`, `trend`, `kpi-history`, `geo`, `rankings`, `activity`,
   `bonus-summary`, `payment-health`, each as contracts/routes.md
 
 ---

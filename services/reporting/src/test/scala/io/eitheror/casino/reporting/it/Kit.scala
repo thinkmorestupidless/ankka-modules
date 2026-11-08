@@ -61,6 +61,13 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
   private val currencies = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
   def heldCurrencies: Vector[String] = currencies.asScala.toVector.sorted
 
+  /** Every fact set published on this kit, so a figure over the whole brand is held to all of them. */
+  private val sets = java.util.concurrent.ConcurrentLinkedQueue[FactSet]()
+  def remember(set: FactSet): Unit = sets.add(set): Unit
+
+  /** What the whole brand must show, over every set published so far. */
+  def everything: FactSet.Brand = FactSet.Brand(sets.asScala.toVector, zone)
+
   FactSet.seed(this, Kit.SeedDay)
 
   /**
@@ -86,6 +93,16 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
 
   /** Moves the clock forward; the timers run what fell due within a poll. */
   def moveClock(by: FiniteDuration): Unit = clock.moveBy(by)
+
+  /**
+   * A today of its own, for what reads today and yesterday (the dashboard): the clock moved to 10:00 in the zone two days
+   * on, so today and yesterday are days no set has published on yet. Every block of `days` is long before it.
+   */
+  def freshToday(): LocalDate = synchronized {
+    val day = today.plusDays(2)
+    clock.moveBy(java.time.Duration.between(now, day.atTime(10, 0).atZone(zone).toInstant).toMillis.millis)
+    day
+  }
 
   /** The first of `Kit.Block` reporting days no other suite of this JVM uses. */
   def days(): LocalDate = Kit.FirstDay.plusDays(Kit.Block.toLong * Kit.blocks.getAndIncrement())

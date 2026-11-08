@@ -47,6 +47,18 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     }
   }
 
+  // The dashboard admits every operator of the brand and is never hidden by the Reports tab's flag (FR-023, FR-024).
+  withAcl(access.operator) {
+    get("/dashboard/kpis") { () => Dashboard.kpis(ctx, query.raw("currency")) }
+    get("/dashboard/trend") { () => Dashboard.trend(ctx, query.raw("range"), query.raw("currency")) }
+    get("/dashboard/kpi-history") { () => Dashboard.history(ctx, query.raw("currency")) }
+    get("/dashboard/geo") { () => Dashboard.geo(ctx) }
+    get("/dashboard/rankings") { () => Dashboard.rankings(ctx, query.raw("range"), query.raw("currency")) }
+    get("/dashboard/activity") { () => Dashboard.activity(ctx) }
+    get("/dashboard/bonus-summary") { () => Dashboard.bonusSummary(ctx, query.raw("currency")) }
+    get("/dashboard/payment-health") { () => Dashboard.paymentHealth(ctx, query.raw("currency")) }
+  }
+
   withAcl(access.status) {
     get("/status") { () => ok(StatusRoute.of(ctx)) }
   }
@@ -69,8 +81,8 @@ object StatusRoute:
    */
   def of(ctx: Ctx): StatusAnswer =
     val s = ctx.settings
-    StatusAnswer(s.generation, Vector(
-      ViewStatus("days", Completeness.from(ctx.components, s, Completeness.dayTopics(s)).map(_.toString), rebuilding = false)))
+    StatusAnswer(s.generation, Completeness.viewTopics(s).map((view, topics) =>
+      ViewStatus(view, Completeness.from(ctx.components, s, topics).map(_.toString), rebuilding = false)))
 
 /** `GET`/`PUT /settings` (FR-024): `ReportingSettings` in camelCase; a value out of its range `400 invalid_setting`. */
 final case class SettingsAnswer(reportsTab: Boolean, excludeTestAccounts: Boolean, defaultCurrency: Option[String], syncRows: Int,

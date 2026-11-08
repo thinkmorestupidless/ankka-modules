@@ -126,7 +126,7 @@ class RevenueFeatures extends ReportingFeatures("revenue.feature"):
   }
 
   When("finance runs the revenue report for it") { () =>
-    // With no currency asked the brand's default: none is set, so the currency held on most of the period's days.
+    // With no currency asked the brand's default: none is set, so the currency most of its wallets hold (R6).
     last = settled(None, "EUR")
   }
 

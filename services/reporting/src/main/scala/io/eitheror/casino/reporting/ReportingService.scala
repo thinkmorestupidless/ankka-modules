@@ -34,7 +34,15 @@ object ReportingService:
     day.BrandDay.descriptor,
     day.OpenDays.descriptor,
     day.DaysView.descriptor,
-    day.CloseDays.descriptor
+    day.CloseDays.descriptor,
+    reads.Wallets.descriptor,
+    reads.Players.descriptor,
+    reads.Sessions.descriptor,
+    reads.PaymentsView.descriptor,
+    reads.WithdrawalsView.descriptor,
+    reads.Rounds.descriptor,
+    reads.PlayerDays.descriptor,
+    reads.Activity.descriptor
   ) ++ day.ToDaysConsumers.all(settings, clock) ++ casino(settings)
 
   /**

@@ -110,6 +110,24 @@ object Completeness:
     Vector(f.MoneyTransactions.name, f.PaymentsPayments.name, f.CasinoWithdrawals.name, f.CasinoPlayers.name) ++
       Option.when(settings.casino)(f.CasinoRewards.name)
 
+  /** Each view `/status` lists, with the topics its rows are folded from, in the order the service registers them. */
+  def viewTopics(settings: Settings): Vector[(String, Vector[String])] =
+    val money   = f.MoneyTransactions.name
+    val players = f.CasinoPlayers.name
+    val rewards = Option.when(settings.casino)(f.CasinoRewards.name).toVector
+    val rounds  = Option.when(settings.casino)(f.CasinoRounds.name).toVector
+    Vector(
+      "days"         -> dayTopics(settings),
+      "wallets"      -> Vector(money),
+      "players"      -> Vector(players),
+      "sessions"     -> Vector(f.CasinoSessions.name),
+      "payments"     -> Vector(f.PaymentsPayments.name),
+      "withdrawals"  -> Vector(f.CasinoWithdrawals.name),
+      "rounds"       -> (rounds :+ money),
+      "player-days"  -> Vector(money),
+      "activity"     -> (players +: rewards)
+    )
+
   def from(components: ComponentClient, settings: Settings, topics: Vector[String]): Option[LocalDate] =
     topics.flatMap { topic =>
       components.forKeyValueEntity(EntityId(Coverage.id(settings.generation, topic))).call(Coverage.get).invoke().earliest

@@ -52,25 +52,39 @@ final case class GatewayFigures(requests: Long = 0, completed: Long = 0, complet
   def -(o: GatewayFigures): GatewayFigures =
     GatewayFigures(requests - o.requests, completed - o.completed, completionSeconds - o.completionSeconds, timed - o.timed)
 
-/** One money section and its breakdowns: the money, GGR and NGR per hour of the day in the zone, and the providers. */
+/** An amount and a count, as a deposit or a withdrawal hour of a day holds them. */
+final case class Flow(amount: Long = 0, count: Long = 0):
+  def +(o: Flow): Flow = Flow(amount + o.amount, count + o.count)
+  def -(o: Flow): Flow = Flow(amount - o.amount, count - o.count)
+
+/**
+ * One money section and its breakdowns: the money; GGR, NGR, deposits and withdrawals per hour of the day in the zone,
+ * so the dashboard's yesterday is yesterday to the same hour (contracts/routes.md `kpis`); and the providers.
+ */
 final case class Section(
     money: Money = Money(),
     hourGgr: Vector[Long] = Section.NoHours,
     hourNgr: Vector[Long] = Section.NoHours,
     payments: Map[String, PaymentFigures] = Map.empty,
-    gateways: Map[String, GatewayFigures] = Map.empty
+    gateways: Map[String, GatewayFigures] = Map.empty,
+    hourDeposits: Vector[Flow] = Section.NoFlows,
+    hourWithdrawals: Vector[Flow] = Section.NoFlows
 ):
   def +(d: Delta): Section =
     val h = d.hour.max(0).min(23)
     Section(money + d.money, hourGgr.updated(h, hourGgr(h) + d.money.ggr), hourNgr.updated(h, hourNgr(h) + d.money.ngr),
-      Section.merge(payments, d.payments, PaymentFigures())(_ + _), Section.merge(gateways, d.gateways, GatewayFigures())(_ + _))
+      Section.merge(payments, d.payments, PaymentFigures())(_ + _), Section.merge(gateways, d.gateways, GatewayFigures())(_ + _),
+      hourDeposits.updated(h, hourDeposits(h) + Flow(d.money.deposits, d.money.depositCount)),
+      hourWithdrawals.updated(h, hourWithdrawals(h) + Flow(d.money.withdrawals, d.money.withdrawalCount)))
 
   def -(o: Section): Section =
     Section(money - o.money, hourGgr.lazyZip(o.hourGgr).map(_ - _), hourNgr.lazyZip(o.hourNgr).map(_ - _),
-      Section.merge(payments, o.payments, PaymentFigures())(_ - _), Section.merge(gateways, o.gateways, GatewayFigures())(_ - _))
+      Section.merge(payments, o.payments, PaymentFigures())(_ - _), Section.merge(gateways, o.gateways, GatewayFigures())(_ - _),
+      hourDeposits.lazyZip(o.hourDeposits).map(_ - _), hourWithdrawals.lazyZip(o.hourWithdrawals).map(_ - _))
 
 object Section:
   val NoHours: Vector[Long] = Vector.fill(24)(0L)
+  val NoFlows: Vector[Flow] = Vector.fill(24)(Flow())
 
   /** Each key of `b` combined into `a`'s, a key `a` lacks combined from its zero. */
   def merge[A](a: Map[String, A], b: Map[String, A], zero: A)(op: (A, A) => A): Map[String, A] =
@@ -157,7 +171,9 @@ final case class DayState(
     differences: Vector[Difference] = Vector.empty,
     openingCorrections: Vector[OpeningCorrection] = Vector.empty,
     corrections: Vector[Correction] = Vector.empty,
-    lastSeq: Map[String, Long] = Map.empty
+    lastSeq: Map[String, Long] = Map.empty,
+    hourRegistrations: Vector[Long] = Section.NoHours,
+    hourTestRegistrations: Vector[Long] = Section.NoHours
 ):
   def folded(source: String, seq: Long): Boolean = lastSeq.get(source).exists(_ >= seq)
 
@@ -195,8 +211,11 @@ object Day:
     }
 
   private def add(s: DayState, d: Delta): DayState =
-    val regs = s.copy(registrations = s.registrations + d.registrations,
-      testRegistrations = s.testRegistrations + (if d.test then d.registrations else 0L))
+    val h    = d.hour.max(0).min(23)
+    val test = if d.test then d.registrations else 0L
+    val regs = s.copy(registrations = s.registrations + d.registrations, testRegistrations = s.testRegistrations + test,
+      hourRegistrations = s.hourRegistrations.updated(h, s.hourRegistrations(h) + d.registrations),
+      hourTestRegistrations = s.hourTestRegistrations.updated(h, s.hourTestRegistrations(h) + test))
     if d.currency.isEmpty then regs
     else
       val day = regs.currencies.getOrElse(d.currency, CurrencyDay())

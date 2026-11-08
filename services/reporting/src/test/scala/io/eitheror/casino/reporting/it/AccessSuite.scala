@@ -3,6 +3,7 @@ package io.eitheror.casino.reporting.it
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
 import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 
 /**
  * The admission table of contracts/routes.md (FR-023, FR-024): each route built so far, for each audience, admitted
@@ -36,7 +37,8 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     "/reports/ggr" -> reportRoles,
     "/status"      -> everyOperator,
     "/settings"    -> Set("brand_admin", "platform_admin")
-  )
+  ) ++ Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health")
+    .map(r => s"/dashboard/$r" -> everyOperator)
 
   for (route, admitted) <- routes do
     test(s"GET $route admits ${admitted.toVector.sorted.mkString(", ")} and refuses everyone else with the class's code") {
@@ -118,4 +120,6 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     val days = j.path("views").get(0)
     assertEquals((days.path("name").asText, days.path("completeFrom").asText, days.path("rebuilding").asBoolean),
       ("days", Kit.SeedDay.toString, false))
+    assertEquals(j.path("views").elements.asScala.map(_.path("name").asText).toVector,
+      Vector("days", "wallets", "players", "sessions", "payments", "withdrawals", "rounds", "player-days", "activity"))
   }
