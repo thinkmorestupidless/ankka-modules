@@ -32,14 +32,15 @@ object Signature:
   ): Either[Refusal, Unit] =
     val key = signingKey.filter(_.nonEmpty)
     if !configured then Left(Refusal.BrandNotConfigured)
-    else if key.isEmpty then Left(Refusal.WebhookNotConfigured)
     else
-      val ts = timestamp.getOrElse("")
-      if !inWindow(ts, now) then Left(Refusal.TimestampInvalid)
-      else
-        val expected = sign(key.get, ts, body).getBytes(UTF_8)
-        val received = signature.getOrElse("").getBytes(UTF_8)
-        if MessageDigest.isEqual(expected, received) then Right(()) else Left(Refusal.InvalidSignature)
+      key.fold(Left(Refusal.WebhookNotConfigured)) { k =>
+        val ts = timestamp.getOrElse("")
+        if !inWindow(ts, now) then Left(Refusal.TimestampInvalid)
+        else
+          val expected = sign(k, ts, body).getBytes(UTF_8)
+          val received = signature.getOrElse("").getBytes(UTF_8)
+          if MessageDigest.isEqual(expected, received) then Right(()) else Left(Refusal.InvalidSignature)
+      }
 
   /** Lowercase hex HMAC-SHA256, under the signing key, of `v0:<timestamp>:<body>`. */
   def sign(signingKey: String, timestamp: String, body: Array[Byte]): String =

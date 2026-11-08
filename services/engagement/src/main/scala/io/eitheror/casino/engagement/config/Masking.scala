@@ -11,7 +11,10 @@ object Masking:
   def mask(secret: Option[String]): String =
     secret.filter(_.nonEmpty).fold("")(s => s.take(3) + "*" * math.max(0, s.length - 3))
 
-  /** Non-empty and all `*` after the third character: what `mask` writes, sent back unchanged. */
+  /**
+   * Non-empty and all `*` after the third character: what `mask` writes, sent back unchanged. A value of three
+   * characters or fewer reads as masked too, so it keeps the stored key: no Customer.io key is that short.
+   */
   def isMasked(incoming: String): Boolean = incoming.nonEmpty && incoming.drop(3).forall(_ == '*')
 
   /** The secret to store: a masked value keeps the stored one, empty clears it, anything else replaces it. */
