@@ -493,6 +493,21 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   suppression.feature's "with the time and the source". `Consent` keeps `grantedAt`. T032's
   `IdentifySuite` had asserted the opposite and now asserts the original's.
 
+- **The stream's re-check reads the token's expiry** (T042). ankka verifies a stream's sign-in only
+  when it opens and keeps no token for the handler to verify again (its endpoint guide: a service that
+  must end a session at its token's expiry reads the principal's expiry and closes the stream itself).
+  So the 30 s × 1.0–1.2 re-check closes `revalidation_failed` once the token's `exp` has passed. The
+  original re-verified the signature too and checked the token still named the same player; a token
+  cannot name another player while it is held, and a revoked key is not seen until `exp`, which the
+  realm keeps short.
+- **`sse("/")` is accepted under `/v1/stream`** (T042), so R7's fallback `/{slug}` is not needed and
+  the player app's proxy appends `/v1/stream` as it does to the original.
+- **An operator's sign-in is `subject_unresolved` at the stream** (T042). `Routes.player` refuses any
+  sign-in from another issuer as `wrong_brand`; push.feature says an operator's or a part's sign-in
+  without a player id is `subject_unresolved`, as the original's gateway answers any token without
+  the id. The stream's own ACL asks for the id first, then the brand's realm (`wrong_brand` for
+  another brand's player).
+
 ## Design finished
 
 2026-11-03: analyze reported nothing above LOW.

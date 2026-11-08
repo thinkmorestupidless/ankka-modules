@@ -29,13 +29,15 @@ object EngagementService:
   def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => api.BackofficeEndpoint(api.Ctx(authenticate, clients, project)),
     clients => api.SendEndpoint(api.Ctx(authenticate, clients, project)),
-    clients => api.WebhookEndpoint(api.Ctx(authenticate, clients, project))
+    clients => api.WebhookEndpoint(api.Ctx(authenticate, clients, project)),
+    clients => api.StreamEndpoint(api.Ctx(authenticate, clients, project))
   )
 
   /** Once the service has started: the timers and the views reachable from the components. */
   def started(timers: TimerRuntime, views: ViewClient): Unit =
     EngagementRuntime.timers = () => timers.timerScheduler
     EngagementRuntime.views = () => views
+    api.Stream.resume()
     io.eitheror.casino.engagement.timers.DepositDayReset.schedule(EngagementRuntime.timers())
 
 @main def run(): Unit =
@@ -64,5 +66,10 @@ object EngagementService:
       builder.withLocalKeyring()
   val service = keyed.start(name = "engagement")
   EngagementService.started(timers, service.viewClient)
-  sys.addShutdownHook(service.terminate())
+  // Every open stream is told `shutting_down` at its next tick, a second at most, before the server stops.
+  sys.addShutdownHook {
+    api.Stream.stop()
+    Thread.sleep(settings.pollEvery.toMillis + 500)
+    service.terminate()
+  }
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

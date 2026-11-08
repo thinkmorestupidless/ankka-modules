@@ -267,7 +267,7 @@ end in `just players-run` + `just engagement-run`.
       once per `created` signal when every connection open at the signal has acked or closed, snapshots
       every 100 events. `T/channel/ChannelSuite.scala` (`EventSourcedTestKit`) first: every row; 0→1
       and 1→0; a sweep expiring a lease older than 90 s; a cursor fallen out of the ring.
-- [ ] T042 [US6] `S/api/StreamEndpoint.scala` (`/v1/stream`, `Routes.player(slug)`; `sse`): `open`, the
+- [X] T042 [US6] `S/api/StreamEndpoint.scala` (`/v1/stream`, `Routes.player(slug)`; `sse`): `open`, the
       1 s tick with `poll` and `acked`, the heartbeat and lease every 15 s and 30 s, the
       revalidation (`revalidation_failed`), the recycle (`connection_recycled`, judged at the 30 s
       sweep), `shutting_down` on stop, the 64-frame overflow drop, `unauthenticated`,
