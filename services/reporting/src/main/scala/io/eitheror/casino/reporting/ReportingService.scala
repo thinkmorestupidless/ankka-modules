@@ -15,7 +15,9 @@ object ReportingService:
     PaymentsFacts(settings).descriptor,
     Withdrawal.descriptor,
     WithdrawalsFacts(settings).descriptor,
-    Grant.descriptor
+    Grant.descriptor,
+    PlayerLog.descriptor,
+    PlayersFacts(settings).descriptor
   ) ++ casino(settings)
 
   /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */

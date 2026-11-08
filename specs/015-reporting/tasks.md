@@ -120,7 +120,7 @@ access. Nothing story-specific starts before this phase ends.
 - [X] T020 [P] `r/intake/Withdrawal.scala` and `withdrawals-facts`; suite
 - [X] T021 [P] `r/intake/Grant.scala` and `rewards-facts` (registered only when `CASINO_MODULES` names
   `casino`); suite
-- [ ] T022 [P] `r/intake/PlayerLog.scala` and `players-facts`: the status and KYC folds, the email as
+- [X] T022 [P] `r/intake/PlayerLog.scala` and `players-facts`: the status and KYC folds, the email as
   `Personal` under `player/<id>`, the test flag, RG and KYC document events; suite
 - [ ] T023 [P] `r/intake/Session.scala` (key value) and `sessions-facts`; the network address and user agent
   as `Personal`; suite
