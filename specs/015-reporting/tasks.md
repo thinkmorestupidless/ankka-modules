@@ -113,7 +113,7 @@ access. Nothing story-specific starts before this phase ends.
   (engagement's `factId`); `r/intake/Lenient.scala` (attribution's); `r/intake/Generation.scala`: the
   generation of research R8 as the first segment of every intake and day entity id and in every consumer's
   component id, so a new generation replays the topics from the earliest offset into new ids
-- [ ] T018 [P] `r/intake/WalletBook.scala` and its consumer `money-facts`: the event `Moved` per
+- [X] T018 [P] `r/intake/WalletBook.scala` and its consumer `money-facts`: the event `Moved` per
   data-model.md, `casino` false for spec 022's families, the day and the round's day, open records, holds,
   `seen`; `r-test/intake/WalletBookSuite.scala` (kit: every family, a repeat, a converted stake, a trade)
 - [ ] T019 [P] `r/intake/Payment.scala` and `payments-facts`; suite
