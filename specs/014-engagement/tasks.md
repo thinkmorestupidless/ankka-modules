@@ -344,7 +344,7 @@ end in `just players-run` + `just engagement-run`.
       `modules/engagement/module.json` checked against the service (`just modules render goldvibe`).
 - [X] T054 [P] `specs/001-brands-and-projects/contracts/routes.md`: the engagement rows (five prefixes
       and their audiences); `contract/access/routes.md` re-checked against T011.
-- [ ] T055 `just features` 0 findings; `just test`, `just engagement-test`, `just engagement-it`, `just
+- [X] T055 `just features` 0 findings; `just test`, `just engagement-test`, `just engagement-it`, `just
       service players test`, `just service responsible-gambling test` green.
 - [ ] T056 quickstart.md §5 run locally and §6 on kind (`--context kind-…` only; three instances):
       one deposit end to end at the stub, the stream from two devices with one signal each and one
