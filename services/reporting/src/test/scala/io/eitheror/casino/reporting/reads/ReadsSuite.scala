@@ -130,3 +130,28 @@ class ReadsSuite extends munit.FunSuite:
       assertEquals(Personals.shown(Personals.of("p-2", marked)), "ada@example.com", "another player is untouched")
     }
   }
+
+  test("T062: a case's opening and closing meet in one row; limits, self-exclusions and KYC decisions rows of their own") {
+    import PlayerLogEvent.*
+    def fold(es: PlayerLogEvent*): Map[String, ComplianceRow] = es.foldLeft(Map.empty[String, ComplianceRow]) { (m, e) =>
+      ComplianceRows.of(1, e).fold(m)((k, next) => m.updated(k, next(m.get(k))))
+    }
+    val until = at.plusSeconds(86_400)
+    val rows = fold(
+      RgCaseOpened("f1", "p-1", "c-1", "cooling_off", "player_request", None, false, at),
+      RgCaseClosed("f2", "p-1", "c-1", "cooling_off", "expired", at.plusSeconds(60)),
+      RgLimitApplied("f3", "p-1", "deposit", Some("daily"), Some(5_000), "player", Some("EUR"), at),
+      StatusChanged("f4", "p-2", "player_self_excluded", "active", "self_excluded", "player", Some("player_request"), at, Some(until)),
+      StatusChanged("f5", "p-2", "player_suspended", "active", "suspended", "operator", None, at),
+      KycDocumentDecided("f6", "p-3", "d-1", "identity", Some(at), at.plusSeconds(30), "rejected", Some("illegible")),
+      KycChanged("f7", "p-3", "player_kyc_rejected", "rejected", at.plusSeconds(40), Some("documents"), Some(at)),
+      KycChanged("f8", "p-3", "player_kyc_pending", "pending", at.plusSeconds(50)))
+    assertEquals(rows("rg/c-1"), ComplianceRow(1, "rg", "p-1", "cooling_off", Some(at), Some(at.plusSeconds(60)), "expired", "player_request"))
+    assertEquals(rows("rg/limit/f3"), ComplianceRow(1, "rg", "p-1", "deposit", Some(at), None, "applied", "player"))
+    assertEquals(rows("rg/self-exclusion/f4"), ComplianceRow(1, "rg", "p-2", "self_exclusion", Some(at), Some(until), "self_excluded",
+      "player_request"))
+    assertEquals(rows("kyc/d-1"), ComplianceRow(1, "kyc", "p-3", "identity", Some(at), Some(at.plusSeconds(30)), "rejected", "illegible"))
+    assertEquals(rows(s"kyc/p-3/${at.plusSeconds(40).toEpochMilli}"),
+      ComplianceRow(1, "kyc", "p-3", "status", Some(at), Some(at.plusSeconds(40)), "rejected", "documents"))
+    assertEquals(rows.size, 5, "a suspension and a pending KYC status are no compliance row")
+  }

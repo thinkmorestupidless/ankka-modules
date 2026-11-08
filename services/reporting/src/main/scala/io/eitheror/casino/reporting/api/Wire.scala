@@ -127,7 +127,8 @@ object Completeness:
       "player-days"  -> Vector(money),
       "activity"     -> (players +: rewards),
       "transactions" -> Vector(money),
-      "grants"       -> rewards
+      "grants"       -> rewards,
+      "compliance"   -> Vector(players)
     )
 
   def from(components: ComponentClient, settings: Settings, topics: Vector[String]): Option[LocalDate] =

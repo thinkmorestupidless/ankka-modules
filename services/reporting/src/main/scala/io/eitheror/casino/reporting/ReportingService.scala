@@ -48,7 +48,8 @@ object ReportingService:
     reads.PlayerDays.descriptor,
     reads.Activity.descriptor,
     reads.Transactions.descriptor,
-    reads.Grants.descriptor
+    reads.Grants.descriptor,
+    reads.Compliance.descriptor
   ) ++ day.ToDaysConsumers.all(settings, clock) ++ casino(settings)
 
   /**

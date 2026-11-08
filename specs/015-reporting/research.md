@@ -552,3 +552,14 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   different columns: a `day-end` section first with the export's own reference, the day-end's reference, the day, the
   zone and `closedAt`. It is `day-end-report-<reference>.csv`, a `day-end-export` document under that kind's
   lifetime; the export's reference is fixed before its rows are read, so the file prints it.
+- **T062, the compliance rows**: one row per RG case (`rg/<case>`, its opening and closing met in one row), per limit
+  applied and per self-exclusion (their own rows, keyed by the fact, `type` the limit's or `self_exclusion`), per KYC
+  document decision (`kyc/<document>`) and per KYC status decision (`kyc/<player>/<at>`, `category` `status`; a
+  pending status is no decision). An RG row is in a period when it opened or closed in it, a KYC row when it was
+  decided in it. A status decision's `submittedAt` is the player's last KYC submission, which `PlayerLog` now keeps,
+  and its `reason` the fact's, which `KycChanged` now carries. A limit's outcome is `applied`, its reason `caused_by`.
+- **T063, the compliance answers**: `GET /compliance/rg-cases` answers `{rows: [{playerId, type, openedAt, closedAt,
+  outcome, reason}]}` and `GET /compliance/kyc-decisions` `{rows: [{playerId, category, submittedAt, decidedAt, outcome,
+  reason}]}`, the shapes routes.md leaves to the build; `format=csv` is the same columns as a `compliance-export`
+  document, `rg-cases-report-<reference>.csv` or `kyc-decisions-report-<reference>.csv`, its players in its sidecar.
+  The period is complete from `casino.players`' coverage.

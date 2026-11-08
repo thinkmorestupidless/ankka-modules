@@ -80,6 +80,12 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/documents/{reference}") { (reference: String) => Documents.get(ctx, principal, reference) }
   }
 
+  // The compliance exports: the Reports tab's roles and compliance (FR-023); not hidden by the tab's flag.
+  withAcl(access.compliance) {
+    get("/compliance/rg-cases") { () => Compliance.rgCases(ctx, asked) }
+    get("/compliance/kyc-decisions") { () => Compliance.kycDecisions(ctx, asked) }
+  }
+
   // The day-end: the Reports tab's roles and finance (FR-023); not hidden by the tab's flag, as it is no report of the tab.
   withAcl(access.dayEnd) {
     get("/day-end/{day}") { (day: String) => DayEnd.read(ctx, day) }

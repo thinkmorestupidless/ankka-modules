@@ -27,6 +27,10 @@ object Exports:
   /** The day-end's export (US6), a `day-end-export` document. */
   val DayEndReport = "day-end"
 
+  /** The compliance exports (US7), `compliance-export` documents. */
+  val RgCasesReport      = "rg-cases"
+  val KycDecisionsReport = "kyc-decisions"
+
   /** The ledger export's players, by id, comma separated, `*` for every one: the email search it was given, resolved. */
   val Ids = "ids"
 
@@ -51,13 +55,15 @@ object Exports:
     case BonusReport        => BonusHeader
     case PspReport          => PspHeader
     case DayEndReport       => DayEnd.Header
+    case RgCasesReport      => Compliance.RgHeader
+    case KycDecisionsReport => Compliance.KycHeader
     case other              => throw IllegalArgumentException(s"no export '$other'")
 
   /** The column a report's rows name a player in. */
   private def playerColumn(report: String): Option[Int] = report match
-    case PlayersReport      => Some(0)
-    case TransactionsReport => Some(2)
-    case _                  => None
+    case PlayersReport | RgCasesReport | KycDecisionsReport => Some(0)
+    case TransactionsReport                                 => Some(2)
+    case _                                                  => None
 
   def named(report: String, rows: Vector[Vector[String]]): Vector[String] =
     playerColumn(report).fold(Vector.empty)(i => rows.map(_(i)).filter(_.nonEmpty).distinct)
@@ -116,6 +122,8 @@ object Exports:
     case TransactionsReport => page(r, ask, 0, Int.MaxValue)
     case DayEndReport =>
       DayEnd.of(r, ask.from, DayEnd.state(r, ask.from)).fold(Vector.empty[Vector[String]])(DayEnd.rows(_, ask.p(Reference).getOrElse("")))
+    case RgCasesReport      => Compliance.rgRows(r, ask.period)
+    case KycDecisionsReport => Compliance.kycRows(r, ask.period)
     case other              => throw IllegalArgumentException(s"no export '$other'")
 
   private def transactionRow(l: TransactionLine): Vector[String] =

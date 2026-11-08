@@ -267,9 +267,9 @@ lifetimes and erasure.
 
 **Independent test**: the six scenarios of `compliance-exports.feature`.
 
-- [ ] T061 [P] [US7] Bind the six scenarios in `r-test/features/ComplianceSteps.scala`
-- [ ] T062 [US7] `r/reads/Compliance.scala` (keyed over `PlayerLog` events: cases and document decisions)
-- [ ] T063 [US7] `r/api/Compliance.scala` `GET /compliance/rg-cases`, `/compliance/kyc-decisions` with
+- [X] T061 [P] [US7] Bind the six scenarios in `r-test/features/ComplianceSteps.scala`
+- [X] T062 [US7] `r/reads/Compliance.scala` (keyed over `PlayerLog` events: cases and document decisions)
+- [X] T063 [US7] `r/api/Compliance.scala` `GET /compliance/rg-cases`, `/compliance/kyc-decisions` with
   `format=csv` as `compliance-export` documents
 
 ---

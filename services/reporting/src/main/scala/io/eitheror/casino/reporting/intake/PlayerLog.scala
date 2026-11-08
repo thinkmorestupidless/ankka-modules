@@ -31,6 +31,8 @@ final case class PlayerLogState(
     lastLoginAt: Option[Instant] = None,
     testAccount: Boolean = false,
     submissions: Map[String, Submission] = Map.empty,
+    /** The last KYC submission's time, which a status decision is reported as submitted at (FR-020). */
+    submittedAt: Option[Instant] = None,
     seen: Vector[String] = Vector.empty
 )
 
@@ -46,7 +48,9 @@ object PlayerLogEvent:
   /** A status family's change: `family` is the fact's, `to` its `new_value`; `until` a self-exclusion's end. */
   final case class StatusChanged(factId: String, player: String, family: String, from: String, to: String,
       actor: String, reason: Option[String], at: Instant, until: Option[Instant] = None) extends PlayerLogEvent
-  final case class KycChanged(factId: String, player: String, family: String, to: String, at: Instant) extends PlayerLogEvent
+  /** A KYC status decision; `reason` the fact's, which the compliance export shows (FR-020). */
+  final case class KycChanged(factId: String, player: String, family: String, to: String, at: Instant,
+      reason: Option[String] = None, submitted: Option[Instant] = None) extends PlayerLogEvent
   final case class KycSubmitted(factId: String, player: String, document: String, category: String, at: Instant)
       extends PlayerLogEvent
   /** A document's decision with its submission's time, when the submission was seen (FR-020). */
@@ -91,9 +95,9 @@ object PlayerLogs:
         Some(status(id, "player_closed", x.playerId, x.previousValue, x.newValue, x.actor, x.reason, x.occurredAt))
       case x: f.PlayerReopened =>
         Some(status(id, "player_reopened", x.playerId, x.previousValue, x.newValue, x.actor, x.reason, x.occurredAt))
-      case x: f.PlayerKycVerified => Some(KycChanged(id, x.playerId, "player_kyc_verified", x.newValue, x.occurredAt))
-      case x: f.PlayerKycRejected => Some(KycChanged(id, x.playerId, "player_kyc_rejected", x.newValue, x.occurredAt))
-      case x: f.PlayerKycPending  => Some(KycChanged(id, x.playerId, "player_kyc_pending", x.newValue, x.occurredAt))
+      case x: f.PlayerKycVerified => Some(KycChanged(id, x.playerId, "player_kyc_verified", x.newValue, x.occurredAt, x.reason, s.submittedAt))
+      case x: f.PlayerKycRejected => Some(KycChanged(id, x.playerId, "player_kyc_rejected", x.newValue, x.occurredAt, x.reason, s.submittedAt))
+      case x: f.PlayerKycPending  => Some(KycChanged(id, x.playerId, "player_kyc_pending", x.newValue, x.occurredAt, x.reason, s.submittedAt))
       case x: f.PlayerKycSubmitted => Some(KycSubmitted(id, x.playerId, x.documentId, x.category, x.occurredAt))
       case x: f.PlayerKycDocumentReviewed =>
         Some(KycDocumentDecided(id, x.playerId, x.documentId, x.category, s.submissions.get(x.documentId).map(_.at),
@@ -115,7 +119,9 @@ object PlayerLogs:
           email = r.email.orElse(s.email), testAccount = r.testAccount || s.testAccount)
       case c: StatusChanged      => if newer(s.statusAt, c.at) then s.copy(status = c.to, statusAt = Some(c.at)) else s
       case k: KycChanged         => if newer(s.kycAt, k.at) then s.copy(kycStatus = k.to, kycAt = Some(k.at)) else s
-      case k: KycSubmitted       => s.copy(submissions = s.submissions.updated(k.document, Submission(k.document, k.category, k.at)))
+      case k: KycSubmitted       =>
+        s.copy(submissions = s.submissions.updated(k.document, Submission(k.document, k.category, k.at)),
+          submittedAt = Some(s.submittedAt.filter(_.isAfter(k.at)).getOrElse(k.at)))
       case d: KycDocumentDecided => s.copy(submissions = s.submissions - d.document)
       case l: LoggedIn           => s.copy(lastLoginAt = Some(s.lastLoginAt.filter(_.isAfter(l.at)).getOrElse(l.at)))
       case t: TestAccountChanged => s.copy(testAccount = t.testAccount)
