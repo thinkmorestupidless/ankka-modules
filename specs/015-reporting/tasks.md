@@ -159,7 +159,7 @@ access. Nothing story-specific starts before this phase ends.
 
 **Independent test**: quickstart §3 `RevenueSuite`; the seven scenarios of `features/reporting/revenue.feature`.
 
-- [ ] T033 [P] [US1] Bind the seven scenarios of `features/reporting/revenue.feature` in
+- [X] T033 [P] [US1] Bind the seven scenarios of `features/reporting/revenue.feature` in
   `r-test/features/RevenueSteps.scala` over the `FactSet`
 - [X] T034 [P] [US1] `r-test/it/RevenueSuite.scala`: three players, two days in the zone, two currencies, a
   23:30 bet, a converted and a restricted stake, the deposit pool's GGR equal to attribution's

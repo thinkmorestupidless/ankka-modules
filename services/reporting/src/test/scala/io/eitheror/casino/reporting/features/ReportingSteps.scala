@@ -64,7 +64,3 @@ class ComplianceFeatures extends ReportingFeatures("compliance-exports.feature")
 /** features/reporting/predictions.feature (US8), bound by T064. */
 class PredictionsFeatures extends ReportingFeatures("predictions.feature"):
   override protected def ranElsewhere = ReportingFeatures.pending("T064, US8", "predictions.feature")
-
-/** features/reporting/revenue.feature (US1), bound by T033. */
-class RevenueFeatures extends ReportingFeatures("revenue.feature"):
-  override protected def ranElsewhere = ReportingFeatures.pending("T033, US1", "revenue.feature")
