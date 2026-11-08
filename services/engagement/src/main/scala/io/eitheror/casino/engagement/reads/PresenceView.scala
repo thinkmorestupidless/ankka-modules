@@ -9,17 +9,28 @@ import io.eitheror.casino.engagement.channel.ChannelEvent.*
 
 import java.time.Instant
 
-/** Whether a player has a connection anywhere, and since when (`GET /presence`). The player by id only. */
-final case class PresenceRow(playerId: String, online: Boolean = false, since: Option[Instant] = None)
+/**
+ * Whether a player has a connection anywhere, and since when (`GET /presence`), and the instance each open connection
+ * is held on (the status's connections per instance, FR-027). The player by id only.
+ */
+final case class PresenceRow(playerId: String, online: Boolean = false, since: Option[Instant] = None,
+    connections: Map[String, String] = Map.empty)
 
 object PresenceRow:
   given Serializer[PresenceRow] = EngagementCodecs.row[PresenceRow]("presence-row")
 
   /** Online at the first open, offline when the last connection closes or expires (the channel's counts, R10). */
   def next(row: PresenceRow, event: ChannelEvent): PresenceRow = event match
-    case Opened(_, _, 1, at)                      => row.copy(online = true, since = Some(at))
-    case Closed(_, _, 0, _) | Expired(_, _, 0, _) => row.copy(online = false, since = None)
-    case _                                        => row
+    case Opened(id, instance, n, at) =>
+      val opened = row.copy(connections = row.connections.updated(id, instance))
+      if n == 1 then opened.copy(online = true, since = Some(at)) else opened
+    case Closed(id, _, n, _)  => gone(row, id, n)
+    case Expired(id, _, n, _) => gone(row, id, n)
+    case _                    => row
+
+  private def gone(row: PresenceRow, id: String, left: Int): PresenceRow =
+    val after = row.copy(connections = row.connections - id)
+    if left == 0 then after.copy(online = false, since = None, connections = Map.empty) else after
 
 final class PresenceViewUpdater extends View[ChannelEvent, PresenceRow]:
   def onChange(event: ChannelEvent): Effect =
@@ -42,6 +53,13 @@ object PresenceView extends View.Companion[PresenceViewUpdater, ChannelEvent, Pr
   val Listed = 1000
 
   private val isOnline = SqlFragment.raw("payload::jsonb->>'online' = 'true'")
+
+  /** More online players than a brand holds: each instance takes at most `MAX_CONNECTIONS`. */
+  private val Counted = 1000000
+
+  /** The open connections across the cluster, by the instance holding them (FR-027). */
+  def connectionsByInstance(view: ViewQueries[PresenceRow]): Map[String, Long] =
+    view.where(isOnline, Counted).flatMap(_.connections.values).groupMapReduce(identity)(_ => 1L)(_ + _)
 
   /** The players online, longest first, and how many there are. */
   def online(view: ViewQueries[PresenceRow]): (Vector[PresenceRow], Long) =

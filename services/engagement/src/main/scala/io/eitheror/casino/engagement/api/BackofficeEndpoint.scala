@@ -124,5 +124,5 @@ object Status:
       "parked"          -> Json.obj("count" -> parked.total, "oldestAt" -> SendsView.oldestParked(ctx.sends).flatMap(_.parkedAt).map(_.toString)),
       "lastHour"        -> Json.obj(LastHour.map(o => o -> counts.getOrElse(o, 0L))*),
       "webhookRefusals" -> Json.obj(EngagementRuntime.webhookRefusals.toVector.sortBy(_._1).map((k, v) => k -> v)*),
-      "connections"     -> Json.obj(ctx.settings.instanceId -> EngagementRuntime.connections.get.toLong)
+      "connections"     -> Json.obj(PresenceView.connectionsByInstance(ctx.clients.viewClient.forView(PresenceView)).toVector.sorted*)
     )
