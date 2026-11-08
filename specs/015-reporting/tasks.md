@@ -58,7 +58,7 @@ their new fields.
   configuration keys, `"personal": true`, the erasure route row; add a case to
   `tools/modules/src/test/scala/.../RenderSuite.scala` that `goldvibe` renders them and `erasure-targets`
   names `reporting`, and one that reporting's `CLOSE_GRACE` equals attribution's in `modules/core/module.json`
-- [ ] T006 [P] Add to `justfile` the recipes `reporting-test`, `reporting-it`, `reporting-perf`,
+- [X] T006 [P] Add to `justfile` the recipes `reporting-test`, `reporting-it`, `reporting-perf`,
   `reporting-record`, `reporting-parity`, `reporting-run` (HTTP 9015, DB 5445, the auth env of
   `rewards-run`), and to `.github/workflows/ci.yml` the filter `reporting:` over `services/reporting/**`,
   `contract/**`, `features/reporting/**` with its job, as `rewards`' (push over SSH: the token has no
