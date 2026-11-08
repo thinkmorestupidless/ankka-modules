@@ -80,6 +80,13 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/documents/{reference}") { (reference: String) => Documents.get(ctx, principal, reference) }
   }
 
+  // `players` alone calls it, for a player it erases (R10).
+  withAcl(access.erasure) {
+    post("/erasure/players/{playerId}") { (playerId: String) =>
+      ok(io.eitheror.casino.reporting.documents.Erasure.erase(ctx.components, ctx.clients.storage.default, ctx.views, playerId))
+    }
+  }
+
   withAcl(access.status) {
     get("/status") { () => ok(StatusRoute.of(ctx)) }
   }

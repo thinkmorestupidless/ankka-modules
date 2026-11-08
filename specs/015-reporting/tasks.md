@@ -232,7 +232,7 @@ lifetimes and erasure.
 - [X] T051 [P] [US5] `r-test/it/DisputeSuite.scala`: session and range modes, the five 400s and two 404s
   with the original's texts, attachments named `dispute-report-{ref}.{ext}`, an unmatched round, a job past
   seven days
-- [ ] T052 [P] [US5] `r-test/it/DocumentsSuite.scala`: lifetimes per kind, the sweep after a lost pause,
+- [X] T052 [P] [US5] `r-test/it/DocumentsSuite.scala`: lifetimes per kind, the sweep after a lost pause,
   erasure deleting kept documents with records kept (SC-006); `r-test/it/DumpSuite.scala`
   (`assertNoPersonalValue`)
 - [X] T053 [US5] `r/documents/Document.scala`, `r/documents/Documents.scala` (view), `r/documents/DocumentJob.scala`
@@ -243,7 +243,7 @@ lifetimes and erasure.
   R20 item 5)
 - [X] T055 [US5] `r/api/Disputes.scala` `GET /players/{playerId}/dispute-report` and `r/api/Documents.scala`
   `GET /documents`, `GET /documents/{reference}` (`410 document_expired`)
-- [ ] T056 [US5] `r/documents/Erasure.scala`: the `ErasureHandler` and `POST /erasure/players/{playerId}`
+- [X] T056 [US5] `r/documents/Erasure.scala`: the `ErasureHandler` and `POST /erasure/players/{playerId}`
   (`Routes.playersOnly`), deleting the subject's objects and every kept document whose sidecar names the
   player (research R10)
 - [ ] T057 [US5] `r/documents/Audit.scala`: the `audit` consumer publishing `report.generated` and

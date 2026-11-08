@@ -48,7 +48,8 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     ReportingService.descriptors(current, clock),
-    Seq(ProjectionRuntime.withBroker(broker, broker), timers, server)
+    Seq(ProjectionRuntime.withBroker(broker, broker), timers, server),
+    configure = _.withErasureHandler(io.eitheror.casino.reporting.documents.Erasure.handler)
   )
   probe.bind(testKit)
   ReportingService.started(current, testKit.service.viewClient, timers.timerScheduler, () => clock.instant())

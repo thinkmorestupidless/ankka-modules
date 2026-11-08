@@ -95,6 +95,8 @@ object ReportingService:
     .withExtension(broker)
     .withExtension(timers)
     .withExtension(HttpServer.of(ReportingService.endpoints(() => Oidc.authenticate())*))
+    // An erasure filed at the installation ends the kept documents naming the player, as the route does (R10).
+    .withErasureHandler(documents.Erasure.handler)
   // The installation names its keyring for a service with personal fields; a local run keeps its keys in its own
   // database (feature 042).
   val keyed =
