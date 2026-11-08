@@ -34,6 +34,7 @@ object ReportingService:
     documents.Documents.descriptor,
     documents.DocumentJob.descriptor,
     documents.Sweep.descriptor,
+    documents.DocumentAudit.descriptor,
     day.BrandDay.descriptor,
     day.OpenDays.descriptor,
     day.DaysView.descriptor,

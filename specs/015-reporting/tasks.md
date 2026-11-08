@@ -246,7 +246,7 @@ lifetimes and erasure.
 - [X] T056 [US5] `r/documents/Erasure.scala`: the `ErasureHandler` and `POST /erasure/players/{playerId}`
   (`Routes.playersOnly`), deleting the subject's objects and every kept document whose sidecar names the
   player (research R10)
-- [ ] T057 [US5] `r/documents/Audit.scala`: the `audit` consumer publishing `report.generated` and
+- [X] T057 [US5] `r/documents/Audit.scala`: the `audit` consumer publishing `report.generated` and
   `report.served` records (contracts/facts.md); suite
 
 ---

@@ -484,3 +484,49 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   backoffice's payment-health panel must parse it, which T074 (SC-007) records as a change beyond the base URL.
 - **T049, the bonus and provider CSVs** (asked 2026-11-08, answer "summary row first"): the summary first under
   `all`, then one row per offer or provider; the bonus CSV gains `activeCount`, filled on the summary row.
+- **T053, `Document` event sourced**: a consumer of a key value entity sees only its latest value (ankka
+  consumers.md), so a serving followed quickly by another, or a readying followed by a serving, could make one
+  audit record where FR-026 asks two. `Document` journals `Started`, `Progressed`, `Readied`, `Served`, `Expired`
+  and `Failed`; the `Documents` view and the `document-audit` consumer read the events.
+- **T053, views read from a workflow, a timed action and the erasure handler**: ankka 0.16 offers a view client to
+  endpoints only, so `ReportingRuntime` holds the running service's (`started` sets it, as players' runtime does) and
+  the clock (the kit's `MovableClock` in tests).
+- **T053, a job's pages**: a step renders 1,000 rows of an export (the ledger read a page of the view at a time, the
+  other reports computed and sliced) or a dispute report's login sessions up to 1,000 rounds (one at least), and
+  keeps each page as an object `<object>.parts/<n>` with the player ids it names beside it (`.players`), never in the
+  journal; a dispute report's running totals (amounts only) are carried in the job's state. `store` joins the pages,
+  writes the document and its `.players`, deletes the pages, then pauses for the lifetime read at that moment.
+- **T053, a pause's deadline is on the system clock**: ankka 0.16's workflow engine sets a pause's deadline from
+  `System.currentTimeMillis()` while the timer sweeper fires it by the runtime's clock, so in a test whose clock has
+  moved past the system's a pause wakes at once. The `expire` step expires only a document whose `expiresAt` has
+  passed by the service's clock; an earlier wake ends the job and the hourly sweep expires the document on time.
+- **T053, the sweep reads a view**: a sweep run finds only what `Documents` holds; a document readied a moment
+  before a run is expired by the next, an hour later at most.
+- **T053, an email search in a job**: the ledger's `playerEmail` is resolved to player ids when it is asked, and the
+  job and the record carry the ids (`ids`) and `playerEmail: "given"`, never the email.
+- **T055, the dispute report's range in the brand's zone**: `fromDate` and `toDate` are reporting days in the brand's
+  zone (the original read them as UTC days); `periodFrom` is the first day's midnight and `periodTo` the last day's
+  final second. A range over `syncDays` days (inclusive) or a report of more than `syncRows` rounds is a job.
+- **T055, which session is not found**: a `sessionId` that is not a login session of that player (none, another
+  player's, or a game session) is `404 session_not_found`; a player with no registration is `404 player_not_found`.
+  The currency is the player's registration currency, else EUR.
+- **T055, a round the provider's record lacks** (FR-017, R20 item 2): `WalletFigures` keeps its first leg's time,
+  and such a round is listed under the game session of its login session that spans that time, else under a game
+  `unknown` with no type; its stake is the wallet's stake less rollbacks, its win the wallet's, its status
+  `unmatched`. A game's name and type come from its rounds; with none, its game id and no type.
+- **T055, the dispute report's HTML escaped**: every value is HTML-escaped (the original interpolated them), so the
+  same text renders as XHTML for the PDF.
+- **T055, documents by kind's roles**: `GET /documents/{reference}` admits by the record's kind (an export the
+  reports roles, a dispute report any operator, day-end adds `brand_finance`, compliance `brand_compliance`),
+  `403 forbidden` otherwise; an export is `404` while the Reports tab is hidden. While generating it answers
+  `202 {reference, status, progress}` (a whole percent); a failed job `500 {error: "document_failed"}`.
+  `GET /documents` answers `{documents: [...]}`, the records of the kinds the caller is admitted to.
+- **T054, the PDF**: openhtmltopdf-pdfbox 1.0.10 renders the report's HTML (as XHTML: the two named entities as
+  numbers, the meta element closed) with its tables; verified by extracting its text with PDFBox, on JDK 27 here
+  (no JDK 21 on this machine; the image runs Temurin 21).
+- **T056, erasure**: the handler and the route erase the subject's prefix (a dispute report is kept under it) and
+  end every kept document naming the player by subject, in its `.players`, or in a running job's pages. A document
+  readied too recently for the view is missed by the route and the handler; a job storing one checks the keyring
+  and drops it. The module manifest's route row for `erasure-targets` (R10) is outside this service and not made.
+- **T057, every document audited**: `report.generated` on `Readied`, `report.served` on each `Served`, for every
+  kind, synchronous or a job's; `record_id` `audit/document/<reference>/<sequence>`, the period `<from>/<to>`.

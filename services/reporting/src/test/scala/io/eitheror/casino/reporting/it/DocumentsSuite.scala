@@ -74,7 +74,7 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     val p   = Disputed(kit, d.plusDays(1)).usual().publish()
     val ref = job(p.byRange(d.minusDays(6), d.plusDays(1), "csv"))
     val pause = s"ankka-pause-document-job-$ref"
-    kit.eventually(s"$pause set")(Option.when(kit.timers.timerScheduler.exists(pause))(()))
+    // Lost: the wake deleted (or, with the clock moved past the system's, already spent ending the job; see DocumentJob.expireStep).
     kit.timers.timerScheduler.delete(pause)
     assert(!kit.timers.timerScheduler.exists(pause))
     kit.moveClock(25.hours)

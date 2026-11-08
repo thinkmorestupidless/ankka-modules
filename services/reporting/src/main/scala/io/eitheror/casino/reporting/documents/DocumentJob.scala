@@ -113,11 +113,17 @@ final class DocumentJob(context: WorkflowContext) extends Workflow[JobState]:
           stepEffects.updateState(s.copy(step = JobState.Done)).thenEnd
         else stepEffects.updateState(s.copy(step = JobState.Kept)).thenPause(hours.hours, DocumentJob.expireStep)
 
-  /** The lifetime over: the object deleted, the record marked; the sweep does the same for a pause that was lost. */
+  /**
+   * The lifetime over: the object deleted, the record marked; the sweep does the same for a pause that was lost. ankka
+   * reckons a pause's deadline on the system clock, so a wake before the record's own expiry by the service's clock (a
+   * test's clock moved past the system's) is not an expiry: the job ends and the sweep expires the document on time.
+   */
   def expireStep: StepEffect =
     val req = currentState.request.get
-    Keeping.drop(bucket, req.objectName)
-    document(req.reference).call(Document.expire).invoke(Expire(now(), Document.Lifetime)): Unit
+    val d   = document(req.reference).call(Document.get).invoke()
+    if d.expiresAt.forall(!_.isAfter(now())) then
+      Keeping.drop(bucket, req.objectName)
+      document(req.reference).call(Document.expire).invoke(Expire(now(), Document.Lifetime)): Unit
     stepEffects.updateState(currentState.copy(step = JobState.Done)).thenEnd
 
   /** A step that failed three times: its pages deleted, the record failed, the job ended failed. */
