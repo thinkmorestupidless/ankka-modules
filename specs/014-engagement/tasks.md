@@ -273,7 +273,7 @@ end in `just players-run` + `just engagement-run`.
       sweep), `shutting_down` on stop, the 64-frame overflow drop, `unauthenticated`,
       `subject_unresolved`, `capacity`; `Frames` for every frame. If `sse("/")` is refused under
       `/v1/stream`, `sse("/{slug}")` and research R7's note in README.
-- [ ] T043 [US6] `PlayersConsumer`: `player_message_created | read | deleted` → `Channel.signal`;
+- [X] T043 [US6] `PlayersConsumer`: `player_message_created | read | deleted` → `Channel.signal`;
       `S/facts/PushPublisher.scala` (`Opened` on 0→1, `Closed | Expired` on 1→0 → `presence_changed`;
       `Delivered` → `push_delivered` with the bare message id); `S/timers/SweepTimer.scala`
       (`sweep-<player>` recurring 30 s while above zero, cancelled at zero). Suites:

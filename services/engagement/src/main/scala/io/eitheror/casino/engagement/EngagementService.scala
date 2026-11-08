@@ -22,7 +22,9 @@ object EngagementService:
     consumers.SessionsConsumer.descriptor,
     consumers.WithdrawalsConsumer.descriptor,
     consumers.RewardsConsumer.descriptor,
-    timers.DepositDayTimer.descriptor
+    timers.DepositDayTimer.descriptor,
+    facts.PushPublisher.descriptor,
+    timers.SweepTimer.descriptor
   )
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */

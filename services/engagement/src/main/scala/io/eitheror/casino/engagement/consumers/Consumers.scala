@@ -3,6 +3,8 @@ package io.eitheror.casino.engagement.consumers
 import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId}
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.facts.*
+import io.eitheror.casino.engagement.EngagementRuntime
+import io.eitheror.casino.engagement.channel.{Channel, ChannelCommand, Frames, Origin}
 import io.eitheror.casino.engagement.profile.{Applied, MoneyFact, PaymentsFact, PlayersFact, Profile}
 
 /**
@@ -12,12 +14,23 @@ import io.eitheror.casino.engagement.profile.{Applied, MoneyFact, PaymentsFact, 
  */
 private def profile(client: ComponentClient, playerId: String) = client.forKeyValueEntity(EntityId(playerId))
 
-/** `casino.players`: the profile, its events and identifies (contracts/facts.md). The message families come in US6. */
+/**
+ * `casino.players`: the profile, its events and identifies (contracts/facts.md); an inbox item created, read or deleted
+ * is a signal on the player's channel (R10), which holds it only while a connection is open.
+ */
 final class PlayersConsumer(client: ComponentClient) extends Consumer[Option[CasinoPlayersFact], Nothing]:
+  private def signal(playerId: String, messageId: String, origin: String): Effect =
+    client.forEventSourcedEntity(EntityId(playerId)).call(Channel.signal)
+      .invoke(ChannelCommand.Raise(Frames.InboxChanged, messageId, origin, EngagementRuntime.now())): Unit
+    effects.done()
+
   def onMessage(fact: Option[CasinoPlayersFact]): Effect = fact match
     case None =>
       Read.unreadable(CasinoPlayers.name, messageContext.subject)
       effects.ignore()
+    case Some(m: PlayerMessageCreated) => signal(m.playerId, m.messageId, Origin.Created)
+    case Some(m: PlayerMessageRead)    => signal(m.playerId, m.messageId, Origin.Read)
+    case Some(m: PlayerMessageDeleted) => signal(m.playerId, m.messageId, Origin.Deleted)
     case Some(f) =>
       val applied = profile(client, f.playerId).call(Profile.players).invoke(PlayersFact(f))
       Sends.start(client, Sends.of(f.playerId, Sends.factId(CasinoPlayers, f), f, applied))
