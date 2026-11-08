@@ -73,16 +73,27 @@ object Erasure:
 
   /**
    * The service's part of an erasure filed at the installation (feature 042): the same as the route's, for a subject
-   * `player/<id>`; any other subject is not this service's. The CRM's deletion is the one object it erases.
+   * `player/<id>`; any other subject is not this service's. The CRM's deletion is the one object it erases. A deletion
+   * that fails throws, so the platform records the run as failed and runs it again; a re-run tries a parked deletion
+   * once more.
    */
   val handler: com.thinkmorestupidless.ankka.sdk.ErasureHandler =
     com.thinkmorestupidless.ankka.sdk.ErasureHandler { ctx => subject =>
       val name = subject.value
       if !name.startsWith("player/") || name.length <= "player/".length then com.thinkmorestupidless.ankka.sdk.ErasureReport(0)
       else
-        val answer = erase(ctx.client, EngagementRuntime.views(), name.stripPrefix("player/"))
-        com.thinkmorestupidless.ankka.sdk.ErasureReport(if answer.path("crm").asText == "deleted" then 1 else 0)
+        val player = name.stripPrefix("player/")
+        val deletion = ctx.client.forWorkflow(com.thinkmorestupidless.ankka.core.EntityId(s"${Send.Erasure}/$player"))
+        if deletion.call(Send.outcome).invoke().outcome == Outcome.Parked then
+          deletion.call(Send.retry).invoke(io.eitheror.casino.engagement.send.Retry(Erasure.Retrier)): Unit
+        erase(ctx.client, EngagementRuntime.views(), player).path("crm").asText match
+          case "failed" => throw IllegalStateException(s"the CRM could not delete $name; parked for the next run")
+          case "deleted" => com.thinkmorestupidless.ankka.sdk.ErasureReport(1)
+          case _         => com.thinkmorestupidless.ankka.sdk.ErasureReport(0)
     }
+
+  /** Who a re-run's retry of a parked deletion names on its audit record. */
+  val Retrier = "engagement-erasure"
 
 object SendRoute:
   /** How long the route waits for the first attempt's outcome (contracts/routes.md). */

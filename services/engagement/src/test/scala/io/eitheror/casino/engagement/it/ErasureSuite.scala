@@ -90,6 +90,25 @@ class ErasureSuite extends munit.FunSuite:
     assertEquals(run("merchant/m-1").objectsErased, 0L)
   }
 
+  test("a deletion the CRM refuses fails the run, and the next run deletes the person") {
+    val p = facts.player("erase")
+    def run() = Erasure.handler.run(new ErasureContext:
+      def client   = kit.components
+      def secrets  = throw UnsupportedOperationException("not read")
+      def services = throw UnsupportedOperationException("not read")
+      def storage  = throw UnsupportedOperationException("not read")
+      def erasureSeq = 1L
+      def rerun      = false
+    )(DataSubject(s"player/$p"))
+    kit.crm.fail(503, 4)
+    intercept[IllegalStateException](run()): Unit
+    assertEquals(facts.settled(s"erasure/$p").outcome, Outcome.Parked)
+    kit.crm.reset()
+    kit.crm.expect(FakeCrm.SiteId, FakeCrm.TrackKey, FakeCrm.AppKey)
+    assertEquals(run().objectsErased, 1L)
+    assertEquals(kit.crm.deletes(p).size, 1)
+  }
+
   test("no service but players may erase") {
     val p = facts.player("erase")
     val other = erase(p, kit.asService("rewards"))

@@ -568,6 +568,12 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   a player and then starts their identify. A run that fails between the two is retried for the same
   due time, but that player is no longer listed, so Customer.io keeps their previous daily count until
   their next fact identifies them. No send is lost.
+- **The module's manifest cannot declare `personal`** (the review's second round, 2026-11-08). ankka
+  runs an erasure handler, and gives a service the keyring's notices, only when its descriptor says
+  `"personal": true`. `services/engagement/service.json` says so; the vendored ankka-vendor module
+  schema has no such property, so `modules/engagement/module.json` cannot yet. Until the vendor's
+  schema takes it, a brand applied through the vendor runs engagement without its erasure handler
+  (the route `players` calls still erases).
 
 ## Design finished
 
