@@ -10,7 +10,7 @@ Feature: Finance runs the revenue report for a period
   Scenario: the revenue report sums every player exactly in the currency asked for and names the currencies it holds
     Given a period
     When finance runs the revenue report for it in "EUR"
-    Then total stakes, total wins, GGR, bonus cost, NGR, total deposits, total withdrawals and net cash flow are the exact sums over every player, in "EUR"
+    Then total stakes, total wins, GGR, the deposit pool's GGR, bonus cost, NGR, total deposits, total withdrawals and net cash flow are the exact sums over every player, in "EUR"
     And the report names the currencies it holds figures in
 
   Scenario: the revenue report has one row per reporting day in the brand's zone, with a quiet day at zero and a late bet on its own day
@@ -26,10 +26,16 @@ Feature: Finance runs the revenue report for a period
     Then the file holds the summary row and every daily row with every column
     And the figures equal the screen's
 
-  Scenario: the programme's daily GGR facts for a closed day sum to that day's GGR for the attributed players
+  Scenario: the programme's daily GGR facts for a closed day sum to that day's deposit pool GGR for the attributed players
     Given the revenue report for a closed day
     When the programme's "ggr-daily" facts for that day are summed over the brand's attributed players
-    Then they equal that day's GGR for those players
+    Then they equal that day's deposit pool GGR for those players
+
+  Scenario: the revenue report shows the deposit pool's GGR beside GGR, a stake from restricted funds or the converted pool counting in GGR only
+    Given a day on which a player staked "10.00" from the deposit pool, "5.00" from the converted pool and "2.00" from restricted funds, and won nothing
+    When finance runs the revenue report for that day
+    Then GGR is "17.00"
+    And the deposit pool's GGR is "10.00"
 
   Scenario: a revenue report asked for a currency the brand holds no wallet in is refused naming the currencies it holds
     Given a period

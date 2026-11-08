@@ -4,7 +4,7 @@ The words this project's features use, each in exactly one sense.
 
 ## Everyday words
 
-validates, declares, fit, backoffice, force,
+distinct, validates, declares, fit, backoffice, force,
 a, an, the, and, or, of, to, in, on, for, with, is, are, was, has, have, had, does, not, no, one, two, any, every, each, same, other, its, their, this, that, when, then, after, before, within, again, still, only, also, than, more, less, new, first, last, next, named, called, shown, listed, given, asked, told, sent, kept, left, made, put, set, seen, found, open, closed, known, unknown, yes, number, amount, time, day, days, hour, hours, minute, minutes, second, seconds, year, years, month, months,
 above, accepted, across, act, action, active, actor, add, added, address, addresses, admitted, against, ago, allowed, allowing, allows, already, ancestor, answer, anything, applicant, applied, applies, apply, applying, approval, approve, approved, approves, arrive, arrives, awaiting, awaits, back, backoff, backup, backups, bad, base, becomes, belonged, below, beside, between, bind, binds, birth, blocks, bound, browser, cache, caches, cancellation, cancelled, capture, captured, carried, carries, carry, category, chain, change, changed, changes, charged, checked, claimed, closure, comes, completed, computation, computed, concurrent, condition, conditions, configuration, confirm, confirmation, confirmed, confirms, consumed, content, continue, convert, converted, converts, copies, copy, correction, corrupted, counter, country, covers, create, created, creates, cross, cumulative, currencies, currency, cycle, daily, dashboard, date, dated, dates, debit, debited, debits, decision, default, deficit, delivered, delta, descendant, details, device, differ, difference, different, digest, discard, dismissed, dismisses, display, draw, drawn, duplicate, duplicated, during, earlier, earnings, earns, else, email, emit, emits, emitted, end, ended, ends, enforced, enter, entirely, entry, equals, erase, erased, erases, established, everything, exactly, exclude, excludes, exhausted, exists, export, exports, failed, fails, failure, falls, fetches, field, fields, figure, figures, file, files, filter, finance, floors, forgets, forms, forward, fresh, frontend, full, gains, gave, half, headline, held, however, identifies, identity, ignored, import, imported, inherits, inspects, interruption, invite, invited, issued, itself, keep, keeps, kind, knows, landed, landing, lands, lapses, late, learn, lets, life, lifetime, like, limit, local, locally, longer, major, maps, mark, marked, meaning, meeting, meets, minimum, minor, minus, mirrors, moved, need, never, nothing, occur, occurred, occurs, old, older, once, onward, optionally, organically, otherwise, outcome, outside, own, paid, part, partly, passed, passes, password, pay, pays, per, percent, percentages, permanently, persists, person, pins, placed, places, play, played, pointed, position, positive, postal, posts, previous, produced, provisioned, published, publishes, raised, ran, range, rate, reactivate, reactivates, read, readable, reader, readers, reading, reads, reason, rebuilds, rebuilt, received, receives, recomputed, reduced, refreshed, refreshes, refused, refuses, register, registered, registers, rejected, removed, replays, repository, request, requested, required, requires, resend, reset, restored, retried, retries, returned, returns, reverse, reverts, review, reviewed, revoke, revoked, right, rises, role, roles, rolled, row, rules, run, running, runs, say, says, scenario, see, sees, self, send, sender, sends, separately, served, serves, session, settled, settles, shows, sign, signature, signed, sorts, source, stale, stamped, stands, started, starts, states, stats, status, stay, stays, stores, strings, substituted, succeeds, suite, sum, summed, superseded, suspend, suspended, swept, telephone, tell, text, threshold, thresholds, total, totals, traffic, transactional, treated, turned, twice, unaffected, unchanged, unclaimed, unit, units, unless, untouched, usage, valid, verifies, verify, version, visible, visited, visitor, voided, what, where, which, who, whole, whose, withdrawn, without, won, writes, written, zero
 afresh, among, attached, attaches, band, browse, browses, built, cleared, clears, configured, current, decimals, deprecation, disable, disabled, disables, echoed, eligible, enable, enabled, enables, included, jurisdiction, labels, layer, layers, long, nightly, oldest, plus, popular, processing, prohibited, prohibits, ranked, ranking, reach, refunded, resolved, site, stop, stops, success, take, territories, territory, whatever, winnings, yet
@@ -1162,6 +1162,31 @@ A route the predictions module serves.
 A route the casino module serves.
 
 ## Predictions
+
+### predictions module
+The module (spec 023) that runs a brand's prediction markets: the markets and exchange services, entitled per brand at ankka-vendor.
+
+### predictions summary
+Reporting's figures of a brand's prediction markets for a period and currency: contracts traded, notional volume, trades, traders, taker fees, resolution payments and remainders kept, and the markets opened, resolved, voided and corrected.
+
+### market report
+Reporting's one row per market: its status and times, its resolution, volume, trades, traders, open interest, taker fees, resolution payments and the remainder kept.
+
+### traders report
+Reporting's one row per player who traded in a period: contracts traded, notional volume, taker fees paid, positions paid and net result.
+
+### trader
+A player who was a party to at least one trade in the period.
+
+### notional volume
+The sum over trades of contracts times price, in the market's currency.
+
+### open interest
+The shares of a market's outcomes players hold at a moment, from fills and resolution payments.
+
+### remainder
+Of a market that is final: what its pool account keeps after every resolution payment, from rounding; the brand's.
+Avoid: dust
 
 ### market
 A question with two or more outcomes, one of which will be resolved true; drafted, approved, opened, closed, resolved or voided, then final. The rules are the markets library's (ankka-predictions).
