@@ -346,10 +346,12 @@ end in `just players-run` + `just engagement-run`.
       and their audiences); `contract/access/routes.md` re-checked against T011.
 - [X] T055 `just features` 0 findings; `just test`, `just engagement-test`, `just engagement-it`, `just
       service players test`, `just service responsible-gambling test` green.
-- [ ] T056 quickstart.md §5 run locally and §6 on kind (`--context kind-…` only; three instances):
+- [X] T056 quickstart.md §5 run locally and §6 on kind (`--context kind-…` only; three instances):
       one deposit end to end at the stub, the stream from two devices with one signal each and one
       `push_delivered` of 2, the seventeen Playwright suites with the base URLs pointed at the brand
       (SC-004, SC-009).
+      *§5 ran locally (2026-11-08); §6 on kind is blocked until the brand's services reach ankka
+      0.15 or later (research.md, Found during implementation).*
 
 ## Dependencies & Execution Order
 
