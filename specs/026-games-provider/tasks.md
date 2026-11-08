@@ -105,11 +105,11 @@ holds the key. **Independent test**: `features/games/keys.feature`.
 **Goal**: per-brand reads, the unanswered list, abandon with a reason, the day export, audit
 records, retention. **Independent test**: `features/games/operators.feature`.
 
-- [ ] T044 [US6] `UnansweredCalls` and `RoundsByDay` views in `E/main/.../edge/views/`; `GET /brands/{slug}/unanswered` (attempts, `nextRetryAt`), `GET /brands/{slug}/export/{day}` (JSON lines; the day in the installation's reporting zone) in `ProviderEndpoint.scala`
-- [ ] T045 [US6] `POST /brands/{slug}/abandon/{callbackId}` (`operatorHolding(slug, "games")`, body `{reason}`): `Deliver.abandon`, `CallbackEntity.Abandoned`, listed as abandoned with the operator and reason
-- [ ] T046 [US6] `Audit` publisher in `E/main/.../edge/admin/Audit.scala`: `platform.audit` records (data-model: Audit records) for brand entry writes, the three rotation acts, abandonments and game removals, the actor from the staff token, written by the endpoint after the command as `merchant` does; `DELETE /registry/{code}` and `GET /registry`
-- [ ] T047 [US6] `Sweep` on `PROVIDER_RETENTION_DAYS` wired in `Main.scala` (recurring timer; rounds, sessions and callbacks older than the retention gone, younger untouched); metrics `callbacks_sent{brand,kind}`, `callbacks_unanswered{brand}`, `launches{brand,game}` (FR-025) through the telemetry counters
-- [ ] T048 [US6] Bind `features/games/operators.feature` in `E/test/.../edge/steps/OperatorsFeatures.scala`, the audit records read from the test kit's topic
+- [X] T044 [US6] `UnansweredCalls` and `RoundsByDay` views in `E/main/.../edge/views/`; `GET /brands/{slug}/unanswered` (attempts, `nextRetryAt`), `GET /brands/{slug}/export/{day}` (JSON lines; the day in the installation's reporting zone) in `ProviderEndpoint.scala`
+- [X] T045 [US6] `POST /brands/{slug}/abandon/{callbackId}` (`operatorHolding(slug, "games")`, body `{reason}`): `Deliver.abandon`, `CallbackEntity.Abandoned`, listed as abandoned with the operator and reason
+- [X] T046 [US6] `Audit` publisher in `E/main/.../edge/admin/Audit.scala`: `platform.audit` records (data-model: Audit records) for brand entry writes, the three rotation acts, abandonments and game removals, the actor from the staff token, written by the endpoint after the command as `merchant` does; `DELETE /registry/{code}` and `GET /registry`
+- [X] T047 [US6] `Sweep` on `PROVIDER_RETENTION_DAYS` wired in `Main.scala` (recurring timer; rounds, sessions and callbacks older than the retention gone, younger untouched); metrics `callbacks_sent{brand,kind}`, `callbacks_unanswered{brand}`, `launches{brand,game}` (FR-025) through the telemetry counters
+- [X] T048 [US6] Bind `features/games/operators.feature` in `E/test/.../edge/steps/OperatorsFeatures.scala`, the audit records read from the test kit's topic
 
 ## Phase 9: User Story 7 — the Anjouan licence profile (P3)
 

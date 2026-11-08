@@ -53,7 +53,7 @@ final class Play(client: ComponentClient):
         callbackId, call.kind, call.round,
         transactionId = call.transactionId.getOrElse(""), cancelId = call.cancelId, role = role.toString,
         free = call.providerKind.exists(_.startsWith("free_")) && role == RoundRole.Stake, step = step,
-        awaitingAnswer = awaitingAnswer && role == RoundRole.Stake
+        awaitingAnswer = awaitingAnswer && role == RoundRole.Stake, amount = call.amount, at = Wiring.now()
       )
     )
     route -> body

@@ -81,6 +81,7 @@ final class OperatorApi(
                 SessionEntity.Launch(entry.slug, body.string("player"), body.string("currency"), g.code, "default", token, 0L, Wiring.now(),
                   demo = demo, language = entry.language)
               ): Unit
+              io.eitheror.casino.provider.edge.admin.Metrics.launch(entry.slug, g.code)
               Http.json(200, GoJson.strings("game_url" -> s"${g.pageAddress}?token=$token"))
         }
   }

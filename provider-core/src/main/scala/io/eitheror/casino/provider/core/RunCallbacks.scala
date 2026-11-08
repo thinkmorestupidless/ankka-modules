@@ -79,6 +79,18 @@ object RunCallbacks
        |ORDER BY (payload::jsonb->>'nextRetryAt')::bigint""".stripMargin
   )
 
+  /**
+   * A brand's calls the brand has not acknowledged (spec 026 FR-021): waiting on a retry after an
+   * attempt that was not accepted, past the schedule's cap, or abandoned by an operator; oldest first.
+   */
+  val unanswered = query("unanswered")(
+    s"""SELECT payload FROM $table
+       |WHERE payload::jsonb->>'brand' = :brand
+       |  AND ((payload::jsonb->>'outcome' = '${Callback.Pending}' AND payload::jsonb->>'nextRetryAt' IS NOT NULL)
+       |       OR payload::jsonb->>'outcome' IN ('${Callback.Exhausted}', '${Callback.Abandoned}'))
+       |ORDER BY (payload::jsonb->>'firstSentAt')::bigint, payload::jsonb->>'callbackId'""".stripMargin
+  )
+
   /** Runs whose last answer is older than a cutoff, for the sweep (FR-022). */
   val endedBefore = query("ended-before")(
     s"""SELECT payload FROM $table

@@ -12,6 +12,7 @@ import scala.concurrent.duration.FiniteDuration
  */
 final class HouseOutbound(sender: Outbound, prefix: String = HouseOutbound.Prefix) extends Outbound:
   def send(brand: String, route: String, body: Array[Byte], key: String, answerWait: FiniteDuration, attempt: Int): Attempt =
+    if attempt == 1 then io.eitheror.casino.provider.edge.admin.Metrics.callbackSent(brand, route.split('/').last)
     sender.send(brand, HouseOutbound.under(route, prefix), body, key, answerWait, attempt)
 
 object HouseOutbound:

@@ -20,7 +20,9 @@ final case class Settings(
     retentionDays: Int,
     schedule: Schedule,
     localCa: Option[String],
-    staffIssuer: Option[URI]
+    staffIssuer: Option[URI],
+    /** The installation's reporting zone (`CASINO_REPORTING_ZONE`): a day of the export is a calendar day here. */
+    reportingZone: java.time.ZoneId = java.time.ZoneOffset.UTC
 )
 
 object Settings:
@@ -49,4 +51,7 @@ object Settings:
         Either.cond(pem.contains("-----BEGIN CERTIFICATE-----"), Some(pem), "PROVIDER_LOCAL_CA is not a PEM certificate")
       }
       issuer <- value("ANKKA_AUTH_STAFF_ISSUER").fold[Either[String, Option[URI]]](Right(None))(i => address("ANKKA_AUTH_STAFF_ISSUER", i).map(Some(_)))
-    yield Settings(external, days, schedule, ca, issuer)
+      zone <- value("CASINO_REPORTING_ZONE").fold[Either[String, java.time.ZoneId]](Right(java.time.ZoneOffset.UTC)) { z =>
+        Try(java.time.ZoneId.of(z)).toOption.toRight(s"CASINO_REPORTING_ZONE '$z' is not a time zone such as UTC or America/Sao_Paulo")
+      }
+    yield Settings(external, days, schedule, ca, issuer, zone)

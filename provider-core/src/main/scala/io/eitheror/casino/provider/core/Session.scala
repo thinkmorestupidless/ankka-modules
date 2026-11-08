@@ -68,10 +68,10 @@ final case class Session(
         val opened   = if e.awaitingAnswer then Round.Pending else Round.Open
         val round    = existing.getOrElse(Round(id, opened, Vector.empty, Vector.empty, Vector.empty, free = e.free))
         val moved = RoundRole.valueOf(e.role) match
-          case RoundRole.Stake   => round.copy(debits = round.debits :+ e.transactionId)
-          case RoundRole.Win     => round.copy(credits = round.credits :+ e.transactionId, state = Round.Won)
-          case RoundRole.Loss    => round.copy(credits = round.credits :+ e.transactionId, state = Round.Lost)
-          case RoundRole.Cancel  => round.copy(cancels = round.cancels :+ e.cancelId.getOrElse(""), state = Round.Cancelled)
+          case RoundRole.Stake   => round.copy(debits = round.debits :+ e.transactionId, stakes = round.stakes ++ e.amount)
+          case RoundRole.Win     => round.copy(credits = round.credits :+ e.transactionId, state = Round.Won, wins = round.wins ++ e.amount, settledAt = Some(e.at))
+          case RoundRole.Loss    => round.copy(credits = round.credits :+ e.transactionId, state = Round.Lost, wins = round.wins ++ e.amount, settledAt = Some(e.at))
+          case RoundRole.Cancel  => round.copy(cancels = round.cancels :+ e.cancelId.getOrElse(""), state = Round.Cancelled, settledAt = Some(e.at))
           case RoundRole.Outside => round
         withSent.copy(
           rounds = withSent.rounds.updated(id, moved),
@@ -108,7 +108,12 @@ final case class Round(
     debits: Vector[String],
     credits: Vector[String],
     cancels: Vector[String],
-    free: Boolean
+    free: Boolean,
+    /** The amounts sent, as the protocol wrote them: stakes, and the credit that settled it. */
+    stakes: Vector[String] = Vector.empty,
+    wins: Vector[String] = Vector.empty,
+    /** When a win, a loss or a cancel was planned on it. */
+    settledAt: Option[Long] = None
 )
 
 object Round:
@@ -143,7 +148,10 @@ enum SessionEvent:
       role: String,
       free: Boolean,
       step: Option[Int],
-      awaitingAnswer: Boolean = false
+      awaitingAnswer: Boolean = false,
+      /** The amount as the protocol wrote it, and when it was planned (spec 026: the day export). */
+      amount: Option[String] = None,
+      at: Long = 0L
   )
   /** A stake planned as awaiting its answer was answered: accepted, or refused. */
   case RoundAnswered(roundId: String, accepted: Boolean)

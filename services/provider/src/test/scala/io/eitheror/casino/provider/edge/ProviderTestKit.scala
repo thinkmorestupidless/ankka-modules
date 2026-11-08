@@ -3,7 +3,7 @@ package io.eitheror.casino.provider.edge
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
-import com.thinkmorestupidless.ankka.runtime.{ProjectionRuntime, TimerRuntime}
+import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.sdk.SecretStore
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
 import io.eitheror.casino.provider.{FakeBrand, TestGame}
@@ -41,13 +41,16 @@ object ProviderTestKit:
       case None => AuthDecision.Unauthenticated("realm=\"eitheror\"")
       case Some(token) =>
         token.split('|') match
-          case Array(issuer, iss, roles) =>
-            AuthDecision.Allow(Principal("staff-user", roles = roles.split(',').filter(_.nonEmpty).toSet, claims = Map("iss" -> iss), issuer = Some(issuer)))
+          case Array(issuer, iss, roles, _*) =>
+            AuthDecision.Allow(Principal(token.split('|').lift(3).getOrElse("staff-user"), roles = roles.split(',').filter(_.nonEmpty).toSet, claims = Map("iss" -> iss), issuer = Some(issuer)))
           case _ => AuthDecision.Unauthenticated("realm=\"eitheror\", error=\"invalid_token\"")
   }
 
   /** A staff token at the eitheror realm holding `roles`. */
   def staff(roles: String*): String = s"staff|https://auth-casino.example/realms/eitheror|${roles.mkString(",")}"
+
+  /** A staff token as `staff`, for the operator `subject` (the audit names the actor by it). */
+  def staffAs(subject: String, roles: String*): String = s"${staff(roles*)}|$subject"
 
   /** A token from a brand's player realm, which no operator route admits. */
   def playerToken: String = "player|https://auth-casino.example/realms/goldvibe|brand_goldvibe,games"
@@ -63,6 +66,8 @@ object ProviderTestKit:
     private var brandHolder: FakeBrand = null
 
     val game: TestGame     = TestGame()
+    /** Where the audit consumer publishes `platform.audit` (and anything else a consumer produces). */
+    val broker: InMemoryBroker = InMemoryBroker()
     val cache: BrandCache  = BrandCache(Map.empty)
     /** The brand's operator key pair for the house provider: it signs launches and the games list. */
     val operator: KeyPair  = Signer.generate()
@@ -84,7 +89,7 @@ object ProviderTestKit:
       if started == null then
         server = Provider.server(settings, cache, holder, Some(("127.0.0.1", 0)), Some(ProviderTestKit.verified))
         timers = TimerRuntime(200.millis)
-        started = AnkkaTestKit.start(Provider.descriptors, Seq(ProjectionRuntime(), timers, server),
+        started = AnkkaTestKit.start(Provider.descriptors, Seq(ProjectionRuntime.withBroker(broker, broker), timers, server),
           localServices = Map(game.name -> game.address))
         brandHolder = FakeBrand(keys)
         wire()
@@ -110,7 +115,7 @@ object ProviderTestKit:
       start()
       holder.set(null)
       timers = TimerRuntime(200.millis)
-      started.restartService(extensions = Seq(ProjectionRuntime(), timers, server))
+      started.restartService(extensions = Seq(ProjectionRuntime.withBroker(broker, broker), timers, server))
       wire()
     }
 

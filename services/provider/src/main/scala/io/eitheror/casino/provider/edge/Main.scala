@@ -28,7 +28,8 @@ object Provider:
     SessionEntity.descriptor, CallbackEntity.descriptor, Deliver.descriptor,
     RunCallbacks.descriptor, SweepAction.descriptor,
     GameEntity.descriptor, GameIndex.descriptor, BrandEntryEntity.descriptor, BrandIndex.descriptor, SessionsByBrand.descriptor,
-    io.eitheror.casino.provider.edge.operator.BonusIndex.descriptor
+    io.eitheror.casino.provider.edge.operator.BonusIndex.descriptor, io.eitheror.casino.provider.edge.views.RoundsByDay.descriptor,
+    io.eitheror.casino.provider.edge.admin.ProviderActs.descriptor, io.eitheror.casino.provider.edge.admin.ProviderAudit.descriptor
   )
 
   /** What the endpoints share: built once, from the first clients offered. */
@@ -46,7 +47,7 @@ object Provider:
       c => { val p = parts(c); Health(() => p.ready.get()) },
       c => GamesEndpoint(c.componentClient),
       c => OperatorApi(c.componentClient, cache, GameHealth(name => c.services(name)).apply, name => c.services(name)),
-      c => ProviderEndpoint(c.componentClient, c.viewClient, cache, parts(c).keys, authenticate.getOrElse(Oidc.authenticate()))
+      c => ProviderEndpoint(c.componentClient, c.viewClient, cache, parts(c).keys, authenticate.getOrElse(Oidc.authenticate()), settings.reportingZone)
     )
     at.fold(HttpServer.of(factories*))((host, port) => HttpServer.at(host, port)(factories*))
 
