@@ -146,11 +146,15 @@ final class Send(context: WorkflowContext) extends Workflow[SendState]:
 
   private def advance(kind: String): StepEffect = next(currentState, kind)
 
-  /** FR-011's refusals are audited; every other end is not. */
+  /**
+   * FR-011's refusals are audited; every other end is not. A refusal at an operator's retry names the operator, whose
+   * act it answered (US7).
+   */
   private def end(outcome: String, reason: Option[String]): StepEffect =
     val ended = currentState.copy(outcome = outcome, reason = reason, step = None)
+    val by    = currentState.note.filter(_.kind == Send.Retried).flatMap(_.by)
     val s =
-      if outcome == Outcome.MarketingSuppressed || outcome == Outcome.AccountClosed then ended.noted(Send.RefusedNote, None, now)
+      if outcome == Outcome.MarketingSuppressed || outcome == Outcome.AccountClosed then ended.noted(Send.RefusedNote, by, now)
       else ended.copy(updatedAt = Some(now))
     stepEffects.updateState(s).thenEnd
 

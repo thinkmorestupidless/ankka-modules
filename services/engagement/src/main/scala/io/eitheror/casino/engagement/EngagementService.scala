@@ -16,6 +16,7 @@ object EngagementService:
     channel.AgentChannel.descriptor,
     reads.SendsView.descriptor,
     reads.ProfilesView.descriptor,
+    reads.PresenceView.descriptor,
     facts.SendAudit.descriptor,
     facts.ConfigAudit.descriptor,
     consumers.PlayersConsumer.descriptor,

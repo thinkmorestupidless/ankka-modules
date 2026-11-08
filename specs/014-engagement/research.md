@@ -508,6 +508,15 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   the id. The stream's own ACL asks for the id first, then the brand's realm (`wrong_brand` for
   another brand's player).
 
+- **Presence is a view of the channels' events** (T047). data-model.md lists no reader for `GET
+  /presence`, and the channel is one entity per player, which cannot list the brand's players.
+  `PresenceView` (id = player) keeps `online` and `since` from the channel's `Opened` at a count of
+  one and its `Closed` or `Expired` at zero, the same crossings `presence_changed` is made from, so
+  the route and the fact agree.
+- **A send's id holds a `/`, and ankka hands a path parameter over undecoded** (T047). The parked
+  send routes take the key encoded (`deposit_confirmed%2F<fact id>`) and decode it; the console
+  encodes it as any path segment.
+
 ## Design finished
 
 2026-11-03: analyze reported nothing above LOW.

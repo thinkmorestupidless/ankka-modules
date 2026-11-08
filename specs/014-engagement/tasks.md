@@ -300,7 +300,7 @@ end in `just players-run` + `just engagement-run`.
       profile's email prefix. `T/channel/AgentTicketSuite.scala`, `T/channel/AgentChannelSuite.scala`
       first; `T/it/AgentStreamSuite.scala` (`AgentStreamTicketStoreSpec`'s and
       `AgentStreamConsumerSpec`'s cases; `player_online` within 5 s; a ticket used twice).
-- [ ] T047 [US7] `BackofficeEndpoint`: `GET /players/{player}/sends`, `GET /parked-sends`, `POST
+- [X] T047 [US7] `BackofficeEndpoint`: `GET /players/{player}/sends`, `GET /parked-sends`, `POST
       /parked-sends/{sendId}/retry`, `POST /parked-sends/{sendId}/discard`, `GET /presence`
       (contracts/routes.md), each through `SendsView`, `Send` and `Channel`; the audit records.
       `T/it/OperatorsSuite.scala`: the sends newest first and paged, a retry accepted leaving the
