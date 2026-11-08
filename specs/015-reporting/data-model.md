@@ -39,6 +39,8 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
   - `predictions`: per market, contracts, notional, trades, fees, resolution payments, remainder, fee
     account credits;
   - liability at close, pending holds at close;
+  - `testShare`: the same money sections over test accounts only, subtracted at read when the brand
+    excludes test accounts (FR-024);
   - `lastSeq` per source entity (dedup).
 - Commands: `Fold {source, seq, delta}`, `Close {at, zone}`, `Read`.
 - Events: `Folded {delta}` (open day), `Corrected {arrivedAt, delta}` (closed day), `DayFixed {zone,

@@ -88,7 +88,10 @@ places.
   `account_adjusted` (spec 022). No casino family is ever written for a trade
   (`contract/.../facts/MoneyTransactions.scala:122-199`), so excluding these excludes every trade.
 - **Test accounts**: counted, as the original; excluded from the dashboard and the revenue report only when
-  the brand's setting says so (FR-024), by the flag on the player (R11).
+  the brand's setting says so (FR-024), by the flag on the player (R11). A day's figures are aggregates, so
+  `BrandDay` keeps the test accounts' share of each money section beside the total (`ToDays` reads the
+  player's flag from `PlayerLog` as it folds) and a read with the setting on subtracts it. A flag changed
+  later does not restate closed days; open days fold from the change.
 
 ## R5. The ledger, the player report and the email search
 
@@ -339,3 +342,9 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   around here (R3, R7, R9, R8) and is a candidate feature.
 
 ## Declined remediations
+
+(None.)
+
+## Design finished
+
+2026-11-08: analyze reported nothing above LOW (round 2; round 1's one high, two medium and two low findings applied).

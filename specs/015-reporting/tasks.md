@@ -110,7 +110,9 @@ access. Nothing story-specific starts before this phase ends.
 ### Intake and the day
 
 - [ ] T017 `r/ReportingCodecs.scala`: codecs for every state, event and row; `r/intake/FactId.scala`
-  (engagement's `factId`); `r/intake/Lenient.scala` (attribution's)
+  (engagement's `factId`); `r/intake/Lenient.scala` (attribution's); `r/intake/Generation.scala`: the
+  generation of research R8 as the first segment of every intake and day entity id and in every consumer's
+  component id, so a new generation replays the topics from the earliest offset into new ids
 - [ ] T018 [P] `r/intake/WalletBook.scala` and its consumer `money-facts`: the event `Moved` per
   data-model.md, `casino` false for spec 022's families, the day and the round's day, open records, holds,
   `seen`; `r-test/intake/WalletBookSuite.scala` (kit: every family, a repeat, a converted stake, a trade)
@@ -125,9 +127,10 @@ access. Nothing story-specific starts before this phase ends.
 - [ ] T024 [P] `r/intake/RoundCheck.scala` (key value), `rounds-facts` (only with `casino`) and `round-legs`
   from `WalletBook`; statuses `matched`, `differs`, `provider_only`, `wallet_only`; suite
 - [ ] T025 `r/day/BrandDay.scala`: state and events of data-model.md, `Fold` dedup by source and sequence,
-  `Corrected` on a closed day, `Close` writing `DayFixed`; `r-test/day/BrandDaySuite.scala`
+  `Corrected` on a closed day, `Close` writing `DayFixed`, the test accounts' share kept beside each money
+  section; `r-test/day/BrandDaySuite.scala`
 - [ ] T026 `r/day/ToDays.scala`: the consumer over the intake entities' events folding each into its day's
-  delta (the test-account exclusion applied at read, not here); suite
+  delta, marked as a test account's when the player's `PlayerLog` says so at the fold (research R4); suite
 - [ ] T027 `r/day/CloseDays.scala`: the `close-days` timer every five minutes (`a/money/DayCloser.scala`'s
   shape) and the `OpenDays` query it needs; suite with `MovableClock`
 - [ ] T028 [P] `r/intake/Coverage.scala`: the earliest `occurredAt` per topic in the generation; suite
@@ -160,7 +163,8 @@ access. Nothing story-specific starts before this phase ends.
   `r-test/features/RevenueSteps.scala` over the `FactSet`
 - [ ] T034 [P] [US1] `r-test/it/RevenueSuite.scala`: three players, two days in the zone, two currencies, a
   23:30 bet, a converted and a restricted stake, the deposit pool's GGR equal to attribution's
-  `RealMoney` fold per day (SC-005), a rebuild by generation identical (SC-004)
+  `RealMoney` fold per day (SC-005), a rebuild into a new generation identical (SC-004), a test account
+  excluded when the setting is on
 - [ ] T035 [US1] `r/day/DaysView.scala` (`Days`, `between(:from, :to)`)
 - [ ] T036 [US1] `r/api/Reports.scala` `GET /reports/ggr`: the shape of contracts/routes.md, the default
   month, `currencies`, the test-account exclusion setting; `format=csv` with the summary row
@@ -284,7 +288,8 @@ lifetimes and erasure.
 - [ ] T067 [US8] `BrandDay`'s predictions section folded by `ToDays` and the day-end's predictions part with the
   fee reconciliation
 - [ ] T068 [US8] `r/api/Predictions.scala` `GET /predictions/summary`, `/predictions/markets`,
-  `/predictions/traders` and the dashboard's predictions summary when the module runs
+  `/predictions/traders`, each of the last two with `format=csv`, and the dashboard's predictions summary
+  when the module runs
 
 ---
 
@@ -300,6 +305,10 @@ lifetimes and erasure.
 - [ ] T072 [P] `services/reporting/README.md`: the components, the suites, how to run it locally
 - [ ] T073 Run quickstart §1–§3 and §6 end to end; `just features` green; record the results in the pull
   request body
+- [ ] T074 SC-007: on kind, point the backoffice's reporting base URL at
+  `/v1/casino/brands/<slug>/reporting` (a local environment override, no code change) and run the original's
+  Playwright `15-dashboard-kpis`, `27-dispute-report` and `09-casino-backoffice`; record the results in the
+  pull request body, and a change the backoffice would need beyond its base URL as a finding in research.md
 
 ---
 
@@ -311,7 +320,8 @@ lifetimes and erasure.
 - US1 needs only Phase 2. US2 needs T035. US3 and US4 need T040. US5 needs T040 (`Sessions`, `Rounds`) and
   brings `Document` to its full shape (T037's first shape before it). US6 needs T025's `DayFixed` and T053.
   US7 needs T053. US8 needs Phase 2 only, and T067 needs US6's day-end route.
-- Polish after the stories it measures: T069 after US1 and US2; T071 after T070 and every route.
+- Polish after the stories it measures: T069 after US1 and US2; T071 after T070 and every route; T074
+  after US2 and US5.
 
 ## Parallel examples
 

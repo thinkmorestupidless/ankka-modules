@@ -67,7 +67,7 @@ five services.
 | Item | Count |
 |---|---|
 | Original routes ported | 15: 6 reports, 8 dashboard, the dispute report |
-| New routes | 14 (contracts/routes.md) |
+| New routes | 12 (contracts/routes.md) |
 | Event sourced entities | 7: `WalletBook`, `Payment`, `Withdrawal`, `Grant`, `PlayerLog`, `MarketBook`, `BrandDay` |
 | Key value entities | 5: `Session`, `RoundCheck`, `Document`, `ReportingSettings`, `Coverage` |
 | Workflows | 1: `DocumentJob` |
