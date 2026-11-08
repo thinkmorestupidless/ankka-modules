@@ -530,3 +530,5 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   and drops it. The module manifest's route row for `erasure-targets` (R10) is outside this service and not made.
 - **T057, every document audited**: `report.generated` on `Readied`, `report.served` on each `Served`, for every
   kind, synchronous or a job's; `record_id` `audit/document/<reference>/<sequence>`, the period `<from>/<to>`.
+- **T055, the documents routes** (asked 2026-11-08, answer "as built"): `500 document_failed` for a failed job,
+  `progress` a whole percent, and `GET /documents`' shape and default period; routes.md carries them.

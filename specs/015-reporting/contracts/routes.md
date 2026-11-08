@@ -80,8 +80,8 @@ view always answers.
 | `GET /predictions/summary` | `from`, `to`, `currency`: `{contractsTraded, notionalVolume, trades, traders, takerFees, resolutionPayments, remaindersKept, marketsOpened, marketsResolved, marketsVoided, marketsCorrected}` |
 | `GET /predictions/markets` | `status`, `category`, `from`, `to`, `format`: `{markets:[{marketId, question, category, currency, status, openedAt, closedAt, resolvedAt, resolution, firstResolution, corrected, contractsTraded, notionalVolume, trades, traders, openInterest, takerFees, resolutionPayments, remainderKept}]}` |
 | `GET /predictions/traders` | `from`, `to`, `currency`, `format`: `{traders:[{playerId, email, contractsTraded, notionalVolume, takerFees, positionsPaid, netResult}]}` |
-| `GET /documents/{reference}` | the attachment when ready; `{reference, status, progress}` while generating; `410 document_expired` after |
-| `GET /documents` | the records, newest first, `kind`, `from`, `to` |
+| `GET /documents/{reference}` | the attachment when ready; `202 {reference, status, progress}` while generating, `progress` a whole percent; `410 document_expired` after; `500 document_failed` when its job failed (ask again) |
+| `GET /documents` | `kind`, `from`, `to` (the month to date): `{documents:[{reference, kind, format, parameters, from, to, askedBy, generatedAt, readyAt, expiresAt, status, endedBy, rows}]}`, newest first, only the kinds the caller is admitted to |
 | `GET`/`PUT /settings` | `ReportingSettings` in camelCase; `PUT` changes only the fields it names, and `null` clears an optional one (`defaultCurrency`); `400 invalid_setting` naming the field and its range |
 | `GET /status` | `{generation, views:[{name, completeFrom, rebuilding}]}` |
 | `POST /erasure/players/{playerId}` | `{service:"reporting", subject, documents}` |
