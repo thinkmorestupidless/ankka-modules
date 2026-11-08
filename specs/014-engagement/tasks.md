@@ -243,7 +243,7 @@ end in `just players-run` + `just engagement-run`.
 
 **Independent test**: `campaigns.feature` with `FakeRewards` and `FakePlayers`.
 
-- [ ] T038 [US5] Bind `features/engagement/campaigns.feature` in `T/features/CampaignsFeatures.scala`;
+- [X] T038 [US5] Bind `features/engagement/campaigns.feature` in `T/features/CampaignsFeatures.scala`;
       it fails first.
 - [ ] T039 [US5] `S/api/WebhookEndpoint.scala` (`/v1/casino/customerio`, `Routes.public`): `POST
       /webhook/{brand}` with `Signature`'s refusals in order and the body read within 5 s, `wrong_brand`,
