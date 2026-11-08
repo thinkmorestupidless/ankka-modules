@@ -50,7 +50,7 @@ their new fields.
   `service.json` (runtime `0.16.0`, `provisionObjectStorage`, `"personal": true`), `docker-compose.yml`
   (postgres:17-alpine on 5445), `README.md` stub, `r/ReportingService.scala` registering nothing yet; add
   `com.openhtmltopdf:openhtmltopdf-pdfbox`
-- [ ] T004 [P] Write `r/Settings.scala`: `CASINO_BRAND`, `CASINO_PROJECT`, `CASINO_REAL_MONEY`,
+- [X] T004 [P] Write `r/Settings.scala`: `CASINO_BRAND`, `CASINO_PROJECT`, `CASINO_REAL_MONEY`,
   `CASINO_REPORTING_ZONE` (attribution's parse, `a/Settings.scala:47-48`), `CASINO_MODULES`, `CLOSE_GRACE`,
   `REPORTING_GENERATION`; with `r-test/SettingsSuite.scala`
 - [ ] T005 [P] Update `modules/reporting/module.json` per research R14: runtime `0.16.0`, the env (keys
