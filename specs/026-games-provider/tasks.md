@@ -116,8 +116,8 @@ records, retention. **Independent test**: `features/games/operators.feature`.
 **Goal**: an operator applies `anjouan` and gets Curaçao's values under that name. **Independent
 test**: the new scenario in `features/kyc/policy.feature`.
 
-- [ ] T049 [US7] `Profile.Anjouan("ANJOUAN")` and `Profiles.Anjouan = Curacao.copy(profile = Profile.Anjouan)`, `byName += ANJOUAN` in `services/kyc/src/main/scala/io/eitheror/casino/kyc/policy/Policy.scala` and `Profiles.scala`; bind the scenario in kyc's policy features suite; the unknown-profile answer's known list updated in its suite; `just service kyc test`
-- [ ] T050 [P] [US7] Spec 009's text: FR for the profiles names Anjouan; *Changes from the original* gains the known-list divergence (`contracts/brand-amendments.md`)
+- [X] T049 [US7] `Profile.Anjouan("ANJOUAN")` and `Profiles.Anjouan = Curacao.copy(profile = Profile.Anjouan)`, `byName += ANJOUAN` in `services/kyc/src/main/scala/io/eitheror/casino/kyc/policy/Policy.scala` and `Profiles.scala`; bind the scenario in kyc's policy features suite; the unknown-profile answer's known list updated in its suite; `just service kyc test`
+- [X] T050 [P] [US7] Spec 009's text: FR for the profiles names Anjouan; *Changes from the original* gains the known-list divergence (`contracts/brand-amendments.md`)
 
 ## Phase 10: The brand side (spec 003's amendment) and the shared project
 

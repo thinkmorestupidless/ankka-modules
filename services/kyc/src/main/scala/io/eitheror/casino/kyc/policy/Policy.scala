@@ -18,6 +18,8 @@ enum Profile(val wire: String):
   case Ukgc    extends Profile("UKGC")
   case Mga     extends Profile("MGA")
   case Curacao extends Profile("CURACAO")
+  /** Anjouan (spec 026 US7): the brands into South America; the same policy as Curaçao. */
+  case Anjouan extends Profile("ANJOUAN")
   case Custom  extends Profile("CUSTOM")
 
 object Profile:

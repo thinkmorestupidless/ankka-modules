@@ -234,7 +234,7 @@ is held to the Go rollup's tests.
 
 ### User Story 3 - The brand's policy comes from its licence (Priority: P1)
 
-An operator applies a licence profile — UKGC, MGA or Curaçao — to the brand and the policy's fields
+An operator applies a licence profile — UKGC, MGA, Curaçao or Anjouan (spec 026: Curaçao's defaults under its own name) — to the brand and the policy's fields
 take that profile's defaults: the deposit gate, the play gate, the KYC currency, the deposit threshold,
 the source of funds threshold, the verification window, the required categories, and whether the window's expiry
 suspends. The operator may then override any field, which marks the profile custom.
@@ -511,7 +511,7 @@ the player sees their own; other services read facts.
 - **FR-026**: The brand's policy MUST hold: deposit gate (`NONE` | `KYC_APPROVED`), play gate (the
   same), KYC currency (ISO 4217, or none; required while either threshold is set), deposit threshold (minor units or none), source of funds threshold (minor units or none),
   window (days or none), required categories, suspend on expiry, and the licence profile (`UKGC` |
-  `MGA` | `CURACAO` | `CUSTOM`). Absent, it MUST read as the Curaçao default of User Story 3.
+  `MGA` | `CURACAO` | `ANJOUAN` | `CUSTOM`). Absent, it MUST read as the Curaçao default of User Story 3.
 - **FR-027**: Applying a profile MUST set every field to the profile's defaults of User Story 3;
   overriding any field afterwards MUST set the profile to `CUSTOM`. An unknown profile MUST be refused
   naming the known ones.
@@ -597,6 +597,10 @@ the player sees their own; other services read facts.
   and no delay beyond the write.
 
 ## Changes from the original
+
+- **Anjouan added (spec 026).** `ANJOUAN` is a fourth licence profile, for the brands that run under an
+  Anjouan licence into South America: the Curaçao defaults under its own name. The unknown-profile
+  refusal names it, so the known-profile list diverges from the original's recording by that name.
 
 - **One service.** The policy routes, the player and backoffice KYC routes, the gates' decisions, the
   rollup, the threshold and window functions and the document store leave `casino-service`, the Go

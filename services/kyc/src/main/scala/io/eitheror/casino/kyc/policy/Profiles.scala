@@ -44,7 +44,10 @@ object Profiles:
     profile = Profile.Ukgc
   )
 
-  private val byName: Map[String, Policy] = Map("CURACAO" -> Curacao, "MGA" -> Mga, "UKGC" -> Ukgc)
+  /** Anjouan asks what Curaçao asks (spec 026 data-model, Licence profile): only its name differs. */
+  val Anjouan: Policy = Curacao.copy(profile = Profile.Anjouan)
+
+  private val byName: Map[String, Policy] = Map("ANJOUAN" -> Anjouan, "CURACAO" -> Curacao, "MGA" -> Mga, "UKGC" -> Ukgc)
 
   /** The names an operator may apply, sorted as the original answers them. */
   val known: Vector[String] = byName.keys.toVector.sorted

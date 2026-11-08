@@ -280,6 +280,7 @@ Unchanged:
 | Objects under `subjects/<player>/kyc/` | FR-032 | `DocumentsSuite`; `WireTranslation` (the key is opaque to the replay) |
 | Routes move under four prefixes | R14 | `WireTranslation` |
 | Scenario 28's incomplete-profile test waits for `pending`, not `unverified` | FR-012 | the patch corrected before the run |
+| The known profiles name `ANJOUAN` (spec 026 US7) | FR-026, FR-027; spec 026's Anjouan profile | scenario 29's unknown-profile recording, marked; `PolicySuite`; `policy.feature` |
 
 ## What the next command needs to know
 
