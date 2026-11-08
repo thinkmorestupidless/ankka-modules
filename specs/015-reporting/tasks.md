@@ -109,7 +109,7 @@ access. Nothing story-specific starts before this phase ends.
 
 ### Intake and the day
 
-- [ ] T017 `r/ReportingCodecs.scala`: codecs for every state, event and row; `r/intake/FactId.scala`
+- [X] T017 `r/ReportingCodecs.scala`: codecs for every state, event and row; `r/intake/FactId.scala`
   (engagement's `factId`); `r/intake/Lenient.scala` (attribution's); `r/intake/Generation.scala`: the
   generation of research R8 as the first segment of every intake and day entity id and in every consumer's
   component id, so a new generation replays the topics from the earliest offset into new ids
