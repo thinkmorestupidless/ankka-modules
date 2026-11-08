@@ -379,3 +379,30 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T010, the merchant's dispute route** (R11): the merchant had no route for a gateway's dispute, so spec 004
   gains `POST /v1/payments/{paymentId}/dispute` (the gateway's identity, ACL only, as `/fail`). A dispute is
   recorded on the payment whatever its status; providers dispute captured deposits only, so nothing filters it.
+- **T018–T025, events wider than data-model.md's**: every intake event carries its fact id, so a replay rebuilds
+  the seen window (1,000 ids an entity) and not only the state. `WalletBook`'s `Moved` also carries the player,
+  currency, transaction id and the balances and pools after it, which the movements and liability reads need.
+  `PlayerLog` gains `KycSubmitted`, without which a document's decision cannot carry its submission's time.
+  `BrandDay`'s `Folded` and `Corrected` carry their source and sequence, so the last sequence per source is
+  rebuilt; `Fold` carries `arrivedAt`, the correction's date. `Session` and `RoundCheck` are key value and keep no
+  seen window: each fact sets a field, so a repeat is a no-op (`RoundCheck` keeps its wallet legs' fact ids).
+- **T022, KYC status from three families only**: `player_kyc_verified`, `player_kyc_rejected` and
+  `player_kyc_pending` carry a new value; a submission and a document's review do not move the status.
+- **T025, registrations per day, not per currency**: a registration's currency is optional, so `BrandDay` counts
+  registrations (and the test accounts' share) for the day, beside the currencies.
+- **T025, hours to completion as a sum**: a gateway's figures keep the seconds from request to completion summed
+  over the completions whose request was seen (`timed`), and the average is the sum over `timed`; a completion
+  with no recorded request counts as completed and is not timed.
+- **T025, what the close is given**: the games section, the round differences, the liability and the pending
+  holds at close cannot be folded from events (`RoundCheck` is key value; liability and holds span every
+  wallet), so `Close` carries `CloseInputs`, gathered from views by the closer. Until the day-end's reads are
+  wired (US6) the closer hands empty inputs (`ReportingRuntime.closeInputs`).
+- **T026, one `to-days` consumer per source**: an ankka 0.16 consumer reads one source, so `to-days` is five
+  consumers (`to-days-wallets`, `-payments`, `-withdrawals`, `-grants`, `-players`, each `-g<n>`). The test flag
+  is the player's `PlayerLog` at the fold (a registration's own); a flag changed later does not restate a day.
+- **T028, coverage's call cached in memory**: `Coverage` is one entity per topic, so every fact calling it would
+  queue the topic's intake on it. Each consumer instance remembers the earliest time it has told and calls only
+  for an earlier fact; after a restart one call per topic resets it.
+- **T027, the close-days timer's wiring**: a timed action has no view client, so (as attribution's `Wiring`)
+  `ReportingRuntime` holds the settings and the `open-before` read, set by `ReportingService.wire` and
+  `started`. No `Main` calls them yet; whatever starts the service (T030 onwards) must call both.
