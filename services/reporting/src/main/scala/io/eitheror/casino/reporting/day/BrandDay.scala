@@ -42,10 +42,15 @@ final case class PaymentFigures(attempts: Long = 0, completed: Long = 0, value: 
   def +(o: PaymentFigures): PaymentFigures = PaymentFigures(attempts + o.attempts, completed + o.completed, value + o.value)
   def -(o: PaymentFigures): PaymentFigures = PaymentFigures(attempts - o.attempts, completed - o.completed, value - o.value)
 
-/** A withdrawal gateway's day: requests, completions and the seconds from request to completion, summed (FR-011). */
-final case class GatewayFigures(requests: Long = 0, completed: Long = 0, completionSeconds: Long = 0):
-  def +(o: GatewayFigures): GatewayFigures = GatewayFigures(requests + o.requests, completed + o.completed, completionSeconds + o.completionSeconds)
-  def -(o: GatewayFigures): GatewayFigures = GatewayFigures(requests - o.requests, completed - o.completed, completionSeconds - o.completionSeconds)
+/**
+ * A withdrawal gateway's day: requests, completions and the seconds from request to completion, summed over the
+ * `timed` completions whose request was seen, which the average divides by (FR-011).
+ */
+final case class GatewayFigures(requests: Long = 0, completed: Long = 0, completionSeconds: Long = 0, timed: Long = 0):
+  def +(o: GatewayFigures): GatewayFigures =
+    GatewayFigures(requests + o.requests, completed + o.completed, completionSeconds + o.completionSeconds, timed + o.timed)
+  def -(o: GatewayFigures): GatewayFigures =
+    GatewayFigures(requests - o.requests, completed - o.completed, completionSeconds - o.completionSeconds, timed - o.timed)
 
 /** One money section and its breakdowns: the money, GGR and NGR per hour of the day in the zone, and the providers. */
 final case class Section(
@@ -109,8 +114,6 @@ final case class Delta(
     registrations: Long = 0,
     test: Boolean = false
 ):
-  def isEmpty: Boolean = this == Delta(currency, hour, test = test)
-
   /** Two deltas of one source event for one day, as one. */
   def +(o: Delta): Delta =
     copy(money = money + o.money, payments = Section.merge(payments, o.payments, PaymentFigures())(_ + _),

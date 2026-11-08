@@ -129,7 +129,7 @@ access. Nothing story-specific starts before this phase ends.
 - [X] T025 `r/day/BrandDay.scala`: state and events of data-model.md, `Fold` dedup by source and sequence,
   `Corrected` on a closed day, `Close` writing `DayFixed`, the test accounts' share kept beside each money
   section; `r-test/day/BrandDaySuite.scala`
-- [ ] T026 `r/day/ToDays.scala`: the consumer over the intake entities' events folding each into its day's
+- [X] T026 `r/day/ToDays.scala`: the consumer over the intake entities' events folding each into its day's
   delta, marked as a test account's when the player's `PlayerLog` says so at the fold (research R4); suite
 - [ ] T027 `r/day/CloseDays.scala`: the `close-days` timer every five minutes (`a/money/DayCloser.scala`'s
   shape) and the `OpenDays` query it needs; suite with `MovableClock`
