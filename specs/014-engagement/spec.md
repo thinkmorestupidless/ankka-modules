@@ -657,7 +657,8 @@ count.
 
 - **FR-025**: An operator with the brand's role MUST be able to read a player's sends (event, class,
   channel, time, outcome, reason) newest first and paged; read and search the brand's dead letter;
-  retry a parked send, which re-checks FR-011 and FR-012, re-runs FR-002 and updates the record; and
+  retry a parked send, which re-checks FR-011 and FR-012, makes one more attempt of the call it parked on
+  (FR-002's rules for that attempt; a failure parks it again) and updates the record; and
   discard one with a reason. A marketing-class send for a player suppressed since it was parked MUST
   be refused as `marketing_suppressed` and leave the dead letter. Every retry and discard MUST be an
   audit record naming the operator.

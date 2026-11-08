@@ -559,6 +559,15 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   refuse the rest. SC-004 across three instances and SC-009's Playwright suites on kind wait for the
   brand's services to reach 0.15 or later; §5 ran locally (engagement, a broker, the stub, kind's
   casino Keycloak for the tokens).
+- **A registration's consents arrive after it** (the review, 2026-11-08). `players` publishes
+  `player_registered` and then the registration's consents. A consumer that stops between those
+  records leaves the registration's own track and welcome `marketing_suppressed` for a player who
+  consented: the fail-closed side, never a send without consent. Carrying the consents on
+  `player_registered` would close it; that is a change to spec 008's fact, for a players change.
+- **The deposit-day reset is not atomic per player** (the review, 2026-11-08). The 03:05 run resets
+  a player and then starts their identify. A run that fails between the two is retried for the same
+  due time, but that player is no longer listed, so Customer.io keeps their previous daily count until
+  their next fact identifies them. No send is lost.
 
 ## Design finished
 
