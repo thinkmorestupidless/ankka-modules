@@ -290,7 +290,7 @@ end in `just players-run` + `just engagement-run`.
 
 **Independent test**: `operators.feature` as an operator with the brand's role.
 
-- [ ] T045 [US7] Bind `features/engagement/operators.feature` in `T/features/OperatorsFeatures.scala`;
+- [X] T045 [US7] Bind `features/engagement/operators.feature` in `T/features/OperatorsFeatures.scala`;
       it fails first.
 - [ ] T046 [US7] `S/channel/AgentTicket.scala` (key value, id = ticket: issue, redeem once within
       30 s for the brand), `S/channel/AgentChannel.scala` (event sourced, id = slug: connections, the
