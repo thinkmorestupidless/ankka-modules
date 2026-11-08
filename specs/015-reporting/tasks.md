@@ -124,7 +124,7 @@ access. Nothing story-specific starts before this phase ends.
   `Personal` under `player/<id>`, the test flag, RG and KYC document events; suite
 - [X] T023 [P] `r/intake/Session.scala` (key value) and `sessions-facts`; the network address and user agent
   as `Personal`; suite
-- [ ] T024 [P] `r/intake/RoundCheck.scala` (key value), `rounds-facts` (only with `casino`) and `round-legs`
+- [X] T024 [P] `r/intake/RoundCheck.scala` (key value), `rounds-facts` (only with `casino`) and `round-legs`
   from `WalletBook`; statuses `matched`, `differs`, `provider_only`, `wallet_only`; suite
 - [ ] T025 `r/day/BrandDay.scala`: state and events of data-model.md, `Fold` dedup by source and sequence,
   `Corrected` on a closed day, `Close` writing `DayFixed`, the test accounts' share kept beside each money

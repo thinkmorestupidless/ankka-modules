@@ -19,10 +19,12 @@ object ReportingService:
     PlayerLog.descriptor,
     PlayersFacts(settings).descriptor,
     Session.descriptor,
-    SessionsFacts(settings).descriptor
+    SessionsFacts(settings).descriptor,
+    RoundCheck.descriptor,
+    RoundLegs(settings).descriptor
   ) ++ casino(settings)
 
   /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */
   private def casino(settings: Settings): Seq[ComponentDescriptor] =
     if !settings.casino then Nil
-    else Seq(RewardsFacts(settings).descriptor)
+    else Seq(RewardsFacts(settings).descriptor, RoundsFacts(settings).descriptor)
