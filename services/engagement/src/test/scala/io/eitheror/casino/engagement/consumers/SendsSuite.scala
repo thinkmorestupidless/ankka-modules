@@ -16,7 +16,8 @@ class SendsSuite extends munit.FunSuite:
   private def deposit = f.DepositConfirmed("p-1", eur, "tx-1", MinorUnits.unsafe(2500L), "ref-1", 1, SignedMinorUnits(2500L),
     MinorUnits.unsafe(0L), at)
 
-  private def keys(fact: f.Fact, applied: Applied = Applied(changed = true)) = Sends.of("p-1", id, fact, applied).map(_.key)
+  private def keys(fact: f.Fact, applied: Applied = Applied(changed = true, identified = true)) =
+    Sends.of("p-1", id, fact, applied).map(_.key)
 
   test("a deposit is deposit_confirmed/<fact id>, with first_deposit_confirmed when the lifetime count becomes one") {
     assertEquals(keys(deposit, Applied(true, None, 3, 4)), Vector("deposit_confirmed/fact-1"))
@@ -27,11 +28,12 @@ class SendsSuite extends munit.FunSuite:
     assertEquals(r.occurredAt, at)
   }
 
-  test("a movement with no event is one identify keyed identify/<fact id>, and none when the profile did not change") {
+  test("a movement with no event is one identify keyed identify/<fact id>, and none when no attribute moved") {
     val bet = f.BetPlaced("p-1", eur, "tx-2", "round-1", "game-1", MinorUnits.unsafe(100L), "real", SignedMinorUnits(2400L),
       MinorUnits.unsafe(0L), at)
-    val s = Sends.of("p-1", id, bet, Applied(changed = true))
+    val s = Sends.of("p-1", id, bet, Applied(changed = true, identified = true))
     assertEquals(s.map(r => (r.key, r.trigger, r.calls)), Vector(("identify/fact-1", "identify", Vector(Kind.Identify))))
+    assertEquals(keys(bet, Applied(changed = true)), Vector.empty)
     assertEquals(keys(bet, Applied(changed = false)), Vector.empty)
   }
 
@@ -51,6 +53,11 @@ class SendsSuite extends munit.FunSuite:
       Vector("withdrawal_failed/fact-1"))
     assertEquals(keys(f.BonusGranted("p-1", "b-1", "Welcome", "offer-1", "deposit_match", MinorUnits.unsafe(100L), eur, None, at),
       Applied(false)), Vector("bonus_granted/fact-1"))
+  }
+
+  test("a sign-in at registration and the registration's consents are identifies (FR-010); a tier change too") {
+    assertEquals(keys(f.PlayerLoggedIn("p-1", "s-1", at), Applied(true, Some(at), identified = true)), Vector("identify/fact-1"))
+    assertEquals(keys(f.PlayerConsentChanged("p-1", "email", false, "registration", at)), Vector("identify/fact-1"))
   }
 
   test("a vip tier change is an identify only; a registration with a tag is two events") {

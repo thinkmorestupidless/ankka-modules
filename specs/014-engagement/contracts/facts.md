@@ -19,7 +19,7 @@ decimals. `bonus_name` is the offer id. The send key is `<event>/<fact id>` unle
 | `player_kyc_rejected` | — | `kyc_rejected` | — |
 | `player_kyc_document_reviewed` | `decision = approved` | `kyc_document_accepted` | `doc_type` = `category` |
 | `player_kyc_document_reviewed` | `decision = rejected` (kyc's word; `declined` read too) | `kyc_document_declined` | `doc_type`, `reason` = `reasonCode` |
-| `player_consent_changed` | `channel ∈ {email, sms}` | `consent_updated` | — |
+| `player_consent_changed` | `channel ∈ {email, sms}`, `source` not `registration` | `consent_updated` | — |
 | `casino.sessions` `game_session_started` | — | `game_session_started` | `game_id`, `session_id` |
 | `game_session_ended` | — | `game_session_ended` | `game_id`, `session_id`, `session_duration_minutes` |
 | `money.transactions` `deposit_confirmed` | — | `deposit_confirmed` | `amount`, `currency`, `transaction_id` = `paymentReference` |
@@ -31,18 +31,23 @@ decimals. `bonus_name` is the offer id. The send key is `<event>/<fact id>` unle
 | `bonus_completed` | — | `wagering_requirement_met` | `bonus_name`, `amount`, `currency` |
 | `bonus_code_entered` | — | `promo_code_entered` | `promo_code` |
 
-Identify only (FR-010), key `identify/<fact id>`: `vip_tier_changed`, `player_email_changed`,
-`player_profile_updated`, `player_duplicate_check_ended`, `player_closed` | `suspended` |
-`reinstated` | `reopened`, `rg_case_closed`, `player_consent_changed` on `messages`, `player_fraud_flagged`
-| `cleared` (no attribute; nothing sent), and any `money.transactions` family with no event (the
-balances).
+Identify only (FR-010), key `identify/<fact id>`: any fact that makes no event above and changes an
+identify attribute (the attributes `Attributes.of` computes, before and after the fact): for
+instance `vip_tier_changed`, `player_email_changed`, `player_profile_updated`,
+`player_duplicate_check_ended`, `player_closed` | `suspended` | `reinstated` | `reopened`,
+`rg_case_closed`, `player_consent_changed` on `messages` or at registration (`consent_source`), a
+sign-in within 2 min of registration (`last_login_at`), the KYC `submitted` | `pending` families
+(`kyc_status`), and a `money.transactions` family with no event (the balances).
+`player_fraud_flagged` | `cleared` change no attribute and send nothing. (Found during
+implementation: the list this replaced left the CRM without `last_login_at` and `consent_source`
+until the player's next track.)
 
 Signals: `player_message_created` → `Channel.signal(inbox.changed, created)`; `player_message_read`,
 `player_message_deleted` → `Channel.signal(inbox.changed, read | deleted)`; `player_logged_in` →
 `AgentChannel.signal`.
 
-Profile-only (no send): `player_registered`'s profile fields, `payment.initiated`, `rg_case_opened`
-of other types, the KYC `submitted` | `pending` | `review_required` families, `player_logged_out`,
+Profile-only (no send): a fact with no event that changes no identify attribute, such as
+`payment.initiated`, `rg_case_opened` of other types, `review_required`, `player_logged_out`,
 `player_session_*`, `round_settled`, the other payments and withdrawals families.
 
 ## Produced on `casino.push` (key = player id; `ce-id` `<player>/<seq>`)

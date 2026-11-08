@@ -60,6 +60,22 @@ class ProfileSuite extends munit.FunSuite:
     }
   }
 
+  test("identified (FR-010): a fact that moves an identify attribute, and not one that moves only the profile") {
+    TestKeyring.around { _ =>
+      val k = kit
+      def identified(fact: f.CasinoPlayersFact) = k.call(Profile.players)(PlayersFact(fact)).replyValue.identified
+      assert(identified(registered()))
+      assert(identified(f.PlayerConsentChanged("p-1", "email", false, "registration", at)), "consent_source")
+      assert(identified(f.PlayerLoggedIn("p-1", "s-1", at.plusSeconds(30))), "last_login_at")
+      assert(identified(f.PlayerKycSubmitted("p-1", "d-1", "id", at.plusSeconds(40))), "kyc_status")
+      assert(!identified(f.PlayerFraudFlagged("p-1", "fc-1", "chargeback", at.plusSeconds(50))), "no attribute")
+      assert(!identified(f.PlayerLoggedIn("p-1", "s-1", at.plusSeconds(30))), "a repeat")
+      val payment = f.PaymentInitiated("pay-1", "p-1", "psp", "CARD_VISA", MinorUnits.unsafe(100L), eur, at.plusSeconds(60))
+      val r       = k.call(Profile.payments)(PaymentsFact(payment)).replyValue
+      assert(r.changed && !r.identified, "a payment remembered is no attribute")
+    }
+  }
+
   test("status, KYC, duplicate, consent, cases and limits follow their families") {
     TestKeyring.around { _ =>
       val k = kit
@@ -69,7 +85,7 @@ class ProfileSuite extends munit.FunSuite:
       assertEquals(apply(f.PlayerKycVerified("p-1", "pending", "verified", "op", None, None, at)).kycStatus, Some("verified"))
       assert(apply(f.PlayerDuplicateCheckEnded("p-1", "weak", at)).suspectedDuplicate)
       assertEquals(apply(f.PlayerConsentChanged("p-1", "email", true, "registration", at)).consents.get("email"),
-        Some(Consent(true, at, "registration")))
+        Some(Consent(true, at, "registration", Some(at))))
       assertEquals(apply(f.RgCaseOpened("p-1", "c-1", "cool_off", "player", Some(at.plusSeconds(86400)), at)).cases.keySet, Set("c-1"))
       assertEquals(apply(f.RgCaseClosed("p-1", "c-1", "cool_off", "expired", at.plusSeconds(10))).cases, Map.empty[String, RgCase])
       assertEquals(apply(f.RgLimitApplied("p-1", "DEPOSIT_DAILY", Some("daily"), Some(5000L), "set", at, Some("EUR"))).limits.keySet,

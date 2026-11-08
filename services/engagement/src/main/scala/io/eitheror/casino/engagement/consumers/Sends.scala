@@ -51,7 +51,7 @@ object Sends:
     val ctx = Events.Context(applied.registeredAt, applied.depositCountBefore, applied.depositCountAfter,
       id => applied.payment.filter(_.paymentId == id))
     val events = Events.of(factId, fact, ctx).map(ofEvent(playerId, factId, at, _))
-    if events.isEmpty && applied.changed && Events.identifyOnly(fact) then Vector(identify(playerId, factId, at)) else events
+    if events.isEmpty && applied.identified then Vector(identify(playerId, factId, at)) else events
 
   /** Each claimed; a send already claimed answers its state and calls nothing. */
   def start(client: ComponentClient, requests: Vector[SendRequest]): Unit =

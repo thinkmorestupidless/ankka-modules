@@ -73,8 +73,8 @@ final class Kit(base: Settings = Kit.Base):
   def baseUrl    = s"http://127.0.0.1:${server.boundPort.get}"
 
   /** The brand configured against the fake: its site, its three keys in the secret store, and `triggers`. */
-  def configure(triggers: Map[String, String] = Map.empty, region: String = "us"): CrmConfig =
-    val c = CrmConfig(FakeCrm.SiteId, region, s"hello@$slug.example", triggers)
+  def configure(triggers: Map[String, String] = Map.empty, region: String = "us", fromEmail: String = ""): CrmConfig =
+    val c = CrmConfig(FakeCrm.SiteId, region, if fromEmail.nonEmpty then fromEmail else s"hello@$slug.example", triggers)
     components.forKeyValueEntity(EntityId(slug)).call(Configuration.put).invoke(ConfigChange(c, "kit")): Unit
     secrets.put(Secrets.track(slug), FakeCrm.TrackKey)
     secrets.put(Secrets.app(slug), FakeCrm.AppKey)

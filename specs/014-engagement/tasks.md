@@ -334,7 +334,7 @@ end in `just players-run` + `just engagement-run`.
       fresh ids with `e2e-recording.patch` and the driver; merge into `tests/port/engagement/`; the
       webhook steps of scenarios 21 and stacking stay under `tests/port/rewards/`; `just modules
       recordings check` green.
-- [ ] T052 `T/port/WireTranslation.scala` (contracts/wire.md) and `T/port/ParitySuite.scala`: one test
+- [X] T052 `T/port/WireTranslation.scala` (contracts/wire.md) and `T/port/ParitySuite.scala`: one test
       per recording, the CRM calls compared by event name, attribute names and types and data keys in
       order per player; each marked divergence named with plan.md's *Divergences* row.
 

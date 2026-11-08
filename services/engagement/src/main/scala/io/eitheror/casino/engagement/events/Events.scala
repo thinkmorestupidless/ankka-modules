@@ -56,7 +56,10 @@ object Events:
           case "approved"              => one("kyc_document_accepted", "doc_type" -> Some(d.category))
           case "declined" | "rejected" => one("kyc_document_declined", "doc_type" -> Some(d.category), "reason" -> d.reasonCode)
           case _                       => Vector.empty
-      case c: f.PlayerConsentChanged if c.channel == "email" || c.channel == "sms" => one("consent_updated")
+      // The original tracks it from the player's preferences only (`PlayerRoutes.scala:1818`); the consents given at
+      // registration, which players publishes beside `player_registered`, set the attributes and track nothing.
+      case c: f.PlayerConsentChanged if (c.channel == "email" || c.channel == "sms") && c.source != "registration" =>
+        one("consent_updated")
       case s: f.GameSessionStarted => one("game_session_started", "game_id" -> Some(s.gameId), "session_id" -> Some(s.sessionId))
       case s: f.GameSessionEnded =>
         one("game_session_ended", "game_id" -> Some(s.gameId), "session_id" -> Some(s.sessionId),
@@ -82,16 +85,6 @@ object Events:
       case b: f.BonusCompleted   => one("wagering_requirement_met", "bonus_name" -> Some(b.offerId))
       case c: f.BonusCodeEntered => one("promo_code_entered", "promo_code" -> Some(c.code))
       case _                     => Vector.empty
-
-  /** contracts/facts.md "Identify only" (FR-010): a fact that changes an attribute no event carries. */
-  def identifyOnly(fact: f.Fact): Boolean = fact match
-    case _: f.VipTierChanged | _: f.PlayerEmailChanged | _: f.PlayerProfileUpdated | _: f.PlayerDuplicateCheckEnded |
-        _: f.PlayerClosed | _: f.PlayerSuspended | _: f.PlayerReinstated | _: f.PlayerReopened | _: f.RgCaseClosed =>
-      true
-    case c: f.PlayerConsentChanged  => c.channel == "messages"
-    case _: f.DepositConfirmed      => false
-    case _: f.MoneyTransactionsFact => true
-    case _                          => false
 
   /** The original's `<TYPE>_<PERIOD>` upper case (`DEPOSIT_DAILY`); a type that already names its period keeps it. */
   def limitType(limitType: String, period: Option[String]): String =

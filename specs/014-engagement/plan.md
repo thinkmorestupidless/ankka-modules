@@ -297,6 +297,14 @@ Unchanged:
 | The deposit-day reset is on by default, at 03:05 UTC | R1 (the chart's default was off) | `DepositDaySuite`; `profiles.feature` |
 | The person is deleted at the CRM on erasure | FR-016 (new) | `ErasureSuite` |
 | Paths move: the send route, the backoffice routes under `/v1/casino/backoffice/<slug>`, `/v1/casino/crm-config/<slug>`; `/v1/stream` and the webhook keep the original's | R7 | `WireTranslation` |
+| `kyc_status` and the balances once a fact carries them, the three balances together | FR-008 | `AttributesSuite`; the RG, KYC and bonus recordings, marked |
+| Thirty-two triggers in the table and the seed; the original's commit has thirty | research, *Found during implementation* (2026-11-07) | `SeedSuite`; the seed and configuration recordings, marked |
+| `cooling_off_set` from a cooling-off case alone; a self-exclusion is `self_exclusion_activated` alone, where the original's twin also tracked `cooling_off_set` | FR-006's table | `EventsSuite`; scenario 27's self-exclusion recordings, marked |
+| `kyc_rejected` when kyc's status becomes rejected, not for a document rejected while the status stays pending | spec 009 (kyc's facts) | `EventsSuite`; scenario 28's rejected-document recordings, marked |
+| An operator's change to a player's RG limit is told to the player, as the player's own is; the original sent nothing | research, *Found during implementation* (2026-11-08) | `EventsSuite`; scenario 26's operator recordings, marked |
+| The configuration's `PUT` answers the masked configuration, not `{ok: true}` | contracts/routes.md | `ConfigSuite`; the app-key recording, marked |
+| A stream refused before it opens answers ankka's problem, `{error, status}` | ankka's SSE routes refuse with `HttpProblem` (research, *Found during implementation*) | `AgentStreamSuite`; the agent stream recording, marked |
+| A sign-in naming no player is 403 `subject_unresolved` at the stream; the original's gateway answered 401 | contracts/routes.md; research, *Found during implementation* (T042) | `StreamSuite`; the driver's recording, marked |
 
 ## What the next command needs to know
 

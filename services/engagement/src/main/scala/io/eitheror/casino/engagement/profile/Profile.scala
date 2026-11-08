@@ -10,11 +10,11 @@ import io.eitheror.casino.engagement.EngagementCodecs
 import java.time.{Instant, LocalDate}
 
 /**
- * What applying a fact told the caller (contracts/facts.md's conditions): whether the profile changed, and what
- * `Events` reads of it. No personal value: the reply crosses to a consumer.
+ * What applying a fact told the caller (contracts/facts.md's conditions): whether the profile changed, whether an
+ * identify attribute did (FR-010), and what `Events` reads of it. No personal value: the reply crosses to a consumer.
  */
 final case class Applied(changed: Boolean, registeredAt: Option[Instant] = None, depositCountBefore: Long = 0,
-    depositCountAfter: Long = 0, payment: Option[RecentPayment] = None)
+    depositCountAfter: Long = 0, payment: Option[RecentPayment] = None, identified: Boolean = false)
 
 object Profiles:
   private val RecentPayments = 20
@@ -148,25 +148,32 @@ final class Profile(context: KeyValueEntityContext) extends KeyValueEntity[Profi
 
   /** An erased player's profile takes no later fact (FR-016): nothing personal is written back, and nothing changes. */
   private def answer(next: ProfileState, applied: Applied): Effect[Applied] =
-    if currentState.erased then effects.reply(applied.copy(changed = false))
+    if currentState.erased then effects.reply(applied.copy(changed = false, identified = false))
     else if applied.changed then effects.updateState(next).thenReply(_ => applied)
     else effects.reply(applied)
+
+  /** An identify attribute moved: the attributes before and after, on one day, so only the fact can move them. */
+  private def identified(before: ProfileState, next: ProfileState): Boolean =
+    val today = LocalDate.now(java.time.ZoneOffset.UTC)
+    next != before && Attributes.of(before, "", today) != Attributes.of(next, "", today)
 
   def players(c: PlayersFact): Effect[Applied] =
     val before = id(currentState)
     val next   = Profiles.players(before, c.fact)
-    answer(next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount))
+    answer(next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount,
+      identified = identified(before, next)))
 
   def money(c: MoneyFact): Effect[Applied] =
     val before        = id(currentState)
     val (next, count) = Profiles.money(before, c.fact)
-    answer(next, Applied(next != before, next.registeredAt, count, next.depositCount))
+    answer(next, Applied(next != before, next.registeredAt, count, next.depositCount, identified = identified(before, next)))
 
   def payments(c: PaymentsFact): Effect[Applied] =
     val before  = id(currentState)
     val next    = Profiles.payments(before, c.fact)
     val payment = next.recentPayments.find(_.paymentId == c.fact.paymentId)
-    answer(next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount, payment))
+    answer(next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount, payment,
+      identified(before, next)))
 
   /** Whether the count was reset (FR-009). */
   def resetDepositDay(day: LocalDate): Effect[Boolean] =

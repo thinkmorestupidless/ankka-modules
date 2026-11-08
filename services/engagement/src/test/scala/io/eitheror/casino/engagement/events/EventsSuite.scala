@@ -43,7 +43,7 @@ class EventsSuite extends munit.FunSuite:
     RgLimitApplied("p-1", tpe, period, value, cause, at, Some("EUR"))
   private def reviewed(decision: String, reason: Option[String] = None) =
     PlayerKycDocumentReviewed("p-1", "d-1", "proof_of_address", decision, reason, "op-1", at)
-  private def consent(channel: String) = PlayerConsentChanged("p-1", channel, consented = true, "registration", at)
+  private def consent(channel: String, source: String = "preferences") = PlayerConsentChanged("p-1", channel, consented = true, source, at)
   private def deposit = DepositConfirmed("p-1", Eur, "tx-1", cents(5000), "pay-ref-1", 1, zero, cents(0), at)
   private def initiated(terminal: String = "CARD_VISA") = Map("pay-1" -> RecentPayment("pay-1", 1250, "EUR", "connecx", terminal))
   private def failed(code: String = "DECLINED", reason: String = "Payment declined") =
@@ -118,10 +118,11 @@ class EventsSuite extends munit.FunSuite:
     assertEquals(only(reviewed("rejected", Some("blurry"))), e)
     assertEquals(only(reviewed("declined")).data, Vector("doc_type" -> "proof_of_address"))
 
-  test("player_consent_changed for email or sms → consent_updated; messages makes none"):
+  test("player_consent_changed for email or sms → consent_updated; messages makes none, nor a registration's consent"):
     assertEquals(only(consent("email")), Event("consent_updated", "consent_updated/f-1", Vector.empty))
     assertEquals(names(consent("sms")), Vector("consent_updated"))
     assertEquals(names(consent("messages")), Vector.empty)
+    assertEquals(names(consent("email", "registration")), Vector.empty)
 
   test("game_session_started → game_session_started with game_id and session_id"):
     assertEquals(only(GameSessionStarted("p-1", "gs-1", "g-1", "ps-1", at)),
@@ -185,7 +186,7 @@ class EventsSuite extends munit.FunSuite:
     assertEquals(only(BonusCodeEntered("p-1", "WELCOME10", at, Some("invalid"))),
       Event("promo_code_entered", "promo_code_entered/f-1", Vector("promo_code" -> "WELCOME10")))
 
-  test("identify only (FR-010): the listed families, messages consent and the balance movements; none makes an event"):
+  test("FR-010's families (an identify when they move an attribute, ProfileSuite) make no event"):
     val (pv, nv, actor, actorId, reason, when) = status("active", "closed")
     val identifying = Vector[Fact](
       VipTierChanged("p-1", None, "gold", "op-1", at),
@@ -201,19 +202,7 @@ class EventsSuite extends munit.FunSuite:
       AdminAdjusted("p-1", Eur, "tx-2", SignedMinorUnits(-500), "real", "goodwill", "op-1", zero, cents(0), at),
       HoldReleased("p-1", Eur, "tx-3", "w-1", cents(100), zero, cents(0), at)
     )
-    identifying.foreach { f =>
-      assert(Events.identifyOnly(f), f)
-      assertEquals(names(f), Vector.empty, f)
-    }
-
-  test("not identify only: the families with an event, the fraud flags (no attribute) and the profile-only families"):
-    val others = Vector[Fact](
-      registered(), consent("email"), deposit, failed(), PlayerFraudFlagged("p-1", "fc-1", "chargeback", at),
-      PlayerFraudCleared("p-1", "fc-1", at), PlayerLoggedOut("p-1", "s-1", "logout", at),
-      PaymentInitiated("pay-1", "p-1", "connecx", "CARD_VISA", cents(1250), Eur, at),
-      AccountAdjusted("house", "main", Eur, "tx-4", SignedMinorUnits(100), "correction", "op-1", zero, cents(0), at)
-    )
-    others.foreach(f => assert(!Events.identifyOnly(f), f))
+    identifying.foreach(f => assertEquals(names(f), Vector.empty, f))
 
   test("profile-only families make no event"):
     val quiet = Vector[Fact](

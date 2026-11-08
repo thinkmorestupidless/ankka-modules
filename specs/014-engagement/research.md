@@ -517,6 +517,33 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   send routes take the key encoded (`deposit_confirmed%2F<fact id>`) and decode it; the console
   encodes it as any path segment.
 
+- **A fact that moves an identify attribute and makes no event is one identify** (T052; asked
+  2026-11-08, answered "identify on any change"). contracts/facts.md listed the identify-only
+  families, so a sign-in within two minutes of registration (`last_login_at`) and the consents
+  `players` publishes at registration (`consent_source`) sent nothing, and the CRM lacked both until
+  the player's next track; the parity replay showed it in 35 recordings. FR-010 already says "a
+  profile fact changes an attribute of FR-008 that no event of FR-006 carries"; the list is replaced
+  by that rule. `Profile` answers `identified` when `Attributes.of` differs before and after the
+  fact, and `Sends.of` sends `identify/<fact id>` for a fact with no event that moved one. A
+  remembered `payment.initiated`, a logout and the fraud flags move none and send nothing.
+- **A consent given at registration is no `consent_updated`** (T052). The original tracks
+  `consent_updated` only from the preferences `PATCH` (`S/PlayerRoutes.scala:1818`); registration's
+  consents reach the CRM as the identify above. facts.md's row carries the condition.
+- **An operator's change to a player's RG limit is told to the player** (T052; asked 2026-11-08,
+  answered "divergence: player told"). The original's operator route (`/players/{p}/rg/limits/…`)
+  sent nothing; `rg_limit_applied` carries no actor, so engagement tracks and emails the change
+  whoever made it. A divergence in plan.md; no change to the contract or to spec 010.
+- **A stream refused before it opens is ankka's problem** (T052). An `sse` route cannot answer; it
+  refuses by throwing `HttpProblem`, whose body is `{error, status}`. The agent stream's
+  `invalid_ticket` and the player stream's refusals carry `status` beside the original's `error`.
+- **The parity replay reads the recordings as the original made them** (T052). Each recording holds
+  two runs' CRM calls; the replay keeps the people its registration and sign-in answers name (and the
+  seed person, the same in both, whose calls are halved and compared as a multiset: the original
+  seeds in a Go map's order). Emails are compared per recipient, for the recipients the original
+  emailed: its App calls were taken until the run ended. The original's calls a fail-closed port
+  leaves out (marketing without consent, `cooling_off_set` before a self-exclusion, `kyc_rejected`
+  for a document) are taken out of what is expected and marked, each under its plan.md row.
+
 ## Design finished
 
 2026-11-03: analyze reported nothing above LOW.
