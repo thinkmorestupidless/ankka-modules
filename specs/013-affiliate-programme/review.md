@@ -293,3 +293,173 @@ This is far past the size at which line review stays reliable. The findings belo
   - The repository has no `.claude/rules/` and no `REVIEW.md`.
 - **Tooling:** `-deprecation -feature -Wunused:all`, with no `-Werror` and no scalafmt configuration. Formatting was not reviewed; unused-code warnings were not re-reported.
 - **Tests:** not run. The suites that matter here (integration, parity, features) need Docker and a Postgres, and the unit suites alone would not settle any finding above.
+
+## Second round
+
+# Review: 013 affiliate programme, the first round's fixes (a1aa55d7...HEAD)
+
+**Verdict:** Request changes
+**What it does:** 34 commits, each answering a finding of the first round: the seven blocking defects (account-wide writes, an ancestor's reach, the re-close below the threshold, paying, RevShare at 0, parity, FR-038), the 24 should-fix items, eight nits and the ten questions. It also records the decisions in spec.md, research.md, routes.md and data-model.md.
+**Should it exist:** yes. Most resolutions hold and several are better than what was suggested (`payClaims` carrying the payout's figures, keyed row comparison in parity, the token minted in the send's step). Two do not hold: FR-038 is still broken for clicks, and the orphan release in the email index brings in a race that makes two accounts for one email.
+**Read:**
+- Read in full: every main-code hunk in the range, and the files around them: `ledger/CommissionAccount`, `settlement/Close`, `settlement/Payout` (open, approve, pay), `api/Settlement` (transition), `api/Networks` (transition, patch, shown), `api/OperatorEndpoint` (routes, approve, patch), `api/DataSubjects.whole`, `api/Enrolment`, `accounts/EmailIndex`, `accounts/Secrets`, `accounts/Erasure`, `brands/Seed`, `players/ClickRecord`, `links/LinkStats`, `commission/Commission` (Claim), `ledger/Unsettled`, `ledger/Overrides`, `postbacks/Addresses`, `comms/EmailSend`. Also the new and changed tests, `port/Parity`, and the Go exporter diff.
+- Opened outside the diff: ankka's `CommandError.scala` (the `ErrorCode` cases).
+- Skimmed: the docs diffs (routes.md, research.md, README), against the code they describe.
+- Not reviewed: the first round's own text, which is in the range as an added file.
+**Size:** 77 files, +1,733 −333. Of those, 295 lines are the first round's report and about 90 are spec text. That leaves about 790 lines of main Scala, 730 of test Scala and 156 of Go. Commit by commit, this is one finding per commit, so no split is needed.
+
+### Resolutions of the first round
+
+**Blocking**
+
+| # | Finding | Holds? |
+|---|---|---|
+| 1 | Account-wide writes by a single-brand manager (7be659c8) | **Holds.** Update-email, reset-password, resend-invitation, a PATCH touching account fields, and an approval with parent or override now go through `whole`. O8 refuses a known email. `ErasureSuite` drives each route. Two follow-ups, under Should fix 1 and Questions 2. |
+| 2 | An ancestor acting at a brand it does not hold (f79a2cda) | **Holds** for the caller, and a plan change takes an active plan only. Questions 1 covers the intermediate ancestors and the plan an approval puts the sub on. |
+| 3 | A re-close below the threshold releasing claims (c9eb54d6) | **Holds.** The claims stand and the payout is left alone. `finishStep` answers the carried payout's current total. `CloseSuite` covers close, clawback, re-close, pay, and the next period. |
+| 4 | Paying as two unrelated commands (d40e5b55) | **Holds.** `payClaims` is refused unless the claims fold to the figures the route read. Once the account is paid, every close of that payout is refused, so `Payout.pay` cannot be raced. One residue: a crash between the two calls leaves the account paid and the payout approved. Each close then lists that account under `failed` until the PATCH is sent again. That is visible and recoverable. Nits 1 covers the leftover `markPaid`. |
+| 5 | RevShare at 0 bp clawing back history (334c3db3) | **Holds**, for both the NGR path and the payment fee's path (`revShare` is shared). |
+| 6 | Parity unable to fail (517481c5, 69477cc5, dca80e8b) | **Holds by reading:** keyed rows, `accepts` on divergence 13, length leaves, and an unused divergence fails the suite. Not re-run: the claim that paying a rejected payout turns the replay red rests on the author's run. One new divergence is wider than it needs to be (Nits 4). |
+| 7 | FR-038, click id and country kept (739a11af) | **Holds in part.** The inbox body, the binding's click id and the postback address are gone. `ClickRecord` and the `Clicks` view still hold the click id and the country for good (Blocking 1). |
+
+**Should fix**
+
+| Finding | Holds? |
+|---|---|
+| SSRF through `postbackUrl` (a94950db) | **Holds.** https only; internal hosts and literals refused when written; checked again on the resolved address when sent; redirects were already `NEVER`. Residue in Nits 2. |
+| Raw tokens in `SendEmail.data` (0132a60b) | **Holds.** The token is minted in the step. `LeakSuite` searches every table, the journal included, for both tokens. |
+| `emailIndexKey` made on read (2f67e7a1) | **Holds.** Only `Seed`, a single named timer, makes the key. `DataSubjects` reads `existingDataKey`. |
+| Exporter writing 0644 (e8ff6f57, 7d9b6834) | **Holds.** The file is 0600, the doc says the bundle is personal data, revoked invites are left out, and audit details lose the sealed fields. |
+| Payment fee without a RevShare delta (ca9878c7) | **Holds.** |
+| Close: per-account failure, the stuck run, the unbounded finish (d3984711) | **Holds.** `Try` per account, recorded under `failed`; a failover to `abandon` ends the `CloseRun`; the finish is paged. |
+| Ledger idempotency by a 10,000-id window (daf3829b) | **Holds** for correctness. It adds state that grows without bound (Should fix 3). |
+| Adjustment id random on retry (73ed53e9) | **Holds.** The entity's own `has(id)` makes it idempotent even when the route's pre-read races. |
+| Usage report by period (4f8bf2a5) | **Holds.** |
+| Approve writing parent and override before the refusal (207fd1a1) | **Holds** (Nits 3 on the idiom). |
+| `Wire.refused` mapping faults to 400 (227cf89f) | **Holds.** `WireSuite` pins the mapping. |
+| Enrolment's index claim orphaning an address (2f67e7a1) | **Does not hold.** The orphan release also takes the entry of an enrolment still in flight (Blocking 2). |
+| Hosting add not re-runnable (4f8bf2a5) | **Holds**, with a test of the resumed add. |
+| Provisioning on `AlreadyExists` (32651be3) | **Holds**, with `ProvisionerSuite`. |
+| An operator's suspension over an ancestor's (207fd1a1) | **Holds.** |
+| Keycloak token per call; `.get` on parse (e8df95dc) | **Holds.** A 401 refetches once, and both parses return `RealmError.Failed`. |
+| Operator network reads leaking other brands' subs (d0677b98) | **Holds.** Each level is filtered, so nothing below a non-member is shown. |
+| O7 unpaginated, two calls per membership (aee5da6e) | **Holds in part.** It is paged, and identities are opened for the page only. It still reads one account per membership of the brand on every page load (a thought below). |
+| Parity's wide waivers, empty answers, stale divergences, coverage (dca80e8b) | **Holds.** |
+| `CommunicationSteps` failing every attempt (30fa7d17) | **Holds.** `failFirst`, and the steps wait for a failed attempt and then a delivered one. |
+| `LeakSuite` opening with a zero key (0132a60b) | **Holds.** |
+| Four tests that could pass while false (30fa7d17) | **Holds.** The second import shows a re-sent bundle is answered from its stored state, which is what 7eb20fef made it do. |
+| CI path filter (5b7379f2) | **Holds**, and it also takes in the exporter. |
+| Exporter's silent errors (e8ff6f57) | **Holds in part.** Facts, payouts, accounts, deposits and registrations refuse a missing time, and amounts take their currency's places and refuse to wrap. Other records still fall back to the export's own time (Nits 5). |
+
+**Nits and questions**
+
+- **Nits fixed:** all hold (FactInbox doc, the forgotten-password log, `Locale.ROOT`, the Secrets doc, `afterAll` order, the CSV `\r` guard, the Justfile comment, the recordings README).
+- **Nits left:** the five left as nits are accepted. The bonus-code re-claim was left as the original behaves, which is also accepted.
+- **Questions:** the ten answers stand. The FR-002 and FR-019 text matches the code. The erasure question's fix (03c4a35b) makes a failure path reachable that Should fix 4 addresses.
+
+### Blocking
+
+- `players/ClickRecord.scala:38-41` and `links/LinkStats.scala:10-16`, with `players/PlayerAttribution.scala:150` — issue (blocking): FR-038 is still broken for any brand that sends click facts.
+  - **What stays.** `ClickRecord` keeps the click's `clickId` and `country` in its state, and the `Clicks` view keeps both as a row, for good. The registration carries the same `clickId`, so the click record is the closed player's click details.
+  - **Why the fix's test misses it.** The `LeakSuite` test added in 739a11af publishes a registration and a deposit, but no click fact, so it never sees either table. B7's resolution ("kept nowhere but the journal") is therefore true only for brands that send no clicks, and FR-024 says brands do.
+  - Suggestion:
+    1. On `Outcome.Closed`, clear the click record whose `clickId` is the binding's. That needs a lookup from click id to fact id: a keyed view, or `PlayerState` keeping the click's fact id when it binds.
+    2. Alternatively, keep no `clickId` or `country` on `ClickState` at all and store only what `LinkStats` counts.
+    3. Either way, add a click fact to the `LeakSuite` test.
+    4. If clicks are meant to be kept, FR-038 must say so; the person decides that.
+  Resolved: a player-closed fact first forgets the clicks the binding's click id names (the clicks view by click id), and is never refused for attribution; IntakeKitSuite and LeakSuite hold it, 23bcc3cd.
+
+- `api/Enrolment.scala:26-30` (from 2f67e7a1) — issue (blocking): the orphan release cannot tell a failed enrolment from one still running, so two concurrent applications for one email make two accounts.
+  - **The race.** Request A claims the index entry, then makes the data key and the account. Request B arrives in between. `lookup` filters out A's holder (no account yet), so B mints a new id. `claim` sees A's holder with no account, releases it, and claims for B. Both `createAccount` calls succeed. The index names B, and A's account is never found by its email again.
+  - **Why it matters.** A double-submitted application form is enough to trigger it. Before this commit, B's `claim` was refused (409), so this is a regression that breaks FR-001/FR-003's one account per person. `updateEmail` uses the same `claim`, so a change of email can also take the entry of an enrolment in flight.
+  - Suggestion:
+    - Give `EmailIndexState` a `claimedAt`. Release a holder with no account only when its claim is older than an enrolment can take, for example five minutes: `index.call(EmailIndex.claim).invoke(ClaimEmail(affiliate, now, staleAfter))`, decided inside the entity so the check and the take are one command.
+    - Or make the key and the account first and claim last. On refusal, close the new account.
+    - Add a test with two concurrent `apply` calls for one email; exactly one account must be created.
+  Resolved: the index records when it was claimed and takes over an orphan only when that claim is older than `Enrolling` (5 minutes), decided in the entity; two concurrent applies answer 201 and 409, 35659b3e.
+
+### Should fix
+
+- `api/DataSubjects.scala:56-57` — issue (non-blocking): the `409 account_shared` answer names the account's other brands (`the account is also a member at silvervibe, hostedco`).
+  - **The conflict.** FR-041 says a manager MUST see nothing of a brand they do not hold, "including an affiliate's memberships". Naming the brands was decided for close and erasure (research T082). 7be659c8 now puts the same answer on reset-password, resend-invitation, update-email and most PATCHes, which a single-brand manager uses routinely. Any manager of a shared affiliate can now list which other companies' brands that affiliate works with.
+  - Suggestion: answer `409 account_shared` with a fixed message ("the account is shared with brands you do not hold"). Keep the names for a caller who holds them, which is nobody who gets this answer. If the T082 decision is to stand, write the exception into FR-041.
+  Resolved: `account_shared` names the other brands for close and erasure only (T082, FR-041's exception); every other refusal says the account is shared with brands you do not hold, 701c2f74.
+
+- `api/OperatorEndpoint.scala:271-285` with `api/Patching.scala:15-17` — issue (non-blocking): a PATCH writes before it validates.
+  - **What happens.** The plan and the RevShare override are written, and only then does `Patching.apply` refuse a bad `postbackUrl` (the 400 that a94950db added). So `{"planId": …, "postbackUrl": "http://…"}` changes the plan and answers 400.
+  - Suggestion: run `Addresses.refusal` at the top of `patch`, before `setPlan`. Or have `Patching` return its refusal from a `validate(p)` that both endpoints call first.
+  Resolved: the plan's 404 and the patch's refusals (`Patching.refusal`) are checked before any write, 701c2f74.
+
+- `ledger/CommissionAccount.scala:29, 33-34` (from daf3829b) — issue (non-blocking): `seen` grows without bound.
+  - **How large.** It gains one entry per player and per kind (`ngr:<brand>/<pseudonym>`, `cpa:…`, `payment-fee:…`) and never shrinks, unlike `written`, which is capped. An affiliate with 100,000 players carries about 300,000 entries, several MB of JSON, in the entity state every snapshot writes and every recovery reads.
+  - Suggestion: since a source's events arrive in order per subject, `seen` only needs the subjects of open periods. Drop a subject's entries once every period it wrote to is paid. Or move the check to `PlayerAttribution`, which already records the fact ids it has applied, and stamp `SourceEvent` there. At minimum, measure the state size of the largest Spinvibe affiliate (the import bundle has it) and record the bound in research.md.
+  Resolved: the redelivery check moved to `LedgerMark`, one forward-only number per player; `seen` and its commands' `source` fields are gone, ed6ca583.
+
+- `accounts/Erasure.scala:74-85` and `:52` — issue (non-blocking): since 03c4a35b, a realm that fails stops the erase step, but only after it has destroyed the data key and released the email index.
+  - **What is left.** After five retries the workflow fails with no failover. The account is not marked erased, its identity cannot be opened, its address is free for a new account, and its realm user still exists. Nothing but a log line reports it.
+  - Suggestion: delete the realm user first, then destroy the key, release the index and mark the account erased. A realm failure then leaves everything as it was. Add a failover step that records `status = failed` with the reason, readable through the erasure's status, and a test with a realm that answers 500.
+  Resolved: the realm user is deleted first; a run whose retries are spent is recorded `failed`, and filed again runs at once with its hold kept; LeakSuite holds a realm that refuses every time, 98bca0be.
+
+### Nits
+
+- `ledger/CommissionAccount.scala:287` — nitpick (non-blocking): `markPaid` is still a registered command. It pays without the figures check, and no main code calls it. Remove it, and use `payClaims` with the figures the tests already compute.
+  Left: nit. Seven test callers use it to set up paid state; replacing it is a test-only change for its own pull request.
+- `postbacks/Addresses.scala:28-37, 44-52` — nitpick (non-blocking): two gaps remain in the address check.
+  - **Rebinding.** The send resolves the host and the client resolves it again. The JVM's address cache narrows that window but does not close it. Connecting to the address already resolved would close it.
+  - **Missing ranges.** NAT64 `64:ff9b::/96`, 6to4 `2002::/16` (each embeds an IPv4 address that should be checked), `198.18.0.0/15` and `240.0.0.0/4` are not refused.
+  Resolved: 198.18/15, 240/4, NAT64 and 6to4 are refused, the last two judged by their embedded IPv4, cb44075a. Rebinding is left: it needs the send to connect to the address it checked, a change to the postback client of its own.
+- `api/OperatorEndpoint.scala:248-250` — nitpick (non-blocking): calling `Membership.approve` to get its refusal reads like a write.
+  - Refusing directly is clearer: `refuse(409, Codes.StatusTransition, …)`, or the entity's own message.
+  - Note that the view's status is read and not locked, so a concurrent rejection can still land between the check and the parent write.
+  Resolved: the approval's precondition refuses directly with the entity's message, 701c2f74. Left: a rejection landing between the check and the writes still leaves the parent and override set; the approval itself is then refused by the entity.
+- `port/Parity.scala:78` — nitpick (non-blocking): the "next period's payouts" divergence waives `$.affiliateId`, `$.adjustments` and `$.totalPayable` with no `accepts`. Any total, and any missing own row, passes at that step. Accept only an observed total no greater than the expected one, as divergence 14 does with its figure.
+  Resolved: the divergence accepts only an absent affiliateId, or a figure no greater than the original's, cb44075a.
+- `tests/original/programme-export/bundle.go:383, 452, 470, 492, 510, 531, 601` — nitpick (non-blocking): plans, links, codes, creatives, notes, audit rows and flags still take the export's own time when they have none. An audit row dated at the import is the fabricated history the first round named. Use `must` for audit's `recordedAt` at least, and leave expired invites out as well as revoked ones.
+  Left: nit. The export's timestamps for rows that have none are the original's gap; the import keeps them as given.
+- `it/LeakSuite.scala:128`, `it/MembershipsSuite.scala:96` — nitpick (non-blocking): the absence checks wait a fixed `Thread.sleep`. Both are bounded by an `eventually` on something the same handler did first, so they hold in practice. A comment saying so would stop the next reader worrying.
+  Resolved: each sleep has its reason; the LeakSuite click check now also waits for the view row to be forgotten, 23bcc3cd.
+- `api/Imports.scala:95-100` — nitpick (non-blocking): two points about `concurrently`.
+  - It awaits with `Duration.Inf` on the request thread. Each call has its own timeout, but a bound that is stated (the request's 20 s) is safer.
+  - The pool's threads do not carry the request's trace context, so the lookups and sealing will show as orphan spans, if ankka propagates context through a thread-local.
+  Resolved: the wait is bounded (`Imports.Within`, 18 s, inside the request's 20), cb44075a. The trace context is ankka's to propagate; left.
+- `api/Networks.scala:175-179`, `:154-156` — nitpick (non-blocking): `404 plan_not_found` and `409 not_a_member` are answered before `403`, so an ancestor can learn whether a plan id exists at a brand it does not hold. Check `holds` first.
+  Resolved: 403 is answered before 404 and 409 in the ancestor's transitions and patch, 037af501.
+
+### Questions
+
+- `api/Networks.scala:156, 160-163` — question: two points about the ancestor check.
+  - **Intermediate ancestors.** `holds` checks the caller's own membership at the brand. The original's ancestry is walked within one brand, so every link between the caller and the sub had a membership there. Here, a grandparent active at B can act on a grandchild at B through a parent who has never been at B. Is that intended, given that the manager network reads (d0677b98) show nothing below a non-member?
+  - **The plan an approval uses.** The approval puts the sub on the parent's plan at the brand, or the brand's default, without checking that the plan is active. The PATCH now refuses an inactive plan. Should the approval as well?
+  Answered: the person's decisions (2026-11-08): every account between ancestor and sub must be a member at the brand, and an approval onto an inactive parent plan takes the brand's default; NetworkSuite holds both, 037af501.
+- `api/Answers.scala:61-63` — question: `touchesAccount` counts `managerId`, `group` and `tags` as account-wide. A single-brand manager therefore cannot assign their own account manager, group or tags to an affiliate who also works another brand. Are these meant to be the brand's, which means they belong on the membership? Or is the restriction intended? Either answer is fine once the person decides it and routes.md says it.
+  Answered: the person decided each brand's (2026-11-08): `managerId`, `group` and `tags` moved to the membership, 701c2f74.
+- `api/Backoffice.scala` (O8, `createAccount`) — question: O8 now answers `409 email_already_registered` for an email held at any brand. That tells a hosted brand's manager the address is an affiliate somewhere in the programme. Does `POST /{brand}/apply` already reveal the same, so that nothing new leaks? If it does not, answer O8 as if the email were new to the brand and send the application invitation instead.
+  Answered: the person decided 202 and an invitation to apply (2026-11-08): another brand's affiliate is sent `AffiliateBrandInvite` and answered `202 invited`, nothing made and no brand named, 701c2f74.
+- `api/Backoffice.scala:196` — thought: O7 still makes one `api.account` call per membership of the brand on every page, before paging, so a brand of 10,000 affiliates makes 10,000 entity reads per page load. Putting `managerId`, `group`, `tags` and `createdAt` on the `Memberships` row would make the filter a query.
+  Answered: the filters (status, manager, group, tags) now run on the membership before any account is read, 701c2f74. An unfiltered page still reads each candidate's account, since the default sort is the account's `createdAt`; moving that onto the view waits for a brand whose size needs it.
+- `ProgrammeCodecs.scala:31` — thought: `withTransientEmpty(false)` on `wire` changes every answer, not only the two the parity found: every empty list and map is now written. That matches what Akka HTTP's JSON did, and the recordings agree, but answers no recording covers have changed too.
+  Answered: intended. The original's Akka HTTP JSON wrote every empty list and map, and the parity replays now compare those answers whole.
+
+### Praise
+
+- `ledger/CommissionAccount.scala` (`payClaims`) — praise: carrying the figures the manager saw, and refusing when the account's claims fold to anything else, ties what is paid to what is shown without a workflow. The paid state then fences off every later close. It is smaller and more exact than the first round's suggestion.
+- `comms/EmailSend.scala` (`TokenLink`, `issue`) — praise: minting the token inside the step, and handing it only to Customer.io, removes the stored token entirely. The new `LeakSuite` test searches the journal too, so it holds the claim as stated.
+- `port/Parity.scala` (`ownRows`, `accepts`, `unused`) — praise: comparing a shared list by the keys this replay bound, letting a divergence accept only the answer it explains, and failing on a divergence nobody needs turn the parity suite back into something that can fail.
+
+### Out of scope
+
+- note: `api/Wire.scala:61-62` answers a 500 with the component's message as its `error` text. For `ErrorCode.Internal` that may be an exception's message. This predates the fix, which only changed the status. Issue to file: log the message and answer a fixed `internal_error`.
+
+### Checks applied
+
+- **General groups:**
+  - Applied: Correctness, Design and scope, Error handling, Concurrency and state, Security (entry points, outbound requests, secrets, the exporter), Data and migrations (persisted state and event shapes; `InboxState` changes shape, which is safe only because nothing is deployed), Performance, Tests, Observability, API and compatibility (wire answers, routes.md), Documentation, Commit hygiene.
+  - Skipped: Dependencies, since no dependency changed.
+- **Language skills:**
+  - `pr-review-scala` (bundled; the repository has none of its own). Applied: concurrency (consumer and step purity, the import's pool), serialization (new commands' codecs in `LedgerCodecs`, persisted shape changes), totality (`.get` after a guard in `Erasure`, `s.periodEnd.get`), error handling, collections, and tests (fixed sleeps, assertions that could pass while false).
+  - Go: the exporter diff was reviewed against the general checklist, and `go test ./...` in `tests/original/programme-export` passes.
+- **Project rules read:** `CLAUDE.md` (root and workspace); spec.md FR-001 to FR-041 where touched; research.md's new entries; routes.md; data-model.md; tasks.md. The `REVIEW.md` the gather script listed is this report, found case-insensitively, not a project checklist.
+- **Tooling:** `-deprecation -feature -Wunused:all`, no `-Werror`, no scalafmt. Formatting was not reviewed.
+- **Tests:**
+  - Run: `go test ./...` in `tests/original/programme-export`, which passes.
+  - Not run: sbt, as this workspace requires. The integration, parity and feature suites need Docker and Postgres, so every finding above rests on reading. The parity "red when broken" check is the author's.
