@@ -14,6 +14,14 @@ Common to every route:
   earliest complete day is `409 incomplete_period {completeFrom}` (FR-004).
 - An answer over the synchronous limit, or any `format=csv` export over it, is `202 {reference,
   status}` (FR-022); `GET /documents/{reference}` serves it.
+- A `from` or `to` that is not a `YYYY-MM-DD` date is `400 invalid_date {field}` (added 2026-11-08); the dispute
+  report keeps the original's own texts for its dates.
+- `format=csv` answers an attachment `<report>-report-<reference>.csv` (`ggr-report-…`, `players-report-…`,
+  `transactions-report-…`), CRLF lines, a cell quoted only when it holds a comma, a quote or a line break (the
+  original's quoting), a header row of the JSON answer's field names, money as the JSON's 2-dp strings. The revenue
+  CSV's columns are `date, bets, wins, ggr, depositPoolGgr, bonusCosts, chargebacks, ngr, deposits, withdrawals,
+  netCashFlow, currency, ngrBasis`; its first row after the header is the summary, dated `<from>/<to>`, then one
+  row per day (added 2026-11-08).
 - Refusals are `{"error": <code or the original's text>}`.
 
 ## Admission
@@ -72,6 +80,6 @@ view always answers.
 | `GET /predictions/traders` | `from`, `to`, `currency`, `format`: `{traders:[{playerId, email, contractsTraded, notionalVolume, takerFees, positionsPaid, netResult}]}` |
 | `GET /documents/{reference}` | the attachment when ready; `{reference, status, progress}` while generating; `410 document_expired` after |
 | `GET /documents` | the records, newest first, `kind`, `from`, `to` |
-| `GET`/`PUT /settings` | `ReportingSettings` in camelCase; `400 invalid_setting` naming the field and its range |
+| `GET`/`PUT /settings` | `ReportingSettings` in camelCase; `PUT` changes only the fields it names, and `null` clears an optional one (`defaultCurrency`); `400 invalid_setting` naming the field and its range |
 | `GET /status` | `{generation, views:[{name, completeFrom, rebuilding}]}` |
 | `POST /erasure/players/{playerId}` | `{service:"reporting", subject, documents}` |

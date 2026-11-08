@@ -429,3 +429,6 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   `syncDays` still renders synchronously; the file is `ggr-report-<ref>.csv`, its columns `date, bets, wins, ggr,
   depositPoolGgr, bonusCosts, chargebacks, ngr, deposits, withdrawals, netCashFlow, currency, ngrBasis`, the summary row
   first dated `<from>/<to>`.
+- **T031–T037, three contract additions** (asked 2026-11-08, each answered as recommended): `400 invalid_date {field}`
+  for an unreadable `from`/`to`; the CSV export's file name, quoting, header and the revenue CSV's columns and
+  summary row; `PUT /settings` as a partial update. contracts/routes.md carries all three.
