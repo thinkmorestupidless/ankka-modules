@@ -342,7 +342,7 @@ end in `just players-run` + `just engagement-run`.
 
 - [X] T053 [P] `services/engagement/README.md`: components, suites, local run, the `/v1/stream` note;
       `modules/engagement/module.json` checked against the service (`just modules render goldvibe`).
-- [ ] T054 [P] `specs/001-brands-and-projects/contracts/routes.md`: the engagement rows (five prefixes
+- [X] T054 [P] `specs/001-brands-and-projects/contracts/routes.md`: the engagement rows (five prefixes
       and their audiences); `contract/access/routes.md` re-checked against T011.
 - [ ] T055 `just features` 0 findings; `just test`, `just engagement-test`, `just engagement-it`, `just
       service players test`, `just service responsible-gambling test` green.
