@@ -144,7 +144,8 @@ final class Networks(api: Api):
 
   /**
    * M17 to M19 and O11 to O13: a transition of the sub's membership at `brand`, `kind` saying who acts.
-   * An approval puts the sub on the plan its parent holds at the brand, or the brand's default.
+   * An approval puts the sub on the plan its parent holds at the brand while that plan is active, or else
+   * on the brand's default.
    */
   def transition(sub: String, brand: String, action: String, actor: String, kind: String): Respond[Bytes] =
     if api.brand(brand).retired.isDefined then refuse(409, OperatorEndpoint.BrandRetired, brand)
@@ -152,13 +153,15 @@ final class Networks(api: Api):
 
   private def transitionAt(sub: String, brand: String, action: String, actor: String, kind: String): Respond[Bytes] =
     val m = api.membership(sub, brand)
-    if !m.exists then refuse(409, Codes.NotAMember, brand)
-    else if kind == Membership.Ancestor && !holds(actor, brand) then notTheirs
+    // Who may comes first: an ancestor who may not learns nothing of the sub's memberships.
+    if kind == Membership.Ancestor && !reaches(actor, sub, brand) then notTheirs
+    else if !m.exists then refuse(409, Codes.NotAMember, brand)
     else
       val entity = api.components.forEventSourcedEntity(Membership.entityId(sub, brand))
       val done: Either[Respond[Bytes], Unit] = action match
         case "approve" =>
-          api.parentOf(sub).flatMap(p => api.membership(p, brand).plan).orElse(api.brand(brand).defaultPlan) match
+          api.parentOf(sub).flatMap(p => api.membership(p, brand).plan).filter(api.plan(brand, _).status == Plan.Active)
+            .orElse(api.brand(brand).defaultPlan) match
             case None => Left(refuse(409, Codes.NoPlanAssigned, s"neither the parent nor $brand has a plan to approve on"))
             case Some(plan) => Right(entity.call(Membership.approve).invoke(Approve(plan, actor, api.now())): Unit)
         case "suspend"    => Right(entity.call(Membership.suspend).invoke(Suspend(actor, kind, api.now())): Unit)
@@ -170,11 +173,15 @@ final class Networks(api: Api):
       })
 
   /**
-   * An ancestor acts on a sub at a brand only where it is active itself (FR-029), as the original's ancestry
-   * is walked within one brand: elsewhere the brand's managers decide, and a second account of the same
-   * person must not approve itself past them.
+   * An ancestor acts on a sub at a brand only where it is active itself and every account between them is a
+   * member there (FR-029), as the original's ancestry is walked within one brand and as the network reads
+   * show nothing below a non-member: elsewhere the brand's managers decide, and a second account of the
+   * same person must not approve itself past them.
    */
-  private def holds(ancestor: String, brand: String): Boolean = api.membership(ancestor, brand).active
+  private def reaches(ancestor: String, sub: String, brand: String): Boolean =
+    api.membership(ancestor, brand).active &&
+      Iterator.iterate(api.parentOf(sub))(_.flatMap(api.parentOf)).takeWhile(_.exists(_ != ancestor)).take(Access.MaxDepth)
+        .forall(_.forall(api.membership(_, brand).exists))
 
   private def notTheirs: Respond[Bytes] = raw(403, "text/plain; charset=UTF-8", Codes.NotAuthorised)
 
@@ -184,9 +191,9 @@ final class Networks(api: Api):
     else
       p.planId match
         case Some(_) if brand.isEmpty => invalid("brand is required to change a plan")
+        case Some(_) if !reaches(actor, sub, brand.get) => notTheirs
         case Some(plan) if !api.plan(brand.get, plan).exists => refuse(404, Codes.PlanNotFound, plan)
         case Some(_) if !api.membership(sub, brand.get).exists => refuse(409, Codes.NotAMember, brand.get)
-        case Some(_) if !holds(actor, brand.get) => notTheirs
         case Some(plan) if api.plan(brand.get, plan).status != Plan.Active => refuse(400, "plan_not_active", plan)
         case _ =>
           p.planId.foreach { plan =>

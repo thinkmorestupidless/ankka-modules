@@ -191,6 +191,37 @@ class NetworkSuite extends munit.FunSuite with LogCapturing:
     assertEquals((inactive.status, inactive.json.get("error").asText), (400, "plan_not_active"))
   }
 
+  test("a grandparent reaches a grandchild at a brand only through a parent who is a member there too") {
+    val gp     = kit.affiliate(kit.fresh("gp"), "silvervibe", plan("silvervibe"))
+    val parent = kit.affiliate(kit.fresh("par"), "goldvibe", plan(), parent = Some(gp))
+    val child  = kit.affiliate(kit.fresh("kid"), "goldvibe", plan(), parent = Some(parent))
+    kit.components.forEventSourcedEntity(Membership.entityId(child, "silvervibe")).call(Membership.applyFor)
+      .invoke(Apply(child, "silvervibe", Application(kit.now, None, "kit"))): Unit
+    val r = kit.request("POST", s"/v1/my/$gp/network/$child/approve?brand=silvervibe", headers = kit.asAffiliate(gp))
+    assertEquals(r.status, 403, r.text)
+    assertEquals(kit.components.forEventSourcedEntity(Membership.entityId(child, "silvervibe")).call(Membership.get).invoke().status,
+      Some(Membership.Pending))
+  }
+
+  test("an approval onto a parent's plan that is no longer active puts the sub on the brand's default") {
+    val retired = plan()
+    val parent  = kit.affiliate(kit.fresh("par"), "goldvibe", retired)
+    kit.components.forKeyValueEntity(Plan.entityId("goldvibe", retired)).call(Plan.update).invoke(UpdatePlan(status = Some(Plan.Inactive))): Unit
+    // A sub of the parent's, pending at goldvibe.
+    val sub = kit.affiliate(kit.fresh("sub"), "silvervibe", plan("silvervibe"), parent = Some(parent))
+    kit.components.forEventSourcedEntity(Membership.entityId(sub, "goldvibe")).call(Membership.applyFor)
+      .invoke(Apply(sub, "goldvibe", Application(kit.now, None, "kit"))): Unit
+    val brand   = kit.components.forKeyValueEntity(EntityId("goldvibe"))
+    val before  = brand.call(BrandProgramme.get).invoke().defaultPlan
+    val default = plan()
+    brand.call(BrandProgramme.update).invoke(UpdateBrand(defaultPlan = Some(default))): Unit
+    try
+      val r = kit.request("POST", s"/v1/my/$parent/network/$sub/approve?brand=goldvibe", headers = kit.asAffiliate(parent))
+      assertEquals(r.status, 200, r.text)
+      assertEquals(kit.components.forEventSourcedEntity(Membership.entityId(sub, "goldvibe")).call(Membership.get).invoke().plan, Some(default))
+    finally before.foreach(p => brand.call(BrandProgramme.update).invoke(UpdateBrand(defaultPlan = Some(p))): Unit)
+  }
+
   test("FR-041: a manager reads an account's network at their brand alone: a sub of another brand is not shown, nor counted") {
     val parent = kit.affiliate(kit.fresh("par"), "goldvibe", plan())
     val here   = kit.affiliate(kit.fresh("here"), "goldvibe", plan(), parent = Some(parent))
