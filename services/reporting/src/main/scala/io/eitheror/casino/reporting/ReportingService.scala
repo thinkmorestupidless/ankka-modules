@@ -12,5 +12,7 @@ object ReportingService:
     WalletBook.descriptor,
     MoneyFacts(settings).descriptor,
     Payment.descriptor,
-    PaymentsFacts(settings).descriptor
+    PaymentsFacts(settings).descriptor,
+    Withdrawal.descriptor,
+    WithdrawalsFacts(settings).descriptor
   )
