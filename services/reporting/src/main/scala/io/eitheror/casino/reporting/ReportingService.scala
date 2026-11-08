@@ -21,7 +21,8 @@ object ReportingService:
     Session.descriptor,
     SessionsFacts(settings).descriptor,
     RoundCheck.descriptor,
-    RoundLegs(settings).descriptor
+    RoundLegs(settings).descriptor,
+    day.BrandDay.descriptor
   ) ++ casino(settings)
 
   /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */

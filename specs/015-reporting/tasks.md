@@ -126,7 +126,7 @@ access. Nothing story-specific starts before this phase ends.
   as `Personal`; suite
 - [X] T024 [P] `r/intake/RoundCheck.scala` (key value), `rounds-facts` (only with `casino`) and `round-legs`
   from `WalletBook`; statuses `matched`, `differs`, `provider_only`, `wallet_only`; suite
-- [ ] T025 `r/day/BrandDay.scala`: state and events of data-model.md, `Fold` dedup by source and sequence,
+- [X] T025 `r/day/BrandDay.scala`: state and events of data-model.md, `Fold` dedup by source and sequence,
   `Corrected` on a closed day, `Close` writing `DayFixed`, the test accounts' share kept beside each money
   section; `r-test/day/BrandDaySuite.scala`
 - [ ] T026 `r/day/ToDays.scala`: the consumer over the intake entities' events folding each into its day's
