@@ -11,6 +11,7 @@ object EngagementService:
     profile.Profile.descriptor,
     config.Configuration.descriptor,
     send.Send.descriptor,
+    channel.Channel.descriptor,
     reads.SendsView.descriptor,
     reads.ProfilesView.descriptor,
     facts.SendAudit.descriptor,

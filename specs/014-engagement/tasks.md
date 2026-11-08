@@ -262,7 +262,7 @@ end in `just players-run` + `just engagement-run`.
 
 - [ ] T040 [US6] Bind `features/engagement/push.feature` in `T/features/PushFeatures.scala`; it fails
       first.
-- [ ] T041 [US6] `S/channel/Model.scala`, `S/channel/Leases.scala` and `S/channel/Channel.scala` (event
+- [X] T041 [US6] `S/channel/Model.scala`, `S/channel/Leases.scala` and `S/channel/Channel.scala` (event
       sourced, id = player; research R10): data-model.md's command table, the ring of 32, `Delivered`
       once per `created` signal when every connection open at the signal has acked or closed, snapshots
       every 100 events. `T/channel/ChannelSuite.scala` (`EventSourcedTestKit`) first: every row; 0→1
