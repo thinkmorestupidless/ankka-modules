@@ -161,7 +161,7 @@ access. Nothing story-specific starts before this phase ends.
 
 - [ ] T033 [P] [US1] Bind the seven scenarios of `features/reporting/revenue.feature` in
   `r-test/features/RevenueSteps.scala` over the `FactSet`
-- [ ] T034 [P] [US1] `r-test/it/RevenueSuite.scala`: three players, two days in the zone, two currencies, a
+- [X] T034 [P] [US1] `r-test/it/RevenueSuite.scala`: three players, two days in the zone, two currencies, a
   23:30 bet, a converted and a restricted stake, the deposit pool's GGR equal to attribution's
   `RealMoney` fold per day (SC-005), a rebuild into a new generation identical (SC-004), a test account
   excluded when the setting is on
