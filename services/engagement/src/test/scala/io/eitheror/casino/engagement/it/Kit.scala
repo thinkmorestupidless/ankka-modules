@@ -30,8 +30,9 @@ final case class Reply(status: Int, text: String):
  * The whole service against a throwaway Postgres (ankka's integration kit), as rewards': Customer.io as [[FakeCrm]]
  * at the settings' two URLs, `players` and `rewards` as [[FakePlayers]] and [[FakeRewards]] under `localServices`,
  * an in-memory broker for every topic, timers polled every 200 ms, a keyring in memory, and a clock the kit moves.
- * A token `player|<id>` is a player of the brand; `staff|<subject>|<roles>` an operator. The attempts' waits are
- * shortened so a parked send is reached in under a second.
+ * A token `player|<id>` is a player of the brand, `player|<id>|<exp>` one that expires at `exp`; `part|<subject>` a
+ * sign-in at the brand's player realm naming no player; `staff|<subject>|<roles>` an operator. The attempts' waits
+ * are shortened so a parked send is reached in under a second.
  */
 final class Kit(base: Settings = Kit.Base):
   val slug    = base.brand
@@ -122,6 +123,8 @@ final class Kit(base: Settings = Kit.Base):
   def asPlayer(playerId: String): Seq[(String, String)] = Seq(gatewayCaller, "Authorization" -> s"Bearer player|$playerId")
   def asOperator(roles: String = "brand_admin", subject: String = "op-1"): Seq[(String, String)] =
     Seq(gatewayCaller, "Authorization" -> s"Bearer staff|$subject|brand_$slug,$roles")
+  /** Any token of [[Kit.authenticate]]'s forms, through the gateway. */
+  def bearer(token: String): Seq[(String, String)] = Seq(gatewayCaller, "Authorization" -> s"Bearer $token")
   def asService(name: String, project: String = "local"): Seq[(String, String)] = Seq(testKit.asCaller(Caller.Service(project, name)))
 
   def engagementPath(rest: String) = s"/v1/casino/brands/$slug/engagement$rest"
@@ -175,6 +178,14 @@ object Kit:
       case Some("player" :: id :: Nil) =>
         AuthDecision.Allow(Principal(s"realm-user-$id", None, None, false, Set.empty,
           Map("iss" -> "https://auth.example/realms/casino-goldvibe", Routes.PlayerIdClaim -> id), Some(Routes.PlayerIssuer)))
+      // A player token that expires at `exp` (epoch seconds), for the stream's re-check.
+      case Some("player" :: id :: exp :: Nil) =>
+        AuthDecision.Allow(Principal(s"realm-user-$id", None, None, false, Set.empty,
+          Map("iss" -> "https://auth.example/realms/casino-goldvibe", Routes.PlayerIdClaim -> id, "exp" -> exp), Some(Routes.PlayerIssuer)))
+      // A sign-in at the brand's player realm that names no player: a part's, or a user players never minted an id for.
+      case Some("part" :: subject :: Nil) =>
+        AuthDecision.Allow(Principal(subject, None, None, false, Set.empty,
+          Map("iss" -> "https://auth.example/realms/casino-goldvibe"), Some(Routes.PlayerIssuer)))
       case Some(_) => AuthDecision.Unauthenticated("realm=\"casino\", error=\"invalid_token\"")
       case None    => AuthDecision.Unauthenticated("realm=\"casino\"")
   }

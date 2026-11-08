@@ -260,7 +260,7 @@ end in `just players-run` + `just engagement-run`.
 
 **Independent test**: `push.feature`; `ChannelSuite` across `restartService()`.
 
-- [ ] T040 [US6] Bind `features/engagement/push.feature` in `T/features/PushFeatures.scala`; it fails
+- [X] T040 [US6] Bind `features/engagement/push.feature` in `T/features/PushFeatures.scala`; it fails
       first.
 - [X] T041 [US6] `S/channel/Model.scala`, `S/channel/Leases.scala` and `S/channel/Channel.scala` (event
       sourced, id = player; research R10): data-model.md's command table, the ring of 32, `Delivered`
