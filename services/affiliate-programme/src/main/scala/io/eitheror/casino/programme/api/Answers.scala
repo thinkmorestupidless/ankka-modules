@@ -57,10 +57,9 @@ object Bodies:
   )
 
   object AccountPatch:
-    /** The fields that are the account's, not the brand's membership's (FR-041): every one but the plan and the RevShare override. */
+    /** The fields that are the account's, not the brand's membership's (FR-041): all but the plan, the override, the manager, group and tags. */
     def touchesAccount(p: AccountPatch): Boolean =
-      Seq(p.name, p.displayName, p.companyName, p.website, p.trafficSource, p.paymentMethod, p.postbackUrl, p.managerId, p.group,
-        p.tags, p.minimumPayout).exists(_.isDefined)
+      Seq(p.name, p.displayName, p.companyName, p.website, p.trafficSource, p.paymentMethod, p.postbackUrl, p.minimumPayout).exists(_.isDefined)
 
     private val ClearsOverride = """"revShareOverride"\s*:\s*null""".r
     def clearsOverride(body: String): Boolean = ClearsOverride.findFirstIn(body).isDefined
@@ -118,7 +117,7 @@ object Answers:
     val identity = if a.erased.isDefined then Some(ErasedIdentity) else opened
     AccountAnswer(a.id, identity.map(_.email), identity.map(_.name), identity.flatMap(_.displayName), identity.flatMap(_.companyName),
       identity.flatMap(_.website), identity.flatMap(_.trafficSource), identity.flatMap(_.paymentMethod), a.parent, Percent.show(a.overrideBp),
-      a.postbackUrl, a.minimumPayout, a.managerId, a.group, a.tags, a.createdAt, a.firstLoginAt, a.lastLoginAt, a.closed,
+      a.postbackUrl, a.minimumPayout, atBrand.flatMap(_.managerId), atBrand.flatMap(_.group), atBrand.fold(Vector.empty[String])(_.tags), a.createdAt, a.firstLoginAt, a.lastLoginAt, a.closed,
       atBrand.flatMap(_.status), atBrand.flatMap(_.plan), memberships.map(membership), atBrand.map(_.brand), a.keycloakUser)
 
   final case class PlanAnswer(planId: String, brandId: String, planName: String, planType: String, cpaAmount: Long, cpaCurrency: String,

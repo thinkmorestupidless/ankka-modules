@@ -22,7 +22,11 @@ final case class MembershipState(
     application: Option[Application] = None,
     suspendedBy: Option[String] = None,
     rejectedReason: Option[String] = None,
-    since: Option[Instant] = None
+    since: Option[Instant] = None,
+    /** The brand's own: its account manager, group and tags for the affiliate, set by its managers (FR-041). */
+    managerId: Option[String] = None,
+    group: Option[String] = None,
+    tags: Vector[String] = Vector.empty
 ):
   def exists: Boolean = status.isDefined
   def active: Boolean = status.contains(Membership.Active)
@@ -38,6 +42,8 @@ final case class Reactivate(by: String, kind: String, at: Instant)
 final case class ActivateInvited(affiliate: String, brand: String, plan: String, application: Application, by: String)
 final case class SetPlan(plan: String, by: String, at: Instant)
 final case class SetRevShareOverride(bp: Option[Int], by: String, at: Instant)
+/** The brand's account manager, group and tags for the affiliate, each changed only when named. */
+final case class SetManagement(managerId: Option[String], group: Option[String], tags: Option[Vector[String]], by: String, at: Instant)
 /** A membership carried from the original (FR-039), its status as it stood. */
 final case class ImportMembership(state: MembershipState)
 
@@ -66,6 +72,8 @@ object Membership extends EventSourcedEntity.Companion[Membership, MembershipSta
     def at: Instant = application.appliedAt
   final case class PlanSet(plan: String, by: String, at: Instant) extends Event
   final case class RevShareOverrideSet(bp: Option[Int], by: String, at: Instant) extends Event
+  final case class ManagementSet(managerId: Option[String], group: Option[String], tags: Option[Vector[String]], by: String, at: Instant)
+      extends Event
   /** No notice is sent and no link made for it: the affiliate already had both in the original. */
   final case class Imported(state: MembershipState) extends Event:
     def at: Instant = state.since.orElse(state.application.map(_.appliedAt)).getOrElse(Instant.EPOCH)
@@ -81,6 +89,9 @@ object Membership extends EventSourcedEntity.Companion[Membership, MembershipSta
       s.copy(affiliate = aff, brand = brand, status = Some(Active), plan = Some(plan), application = Some(app), since = Some(app.appliedAt))
     case PlanSet(plan, _, _)         => s.copy(plan = Some(plan))
     case RevShareOverrideSet(bp, _, _) => s.copy(revShareOverride = bp)
+    case ManagementSet(manager, group, tags, _, _) =>
+      s.copy(managerId = manager.orElse(s.managerId).filter(_.nonEmpty), group = group.orElse(s.group).filter(_.nonEmpty),
+        tags = tags.getOrElse(s.tags))
     case Imported(state)             => state
 
   /** The original's refusal (`S/OperatorRoutes.scala:1392`), statuses as the programme spells them. */
@@ -100,6 +111,7 @@ object Membership extends EventSourcedEntity.Companion[Membership, MembershipSta
   val activateInvited = command("activate-invited")(_.activateInvited)
   val setPlan         = command("set-plan")(_.setPlan)
   val setRevShareOverride = command("set-revshare-override")(_.setRevShareOverride)
+  val setManagement   = command("set-management")(_.setManagement)
   val importMembership = command("import")(_.importMembership)
   val get             = query("get")(_.get)
 
@@ -114,6 +126,7 @@ object MembershipCodecs:
   given Serializer[ActivateInvited]     = ProgrammeCodecs.serializer[ActivateInvited]("activate-invited")
   given Serializer[SetPlan]             = ProgrammeCodecs.serializer[SetPlan]("set-plan")
   given Serializer[SetRevShareOverride] = ProgrammeCodecs.serializer[SetRevShareOverride]("set-revshare-override")
+  given Serializer[SetManagement]       = ProgrammeCodecs.serializer[SetManagement]("set-management")
   given Serializer[ImportMembership]    = ProgrammeCodecs.serializer[ImportMembership]("import-membership")
 
 import Membership.*
@@ -172,6 +185,12 @@ final class Membership(@scala.annotation.unused context: EventSourcedEntityConte
     else if cmd.bp.exists(b => b < 0 || b > 10_000) then effects.error("revShareOverride must be a number between 0 and 100", ErrorCode.BadRequest)
     else if currentState.revShareOverride == cmd.bp then effects.reply(currentState)
     else effects.persist(RevShareOverrideSet(cmd.bp, cmd.by, cmd.at)).thenReplyState
+
+  def setManagement(cmd: SetManagement): Effect[MembershipState] =
+    val e = ManagementSet(cmd.managerId, cmd.group, cmd.tags, cmd.by, cmd.at)
+    if !currentState.exists then effects.error("not_a_member", ErrorCode.Conflict)
+    else if Membership.next(currentState, e) == currentState then effects.reply(currentState)
+    else effects.persist(e).thenReplyState
 
   /** Once: a membership already applied for, or imported before, is left as it is. */
   def importMembership(c: ImportMembership): Effect[MembershipState] =

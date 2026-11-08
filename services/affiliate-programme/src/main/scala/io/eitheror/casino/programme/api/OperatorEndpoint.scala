@@ -246,16 +246,17 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
   private def approved(brand: String, affiliate: String, planId: String, b: ApproveBody): Respond[Bytes] =
     val account    = api.components.forEventSourcedEntity(EntityId(affiliate))
     val membership = api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand))
-    // Nothing of the account changes for an approval the membership refuses: its refusal is the answer.
-    if !api.membership(affiliate, brand).status.contains(Membership.Pending) then
+    val status     = api.membership(affiliate, brand).status
+    // Nothing of the account changes for an approval the membership refuses: refused as the entity would.
+    if !status.contains(Membership.Pending) then refuse(409, Membership.mustBe(Membership.Pending, status))
+    else
+      b.parentAffiliateId.foreach(p => account.call(Affiliate.setParent).invoke(SetParent(Some(p), principal.subject, api.now())): Unit)
+      b.overridePercent.foreach(p => account.call(Affiliate.setOverride).invoke(SetOverride(p.bp, principal.subject, api.now())): Unit)
       membership.call(Membership.approve).invoke(Approve(planId, principal.subject, api.now())): Unit
-    b.parentAffiliateId.foreach(p => account.call(Affiliate.setParent).invoke(SetParent(Some(p), principal.subject, api.now())): Unit)
-    b.overridePercent.foreach(p => account.call(Affiliate.setOverride).invoke(SetOverride(p.bp, principal.subject, api.now())): Unit)
-    membership.call(Membership.approve).invoke(Approve(planId, principal.subject, api.now())): Unit
-    networks.audit(affiliate, Some(brand), "APPLICATION_APPROVED", principal.subject,
-      Map("planId" -> planId) ++ b.parentAffiliateId.map("parentAffiliateId" -> _) ++
-        b.overridePercent.map(p => "overridePercent" -> Percent.show(p.bp).toString))
-    ok(Ok(true))
+      networks.audit(affiliate, Some(brand), "APPLICATION_APPROVED", principal.subject,
+        Map("planId" -> planId) ++ b.parentAffiliateId.map("parentAffiliateId" -> _) ++
+          b.overridePercent.map(p => "overridePercent" -> Percent.show(p.bp).toString))
+      ok(Ok(true))
 
   /** An account-wide write, for a caller who holds every brand of the account (FR-041, `DataSubjects.whole`). */
   private def wholeAccount(aff: String)(f: => Respond[Bytes]): Respond[Bytes] =
@@ -269,20 +270,23 @@ final class OperatorEndpoint(api: Api) extends HttpEndpoint("/v1/affiliates"):
 
   /** O21: the plan and RevShare override at this brand; the identity re-sealed; the account's own fields. */
   private def patch(brand: String, affiliate: String, p: AccountPatch, clearOverride: Boolean): Respond[Bytes] =
-    p.planId.filter(id => !api.plan(brand, id).exists) match
-      case Some(missing) => refuse(404, Codes.PlanNotFound, missing)
+    val patching = Patching(api)
+    p.planId.filter(id => !api.plan(brand, id).exists).map(refuse(404, Codes.PlanNotFound, _)).orElse(patching.refusal(p)) match
+      case Some(refused) => refused
       case None =>
         val membership = api.components.forEventSourcedEntity(Membership.entityId(affiliate, brand))
         p.planId.foreach { id =>
           membership.call(Membership.setPlan).invoke(SetPlan(id, principal.subject, api.now())): Unit
           networks.audit(affiliate, Some(brand), "PLAN_CHANGED", principal.subject, Map("planId" -> id))
         }
+        if p.managerId.isDefined || p.group.isDefined || p.tags.isDefined then
+          membership.call(Membership.setManagement).invoke(SetManagement(p.managerId, p.group, p.tags, principal.subject, api.now())): Unit
         if clearOverride || p.revShareOverride.isDefined then
           membership.call(Membership.setRevShareOverride)
             .invoke(SetRevShareOverride(p.revShareOverride.map(_.bp), principal.subject, api.now())): Unit
           networks.audit(affiliate, Some(brand), "REVSHARE_OVERRIDE_CHANGED", principal.subject,
             p.revShareOverride.map(o => "revShareOverride" -> Percent.show(o.bp).toString).toMap)
-        Patching(api).apply(affiliate, p, principal.subject, manager = true).getOrElse(accountAt(affiliate, api.membership(affiliate, brand)))
+        patching.apply(affiliate, p, principal.subject, manager = true).getOrElse(accountAt(affiliate, api.membership(affiliate, brand)))
 
 object OperatorEndpoint:
   val ViewPages    = Vector("dashboard", "stats", "commission", "links", "payouts", "notifications", "postbacks")

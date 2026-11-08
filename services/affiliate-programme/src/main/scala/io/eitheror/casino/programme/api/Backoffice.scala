@@ -9,7 +9,7 @@ import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.api.Answers.{AccountAnswer, Applied, Ok, given}
 import io.eitheror.casino.programme.api.Wire.*
 import io.eitheror.casino.programme.brands.*
-import io.eitheror.casino.programme.comms.{Notification, WriteNotification}
+import io.eitheror.casino.programme.comms.{EmailSend, Notification, SendEmail, WriteNotification}
 import io.eitheror.casino.programme.ledger.{Figure, Revenue}
 import io.eitheror.casino.programme.periods.Periods
 import io.eitheror.casino.programme.sealing.Identity
@@ -24,6 +24,8 @@ object BackofficeAnswers:
       negativeCarryover: Option[Boolean] = None, status: Option[String] = None)
   final case class PlanCreated(planId: String, planName: String)
   final case class AccountCreated(affiliateId: String, email: String, status: String)
+  /** O8 for an affiliate of another brand: invited to apply here, nothing made (FR-041). */
+  final case class AccountInvited(email: String, status: String)
   final case class PlanChanged(planId: String)
 
   final case class SettingsBody(adminFeePercent: Option[Percent] = None, paymentFeePercent: Option[Percent] = None,
@@ -59,6 +61,7 @@ object BackofficeAnswers:
   given planBody: JsonValueCodec[PlanBody]           = ProgrammeCodecs.wire[PlanBody]
   given planCreated: JsonValueCodec[PlanCreated]     = ProgrammeCodecs.wire[PlanCreated]
   given accountCreated: JsonValueCodec[AccountCreated] = ProgrammeCodecs.wire[AccountCreated]
+  given accountInvited: JsonValueCodec[AccountInvited] = ProgrammeCodecs.wire[AccountInvited]
   given planChanged: JsonValueCodec[PlanChanged]     = ProgrammeCodecs.wire[PlanChanged]
   given settingsBody: JsonValueCodec[SettingsBody]   = ProgrammeCodecs.wire[SettingsBody]
   given settingsAnswer: JsonValueCodec[SettingsAnswer] = ProgrammeCodecs.wire[SettingsAnswer]
@@ -187,8 +190,9 @@ final class Backoffice(api: Api):
   // ── accounts (O7, O8) ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * O7 (research R9): the brand's memberships with their accounts opened, filtered by search, status,
-   * manager, group and tags here, since the sealed fields cannot be searched in the view; with each
+   * O7 (research R9): the brand's memberships, filtered by status, manager, group and tags (the
+   * membership's own) before any account is read, then by search with the accounts opened, since the
+   * sealed fields cannot be searched in the view; with each
    * account's figures this month, read once for the brand. A page of `limit` (100, at most 500) from
    * `offset`: the view's and the account's own fields are filtered first, and an identity is opened only
    * for the page, or for every candidate when a search or a sort by name or email needs it.
@@ -203,12 +207,11 @@ final class Backoffice(api: Api):
     val sortBy = q("sortBy").getOrElse("createdAt")
     val desc   = q("sortDir").forall(_.equalsIgnoreCase("desc"))
     val candidates = api.views.forView(Memberships).ask(Memberships.byBrand, "brand" -> brand)
-      .filter(m => q("status").forall(s => m.status.exists(_.equalsIgnoreCase(s))))
-      .flatMap(m => Some(api.account(m.affiliate)).filter(_.exists).map(m -> _))
-      .filter { (_, a) =>
-        q("affiliateManagerId").forall(x => a.managerId.contains(x)) && q("group").forall(g => a.group.contains(g)) &&
-          (tags.isEmpty || a.tags.exists(tags))
+      .filter { m =>
+        q("status").forall(s => m.status.exists(_.equalsIgnoreCase(s))) && q("affiliateManagerId").forall(x => m.managerId.contains(x)) &&
+          q("group").forall(g => m.group.contains(g)) && (tags.isEmpty || m.tags.exists(tags))
       }
+      .flatMap(m => Some(api.account(m.affiliate)).filter(_.exists).map(m -> _))
     def opened(c: Vector[(MembershipState, AffiliateState)]) = c.map((m, a) => (m, a, api.identity(m.affiliate, a).toOption.flatten))
     def ordered[K: Ordering](rows: Vector[(MembershipState, AffiliateState, Option[Identity])])(k: ((MembershipState, AffiliateState, Option[Identity])) => K) =
       val up = rows.sortBy(k)
@@ -239,9 +242,10 @@ final class Backoffice(api: Api):
 
   /**
    * O8: an account made active at the brand by a manager, on the plan named or the brand's default, and
-   * sent the invitation to set a password. An email an account already holds is refused, at this brand or
-   * another (FR-041): a manager must not give another brand's affiliate a membership, and with it their
-   * identity, without them; they join by applying, as any applicant.
+   * sent the invitation to set a password. An email whose account applied or is active here is refused.
+   * One that is another brand's affiliate is sent an invitation to apply here (`AffiliateBrandInvite`) and
+   * answered `202 invited`: a manager must not give another brand's affiliate a membership, and with it
+   * their identity, without them, nor learn which brand they work with (FR-041).
    */
   def createAccount(brand: String, b: CreateBody, by: String): Respond[Bytes] =
     val enrolment = Enrolment(api)
@@ -256,7 +260,10 @@ final class Backoffice(api: Api):
               case Some(missing) => refuse(400, Codes.ParentNotFound, missing)
               case None =>
                 enrolment.lookup(email).fold(e => refuse(503, "store_unavailable", e), { (digest, known) =>
-                  if known.isDefined then refuse(409, Codes.EmailRegistered)
+                  if known.exists(a => api.membership(a, brand).holds) then refuse(409, Codes.EmailRegistered)
+                  else if known.isDefined then
+                    inviteToApply(known.get, brand, by)
+                    answer(202, AccountInvited(email, "invited"))
                   else
                     val affiliate = Affiliate.newId()
                     val identity = Identity(b.name.getOrElse(email), b.displayName.orElse(b.name), email, b.companyName, b.website, None,
@@ -272,7 +279,17 @@ final class Backoffice(api: Api):
                     })
                 })
 
+  /** Once per affiliate and brand: the invitation's id is theirs, so a manager asking again sends nothing more. */
+  private def inviteToApply(affiliate: String, brand: String, by: String): Unit =
+    val apply = s"${api.settings.portalBaseUrl}/apply?brand=$brand"
+    api.components.forWorkflow(EntityId(s"brand-invite/$brand/$affiliate")).call(EmailSend.start)
+      .invoke(SendEmail(affiliate, brand, Backoffice.BrandInvite, Map("brand" -> brand, "apply_url" -> apply))): Unit
+    audit(affiliate, brand, "BRAND_INVITATION_SENT", by, Map.empty)
+
 object Backoffice:
+  /** The email inviting another brand's affiliate to apply at this one (O8). */
+  val BrandInvite = "AffiliateBrandInvite"
+
   /** O7's page: 100 rows unless the caller asks for fewer, or more up to 500. */
   val PageSize = 100
   val MaxPage  = 500

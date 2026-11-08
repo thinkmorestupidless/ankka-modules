@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.accounts.*
 import io.eitheror.casino.programme.brands.Plan
+import io.eitheror.casino.programme.comms.EmailSend
 
 import java.time.Instant
 import scala.jdk.CollectionConverters.*
@@ -55,6 +56,8 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
     def shared(r: Reply)(using munit.Location) =
       assertEquals(r.status, 409, r.text)
       assertEquals(r.json.get("error").asText, "account_shared")
+      // A routine write names no brand the manager does not hold (FR-041); only closing and erasing do (T082).
+      assert(!r.text.contains("silvervibe"), r.text)
     shared(post(s"/goldvibe/accounts/$aff/update-email", body = Some(s"""{"email":"${kit.fresh("taken")}@example.com"}""")))
     shared(post(s"/goldvibe/accounts/$aff/reset-password"))
     shared(post(s"/goldvibe/accounts/$aff/resend-invitation"))
@@ -71,12 +74,22 @@ class ErasureSuite extends munit.FunSuite with LogCapturing:
     val refused = patch("""{"postbackUrl":"ftp://example.com/pb"}""", kit.asManager(Seq("goldvibe", "silvervibe")))
     assertEquals((refused.status, refused.json.get("error").asText), (400, "postback_url_refused"), refused.text)
     assertEquals(patch("""{"minimumPayout":{"EUR":1}}""", kit.asPlatformAdmin()).status, 200)
-    // Nor may a manager give another brand's affiliate a membership, and with it their identity, by email.
+    // The brand's own too: its account manager, group and tags for the affiliate, which the other brand does not see.
+    assertEquals(patch("""{"managerId":"m-gold","group":"vip","tags":["sport"]}""").status, 200)
+    val gold = kit.components.forEventSourcedEntity(Membership.entityId(aff, "goldvibe")).call(Membership.get).invoke()
+    assertEquals((gold.managerId, gold.group, gold.tags), (Some("m-gold"), Some("vip"), Vector("sport")))
+    val silver = kit.request("GET", s"/v1/affiliates/silvervibe/accounts/$aff", headers = kit.asManager(Seq("silvervibe")))
+    assertEquals(silver.status, 200, silver.text)
+    assertEquals((Option(silver.json.get("managerId")).forall(_.isNull), silver.json.get("tags").size), (true, 0), silver.text)
+    // Nor may a manager give another brand's affiliate a membership, and with it their identity, by email:
+    // the affiliate is invited to apply, and the manager is not told where they work.
     val hosted    = Hosted.add(kit)
     val elsewhere = post(s"/${hosted.slug}/accounts", body = Some(s"""{"email":"$email"}"""), as = kit.asManager(Seq(hosted.slug)))
-    assertEquals(elsewhere.status, 409, elsewhere.text)
-    assertEquals(elsewhere.json.get("error").asText, "email_already_registered")
+    assertEquals((elsewhere.status, elsewhere.json.get("status").asText), (202, "invited"), elsewhere.text)
+    assert(!elsewhere.text.contains(aff) && !elsewhere.text.contains("goldvibe"), elsewhere.text)
     assert(!kit.components.forEventSourcedEntity(Membership.entityId(aff, hosted.slug)).call(Membership.get).invoke().exists)
+    val invite = kit.components.forWorkflow(EntityId(s"brand-invite/${hosted.slug}/$aff")).call(EmailSend.status).invoke()
+    assertEquals((invite.affiliate, invite.kind), (aff, "AffiliateBrandInvite"))
   }
 
   test("a platform administrator closes an account wherever it is a member") {

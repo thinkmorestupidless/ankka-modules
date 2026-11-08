@@ -14,10 +14,7 @@ final case class AccountFields(
     postbackUrl: Option[String] = None,
     keycloakUser: Option[String] = None,
     termsVersion: Option[String] = None,
-    termsAcceptedAt: Option[Instant] = None,
-    managerId: Option[String] = None,
-    group: Option[String] = None,
-    tags: Option[Vector[String]] = None
+    termsAcceptedAt: Option[Instant] = None
 )
 
 /**
@@ -36,9 +33,6 @@ final case class AffiliateState(
     keycloakUser: Option[String] = None,
     termsVersion: Option[String] = None,
     termsAcceptedAt: Option[Instant] = None,
-    managerId: Option[String] = None,
-    group: Option[String] = None,
-    tags: Vector[String] = Vector.empty,
     firstLoginAt: Option[Instant] = None,
     lastLoginAt: Option[Instant] = None,
     createdAt: Option[Instant] = None,
@@ -82,10 +76,7 @@ object Affiliate extends EventSourcedEntity.Companion[Affiliate, AffiliateState,
       postbackUrl = f.postbackUrl.orElse(s.postbackUrl).filter(_.nonEmpty),
       keycloakUser = f.keycloakUser.orElse(s.keycloakUser),
       termsVersion = f.termsVersion.orElse(s.termsVersion),
-      termsAcceptedAt = f.termsAcceptedAt.orElse(s.termsAcceptedAt),
-      managerId = f.managerId.orElse(s.managerId).filter(_.nonEmpty),
-      group = f.group.orElse(s.group).filter(_.nonEmpty),
-      tags = f.tags.getOrElse(s.tags)
+      termsAcceptedAt = f.termsAcceptedAt.orElse(s.termsAcceptedAt)
     )
 
   def next(id: String, s: AffiliateState, e: Event): AffiliateState = e match

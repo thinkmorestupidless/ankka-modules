@@ -105,14 +105,15 @@ final class Sections(client: ComponentClient, secrets: SecretStore):
   private def enrolNew(brand: String, s: SealedAccount): Unit =
     val a = s.account
     // A duplicate neither claims the email nor keeps the realm user it signed in as: the earlier account has both.
-    if s.duplicateOf.isEmpty then client.forKeyValueEntity(EntityId(s.emailDigest)).call(EmailIndex.claim).invoke(a.id): Unit
+    if s.duplicateOf.isEmpty then client.forKeyValueEntity(EntityId(s.emailDigest)).call(EmailIndex.claim).invoke(ClaimEmail(a.id, Import.clock())): Unit
     val realmUser = a.keycloakUser.filter(_ => s.duplicateOf.isEmpty)
-    val fields = AccountFields(a.minimumPayout, a.postbackUrl, realmUser, a.termsVersion, a.termsAcceptedAt, a.managerId, a.group, a.tags)
+    val fields = AccountFields(a.minimumPayout, a.postbackUrl, realmUser, a.termsVersion, a.termsAcceptedAt)
     account(a.id).call(Affiliate.createAccount)
       .invoke(CreateAffiliate(a.id, s.identity, s.emailDigest, a.parent, a.overrideBp, fields, "import", a.createdAt)): Unit
     val m = a.membership
     val state = MembershipState(a.id, brand, Some(m.status), m.plan.map(Plan.idOf(brand, _)), m.revShareOverrideBp,
-      Some(Application(m.appliedAt, a.termsVersion, m.source, a.parent)), m.suspendedBy, m.rejectedReason, m.since.orElse(Some(m.appliedAt)))
+      Some(Application(m.appliedAt, a.termsVersion, m.source, a.parent)), m.suspendedBy, m.rejectedReason, m.since.orElse(Some(m.appliedAt)),
+      a.managerId.filter(_.nonEmpty), a.group.filter(_.nonEmpty), a.tags.getOrElse(Vector.empty))
     membership(a.id, brand).call(Membership.importMembership).invoke(ImportMembership(state)): Unit
     s.duplicateOf.foreach { other =>
       client.forKeyValueEntity(EntityId(s"import-duplicate/${a.id}")).call(AuditEntry.write)

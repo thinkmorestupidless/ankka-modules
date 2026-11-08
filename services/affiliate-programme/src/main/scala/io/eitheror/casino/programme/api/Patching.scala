@@ -12,9 +12,12 @@ import io.eitheror.casino.programme.sealing.Sealing
 final class Patching(api: Api):
   /** None when done; a refusal otherwise. A manager may change the fields the affiliate cannot. */
   def apply(affiliate: String, p: AccountPatch, by: String, manager: Boolean): Option[Respond[Bytes]] =
+    refusal(p).orElse(patched(affiliate, p, by, manager))
+
+  /** What refuses the patch before anything is written: a caller writing other fields first checks this. */
+  def refusal(p: AccountPatch): Option[Respond[Bytes]] =
     p.postbackUrl.filter(_.trim.nonEmpty).flatMap(Addresses.refusal(_, api.settings.plainHttp))
       .map(reason => refuse(400, Codes.PostbackUrlRefused, reason))
-      .orElse(patched(affiliate, p, by, manager))
 
   private def patched(affiliate: String, p: AccountPatch, by: String, manager: Boolean): Option[Respond[Bytes]] =
     val entity = api.components.forEventSourcedEntity(EntityId(affiliate))
@@ -43,7 +46,7 @@ final class Patching(api: Api):
       case Left(e)            => Some(refuse(503, "store_unavailable", e))
       case Right(_) =>
         val fields =
-          if manager then AccountFields(minimumPayout = p.minimumPayout, postbackUrl = p.postbackUrl, managerId = p.managerId, group = p.group, tags = p.tags)
+          if manager then AccountFields(minimumPayout = p.minimumPayout, postbackUrl = p.postbackUrl)
           else AccountFields(postbackUrl = p.postbackUrl)
         if fields != AccountFields() then entity.call(Affiliate.update).invoke(UpdateAccount(fields, by, api.now())): Unit
         None

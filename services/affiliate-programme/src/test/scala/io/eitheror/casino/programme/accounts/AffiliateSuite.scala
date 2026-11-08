@@ -32,9 +32,9 @@ class AffiliateSuite extends munit.FunSuite with LogCapturing:
   test("update changes only the fields it names; the same values persist nothing") {
     val k = kit
     k.call(Affiliate.createAccount)(make()): Unit
-    val s = k.call(Affiliate.update)(UpdateAccount(AccountFields(postbackUrl = Some("https://t.example/pb"), tags = Some(Vector("vip"))), "m-1", at)).replyValue
-    assertEquals((s.postbackUrl, s.tags, s.minimumIn("EUR")), (Some("https://t.example/pb"), Vector("vip"), 10_000L))
-    assert(!k.call(Affiliate.update)(UpdateAccount(AccountFields(tags = Some(Vector("vip"))), "m-1", at)).persisted)
+    val s = k.call(Affiliate.update)(UpdateAccount(AccountFields(postbackUrl = Some("https://t.example/pb")), "m-1", at)).replyValue
+    assertEquals((s.postbackUrl, s.minimumIn("EUR")), (Some("https://t.example/pb"), 10_000L))
+    assert(!k.call(Affiliate.update)(UpdateAccount(AccountFields(postbackUrl = Some("https://t.example/pb")), "m-1", at)).persisted)
   }
 
   test("identity, parent and override are replaced") {
@@ -65,7 +65,7 @@ class AffiliateSuite extends munit.FunSuite with LogCapturing:
     val s = k.call(Affiliate.erased)(at).replyValue
     assertEquals((s.identity, s.emailDigest, s.erased), (Sealed.erased, "", Some(at)))
     assert(!k.call(Affiliate.erased)(at.plusSeconds(1)).persisted)
-    assertEquals(k.call(Affiliate.update)(UpdateAccount(AccountFields(group = Some("g")), "m-1", at)).errorMessage, "erased")
+    assertEquals(k.call(Affiliate.update)(UpdateAccount(AccountFields(postbackUrl = Some("https://g.example/pb")), "m-1", at)).errorMessage, "erased")
   }
 
   test("an account that is not there is not changed") {

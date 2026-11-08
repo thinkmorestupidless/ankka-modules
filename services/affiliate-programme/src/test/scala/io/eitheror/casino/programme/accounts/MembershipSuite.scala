@@ -73,6 +73,15 @@ class MembershipSuite extends munit.FunSuite with LogCapturing:
     assert(k.call(Membership.activateInvited)(ActivateInvited("aff-1", "goldvibe", "plan-1", app, "m-1")).isError)
   }
 
+  test("the brand's manager, group and tags are set, each only when named; the same again persists nothing") {
+    val k = active
+    val s = k.call(Membership.setManagement)(SetManagement(Some("m-9"), Some("vip"), Some(Vector("sport")), "m-1", at)).replyValue
+    assertEquals((s.managerId, s.group, s.tags), (Some("m-9"), Some("vip"), Vector("sport")))
+    assertEquals(k.call(Membership.setManagement)(SetManagement(None, Some("core"), None, "m-1", at)).replyValue.managerId, Some("m-9"))
+    assert(!k.call(Membership.setManagement)(SetManagement(None, Some("core"), None, "m-1", at)).persisted)
+    assertEquals(kit.call(Membership.setManagement)(SetManagement(Some("m"), None, None, "m", at)).errorMessage, "not_a_member")
+  }
+
   test("the plan and the RevShare override are set; an override over 100% is refused") {
     val k = active
     assertEquals(k.call(Membership.setPlan)(SetPlan("plan-2", "m-1", at)).replyValue.plan, Some("plan-2"))

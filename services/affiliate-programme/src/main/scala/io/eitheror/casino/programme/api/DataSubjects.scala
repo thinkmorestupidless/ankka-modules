@@ -47,18 +47,22 @@ final class DataSubjects(api: Api):
    * every brand of the account, or a platform administrator: one brand's manager must not change what the
    * account's other brands, another company's among them, rely on.
    */
-  def whole(aff: String, holds: String => Boolean)(f: AffiliateState => Respond[Bytes]): Respond[Bytes] =
+  def whole(aff: String, holds: String => Boolean, naming: Boolean = false)(f: AffiliateState => Respond[Bytes]): Respond[Bytes] =
     val a = api.account(aff)
     if !a.exists then refuse(404, Codes.AccountNotFound)
     else if a.erased.isDefined then refuse(409, Codes.Erased)
     else
       val others = api.membershipsOf(aff).map(_.brand).distinct.filterNot(holds).sorted
-      if others.nonEmpty then refuse(409, "account_shared", s"the account is also a member at ${others.mkString(", ")}")
+      // Closing and erasing name the other brands, so the manager knows whom to ask (research T082); the routine
+      // writes do not, since a manager sees nothing of a brand they do not hold (FR-041).
+      if others.nonEmpty then
+        refuse(409, "account_shared", if naming then s"the account is also a member at ${others.mkString(", ")}"
+          else "the account is shared with brands you do not hold")
       else f(a)
 
   /** Sign-in ends: the account is closed and its realm user loses the affiliate role and every brand's. */
   def close(brand: String, aff: String, by: String, holds: String => Boolean): Respond[Bytes] =
-    whole(aff, holds) { a =>
+    whole(aff, holds, naming = true) { a =>
       val at = api.now()
       val s  = api.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.close).invoke(CloseAccount(by, at))
       a.keycloakUser.foreach { user =>
@@ -70,7 +74,7 @@ final class DataSubjects(api: Api):
 
   /** The erasure filed with its hold: the identity goes when the retention ends (`Erasure`). */
   def erasure(brand: String, aff: String, by: String, holds: String => Boolean): Respond[Bytes] =
-    whole(aff, holds) { a =>
+    whole(aff, holds, naming = true) { a =>
       if a.closed.isEmpty then refuse(409, "account_not_closed", "an account is closed before its erasure is filed")
       else
         val at   = api.now()
