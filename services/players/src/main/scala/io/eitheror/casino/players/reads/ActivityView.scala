@@ -89,6 +89,9 @@ object ActivityLines:
     def rg(eventType: String, description: String) = line(fact.playerId, fact.occurredAt, Rg, eventType, "operator", description)
     fact match
       case f: PlayerSuspended    => account("account_status_changed", f.actor, "Account suspended")
+      // A lifted self-exclusion is published for the services that suppress on it (spec 014); the activity
+      // showed no line for a lift before that, and still shows none.
+      case f: PlayerReinstated if f.reason.contains("exclusion_lifted") => None
       case f: PlayerReinstated   => account("account_status_changed", f.actor, "Account reinstated")
       case f: PlayerSelfExcluded => account("account_status_changed", f.actor, "Account self-excluded")
       case f: PlayerClosed       => account("account_status_changed", f.actor, "Account closed")
