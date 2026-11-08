@@ -19,7 +19,7 @@ package unityfinance
 // ":" + signKey)) over every posted field but ik_sign (signature.go:11-35):
 //
 //   the deposit's, to the invoice's ik_ia_u (<gateway>/v1/webhooks/unityfinance): ik_co_id, ik_pm_no,
-//   ik_inv_st (success, canceled, expired, process, chargebacked), … (handler/webhook.go:264-418)
+//   ik_inv_st (success, canceled, expired, process, chargeback, chargebacked), … (handler/webhook.go:264-418)
 //
 //   the payout's, to its interactionUrl (<gateway>/v1/webhooks/unityfinance/withdrawal?merchantId=…):
 //   id, paymentNo and state by name (success, canceled, limitExceeded, chargebacked), confirmed live
@@ -145,7 +145,7 @@ type Provider struct {
 func NewProvider(stub *stubhttp.Stub, cfg Config) *Provider {
 	p := &Provider{stub: stub, cfg: cfg, client: &http.Client{Timeout: 10 * time.Second},
 		invoices: map[string]*invoice{}, withdrawals: map[string]*withdrawal{}}
-	stub.Supports(stubhttp.Duplicate, stubhttp.NoRecord, stubhttp.Reversed, stubhttp.Unauthorised)
+	stub.Supports(stubhttp.Duplicate, stubhttp.NoRecord, stubhttp.Reversed, stubhttp.Disputed, stubhttp.Unauthorised)
 	stub.OnWebhook(p.send)
 	return p
 }
@@ -345,7 +345,8 @@ func (p *Provider) later(ref string, c stubhttp.Control) {
 }
 
 // depositState is ik_inv_st for a control: success; failure canceled, or expired when the code
-// says so (any other code is ik_inv_cancel_code); pending process; reversed chargebacked.
+// says so (any other code is ik_inv_cancel_code); pending process; reversed chargebacked; disputed
+// chargeback (the dispute opened).
 func depositState(c stubhttp.Control) (string, error) {
 	switch c.Outcome {
 	case stubhttp.Success:
@@ -359,6 +360,8 @@ func depositState(c stubhttp.Control) (string, error) {
 		return "process", nil
 	case stubhttp.Reversed:
 		return "chargebacked", nil
+	case stubhttp.Disputed:
+		return "chargeback", nil
 	default:
 		return "", fmt.Errorf("unityfinance has no deposit webhook for %q", c.Outcome)
 	}

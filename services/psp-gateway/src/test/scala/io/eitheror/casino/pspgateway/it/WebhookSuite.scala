@@ -55,6 +55,39 @@ class WebhookSuite extends munit.FunSuite with LogCapturing:
     }
   }
 
+  test("UNITYFINANCE: a chargeback on a captured deposit reaches merchant as dispute_opened, chargebacked as dispute_closed lost (spec 015)") {
+    val paymentId = held(Provider.UnityFinance)
+    val ref       = kit.stubReference(paymentId, Provider.UnityFinance)
+    kit.psp.webhook(Provider.UnityFinance, ref, "outcome" -> "success"): Unit
+    assertEquals(deliveredTo(paymentId).map(_.key), Vector(s"$paymentId/capture"))
+
+    assertEquals(kit.psp.webhook(Provider.UnityFinance, ref, "outcome" -> "disputed")._1, 200)
+    kit.psp.webhook(Provider.UnityFinance, ref, "outcome" -> "disputed"): Unit
+    assertEquals(kit.psp.webhook(Provider.UnityFinance, ref, "outcome" -> "reversed")._1, 200)
+    val disputes = kit.eventually(s"$paymentId disputes delivered")(
+      Option(kit.merchant.deliveredTo(paymentId).filter(_.key.endsWith("/dispute"))).filter(_.size >= 2))
+    Thread.sleep(500)
+    assertEquals(kit.merchant.deliveredTo(paymentId).map(_.key),
+      Vector(s"$paymentId/capture", s"$paymentId/dispute", s"$paymentId/dispute"), "a repeated chargeback is reported once")
+    val opened = io.eitheror.casino.pspgateway.Json.parse(disputes(0).body).get
+    val closed = io.eitheror.casino.pspgateway.Json.parse(disputes(1).body).get
+    def text(n: com.fasterxml.jackson.databind.JsonNode, f: String) = io.eitheror.casino.pspgateway.Json.text(n)(f)
+    assertEquals((text(opened, "outcome"), text(opened, "currency"), opened.get("amount").asLong), (Some("dispute_opened"), Some("EUR"), 2500L))
+    assertEquals((text(closed, "outcome"), text(closed, "disputeOutcome")), (Some("dispute_closed"), Some("lost")))
+    assertEquals(kit.deposit(paymentId).disputes.map(_.delivery.word), Vector("Delivered", "Delivered"))
+  }
+
+  test("UNITYFINANCE: a chargeback on a deposit that was not captured reports nothing") {
+    val paymentId = held(Provider.UnityFinance)
+    val ref       = kit.stubReference(paymentId, Provider.UnityFinance)
+    kit.psp.webhook(Provider.UnityFinance, ref, "outcome" -> "failure"): Unit
+    assertEquals(deliveredTo(paymentId).map(_.key), Vector(s"$paymentId/fail"))
+    assertEquals(kit.psp.webhook(Provider.UnityFinance, ref, "outcome" -> "disputed")._1, 200)
+    Thread.sleep(500)
+    assertEquals(kit.merchant.deliveredTo(paymentId).map(_.key), Vector(s"$paymentId/fail"))
+    assert(kit.deposit(paymentId).disputes.isEmpty)
+  }
+
   test("an open status leaves the session initiated and merchant uncalled") {
     val paymentId = held(Provider.Digitarium)
     kit.psp.webhook(Provider.Digitarium, paymentId, "outcome" -> "pending"): Unit

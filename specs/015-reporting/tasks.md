@@ -87,7 +87,7 @@ access. Nothing story-specific starts before this phase ends.
   the wallet's facts and endpoint suites; amend `specs/002-wallet/spec.md` (FR-022a, the facts' FR)
 - [X] T010 [P] merchant: forward `dispute_opened` and `dispute_closed` outcomes from psp-gateway to the brand's
   wallet as the other outcomes; tests; amend `specs/004-merchant/spec.md` FR-022
-- [ ] T011 [P] psp-gateway: Unity Finance's deposit states `chargeback` and `chargebacked` become dispute
+- [X] T011 [P] psp-gateway: Unity Finance's deposit states `chargeback` and `chargebacked` become dispute
   outcomes (`services/psp-gateway/.../unityfinance/UnityFinance.scala:182-197`); read the eight other
   adapters for a documented dispute notification and map those (research R20 item 3); tests per adapter
   touched; amend `specs/005-psp-gateway/spec.md` with the dispute requirement

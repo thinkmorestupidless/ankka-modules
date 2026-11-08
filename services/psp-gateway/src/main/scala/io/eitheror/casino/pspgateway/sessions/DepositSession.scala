@@ -53,7 +53,9 @@ final case class DepositState(
     redrives: Int = 0,
     /** Who asked for the re-drive not yet delivered: `timer` or an operator's id. */
     redriving: Option[String] = None,
-    updatedAt: Option[Instant] = None
+    updatedAt: Option[Instant] = None,
+    /** The provider's disputes on the captured deposit, in the order reported, each kind once (spec 015). */
+    disputes: Vector[DisputeReport] = Vector.empty
 ):
   def stage: Stage =
     if outcome.isDefined then Stage.Settled
@@ -64,11 +66,31 @@ final case class DepositState(
 
   def exists: Boolean = claim.isDefined
 
+  def captured: Boolean = outcome.exists(_.isInstanceOf[Outcome.Captured])
+
+  /**
+   * The delivery the session waits on, in order: the outcome's until it is delivered, then each dispute's
+   * in turn, so `merchant` hears of a dispute only after the capture and of a closing after its opening.
+   * The key is the dispute's kind, none for the outcome.
+   */
+  def current: Option[(Option[String], Delivery)] =
+    if outcome.isEmpty then None
+    else if !DepositSession.delivered(delivery) then Some(None -> delivery)
+    else disputes.find(r => !DepositSession.delivered(r.delivery)).map(r => Some(r.dispute.kind) -> r.delivery)
+
+  /** The delivery the listings and the re-drive see: the current one, or the outcome's once all are delivered. */
+  def currentDelivery: Delivery = current.fold(delivery)(_._2)
+
   /** Whether a delivery may be recorded now: settled, not delivered, and not refused unless re-driven. */
-  def deliverable: Boolean = outcome.isDefined && (delivery match
+  def deliverable: Boolean = current.exists((_, d) => admits(d))
+
+  /** Whether a delivery of `dispute` (none: the outcome) may be recorded now: it is the current one, and deliverable. */
+  def deliverable(dispute: Option[String]): Boolean = current.exists((k, d) => k == dispute && admits(d))
+
+  private def admits(d: Delivery): Boolean = d match
     case Delivery.Delivered(_, _)  => false
     case Delivery.Refused(_, _, _) => redriving.exists(_ != DepositSession.Timer)
-    case _                         => true)
+    case _                         => true
 
   /** The 004 contract's status read (contracts/merchant.md §2). */
   def status: SessionStatus = SessionStatus.of(stage, outcome, delivery, updatedAt)
@@ -101,18 +123,24 @@ enum DepositEvent:
   case Initiated(initiation: Initiation)
   case InitiationFailed(refusal: Refusal, at: Instant)
   case Settled(outcome: Outcome, providerStatus: String, at: Instant)
-  case DeliveryRecorded(delivery: Delivery, attempts: Int, at: Instant)
+  /** `dispute` is the dispute's kind when the delivery is a dispute's; none for the outcome's. */
+  case DeliveryRecorded(delivery: Delivery, attempts: Int, at: Instant, dispute: Option[String] = None)
   case Redriven(by: String, at: Instant)
+  case DisputeReported(report: DisputeReport)
 
 final case class Claim(claim: DepositClaim, at: Instant)
 final case class RecordInitiation(initiation: Initiation)
 final case class FailInitiation(refusal: Refusal, at: Instant)
 final case class Settle(outcome: Outcome, providerStatus: String, at: Instant)
-final case class RecordDelivery(delivery: Delivery, attempts: Int, at: Instant)
+final case class RecordDelivery(delivery: Delivery, attempts: Int, at: Instant, dispute: Option[String] = None)
 final case class Redrive(by: String, at: Instant)
+final case class ReportDispute(dispute: Dispute, providerStatus: String, at: Instant)
 
 /** A settle's answer: whether this one settled, and the state either way (`AlreadySettled` when not). */
 final case class Settlement(settled: Boolean, state: DepositState)
+
+/** A dispute's answer: whether this one was recorded, and the state either way. */
+final case class DisputeTaken(reported: Boolean, state: DepositState)
 
 /** A re-drive's answer: whether it was taken, and the delivery state either way (FR-016). */
 final case class Redriving(redriven: Boolean, delivery: Delivery)
@@ -128,6 +156,8 @@ object DepositCodecs:
   given Serializer[RecordDelivery]  = GatewayCodecs.serializer[RecordDelivery]("record-delivery")
   given Serializer[Redrive]         = GatewayCodecs.serializer[Redrive]("redrive")
   given Serializer[Redriving]       = GatewayCodecs.serializer[Redriving]("redriving")
+  given Serializer[ReportDispute]   = GatewayCodecs.serializer[ReportDispute]("report-dispute")
+  given Serializer[DisputeTaken]    = GatewayCodecs.serializer[DisputeTaken]("dispute-taken")
   given Serializer[SessionStatus]   = GatewayCodecs.serializer[SessionStatus]("session-status")
 
 import DepositCodecs.given
@@ -163,17 +193,35 @@ final class DepositSession(context: EventSourcedEntityContext) extends EventSour
         case _                      => effects.reply(Settlement(false, s))
     }
 
-  /** Only after settling; ignored once delivered, or refused and not re-driven by an operator. */
+  /**
+   * Only for the current delivery (the outcome's, then each dispute's); ignored once delivered, or refused
+   * and not re-driven by an operator.
+   */
   def recordDelivery(cmd: RecordDelivery): Effect[DepositState] =
-    known(s => if !s.deliverable then effects.reply(s)
-      else effects.persist(DepositEvent.DeliveryRecorded(cmd.delivery, cmd.attempts, cmd.at)).thenReplyState)
+    known(s => if !s.deliverable(cmd.dispute) then effects.reply(s)
+      else effects.persist(DepositEvent.DeliveryRecorded(cmd.delivery, cmd.attempts, cmd.at, cmd.dispute)).thenReplyState)
+
+  /**
+   * A provider's dispute, only on a captured deposit (a deposit that took no money has nothing to dispute):
+   * an opening while none is held, a closing once. A repeat, or one out of that order, records nothing.
+   */
+  def reportDispute(cmd: ReportDispute): Effect[DisputeTaken] =
+    known { s =>
+      val kinds = s.disputes.map(_.dispute.kind).toSet
+      val admitted = s.captured && (cmd.dispute match
+        case Dispute.Opened(_, _, _) => kinds.isEmpty
+        case Dispute.Closed(_, _, _) => !kinds(Disputes.Closed))
+      if !admitted then effects.reply(DisputeTaken(false, s))
+      else effects.persist(DepositEvent.DisputeReported(DisputeReport(cmd.dispute, cmd.providerStatus, cmd.at)))
+        .thenReply(DisputeTaken(true, _))
+    }
 
   /** By the timer while undelivered; by an operator while undelivered or refused (FR-016). */
   def redrive(cmd: Redrive): Effect[Redriving] =
     known { s =>
-      if DepositSession.redrivable(s.outcome.isDefined, s.delivery, cmd.by) then
-        effects.persist(DepositEvent.Redriven(cmd.by, cmd.at)).thenReply(n => Redriving(true, n.delivery))
-      else effects.reply(Redriving(false, s.delivery))
+      if DepositSession.redrivable(s.outcome.isDefined, s.currentDelivery, cmd.by) then
+        effects.persist(DepositEvent.Redriven(cmd.by, cmd.at)).thenReply(n => Redriving(true, n.currentDelivery))
+      else effects.reply(Redriving(false, s.currentDelivery))
     }
 
   def get: ReadOnlyEffect[DepositState] = effects.reply(currentState)
@@ -196,6 +244,7 @@ object DepositSession extends EventSourcedEntity.Companion[DepositSession, Depos
   val initiationFailed = command("initiation-failed")(_.initiationFailed)
   val settle           = command("settle")(_.settle)
   val recordDelivery   = command("record-delivery")(_.recordDelivery)
+  val reportDispute    = command("report-dispute")(_.reportDispute)
   val redrive          = command("redrive")(_.redrive)
   val get              = query("get")(_.get)
   val status           = query("status")(_.status)
@@ -206,10 +255,18 @@ object DepositSession extends EventSourcedEntity.Companion[DepositSession, Depos
       case Delivery.Refused(_, _, _)     => by != Timer
       case _                             => false)
 
+  def delivered(d: Delivery): Boolean = d match
+    case Delivery.Delivered(_, _) => true
+    case _                        => false
+
   def fold(s: DepositState, event: DepositEvent): DepositState = event match
+    case DepositEvent.DeliveryRecorded(d, n, at, Some(kind)) =>
+      s.copy(disputes = s.disputes.map(r => if r.dispute.kind == kind then r.copy(delivery = d, attempts = r.attempts + n) else r),
+        redriving = None, updatedAt = Some(at))
+    case DepositEvent.DisputeReported(r)           => s.copy(disputes = s.disputes :+ r, updatedAt = Some(r.at))
     case DepositEvent.Claimed(c, at)               => s.copy(claim = Some(c), updatedAt = Some(at))
     case DepositEvent.Initiated(i)                 => s.copy(initiation = Some(i), updatedAt = Some(i.at))
     case DepositEvent.InitiationFailed(r, at)      => s.copy(refusal = Some(r), updatedAt = Some(at))
     case DepositEvent.Settled(o, status, at)       => s.copy(outcome = Some(o), providerStatus = Some(status), settledAt = Some(at), updatedAt = Some(at))
-    case DepositEvent.DeliveryRecorded(d, n, at)   => s.copy(delivery = d, attempts = s.attempts + n, redriving = None, updatedAt = Some(at))
+    case DepositEvent.DeliveryRecorded(d, n, at, None) => s.copy(delivery = d, attempts = s.attempts + n, redriving = None, updatedAt = Some(at))
     case DepositEvent.Redriven(by, at)             => s.copy(redrives = s.redrives + 1, redriving = Some(by), updatedAt = Some(at))

@@ -3,7 +3,7 @@ package io.eitheror.casino.pspgateway.delivery
 import com.thinkmorestupidless.ankka.sdk.ServiceClients
 import io.eitheror.casino.pspgateway.Json
 import io.eitheror.casino.pspgateway.http.{Neighbour, Reply}
-import io.eitheror.casino.pspgateway.sessions.{Outcome, Receiver}
+import io.eitheror.casino.pspgateway.sessions.{Dispute, Disputes, Outcome, Receiver}
 
 /** What a receiver answered one delivery: its status (none when nothing answered) and a short account of it. */
 final case class Answer(status: Option[Int], text: String):
@@ -15,7 +15,10 @@ final case class Answer(status: Option[Int], text: String):
  * `gateway.md` and contracts/payouts.md give it, and sent as it was signed.
  */
 trait Receivers:
-  def deliver(receiver: Receiver, outcome: Outcome, body: String, headers: Vector[(String, String)]): Answer
+  def deliver(receiver: Receiver, outcome: Outcome, body: String, headers: Vector[(String, String)]): Answer =
+    post(receiver, Receivers.path(receiver, outcome), body, headers)
+
+  def post(receiver: Receiver, path: String, body: String, headers: Vector[(String, String)]): Answer
 
 object Receivers:
   def http(services: ServiceClients, merchantService: String): Receivers = HttpReceivers(services, merchantService)
@@ -56,12 +59,30 @@ object Receivers:
         Json.obj("outcome" -> o.word, "providerReference" -> providerReference.getOrElse(""), "reason" -> reason)
     Json.render(node)
 
+  /** A dispute's route at `merchant`, beside the capture and the fail (spec 015). */
+  def disputePath(paymentId: String): String = s"/v1/payments/${Neighbour.segment(paymentId)}/${Disputes.Verb}"
+
+  /**
+   * A dispute's body: `outcome` (`dispute_opened` | `dispute_closed`), `psp_transaction_id` as the
+   * capture's, `amount` (minor units) and `currency`, the opening's `reason?`, the closing's
+   * `disputeOutcome` (`won` | `lost`).
+   */
+  def disputeBody(paymentId: String, dispute: Dispute, providerReference: Option[String]): String =
+    val node = dispute match
+      case Dispute.Opened(amount, currency, reason) =>
+        Json.obj("outcome" -> Disputes.Opened, "psp_transaction_id" -> providerReference.getOrElse(paymentId),
+          "amount" -> amount, "currency" -> currency.code, "reason" -> reason)
+      case Dispute.Closed(outcome, amount, currency) =>
+        Json.obj("outcome" -> Disputes.Closed, "psp_transaction_id" -> providerReference.getOrElse(paymentId),
+          "disputeOutcome" -> outcome, "amount" -> amount, "currency" -> currency.map(_.code))
+    Json.render(node)
+
 private final class HttpReceivers(services: ServiceClients, merchantService: String) extends Receivers:
-  def deliver(receiver: Receiver, outcome: Outcome, body: String, headers: Vector[(String, String)]): Answer =
+  def post(receiver: Receiver, path: String, body: String, headers: Vector[(String, String)]): Answer =
     val target = receiver match
       case Receiver.Merchant(_)       => Neighbour(services, merchantService)
       case Receiver.Payouts(brand, _) => Neighbour(services, "payouts", Some(brand))
-    target.post(Receivers.path(receiver, outcome), body, headers) match
+    target.post(path, body, headers) match
       case Reply.Answered(s, b, text) =>
         Answer(Some(s), b.flatMap(n => Json.text(n)("error")).getOrElse(text.take(200)))
       case Reply.Unreachable(reason) => Answer(None, reason)

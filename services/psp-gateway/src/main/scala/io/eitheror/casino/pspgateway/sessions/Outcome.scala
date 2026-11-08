@@ -1,5 +1,7 @@
 package io.eitheror.casino.pspgateway.sessions
 
+import io.eitheror.casino.contract.money.Currency
+
 import java.time.Instant
 
 /**
@@ -57,6 +59,34 @@ enum Outcome:
     case Completed          => "completed"
     case PayoutFailed(_, _) => "failed"
     case Reversed           => "reversed"
+
+/**
+ * A provider's dispute on a captured deposit (spec 015 FR-005, its contracts/facts.md "Disputes, end to
+ * end"): reported to `merchant` after the capture, which forwards it to the brand's wallet. No money moves
+ * here. `amount` and `currency` are the deposit's; a closing carries `won` or `lost` (`Disputes`).
+ */
+enum Dispute:
+  case Opened(amount: Long, currency: Currency, reason: Option[String] = None)
+  case Closed(outcome: String, amount: Option[Long] = None, currency: Option[Currency] = None)
+
+  /** The outcome word `merchant`'s dispute route takes, which also names the report in the session. */
+  def kind: String = this match
+    case Opened(_, _, _) => Disputes.Opened
+    case Closed(_, _, _) => Disputes.Closed
+
+/** The dispute's wire names, in one place: the outcome words, the closing's outcomes and `merchant`'s route. */
+object Disputes:
+  val Opened = "dispute_opened"
+  val Closed = "dispute_closed"
+  val Won    = "won"
+  val Lost   = "lost"
+
+  /** `POST /v1/payments/{paymentId}/dispute`, beside `capture` and `fail`. */
+  val Verb = "dispute"
+
+/** A dispute as the session holds it: what the provider said, when, and how its delivery stands. */
+final case class DisputeReport(dispute: Dispute, providerStatus: String, at: Instant, delivery: Delivery = Delivery.NotYet,
+    attempts: Int = 0)
 
 /**
  * Who an outcome is delivered to, fixed at claim time from the session and never from a webhook

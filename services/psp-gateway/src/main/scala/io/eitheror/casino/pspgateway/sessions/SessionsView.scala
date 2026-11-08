@@ -50,7 +50,11 @@ final class DepositRowsView extends View[DepositEvent, SessionRow]:
         effects.updateRow(SessionRow(id, SessionRow.Deposit, c.provider.wire, Receiver.Merchant(id).describe, since = at.toEpochMilli))
       case (DepositEvent.Settled(o, _, at), Some(r)) =>
         effects.updateRow(r.copy(outcome = Some(o.word), delivery = Delivery.NotYet.word, since = at.toEpochMilli))
-      case (DepositEvent.DeliveryRecorded(d, n, at), Some(r)) => effects.updateRow(SessionRow.delivered(r, d, n, at))
+      case (DepositEvent.DeliveryRecorded(d, n, at, kind), Some(r)) =>
+        effects.updateRow(SessionRow.delivered(r.copy(outcome = kind.orElse(r.outcome)), d, n, at))
+      // A dispute is the row's delivery once what came before it is delivered; until then the row stays as it is.
+      case (DepositEvent.DisputeReported(report), Some(r)) if r.delivery == "Delivered" =>
+        effects.updateRow(r.copy(outcome = Some(report.dispute.kind), delivery = Delivery.NotYet.word, since = report.at.toEpochMilli))
       case _                                                  => effects.ignore()
 
 object DepositRows extends View.Companion[DepositRowsView, DepositEvent, SessionRow](

@@ -158,6 +158,58 @@ class OutcomeDelivererSuite extends munit.FunSuite with LogCapturing:
     assertEquals(recorded.asScala.toVector.loneElement.delivery.word, "Delivered")
   }
 
+  // Disputes (spec 015): after the capture, each in turn, to merchant's dispute route, signed as the capture.
+
+  private final class Disputed(start: DepositState, answer: Int = 200):
+    @volatile var state = start
+    val recorded = ConcurrentLinkedQueue[RecordDelivery]()
+    val services = ScriptedServices().answer("merchant") { r =>
+      if r.method == "GET" then ScriptedServices.json("""{"credentials":{"webhookSecret":"shh"}}""")
+      else ScriptedServices.json(if answer / 100 == 2 then "{}" else """{"error":"E"}""", answer)
+    }
+    private val transport = TestTransport()
+      .stub(DepositSession.get)(() => state)
+      .stub(DepositSession.recordDelivery) { c =>
+        if state.deliverable(c.dispute) then
+          recorded.add(c)
+          state = DepositSession.fold(state, DepositEvent.DeliveryRecorded(c.delivery, c.attempts, c.at, c.dispute))
+        state
+      }
+    val kit = ConsumerTestKit.of(DepositDeliverer, transport.client, services = services)
+    def posts = services.requests.filter(_.method == "POST")
+    def reported(d: Dispute) = kit.onMessage(DepositEvent.DisputeReported(DisputeReport(d, d.kind, at)), subject = "p-1").effect
+
+  private val eur = Currency.unsafe("EUR")
+
+  test("an opening and a closing reach merchant's dispute route in turn, after the capture, signed") {
+    val both = deposit(Outcome.Captured()).copy(disputes = Vector(
+      DisputeReport(Dispute.Opened(1000, eur), "chargeback", at),
+      DisputeReport(Dispute.Closed(Disputes.Lost, Some(1000), Some(eur)), "chargebacked", at)))
+    val rig = Disputed(both)
+    assertEquals(rig.reported(Dispute.Opened(1000, eur)), ConsumerEffect.Done)
+    assertEquals(rig.posts.map(_.path), Vector("/v1/payments/p-1/capture", "/v1/payments/p-1/dispute", "/v1/payments/p-1/dispute"))
+    val opened = Json.parseObject(rig.posts(1).text).get
+    assertEquals((opened.text("outcome"), opened.long("amount"), opened.text("currency"), opened.text("psp_transaction_id")),
+      (Some("dispute_opened"), Some(1000L), Some("EUR"), Some("ref-9")))
+    assertEquals(opened.text("disputeOutcome"), None)
+    val closed = Json.parseObject(rig.posts(2).text).get
+    assertEquals((closed.text("outcome"), closed.text("disputeOutcome"), closed.long("amount"), closed.text("currency")),
+      (Some("dispute_closed"), Some("lost"), Some(1000L), Some("EUR")))
+    assert(rig.posts.forall(_.headers.exists(_._1.equalsIgnoreCase("x-psp-signature"))))
+    assertEquals(rig.recorded.asScala.toVector.map(_.dispute), Vector(None, Some(Disputes.Opened), Some(Disputes.Closed)))
+    assertEquals(rig.state.current, None)
+  }
+
+  test("a dispute merchant refuses is recorded refused and holds the closing behind it") {
+    val both = deposit(Outcome.Captured(), Delivery.Delivered(at, 200)).copy(disputes = Vector(
+      DisputeReport(Dispute.Opened(1000, eur), "chargeback", at),
+      DisputeReport(Dispute.Closed(Disputes.Lost, Some(1000), Some(eur)), "chargebacked", at)))
+    val rig = Disputed(both, answer = 400)
+    assertEquals(rig.reported(Dispute.Closed(Disputes.Lost)), ConsumerEffect.Done)
+    assertEquals(rig.posts.map(_.path), Vector("/v1/payments/p-1/dispute"))
+    assertEquals(rig.state.current.map((k, d) => (k, d.word)), Some(Some(Disputes.Opened) -> "Refused"))
+  }
+
   extension [A](v: Vector[A])
     private def loneElement: A =
       assertEquals(v.size, 1, v)

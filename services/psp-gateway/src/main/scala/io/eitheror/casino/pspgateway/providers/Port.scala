@@ -66,6 +66,8 @@ enum Verdict:
   case Settle(outcome: Outcome, providerStatus: String)
   /** Not final yet (pending, processing): acknowledged, nothing moves. */
   case Open(providerStatus: String)
+  /** A dispute on the deposit (a chargeback opened or closed), reported to `merchant` after its capture (spec 015). */
+  case Dispute(dispute: io.eitheror.casino.pspgateway.sessions.Dispute, providerStatus: String)
   /** Verified, but nothing the gateway acts on (a refund notice, a type it does not handle): logged. */
   case Ignore(reason: String)
   /** It did not verify, or could not be read: nothing moves. */

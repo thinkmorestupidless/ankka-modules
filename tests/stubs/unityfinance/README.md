@@ -49,7 +49,8 @@ signKey)) (`signature.go:11-35`), verified by the gateway over every posted fiel
 | `success` | `ik_inv_st=success` | `state=success` | `8` |
 | `failure` | `canceled` with `ik_inv_cancel_code` = `code`; `code` `expired` → `expired` | `canceled`; `code` `limitExceeded` or `20` → `limitExceeded` | `9`, or `20` |
 | `pending` | no webhook until the next control (`/__webhook` sends `process`) | likewise | `1` |
-| `reversed` | `chargebacked` (logged only by the original) | `chargebacked` | `11` |
+| `reversed` | `chargebacked` (logged only by the original; a dispute closed `lost` since spec 015) | `chargebacked` | `11` |
+| `disputed` | `chargeback` (open to the original; a dispute opened since spec 015) | — | — |
 | `duplicate` | — | the duplicate error, on a first `paymentNo` too | — |
 | `no_record` | — | accepted but not kept, no webhook | `data: []` for every read |
 | `unauthorised` | — | `401` | `401` |
