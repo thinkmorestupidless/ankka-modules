@@ -119,7 +119,7 @@ object Facts:
         val held = e.paidParts + e.voidedParts
         one(f.HoldPlaced(playerId, currency, e.transactionId, e.requestId, units(e.amount), units(e.voided), real(e.realAfter),
           units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(held.deposit), part(held.converted),
-          part(e.voidedParts.deposit), part(e.voidedParts.converted)), e.transactionId) ++
+          part(e.voidedParts.deposit), part(e.voidedParts.converted), progress(e.recordUpdates)), e.transactionId) ++
           forfeited(e.transactionId, e.forfeits, "hold", e.clawback, e.clawbackParts, e.recordUpdates, e.realAfter,
             e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at) ++
           e.capDraws.filter(_.closes).map(d => closed(e.transactionId, d.recordId, "cap_exhausted", e.recordUpdates, e.realAfter,
@@ -143,14 +143,15 @@ object Facts:
         // The reason on the fact is the adjustment's category, never the operator's text (FR-033, contracts/facts.md).
         one(f.AdminAdjusted(playerId, currency, e.transactionId, SignedMinorUnits(e.amount), e.target, e.category, e.actorId,
           real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
-          part(e.parts.converted)), e.transactionId) ++
+          part(e.parts.converted), progress(e.recordUpdates)), e.transactionId) ++
           forfeited(e.transactionId, e.forfeited.toVector, "adjustment", 0L, Parts.zero, e.recordUpdates, e.realAfter,
             e.restrictedAfter, e.depositAfter, e.convertedAfter, e.at)
 
       case e: ProviderCredited =>
         one(f.ProviderCredited(playerId, currency, e.transactionId, e.providerRef, units(e.amount), e.landedOn,
           e.recordId.map(grantOf(e.recordUpdates, _)).filter(_.nonEmpty), real(e.realAfter), units(e.restrictedAfter), e.at,
-          dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit), part(e.parts.converted)), e.transactionId)
+          dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit), part(e.parts.converted),
+          progress(e.recordUpdates)), e.transactionId)
 
       // ── spec 022 (contracts/facts.md); the pools and parts as spec 025 FR-012 asks of every family ──
       case e: ReservationPlaced =>

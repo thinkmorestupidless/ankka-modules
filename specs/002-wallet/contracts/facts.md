@@ -46,8 +46,10 @@ Common: `player_id`, `currency`, `transaction_id`, `real_balance_after`, `restri
 `occurred_at` (the event's time).
 
 `records` (spec 015 research R11) on `bet_placed`, `win_credited`, `bet_rolled_back`,
-`restricted_funds_awarded`, `restricted_funds_converted`, `restricted_funds_forfeited` and
-`restricted_funds_closed`: the event's `recordUpdates` (an award's new record), each as `award_id` (the
+`restricted_funds_awarded`, `restricted_funds_converted`, `restricted_funds_forfeited`,
+`restricted_funds_closed`, `admin_adjusted` (an adjustment of restricted money), `provider_credited`
+(a credit landing on restricted money) and `hold_placed` (a hold that forfeits a record or draws on a
+capped one, closing it or not): the event's `recordUpdates` (an award's new record), each as `award_id` (the
 record's grant), `status` (`ACTIVE`, `CONVERTED_PENDING_CAP`, `FORFEITED`, `CLOSED`), `balance_cents`,
 `progress_cents` (`releasedProgress`), `requirement_cents` (`releaseRequirement`), after the movement;
 every fact of the event carries all of them; absent when the event changed no record.

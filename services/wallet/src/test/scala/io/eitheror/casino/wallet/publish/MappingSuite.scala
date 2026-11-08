@@ -154,6 +154,9 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
     case x: f.RestrictedFundsConverted => x.records
     case x: f.RestrictedFundsForfeited => x.records
     case x: f.RestrictedFundsClosed    => x.records
+    case x: f.AdminAdjusted            => x.records
+    case x: f.ProviderCredited         => x.records
+    case x: f.HoldPlaced               => x.records
     case _                             => None
 
   private def touched(id: String, grant: String, status: String, balance: Long, progress: Long, requirement: Long) =
@@ -192,6 +195,35 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
     assertEquals(progressOf(Facts.moneyTransactions(wallet, realOnly).head.fact), None)
     val noRecord = RestrictedFundsCancelled("c-2", "d", "t-c2", Vector.empty, 300, 0, Vector.empty, 0, 0, t0, ok)
     assertEquals(progressOf(Facts.moneyTransactions(wallet, noRecord).head.fact), None)
+  }
+
+  test("spec 015: an adjustment of restricted money carries the record after it; one of real money writes no records") {
+    val restricted = AdminAdjusted("a-1", "d", "t-a", "restricted", -500, Personal("x"), "correction", "op-7", Some("rf-1"), None,
+      Vector(touched("rf-1", "grant-1", "ACTIVE", 1500, 200, 20000)), 0, 1500, t0, ok)
+    assertEquals(progressOf(Facts.moneyTransactions(wallet, restricted).head.fact),
+      Some(Vector(f.RecordProgress("grant-1", "ACTIVE", units(1500), units(200), units(20000)))))
+    val real = AdminAdjusted("a-2", "d", "t-a2", "real", 500, Personal("x"), "goodwill", "op-7", None, None, Vector.empty, 500, 0, t0, ok)
+    assertEquals(progressOf(Facts.moneyTransactions(wallet, real).head.fact), None)
+  }
+
+  test("spec 015: a provider credit landing on restricted money carries the record after it; one landing on real writes no records") {
+    val restricted = ProviderCredited("pc-1", "d", "t-p", 700, "fs-9", "free spins", "st8", "restricted", Some("rf-1"),
+      Vector(touched("rf-1", "grant-1", "ACTIVE", 2700, 0, 20000)), 0, 2700, t0, ok)
+    assertEquals(progressOf(Facts.moneyTransactions(wallet, restricted).head.fact),
+      Some(Vector(f.RecordProgress("grant-1", "ACTIVE", units(2700), units(0), units(20000)))))
+    val real = ProviderCredited("pc-2", "d", "t-p2", 700, "fs-9", "free spins", "st8", "real", None, Vector.empty, 700, 0, t0, ok)
+    assertEquals(progressOf(Facts.moneyTransactions(wallet, real).head.fact), None)
+  }
+
+  test("spec 015: a hold drawing on a capped record without closing it carries the record on hold_placed; a real-only hold writes no records") {
+    val drawn = HoldPlaced("w-1", "d", "t-h", "w-1", 500, Vector.empty, 0, Vector(CapDraw("rf-1", 0, 100, closes = false)), 0, 500,
+      Vector.empty, false, Vector(touched("rf-1", "grant-1", "CONVERTED_PENDING_CAP", 0, 2000, 2000)), 0, 0, t0, ok)
+    assertEquals(families(drawn), Vector("hold_placed"))
+    assertEquals(progressOf(Facts.moneyTransactions(wallet, drawn).head.fact),
+      Some(Vector(f.RecordProgress("grant-1", "CONVERTED_PENDING_CAP", units(0), units(2000), units(2000)))))
+    val realOnly = HoldPlaced("w-2", "d", "t-h2", "w-2", 500, Vector.empty, 0, Vector.empty, 0, 500, Vector.empty, false,
+      Vector.empty, 500, 0, t0, ok)
+    assertEquals(progressOf(Facts.moneyTransactions(wallet, realOnly).head.fact), None)
   }
 
   private def units(v: Long) = io.eitheror.casino.contract.money.MinorUnits.unsafe(v)

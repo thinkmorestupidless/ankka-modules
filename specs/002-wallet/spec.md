@@ -637,8 +637,10 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   ordinal (1 for the wallet's first confirmed deposit, counted per player and currency), which
   `rewards` reads as the deposit number (spec 011 FR-012);
   `bet_placed`, `win_credited`, `bet_rolled_back`, `restricted_funds_awarded`,
-  `restricted_funds_converted`, `restricted_funds_forfeited` and `restricted_funds_closed` MUST carry
-  `records`, each restricted funds record the movement changed as it stands after it — `award_id`,
+  `restricted_funds_converted`, `restricted_funds_forfeited`, `restricted_funds_closed`,
+  `admin_adjusted`, `provider_credited` and `hold_placed` (the last three where an adjustment of
+  restricted money, a credit landing on restricted money or a hold's forfeit or cap draw changes a
+  record) MUST carry `records`, each restricted funds record the movement changed as it stands after it — `award_id`,
   `status` (the record's own: `ACTIVE`, `CONVERTED_PENDING_CAP`, `FORFEITED`, `CLOSED`),
   `balance_cents`, `progress_cents` (wagering progressed) and `requirement_cents` (wagering
   required) — on every fact of that movement, and none (absent, not empty) when it changed no

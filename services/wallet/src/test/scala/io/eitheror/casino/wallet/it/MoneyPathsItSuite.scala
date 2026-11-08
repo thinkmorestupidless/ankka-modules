@@ -135,6 +135,20 @@ class MoneyPathsItSuite extends Harness:
     assert(!money.find(_.contains("deposit_confirmed")).get.contains("\"records\""), "a deposit changes no record")
   }
 
+  test("spec 015: an operator's adjustment of restricted money carries the record after it; one of real money writes no records") {
+    deposit("ar", "pay-1", 1000)
+    send("POST", s"${wallet("ar")}/awards", Some("""{"key":"grant-1","bonusRef":"welcome","amount":2000,"wageringMultiplier":10,"maxWin":5000}"""), as = rewards)
+    val adjust = s"/v1/casino/backoffice/$brand/wallets/ar/EUR/adjustments"
+    assertEquals(sendWithToken("POST", adjust, TestTokens.operator("op-1"),
+      Some("""{"key":"a-1","walletType":"bonus","amount":"5.00","reason":"goodwill","category":"goodwill"}"""))._1, 200)
+    assertEquals(sendWithToken("POST", adjust, TestTokens.operator("op-1"),
+      Some("""{"key":"a-2","walletType":"real","amount":"1.00","reason":"goodwill","category":"goodwill"}"""))._1, 200)
+    val adjusted = eventually(facts("money.transactions", "ar/EUR"))(_.count(_.contains("admin_adjusted")) == 2).filter(_.contains("admin_adjusted"))
+    val restricted = adjusted.find(_.contains("\"target\":\"restricted\"")).get
+    assert(restricted.contains("\"records\":[{\"award_id\":\"grant-1\",\"status\":\"ACTIVE\"") && restricted.contains("\"balance_cents\":2500"), restricted)
+    assert(!adjusted.find(_.contains("\"target\":\"real\"")).get.contains("\"records\""), "a real adjustment changes no record")
+  }
+
   private def bet(player: String, key: String, round: String, amount: Long) =
     send("POST", s"${wallet(player)}/bets", Some(s"""{"key":"$key","roundId":"$round","gameId":"slot-a","amount":$amount}"""))
 
