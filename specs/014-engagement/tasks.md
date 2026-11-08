@@ -278,7 +278,7 @@ end in `just players-run` + `just engagement-run`.
       `Delivered` → `push_delivered` with the bare message id); `S/timers/SweepTimer.scala`
       (`sweep-<player>` recurring 30 s while above zero, cancelled at zero). Suites:
       `T/facts/PushFactsSuite.scala` (no fact for `Leased`, `Acked`, `Signalled`, read or delete).
-- [ ] T044 [US6] `T/it/StreamSuite.scala` (`ready`, the heartbeat, a `signal` after
+- [X] T044 [US6] `T/it/StreamSuite.scala` (`ready`, the heartbeat, a `signal` after
       `player_message_created`, `closing` for each reason, the refusals, two devices converging on a
       read) and `T/it/ChannelSuite.scala` (SC-004: two connections, one signal each within 2 s, one
       `push_delivered` of 2, nothing for a player with no connection, across `restartService()`;

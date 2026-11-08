@@ -151,11 +151,18 @@ final class Kit(base: Settings = Kit.Base):
   def timerExists(name: String): Boolean =
     Kit.query(testKit.jdbcUrl, s"SELECT count(*) FROM ankka_timers WHERE timer_name = '${name.replace("'", "''")}'").headOption.contains("1")
 
-  /** The timer named, due now as far as the timer runtime is concerned. */
+  /**
+   * The timer named, due now as far as the timer runtime is concerned. A recurring timer's `due_at` is `infinity`
+   * and its next run is `fire_at` (ankka's `30-timers-postgres.sql`); a finite `due_at` would make it fire once and go.
+   */
   def fireTimer(name: String): Unit =
     val c = java.sql.DriverManager.getConnection(testKit.jdbcUrl, "ankka", "ankka")
     try
-      val s = c.prepareStatement("UPDATE ankka_timers SET due_at = now() WHERE timer_name = ?")
+      val s = c.prepareStatement(
+        """UPDATE ankka_timers SET due_at = CASE WHEN period_millis IS NULL THEN now() ELSE due_at END,
+          |  fire_at = CASE WHEN period_millis IS NULL THEN fire_at ELSE now() END,
+          |  due_for = CASE WHEN period_millis IS NULL THEN due_for ELSE now() END
+          |WHERE timer_name = ?""".stripMargin)
       s.setString(1, name)
       s.executeUpdate(): Unit
     finally c.close()
