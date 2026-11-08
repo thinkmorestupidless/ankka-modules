@@ -51,7 +51,7 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server)
   )
   probe.bind(testKit)
-  ReportingService.started(current, testKit.service.viewClient, timers.timerScheduler)
+  ReportingService.started(current, testKit.service.viewClient, timers.timerScheduler, () => clock.instant())
 
   def base: String = s"http://127.0.0.1:${server.boundPort.get}"
   def components   = testKit.componentClient
@@ -81,7 +81,7 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
     ReportingService.wire(next)
     Coverage.forget()
     testKit.startService(descriptors = ReportingService.descriptors(next, clock))
-    ReportingService.started(next, testKit.service.viewClient, timers.timerScheduler)
+    ReportingService.started(next, testKit.service.viewClient, timers.timerScheduler, () => clock.instant())
     next.generation
 
   def stop(): Unit = testKit.stop()
@@ -131,6 +131,13 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
   def path(rest: String, slug: String = brand): String = s"/v1/casino/brands/$slug/reporting$rest"
 
   def get(rest: String, as: Seq[(String, String)]): Reply = request("GET", path(rest), headers = as)
+
+  /** A GET whose body is read as bytes (a PDF): its status, headers and body. */
+  def getBytes(rest: String, as: Seq[(String, String)]): (Int, Map[String, Vector[String]], Array[Byte]) =
+    val b = HttpRequest.newBuilder(URI.create(base + path(rest))).timeout(java.time.Duration.ofSeconds(30)).GET()
+    as.foreach((k, v) => b.header(k, v))
+    val r = http.send(b.build(), HttpResponse.BodyHandlers.ofByteArray())
+    (r.statusCode, r.headers.map.asScala.view.mapValues(_.asScala.toVector).toMap, r.body)
 
   // ── who is calling ──────────────────────────────────────────────────────────────────────────────
 

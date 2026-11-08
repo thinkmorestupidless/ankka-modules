@@ -94,17 +94,23 @@ class LedgerSuite extends munit.FunSuite with LogCapturing:
     assert(want.head(3).endsWith("…") && want.head(3).length == 26, want.head(3))
   }
 
-  test("the export holds every one of the 5,000, as JSON and as CSV") {
+  test("the export holds every one of the 5,000, as JSON and as CSV, the CSV a job over the synchronous limit (FR-022)") {
     val want = s.ledger(from, to, of = Some(Set(many))).map(wanted(_))
     settled("&playerEmail=many.transactions", Count): Unit
     val json = kit.get(s"/reports/transactions/export?from=$day&to=$day&playerEmail=many.transactions", kit.asFinance)
     assertEquals(json.status, 200, json.text.take(500))
     assertEquals((json.json.path("totalCount").asLong, json.json.path("page").asInt), (Count.toLong, 0))
     assertEquals(rows(json.json), want)
-    val csv = kit.get(s"/reports/transactions/export?from=$day&to=$day&playerEmail=many.transactions&format=csv", kit.asFinance)
+    val job = kit.get(s"/reports/transactions/export?from=$day&to=$day&playerEmail=many.transactions&format=csv", kit.asFinance)
+    assertEquals((job.status, job.json.path("status").asText), (202, "generating"), job.text.take(500))
+    val reference = job.json.path("reference").asText
+    val csv = Disputed.served(kit, reference, kit.asFinance)
     assertEquals(csv.status, 200, csv.text.take(500))
-    assert(csv.header("Content-Disposition").exists(_.matches("attachment; filename=\"transactions-report-[0-9a-f-]{36}\\.csv\"")),
-      csv.headers.toString)
+    assertEquals(csv.header("Content-Disposition"), Some(s"attachment; filename=\"transactions-report-$reference.csv\""))
+    // Rendered a thousand rows a page; the record says how many, and names the email search only as given.
+    val record = Disputed.document(kit, reference)
+    assertEquals((record.status, record.rows, record.parameters.get("playerEmail")), ("ready", Count.toLong, Some("given")))
+    assert(!record.parameters.values.exists(_.contains("many.transactions")), record.parameters)
     val lines = csv.text.split("\r\n").toVector
     assertEquals(lines.head, "transactionId,timestamp,playerId,truncatedEmail,transactionType,amount,currency,reference")
     assertEquals(lines.tail, want.map(_.mkString(",")))

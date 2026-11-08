@@ -228,20 +228,20 @@ lifetimes and erasure.
 
 **Independent test**: `DisputeSuite`, `DocumentsSuite`; the seven scenarios of `disputes.feature`.
 
-- [ ] T050 [P] [US5] Bind the seven scenarios of `disputes.feature` in `r-test/features/DisputesSteps.scala`
-- [ ] T051 [P] [US5] `r-test/it/DisputeSuite.scala`: session and range modes, the five 400s and two 404s
+- [X] T050 [P] [US5] Bind the seven scenarios of `disputes.feature` in `r-test/features/DisputesSteps.scala`
+- [X] T051 [P] [US5] `r-test/it/DisputeSuite.scala`: session and range modes, the five 400s and two 404s
   with the original's texts, attachments named `dispute-report-{ref}.{ext}`, an unmatched round, a job past
   seven days
 - [ ] T052 [P] [US5] `r-test/it/DocumentsSuite.scala`: lifetimes per kind, the sweep after a lost pause,
   erasure deleting kept documents with records kept (SC-006); `r-test/it/DumpSuite.scala`
   (`assertNoPersonalValue`)
-- [ ] T053 [US5] `r/documents/Document.scala`, `r/documents/Documents.scala` (view), `r/documents/DocumentJob.scala`
+- [X] T053 [US5] `r/documents/Document.scala`, `r/documents/Documents.scala` (view), `r/documents/DocumentJob.scala`
   (render paged, store, pause for the lifetime, expire), `r/documents/Sweep.scala` (`sweep-documents`
   hourly), the `.players` sidecar and subject-prefixed names (research R9)
 - [X] T054 [US5] `r/render/DisputeReport.scala`: HTML and CSV in `C/ReportService.scala`'s layout (its
   `ReportServiceSpec` cases ported as `r-test/render/DisputeReportSuite.scala`), PDF from the HTML (research
   R20 item 5)
-- [ ] T055 [US5] `r/api/Disputes.scala` `GET /players/{playerId}/dispute-report` and `r/api/Documents.scala`
+- [X] T055 [US5] `r/api/Disputes.scala` `GET /players/{playerId}/dispute-report` and `r/api/Documents.scala`
   `GET /documents`, `GET /documents/{reference}` (`410 document_expired`)
 - [ ] T056 [US5] `r/documents/Erasure.scala`: the `ErasureHandler` and `POST /erasure/players/{playerId}`
   (`Routes.playersOnly`), deleting the subject's objects and every kept document whose sidecar names the

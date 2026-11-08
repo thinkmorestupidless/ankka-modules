@@ -12,8 +12,11 @@ import java.time.Instant
 final case class ProviderFigures(provider: String, providerRoundId: String, game: String, gameName: Option[String] = None,
     gameType: Option[String] = None, session: String, stake: Long, win: Long, outcome: String, at: Instant)
 
-/** What the wallet moved for a round: its stakes, wins and rollbacks, from `WalletBook`'s legs. */
-final case class WalletFigures(stake: Long = 0, win: Long = 0, rollback: Long = 0)
+/**
+ * What the wallet moved for a round: its stakes, wins and rollbacks, from `WalletBook`'s legs, and its first leg's time,
+ * which places a round the provider's record lacks in the dispute report (FR-017).
+ */
+final case class WalletFigures(stake: Long = 0, win: Long = 0, rollback: Long = 0, at: Option[Instant] = None)
 
 /**
  * One round as the provider and the wallet each saw it (data-model.md `RoundCheck`, key value,
@@ -41,7 +44,8 @@ final case class RoundCheckState(
 final case class ProviderSettled(player: String, currency: String, roundId: String, figures: ProviderFigures, day: String)
 
 /** One wallet leg of a round: `bet_placed`, `win_credited`, `bet_rolled_back` or `round_settled_as_loss`. */
-final case class WalletLeg(factId: String, player: String, currency: String, roundId: String, family: String, amount: Long, day: String)
+final case class WalletLeg(factId: String, player: String, currency: String, roundId: String, family: String, amount: Long, day: String,
+    at: Option[Instant] = None)
 
 object RoundChecks:
   val Matched      = "matched"
@@ -67,7 +71,8 @@ object RoundChecks:
   def wallet(s: RoundCheckState, l: WalletLeg): RoundCheckState =
     if s.legs.contains(l.factId) then s
     else
-      val w = s.wallet.getOrElse(WalletFigures())
+      val w0 = s.wallet.getOrElse(WalletFigures())
+      val w  = w0.copy(at = (w0.at ++ l.at).minOption)
       val next = l.family match
         case "bet_placed"      => w.copy(stake = w.stake + l.amount)
         case "win_credited"    => w.copy(win = w.win + l.amount)
@@ -131,7 +136,7 @@ final class RoundLegsConsumer(client: ComponentClient, settings: Settings) exten
     case m: Moved if m.casino && RoundChecks.families.contains(m.family) && Generation.belongs(messageContext.subject, settings.generation) =>
       m.roundId.fold(effects.ignore()) { round =>
         client.forKeyValueEntity(EntityId(RoundCheck.id(settings.generation, m.player, m.currency, round))).call(RoundCheck.wallet)
-          .invoke(WalletLeg(m.factId, m.player, m.currency, round, m.family, m.amount, m.roundDay.getOrElse(m.day))): Unit
+          .invoke(WalletLeg(m.factId, m.player, m.currency, round, m.family, m.amount, m.roundDay.getOrElse(m.day), Some(m.at))): Unit
         effects.done()
       }
     case _ => effects.ignore()

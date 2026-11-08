@@ -83,7 +83,7 @@ class RoundCheckSuite extends munit.FunSuite:
     val moved = Moved("f1", "win_credited", "win", 250, 250, Some("r-1"), "r-1", "2026-11-09", Some("2026-11-08"), at, casino = true,
       None, "p-1", "EUR", "t1", 0, 0)
     assertEquals(kit.onMessage(moved, subject = "g1/p-1/EUR").effect, ConsumerEffect.Done)
-    assertEquals(r.calls.map(_.as[WalletLeg](using RoundCheck.given_Serializer_WalletLeg)), Vector(WalletLeg("f1", "p-1", "EUR", "r-1", "win_credited", 250, "2026-11-08")))
+    assertEquals(r.calls.map(_.as[WalletLeg](using RoundCheck.given_Serializer_WalletLeg)), Vector(WalletLeg("f1", "p-1", "EUR", "r-1", "win_credited", 250, "2026-11-08", Some(at))))
     assertEquals(kit.onMessage(moved, subject = "g2/p-1/EUR").effect, ConsumerEffect.Ignore)
     assertEquals(kit.onMessage(moved.copy(family = "deposit_confirmed", roundId = None), subject = "g1/p-1/EUR").effect, ConsumerEffect.Ignore)
     assertEquals(kit.onMessage(RecordsChanged("f1", Vector.empty), subject = "g1/p-1/EUR").effect, ConsumerEffect.Ignore)

@@ -57,7 +57,23 @@ object Rounds extends View.Companion[RoundRows, RoundCheckState, RoundRow](
   val latestForGame = query("latest-for-game")(
     s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'game' = :game ORDER BY (payload::jsonb->'provider'->>'at')::timestamptz DESC, row_key LIMIT 1")
 
+  /**
+   * A player's rounds the wallet settled and the provider's record lacks, by the wallet's first leg from `from`
+   * (inclusive) to `to` (exclusive): the dispute report includes them, unmatched (FR-017).
+   */
+  val walletOnlyOf = query("wallet-only-of")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'player' = :player AND payload::jsonb->>'status' = '${RoundChecks.WalletOnly}' AND (payload::jsonb->'wallet'->>'at')::timestamptz >= (:from)::timestamptz AND (payload::jsonb->'wallet'->>'at')::timestamptz < (:to)::timestamptz ORDER BY (payload::jsonb->'wallet'->>'at')::timestamptz, row_key")
+
   def create(ctx: ViewComponentContext) = new RoundRows
+
+  private val Every = 10_000_000
+
+  def ofGameSession(views: ViewClient, generation: Int, session: String): Vector[RoundRow] =
+    views.forView(Rounds).ask(byGameSession, Every, "generation" -> generation.toString, "session" -> session)
+
+  def walletOnly(views: ViewClient, generation: Int, player: String, from: java.time.Instant, to: java.time.Instant): Vector[RoundRow] =
+    views.forView(Rounds).ask(walletOnlyOf, Every, "generation" -> generation.toString, "player" -> player, "from" -> from.toString,
+      "to" -> to.toString)
 
   def latest(views: ViewClient, generation: Int, game: String): Option[RoundRow] =
     views.forView(Rounds).ask(latestForGame, 1, "generation" -> generation.toString, "game" -> game).headOption

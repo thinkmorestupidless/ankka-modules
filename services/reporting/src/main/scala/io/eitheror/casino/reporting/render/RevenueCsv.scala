@@ -21,5 +21,8 @@ object RevenueCsv:
     Vector(date, s(m.stakes - m.rollbacks), s(m.wins), s(m.ggr), s(m.poolGgr), s(m.bonusCost), s(m.chargebacks), s(m.ngr),
       s(m.deposits), s(m.withdrawals), s(m.deposits - m.withdrawals), currency, Figures.NgrBasis)
 
-  def render(revenue: Revenue, from: LocalDate, to: LocalDate): String =
-    Csv(Header, row(s"$from/$to", revenue.total, revenue.currency) +: revenue.days.map((d, m) => row(d.toString, m, revenue.currency)))
+  /** The summary row, then one row per day. */
+  def rows(revenue: Revenue, from: LocalDate, to: LocalDate): Vector[Vector[String]] =
+    row(s"$from/$to", revenue.total, revenue.currency) +: revenue.days.map((d, m) => row(d.toString, m, revenue.currency)).toVector
+
+  def render(revenue: Revenue, from: LocalDate, to: LocalDate): String = Csv(Header, rows(revenue, from, to))

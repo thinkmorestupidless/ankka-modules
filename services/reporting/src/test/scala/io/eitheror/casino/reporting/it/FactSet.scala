@@ -72,11 +72,12 @@ final class FactSet(val zone: ZoneId):
   // ── casino.sessions and casino.rounds ───────────────────────────────────────────────────────────
 
   /** A login session, open unless it ended. */
-  def login(player: String, session: String, started: Instant, ended: Option[Instant] = None): Unit =
+  def login(player: String, session: String, started: Instant, ended: Option[Instant] = None, address: String = "203.0.113.9",
+      agent: String = "Firefox/140", reason: String = "logout"): Unit =
     sess :+= Sess(player, session, "player", None, started, ended)
     later { kit =>
-      kit.publish(f.CasinoSessions, f.PlayerSessionStarted(player, session, Marked("203.0.113.9"), Marked("Firefox/140"), started))
-      ended.foreach(e => kit.publish(f.CasinoSessions, f.PlayerSessionEnded(player, session, "logout", e)))
+      kit.publish(f.CasinoSessions, f.PlayerSessionStarted(player, session, Marked(address), Marked(agent), started))
+      ended.foreach(e => kit.publish(f.CasinoSessions, f.PlayerSessionEnded(player, session, reason, e)))
     }
 
   /** A game session under a login session, open unless it ended. */

@@ -24,6 +24,9 @@ final class Ctx(val clients: EndpointClients, val authenticate: () => Acl, val n
   def components         = clients.componentClient
   def views              = clients.viewClient
 
+  /** What a report's rows are read through, as a document job reads them too. */
+  def reads: Reads = Reads(views, components, settings, now)
+
   /** Today, a reporting day in the brand's zone (FR-006). */
   def today: LocalDate = LocalDate.parse(Days.dayOf(now(), settings.reportingZone))
 
@@ -67,6 +70,14 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/dashboard/activity") { () => Dashboard.activity(ctx) }
     get("/dashboard/bonus-summary") { () => Dashboard.bonusSummary(ctx, query.raw("currency")) }
     get("/dashboard/payment-health") { () => Dashboard.paymentHealth(ctx, query.raw("currency")) }
+    // The dispute report admits every operator of the brand, as the original (FR-023).
+    get("/players/{playerId}/dispute-report") { (playerId: String) =>
+      Disputes.report(ctx, playerId, query.raw("sessionId"), query.raw("fromDate"), query.raw("toDate"), query.raw("format"),
+        principal.subject)
+    }
+    // A document is admitted by its kind's roles, checked once its record is read (contracts/routes.md, *Admission*).
+    get("/documents") { () => Documents.list(ctx, principal, query.raw("kind"), query.raw("from"), query.raw("to")) }
+    get("/documents/{reference}") { (reference: String) => Documents.get(ctx, principal, reference) }
   }
 
   withAcl(access.status) {

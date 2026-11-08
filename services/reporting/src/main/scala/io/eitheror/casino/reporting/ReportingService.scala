@@ -31,6 +31,9 @@ object ReportingService:
     Coverage.descriptor,
     io.eitheror.casino.reporting.settings.ReportingSettings.descriptor,
     documents.Document.descriptor,
+    documents.Documents.descriptor,
+    documents.DocumentJob.descriptor,
+    documents.Sweep.descriptor,
     day.BrandDay.descriptor,
     day.OpenDays.descriptor,
     day.DaysView.descriptor,
@@ -58,11 +61,17 @@ object ReportingService:
   /** What the timed actions and the endpoint are constructed without (see `ReportingRuntime`), before the service starts. */
   def wire(settings: Settings): Unit = ReportingRuntime.settings.set(settings)
 
-  /** The reads that need the running service's view client, and the recurring timers; at every start. */
-  def started(settings: Settings, views: ViewClient, timers: TimerScheduler): Unit =
+  /**
+   * The reads that need the running service's view client, the clock a document's times are read from, and the recurring
+   * timers; at every start.
+   */
+  def started(settings: Settings, views: ViewClient, timers: TimerScheduler, now: () => Instant = () => Instant.now()): Unit =
+    ReportingRuntime.viewClient.set(Some(views))
+    ReportingRuntime.clock.set(now)
     ReportingRuntime.openBefore.set(d =>
       views.forView(day.OpenDays).ask(day.OpenDays.openBefore, 10_000, "generation" -> settings.generation.toString, "day" -> d))
     day.CloseDays.schedule(timers)
+    documents.Sweep.schedule(timers)
 
   /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */
   private def casino(settings: Settings): Seq[ComponentDescriptor] =

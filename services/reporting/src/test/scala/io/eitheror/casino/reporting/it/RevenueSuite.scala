@@ -163,7 +163,7 @@ class RevenueSuite extends munit.FunSuite with LogCapturing:
     // Kept under the brand's bucket with a record naming who asked and what, and no person.
     val kept = kit.testKit.storage.default.getBytes(s"reports/report-export/$reference.csv").map((_, b) => String(b, UTF_8))
     assertEquals(kept, Some(r.text))
-    val record = kit.components.forKeyValueEntity(EntityId(reference)).call(Document.get).invoke()
+    val record = kit.components.forEventSourcedEntity(EntityId(reference)).call(Document.get).invoke()
     assertEquals((record.kind, record.format, record.status, record.askedBy, record.from, record.to, record.rows),
       ("report-export", "csv", "ready", "finance-1", Some(d1.toString), Some(d3.toString), 4L))
     assertEquals(record.objectName, Some(s"reports/report-export/$reference.csv"))
