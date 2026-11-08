@@ -91,12 +91,15 @@ object Imports:
   /** How many accounts are looked up or sealed at once: each is a few calls, and done one by one a bundle outlasts the request. */
   val Parallelism = 16
 
+  /** Within the request's 20 s: each call has its own timeout, and this bounds them all. */
+  val Within: FiniteDuration = 18.seconds
+
   /** `f` over `as` on a pool of its own, `Parallelism` at a time, the answers in `as`'s order. */
   def concurrently[A, B](as: Vector[A])(f: A => B): Vector[B] =
     val pool = java.util.concurrent.Executors.newFixedThreadPool(Parallelism)
     try
       given scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.fromExecutor(pool)
-      scala.concurrent.Await.result(scala.concurrent.Future.traverse(as)(a => scala.concurrent.Future(f(a))), Duration.Inf)
+      scala.concurrent.Await.result(scala.concurrent.Future.traverse(as)(a => scala.concurrent.Future(f(a))), Within)
     finally pool.shutdown()
 
   /** The bundle's own id: the same bytes posted again are the same import. */

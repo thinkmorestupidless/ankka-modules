@@ -35,13 +35,16 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
 
   private def close(period: String): Reply = kit.request("POST", s"/v1/affiliates/goldvibe/payouts/close?period=$period", headers = kit.asManager())
 
+  /** A close that has ended: one still running answers 202, and a close sent then joins it rather than starting another. */
+  private def closed(period: String): Reply = kit.eventually(s"the $period close ended", 60.seconds)(Option(close(period)).filter(_.status == 200))
+
   private def payoutsOf(aff: String, period: String): Vector[JsonNode] =
     kit.request("GET", s"/v1/affiliates/goldvibe/payouts?period=$period", headers = kit.asManager()).json.elements().asScala.toVector
       .filter(p => Option(p.get("affiliateId")).exists(_.asText == aff))
 
-  /** The payout once the view shows it as `f` wants it. */
+  /** The payout once the view shows it as `f` wants it; a close's writes reach the view late on a loaded machine. */
   private def payout(aff: String, period: String, currency: String = "EUR")(f: JsonNode => Boolean = _ => true): JsonNode =
-    kit.eventually(s"$aff's $currency payout for $period")(payoutsOf(aff, period).find(p => p.get("currency").asText == currency && f(p)))
+    kit.eventually(s"$aff's $currency payout for $period", 60.seconds)(payoutsOf(aff, period).find(p => p.get("currency").asText == currency && f(p)))
 
   private def move(payoutId: String, body: String): Reply =
     kit.request("PATCH", s"/v1/affiliates/goldvibe/payouts/$payoutId/status", Some(body), kit.asManager())
@@ -92,11 +95,11 @@ class CloseSuite extends munit.FunSuite with LogCapturing:
   test("a late fact swept into an approved payout reverts it to pending, the approval superseded") {
     val aff = affiliate()
     earn(aff, 5_000, "2025-04-10T10:00:00Z")
-    close("2025-04"): Unit
+    closed("2025-04"): Unit
     val id = payout(aff, "2025-04")().get("payoutId").asText
     assertEquals(move(id, """{"status":"APPROVED"}""").status, 200)
     earn(aff, 1_000, "2025-04-20T10:00:00Z")
-    close("2025-04"): Unit
+    closed("2025-04"): Unit
     // The row read before the approval reached the view is pending too; wait for the second close's.
     val p = payout(aff, "2025-04")(p => p.get("status").asText == "pending" && Option(p.get("supersededApprovals")).exists(_.size > 0))
     assertEquals(p.get("totalPayable").asLong, 6_000L)

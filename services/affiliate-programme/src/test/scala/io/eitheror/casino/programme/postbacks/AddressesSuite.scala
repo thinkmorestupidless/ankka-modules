@@ -14,14 +14,17 @@ class AddressesSuite extends munit.FunSuite:
     assertEquals(Addresses.refusal("ftp://localhost/pb", plainHttp = true), Some("not an http address"))
   }
 
-  test("the cluster's own addresses are refused: loopback, private, link-local, CGNAT, metadata, ULA and mapped") {
+  test("the cluster's own addresses are refused: loopback, private, link-local, CGNAT, metadata, benchmarking, reserved, ULA, mapped, NAT64 and 6to4") {
     val refused = Seq(
       "https://localhost/pb", "https://svc.cluster.local/pb", "https://metadata.google.internal/pb", "https://127.0.0.1/pb",
       "https://10.1.2.3/pb", "https://172.16.0.1/pb", "https://192.168.1.1/pb", "https://169.254.169.254/latest/meta-data",
       "https://100.64.0.1/pb", "https://0.0.0.0/pb", "https://[::1]/pb", "https://[fd00::1]/pb", "https://[fe80::1]/pb",
-      "https://[::ffff:10.0.0.1]/pb"
+      "https://[::ffff:10.0.0.1]/pb", "https://198.18.0.1/pb", "https://240.0.0.1/pb", "https://[64:ff9b::a00:1]/pb",
+      "https://[2002:a00:1::]/pb"
     )
     refused.foreach(u => assert(Addresses.refusal(u, plainHttp = false).isDefined, u))
+    // An IPv4 address inside NAT64 or 6to4 is judged as itself: a public one passes.
+    Seq("https://[64:ff9b::808:808]/pb", "https://[2002:808:808::]/pb").foreach(u => assertEquals(Addresses.refusal(u, plainHttp = false), None, u))
   }
 
   test("at send time a host that resolves inside is refused, and plain http checks nothing") {

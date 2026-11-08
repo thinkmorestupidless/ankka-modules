@@ -75,7 +75,10 @@ object Parity:
     Divergence(13, "a payout's approval stands while it does: a rejection is recorded as rejectedBy, and an approval a close supersedes moves to supersededApprovals; the original left approvedBy and approvedAt on both",
       s => s.request.method == "GET" && s.request.path.contains("/payouts?"), Seq("$.approvedBy", "$.approvedAt"), _.observed == "absent"),
     Divergence(0, "a close claims only unsettled facts (FR-018): the original's next close claimed again what its paid and rejected payouts held, its stamps not holding (CommissionEngine.scala:759)",
-      s => s.name == "list the next period's payouts", Seq("$.affiliateId", "$.adjustments", "$.totalPayable")),
+      s => s.name == "list the next period's payouts", Seq("$.affiliateId", "$.adjustments", "$.totalPayable"),
+      // Less claimed, never more: a row the original claimed again is absent, and a figure no greater than its.
+      d => if d.at.endsWith(".affiliateId") then d.observed == "absent"
+           else d.observed == "absent" || scala.util.Try(d.observed.toLong <= d.expected.toLong).getOrElse(false)),
     Divergence(0, "a flag's reason is its kind and the original's text its description (research.md T070)",
       path(""".*/fraud-flags.*"""), Seq("$.reason"), d => Set("bonus-cost", "chargeback")(d.observed)),
     Divergence(1, "a rejection is a membership's, and its reason with it (memberships[].rejectionReason); the original's account was the brand's",

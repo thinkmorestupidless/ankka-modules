@@ -45,10 +45,17 @@ object Addresses:
     a.isLoopbackAddress || a.isAnyLocalAddress || a.isLinkLocalAddress || a.isSiteLocalAddress || a.isMulticastAddress || (a match
       case v4: Inet4Address =>
         val b = v4.getAddress.map(_ & 0xff)
-        (b(0) == 100 && (b(1) & 0xc0) == 64) || b(0) == 0 || (b(0) == 169 && b(1) == 254)
+        // Shared (100.64/10), "this network", link-local, benchmarking (198.18/15) and reserved (240/4).
+        (b(0) == 100 && (b(1) & 0xc0) == 64) || b(0) == 0 || (b(0) == 169 && b(1) == 254) ||
+          (b(0) == 198 && (b(1) & 0xfe) == 18) || b(0) >= 240
       case v6: Inet6Address =>
         val b = v6.getAddress.map(_ & 0xff)
-        (b(0) & 0xfe) == 0xfc || isMapped(b) && internal(InetAddress.getByAddress(b.drop(12).map(_.toByte)))
+        // Unique-local; and an IPv4 address carried inside one: mapped, NAT64 (64:ff9b::/96) or 6to4 (2002::/16).
+        def v4(at: Int) = internal(InetAddress.getByAddress(b.slice(at, at + 4).map(_.toByte)))
+        (b(0) & 0xfe) == 0xfc || (isMapped(b) && v4(12)) || (isNat64(b) && v4(12)) || (b(0) == 0x20 && b(1) == 0x02 && v4(2))
       case _ => false)
+
+  private def isNat64(b: Array[Int]): Boolean =
+    b(0) == 0x00 && b(1) == 0x64 && b(2) == 0xff && b(3) == 0x9b && b.slice(4, 12).forall(_ == 0)
 
   private def isMapped(b: Array[Int]): Boolean = b.take(10).forall(_ == 0) && b(10) == 0xff && b(11) == 0xff
