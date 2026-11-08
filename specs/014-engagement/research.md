@@ -543,6 +543,22 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   emailed: its App calls were taken until the run ended. The original's calls a fail-closed port
   leaves out (marketing without consent, `cooling_off_set` before a self-exclusion, `kyc_rejected`
   for a document) are taken out of what is expected and marked, each under its plan.md row.
+- **A player with no address is sent nothing, not even the identify** (T056, the local quickstart run).
+  A deposit for a player whose profile held no email made the identify and the track and then ended
+  `no_address`, which left two accepted calls with no `accepted` record (SC-008) and broke the spec's
+  edge case ("nothing is sent"). The original's dispatch fires only for a player with an email (the
+  TL trigger `twin.email != ""`), and the recordings never showed it because every recorded player
+  registered with one. `Send.judge` now ends such a send `no_address` before any call (erasure
+  excepted; a request's recipient counts as an address), and `SendSuite`'s case checks that no call
+  at all was made.
+- **Quickstart §6 cannot run on kind until the neighbours move** (T056; asked 2026-11-08, answered
+  "local §5, kind blocked"). engagement runs on ankka 0.16.0 (its `Personal`, for SC-006); players,
+  wallet, responsible-gambling, kyc, payments and programme run on 0.13.0. A platform runs runtimes of
+  its own minor and the one below (ankka `Compatibility`), so kind-ankka (platform 0.14.2) refuses
+  engagement ("runtime 0.16.0 is outside the platform's supported range") and a 0.16 platform would
+  refuse the rest. SC-004 across three instances and SC-009's Playwright suites on kind wait for the
+  brand's services to reach 0.15 or later; §5 ran locally (engagement, a broker, the stub, kind's
+  casino Keycloak for the tokens).
 
 ## Design finished
 

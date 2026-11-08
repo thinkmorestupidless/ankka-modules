@@ -247,7 +247,7 @@ class SendSuite extends munit.FunSuite:
     val r = deposit(id, cls = "service")
     start(r)
     assertEquals(settled(r).outcome, Outcome.NoAddress)
-    assertEquals(kit.crm.sends, Vector.empty)
+    assertEquals(kit.crm.calls.filter(_.raw.contains(id)), Vector.empty)
   }
 
   test("a brand with no site is no_configuration") {

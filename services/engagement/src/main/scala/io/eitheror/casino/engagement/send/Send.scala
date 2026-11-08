@@ -98,7 +98,7 @@ final class Send(context: WorkflowContext) extends Workflow[SendState]:
     val profile = context.componentClient.forKeyValueEntity(EntityId(r.playerId)).call(Profile.get).invoke()
     val config  = context.componentClient.forKeyValueEntity(EntityId(conf.brand)).call(Configuration.get).invoke()
     Send.judge(r, kind, profile, config) match
-      case Some((outcome, reason)) => end(outcome, Some(reason))
+      case Some((outcome, reason)) => end(outcome, Some(reason).filter(_.nonEmpty))
       case None =>
         Send.prepare(r, kind, profile, config, conf.brand, DepositDay.of(at)) match
           case Send.Prepared.Skip              => advance(kind)
@@ -186,14 +186,17 @@ object Send
   val Fallbacks: Map[String, String] = Map("EmailAddressVerification" -> "email_address_verification")
 
   /**
-   * Whether the profile ends the send before `kind` is called (FR-011, FR-012, FR-016; pure). Erasure is never
-   * stopped. An erased player's send is discarded; the identify is otherwise always made. A closed player's track or
-   * transactional is `account_closed`; a marketing one for a player suppressed on its channel `marketing_suppressed`.
+   * Whether the profile ends the send before `kind` is called (FR-011, FR-012, FR-013, FR-016; pure). Erasure is
+   * never stopped. An erased player's send is discarded. A player with no address, and no recipient on the request,
+   * is sent nothing, not even the identify: `no_address`, as the original's dispatch, which fired only for a player
+   * with an email. The identify is otherwise always made. A closed player's track or transactional is
+   * `account_closed`; a marketing one for a player suppressed on its channel `marketing_suppressed`.
    */
   def judge(r: SendRequest, kind: String, p: ProfileState, config: CrmConfig): Option[(String, String)] =
     if r.trigger == Erasure then None
     else if p.erased then Some(Outcome.Discarded -> Erased)
     else if !config.configured then Some(Outcome.NoConfiguration -> "no_site")
+    else if ProfileState.reveal(r.recipient).orElse(ProfileState.reveal(p.email)).isEmpty then Some(Outcome.NoAddress -> "")
     else if kind == Kind.Identify then None
     else
       val verdict = Suppression.of(p)
