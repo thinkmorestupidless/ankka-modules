@@ -122,7 +122,7 @@ access. Nothing story-specific starts before this phase ends.
   `casino`); suite
 - [X] T022 [P] `r/intake/PlayerLog.scala` and `players-facts`: the status and KYC folds, the email as
   `Personal` under `player/<id>`, the test flag, RG and KYC document events; suite
-- [ ] T023 [P] `r/intake/Session.scala` (key value) and `sessions-facts`; the network address and user agent
+- [X] T023 [P] `r/intake/Session.scala` (key value) and `sessions-facts`; the network address and user agent
   as `Personal`; suite
 - [ ] T024 [P] `r/intake/RoundCheck.scala` (key value), `rounds-facts` (only with `casino`) and `round-legs`
   from `WalletBook`; statuses `matched`, `differs`, `provider_only`, `wallet_only`; suite
