@@ -39,6 +39,7 @@ jobs:
       kyc: ${{ steps.filter.outputs.kyc }}
       payouts: ${{ steps.filter.outputs.payouts }}
       rewards: ${{ steps.filter.outputs.rewards }}
+      engagement: ${{ steps.filter.outputs.engagement }}
       markets: ${{ steps.filter.outputs.markets }}
       exchange: ${{ steps.filter.outputs.exchange }}
     steps:
@@ -129,6 +130,12 @@ jobs:
               - services/rewards/**
               - features/rewards/**
               - tests/port/rewards/**
+            engagement:
+              - *build
+              - services/engagement/**
+              - features/engagement/**
+              - tests/port/engagement/**
+              - tests/stubs/crm-stub/**
             markets:
               - *build
               - services/markets/**
@@ -168,7 +175,7 @@ jobs:
         run: |
           sbt contract/schemas
           git diff --exit-code -- contract/schemas
-      - name: Payment-provider stubs and the wallet and merchant drivers' offline checks
+      - name: Payment-provider and CRM stubs and the wallet and merchant drivers' offline checks
         working-directory: tests
         run: go test ./...
 
@@ -448,6 +455,30 @@ jobs:
       - name: rewards' integration, parity and feature suites
         working-directory: services/rewards
         run: sbt -Dit=true "testOnly io.eitheror.casino.rewards.it.* io.eitheror.casino.rewards.port.* io.eitheror.casino.rewards.features.*"
+
+  # engagement (spec 014): its own sbt build, on ankka 0.16.0, against the contract published from this
+  # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in
+  # Docker and run with -Dit=true. crm-stub's checks run in the check job's `go test ./...`.
+  engagement:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.engagement == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: engagement's suites
+        working-directory: services/engagement
+        run: sbt test
+      - name: engagement's integration, parity and feature suites
+        working-directory: services/engagement
+        run: sbt -Dit=true "testOnly io.eitheror.casino.engagement.it.* io.eitheror.casino.engagement.port.* io.eitheror.casino.engagement.features.*"
 
   # markets (spec 023): its own sbt build against the contract published from this commit, on
   # ankka-predictions from Maven Central; its integration suites run on the runner's Docker.

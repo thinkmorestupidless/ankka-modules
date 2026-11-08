@@ -55,6 +55,13 @@ class ViewsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(ActivityCategory.all.map(ActivityCategory.wire), Vector("Transactions", "Games", "Bonus", "Account", "RG"))
   }
 
+  test("activity: an operator's reinstatement is a line, a lifted self-exclusion none, as before") {
+    def reinstated(reason: Option[String]) =
+      ActivityLines.player(PlayerReinstated("p-1", "self_excluded", "active", "system", None, reason, at))
+    assertEquals(reinstated(None).map(_.description), Some("Account reinstated"))
+    assertEquals(reinstated(Some("exclusion_lifted")), None)
+  }
+
   test("the players view folds status, tier, flags and blanks the personal columns on erasure") {
     import PlayerEvent.*
     val start = PlayerRow("p-1", Status.Pending, displayName = Personal("Ada Lovelace"), primaryEmail = Personal("ada@example.test"))

@@ -1,0 +1,1060 @@
+{
+  "scenario": "the deposit day rolling over identifies a player who deposited today with a daily deposit count of zero, and not one already at zero",
+  "requirement": "014/FR-009",
+  "recorded_at": "2026-11-08T07:56:30.873848Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "engagement",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: register the player other",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{otherEmail}",
+          "language": "en",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "otherPlayerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link other",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{otherLink}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in other",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{otherEmail}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      },
+      "capture": {
+        "otherToken": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the player deposited twice on the deposit day ending",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "daily_deposit_count": "2",
+          "daily_deposit_count_day": "{yesterday}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/d2d718d5-d778-38da-8b30-6e91606c15aa"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the other player's count is already zero",
+      "request": {
+        "method": "POST",
+        "path": "/twins/casino-spinvibe/{otherPlayerId}",
+        "service": "substrate",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "daily_deposit_count": "0",
+          "daily_deposit_count_day": "{yesterday}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "twinId": "casino-spinvibe/406bfb48-3af8-35d1-b29b-c0966feafc51"
+        }
+      },
+      "vary": {
+        "$.twinId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the deposit day rolls over",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/casino/spinvibe/daily-deposit-count/reset",
+        "service": "casino"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "failed": 1,
+          "reset": 1,
+          "scanned": 442
+        }
+      },
+      "vary": {
+        "$.scanned": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the player's count is zero for the new deposit day",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "daily_deposit_count": "0",
+          "daily_deposit_count_day": "2026-11-08",
+          "dateOfBirth": "1990-01-01",
+          "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+          "email_local_normalized": "the-deposit-day-rolling-over-i-edeecbed-email-eaaae",
+          "kyc_check_deadline_at": "2026-12-08T07:56:30.923548237Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_device_browser": "Unknown",
+          "last_device_os": "Unknown",
+          "last_login_at": "2026-11-08T07:56:31.059921045Z",
+          "marketing_consent": "false",
+          "pending_duplicate_check": "false",
+          "registered_at": "2026-11-08T07:56:30.923548237Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.email_local_normalized": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    }
+  ],
+  "outbound": [
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "event",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "name": "player_registered",
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-app",
+      "request": {
+        "method": "POST",
+        "path": "/v1/send/email",
+        "service": "",
+        "body": {
+          "identifiers": {
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test"
+          },
+          "message_data": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "country": "GB",
+            "created_at": "1794124590",
+            "currency": "EUR",
+            "daily_deposit_count": "0",
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "to": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+          "transactional_message_id": "stub-PlayerRegistered"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-app",
+      "request": {
+        "method": "POST",
+        "path": "/v1/send/email",
+        "service": "",
+        "body": {
+          "identifiers": {
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test"
+          },
+          "message_data": {
+            "brand_name": "spinvibe",
+            "verification_link": "<redacted>"
+          },
+          "to": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+          "transactional_message_id": "stub-EmailAddressVerification"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.059921045Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.059921045Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.059921045Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "event",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "name": "player_registered",
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124591,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.215278250Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-otheremail-0291183e",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:31.110721996Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "406bfb48-3af8-35d1-b29b-c0966feafc51"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124590,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T07:56:31.059921045Z",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "consent_source": "registration",
+            "email": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1@example.test",
+            "player_name": "the-deposit-day-rolling-over-i-ed71ee4cbed1-email-ea37aae1",
+            "registration_date": "2026-11-08T07:56:30.923548237Z",
+            "brand_id": "spinvibe",
+            "last_login_at": "2026-11-08T07:56:31.059921045Z",
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa",
+            "email_subscribed": "false",
+            "daily_deposit_count": 0,
+            "currency": "EUR",
+            "has_rg_limits": "false",
+            "real_money": 0.0,
+            "kyc_status": "unverified",
+            "total_balance": 0.0,
+            "country": "GB",
+            "date_of_birth": "1990-01-01",
+            "language": "en",
+            "account_status": "active",
+            "created_at": 1794124590,
+            "pot_vip": "false",
+            "bonus_money": 0.0,
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "d2d718d5-d778-38da-8b30-6e91606c15aa"
+          },
+          "type": "person"
+        }
+      }
+    }
+  ]
+}

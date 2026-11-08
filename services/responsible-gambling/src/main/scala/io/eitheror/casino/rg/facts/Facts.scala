@@ -26,6 +26,8 @@ object Facts:
       case e: LimitSet =>
         val causedBy = if e.previous.exists(e.value < _) then "lowered" else "set"
         Some(applied(e.key, Some(e.value), causedBy, e.at))
+      case e: PendingStaged =>
+        Some(f.RgLimitLooseningRequested(playerId, e.key.limitType, e.key.kind.period, e.value, e.key.currency, e.appliesAt, e.at))
       case e: PendingApplied => Some(applied(e.key, e.value, if e.value.isEmpty then "removed" else "applied", e.at))
       case e: LimitRemoved   => Some(applied(e.key, None, "removed", e.at))
       case e: CaseOpened =>

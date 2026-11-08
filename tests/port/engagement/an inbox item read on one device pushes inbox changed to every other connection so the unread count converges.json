@@ -1,0 +1,447 @@
+{
+  "scenario": "an inbox item read on one device pushes inbox changed to every other connection so the unread count converges",
+  "requirement": "014/FR-022",
+  "recorded_at": "2026-11-08T08:02:27.995725Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "engagement",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "<redacted>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+          "refreshToken": "<redacted>",
+          "token": "<redacted>"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: an operator sends the player an inbox item",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/messages",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "body": "An operator has left you a note.",
+          "category": "service",
+          "idempotencyKey": "{messageKey}",
+          "title": "Your account"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "body": "An operator has left you a note.",
+          "createdAt": "2026-11-08T08:02:28.671497292Z",
+          "notificationId": "d7d5725b-10c5-441f-a589-ded821a81554",
+          "state": "sent",
+          "subject": "Your account"
+        }
+      },
+      "capture": {
+        "messageId": "$.notificationId"
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.notificationId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the player's second device opens the stream",
+      "request": {
+        "method": "GET",
+        "path": "/v1/stream",
+        "service": "push",
+        "headers": {
+          "Accept": "text/event-stream",
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "data": {
+              "serverTime": "2026-11-08T08:02:28.779124948Z",
+              "subjectId": "casino.player/14f42403-d0a7-3b2b-916b-1fca47b1678d"
+            },
+            "event": "ready"
+          },
+          {
+            "data": {
+              "correlationId": "spinvibe:d7d5725b-10c5-441f-a589-ded821a81554",
+              "hint": {},
+              "kind": "inbox.changed"
+            },
+            "event": "signal",
+            "id": "spinvibe:d7d5725b-10c5-441f-a589-ded821a81554"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].data.serverTime": "differs between two runs of the original",
+        "$[0].data.subjectId": "differs between two runs of the original",
+        "$[1].data.correlationId": "differs between two runs of the original",
+        "$[1].id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "the player reads the item on the first device",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/messages/{messageId}/read",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    }
+  ],
+  "outbound": [
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124948,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T08:02:28.081304802Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "event",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124948,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T08:02:28.081304802Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d"
+          },
+          "name": "player_registered",
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124948,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T08:02:28.081304802Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124948,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T08:02:28.081304802Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124948,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+            "kyc_status": "unverified",
+            "language": "en",
+            "player_name": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T08:02:28.081304802Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124948,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T08:02:28.515447402Z",
+            "player_name": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T08:02:28.081304802Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d"
+          },
+          "type": "person"
+        }
+      }
+    },
+    {
+      "stub": "crm-track",
+      "request": {
+        "method": "POST",
+        "path": "/api/v2/entity",
+        "service": "",
+        "body": {
+          "action": "identify",
+          "attributes": {
+            "account_status": "active",
+            "brand_id": "spinvibe",
+            "consent_source": "registration",
+            "country": "GB",
+            "created_at": 1794124948,
+            "currency": "EUR",
+            "daily_deposit_count": 0,
+            "date_of_birth": "1990-01-01",
+            "email": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c@example.test",
+            "email_subscribed": "false",
+            "has_rg_limits": "false",
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d",
+            "kyc_status": "unverified",
+            "language": "en",
+            "last_device_os": "Unknown",
+            "last_login_at": "2026-11-08T08:02:28.515447402Z",
+            "player_name": "an-inbox-item-read-on-one-devi-ed797343726e-email-f0056f5c",
+            "pot_vip": "false",
+            "real_money": 0.0,
+            "registration_date": "2026-11-08T08:02:28.081304802Z",
+            "sms_subscribed": "false"
+          },
+          "identifiers": {
+            "id": "14f42403-d0a7-3b2b-916b-1fca47b1678d"
+          },
+          "type": "person"
+        }
+      }
+    }
+  ]
+}

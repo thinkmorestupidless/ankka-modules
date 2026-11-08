@@ -25,9 +25,23 @@ object Facts:
 
   // ── casino.players ────────────────────────────────────────────────────────
 
-  /** `casino.players` for one player event; the events contracts/facts.md does not publish yield nothing. */
-  def players(playerId: String, sequence: Long, event: PlayerEvent): Option[Published[f.CasinoPlayersFact]] =
-    val fact: Option[f.CasinoPlayersFact] = event match
+  /**
+   * `casino.players` for one player event; the events contracts/facts.md does not publish yield nothing.
+   * A registration is also one `player_consent_changed` per channel, the consent given there with the source
+   * `registration` (FR-028), so `engagement` learns it; each has its own id, the event's and the channel.
+   */
+  def players(playerId: String, sequence: Long, event: PlayerEvent): Vector[Published[f.CasinoPlayersFact]] =
+    val id = eventId("player", playerId, sequence)
+    val consents: Vector[Published[f.CasinoPlayersFact]] = event match
+      case e: Registered =>
+        Vector("email" -> e.consents.email, "sms" -> e.consents.sms).map { (channel, c) =>
+          Published(f.PlayerConsentChanged(playerId, channel, c.granted, "registration", e.at), s"$id/consent/$channel")
+        }
+      case _ => Vector.empty
+    playerFact(playerId, event).map(Published(_, id)).toVector ++ consents
+
+  private def playerFact(playerId: String, event: PlayerEvent): Option[f.CasinoPlayersFact] =
+    event match
       case e: Registered =>
         def personal(field: String) = e.profile.get(field).map(Personal(_))
         Some(f.PlayerRegistered(playerId, e.at, e.registration.tag, e.registration.clickId, e.registration.bonusCode,
@@ -40,6 +54,9 @@ object Facts:
         Some(f.PlayerReinstated(playerId, Status.Suspended, Status.Active, Actor.Operator, e.actorId, e.reason, e.at))
       case e: SelfExcluded =>
         Some(f.PlayerSelfExcluded(playerId, e.previous, Status.SelfExcluded, Actor.System, None, None, e.at, e.until, e.at))
+      // The exclusion's end, as the player back to active (014 US3): the family every reader already maps to active.
+      case e: ExclusionLifted =>
+        Some(f.PlayerReinstated(playerId, Status.SelfExcluded, Status.Active, Actor.System, None, Some("exclusion_lifted"), e.at))
       case e: Closed =>
         Some(f.PlayerClosed(playerId, e.previous, Status.Closed, e.actor, e.actorId, Some(e.reason), e.at))
       case e: Reopened =>
@@ -60,7 +77,6 @@ object Facts:
       case e: NoDepositBlocked      => Some(f.PlayerNoDepositBlocked(playerId, e.at))
       case e: NoDepositBlockCleared => Some(f.PlayerNoDepositBlockCleared(playerId, e.actorId, e.at))
       case _                       => None
-    fact.map(Published(_, eventId("player", playerId, sequence)))
 
   /**
    * The profile as `player_profile_updated` carries it (spec 009 FR-016): the eight fields `kyc` reads,

@@ -1,0 +1,30 @@
+{
+  "scenario": "an operator's or a part's sign-in without a player id is refused the stream",
+  "requirement": "014/FR-020",
+  "recorded_at": "2026-11-08T08:02:27.952207Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "engagement",
+  "steps": [
+    {
+      "name": "an operator opens the stream",
+      "request": {
+        "method": "GET",
+        "path": "/v1/stream",
+        "service": "push",
+        "headers": {
+          "Accept": "text/event-stream",
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 401,
+        "body": {
+          "error": "unauthenticated"
+        }
+      }
+    }
+  ]
+}

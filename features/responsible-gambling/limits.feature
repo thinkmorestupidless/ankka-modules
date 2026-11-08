@@ -23,6 +23,7 @@ Feature: A player sets, lowers, raises and removes a limit
     When the player sets it to "200"
     Then "50" still applies
     And the profile shows "200" as a pending change with a time "24" hours from now
+    And one "rg_limit_loosening_requested" fact names the limit, "200" and that time at once
     And at that time "200" applies and the pending change is gone
 
   Scenario: removing a deposit limit keeps it for a day and then no limit applies

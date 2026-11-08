@@ -382,7 +382,9 @@ store and `payments` for a personal field; fetch the response.
   grammar once signed tags exist) MUST be dropped, not refused, and the fact MUST carry no tag.
 - **FR-004**: Registration MUST record the player's network address and the country it resolves to,
   and the device fingerprint when sent, as personal data (001 FR-023); it MUST send the verification
-  email through `engagement`'s send route with a link valid 24 hours; and it MUST produce
+  email through `engagement`'s send route with a link valid 24 hours, treating `refused` with its
+  reason as a terminal answer like `suppressed`, not as a failure to retry (asked by spec 014,
+  2026-11-03); and it MUST produce
   `player_registered` carrying registered time, country, currency, VIP tier (empty), tag, click id
   and bonus code.
 - **FR-005**: Email verification MUST be a signed link `players` can verify without a stored token,
@@ -495,9 +497,12 @@ store and `payments` for a personal field; fetch the response.
 - **FR-027**: Password reset MUST send the realm's reset link; password change MUST verify the current
   password with the realm, send a confirmation link, and change the password only when it is followed.
 - **FR-028**: Marketing consents (email, SMS) MUST be kept with the time each was given and their
-  source; a change MUST produce `player_consent_changed` (a new family, added to 001 FR-011); the
-  cookie decision MUST be kept per device id with every field required, replaced on a repeat, written
-  by the player and read by operators only. (Source: `/consent`, `/cookie-consent`.)
+  source; a change MUST produce `player_consent_changed` (a new family, added to 001 FR-011), and so
+  MUST the consents given at registration, one fact per channel with source `registration`, so
+  `engagement` (spec 014), which treats a player with no consent fact as not consented, learns them
+  (asked by spec 014, 2026-11-03); the cookie decision MUST be kept per device id with every field
+  required, replaced on a repeat, written by the player and read by operators only. (Source:
+  `/consent`, `/cookie-consent`.)
 - **FR-029**: Favourites MUST be a set of game ids per player, read and added by the player;
   recently played MUST be a view over `casino.rounds`; activity history MUST be a paged view over the
   brand's topics in the player-visible categories (transactions, games, bonus, account, RG), never

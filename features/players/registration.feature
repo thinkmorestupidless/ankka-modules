@@ -49,6 +49,7 @@ Feature: A person registers and becomes a player of the brand
     Given a registration with marketing consents given
     When it succeeds
     Then the consents are recorded with the time they were given and the source "registration"
+    And one "player_consent_changed" fact per channel carries the consent and the source "registration"
 
   Scenario: following the verification link within a day verifies the address and makes the player active, and following it again changes nothing
     Given a registered player pending email verification

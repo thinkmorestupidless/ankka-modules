@@ -18,8 +18,12 @@ import io.eitheror.casino.players.sessions.{GameSessionEntity, GameSessionEvent,
  */
 private[facts] object Publish:
   def one[F <: Fact](effects: com.thinkmorestupidless.ankka.core.effect.ConsumerEffects[F], p: Option[Facts.Published[F]]) =
-    p.fold(effects.ignore())(x =>
-      effects.produceAll(Seq(effects.message(x.fact).withKey(x.fact.key).withMetadata(Metadata.empty.set("ce-id", x.id)))))
+    all(effects, p.toSeq)
+
+  /** Several facts from one change, in order, each with its own `ce-id`. */
+  def all[F <: Fact](effects: com.thinkmorestupidless.ankka.core.effect.ConsumerEffects[F], ps: Seq[Facts.Published[F]]) =
+    if ps.isEmpty then effects.ignore()
+    else effects.produceAll(ps.map(x => effects.message(x.fact).withKey(x.fact.key).withMetadata(Metadata.empty.set("ce-id", x.id))))
 
 /** A publisher's companion: one source, one topic, under the topic's contract. */
 abstract class PublisherCompanion[C <: Consumer[E, F], E, F <: Fact](id: String, source: ChangeSource[E], topic: Topic[F])
@@ -33,7 +37,7 @@ abstract class PublisherCompanion[C <: Consumer[E, F], E, F <: Fact](id: String,
 
 final class PlayersPublisher extends Consumer[PlayerEvent, CasinoPlayersFact]:
   def onMessage(event: PlayerEvent): Effect =
-    Publish.one(effects, Facts.players(messageContext.subject, messageContext.sequenceNumber, event))
+    Publish.all(effects, Facts.players(messageContext.subject, messageContext.sequenceNumber, event))
 
 object PlayersPublisher
     extends PublisherCompanion[PlayersPublisher, PlayerEvent, CasinoPlayersFact]("players-publisher",

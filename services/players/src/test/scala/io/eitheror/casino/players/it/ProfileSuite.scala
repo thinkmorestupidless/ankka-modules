@@ -140,7 +140,7 @@ class ProfileSuite extends munit.FunSuite with LogCapturing:
     assertEquals((c.json.get("emailMarketingConsent").asBoolean, c.str("consentSource")), (false, "player"))
     assert(c.str("emailConsentAt").nonEmpty)
     val f = kit.eventually("player_consent_changed")(kit.facts(CasinoPlayers).collectFirst {
-      case f: PlayerConsentChanged if f.playerId == id && !f.consented => f
+      case f: PlayerConsentChanged if f.playerId == id && !f.consented && f.source != "registration" => f
     })
     assertEquals((f.channel, f.source), ("email", "player"))
     assertEquals(send(token, "PATCH", s"/$id/consent").str("error"), "no_fields_provided")

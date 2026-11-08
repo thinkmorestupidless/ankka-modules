@@ -28,16 +28,14 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
 
   test("each published player event is one fact, keyed and subjected by the player, its ce-id the event's id") {
     val cases: Vector[(PlayerEvent, CasinoPlayersFact)] = Vector(
-      Registered("p-1", profile, Personal("a@b.test"), "EUR", Consents(), registration, at) ->
-        PlayerRegistered("p-1", at, Some("a_1b_2c_"), Some("click-1"), Some("WELCOME"), Some("GB"), Some("EUR"), None, at,
-          givenName = Some(Personal("Ada")), familyName = Some(Personal("Lovelace")), dateOfBirth = Some(Personal("1990-01-02")),
-          email = Some(Personal("a@b.test"))),
       EmailPromoted(Personal("c@d.test"), at) -> PlayerEmailChanged("p-1", Personal("c@d.test"), at),
       EmailChanged(Personal("e@f.test"), at) -> PlayerEmailChanged("p-1", Personal("e@f.test"), at),
       Suspended(Status.Active, "review", Some("op-1"), at) -> PlayerSuspended("p-1", "active", "suspended", "operator", Some("op-1"), Some("review"), at),
       Reinstated(Some("op-1"), Some("cleared"), at) -> PlayerReinstated("p-1", "suspended", "active", "operator", Some("op-1"), Some("cleared"), at),
       SelfExcluded(Status.Active, Some(at.plusSeconds(60)), at) ->
         PlayerSelfExcluded("p-1", "active", "self_excluded", "system", None, None, at, Some(at.plusSeconds(60)), at),
+      // An exclusion's end is the player back to active, so engagement and game-provider stop treating them as excluded.
+      ExclusionLifted(at) -> PlayerReinstated("p-1", "self_excluded", "active", "system", None, Some("exclusion_lifted"), at),
       Closed(Status.Active, Actor.Player, Some("p-1"), "player_request", at) ->
         PlayerClosed("p-1", "active", "closed", "player", Some("p-1"), Some("player_request"), at),
       Reopened("op-1", "asked", at) -> PlayerReopened("p-1", "closed", "active", "operator", Some("op-1"), Some("asked"), at),
@@ -57,6 +55,26 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
       assertEquals(out.recordKeys, Vector(Some("p-1")), event.toString)
       assertEquals(out.messages.head.metadata.get("ce-id"), Some("player/p-1/7"), event.toString)
     }
+  }
+
+  test("a registration is player_registered then one player_consent_changed per channel with the consent given, source registration (FR-028)") {
+    val consents = Consents(email = Consent(true, Some(at), Some("registration")), sms = Consent(false, None, Some("registration")))
+    val out = players(Registered("p-1", profile, Personal("a@b.test"), "EUR", consents, registration, at))
+    assertEquals(out.payloads, Vector[CasinoPlayersFact](
+      PlayerRegistered("p-1", at, Some("a_1b_2c_"), Some("click-1"), Some("WELCOME"), Some("GB"), Some("EUR"), None, at,
+        givenName = Some(Personal("Ada")), familyName = Some(Personal("Lovelace")), dateOfBirth = Some(Personal("1990-01-02")),
+        email = Some(Personal("a@b.test"))),
+      PlayerConsentChanged("p-1", "email", true, "registration", at),
+      PlayerConsentChanged("p-1", "sms", false, "registration", at)))
+    assertEquals(out.recordKeys, Vector.fill(3)(Some("p-1")))
+    assertEquals(out.messages.map(_.metadata.get("ce-id")),
+      Vector(Some("player/p-1/7"), Some("player/p-1/7/consent/email"), Some("player/p-1/7/consent/sms")))
+  }
+
+  test("a registration with no consent given still says so per channel, not consented") {
+    val out = players(Registered("p-1", profile, Personal("a@b.test"), "EUR", Consents(), registration, at))
+    assertEquals(out.payloads.collect { case c: PlayerConsentChanged => (c.channel, c.consented, c.source) },
+      Vector(("email", false, "registration"), ("sms", false, "registration")))
   }
 
   test("the same event twice is the same ce-id") {

@@ -124,10 +124,11 @@ abstract class RgFeatures(file: String) extends GherkinSuite(s"../../features/re
 
   protected def facts: Vector[CasinoPlayersFact] =
     kit.facts(CasinoPlayers).filter {
-      case f: RgCaseOpened   => f.playerId == player
-      case f: RgCaseClosed   => f.playerId == player
-      case f: RgLimitApplied => f.playerId == player
-      case _                 => false
+      case f: RgCaseOpened              => f.playerId == player
+      case f: RgCaseClosed              => f.playerId == player
+      case f: RgLimitApplied            => f.playerId == player
+      case f: RgLimitLooseningRequested => f.playerId == player
+      case _                            => false
     }
 
   protected def audits: Vector[AuditRecord] = kit.facts(PlatformAudit).collect { case r: AuditRecord if r.subjectId == player => r }

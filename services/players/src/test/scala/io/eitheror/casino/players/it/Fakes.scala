@@ -106,9 +106,10 @@ final class FakeEngagement(brand: String, bind: Int = 0, echo: Boolean = false) 
   private val byKey             = ConcurrentHashMap[String, Sent]()
   private val log               = java.util.concurrent.ConcurrentLinkedQueue[Sent]()
   @volatile var outcome: String = "accepted"
+  @volatile var reason: Option[String] = None
   @volatile var failing: Boolean = false
 
-  def reset(): Unit = { byKey.clear(); log.clear(); outcome = "accepted"; failing = false; knobsReset() }
+  def reset(): Unit = { byKey.clear(); log.clear(); outcome = "accepted"; reason = None; failing = false; knobsReset() }
 
   def sends: Vector[Sent]                     = log.asScala.toVector
   def sendsTo(address: String): Vector[Sent]  = sends.filter(_.to.equalsIgnoreCase(address))
@@ -123,7 +124,7 @@ final class FakeEngagement(brand: String, bind: Int = 0, echo: Boolean = false) 
       if outcome == "accepted" && byKey.putIfAbsent(s.key, s) == null then
         log.add(s): Unit
         if echo then println(s"engagement: ${s.trigger} to player ${s.playerId}: ${s.link}")
-      Answer.ok(Json.obj("status" -> outcome))
+      Answer.ok(Json.obj((Vector[(String, Any)]("status" -> outcome) ++ reason.map("reason" -> _))*))
 
 /**
  * `ingest`'s public cashier create: answers `redirectUrl` and a minted `transactionId`, the merchant key

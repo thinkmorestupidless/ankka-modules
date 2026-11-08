@@ -58,7 +58,6 @@ same for every brand and are literals in the descriptors, not keys.
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
 | rewards-code-document-url | casino | string | no | | | `REWARDS_CODE_DOCUMENT_URL` |
-| push-provider-key | engagement | string | yes | `<slug>-push/API_KEY` | | `PUSH_PROVIDER_KEY` |
 | model-provider-key | support | string | yes | `<slug>-model/API_KEY` | | `MODEL_PROVIDER_KEY` |
 | predictions-categories | predictions | string | no | | | `PREDICTIONS_CATEGORIES` |
 | predictions-currencies | predictions | string | no | | | `PREDICTIONS_CURRENCIES` |
@@ -102,6 +101,5 @@ any publish while a manifest it publishes names one of these (contracts/release.
 
 | Service | Module | Spec |
 |---|---|---|
-| engagement | engagement | 014 |
 | reporting | reporting | 015 |
 | support-agent | support | 017 |

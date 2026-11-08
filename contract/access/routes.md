@@ -31,4 +31,7 @@ target only a route listed here; the modules tool refuses any other.
 | rewards | POST | /v1/casino/brands/{brand}/reward-campaigns/{player}/award | service | 011 R7 (engagement, by `Routes.serviceOf`) |
 | rewards | GET | /v1/casino/brands/{brand}/rewards/{player}/grants | player | 011 R7 (also support-agent, by `Routes.serviceOf`) |
 | rewards | GET | /v1/casino/brands/{brand}/rewards/{player}/free-rounds/eligible | service | 011 R7 (game-provider, by `Routes.serviceOf`) |
+| players | POST | /v1/casino/brands/{brand}/players/{player}/messages | service | 014 R6 (engagement, by `Routes.serviceOf`: the webhook's `send_message`) |
+| engagement | POST | /v1/casino/brands/{brand}/engagement/sends | service | 014 R7 (players, by `Routes.serviceOf`: transactional sends) |
+| engagement | POST | /v1/casino/brands/{brand}/engagement/erasure/players/{player} | service | 014 R15 (an erasure target: players reads it from `erasure-targets`) |
 | exchange | POST | /v1/casino/brands/{brand}/exchange/erasure/players/{player} | service | 023 R13 (an erasure target: players reads it from `erasure-targets`) |
