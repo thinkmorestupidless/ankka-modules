@@ -44,7 +44,7 @@ their new fields.
   (`RecordProgress` and `records` on the seven families), `f/Exchange.scala` (`fee_cents` on `TradeLeg`), with
   cases in `contract/src/test/scala/io/eitheror/casino/contract/facts/` (round trip; an old fact decodes;
   `Compatibility` passes)
-- [ ] T002 Regenerate `contract/schemas/` with `just schemas`; `just test` green
+- [X] T002 Regenerate `contract/schemas/` with `just schemas`; `just test` green
 - [ ] T003 [P] Create `services/reporting/` on `services/rewards/`'s template with ankka **0.16.0** and the
   eviction lines of `services/engagement/build.sbt` (research R2): `build.sbt`, `project/`,
   `service.json` (runtime `0.16.0`, `provisionObjectStorage`, `"personal": true`), `docker-compose.yml`
