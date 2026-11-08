@@ -459,7 +459,7 @@ credits, and the casino's revenue report is unchanged.
 - **FR-010**: The transaction ledger MUST show every transaction of the brand in the period, newest
   first, paged at one hundred, each with timestamp, player id, truncated email, type, amount,
   currency and reference; MUST filter by type (`deposit`, `withdrawal`, `bet`, `win`, `rollback`,
-  `bonus`) and by part of an email; and MUST NOT truncate a player's transactions. **Change from
+  `bonus`, which matches every `bonus_*` type) and by part of an email, each transaction showing the original wallet's own type name (research, Found during implementation, T016); and MUST NOT truncate a player's transactions. **Change from
   the original**, which reads one page per player that the wallet clamps to one hundred. (Source: 078 FR-021–FR-025.)
 - **FR-011**: The payment-provider report MUST show, for a period, deposit attempts, completed
   deposits, deposit value and success rate, withdrawal requests, completed withdrawals and average

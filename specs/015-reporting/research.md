@@ -370,3 +370,12 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T009, a dispute closed with no amount and none opened**: published with no amount and no currency (the wallet
   never substitutes the payment's initiated amount, which is not the dispute's). Reporting counts such a
   chargeback by number only, with zero amount, and the day-end lists it as a difference (FR-018).
+- **T016, the ledger's type names** (R5, R20 item 1; asked 2026-11-08, answer "the original's 14 names"): the
+  original wallet writes 14 names, not 6 (`starter-packs/wallet/handlers-go/internal/apply/props.go`): `bet`,
+  `win`, `rollback`, `loss`, `deposit`, `withdrawal`, `withdrawal_return`, `withdrawal_reversal`, `bonus_credit`,
+  `bonus_conversion`, `bonus_cancel`, `bonus_cap_void`, `admin_adjustment`, `game_provider_credit`. Each
+  movement shows the original's name (`ledger/Types.scala`); the filter takes FR-010's six values, five exact and
+  `bonus` matching every `bonus_*` type (the original's exact filter made `bonus` match nothing).
+- **T010, the merchant's dispute route** (R11): the merchant had no route for a gateway's dispute, so spec 004
+  gains `POST /v1/payments/{paymentId}/dispute` (the gateway's identity, ACL only, as `/fail`). A dispute is
+  recorded on the payment whatever its status; providers dispute captured deposits only, so nothing filters it.

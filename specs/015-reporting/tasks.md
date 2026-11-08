@@ -94,17 +94,17 @@ access. Nothing story-specific starts before this phase ends.
 
 ### Pure packages
 
-- [ ] T012 [P] `r/days/Days.scala` copied from `a/money/Days.scala` (`dayOf`, `endOf`, `closeDue`,
+- [X] T012 [P] `r/days/Days.scala` copied from `a/money/Days.scala` (`dayOf`, `endOf`, `closeDue`,
   `nextClose`), with `r-test/days/DaysSuite.scala` including the 23- and 25-hour days and a case that
   attribution's and this give the same close
-- [ ] T013 [P] `r/figures/` : GGR legs, the deposit pool's legs (attribution's `RealMoney.counted`
+- [X] T013 [P] `r/figures/` : GGR legs, the deposit pool's legs (attribution's `RealMoney.counted`
   rule), NGR, the trend arrow (`C/DashboardRoutes.scala:239-243`), rates (`null` with no attempts, one
   place), the truncated conversion rate; `r-test/figures/FiguresSuite.scala`
-- [ ] T014 [P] `r/ranges/` : periods, the default month, `today|7d|30d|90d` (other → `7d`), ISO weeks
+- [X] T014 [P] `r/ranges/` : periods, the default month, `today|7d|30d|90d` (other → `7d`), ISO weeks
   `YYYY-Www` in the zone, hourly labels; `r-test/ranges/RangesSuite.scala`
-- [ ] T015 [P] `r/render/Money.scala` (2-dp strings by the currency's places) and `r/render/Csv.scala`
+- [X] T015 [P] `r/render/Money.scala` (2-dp strings by the currency's places) and `r/render/Csv.scala`
   (the original's quoting, `C/ReportService.scala:183-186`); suites
-- [ ] T016 [P] `r/ledger/Types.scala`: the family → ledger type map after checking the original wallet's
+- [X] T016 [P] `r/ledger/Types.scala`: the family → ledger type map after checking the original wallet's
   type names (research R20 item 1); suite
 
 ### Intake and the day
