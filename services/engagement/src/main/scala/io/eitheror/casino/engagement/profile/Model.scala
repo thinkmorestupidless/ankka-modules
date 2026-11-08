@@ -10,8 +10,12 @@ final case class Limit(period: Option[String], value: Option[Long], currency: Op
 /** An open RG case, from `rg_case_opened` until its `rg_case_closed`. */
 final case class RgCase(caseType: String, closesAt: Option[Instant])
 
-/** The last `player_consent_changed` for a channel (`email`, `sms`, `messages`). */
-final case class Consent(granted: Boolean, at: Instant, source: String)
+/**
+ * The last `player_consent_changed` for a channel (`email`, `sms`, `messages`), and when it was last granted: the
+ * original keeps the grant time through a withdrawal (`PlayerRoutes`, `marketing_consent_at` written on `true` only).
+ */
+final case class Consent(granted: Boolean, at: Instant, source: String, grantedAt: Option[Instant] = None):
+  def lastGranted: Option[Instant] = grantedAt.orElse(Option.when(granted)(at))
 
 /** A `payment.initiated` remembered so its failure or expiry can say the amount (contracts/facts.md). */
 final case class RecentPayment(paymentId: String, amountCents: Long, currency: String, provider: String, terminal: String)

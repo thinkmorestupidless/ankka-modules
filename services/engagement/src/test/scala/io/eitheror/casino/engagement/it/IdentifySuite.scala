@@ -72,7 +72,7 @@ class IdentifySuite extends munit.FunSuite:
     val expected = Set("id", "created_at", "email", "player_name", "brand_id", "currency", "country", "registration_date",
       "vip_tier", "last_login_at", "last_deposit_at", "total_deposit_amount", "has_rg_limits", "rg_limit_types",
       "account_status", "deposit_count", "daily_deposit_count", "real_money", "bonus_money", "total_balance",
-      "email_subscribed", "sms_subscribed", "consent_source", "pot_vip", "marketing_suppressed", "suppression_reason")
+      "email_subscribed", "sms_subscribed", "email_consent_at", "consent_source", "pot_vip", "marketing_suppressed", "suppression_reason")
     assertEquals(last.keySet -- expected, Set.empty[String])
     assertEquals(expected -- last.keySet, Set.empty[String])
     for (k, v) <- last do
@@ -80,7 +80,8 @@ class IdentifySuite extends munit.FunSuite:
       else assert(v.isTextual, s"$k should be a string: $v")
     assertEquals(last("total_balance").decimalValue.compareTo(BigDecimal("24.50").bigDecimal), 0)
     assertEquals(text(last, "rg_limit_types"), Some("DEPOSIT_DAILY"))
-    assert(!last.contains("email_consent_at"), "a withdrawn consent sends no consent time")
+    // A withdrawn consent keeps the time it was granted, as the original does.
+    assertEquals(text(last, "email_consent_at"), Some(at.plusSeconds(1).toString))
 
     // Every track of the player comes after at least as many identifies as tracks so far.
     val mine = kit.crm.calls.filter(_.raw.contains(p)).map(c => c.raw.contains("\"identify\""))

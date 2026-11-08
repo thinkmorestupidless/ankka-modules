@@ -481,6 +481,17 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   player who deposited two identifies with `daily_deposit_count` 0, in both runs; FR-009 and the
   feature say one, which the send record's key (`deposit-day/<day>/<player>`) makes so here. The
   parity suite names this as a divergence.
+- **There is no closure confirmation** (T033). FR-011 and US3 say a closed player gets "no send but
+  the closure confirmation". No trigger of FR-006 or FR-014 is one, and the original sends none
+  (`player_closed` only updates the twin, and so the identify). Inventing one would add a trigger the
+  original does not have (constitution I). So a closed player is refused every trigger with
+  `account_closed`, and the identify is still made. A closure confirmation would be a new trigger in
+  `Classes.service` and the brand's trigger table.
+- **A withdrawn consent keeps its grant time** (T033). The original writes `marketing_consent_at` on
+  a grant only and never clears it (`PlayerRoutes.scala:547`, `:1763`). So after a withdrawal
+  `email_consent_at` still carries the grant time, beside `email_subscribed` `false`, which is
+  suppression.feature's "with the time and the source". `Consent` keeps `grantedAt`. T032's
+  `IdentifySuite` had asserted the opposite and now asserts the original's.
 
 ## Design finished
 

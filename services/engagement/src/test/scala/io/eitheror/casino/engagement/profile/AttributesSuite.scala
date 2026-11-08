@@ -129,6 +129,14 @@ class AttributesSuite extends munit.FunSuite:
     assertEquals(a("consent_source"), "player_profile")
   }
 
+  test("a consent granted and then withdrawn reads false and keeps the time it was granted, as the original does") {
+    val withdrawn = Consent(granted = false, at("2026-06-03T00:00:00Z"), "preferences", Some(at("2026-06-01T00:00:00Z")))
+    val a         = attrs(bare.copy(consents = Map("email" -> withdrawn)))
+    assertEquals(a("email_subscribed"), "false")
+    assertEquals(a("email_consent_at"), "2026-06-01T00:00:00Z")
+    assertEquals(a("consent_source"), "preferences")
+  }
+
   test("TestBuildIdentifyAttrs_OmitsUnsetPassthroughFields") {
     val a = attrs(bare.copy(email = personal("player@example.com")))
     for key <- Seq("suspected_duplicate", "kyc_status", "account_status", "deposit_count", "email_consent_at",

@@ -76,7 +76,8 @@ object Profiles:
         group(p, "duplicate", d.occurredAt)(_.copy(suspectedDuplicate = d.outcome == "strong" || d.outcome == "weak"))
       case c: f.PlayerConsentChanged =>
         group(p, s"consent/${c.channel}", c.occurredAt)(q =>
-          q.copy(consents = q.consents.updated(c.channel, Consent(c.consented, c.occurredAt, c.source))))
+          q.copy(consents = q.consents.updated(c.channel, Consent(c.consented, c.occurredAt, c.source,
+            if c.consented then Some(c.occurredAt) else q.consents.get(c.channel).flatMap(_.lastGranted)))))
       case o: f.RgCaseOpened =>
         group(p, s"case/${o.rgCaseId}", o.occurredAt)(q => q.copy(cases = q.cases.updated(o.rgCaseId, RgCase(o.caseType, o.closesAt))))
       case c: f.RgCaseClosed =>

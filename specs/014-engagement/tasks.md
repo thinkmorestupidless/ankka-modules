@@ -207,7 +207,7 @@ the views and the audit publisher green under their suites.
 
 **Independent test**: `suppression.feature`; `SuppressionSuite` over FR-011's list.
 
-- [ ] T033 [US3] Bind `features/engagement/suppression.feature` in
+- [X] T033 [US3] Bind `features/engagement/suppression.feature` in
       `T/features/SuppressionFeatures.scala`; it fails first.
 - [ ] T034 [US3] `T/it/SuppressionSuite.scala` (SC-003): for each trigger of FR-011's two lists and
       each suppression cause (an open case of either type, consent withdrawn, no consent fact, the
