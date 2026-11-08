@@ -142,7 +142,7 @@ access. Nothing story-specific starts before this phase ends.
 - [ ] T030 `r-test/it/Kit.scala`: `AnkkaTestKit` over Postgres (5445) with `InMemoryBroker` carrying the
   brand's topics and `MovableClock`; token helpers for each role; `r-test/it/FactSet.scala` publishing a
   known set of facts and computing every figure independently (research R17)
-- [ ] T031 `r/api/ReportingEndpoint.scala` with `r/api/Access.scala` (the admission table of
+- [X] T031 `r/api/ReportingEndpoint.scala` with `r/api/Access.scala` (the admission table of
   contracts/routes.md through `withAcl`), `r/api/Wire.scala` (the common parameters, `unknown_currency`,
   `incomplete_period`), `GET /status`, `GET`/`PUT /settings`; `r-test/it/AccessSuite.scala` (each route's
   roles; another brand refused; the flag's 404)
@@ -166,7 +166,7 @@ access. Nothing story-specific starts before this phase ends.
   `RealMoney` fold per day (SC-005), a rebuild into a new generation identical (SC-004), a test account
   excluded when the setting is on
 - [X] T035 [US1] `r/day/DaysView.scala` (`Days`, `between(:from, :to)`)
-- [ ] T036 [US1] `r/api/Reports.scala` `GET /reports/ggr`: the shape of contracts/routes.md, the default
+- [X] T036 [US1] `r/api/Reports.scala` `GET /reports/ggr`: the shape of contracts/routes.md, the default
   month, `currencies`, the test-account exclusion setting; `format=csv` with the summary row
 - [X] T037 [US1] `r/render/RevenueCsv.scala` and the synchronous document path: render, put under
   `reports/report-export/<ref>.csv`, a `Document` record (T053's entity, created here in its first shape)
