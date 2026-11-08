@@ -412,3 +412,20 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T011, disputes at the gateway** (R11, R20 item 3): only Unity Finance documents a dispute state; the eight other
   adapters report none (evidence in spec 005 FR-017a). A dispute is recorded only on a captured deposit, each kind once
   (a re-opening after a close is ignored), and delivered after its capture.
+- **T035–T036, corrections in the revenue report**: a fact arriving for a closed day is a `Corrected` event on that
+  day, not a change to its fixed section (R9). The revenue report adds a day's corrections to its own day's figures
+  (leaving test accounts' out when the brand excludes them), so the figures are exact and a rebuild into a new
+  generation answers the same whether a day closed before or during the replay (SC-004).
+- **T036, the default currency before `Wallets`**: with no `defaultCurrency` set, the report takes the currency held on
+  the most of the period's days (ties alphabetical), else the first the brand holds, else EUR. US2's `Wallets` view
+  (T040) replaces this with the brand's wallets. The `currencies` list is every currency held, plus the configured
+  default.
+- **T031, `rebuilding` in `/status`**: ankka 0.16 gives a service no read of its own consumers' lag (it is on the
+  management port and in the metrics), so `rebuilding` is always false; `completeFrom` is the latest of the view's
+  topics' first complete days in the served generation, null until each has folded a fact. A finding for ankka.
+- **T036, an unparseable date**: contracts/routes.md is silent and the original fails; a `from` or `to` that is not
+  `YYYY-MM-DD` is `400 invalid_date` naming the field. To be confirmed in the contract.
+- **T037, the export over the synchronous limit**: until `DocumentJob` (T053), a revenue CSV over `syncRows` or
+  `syncDays` still renders synchronously; the file is `ggr-report-<ref>.csv`, its columns `date, bets, wins, ggr,
+  depositPoolGgr, bonusCosts, chargebacks, ngr, deposits, withdrawals, netCashFlow, currency, ngrBasis`, the summary row
+  first dated `<from>/<to>`.

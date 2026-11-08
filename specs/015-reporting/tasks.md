@@ -165,7 +165,7 @@ access. Nothing story-specific starts before this phase ends.
   23:30 bet, a converted and a restricted stake, the deposit pool's GGR equal to attribution's
   `RealMoney` fold per day (SC-005), a rebuild into a new generation identical (SC-004), a test account
   excluded when the setting is on
-- [ ] T035 [US1] `r/day/DaysView.scala` (`Days`, `between(:from, :to)`)
+- [X] T035 [US1] `r/day/DaysView.scala` (`Days`, `between(:from, :to)`)
 - [ ] T036 [US1] `r/api/Reports.scala` `GET /reports/ggr`: the shape of contracts/routes.md, the default
   month, `currencies`, the test-account exclusion setting; `format=csv` with the summary row
 - [ ] T037 [US1] `r/render/RevenueCsv.scala` and the synchronous document path: render, put under
