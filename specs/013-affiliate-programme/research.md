@@ -688,3 +688,25 @@ implementation* that carries the detail.
     missing steps and answers `201` with the secret; once the secret exists, `409 brand_exists`.
   - O7 takes `?limit=` (default 100, at most 500) and `?offset=`, and filters on the view's own
     columns before it opens an identity.
+- **Review decisions, 2026-11-08** (the second round; asked, the person's answers):
+  - `managerId`, `group` and `tags` are each brand's, on the membership: one brand's manager sets
+    them for an affiliate who also works another brand, and the other brand sees its own.
+  - O8 for an email that is another brand's affiliate sends `AffiliateBrandInvite`, an invitation to
+    apply at the brand, and answers `202 {email, status: "invited"}`. The manager learns the address
+    is known somewhere, as the 409 told them, but not where; nothing is made for them.
+  - An approval onto the parent's plan at the brand falls back to the brand's default when that plan
+    is no longer active.
+  - An ancestor acts on a sub at a brand only when every account between them is a member there too.
+- **Found in the second round** (no decision needed):
+  - A closed player's clicks forget their click id, device and country: the `Clicks` view finds them
+    by the binding's click id before the player forgets it, so a retry finds them again; the click
+    stays, counted against its link. A click recorded in the moment before its player closes may not
+    be in the view yet and keeps its details; the window is the view's lag.
+  - An orphaned email index entry is taken over only once its claim is older than `Enrolling` (5
+    minutes), decided in the entity: an enrolment still running keeps its claim.
+  - The ledger's redelivery check moved from the account (a mark per player and kind, never shrinking)
+    to `LedgerMark`, one number per player.
+  - An erasure deletes the realm user first; one whose attempts are spent is recorded `failed`, and
+    filed again runs at once, its hold kept.
+  - `409 account_shared` names the other brands for closing and erasing only (T082); every other
+    refusal says "the account is shared with brands you do not hold".

@@ -403,7 +403,7 @@ An operator of the installation adds a hosted brand under a contract signed outs
 **Network**
 
 - **FR-028**: The network MUST be one tree per programme; a sub's parent MUST be fixed at creation and changeable only by a manager; cycles MUST be refused on write and tolerated on read.
-- **FR-029**: An ancestor MUST be able to approve, suspend and reactivate a sub's memberships, change its plan at a brand where the ancestor also holds a membership, change its override, and edit its account fields, all audited as the ancestor's action; an operator's suspension MUST stand over an ancestor's reactivation.
+- **FR-029**: An ancestor MUST be able to approve, suspend and reactivate a sub's memberships, change its plan at a brand where the ancestor also holds a membership (and every account between them has one there), change its override, and edit its account fields, all audited as the ancestor's action; an operator's suspension MUST stand over an ancestor's reactivation.
 - **FR-030**: An affiliate MUST be able to read their subtree with status, plan, override and revenue per period and brand, and network health counts, and MUST be refused anything outside it.
 
 **Managers**
@@ -430,7 +430,7 @@ An operator of the installation adds a hosted brand under a contract signed outs
 **Hosted brands**
 
 - **FR-040**: An operator of the installation MUST be able to add a hosted brand to the programme with its configuration, programme page, default plan and first manager, and issue the webhook address and shared secret it delivers facts with (spec 012); nothing else MUST create a brand in the programme, and a hosted brand MUST then be served exactly as any brand elsewhere.
-- **FR-041**: A manager MUST see nothing of a brand whose role they do not hold, including an affiliate's memberships, figures, payouts, notes and flags there, when the affiliate is also a member of brands of another company.
+- **FR-041**: A manager MUST see nothing of a brand whose role they do not hold, including an affiliate's memberships, figures, payouts, notes and flags there, when the affiliate is also a member of brands of another company. Closing and erasing an account a manager does not hold every brand of are refused naming those brands, so the manager knows whom to ask (research.md T082); no other refusal names them.
 - **FR-042**: The programme MUST publish a usage report per brand and calendar month in the brand's reporting zone, with facts received, active memberships, commission recorded and commission paid, each per currency, readable by an operator of the installation; it MUST compute no fee.
 
 ### Key Entities

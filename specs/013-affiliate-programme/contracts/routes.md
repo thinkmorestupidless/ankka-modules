@@ -20,13 +20,13 @@ public by `withAcl(Routes.public)`.
 | O1–O3 | `GET /{brand}/managers`, `POST /{brand}/managers`, `POST /{brand}/managers/{user}/reset-password` | FR-031 |
 | new | `DELETE /{brand}/managers/{user}` | change 16: removes `brand_<slug>`, and `affiliate_manager` when the user holds no other `brand_*` role |
 | O4–O6 | `GET`, `POST /{brand}/commission-plans`; `PATCH /{brand}/commission-plans/{plan}` | + `cpaCurrency` (change 11) |
-| O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9), a page of `?limit=` (100 by default, at most 500) from `?offset=` (0), the view's and the account's fields filtered before any identity is opened (a review decision, 2026-11-07; the original answered every row); create active with a membership, `201 {affiliateId, email, status}` as the original; an email an account already holds, at this brand or another, `409 email_already_registered` (the affiliate applies, FR-041) |
+| O7, O8 | `GET`, `POST /{brand}/accounts` | list filtered and searched after decryption (R9), a page of `?limit=` (100 by default, at most 500) from `?offset=` (0), the view's and the account's fields filtered before any identity is opened (a review decision, 2026-11-07; the original answered every row); create active with a membership, `201 {affiliateId, email, status}` as the original; an email whose account applied or is active at `{brand}` is `409 email_already_registered`; one that is another brand's affiliate is sent `AffiliateBrandInvite` (`{brand, apply_url}`), an invitation to apply, and answered `202 {email, status: "invited"}`, nothing made (FR-041, a review decision, 2026-11-08) |
 | O9, O10 | `GET /{brand}/accounts/{aff}/network-health`, `/network` | |
 | O11–O13 | `POST /{brand}/network/{sub}/{approve|suspend|reactivate}` | **reshaped** from `accounts/{aff}/network/{sub}/…` (two parameters) |
 | O14, O15 | `POST /{brand}/accounts/{aff}/approve`, `/reject` | FR-002; with `parentAffiliateId` or `overridePercent`, account-wide (below) |
 | O16–O18 | `POST /{brand}/accounts/{aff}/resend-invitation`, `/reset-password`, `/update-email` | update-email re-seals and moves the email index; all three account-wide (below) |
 | O19 | `PATCH /{brand}/accounts/{aff}/status` | **not served**: `404` (change 13) |
-| O20, O21 | `GET`, `PATCH /{brand}/accounts/{aff}` | `revShareOverride` is the membership's at `{brand}`; a PATCH with any field but `planId` and `revShareOverride` is account-wide (below) |
+| O20, O21 | `GET`, `PATCH /{brand}/accounts/{aff}` | `revShareOverride`, `managerId`, `group` and `tags` are the membership's at `{brand}`; a PATCH with any other field but `planId` is account-wide (below), its `409 account_shared` naming no brand |
 | new | `POST /{brand}/accounts/{aff}/close`, `POST /{brand}/accounts/{aff}/erasure` | FR-037: close disables sign-in; erasure files the hold |
 | O22 | `GET /{brand}/accounts/{aff}/revenue` | |
 | O23, O24 | `GET`, `POST /{brand}/accounts/{aff}/notes` | |

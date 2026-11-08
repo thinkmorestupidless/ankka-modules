@@ -36,7 +36,6 @@ brand. No readable personal value is stored anywhere: an affiliate's identity is
 | `keycloakUser` | `Option[String]` |
 | `termsVersion`, `termsAcceptedAt` | the account's |
 | `firstLoginAt`, `lastLoginAt` | FR-034 |
-| `managerId`, `group`, `tags` | operator fields, as the original |
 | `closed`, `erased` | `Option[Instant]` |
 
 Commands: `create(identity, digest, parent, by, at)`, `updateIdentity(sealed, digest, by)`,
@@ -53,12 +52,13 @@ cycle; the endpoint checks through the `Network` view first), `setOverride(bp, b
 | `revShareOverride` | `Option[basis points]` (FR-002) |
 | `application` | `{appliedAt, termsVersion, source: self | invite-email | invite-link | operator | import}` |
 | `suspendedBy` | `Option[operator | ancestor]` (an operator's suspension stands, FR-029) |
+| `managerId`, `group`, `tags` | the brand's own operator fields for the affiliate, as the original's single-brand account (FR-041) |
 
 Commands and the transitions they allow (FR-002): `apply` (none → pending; rejected → pending),
 `approve(plan, by)` (pending → active), `reject(reason, by)` (pending → rejected), `suspend(by, kind)`
 (active → suspended), `reactivate(by, kind)` (suspended → active; refused for an ancestor when
 `suspendedBy` is `operator`), `activateInvited(plan, by)` (none → active, the email invitation),
-`setPlan(plan, by)`, `setRevShareOverride(bp, by)`. Any other transition is refused naming the status.
+`setPlan(plan, by)`, `setRevShareOverride(bp, by)`, `setManagement(managerId, group, tags, by)`. Any other transition is refused naming the status.
 
 ### `PlayerAttribution`: id `<brand>/<pseudonym>`
 
@@ -137,12 +137,13 @@ status (settlement.feature).
 | `FactInbox` | `<brand>/<factId>` | its kind, currency, channel, received at and outcome; not its body (FR-038) | `claim(fact, channel)` → `new` or `duplicate`; `outcome(o)` |
 | `BrandProgramme` | brand slug | origin (`here`, `elsewhere`, `hosted`), fees (bp), fraud thresholds, payout cycle, reporting zone, GGR source and its change day, default plan, programme page, sender configuration (region, transactional ids), retired (a retired brand refuses applications and status changes; closes, payouts and reads continue), counts of duplicates and mismatches | `seed`, `add`, `update`, `setGgrSource(source, fromDay)`, `retire`, `countDuplicate`, `countMismatch`, `get` |
 | `Plan` | `<brand>/<planId>` | name, type, CPA amount and currency, RevShare bp, minimum deposit, window, status | `create` (refused `plan_already_exists` by name), `update`, `get` |
-| `EmailIndex` | HMAC of the email | affiliate id | `claim(affiliate)` (refused when another holds it), `release`, `get` |
+| `EmailIndex` | HMAC of the email | affiliate id, claimed at | `claim(affiliate, at, orphan)` (refused when another holds it, unless the caller found it with no account and its claim is older than `Enrolling`, 5 minutes), `release`, `get` |
+| `LedgerMark` | `<brand>/<pseudonym>` | the last `PlayerAttribution` event whose ledger writes are done | `mark` (forward only), `get` |
 | `Link` | link id | affiliate, brand, campaign, landing path, utm, sub-ids, signed tag, legacy btag, revoked | `create`, `revoke`, `get` |
 | `BonusCode` | `<brand>/<UPPER code>` | affiliate, link, offer, tag, status | `claim(affiliate, link, offer, tag)` (refused when live: one wins, FR-025), `revoke` (frees the text) |
 | `InviteLink` | token | affiliate, brand(s), plan, status, applications this hour | `create`, `use(at)` (refused past 50 an hour), `revoke` |
 | `Token` | SHA-256 of the token | user, purpose (`invite`, `reset`), expires, used | `issue`, `claim(at)` once |
-| `ClickRecord` | `<brand>/<factId>` | link, click id, device, country, at | `record` |
+| `ClickRecord` | `<brand>/<factId>` | link, click id, device, country, at | `record`; `forget` (the click id, device and country, on its player's `player-closed`, FR-038) |
 | `SigningKeys` | `programme` | kids with public keys, made, retired; `legacyWithdrawnAt` | `add`, `retire` (never the last), `withdrawLegacy(by, at)` once |
 | `FraudFlag` | `<brand>/<pseudonym>/<reason>` | affiliate, reason, raised, dismissed by and why | `raise` once, `dismiss` |
 | `Notification` | uuid | affiliate, type, body, read | `write`, `read` |
@@ -186,11 +187,14 @@ caller's brands (research R11).
   `Intake` (below).
 - `Intake` (a function shared with the webhook endpoint): checks the fact's brand is the channel's
   (else `countMismatch`), `FactInbox.claim`, then by kind: `click` → `ClickRecord.record`; otherwise
-  `PlayerAttribution.apply` with the brand's GGR source and, for a first deposit, the plan's minimum.
+  `PlayerAttribution.apply` with the brand's GGR source and, for a first deposit, the plan's minimum. A
+  `player-closed` fact first forgets the clicks its player's binding names (`Clicks` by click id), and
+  no attribution check refuses it.
 - `ToLedger` (over `PlayerAttribution`): reads `Membership` and `Plan`; `FirstDeposit(true)` →
   `recordCpa` when active (FR-016); `Ngr` → `recordNgr` with `payable = active`; `Deposit` and first
   deposits → `recordPaymentFee`; queues postbacks; raises fraud flags when a counter crosses the brand's
-  threshold (FR-032); `Unattributed` → `FactInbox.outcome`.
+  threshold (FR-032); `Unattributed` → `FactInbox.outcome`. An event at or below the player's
+  `LedgerMark` writes nothing; after its writes the mark moves to it.
 - `Overrides` (over `CommissionAccount` `EarningsChanged`): the ancestor walk (research R7).
 - `Communications` (over `Membership`, `Payout`, `FraudFlag`): notifications and `EmailSend`s.
 - `Provisioning` (over `Membership`): realm roles `affiliate` and `brand_<slug>` on activation, the
