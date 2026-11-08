@@ -278,14 +278,14 @@ lifetimes and erasure.
 
 **Independent test**: `PredictionsSuite`; the seven scenarios of `predictions.feature`.
 
-- [ ] T064 [P] [US8] Bind the seven scenarios in `r-test/features/PredictionsSteps.scala`, publishing
+- [X] T064 [P] [US8] Bind the seven scenarios in `r-test/features/PredictionsSteps.scala`, publishing
   `trade_made` with `fee_cents` and fee account movements directly
-- [ ] T065 [P] [US8] `r-test/it/PredictionsSuite.scala`: the four reports from facts, fees equal to the fee
+- [X] T065 [P] [US8] `r-test/it/PredictionsSuite.scala`: the four reports from facts, fees equal to the fee
   account's credits, a market's trading moves no casino figure (SC-009), no route for a brand without the
   module
-- [ ] T066 [US8] `r/predictions/Markets.scala` (topic view over `markets.events`), `r/predictions/MarketBook.scala`
+- [X] T066 [US8] `r/predictions/Markets.scala` (topic view over `markets.events`), `r/predictions/MarketBook.scala`
   and `trades-facts` (only with `predictions`), `r/predictions/MarketFigures.scala`, `r/predictions/Traders.scala`
-- [ ] T067 [US8] `BrandDay`'s predictions section folded by `ToDays` and the day-end's predictions part with the
+- [X] T067 [US8] `BrandDay`'s predictions section folded by `ToDays` and the day-end's predictions part with the
   fee reconciliation
 - [ ] T068 [US8] `r/api/Predictions.scala` `GET /predictions/summary`, `/predictions/markets`,
   `/predictions/traders`, each of the last two with `format=csv`, and the dashboard's predictions summary

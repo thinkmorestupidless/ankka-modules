@@ -137,14 +137,15 @@ object DayEnded:
 
   /**
    * `day` (today) left open until its end and the grace have passed, and then closed: answers its day-end. The clock is
-   * moved to ten minutes after its end, where a run of `close-days` leaves it open, then past the grace.
+   * moved to ten minutes after its end, where a run of `close-days` leaves it open, then 16 minutes on, past the grace and
+   * past a run of `close-days` (every five minutes) after it.
    */
   def closeAtGrace(kit: Kit, day: LocalDate): JsonNode =
     val end = Days.endOf(day.toString, kit.zone)
     kit.moveClock(java.time.Duration.between(kit.now, end.plusSeconds(10 * 60)).toMillis.millis)
     Thread.sleep(1_000)
     assertOpen(kit, day)
-    kit.moveClock(10.minutes)
+    kit.moveClock(16.minutes)
     closed(kit, day)
 
   def assertOpen(kit: Kit, day: LocalDate): Unit =

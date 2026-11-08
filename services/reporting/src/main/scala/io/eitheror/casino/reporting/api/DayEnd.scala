@@ -3,7 +3,7 @@ package io.eitheror.casino.reporting.api
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
 import com.thinkmorestupidless.ankka.core.EntityId
-import io.eitheror.casino.reporting.day.{BrandDay, CurrencyDay, DayState, Delta, Difference}
+import io.eitheror.casino.reporting.day.{BrandDay, CurrencyDay, DayState, Delta, Difference, FeeDifference}
 import io.eitheror.casino.reporting.documents.Document
 import io.eitheror.casino.reporting.render.Money
 
@@ -18,9 +18,21 @@ final case class DayEndDeposit(provider: String, count: Long, amount: String)
 final case class DayEndWithdrawal(gateway: String, count: Long, amount: String)
 final case class DayEndGame(provider: String, gameId: String, gameName: String, providerGgr: String, walletGgr: String)
 
+/** A market's day (FR-031): what traded, the taker fees, the resolution payments, the remainder, the fee account's credits. */
+final case class DayEndMarket(marketId: String, contractsTraded: Long, notionalVolume: String, trades: Long, takerFees: String,
+    resolutionPayments: String, remainderKept: String, feeCredits: String)
+
+/** A trade whose fee and the fee account's credits under it differ, or that one side lacks (FR-031). */
+final case class DayEndFeeDifference(tradeId: String, marketId: String, takerFee: String, feeCredit: String, status: String)
+
+/** The predictions module's part of a currency's day-end; absent when the brand does not run the module (FR-032). */
+final case class DayEndPredictions(markets: Vector[DayEndMarket], takerFees: String, feeCredits: String,
+    feeDifferences: Vector[DayEndFeeDifference])
+
 /** One currency's day-end (FR-018): the providers, the games, the wallet's GGR and the deposit pool's, and the close's figures. */
 final case class DayEndCurrency(deposits: Vector[DayEndDeposit], withdrawals: Vector[DayEndWithdrawal], games: Vector[DayEndGame],
-    walletGgr: String, depositPoolGgr: String, bonusCost: String, chargebacks: String, liability: String, pendingHolds: String)
+    walletGgr: String, depositPoolGgr: String, bonusCost: String, chargebacks: String, liability: String, pendingHolds: String,
+    predictions: Option[DayEndPredictions] = None)
 
 final case class DayEndDifference(roundId: String, provider: String, providerStake: String, providerWin: String, walletStake: String,
     walletWin: String, status: String)
@@ -64,7 +76,16 @@ object DayEnd:
     CorrectionFigures(d.currency, m(x.stakes - x.rollbacks), m(x.wins), m(x.ggr), m(x.poolGgr), m(x.bonusCost), m(x.chargebacks), m(x.ngr),
       m(x.deposits), x.depositCount, m(x.withdrawals), x.withdrawalCount, d.registrations)
 
-  private def currency(c: String, d: CurrencyDay): DayEndCurrency =
+  /** The currency's markets in order, and the trades whose fee and credit differ. */
+  private def predictions(c: String, d: CurrencyDay, differences: Vector[FeeDifference]): DayEndPredictions =
+    def m(v: Long) = Money(v, c)
+    val markets = d.predictions.toVector.sortBy(_._1)
+    DayEndPredictions(
+      markets.map((id, x) => DayEndMarket(id, x.contracts, m(x.notional), x.trades, m(x.fees), m(x.payments), m(x.remainder), m(x.feeCredits))),
+      m(markets.map(_._2.fees).sum), m(markets.map(_._2.feeCredits).sum),
+      differences.filter(_.currency == c).map(f => DayEndFeeDifference(f.trade, f.market, m(f.fee), m(f.credit), f.status)))
+
+  private def currency(c: String, d: CurrencyDay, s0: DayState, withPredictions: Boolean): DayEndCurrency =
     def m(v: Long) = Money(v, c)
     val s = d.total
     DayEndCurrency(
@@ -72,7 +93,8 @@ object DayEnd:
       s.gateways.toVector.sortBy(_._1).map((g, f) => DayEndWithdrawal(g, f.completed, m(f.amount))),
       d.games.values.toVector.sortBy(g => (g.provider, g.game)).map(g =>
         DayEndGame(g.provider, g.game, g.gameName.getOrElse(g.game), m(g.providerStake - g.providerWin), m(g.walletStake - g.walletWin))),
-      m(s.money.ggr), m(s.money.poolGgr), m(s.money.bonusCost), m(s.money.chargebacks), m(d.liabilityAtClose), m(d.pendingHoldsAtClose))
+      m(s.money.ggr), m(s.money.poolGgr), m(s.money.bonusCost), m(s.money.chargebacks), m(d.liabilityAtClose), m(d.pendingHoldsAtClose),
+      Option.when(withPredictions)(predictions(c, d, s0.feeDifferences)))
 
   private def difference(d: Difference): DayEndDifference =
     def m(v: Long) = Money(v, d.currency)
@@ -83,7 +105,7 @@ object DayEnd:
   def of(r: Reads, day: LocalDate, s: DayState): Option[DayEndAnswer] =
     Option.when(s.closed && s.closedAt.isDefined) {
       DayEndAnswer(day.toString, s.zone, iso(s.closedAt.get), reference(r.settings.brand, r.generation, day.toString),
-        ListMap.from(s.currencies.toVector.sortBy(_._1).map((c, d) => c -> currency(c, d))),
+        ListMap.from(s.currencies.toVector.sortBy(_._1).map((c, d) => c -> currency(c, d, s, r.settings.predictions))),
         s.differences.map(difference),
         s.corrections.map(c => DayEndCorrection(iso(c.arrivedAt), day.toString, figures(c.delta))),
         s.openingCorrections.map(o => DayEndCorrection(iso(o.arrivedAt), o.day, figures(o.delta))))
@@ -109,7 +131,8 @@ object DayEnd:
   /**
    * The day-end as rows of `section, currency, item, field, value` (every section in one file, a column layout no
    * section has to share): the document's reference, the day, the zone and the close time first, then each currency's
-   * deposits, withdrawals, games and totals, the differences, the corrections and the opening corrections.
+   * deposits, withdrawals, games and totals and, with the predictions module, its markets and fee differences, then the
+ * differences, the corrections and the opening corrections.
    */
   def rows(a: DayEndAnswer, documentReference: String): Vector[Vector[String]] =
     def row(section: String, currency: String, item: String, field: String, value: String) = Vector(section, currency, item, field, value)
@@ -134,7 +157,14 @@ object DayEnd:
               row("games", c, item, "walletGgr", g.walletGgr))
           } ++
           Vector("walletGgr" -> x.walletGgr, "depositPoolGgr" -> x.depositPoolGgr, "bonusCost" -> x.bonusCost, "chargebacks" -> x.chargebacks,
-            "liability" -> x.liability, "pendingHolds" -> x.pendingHolds).map((k, v) => row("totals", c, "", k, v))
+            "liability" -> x.liability, "pendingHolds" -> x.pendingHolds).map((k, v) => row("totals", c, "", k, v)) ++
+          x.predictions.toVector.flatMap { p =>
+            p.markets.flatMap(k => Vector("contractsTraded" -> k.contractsTraded.toString, "notionalVolume" -> k.notionalVolume,
+              "trades" -> k.trades.toString, "takerFees" -> k.takerFees, "resolutionPayments" -> k.resolutionPayments,
+              "remainderKept" -> k.remainderKept, "feeCredits" -> k.feeCredits).map((f, v) => row("predictions", c, k.marketId, f, v))) ++
+              p.feeDifferences.flatMap(f => Vector("marketId" -> f.marketId, "takerFee" -> f.takerFee, "feeCredit" -> f.feeCredit,
+                "status" -> f.status).map((k, v) => row("fee-differences", c, f.tradeId, k, v)))
+          }
       } ++
       a.differences.flatMap(d => Vector("provider" -> d.provider, "providerStake" -> d.providerStake, "providerWin" -> d.providerWin,
         "walletStake" -> d.walletStake, "walletWin" -> d.walletWin, "status" -> d.status).map((k, v) => row("differences", "", d.roundId, k, v))) ++

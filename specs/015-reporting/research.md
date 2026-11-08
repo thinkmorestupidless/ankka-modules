@@ -563,3 +563,39 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   reason}]}`, the shapes routes.md leaves to the build; `format=csv` is the same columns as a `compliance-export`
   document, `rg-cases-report-<reference>.csv` or `kyc-decisions-report-<reference>.csv`, its players in its sidecar.
   The period is complete from `casino.players`' coverage.
+- **T066, a trade's notional and a leg's shares**: a trade's notional is its quantity times the price of each outcome
+  its legs trade, so a split or merge of complete sets counts both outcomes (100 a set) and a direct trade its one
+  outcome's price. A leg carries no quantity: every leg of a trade moves the trade's `quantity`. Open interest is the
+  positive holdings per owner and outcome: bought less sold less paid.
+- **T066, a trader's net result** is Σ paid − Σ charged − Σ fees over the player's legs, plus the positions paid. R12
+  adds "+ Σ released": a release returns a reservation to the available balance and moves no real balance (the
+  reservation itself is not on `exchange.trades`), so it is left out.
+- **T066, `Traders` keyed by day**: `g<n>/<player>/<market>/<day>` (data-model.md says `<player>/<market>`), so a
+  period's rows are found; the report sums a player's rows over the period, in the currency.
+- **T066, `MarketFigures` over the book's events**: ankka 0.16 gives a view the state of a key value entity or a
+  workflow only, so the row folds `MarketBook`'s events as the book does and keeps its figures and holdings.
+- **T066, `Markets`** is a plain view over the `markets.events` topic, not of a generation: a rebuild leaves it as it
+  is. Its status is `draft`, `approved`, `open`, `suspended`, `closed`, `resolved`, `voided` or `final`; a void's
+  resolution is `void`. The market report lists the markets alive in the period (opened or drafted before its end,
+  not final, voided or resolved before its start), filtered in the service, since a brand's markets are few.
+- **T066–T067, the fee account's credits**: `TradeFee` (key value, `g<n>/<trade>`) holds a trade's fee from
+  `trades-facts` and the fee account's movements under it from `fee-credits`, a consumer of `WalletBook`'s `Moved`
+  with `account_kind = "fee"` (`account_debit` adds, `account_credit` takes away; `reference` is the trade). The close
+  reads `TradeFees` for the day: the credits per currency and market, and each trade whose fee and credits differ
+  (`differs`), whose fee has no movement (`fee_only`) or whose movement names no trade (`credit_only`, market `""`);
+  a trade with no fee and no movement agrees. A movement arriving after the close is not a correction: the close reads
+  the credits once.
+- **T067, the day-end's predictions part**: per currency, when the brand runs the module, `predictions: {markets:
+  [{marketId, contractsTraded, notionalVolume, trades, takerFees, resolutionPayments, remainderKept, feeCredits}],
+  takerFees, feeCredits, feeDifferences: [{tradeId, marketId, takerFee, feeCredit, status}]}`, the shape routes.md's
+  `predictions?` leaves to the build; in the CSV the sections `predictions` and `fee-differences`. A brand without the
+  module has no `predictions` field.
+- **T068, the prediction reports** answer `404 not_found` unless the settings' modules name `predictions`, whatever the
+  Reports tab's flag. They check no first complete day (FR-004): no seed trade exists, so `exchange.trades`' coverage
+  would refuse every period before the first trade a brand made. The summary's market counts are the markets in the
+  currency opened, first resolved, voided or corrected in the period. `format=csv` is a `report-export` document,
+  `predictions-markets-report-<reference>.csv` or `predictions-traders-report-<reference>.csv`; the market report's
+  file is served to a `markets` holder in the request, while `GET /documents/{reference}` admits a report export by
+  the Reports tab's roles alone.
+- **T064–T065, a brand without the module** is played by the kit's own service with `predictions` taken out of its
+  settings for the test: the kit runs one brand's service and the route prefix names it.

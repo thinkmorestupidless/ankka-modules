@@ -100,7 +100,15 @@ final case class GameFigures(provider: String, game: String, gameName: Option[St
 
 /** A market's day (FR-031, US8): contracts, notional, trades, fees, resolution payments, remainder, fee account credits. */
 final case class MarketDay(contracts: Long = 0, notional: Long = 0, trades: Long = 0, fees: Long = 0, payments: Long = 0,
-    remainder: Long = 0, feeCredits: Long = 0)
+    remainder: Long = 0, feeCredits: Long = 0):
+  def +(o: MarketDay): MarketDay = MarketDay(contracts + o.contracts, notional + o.notional, trades + o.trades, fees + o.fees,
+    payments + o.payments, remainder + o.remainder, feeCredits + o.feeCredits)
+
+/**
+ * A trade whose taker fee and the fee account's credits under it differ, or that one side lacks (FR-031): `status`
+ * `differs`, `fee_only` (no credit) or `credit_only` (no `trade_made`, so its market is not known).
+ */
+final case class FeeDifference(trade: String, market: String, currency: String, fee: Long, credit: Long, status: String)
 
 /**
  * A day in one currency (data-model.md *The day*): `total` over every player, `test` the same sections over test
@@ -130,13 +138,15 @@ final case class Delta(
     payments: Map[String, PaymentFigures] = Map.empty,
     gateways: Map[String, GatewayFigures] = Map.empty,
     registrations: Long = 0,
-    test: Boolean = false
+    test: Boolean = false,
+    predictions: Map[String, MarketDay] = Map.empty
 ):
   /** Two deltas of one source event for one day, as one. */
   def +(o: Delta): Delta =
     copy(money = money + o.money, payments = Section.merge(payments, o.payments, PaymentFigures())(_ + _),
       gateways = Section.merge(gateways, o.gateways, GatewayFigures())(_ + _), registrations = registrations + o.registrations,
-      currency = if currency.nonEmpty then currency else o.currency)
+      currency = if currency.nonEmpty then currency else o.currency,
+      predictions = Section.merge(predictions, o.predictions, MarketDay())(_ + _))
 
 /** A late fact for a closed day: dated when it arrived, changing nothing fixed (FR-019). */
 final case class Correction(source: String, arrivedAt: Instant, delta: Delta)
@@ -151,14 +161,18 @@ final case class OpeningCorrection(day: String, arrivedAt: Instant, delta: Delta
 /**
  * What the close reads from outside the day, from views over every wallet and round (research R7): the games and
  * the differences from `Rounds`, the liability from `Wallets`, the pending holds from `WithdrawalsView`, and the
- * corrections to earlier days that arrived during it. Each defaults to none, so a day closes without them.
+ * corrections to earlier days that arrived during it; with the predictions module, the fee account's credits per
+ * currency and market and the trades whose fee and credit differ (`TradeFees`). Each defaults to none, so a day closes
+ * without them.
  */
 final case class CloseInputs(
     games: Map[String, Map[String, GameFigures]] = Map.empty,
     differences: Vector[Difference] = Vector.empty,
     liability: Map[String, Long] = Map.empty,
     pendingHolds: Map[String, Long] = Map.empty,
-    openingCorrections: Vector[OpeningCorrection] = Vector.empty
+    openingCorrections: Vector[OpeningCorrection] = Vector.empty,
+    feeCredits: Map[String, Map[String, Long]] = Map.empty,
+    feeDifferences: Vector[FeeDifference] = Vector.empty
 )
 
 /**
@@ -177,7 +191,8 @@ final case class DayState(
     corrections: Vector[Correction] = Vector.empty,
     lastSeq: Map[String, Long] = Map.empty,
     hourRegistrations: Vector[Long] = Section.NoHours,
-    hourTestRegistrations: Vector[Long] = Section.NoHours
+    hourTestRegistrations: Vector[Long] = Section.NoHours,
+    feeDifferences: Vector[FeeDifference] = Vector.empty
 ):
   def folded(source: String, seq: Long): Boolean = lastSeq.get(source).exists(_ >= seq)
 
@@ -188,7 +203,8 @@ object DayEvent:
   final case class Corrected(source: String, seq: Long, arrivedAt: Instant, delta: Delta) extends DayEvent
   /** The day-end, fixed: every section per currency as it stood at the close, in the zone it closed in (FR-018). */
   final case class DayFixed(zone: String, closedAt: Instant, sections: Map[String, CurrencyDay], differences: Vector[Difference],
-      openingCorrections: Vector[OpeningCorrection], registrations: Long = 0, testRegistrations: Long = 0) extends DayEvent
+      openingCorrections: Vector[OpeningCorrection], registrations: Long = 0, testRegistrations: Long = 0,
+      feeDifferences: Vector[FeeDifference] = Vector.empty) extends DayEvent
 
 /** `source` is the source entity's component and id; `seq` its event's sequence; `arrivedAt` when the fold was asked. */
 final case class Fold(source: String, seq: Long, delta: Delta, arrivedAt: Instant)
@@ -205,13 +221,17 @@ object Day:
 
   def close(s: DayState, c: Close): Option[DayEvent] =
     Option.unless(s.closed) {
-      val currencies = (s.currencies.keySet ++ c.inputs.games.keySet ++ c.inputs.liability.keySet ++ c.inputs.pendingHolds.keySet)
+      val currencies = (s.currencies.keySet ++ c.inputs.games.keySet ++ c.inputs.liability.keySet ++ c.inputs.pendingHolds.keySet ++
+        c.inputs.feeCredits.keySet)
       val sections = currencies.toSeq.map { cur =>
         val d = s.currencies.getOrElse(cur, CurrencyDay())
+        val credits = c.inputs.feeCredits.getOrElse(cur, Map.empty).map((market, credit) => market -> MarketDay(feeCredits = credit))
         cur -> d.copy(games = c.inputs.games.getOrElse(cur, d.games), liabilityAtClose = c.inputs.liability.getOrElse(cur, 0L),
-          pendingHoldsAtClose = c.inputs.pendingHolds.getOrElse(cur, 0L))
+          pendingHoldsAtClose = c.inputs.pendingHolds.getOrElse(cur, 0L),
+          predictions = Section.merge(d.predictions.map((m, f) => m -> f.copy(feeCredits = 0)), credits, MarketDay())(_ + _))
       }.toMap
-      DayFixed(c.zone, c.at, sections, c.inputs.differences, c.inputs.openingCorrections, s.registrations, s.testRegistrations)
+      DayFixed(c.zone, c.at, sections, c.inputs.differences, c.inputs.openingCorrections, s.registrations, s.testRegistrations,
+        c.inputs.feeDifferences)
     }
 
   private def add(s: DayState, d: Delta): DayState =
@@ -224,7 +244,8 @@ object Day:
     else
       val day = regs.currencies.getOrElse(d.currency, CurrencyDay())
       regs.copy(currencies = regs.currencies.updated(d.currency,
-        day.copy(total = day.total + d, test = if d.test then day.test + d else day.test)))
+        day.copy(total = day.total + d, test = if d.test then day.test + d else day.test,
+          predictions = Section.merge(day.predictions, d.predictions, MarketDay())(_ + _))))
 
   def apply(s: DayState, e: DayEvent): DayState = e match
     case f: Folded    => add(s, f.delta).copy(lastSeq = s.lastSeq.updated(f.source, f.seq))
@@ -232,7 +253,8 @@ object Day:
       s.copy(corrections = s.corrections :+ Correction(c.source, c.arrivedAt, c.delta), lastSeq = s.lastSeq.updated(c.source, c.seq))
     case x: DayFixed =>
       s.copy(closed = true, zone = x.zone, closedAt = Some(x.closedAt), currencies = x.sections, differences = x.differences,
-        openingCorrections = x.openingCorrections, registrations = x.registrations, testRegistrations = x.testRegistrations)
+        openingCorrections = x.openingCorrections, registrations = x.registrations, testRegistrations = x.testRegistrations,
+        feeDifferences = x.feeDifferences)
 
 final class BrandDay(@scala.annotation.unused context: EventSourcedEntityContext) extends EventSourcedEntity[DayState, DayEvent]:
   def emptyState: DayState = DayState()

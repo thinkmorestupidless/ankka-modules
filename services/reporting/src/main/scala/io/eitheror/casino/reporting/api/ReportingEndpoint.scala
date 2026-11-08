@@ -86,6 +86,16 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/compliance/kyc-decisions") { () => Compliance.kycDecisions(ctx, asked) }
   }
 
+  // The prediction markets' reports: not found unless the brand runs the module (FR-032); the market report also for
+  // the module's `markets` permission.
+  withAcl(access.predictions) {
+    get("/predictions/summary") { () => Predictions.summary(ctx, asked) }
+    get("/predictions/traders") { () => Predictions.traders(ctx, asked) }
+  }
+  withAcl(access.markets) {
+    get("/predictions/markets") { () => Predictions.markets(ctx, asked, query.raw("status"), query.raw("category")) }
+  }
+
   // The day-end: the Reports tab's roles and finance (FR-023); not hidden by the tab's flag, as it is no report of the tab.
   withAcl(access.dayEnd) {
     get("/day-end/{day}") { (day: String) => DayEnd.read(ctx, day) }

@@ -25,11 +25,12 @@ final case class DayRow(
     openingCorrections: Vector[OpeningCorrection] = Vector.empty,
     corrections: Vector[Correction] = Vector.empty,
     hourRegistrations: Vector[Long] = Section.NoHours,
-    hourTestRegistrations: Vector[Long] = Section.NoHours
+    hourTestRegistrations: Vector[Long] = Section.NoHours,
+    feeDifferences: Vector[FeeDifference] = Vector.empty
 ):
   def state: DayState =
     DayState(closed, zone, closedAt, registrations, testRegistrations, currencies, differences, openingCorrections, corrections,
-      hourRegistrations = hourRegistrations, hourTestRegistrations = hourTestRegistrations)
+      hourRegistrations = hourRegistrations, hourTestRegistrations = hourTestRegistrations, feeDifferences = feeDifferences)
 
   /** The day's registrations to the end of hour `upTo` (23 for the whole day), without the test accounts' when asked. */
   def registrationsTo(upTo: Int, excludeTestAccounts: Boolean): Long =
@@ -39,7 +40,7 @@ final case class DayRow(
 object DayRow:
   def of(generation: Int, day: String, s: DayState): DayRow =
     DayRow(generation, day, s.closed, s.zone, s.closedAt, s.registrations, s.testRegistrations, s.currencies, s.differences,
-      s.openingCorrections, s.corrections, s.hourRegistrations, s.hourTestRegistrations)
+      s.openingCorrections, s.corrections, s.hourRegistrations, s.hourTestRegistrations, s.feeDifferences)
 
   given Serializer[DayRow] = ReportingCodecs.row[DayRow]("day-row")
 

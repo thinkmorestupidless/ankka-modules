@@ -28,12 +28,12 @@ final case class Reply(status: Int, text: String, headers: Map[String, Vector[St
 /**
  * The whole service against a throwaway Postgres (ankka's integration kit, research R17), as attribution's: an
  * in-memory broker carrying the brand's topics, timers polled every 200 ms on a clock the test moves, in the zone
- * `Africa/Johannesburg` beside the casino module. A stand-in for Keycloak reads `staff|<id>|<roles>` as an operator and
+ * `Africa/Johannesburg` beside the casino and predictions modules. A stand-in for Keycloak reads `staff|<id>|<roles>` as an operator and
  * `player|<id>` as a player. At start it publishes one fact on each topic `Days` folds at the midnight of `SeedDay`, so
  * every view is complete from that day and a suite's period after it is never `incomplete_period`; every suite takes
  * days of its own with `days`, since the database and the brand's days outlive suites.
  */
-final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casino", "reporting")):
+final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casino", "reporting", "predictions")):
   val zone: ZoneId = ZoneId.of("Africa/Johannesburg")
   val broker       = InMemoryBroker()
   val clock        = MovableClock.at(Instant.parse("2026-11-08T08:00:00Z"))

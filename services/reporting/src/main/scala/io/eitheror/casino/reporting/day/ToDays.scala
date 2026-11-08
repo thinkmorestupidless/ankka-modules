@@ -6,6 +6,7 @@ import io.eitheror.casino.reporting.Settings
 import io.eitheror.casino.reporting.days.Days
 import io.eitheror.casino.reporting.figures.Figures
 import io.eitheror.casino.reporting.intake.*
+import io.eitheror.casino.reporting.predictions.{MarketBook, MarketBookEvent}
 
 import java.time.{Clock, Duration, Instant, ZoneId}
 
@@ -74,6 +75,17 @@ object ToDays:
       case w: GrantEvent.FreeSpinsSettled => cost(w.at, w.currency, w.win)
       case _                              => Map.empty
 
+  /**
+   * A market's day (FR-028, FR-031): a trade's contracts, notional, count and taker fees, a resolution payment and a
+   * remainder kept, each on its own day, in the predictions section alone, so no casino figure holds a trade (FR-032).
+   */
+  def market(e: MarketBookEvent, zone: ZoneId): Map[String, Delta] =
+    val figures = e match
+      case t: MarketBookEvent.Traded => MarketDay(contracts = t.quantity, notional = t.notional, trades = 1, fees = t.fees)
+      case p: MarketBookEvent.Paid   => MarketDay(payments = p.paid)
+      case k: MarketBookEvent.Kept   => MarketDay(remainder = k.amount)
+    at(Days.dayOf(e.at, zone), Delta(e.currency, hour(e.at, zone), predictions = Map(e.market -> figures)))
+
   def player(e: PlayerLogEvent, zone: ZoneId): Map[String, Delta] = e match
     case r: PlayerLogEvent.Registered =>
       at(Days.dayOf(r.registeredAt, zone), Delta(hour = hour(r.registeredAt, zone), registrations = 1, test = r.testAccount))
@@ -138,7 +150,14 @@ final class PlayerDaysFolder(client: ComponentClient, settings: Settings, clock:
     case r: PlayerLogEvent.Registered => Some(r.testAccount)
     case _                            => None
 
-/** The five `to-days` companions, each `to-days-<source>-g<n>`. */
+/** A market's events: about no one player, so no test account's. */
+final class MarketDays(client: ComponentClient, settings: Settings, clock: Clock)
+    extends DayFolder[MarketBookEvent](client, settings, clock, MarketBook.componentId.toString):
+  protected def deltas(e: MarketBookEvent, zone: ZoneId) = ToDays.market(e, zone)
+  protected def player(e: MarketBookEvent) = ""
+  override protected def testFlag(e: MarketBookEvent) = Some(false)
+
+/** The `to-days` companions, each `to-days-<source>-g<n>`; the markets' only when the brand runs `predictions`. */
 object ToDaysConsumers:
   final class Wallets(settings: Settings, clock: Clock = Clock.systemUTC())
       extends Consumer.Companion[WalletDays, BookEvent, Nothing](
@@ -165,10 +184,15 @@ object ToDaysConsumers:
         Generation.componentId("to-days-players", settings.generation), ChangeSource.eventsOf(PlayerLog)):
     def create(ctx: ConsumerContext) = new PlayerDaysFolder(ctx.componentClient, settings, clock)
 
+  final class Markets(settings: Settings, clock: Clock = Clock.systemUTC())
+      extends Consumer.Companion[MarketDays, MarketBookEvent, Nothing](
+        Generation.componentId("to-days-markets", settings.generation), ChangeSource.eventsOf(MarketBook)):
+    def create(ctx: ConsumerContext) = new MarketDays(ctx.componentClient, settings, clock)
+
   def all(settings: Settings, clock: Clock = Clock.systemUTC()): Seq[com.thinkmorestupidless.ankka.core.ComponentDescriptor] = Seq(
     Wallets(settings, clock).descriptor,
     Payments(settings, clock).descriptor,
     Withdrawals(settings, clock).descriptor,
     Grants(settings, clock).descriptor,
     Players(settings, clock).descriptor
-  )
+  ) ++ Option.when(settings.predictions)(Markets(settings, clock).descriptor)

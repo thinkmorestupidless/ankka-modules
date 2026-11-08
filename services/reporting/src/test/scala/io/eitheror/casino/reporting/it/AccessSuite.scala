@@ -42,6 +42,9 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     "/reports/psp" -> reportRoles,
     "/compliance/rg-cases" -> (reportRoles + "brand_compliance"),
     "/compliance/kyc-decisions" -> (reportRoles + "brand_compliance"),
+    "/predictions/summary" -> reportRoles,
+    "/predictions/traders" -> reportRoles,
+    "/predictions/markets" -> (reportRoles + "markets"),
     "/status"      -> everyOperator,
     "/settings"    -> Set("brand_admin", "platform_admin")
   ) ++ Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health")

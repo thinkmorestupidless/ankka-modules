@@ -50,7 +50,7 @@ object ReportingService:
     reads.Transactions.descriptor,
     reads.Grants.descriptor,
     reads.Compliance.descriptor
-  ) ++ day.ToDaysConsumers.all(settings, clock) ++ casino(settings)
+  ) ++ day.ToDaysConsumers.all(settings, clock) ++ casino(settings) ++ predictions(settings)
 
   /**
    * The one endpoint (research R13). Its prefix names the brand of the settings `wire` set, so `wire` comes first;
@@ -75,6 +75,16 @@ object ReportingService:
     ReportingRuntime.closeInputs.set(d => day.DayEndInputs.gather(views, settings, d))
     day.CloseDays.schedule(timers)
     documents.Sweep.schedule(timers)
+
+  /**
+   * `markets.events` and `exchange.trades` exist to be read only when the brand runs the predictions module (R12):
+   * their intake, the books' views, and the fee account's credits beside the trades' fees.
+   */
+  private def predictions(settings: Settings): Seq[ComponentDescriptor] =
+    import io.eitheror.casino.reporting.predictions as p
+    if !settings.predictions then Nil
+    else Seq(p.MarketBook.descriptor, p.TradesFacts(settings).descriptor, p.TradeFee.descriptor, p.FeeCredits(settings).descriptor,
+      p.TradeFees.descriptor, p.Markets.descriptor, p.MarketFigures.descriptor, p.Traders.descriptor)
 
   /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */
   private def casino(settings: Settings): Seq[ComponentDescriptor] =
