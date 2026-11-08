@@ -346,6 +346,18 @@ object Parity:
 
     private def players(fact: f.CasinoPlayersFact): Unit = kit.publish(f.CasinoPlayers, fact.playerId, fact)
 
+    /**
+     * Waits, at most a few seconds, for the send `event` makes of `fact` to end. The original decided each review before
+     * its next step; here each fact's send is a workflow of its own, and a loaded runner can end a later fact's first, so
+     * the CRM's calls would come in another order than the recording's.
+     */
+    private def settle(fact: f.CasinoPlayersFact, event: String): Unit =
+      val key   = s"$event/${io.eitheror.casino.engagement.consumers.Sends.factId(f.CasinoPlayers, fact)}"
+      val until = System.nanoTime + 5.seconds.toNanos
+      def ended = kit.components.forWorkflow(com.thinkmorestupidless.ankka.core.EntityId(key))
+        .call(io.eitheror.casino.engagement.send.Send.outcome).invoke().ended
+      while !ended && System.nanoTime < until do Thread.sleep(50)
+
     private def standFor(p: String, s: StandIn): Unit = s match
       case StandIn.Registered(email, country, currency, dob, first, family) =>
         val at = now()
@@ -377,7 +389,9 @@ object Parity:
         players(f.PlayerSelfExcluded(p, "active", "self_excluded", "player", None, None, now(), None, now()))
       case StandIn.DocumentSubmitted(key) => players(f.PlayerKycSubmitted(p, key, category(key), now()))
       case StandIn.DocumentReviewed(key, decision, reason, status) =>
-        players(f.PlayerKycDocumentReviewed(p, key, category(key), decision, reason, "op-1", now()))
+        val reviewed = f.PlayerKycDocumentReviewed(p, key, category(key), decision, reason, "op-1", now())
+        players(reviewed)
+        settle(reviewed, if decision == "approved" then "kyc_document_accepted" else "kyc_document_declined")
         status.foreach(kycStatus(p, _))
       case StandIn.KycStatus(status) => kycStatus(p, status)
       case StandIn.KycShown(status)  => kycStatus(p, status)
