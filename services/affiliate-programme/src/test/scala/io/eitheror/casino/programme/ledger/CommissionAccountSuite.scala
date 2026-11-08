@@ -28,26 +28,6 @@ class CommissionAccountSuite extends munit.FunSuite with LogCapturing:
     assertEquals(payable(k, FactType.RevShare), Vector(2_500L, -500L))
   }
 
-  test("an event already applied writes nothing, however far past the id window; a later event, or another kind from it, does") {
-    val k   = kit
-    val src = (n: Long) => Some(SourceEvent("goldvibe/ps-1", n))
-    def ngrFrom(id: String, n: Long) = k.call(CommissionAccount.recordNgr)(RecordNgr(id, "ggr", 1_000, oct, period, FeeRates(), "UTC", now, src(n)))
-    assert(ngrFrom("g1", 1).persisted)
-    // The same event again under an id the window never held (as one dropped from it would be).
-    assert(!ngrFrom("g1-again", 1).persisted)
-    assert(!ngrFrom("g0", 0).persisted)
-    assert(ngrFrom("g2", 2).persisted)
-    assert(k.call(CommissionAccount.recordPaymentFee)(RecordPaymentFee("d2", 10_000, 100, oct, "UTC", now, Some(period), src(2))).persisted)
-    // The window drops an id; what the source applied stays.
-    val applied = Vector(
-      CommissionAccount.FactWritten(LedgerFact("ggr/g1", FactType.Ggr, 1, oct, now, "2026-10")),
-      CommissionAccount.SourceApplied("ngr", "goldvibe/ps-1", 1)
-    ) ++ (1 to CommissionAccount.MaxWritten).map(i => CommissionAccount.FactWritten(LedgerFact(s"adj/$i", FactType.Adjustment, 1, oct, now, "2026-10")))
-    val state = applied.foldLeft(AccountState())(CommissionAccount.next)
-    assert(!state.has("ggr/g1"))
-    assert(state.seenBefore("ngr", src(1)) && !state.seenBefore("ngr", src(2)) && !state.seenBefore("cpa", src(1)))
-  }
-
   test("an input that is not NGR is refused") {
     assert(ngr(kit, "x", "cpa", 1, oct).isError)
   }

@@ -56,7 +56,7 @@ final class LedgerView extends KeyedView[LedgerRow]:
       case CommissionAccount.PayoutPaid(p) =>
         val held = change.rows.ask(Ledger.ofPayout, "payout" -> p)
         effects.updateRows(held.map(r => Ledger.key(account, r.factId) -> r.copy(paid = true)))
-      case EarningsChanged(_, _) | SourceApplied(_, _, _) => effects.ignore()
+      case EarningsChanged(_, _) => effects.ignore()
 
 object Ledger extends KeyedView.Companion[LedgerView, LedgerRow](
       componentId = ComponentId("ledger"),

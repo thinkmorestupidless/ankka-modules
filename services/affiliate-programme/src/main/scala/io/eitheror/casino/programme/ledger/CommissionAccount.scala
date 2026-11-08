@@ -21,17 +21,10 @@ final case class AccountState(
     paid: Set[String] = Set.empty,
     written: Vector[String] = Vector.empty,
     /** The import wrote this account's history (FR-039): a second import writes nothing, however long the history. */
-    imported: Boolean = false,
-    /**
-     * The last event of each source a kind of command was made from, `<kind>:<source id>` to its sequence
-     * number: a redelivery, however old (an offset reset, a rebuild), is of a number already seen.
-     */
-    seen: Map[String, Long] = Map.empty
+    imported: Boolean = false
 ):
-  /** `written` holds the last ids for what has no source event (an adjustment, an import); `seen` holds the rest for good. */
+  /** The last ids written: a recent redelivery; an older one `ToLedger`'s `LedgerMark` stops before it arrives. */
   def has(id: String): Boolean = written.contains(id)
-  def seenBefore(kind: String, source: Option[SourceEvent]): Boolean =
-    source.exists(e => seen.get(s"$kind:${e.subject}").exists(_ >= e.seq))
 
 /** The event of `PlayerAttribution` a command was made from: its entity's id and its sequence number there. */
 final case class SourceEvent(subject: String, seq: Long)
@@ -43,12 +36,11 @@ final case class Rate(revShareBp: Int, window: Window, payable: Boolean)
 final case class FeeRates(admin: Int = 0, payment: Int = 0, provider: Int = 0)
 
 /** An NGR input: `kind` is `ggr`, `bonus-cost` or `chargeback`; `factId` the brand's fact. */
-final case class RecordNgr(factId: String, kind: String, amount: Long, occurredAt: Instant, rate: Rate, fees: FeeRates, zone: String, at: Instant,
-    source: Option[SourceEvent] = None)
-final case class RecordCpa(id: String, amount: Long, occurredAt: Instant, zone: String, at: Instant, source: Option[SourceEvent] = None)
+final case class RecordNgr(factId: String, kind: String, amount: Long, occurredAt: Instant, rate: Rate, fees: FeeRates, zone: String, at: Instant)
+final case class RecordCpa(id: String, amount: Long, occurredAt: Instant, zone: String, at: Instant)
 /** `rate`: the plan's at the deposit, so the fee's NGR is folded into RevShare as any NGR fact's (FR-014); none in an old command. */
 final case class RecordPaymentFee(factId: String, deposit: Long, bp: Int, occurredAt: Instant, zone: String, at: Instant,
-    rate: Option[Rate] = None, source: Option[SourceEvent] = None)
+    rate: Option[Rate] = None)
 final case class RecordAdjustment(id: String, amount: Long, reason: String, by: String, occurredAt: Instant, claimedBy: Option[String],
     zone: String, at: Instant, source: Option[String] = None)
 final case class RecomputeOverride(source: String, period: String, sourceEarnings: Long, bp: Int, zone: String, at: Instant)
@@ -77,8 +69,6 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
   /** `periods` counts, by period, the facts the payout held and gives back. */
   final case class FactsReleased(payoutId: String, periods: Map[String, Int] = Map.empty) extends Event
   final case class PayoutPaid(payoutId: String) extends Event
-  /** A command of `kind` was made from `source`'s event `seq`: one made from it again, or from an earlier one, writes nothing. */
-  final case class SourceApplied(kind: String, subject: String, seq: Long) extends Event
   /** A source's earnings in a period moved: its ancestors' overrides are recomputed from it (FR-015). */
   final case class EarningsChanged(period: String, earnings: Long) extends Event
 
@@ -103,7 +93,6 @@ object CommissionAccount extends EventSourcedEntity.Companion[CommissionAccount,
     case PayoutPaid(p) =>
       s.copy(unsettled = s.unsettled.filterNot(_.settledBy.contains(p)), paid = s.paid + p, claims = s.claims - p)
     case EarningsChanged(_, _) => s
-    case SourceApplied(kind, subject, seq) => s.copy(seen = s.seen.updated(s"$kind:$subject", seq))
 
   private def fact(id: String, kind: FactType, amount: Long, occurredAt: Instant, zone: String, at: Instant, source: Option[String] = None,
       settledBy: Option[String] = None) =
@@ -190,30 +179,27 @@ final class CommissionAccount(@scala.annotation.unused context: EventSourcedEnti
   private def write(events: Vector[Event]): Effect[AccountState] =
     if events.isEmpty then effects.reply(currentState) else effects.persistAll(events).thenReplyState
 
-  /** `events`, and that they were made from `source`'s event, when they are anything. */
-  private def from(kind: String, source: Option[SourceEvent])(events: Vector[Event]): Effect[AccountState] =
-    write(if events.isEmpty then events else events ++ source.map(e => SourceApplied(kind, e.subject, e.seq)))
 
   def recordNgr(c: RecordNgr): Effect[AccountState] =
-    if currentState.has(s"${c.kind}/${c.factId}") || currentState.seenBefore("ngr", c.source) then effects.reply(currentState)
+    if currentState.has(s"${c.kind}/${c.factId}") then effects.reply(currentState)
     else if FactType.parse(c.kind).forall(t => !Set(FactType.Ggr, FactType.BonusCost, FactType.Chargeback)(t)) then
       effects.error(s"an NGR input is ggr, bonus-cost or chargeback, not ${c.kind}", ErrorCode.BadRequest)
-    else from("ngr", c.source)(withEarnings(currentState, ngr(currentState, c)))
+    else write(withEarnings(currentState, ngr(currentState, c)))
 
   def recordCpa(c: RecordCpa): Effect[AccountState] =
-    if currentState.has(c.id) || currentState.seenBefore("cpa", c.source) then effects.reply(currentState)
-    else from("cpa", c.source)(withEarnings(currentState, Vector(FactWritten(LedgerFact(c.id, FactType.Cpa, c.amount, c.occurredAt, c.at,
+    if currentState.has(c.id) then effects.reply(currentState)
+    else write(withEarnings(currentState, Vector(FactWritten(LedgerFact(c.id, FactType.Cpa, c.amount, c.occurredAt, c.at,
       Periods.periodOf(c.occurredAt, ZoneId.of(c.zone)))))))
 
   /** The payment fee on a deposit, at the brand's percentage (FR-014). A rate of zero writes nothing. */
   def recordPaymentFee(c: RecordPaymentFee): Effect[AccountState] =
     val id = s"payment-fee/${c.factId}"
-    if currentState.has(id) || c.bp == 0 || currentState.seenBefore("payment-fee", c.source) then effects.reply(currentState)
+    if currentState.has(id) || c.bp == 0  then effects.reply(currentState)
     else
       val fee   = LedgerFact(id, FactType.PaymentFee, Fees.on(c.deposit, c.bp), c.occurredAt, c.at, Periods.periodOf(c.occurredAt, ZoneId.of(c.zone)))
       // The original recomputes after the fee (`InternalRoutes.scala:1062-1117`): a deposit after the period's last GGR moves RevShare too.
       val delta = c.rate.flatMap(r => CommissionAccount.revShare(currentState.sums.add(fee), fee.period, r, s"revshare/$id", c.occurredAt, c.zone, c.at))
-      from("payment-fee", c.source)(withEarnings(currentState, (fee +: delta.toVector).map(FactWritten(_))))
+      write(withEarnings(currentState, (fee +: delta.toVector).map(FactWritten(_))))
 
   /** A manager's adjustment (FR-020), or the difference an approval's override figure makes, claimed by that payout. */
   def recordAdjustment(c: RecordAdjustment): Effect[AccountState] =

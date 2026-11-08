@@ -36,6 +36,10 @@ class ToLedgerSuite extends munit.FunSuite with LogCapturing:
     def postback(id: EntityId, c: io.eitheror.casino.programme.postbacks.SendPostback): Unit = postbacks.getOrElseUpdate(id.toString, c): Unit
     def facts(id: String) = accounts.get(id).fold(Vector.empty[io.eitheror.casino.programme.commission.LedgerFact])(_.call(CommissionAccount.get).replyValue.unsettled)
     def sums(id: String)  = accounts(id).call(CommissionAccount.get).replyValue.sums
+    val marks = mutable.Map.empty[String, KeyValueEntityTestKit[LedgerMark, LedgerMarkState]]
+    private def markOf(subject: String) = marks.getOrElseUpdate(subject, KeyValueEntityTestKit.of(LedgerMark, subject))
+    def marked(subject: String): Long          = markOf(subject).call(LedgerMark.get).replyValue.seq
+    def mark(subject: String, seq: Long): Unit = markOf(subject).call(LedgerMark.mark)(seq): Unit
 
   private def calls(active: Boolean = true) =
     val c = Calls()
@@ -50,6 +54,26 @@ class ToLedgerSuite extends munit.FunSuite with LogCapturing:
   private def applied(kind: String, id: String, amount: Long, currency: String, o: Outcome) =
     PlayerAttribution.Applied(PlayerFact(kind, id, at, "goldvibe", "ps-1", "aff-1", "lnk-1", currency = Some(currency), amount = amount), binding, o)
   private def writer(c: Calls) = LedgerWriter(c, () => at.plusSeconds(60))
+
+  test("an event at or below the player's mark writes nothing, however far past the account's window of ids; a later one does") {
+    val c   = calls()
+    val src = (n: Long) => Some(SourceEvent("goldvibe/ps-1", n))
+    writer(c).write(applied(PlayerFact.GgrDaily, "g-1", 1_000, "EUR", Outcome.Ngr("ggr", 1_000)), src(1))
+    assertEquals(c.marked("goldvibe/ps-1"), 1L)
+    // The same event redelivered under an id the window no longer holds (as one dropped from it would be).
+    writer(c).write(applied(PlayerFact.GgrDaily, "g-1-again", 1_000, "EUR", Outcome.Ngr("ggr", 1_000)), src(1))
+    writer(c).write(applied(PlayerFact.GgrDaily, "g-0", 1_000, "EUR", Outcome.Ngr("ggr", 1_000)), src(0))
+    assertEquals(c.sums("aff-1/goldvibe/EUR").amount(FactType.Ggr), 1_000L)
+    writer(c).write(applied(PlayerFact.GgrDaily, "g-2", 500, "EUR", Outcome.Ngr("ggr", 500)), src(2))
+    assertEquals((c.sums("aff-1/goldvibe/EUR").amount(FactType.Ggr), c.marked("goldvibe/ps-1")), (1_500L, 2L))
+  }
+
+  test("LedgerMark only moves forward") {
+    val k = KeyValueEntityTestKit.of(LedgerMark, "goldvibe/ps-9")
+    k.call(LedgerMark.mark)(5L): Unit
+    assert(!k.call(LedgerMark.mark)(3L).changed)
+    assertEquals(k.call(LedgerMark.get).replyValue.seq, 5L)
+  }
 
   test("a qualifying first deposit writes CPA in the plan's currency; its deposit fact the payment fee, once") {
     val c = calls()

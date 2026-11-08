@@ -13,7 +13,7 @@ import io.eitheror.casino.programme.comms.{Communications, CustomerIo, EmailSend
 import io.eitheror.casino.programme.postbacks.{Postback, PostbackOutcome, PostbackOutcomes, PostbackRetry}
 import io.eitheror.casino.programme.imports.Import
 import io.eitheror.casino.programme.intake.{BrandConsumers, FactInbox, Inbox}
-import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, Overrides, ToLedger, Unsettled}
+import io.eitheror.casino.programme.ledger.{CommissionAccount, Ledger, LedgerMark, Overrides, ToLedger, Unsettled}
 import io.eitheror.casino.programme.links.{BonusCode, BonusCodes, Clicks, InviteLink, InviteLinks, Link, Links, Revocations, RevocationsStamp, SigningKeys}
 import io.eitheror.casino.programme.players.{ClickRecord, PlayerAttribution, PlayerFacts, Players}
 import io.eitheror.casino.programme.settlement.{Close, CloseRun, Payout, Payouts}
@@ -58,6 +58,7 @@ object ProgrammeService:
       Ledger.descriptor,
       Unsettled.descriptor,
       ToLedger.descriptor,
+      LedgerMark.descriptor,
       Overrides.descriptor,
       Communications.descriptor,
       Provisioning.descriptor,
@@ -114,6 +115,7 @@ object ProgrammeService:
 
   /** What a workflow's steps read of the views, which exist only once the service has started. */
   def wireViews(views: ViewClient): Unit =
+    Wiring.clicksWith.set((brand, clickId) => views.forView(Clicks).ask(Clicks.withClickId, "brand" -> brand, "click_id" -> clickId))
     Wiring.owed.set((brand, period, after) => views.forView(Unsettled).ask(Unsettled.owed, "brand" -> brand, "period" -> period, "after" -> after))
 
   /** At every start: the seed, once, a moment after the service is up (setting it again replaces it). */

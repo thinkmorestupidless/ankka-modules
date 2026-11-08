@@ -25,6 +25,9 @@ trait LedgerCalls:
   def raiseFlag(id: EntityId, c: RaiseFlag): Unit
   def account(affiliate: String): AffiliateState
   def postback(id: EntityId, c: SendPostback): Unit
+  /** The player's last event whose writes are done, and marking one done (`LedgerMark`). */
+  def marked(subject: String): Long
+  def mark(subject: String, seq: Long): Unit
 
 object LedgerCalls:
   def of(client: ComponentClient): LedgerCalls = new LedgerCalls:
@@ -43,6 +46,8 @@ object LedgerCalls:
     def raiseFlag(id: EntityId, c: RaiseFlag): Unit = client.forKeyValueEntity(id).call(FraudFlag.raise).invoke(c): Unit
     def account(affiliate: String): AffiliateState  = client.forEventSourcedEntity(EntityId(affiliate)).call(Affiliate.get).invoke()
     def postback(id: EntityId, c: SendPostback): Unit = client.forWorkflow(id).call(Postback.start).invoke(c): Unit
+    def marked(subject: String): Long = client.forKeyValueEntity(EntityId(subject)).call(LedgerMark.get).invoke().seq
+    def mark(subject: String, seq: Long): Unit = client.forKeyValueEntity(EntityId(subject)).call(LedgerMark.mark).invoke(seq): Unit
 
 /**
  * What a player's recorded fact means for the ledger (data-model.md *Consumers*), at the binding's
@@ -53,8 +58,17 @@ object LedgerCalls:
  * affiliate's address, when they have one (FR-036).
  */
 final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
-  /** `source`: the event's id and number at `PlayerAttribution`, which makes a redelivery, however late, write nothing. */
+  /**
+   * `source`: the event's id and number at `PlayerAttribution`. An event at or below the player's mark was
+   * written before, however long ago, and writes nothing; one redelivered before its mark was set is
+   * recent, and the account's window of ids holds it.
+   */
   def write(e: PlayerAttribution.Applied, source: Option[SourceEvent] = None): Unit =
+    if !source.exists(s => calls.marked(s.subject) >= s.seq) then
+      writeOnce(e)
+      source.foreach(s => calls.mark(s.subject, s.seq))
+
+  private def writeOnce(e: PlayerAttribution.Applied): Unit =
     e.binding.filterNot(_ => e.imported).foreach { b =>
       val f          = e.fact
       lazy val brand = calls.brand(f.brand)
@@ -67,7 +81,7 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
       def paymentFee(): Unit =
         f.currency.filter(_ => f.kind == PlayerFact.Deposit).foreach { c =>
           calls.recordPaymentFee(account(c), RecordPaymentFee(f.factId, f.amount, brand.fees.payment, f.occurredAt, brand.reportingZone, now(),
-            Some(rate), source))
+            Some(rate)))
         }
       lazy val clickId = if f.kind == PlayerFact.Registration then f.clickId else calls.player(f.brand, f.pseudonym).clickId
       def postback(event: String, payout: Option[String], status: String): Unit =
@@ -81,7 +95,7 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
           val cpa = plan.filter(p => qualifies && m.active && p.paysCpa)
           cpa.foreach { p =>
             calls.recordCpa(account(p.cpaCurrency),
-              RecordCpa(s"cpa/${f.brand}/${f.pseudonym}", p.cpaAmount, f.occurredAt, brand.reportingZone, now(), source))
+              RecordCpa(s"cpa/${f.brand}/${f.pseudonym}", p.cpaAmount, f.occurredAt, brand.reportingZone, now()))
           }
           paymentFee()
           // As the original: the CPA paid, or 0 on a plan that pays RevShare; nothing on a CPA plan that did not pay.
@@ -93,7 +107,7 @@ final class LedgerWriter(calls: LedgerCalls, now: () => Instant):
         case Outcome.Ngr(kind, amount) =>
           f.currency.foreach { c =>
             val fees = FeeRates(brand.fees.admin, brand.fees.payment, brand.fees.provider)
-            val after = calls.recordNgr(account(c), RecordNgr(f.factId, kind, amount, f.occurredAt, rate, fees, brand.reportingZone, now(), source))
+            val after = calls.recordNgr(account(c), RecordNgr(f.factId, kind, amount, f.occurredAt, rate, fees, brand.reportingZone, now()))
             after.unsettled.find(_.id == s"revshare/${f.factId}").filter(_.amount > 0)
               .foreach(d => postback(LedgerWriter.RevShare, Some(major(d.amount, c)), "approved"))
           }
