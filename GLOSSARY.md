@@ -1057,7 +1057,7 @@ The shared audit's one store mapping a real id to its pseudonym, per brand and p
 A compliance officer with the re-identification role asking the registry who a pseudonym is, with a reason code, and being told the brand, the kind and the real id; recorded, as is a refusal.
 
 ### installation record
-An audit record of class installation about a brand: a deployment, a rollback, a restore, a grant's change or an erasure request's state, listed beside the brand's own records in one order of occurrence.
+An audit record about a brand that the shared audit writes from the installation's history, visible to the brand's compliance role: a deployment, a rollback, a restore, a grant's change or an erasure request's state, listed beside the brand's own records in one order of occurrence.
 
 ### migration
 The move of a brand from the original to the rebuild: a freeze, an export, an import, a parity report, a cutover within a window, sign-off, and the original's retirement; rehearsed against a production snapshot before the real window.

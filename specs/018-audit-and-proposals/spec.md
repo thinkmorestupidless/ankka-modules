@@ -141,6 +141,33 @@ carried over.
   brands' grants of their `platform.audit` to `reasoner`/`audit`; how `audit` reads `payments`' records
   (a grant between two shared projects, or another path) is this spec's to settle when it is planned.
 
+### Session 2026-11-08
+
+- Q: The brand services already publish `audit_record` (the contract's `AuditRecord`) with `recordClass`
+  as a category (`money`, `operator`, `security`, `system`) and actor and subject kinds beyond FR-001's
+  lists (actor `system`, `sub-brand`; subjects `market`, `reward`, `wallet_call`, `request`, `account`).
+  Which gives way? → A: The spec follows the wire. `recordClass` is the record's category, an open
+  string the writer chooses; visibility (`brand` or `installation`) is not on the record but derived
+  by the shared audit from where the record came from: a brand's or a shared project's topic is
+  `brand`, the control plane's history and the audit's own records of queries are `installation`.
+  Kinds are open strings, actor `system` among them. Only the ids of people are pseudonymised: a
+  subject or actor of kind `player`, `operator`, `affiliate` or `agent`, and every approver id; any
+  other kind's id (a market, a reward, a service) is stored as written. No brand service changes.
+- Q: The installation's default retention? → A: Seven years (decision 0009), raisable per brand where
+  a licence needs longer, never lowered below the installation's (FR-021 as written).
+- Q: Who may hold a brand's re-identification role? → A: The brand's compliance officer alone, granted
+  per brand by an installation owner, each grant a record. The installation's compliance role cannot
+  re-identify, and no regulator holds an account: a regulator asks the brand's officer.
+- Q: Which export formats? → A: Two from the start: a flat CSV (decision 0009's `compliance_csv`, the
+  changes flattened) and JSON lines (one record per line, the changes as a list). The brand's setting
+  names one of them; a third is added when a licence prescribes one.
+- Q: How does the shared audit take in a shared project's records, `payments`' (from spec 004)? → A:
+  As a brand's: `payments` grants its `platform.audit` to `reasoner`/`audit` under ankka 040, and the
+  audit consumes it as one more source, scoped `payments`. Each record keeps the brand it names; a
+  record naming a brand is visible to that brand's compliance role, and every record to the
+  installation's. Pseudonyms are per (brand, kind, real id) as for any record; a record naming no
+  brand is scoped to `payments`.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Every action in a brand leaves one record (Priority: P1)
@@ -184,12 +211,14 @@ different pseudonym at the other brand.
 
 **Acceptance Scenarios**:
 
-- added `features/audit/shared.feature`: a record written in a brand that allows the shared audit appears in the shared store with pseudonyms in place of its ids and every other field unchanged
+- added `features/audit/shared.feature`: a record written in a brand that allows the shared audit appears in the shared store with a pseudonym in place of every person's id and every other field unchanged
+- added `features/audit/shared.feature`: a record about what is not a person keeps that id as written, and a person's id in it is a pseudonym
 - added `features/audit/shared.feature`: a player's records at one brand all name the same pseudonym
 - added `features/audit/shared.feature`: the same person at two brands has differing pseudonyms and nothing in the store joins them
 - added `features/audit/shared.feature`: a record already in the store arriving again leaves the store unchanged
 - added `features/audit/shared.feature`: nothing the shared audit answers, writes or logs holds a real id, which only the registry holds
 - added `features/audit/shared.feature`: a brand that revokes what it allowed the shared audit stops the store at the last record received and shows the gap on the brand's status
+- added `features/audit/shared.feature`: a payments record naming a brand is visible to that brand's compliance officer, and one naming no brand to the installation's alone
 
 ---
 
@@ -294,10 +323,9 @@ database; verify.
   from the brand, service, entity and command key. A collision is reported as an error, never
   overwritten.
 - **An actor is a service in a shared project** (`payments`/`merchant`, `reasoner`/`audit` itself).
-  It is pseudonymised like any actor; the pseudonym is per brand, and a service's identity string is
-  the "real id".
+  A service is not a person: its identity is stored as written (FR-008).
 - **The regulator's export format changes.** The format is a setting per brand naming one of the
-  formats the service offers; the records are unchanged.
+  formats the service offers (CSV or JSON lines); the records are unchanged.
 - **A query would return millions of rows.** Paged with a cursor; an export runs as a job with a
   status and a file to fetch, recorded once at request and once at completion.
 
@@ -307,13 +335,17 @@ database; verify.
 
 **The record and who writes it**
 
-- **FR-001**: An audit record MUST carry: a record id; the brand; the service; the action name; the
-  actor as a kind (`player`, `operator`, `agent`, `service`, `platform`) and an id, with the
-  approver's id where an agent's action was approved (ankka 029); the subject as a kind (`player`,
-  `operator`, `affiliate`, `merchant`, `brand`, `service`) and an id; the outcome, `done` or
-  `refused` with a reason code; the changes as a list of (field, before, after); the correlation id
-  of the request or workflow; the causation id of the command or fact that led to it; the time it
-  occurred; and the class, `brand` or `installation`.
+- **FR-001**: An audit record MUST carry, as the contract's `audit_record` does: a record id; the
+  brand; the service; the action name; the actor as a kind and an id, with the approver's id where an
+  agent's action was approved (ankka 029); the subject as a kind and an id; the outcome, the action's
+  own outcome or `refused` with a reason code; the changes as a list of (field, before, after); the
+  correlation id of the request or workflow; the causation id of the command or fact that led to it;
+  the time it occurred; and its category, `recordClass`. Kinds and categories are open strings the
+  writer chooses: actor kinds include `player`, `operator`, `agent`, `service`, `system` and
+  `platform`; subject kinds include `player`, `operator`, `affiliate`, `merchant`, `brand`, `market`,
+  `reward` and `account`; categories include `money`, `operator`, `security` and `system`. A record
+  carries no visibility: the shared audit derives it (FR-020). (Clarified 2026-11-08: the spec follows
+  what the brand services publish.)
 - **FR-002**: The record id MUST derive from the brand, the service, the subject and the command's
   idempotency key, so that a repeated command writes no second record and a record is the same
   whichever instance wrote it.
@@ -335,11 +367,14 @@ database; verify.
 **The shared audit**
 
 - **FR-007**: The shared `audit` service MUST consume every brand's `platform.audit` topic under the
-  brand's grant (spec 001 FR-016; ankka 040) with a consumer of its own per brand, and MUST report per
-  brand the time of the last record received and the lag.
-- **FR-008**: On ingest the service MUST replace every subject id and actor id with a pseudonym from
-  its registry and MUST store nothing else that identifies a person; the stored record MUST otherwise
-  equal the record written.
+  brand's grant (spec 001 FR-016; ankka 040) with a consumer of its own per brand, and `payments`'
+  `platform.audit` under that project's grant in the same way, as a source scoped `payments`; it MUST
+  report per source the time of the last record received and the lag.
+- **FR-008**: On ingest the service MUST replace the id of every subject and actor of a person's kind
+  (`player`, `operator`, `affiliate`, `agent`) and every approver id with a pseudonym from its
+  registry, MUST keep any other kind's id as written, and MUST store nothing else that identifies a
+  person; the stored record MUST otherwise equal the record written, with the source and its derived
+  visibility beside it.
 - **FR-009**: The registry MUST issue one random pseudonym per (brand, kind, real id) on first sight
   and keep it for the record's life; the same real id at another brand MUST receive another pseudonym.
   The registry MUST be the only store in the `reasoner` project that holds a real id (spec 001
@@ -359,14 +394,17 @@ database; verify.
   amount), and period, paged by a cursor in order of occurrence; a role for one brand MUST be refused
   another brand, and the installation's role MUST see every brand, each record naming its brand.
 - **FR-014**: A compliance officer MUST be able to export a brand's records for a period as a file in
-  one of the formats the service offers, the format chosen per brand; the export MUST run as a job
-  with a status and MUST contain every record of the period, in pseudonyms.
+  one of the formats the service offers, a flat CSV (the changes flattened) or JSON lines (one record
+  per line, the changes as a list), the format chosen per brand; the export MUST run as a job with a
+  status and MUST contain every record of the period, in pseudonyms.
 - **FR-015**: Every query, export and re-identification MUST itself be a record, naming the actor,
-  the filters or range and the count, with class `installation`; a record of a query MUST NOT be
+  the filters or range and the count, with visibility `installation`; a record of a query MUST NOT be
   written about reading records of queries (one level, no recursion).
 - **FR-016**: Roles MUST be the realm's (spec 001; decision 0045): a brand compliance role per brand,
-  an installation compliance role, and a re-identification role per brand, each granted by an
-  installation owner and each grant a record.
+  an installation compliance role, and a re-identification role per brand, held only by a holder of
+  that brand's compliance role, each granted by an installation owner and each grant a record. The
+  installation compliance role MUST NOT re-identify, and no account outside the installation's realm
+  (a regulator's) MUST hold any of them.
 
 **Re-identification**
 
@@ -383,8 +421,12 @@ database; verify.
   revocation (040), erasure requests and their states (042), and changes of secrets by name (038) —
   and MUST write each as an `installation` record of the brand, with the control plane's actor and
   time, so the brand's record holds what the platform did to it.
-- **FR-020**: An `installation` record MUST be visible to the brand's compliance role as well as the
-  installation's; there MUST be no record about a brand its compliance role may not see.
+- **FR-020**: Visibility MUST be derived from a record's source: a record from a brand's or a shared
+  project's topic is `brand`, one written from the control plane's history or by the audit itself
+  (FR-015) is `installation`. Every record naming a brand, of either visibility and from any source,
+  MUST be visible to that brand's compliance role as well as the installation's; there MUST be no
+  record about a brand its compliance role may not see. A `payments` record naming no brand is
+  visible to the installation's role alone.
 
 **Retention, durability and erasure**
 
@@ -399,7 +441,7 @@ database; verify.
 - **FR-023**: A player's erasure (ankka 042) MUST leave every record and the registry's rows unchanged:
   an id is not personal data (spec 001 FR-024), the records carry no personal value (FR-003), and the
   regulator's window outlives the player's account.
-- **FR-024**: The service's status MUST show, per brand: records received, the lag, the quarantine
+- **FR-024**: The service's status MUST show, per brand and per shared source: records received, the lag, the quarantine
   count, the retention in force, the last export, and whether the grant is in effect.
 
 **The brand's own records**
@@ -416,14 +458,15 @@ database; verify.
 ### Key Entities
 
 - **Audit record**: one action by one actor on one subject in one brand, with its outcome, changes,
-  correlation, causation, time and class; written once by the owning service; immutable.
+  correlation, causation, time and category; written once by the owning service; immutable. The
+  shared audit stores it with its source and derived visibility.
 - **Actor**: the kind and id of who acted — a player, an operator, an agent (with its approver), a
   service (by its identity), or the platform.
 - **Subject**: the kind and id of what was acted on — a player, operator, affiliate, merchant, brand
   or service.
 - **Change**: a field name with before and after values, or the name alone for a personal field.
-- **Pseudonym**: the random id the shared audit uses in place of a real id, one per (brand, kind, real
-  id), issued by the registry.
+- **Pseudonym**: the random id the shared audit uses in place of a person's real id, one per (brand,
+  kind, real id), issued by the registry. Not spec 012's network pseudonym, which is a keyed digest.
 - **Registry**: the shared audit's only store of real ids, mapping each (brand, kind, real id) to its
   pseudonym; readable only through re-identification.
 - **Query**: a compliance officer's filtered, paged read of records, itself recorded.
@@ -509,8 +552,8 @@ database; verify.
   changes by name) in a form the audit service can read continuously; ankka 040 FR-019's listing, 041's
   restore status and 042's request states are that history. If no one feed exists, the plan adds the
   read per source.
-- The export formats are the ones the brand's regulators accept; the first is a flat CSV per decision
-  0009's `compliance_csv`; a second is added when a licence requires it.
+- The export formats are the ones the brand's regulators accept: a flat CSV per decision 0009's
+  `compliance_csv` and JSON lines; a third is added when a licence requires it.
 - Pseudonyms are random, not derived, so the registry is load-bearing: it is backed up with the
   service's database (ankka 041) and a lost registry is a lost ability to re-identify, not a lost record.
 - The original's substrate audit (`audit_records`, `pseudonym_registry`) is not migrated: its records
@@ -557,11 +600,6 @@ database; verify.
 
 ## Open Questions
 
-- [NEEDS CLARIFICATION: the installation's default retention. Decision 0009 chose seven years; some
-  commissions require ten, PCI one. Is seven the installation default with ten set per brand where a
-  licence needs it, or ten everywhere?]
-- [NEEDS CLARIFICATION: who may hold a brand's re-identification role — the brand's compliance
-  officer, the installation's only, or both — and whether a regulator's own account may hold it for a
-  bounded time.]
-- [NEEDS CLARIFICATION: the export format the current licence's regulator accepts, if any is
-  prescribed; otherwise the flat file of decision 0009 is the first and only format.]
+None. The three questions that were open here (retention, the re-identification role, the export
+formats) and spec 004's question of `payments`' records are answered under *Clarifications*, Session
+2026-11-08.

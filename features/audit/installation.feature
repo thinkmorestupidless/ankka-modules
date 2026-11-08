@@ -10,7 +10,7 @@ Feature: Installation actions on a brand are in the brand's record
   Scenario Outline: a deployment, rollback or switch to a restored database is an installation record naming the actor, the part, the version or restore point, and when
     Given a part of the brand
     When it is <action>
-    Then a record with class "installation" names the actor, the part, the version or restore point, and when
+    Then an installation record names the actor, the part, the version or restore point, and when
 
     Examples:
       | action                            |
@@ -47,4 +47,4 @@ Feature: Installation actions on a brand are in the brand's record
   Scenario: a brand compliance officer sees installation records beside brand records in one order of occurrence
     Given a compliance officer with the role for the brand
     When they query their brand's records
-    Then records of class "installation" are listed beside records of class "brand" in one order of occurrence
+    Then installation records are listed beside the brand's own records in one order of occurrence
