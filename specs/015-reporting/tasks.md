@@ -53,7 +53,7 @@ their new fields.
 - [X] T004 [P] Write `r/Settings.scala`: `CASINO_BRAND`, `CASINO_PROJECT`, `CASINO_REAL_MONEY`,
   `CASINO_REPORTING_ZONE` (attribution's parse, `a/Settings.scala:47-48`), `CASINO_MODULES`, `CLOSE_GRACE`,
   `REPORTING_GENERATION`; with `r-test/SettingsSuite.scala`
-- [ ] T005 [P] Update `modules/reporting/module.json` per research R14: runtime `0.16.0`, the env (keys
+- [X] T005 [P] Update `modules/reporting/module.json` per research R14: runtime `0.16.0`, the env (keys
   `reporting-zone`, `casino-modules`; literals `CLOSE_GRACE=15m`, `REPORTING_GENERATION=1`), the two
   configuration keys, `"personal": true`, the erasure route row; add a case to
   `tools/modules/src/test/scala/.../RenderSuite.scala` that `goldvibe` renders them and `erasure-targets`

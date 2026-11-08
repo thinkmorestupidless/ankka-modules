@@ -32,3 +32,4 @@ target only a route listed here; the modules tool refuses any other.
 | rewards | GET | /v1/casino/brands/{brand}/rewards/{player}/grants | player | 011 R7 (also support-agent, by `Routes.serviceOf`) |
 | rewards | GET | /v1/casino/brands/{brand}/rewards/{player}/free-rounds/eligible | service | 011 R7 (game-provider, by `Routes.serviceOf`) |
 | exchange | POST | /v1/casino/brands/{brand}/exchange/erasure/players/{player} | service | 023 R13 (an erasure target: players reads it from `erasure-targets`) |
+| reporting | POST | /v1/casino/brands/{brand}/reporting/erasure/players/{player} | service | 015 R10 (an erasure target: players reads it from `erasure-targets`) |

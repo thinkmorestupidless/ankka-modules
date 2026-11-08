@@ -348,3 +348,13 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 ## Design finished
 
 2026-11-08: analyze reported nothing above LOW (round 2; round 1's one high, two medium and two low findings applied).
+
+## Found during implementation
+
+- **T005, `"personal": true` in the manifest** (R14): the vendored ankka-vendor descriptor schema
+  (`tools/modules/src/main/resources/ankka-vendor-manifest.schema.json`, `$defs/descriptor`,
+  `additionalProperties: false`) has no `personal` field, so a manifest that names it is refused. The manifest
+  carries `runtime` 0.16.0 and leaves `personal` out, as spec 014's engagement does; `services/reporting/service.json`
+  declares it for a local run. Until the vendor's format carries it, an installation gives the service no keyring
+  notices, which is the same gap CLAUDE.md names for `erasure` ("not stated" until ankka spec 042). A finding for
+  spec 021: the vendor schema needs `personal`.
