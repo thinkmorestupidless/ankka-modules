@@ -10,5 +10,7 @@ import io.eitheror.casino.reporting.intake.*
 object ReportingService:
   def descriptors(settings: Settings): Seq[ComponentDescriptor] = Seq(
     WalletBook.descriptor,
-    MoneyFacts(settings).descriptor
+    MoneyFacts(settings).descriptor,
+    Payment.descriptor,
+    PaymentsFacts(settings).descriptor
   )
