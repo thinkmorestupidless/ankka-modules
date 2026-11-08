@@ -131,7 +131,7 @@ access. Nothing story-specific starts before this phase ends.
   section; `r-test/day/BrandDaySuite.scala`
 - [X] T026 `r/day/ToDays.scala`: the consumer over the intake entities' events folding each into its day's
   delta, marked as a test account's when the player's `PlayerLog` says so at the fold (research R4); suite
-- [ ] T027 `r/day/CloseDays.scala`: the `close-days` timer every five minutes (`a/money/DayCloser.scala`'s
+- [X] T027 `r/day/CloseDays.scala`: the `close-days` timer every five minutes (`a/money/DayCloser.scala`'s
   shape) and the `OpenDays` query it needs; suite with `MovableClock`
 - [ ] T028 [P] `r/intake/Coverage.scala`: the earliest `occurredAt` per topic in the generation; suite
 - [ ] T029 [P] `r/settings/ReportingSettings.scala`: the key value entity, defaults and ranges of

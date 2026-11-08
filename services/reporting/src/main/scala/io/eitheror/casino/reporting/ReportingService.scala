@@ -24,8 +24,20 @@ object ReportingService:
     SessionsFacts(settings).descriptor,
     RoundCheck.descriptor,
     RoundLegs(settings).descriptor,
-    day.BrandDay.descriptor
+    day.BrandDay.descriptor,
+    day.OpenDays.descriptor,
+    day.CloseDays.descriptor
   ) ++ day.ToDaysConsumers.all(settings, clock) ++ casino(settings)
+
+  /** What the timed actions are constructed without (see `ReportingRuntime`), before the service starts. */
+  def wire(settings: Settings): Unit = ReportingRuntime.settings.set(settings)
+
+  /** The reads that need the running service's view client, and the recurring timers; at every start. */
+  def started(settings: Settings, views: com.thinkmorestupidless.ankka.runtime.ViewClient,
+      timers: com.thinkmorestupidless.ankka.sdk.TimerScheduler): Unit =
+    ReportingRuntime.openBefore.set(d =>
+      views.forView(day.OpenDays).ask(day.OpenDays.openBefore, 10_000, "generation" -> settings.generation.toString, "day" -> d))
+    day.CloseDays.schedule(timers)
 
   /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */
   private def casino(settings: Settings): Seq[ComponentDescriptor] =
