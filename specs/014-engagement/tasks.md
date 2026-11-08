@@ -306,7 +306,7 @@ end in `just players-run` + `just engagement-run`.
       `T/it/OperatorsSuite.scala`: the sends newest first and paged, a retry accepted leaving the
       parked list, a retry refused for suppression (US3's case at the route), a discard with its
       reason, `not_parked`, `send_not_found`, presence with `since`.
-- [ ] T048 [US7] `S/api/ConfigEndpoint.scala` (`/v1/casino/crm-config`, `Routes.operatorHolding` with
+- [X] T048 [US7] `S/api/ConfigEndpoint.scala` (`/v1/casino/crm-config`, `Routes.operatorHolding` with
       `brand_admin`, `resource_admin`, `platform_admin`): `GET /{brand}` masked, `PUT /{brand}` writing
       the secrets to `clients.secrets` and the rest to `Configuration`, a masked value preserving,
       `invalid_config`, the audit record; `POST /{brand}/seed` (thirty pairs at `_seed_<slug>`,
