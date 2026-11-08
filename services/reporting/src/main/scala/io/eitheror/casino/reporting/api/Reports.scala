@@ -1,13 +1,17 @@
 package io.eitheror.casino.reporting.api
 
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.core.{EntityId, Personal}
+import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.reporting.day.{DaysView, Money as DayMoney, Revenue}
 import io.eitheror.casino.reporting.documents.{Document, DocumentState}
 import io.eitheror.casino.reporting.figures.Figures
-import io.eitheror.casino.reporting.render.{Money, RevenueCsv}
+import io.eitheror.casino.reporting.ranges.Ranges.Period
+import io.eitheror.casino.reporting.reads.{Players, TransactionRow, Transactions, Wallets}
+import io.eitheror.casino.reporting.render.{Csv, Money, RevenueCsv}
 
 import java.nio.charset.StandardCharsets.UTF_8
+import java.time.Instant
 import java.util.UUID
 
 import Wire.*
@@ -35,41 +39,188 @@ object GgrReport:
       revenue.days.map((d, m: DayMoney) =>
         GgrDay(d.toString, s(m.stakes - m.rollbacks), s(m.wins), s(m.ggr), s(m.poolGgr), s(m.bonusCost), s(m.ngr))))
 
+/** `GET /reports/players`: the original's row, the email `[erased]` after erasure, `""` for what is not known. */
+final case class PlayerLine(playerId: String, email: String, country: String, registrationDate: String, status: String,
+    kycStatus: String, lifetimeDeposits: String, lifetimeWagered: String, lifetimeGgr: String, lastLoginAt: String,
+    isTestAccount: Boolean, currency: String)
+final case class PlayersReport(from: String, to: String, currency: String, currencies: Vector[String], totalCount: Long,
+    players: Vector[PlayerLine])
+
+/** `GET /reports/transactions` and its export: the original's page and row. */
+final case class TransactionLine(transactionId: String, timestamp: String, playerId: String, truncatedEmail: String,
+    transactionType: String, amount: String, currency: String, reference: String)
+final case class TransactionsPage(from: String, to: String, page: Int, pageSize: Int, totalCount: Long, totalPages: Int,
+    transactions: Vector[TransactionLine])
+
+object ReportCodecs:
+  given JsonValueCodec[PlayersReport]    = Wire.answer[PlayersReport]
+  given JsonValueCodec[TransactionsPage] = Wire.answer[TransactionsPage]
+
 /** The Reports tab's routes (FR-007–FR-012), behind its flag (FR-024). */
 object Reports:
+  import ReportCodecs.given
+
   /** What a request asked for, read from its query before anything else is called. */
   final case class Asked(from: Option[String], to: Option[String], currency: Option[String], format: Option[String], operator: String):
     def csv: Boolean = format.exists(_.trim.equalsIgnoreCase("csv"))
 
+  /** The ledger's own parameters (FR-010): the type filter, part of an email, the page and its size. */
+  final case class Ledger(tpe: Option[String], playerEmail: Option[String], page: Option[String], pageSize: Option[String]):
+    def filter: String = tpe.map(_.trim).filter(_.nonEmpty).getOrElse("all")
+    def email: Option[String] = playerEmail.map(_.trim).filter(_.nonEmpty)
+    def pageNo: Int = page.flatMap(_.trim.toIntOption).getOrElse(0).max(0)
+    def size: Int   = pageSize.flatMap(_.trim.toIntOption).getOrElse(PageSize).max(1).min(PageSize)
+
+  /** The ledger's page, as the original's and FR-010. */
+  val PageSize = 100
+
+  /** The ledger's truncated email: 25 characters and `…`, as the original. */
+  val LedgerEmail = 25
+
+  private def tab(ctx: Ctx)(body: => Answer): Answer = if !ctx.reporting.reportsTab then notFound else body
+
+  private def startOf(ctx: Ctx, day: java.time.LocalDate): Instant = day.atStartOfDay(ctx.settings.reportingZone).toInstant
+
+  /** The period asked for, refused before a topic's first complete day (FR-004). */
+  private def periodOf(ctx: Ctx, asked: Asked, topics: Vector[String]): Either[Answer, Period] =
+    for
+      period <- Wire.period(asked.from, asked.to, ctx.today)
+      _      <- Wire.complete(period, Completeness.from(ctx.components, ctx.settings, topics))
+    yield period
+
+  // ── revenue ───────────────────────────────────────────────────────────────────────────────────
+
   /**
    * `GET /reports/ggr`: the period's days in one currency, every player's or without the test accounts'; as CSV, the
-   * summary row then the daily rows, kept under `reports/report-export/<reference>.csv` with a `Document` record and
-   * served as an attachment carrying the reference (FR-012, FR-021).
+   * summary row then the daily rows (FR-012, FR-021).
    */
-  def ggr(ctx: Ctx, asked: Asked): Answer =
+  def ggr(ctx: Ctx, asked: Asked): Answer = tab(ctx) {
     val settings = ctx.reporting
-    if !settings.reportsTab then notFound
-    else
-      answered(for
-        period <- Wire.period(asked.from, asked.to, ctx.today)
-        _      <- Wire.complete(period, Completeness.from(ctx.components, ctx.settings, Completeness.dayTopics(ctx.settings)))
-        chosen <- Currencies.choose(ctx, asked.currency, settings)
-      yield
-        val rows    = DaysView.rows(ctx.views, ctx.settings.generation, period.from, period.to)
-        val revenue = Revenue.of(rows, period.from, period.to, chosen.currency, settings.excludeTestAccounts)
-        if asked.csv then exported(ctx, asked, revenue, period.from.toString, period.to.toString)
-        else ok(GgrReport.of(revenue, period.from.toString, period.to.toString, chosen.currencies)))
+    answered(for
+      period <- periodOf(ctx, asked, Completeness.dayTopics(ctx.settings))
+      chosen <- Currencies.choose(ctx, asked.currency, settings)
+    yield
+      val rows    = DaysView.rows(ctx.views, ctx.settings.generation, period.from, period.to)
+      val revenue = Revenue.of(rows, period.from, period.to, chosen.currency, settings.excludeTestAccounts)
+      if asked.csv then
+        exported(ctx, asked, "ggr", period, Map("currency" -> revenue.currency),
+          RevenueCsv.render(revenue, period.from, period.to), revenue.days.size + 1L, Vector.empty)
+      else ok(GgrReport.of(revenue, period.from.toString, period.to.toString, chosen.currencies)))
+  }
 
-  /** The synchronous document path (research R9): rendered, kept, recorded, served. */
-  private def exported(ctx: Ctx, asked: Asked, revenue: Revenue, from: String, to: String): Answer =
+  // ── players ───────────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * `GET /reports/players` (FR-008): one row per player registered in the period in the brand's zone, filtered by
+   * country and status (`all` or none for every one), in registration order; the lifetimes are the wallet's in the
+   * currency answered, every player's in the same one as the original (the brand's). Sorting is the screen's.
+   */
+  def players(ctx: Ctx, asked: Asked, country: Option[String], status: Option[String]): Answer = tab(ctx) {
+    val g = ctx.settings.generation
+    answered(for
+      period <- periodOf(ctx, asked, Vector(f.CasinoPlayers.name, f.MoneyTransactions.name))
+      chosen <- Currencies.choose(ctx, asked.currency, ctx.reporting)
+    yield
+      def every(v: Option[String]) = v.map(_.trim).filter(s => s.nonEmpty && s != "all")
+      val c   = chosen.currency
+      val all = Players.registered(ctx.views, g, startOf(ctx, period.from), startOf(ctx, period.to.plusDays(1)))
+        .filter(p => every(country).forall(p.country.contains))
+        .filter(p => every(status).forall(_ == p.status))
+      val wallets = Wallets.ofPlayers(ctx.views, g, all.map(_.player)).filter(_.currency == c).map(w => w.player -> w).toMap
+      val lines = all.map { p =>
+        val w = wallets.get(p.player)
+        def m(v: Option[Long]) = Money(v.getOrElse(0L), c)
+        PlayerLine(p.player, p.shownEmail, p.country.getOrElse(""), p.registeredAt.fold("")(_.toString), p.status, p.kycStatus,
+          m(w.map(_.deposits)), m(w.map(_.wagered)), m(w.map(_.ggr)), p.lastLoginAt.fold("")(_.toString), p.testAccount, c)
+      }
+      if asked.csv then
+        exported(ctx, asked, "players", period, Map("currency" -> c) ++ every(country).map("country" -> _) ++
+          every(status).map("status" -> _), playersCsv(lines), lines.size.toLong, lines.map(_.playerId))
+      else ok(PlayersReport(period.from.toString, period.to.toString, c, chosen.currencies, lines.size.toLong, lines)))
+  }
+
+  private val PlayerHeader = Vector("playerId", "email", "country", "registrationDate", "status", "kycStatus", "lifetimeDeposits",
+    "lifetimeWagered", "lifetimeGgr", "lastLoginAt", "isTestAccount", "currency")
+
+  private def playersCsv(lines: Vector[PlayerLine]): String =
+    Csv(PlayerHeader, lines.map(l => Vector(l.playerId, l.email, l.country, l.registrationDate, l.status, l.kycStatus,
+      l.lifetimeDeposits, l.lifetimeWagered, l.lifetimeGgr, l.lastLoginAt, l.isTestAccount.toString, l.currency)))
+
+  // ── the ledger ────────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * The ledger's rows (FR-010): every movement of the period in the brand's zone of the type asked, of the players
+   * whose email holds `playerEmail` (case ignored; an erased email matches nothing), newest first.
+   */
+  private def ledgerAsked(ctx: Ctx, period: Period, ledger: Ledger): Transactions.Asked =
+    val g = ctx.settings.generation
+    val players = ledger.email.map { part =>
+      val lower = part.toLowerCase
+      Players.all(ctx.views, g).filter(_.email match
+        case Some(Personal.Present(_, e)) if e != null => e.toLowerCase.contains(lower)
+        case _                                         => false).map(_.player)
+    }
+    Transactions.Asked(g, startOf(ctx, period.from), startOf(ctx, period.to.plusDays(1)), ledger.filter, players)
+
+  private def lines(ctx: Ctx, rows: Vector[TransactionRow]): Vector[TransactionLine] =
+    val players = Players.of(ctx.views, ctx.settings.generation, rows.map(_.player).distinct)
+    rows.map(r => TransactionLine(r.transactionId, r.at.toString, r.player, players.get(r.player).fold("")(_.truncatedEmail(LedgerEmail)),
+      r.tpe, Money(r.amount, r.currency), r.currency, r.reference))
+
+  private val LedgerTopics = Vector(f.MoneyTransactions.name)
+
+  /** `GET /reports/transactions` (FR-010): a page of at most one hundred, every transaction counted. */
+  def transactions(ctx: Ctx, asked: Asked, ledger: Ledger): Answer = tab(ctx) {
+    answered(periodOf(ctx, asked, LedgerTopics).map { period =>
+      val q     = ledgerAsked(ctx, period, ledger)
+      val total = Transactions.count(ctx.views, q)
+      val size  = ledger.size
+      val page  = Transactions.page(ctx.views, q, ledger.pageNo * size, size)
+      ok(TransactionsPage(period.from.toString, period.to.toString, ledger.pageNo, size, total,
+        math.ceil(total.toDouble / size).toInt, lines(ctx, page)))
+    })
+  }
+
+  private val TransactionHeader = Vector("transactionId", "timestamp", "playerId", "truncatedEmail", "transactionType", "amount",
+    "currency", "reference")
+
+  /**
+   * `GET /reports/transactions/export` (FR-010, FR-012): every matching row, no cap; JSON as the original's page (page 0,
+   * the size every row), or `format=csv`.
+   */
+  def transactionsExport(ctx: Ctx, asked: Asked, ledger: Ledger): Answer = tab(ctx) {
+    answered(periodOf(ctx, asked, LedgerTopics).map { period =>
+      val all = lines(ctx, Transactions.all(ctx.views, ledgerAsked(ctx, period, ledger)))
+      if asked.csv then
+        exported(ctx, asked, "transactions", period, Map("type" -> ledger.filter) ++ ledger.email.map(_ => "playerEmail" -> "given"),
+          Csv(TransactionHeader, all.map(l => Vector(l.transactionId, l.timestamp, l.playerId, l.truncatedEmail, l.transactionType,
+            l.amount, l.currency, l.reference))), all.size.toLong, all.map(_.playerId).distinct)
+      else ok(TransactionsPage(period.from.toString, period.to.toString, 0, all.size, all.size.toLong, if all.isEmpty then 0 else 1, all))
+    })
+  }
+
+  // ── the synchronous document path ─────────────────────────────────────────────────────────────
+
+  /**
+   * The synchronous document path (research R9): rendered, kept under `reports/report-export/<reference>.csv` with the
+   * player ids it names beside it in `<reference>.players` (ids are not personal), recorded, served as an attachment
+   * `<report>-report-<reference>.csv`. An export over the synchronous limit renders here too until `DocumentJob` (T053)
+   * exists; this is the one call it will hand to the job.
+   */
+  private def exported(ctx: Ctx, asked: Asked, report: String, period: Period, parameters: Map[String, String], csv: String,
+      rows: Long, named: Vector[String]): Answer =
     val reference = UUID.randomUUID().toString
     val name      = Document.objectName(Document.ReportExport, reference, "csv")
-    val body      = RevenueCsv.render(revenue, java.time.LocalDate.parse(from), java.time.LocalDate.parse(to)).getBytes(UTF_8)
+    val body      = csv.getBytes(UTF_8)
     val at        = ctx.now()
-    ctx.clients.storage.default.putBytes(name, body, RevenueCsv.ContentType)
+    val bucket    = ctx.clients.storage.default
+    bucket.putBytes(name, body, RevenueCsv.ContentType)
+    if named.nonEmpty then
+      bucket.putBytes(Document.objectName(Document.ReportExport, reference, "players"), named.distinct.mkString("\n").getBytes(UTF_8),
+        "text/plain; charset=UTF-8")
     ctx.components.forKeyValueEntity(EntityId(reference)).call(Document.ready).invoke(DocumentState(
       reference = reference, kind = Document.ReportExport, format = "csv",
-      parameters = Map("report" -> "ggr", "currency" -> revenue.currency) ++ asked.currency.map("asked" -> _),
-      from = Some(from), to = Some(to), askedBy = asked.operator, generatedAt = Some(at), readyAt = Some(at),
-      objectName = Some(name), rows = revenue.days.size + 1L)): Unit
-    attachment(RevenueCsv.ContentType, s"ggr-report-$reference.csv", body)
+      parameters = Map("report" -> report) ++ parameters ++ asked.currency.map("asked" -> _),
+      from = Some(period.from.toString), to = Some(period.to.toString), askedBy = asked.operator, generatedAt = Some(at),
+      readyAt = Some(at), objectName = Some(name), rows = rows)): Unit
+    attachment(RevenueCsv.ContentType, s"$report-report-$reference.csv", body)

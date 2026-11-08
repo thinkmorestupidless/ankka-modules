@@ -42,7 +42,8 @@ object ReportingService:
     reads.WithdrawalsView.descriptor,
     reads.Rounds.descriptor,
     reads.PlayerDays.descriptor,
-    reads.Activity.descriptor
+    reads.Activity.descriptor,
+    reads.Transactions.descriptor
   ) ++ day.ToDaysConsumers.all(settings, clock) ++ casino(settings)
 
   /**

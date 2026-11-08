@@ -35,6 +35,9 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
   /** Each GET route built so far and who it admits. */
   private val routes: Vector[(String, Set[String])] = Vector(
     "/reports/ggr" -> reportRoles,
+    "/reports/players" -> reportRoles,
+    "/reports/transactions" -> reportRoles,
+    "/reports/transactions/export" -> reportRoles,
     "/status"      -> everyOperator,
     "/settings"    -> Set("brand_admin", "platform_admin")
   ) ++ Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health")
@@ -72,8 +75,10 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
   test("with the Reports tab off a report is not found, and the status and settings still answer") {
     try
       kit.setReporting(_.copy(reportsTab = false))
-      val r = kit.get("/reports/ggr", kit.asFinance)
-      assertEquals((r.status, r.error), (404, "not_found"), r.text)
+      for report <- routes.map(_._1).filter(_.startsWith("/reports/")) do
+        val r = kit.get(report, kit.asFinance)
+        assertEquals((r.status, r.error), (404, "not_found"), s"$report: ${r.text}")
+      assertEquals(kit.get("/dashboard/kpis", kit.asOperator).status, 200)
       assertEquals(kit.get("/status", kit.asOperator).status, 200)
       assertEquals(kit.get("/settings", kit.asFinance).json.path("reportsTab").asBoolean(true), false)
     finally kit.setReporting(_.copy(reportsTab = true))
@@ -121,5 +126,5 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     assertEquals((days.path("name").asText, days.path("completeFrom").asText, days.path("rebuilding").asBoolean),
       ("days", Kit.SeedDay.toString, false))
     assertEquals(j.path("views").elements.asScala.map(_.path("name").asText).toVector,
-      Vector("days", "wallets", "players", "sessions", "payments", "withdrawals", "rounds", "player-days", "activity"))
+      Vector("days", "wallets", "players", "sessions", "payments", "withdrawals", "rounds", "player-days", "activity", "transactions"))
   }

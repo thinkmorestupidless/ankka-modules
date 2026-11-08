@@ -311,6 +311,28 @@ final class FactSet(val zone: ZoneId):
 
   def currencies: Vector[String] = legs.map(_.currency).distinct.sorted
 
+  /**
+   * The ledger as FR-010 says it (a `bonus` filter matching every `bonus_*` type): the movements of the players named
+   * (every one for `None`) from `from` (inclusive) to `to` (exclusive), newest first.
+   */
+  def ledger(from: Instant, to: Instant, tpe: String = "all", of: Option[Set[String]] = None): Vector[Tx] =
+    txs.filter(t => !t.at.isBefore(from) && t.at.isBefore(to) && of.forall(_(t.player)))
+      .filter(t => tpe == "all" || t.tpe == tpe || (tpe == "bonus" && t.tpe.startsWith("bonus_")))
+      .sortBy(t => -t.at.toEpochMilli)
+
+  /** A player's lifetimes in `currency` (FR-008): deposits, wagered (stakes less rollbacks) and won (wins and credits). */
+  def lifetimes(player: String, currency: String): (Long, Long, Long) =
+    val mine = legs.filter(l => l.player == player && l.currency == currency)
+    def sum(kinds: String*) = mine.filter(l => kinds.contains(l.kind)).map(_.amount).sum
+    (sum(Deposit), sum(Bet) - sum(Rollback), sum(Win, Credit))
+
+  /** A player's status as their last status fact left it, `active` with none. */
+  def statusOf(player: String): String = stats.filter(_.player == player).sortBy(_.at).lastOption.fold("active")(_.to)
+
+  def kycOf(player: String): String = kycs.filter(_.player == player).sortBy(_.at).lastOption.fold("unverified")(_.to)
+
+  def lastLogin(player: String): Option[Instant] = logins.filter(_._1 == player).map(_._2).maxOption
+
 object FactSet:
   val Deposit    = "deposit"
   val Bet        = "bet"

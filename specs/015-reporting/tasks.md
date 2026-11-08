@@ -200,12 +200,12 @@ access. Nothing story-specific starts before this phase ends.
 
 **Independent test**: `LedgerSuite`; the five scenarios of `players.feature`.
 
-- [ ] T043 [P] [US3] Bind the five scenarios of `players.feature` in `r-test/features/PlayersSteps.scala`
-- [ ] T044 [P] [US3] `r-test/it/LedgerSuite.scala`: a player with 5,000 transactions paged at 100 and exported
+- [X] T043 [P] [US3] Bind the five scenarios of `players.feature` in `r-test/features/PlayersSteps.scala`
+- [X] T044 [P] [US3] `r-test/it/LedgerSuite.scala`: a player with 5,000 transactions paged at 100 and exported
   whole (SC-003); the email search; an erased player's rows read `[erased]` with figures unchanged
-- [ ] T045 [US3] `r/reads/Transactions.scala` (keyed over `WalletBook` events; `between` with type, ids and
+- [X] T045 [US3] `r/reads/Transactions.scala` (keyed over `WalletBook` events; `between` with type, ids and
   offset)
-- [ ] T046 [US3] `r/api/Reports.scala` `GET /reports/players`, `/reports/transactions`,
+- [X] T046 [US3] `r/api/Reports.scala` `GET /reports/players`, `/reports/transactions`,
   `/reports/transactions/export` (JSON as the original, `format=csv`, a job over the limit)
 
 ---

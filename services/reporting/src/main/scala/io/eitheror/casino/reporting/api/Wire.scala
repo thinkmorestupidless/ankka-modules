@@ -125,7 +125,8 @@ object Completeness:
       "withdrawals"  -> Vector(f.CasinoWithdrawals.name),
       "rounds"       -> (rounds :+ money),
       "player-days"  -> Vector(money),
-      "activity"     -> (players +: rewards)
+      "activity"     -> (players +: rewards),
+      "transactions" -> Vector(money)
     )
 
   def from(components: ComponentClient, settings: Settings, topics: Vector[String]): Option[LocalDate] =

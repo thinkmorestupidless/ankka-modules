@@ -452,3 +452,18 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   reserved name; open sessions are counted with an ad hoc `count` over `Sessions` rather than a declared query, so a
   test-account exclusion can be added to it; `Sessions` rows leave the network address and user agent out (the
   dispute report reads them from the `Session` entity).
+- **T044, a fact read again after an erasure**: a rebuild (R8) replays `casino.players` and `casino.sessions`, whose
+  facts still carry the erased player's email, network address and user agent; ankka refuses the write of a personal
+  field of an erased subject (`Conflict`, "nothing was written"), which stopped the topic's intake for good, every later
+  fact waiting behind it. `Personals.of` now asks the keyring (without making a key) and keeps such a field as
+  `Erased`, so the fact folds as before without it.
+- **T046, the player report's currency**: every row's lifetimes are the wallet's in the one currency answered (asked,
+  else the brand's default), as the original read every player in the brand's default; a player with no wallet in it
+  reads zeros. The answer carries `currency` and `currencies` as every report does.
+- **T046, the ledger's answer**: the page carries no `currency` or `currencies` (each row has its currency, and the
+  original's had none): the ledger lists every currency's movements. The export answers page 0, `pageSize` the number
+  of rows and `totalPages` 1 (0 with none), the nearest to the original's single page of 10,000. Sorting the player
+  report by a column is the screen's, as in the original; the route answers in registration order.
+- **T046, the email search**: reads every `Players` row and matches the decoded email case-insensitively, as the
+  original filtered the brand's players; an erased email matches nothing. The search text is not recorded in an
+  export's `Document` (only that one was given).

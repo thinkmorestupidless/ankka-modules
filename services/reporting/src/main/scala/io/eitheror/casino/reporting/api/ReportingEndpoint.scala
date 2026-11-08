@@ -41,10 +41,18 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
 
   val acl: Acl = access.operator
 
+  /** The query every report reads first: the period, the currency, the format and who asked. */
+  private def asked: Reports.Asked =
+    Reports.Asked(query.raw("from"), query.raw("to"), query.raw("currency"), query.raw("format"), principal.subject)
+
+  private def ledger: Reports.Ledger =
+    Reports.Ledger(query.raw("type"), query.raw("playerEmail"), query.raw("page"), query.raw("pageSize"))
+
   withAcl(access.reports) {
-    get("/reports/ggr") { () =>
-      Reports.ggr(ctx, Reports.Asked(query.raw("from"), query.raw("to"), query.raw("currency"), query.raw("format"), principal.subject))
-    }
+    get("/reports/ggr") { () => Reports.ggr(ctx, asked) }
+    get("/reports/players") { () => Reports.players(ctx, asked, query.raw("country"), query.raw("status")) }
+    get("/reports/transactions") { () => Reports.transactions(ctx, asked, ledger) }
+    get("/reports/transactions/export") { () => Reports.transactionsExport(ctx, asked, ledger) }
   }
 
   // The dashboard admits every operator of the brand and is never hidden by the Reports tab's flag (FR-023, FR-024).

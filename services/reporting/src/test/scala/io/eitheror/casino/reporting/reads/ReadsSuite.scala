@@ -107,3 +107,13 @@ class ReadsSuite extends munit.FunSuite:
     val row = io.eitheror.casino.reporting.day.DayRow.of(1, "2026-11-08", s)
     assertEquals((row.registrationsTo(10, false), row.registrationsTo(23, false), row.registrationsTo(23, true)), (1L, 2L, 1L))
   }
+
+  test("a personal field of a player already erased is kept as erased, so a fact read again after the erasure folds") {
+    io.eitheror.casino.reporting.TestKeyring.around { keyring =>
+      val marked = io.eitheror.casino.contract.personal.Personal("ada@example.com")
+      assertEquals(Personals.shown(Personals.of("p-1", marked)), "ada@example.com")
+      keyring.erase(Personals.subject("p-1"))
+      assertEquals(Personals.of("p-1", marked), Some(com.thinkmorestupidless.ankka.core.Personal.Erased(Personals.subject("p-1"))))
+      assertEquals(Personals.shown(Personals.of("p-2", marked)), "ada@example.com", "another player is untouched")
+    }
+  }
