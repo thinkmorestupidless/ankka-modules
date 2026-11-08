@@ -36,7 +36,7 @@ their new fields.
 
 **Purpose**: the contract's additions, the service's build, the manifest, the recipes and CI.
 
-- [ ] T001 Add the optional fields and the family of contracts/facts.md to `f/CasinoPlayers.scala`
+- [X] T001 Add the optional fields and the family of contracts/facts.md to `f/CasinoPlayers.scala`
   (`test_account` on `PlayerRegistered`; `PlayerTestAccountChanged` registered as
   `player_test_account_changed`), `f/Others.scala` (`game_name`, `game_type` on `RoundSettled`, and its
   comment that `session_id` is the game session's), `f/PaymentsPayments.scala` (`amount_cents`, `currency` on

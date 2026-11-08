@@ -256,3 +256,70 @@ class FactsSuite extends munit.FunSuite:
     assertEquals(readFromString[AttributionFact](json.toString)(using AffiliatesAttribution.codec), marked)
     assert(AffiliatesAttribution.families.find(_.name == "ggr-daily").get.fields.exists((n, t) => n == "before_binding" && t.optional))
   }
+
+  test("spec 015: the reporting fields are optional, so each topic keeps its version (spec 001 FR-013)") {
+    val added        = Set("test_account", "game_name", "game_type", "records")
+    val disputeAdded = Set("amount_cents", "currency")
+    def stripLegs(fs: Vector[(String, FieldType[?])]): Vector[(String, FieldType[?])] =
+      fs.map { (n, t) =>
+        if n != "legs" then n -> t
+        else
+          n -> new FieldType[Any]:
+            def schema          = t.schema
+            def sample          = t.sample
+            override def nested = t.nested.filterNot(_._1 == "fee_cents")
+      }
+    for topic <- Vector[Topic[?]](CasinoPlayers, CasinoRounds, PaymentsPayments, MoneyTransactions, ExchangeTrades) do
+      val before = topic.families.filterNot(_.name == "player_test_account_changed").map { f =>
+        val fields =
+          if f.name == "payment.dispute.closed" then f.fields.filterNot((n, _) => disputeAdded(n))
+          else stripLegs(f.fields.filterNot((n, _) => added(n)))
+        f.copy(fields = fields): FamilyDef[?]
+      }
+      assertEquals(Compatibility.compare(before, topic.families.map(f => f: FamilyDef[?])), Compatibility.Verdict.SameVersion, topic.name)
+  }
+
+  test("spec 015: the test-account flag is on player_registered and has a family of its own") {
+    assert(CasinoPlayers.families.find(_.name == "player_registered").get.fields.exists((n, t) => n == "test_account" && t.optional))
+    val changed = CasinoPlayers.families.find(_.name == "player_test_account_changed").get
+    assertEquals(changed.fields.map(_._1), Vector("player_id", "test_account", "actor_id", "occurred_at"))
+  }
+
+  test("spec 015: the money families that change a restricted funds record carry each record after the movement") {
+    val withRecords = Set("bet_placed", "win_credited", "bet_rolled_back", "restricted_funds_awarded",
+      "restricted_funds_converted", "restricted_funds_forfeited", "restricted_funds_closed")
+    MoneyTransactions.families.foreach { f =>
+      val records = f.fields.find(_._1 == "records")
+      assertEquals(records.isDefined, withRecords(f.name), f.name)
+      records.foreach { (_, t) =>
+        assert(t.optional, f.name)
+        assertEquals(t.nested.map(_._1), Vector("award_id", "status", "balance_cents", "progress_cents", "requirement_cents"))
+      }
+    }
+  }
+
+  test("spec 015: a round carries the catalogue's name and type, and a trade's leg its fee, both optional") {
+    val round = CasinoRounds.families.find(_.name == "round_settled").get.fields.toMap
+    assert(round("game_name").optional && round("game_type").optional)
+    val legs = ExchangeTrades.families.find(_.name == "trade_made").get.fields.toMap.apply("legs")
+    assert(legs.nested.toMap.apply("fee_cents").optional)
+  }
+
+  test("spec 015: old facts decode with the new fields absent") {
+    val registered = """{"type":"player_registered","player_id":"p1","registered_at":"2026-10-28T00:00:00Z","occurred_at":"2026-10-28T00:00:00Z"}"""
+    readFromString[CasinoPlayersFact](registered)(using CasinoPlayers.codec) match
+      case r: PlayerRegistered => assertEquals(r.testAccount, None)
+      case other               => fail(s"not a registration: $other")
+    val closed = """{"type":"payment.dispute.closed","payment_id":"pay1","player_id":"p1","payment_provider":"unityfinance","outcome":"lost","occurred_at":"2026-10-28T00:00:00Z"}"""
+    readFromString[PaymentsPaymentsFact](closed)(using PaymentsPayments.codec) match
+      case c: PaymentDisputeClosed => assertEquals((c.amountCents, c.currency), (None, None))
+      case other                   => fail(s"not a closed dispute: $other")
+    val bet = """{"type":"bet_placed","player_id":"p1","currency":"EUR","transaction_id":"t1","round_id":"r1","game_id":"g1","amount_cents":1500,"wallet_type":"real","real_balance_after":500,"restricted_balance_after":0,"occurred_at":"2026-10-28T00:00:00Z"}"""
+    readFromString[MoneyTransactionsMessage](bet)(using MoneyTransactions.codec) match
+      case b: BetPlaced => assertEquals(b.records, None)
+      case other        => fail(s"not a bet: $other")
+  }
+
+  test("spec 015: a dispute closes won or lost") {
+    assertEquals(DisputeOutcome.values, Set("won", "lost"))
+  }

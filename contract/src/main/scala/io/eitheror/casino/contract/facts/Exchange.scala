@@ -50,10 +50,11 @@ object ExchangeOrders extends Topic[ExchangeOrdersFact]("exchange.orders", Vecto
 
 /**
  * One owner's part of a trade: what they bought or sold of an outcome, what their reservation was
- * charged, what they were paid, and what was released from their order in the same move.
+ * charged, what they were paid, and what was released from their order in the same move. `fee_cents` is
+ * the taker fee the leg paid, when spec 023 charges one (spec 015 R11); absent means none.
  */
 final case class TradeLeg(playerId: String, orderId: String, outcomeId: String, side: String, chargeCents: MinorUnits,
-    paidCents: MinorUnits, releasedCents: MinorUnits, releaseOrdinal: Int)
+    paidCents: MinorUnits, releasedCents: MinorUnits, releaseOrdinal: Int, feeCents: Option[MinorUnits] = None)
 
 object TradeLeg:
   given FieldType[TradeLeg] = FieldType.nested[TradeLeg]
