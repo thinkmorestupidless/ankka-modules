@@ -168,7 +168,7 @@ access. Nothing story-specific starts before this phase ends.
 - [X] T035 [US1] `r/day/DaysView.scala` (`Days`, `between(:from, :to)`)
 - [ ] T036 [US1] `r/api/Reports.scala` `GET /reports/ggr`: the shape of contracts/routes.md, the default
   month, `currencies`, the test-account exclusion setting; `format=csv` with the summary row
-- [ ] T037 [US1] `r/render/RevenueCsv.scala` and the synchronous document path: render, put under
+- [X] T037 [US1] `r/render/RevenueCsv.scala` and the synchronous document path: render, put under
   `reports/report-export/<ref>.csv`, a `Document` record (T053's entity, created here in its first shape)
 
 **Checkpoint**: US1 is shippable alone.
