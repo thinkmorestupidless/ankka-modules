@@ -244,7 +244,8 @@ final class BackofficeEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/ba
   private val brand = ctx.brand
 
   private def knownProvider(provider: String): Unit =
-    if ctx.settings.adapter(provider).isEmpty then throw HttpProblem.notFound(s"provider_unknown: $provider")
+    if ctx.settings.adapter(provider).isEmpty then
+      throw HttpProblem.notFound(s"provider_unknown: $provider is not among the brand's casino-providers (${ctx.settings.adapters.map(_.name).mkString(", ")})")
 
   withAcl(Routes.operator(brand, ctx.settings.authenticate())) {
     get("/{brand}/game-provider/providers") { (segment: String) =>

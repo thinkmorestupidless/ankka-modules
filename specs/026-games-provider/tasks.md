@@ -121,10 +121,10 @@ test**: the new scenario in `features/kyc/policy.feature`.
 
 ## Phase 10: The brand side (spec 003's amendment) and the shared project
 
-- [ ] T051 `casino-providers` brand value (`st8:st8,eitheror:st8`) in `contract/keys.md`, `modules/casino/module.json` (env `CASINO_PROVIDERS`, key `casino-providers`) and `brands/goldvibe/values.json`; `just modules validate --all`
-- [ ] T052 `Settings`/`Context` in `services/game-provider/src/main/scala/io/eitheror/casino/gameprovider/`: `adapters = names.map(St8Adapter(_))` from `CASINO_PROVIDERS`, `ProviderPathEndpoint` per name, the root form for `st8` only; a configuration write for an unlisted name refused naming the value; the configuration read answers `operatorPublicKey` (`contracts/brand-amendments.md`); suites updated
-- [ ] T053 Bind the new scenario of `features/game-provider/launch.feature` ("a second game provider of the same protocol under its own name…") in game-provider's launch features suite; `just service game-provider test` green
-- [ ] T054 [P] Spec 003's text: FR-026 gains the `casino-providers` sentence; spec 001 FR-003 counts five shared projects; `specs/020-game-provider-simulator/spec.md` gains an amendment note that the core is the `provider-core` library (FR-005 here)
+- [X] T051 `casino-providers` brand value (`st8:st8,eitheror:st8`) in `contract/keys.md`, `modules/casino/module.json` (env `CASINO_PROVIDERS`, key `casino-providers`) and `brands/goldvibe/values.json`; `just modules validate --all`
+- [X] T052 `Settings`/`Context` in `services/game-provider/src/main/scala/io/eitheror/casino/gameprovider/`: `adapters = names.map(St8Adapter(_))` from `CASINO_PROVIDERS`, `ProviderPathEndpoint` per name, the root form for `st8` only; a configuration write for an unlisted name refused naming the value; the configuration read answers `operatorPublicKey` (`contracts/brand-amendments.md`); suites updated
+- [X] T053 Bind the new scenario of `features/game-provider/launch.feature` ("a second game provider of the same protocol under its own name…") in game-provider's launch features suite; `just service game-provider test` green
+- [X] T054 [P] Spec 003's text: FR-026 gains the `casino-providers` sentence; spec 001 FR-003 counts five shared projects; `specs/020-game-provider-simulator/spec.md` gains an amendment note that the core is the `provider-core` library (FR-005 here)
 - [ ] T055 [P] `installation/overlays/dev-kind/` gains the `games` project's hostnames and the provider's settings; `just modules apply shared/games/manifest.json --installation dev-kind` applies; quickstart step 4 run and its outcomes recorded in `quickstart.md` under a `## Run on dev-kind` heading
 
 ## Phase 11: Polish and cross-cutting

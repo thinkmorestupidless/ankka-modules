@@ -55,6 +55,7 @@ same for every brand and are literals in the descriptors, not keys.
 | casino-modules | core | string | no | | | `CASINO_MODULES` |
 | erasure-targets | core | string | no | | | `ERASURE_TARGETS` |
 | game-provider-mode | casino | string | no | | | `GAME_PROVIDER_MODE` |
+| casino-providers | casino | string | no | | | `CASINO_PROVIDERS` |
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
 | rewards-code-document-url | casino | string | no | | | `REWARDS_CODE_DOCUMENT_URL` |

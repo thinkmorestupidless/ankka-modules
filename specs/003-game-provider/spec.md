@@ -623,7 +623,11 @@ outbound money-adjacent calls.
   real money, the provider public key MAY instead be the address of a key document the service
   fetches and refreshes within 60 seconds, so that spec 020's simulator registers its current and
   next keys by publishing them (020 FR-011); a real-money brand MUST hold the key itself. These
-  settings move here from `merchant-service`'s `CredentialRoutes` (spec 004).
+  settings move here from `merchant-service`'s `CredentialRoutes` (spec 004). A provider's protocol
+  is `st8` for every provider a brand runs; the names a brand runs are its `casino-providers` value
+  (spec 026: `st8:st8,eitheror:st8` by default, each name served under its own prefix, `st8` alone at
+  the root); a configuration written for a name not in it is refused naming the value, and the read
+  answers the operator public key, derived from the private key, for the provider's brand entry.
 - **FR-027**: Every route MUST be of one class (spec 001 FR-020): launch, catalogue and session
   routes are player routes; the catalogue configuration, the operator catalogue (FR-024), the
   provider configuration (FR-026), the refresh now and its status (FR-021), the rounds by player or
