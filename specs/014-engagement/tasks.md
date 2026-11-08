@@ -224,7 +224,7 @@ the views and the audit publisher green under their suites.
 
 - [X] T035 [US4] Bind `features/engagement/transactional.feature` in
       `T/features/TransactionalFeatures.scala`; it fails first.
-- [ ] T036 [US4] `S/api/SendEndpoint.scala` (`/v1/casino/brands/<slug>/engagement`, `Routes.service()`):
+- [X] T036 [US4] `S/api/SendEndpoint.scala` (`/v1/casino/brands/<slug>/engagement`, `Routes.service()`):
       `POST /sends` (contracts/routes.md: the seven triggers, the `EmailAddressVerification` fallback
       id, `Send.start(<trigger>/<key>)`, the answer within 2 s from the first attempt's outcome,
       `missing_fields`, `unknown_trigger`); the links never logged above debug.
