@@ -102,10 +102,14 @@ object Channel
   val poll      = query("poll")(_.poll)
   val get       = query("get")(_.get)
 
-  /** `events`, followed by a `Delivered` for each `created` signal they leave settled. */
+  /**
+   * `events`, followed by a `Delivered` for each `created` signal they leave settled that at least one connection
+   * acked, counting the acks: delivered means a frame written to a live connection (FR-022), so a connection that
+   * closed or expired without acking is not counted, and a signal none acked is never delivered.
+   */
   private[channel] def settling(s: ChannelState, events: Seq[ChannelEvent], now: Instant): Seq[ChannelEvent] =
     val after = events.foldLeft(s)(applied)
-    events ++ Leases.deliverable(after.ring).map(r => Delivered(r.seq, r.correlationId, r.openAt.size, now))
+    events ++ Leases.deliverable(after.ring).filter(_.acked.nonEmpty).map(r => Delivered(r.seq, r.correlationId, r.acked.size, now))
 
   private def gone(s: ChannelState, id: String): ChannelState =
     val connections = s.connections - id

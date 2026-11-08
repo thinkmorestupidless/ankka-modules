@@ -93,7 +93,7 @@ One row per player: `playerId, dailyDepositCount, depositDay, status, erased`. Q
 | `open(connectionId, instance, now)` | `Opened` | 0→1 sets `onlineSince` |
 | `heartbeat(connectionId, now)` | `Leased` | a lease refresh; unknown connection answers `closed` so the stream ends |
 | `poll(connectionId, cursor)` (query) | — | the signals with `seq > cursor` |
-| `acked(connectionId, seq)` | `Acked` | marks; a signal whose `openAt ⊆ acked ∪ closed` becomes `Delivered(correlationId, openAt.size)` once, for kind `inbox.changed` from `created` only |
+| `acked(connectionId, seq)` | `Acked` | marks; a signal whose `openAt ⊆ acked ∪ closed` becomes `Delivered(correlationId, acked.size)` once, when at least one connection acked (FR-022: a frame written to a live connection), for kind `inbox.changed` from `created` only |
 | `signal(kind, correlationId, origin, now)` | `Signalled` | appended only when a connection is open; `openAt` = the open set |
 | `close(connectionId, reason, now)` | `Closed` | 1→0 clears `onlineSince`; pending signals re-judged |
 | `sweep(now)` | `Expired` per lease older than 90 s | from the `sweep-<player>` timer, every 30 s, so a dead instance's player is offline within 120 s (FR-023) |

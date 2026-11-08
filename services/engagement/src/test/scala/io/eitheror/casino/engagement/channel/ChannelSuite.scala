@@ -101,13 +101,13 @@ class ChannelSuite extends munit.FunSuite:
     kit.call(Channel.acked)(Ack("c-2", 2, secs(4))): Unit
     assertEquals(delivered(kit).map(_.correlationId), Vector("m-1", "m-2"))
 
-  test("Delivered for two connections when one acked and the other closed"):
+  test("Delivered for one connection when one acked and the other closed without acking (FR-022)"):
     val kit = opened("c-1", "c-2")
     created(kit, "m-1"): Unit
     kit.call(Channel.acked)(Ack("c-1", 1, secs(1))): Unit
     assertEquals(delivered(kit), Vector.empty)
     val r = kit.call(Channel.close)(Close("c-2", "connection_recycled", secs(2)))
-    assertEquals(r.events.toVector, Vector(Closed("c-2", "connection_recycled", 1, secs(2)), Delivered(1, "m-1", 2, secs(2))))
+    assertEquals(r.events.toVector, Vector(Closed("c-2", "connection_recycled", 1, secs(2)), Delivered(1, "m-1", 1, secs(2))))
     assertEquals(kit.call(Channel.close)(Close("c-1", "client_gone", secs(3))).events.toVector,
       Vector(Closed("c-1", "client_gone", 0, secs(3))))
 
@@ -147,11 +147,25 @@ class ChannelSuite extends munit.FunSuite:
     assertEquals((last.events.toVector, last.replyValue.connections), (Vector(Expired("c-2", secs(30), 0, secs(121))), 0))
     assertEquals(kit.currentState.onlineSince, None)
 
-  test("a sweep expiring every connection at once counts down to zero and settles what they left"):
+  test("no Delivered when the only connection closes without acking: no frame reached a live connection (FR-022)"):
+    val kit = opened("c-1")
+    created(kit, "m-1"): Unit
+    assertEquals(kit.call(Channel.close)(Close("c-1", "client_gone", secs(1))).events.toVector,
+      Vector(Closed("c-1", "client_gone", 0, secs(1))))
+    kit.call(Channel.open)(Open("c-2", "i-1", secs(2))): Unit
+    kit.call(Channel.acked)(Ack("c-2", 1, secs(3))): Unit
+    assertEquals(delivered(kit), Vector.empty)
+
+  test("a sweep expiring every connection at once counts down to zero and delivers only what one acked"):
     val kit = opened("c-1", "c-2")
     created(kit, "m-1"): Unit
     assertEquals(kit.call(Channel.sweep)(Sweep(secs(200))).events.toVector,
-      Vector(Expired("c-1", at, 1, secs(200)), Expired("c-2", at, 0, secs(200)), Delivered(1, "m-1", 2, secs(200))))
+      Vector(Expired("c-1", at, 1, secs(200)), Expired("c-2", at, 0, secs(200))))
+    val acked = opened("c-1", "c-2")
+    created(acked, "m-1"): Unit
+    acked.call(Channel.acked)(Ack("c-1", 1, secs(1))): Unit
+    assertEquals(acked.call(Channel.sweep)(Sweep(secs(200))).events.toVector,
+      Vector(Expired("c-1", at, 1, secs(200)), Expired("c-2", at, 0, secs(200)), Delivered(1, "m-1", 1, secs(200))))
 
   test("get answers the state"):
     val kit = opened("c-1")
