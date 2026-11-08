@@ -91,6 +91,23 @@ final case class PlayerFraudFlagged(playerId: String, fraudCaseId: String, signa
 @named("player_fraud_cleared")
 final case class PlayerFraudCleared(playerId: String, fraudCaseId: String, occurredAt: Instant) extends CasinoPlayersFact
 
+/** The duplicate check of a new registration has begun (spec 011 FR-034). */
+@named("player_duplicate_check_started")
+final case class PlayerDuplicateCheckStarted(playerId: String, registeredAt: Instant, occurredAt: Instant)
+    extends CasinoPlayersFact
+
+/** The check's end and its outcome together: `clear`, `strong`, `weak` or `skipped` (FR-034, FR-035). */
+@named("player_duplicate_check_ended")
+final case class PlayerDuplicateCheckEnded(playerId: String, outcome: String, occurredAt: Instant) extends CasinoPlayersFact
+
+/** A weak duplicate signal: the player's no-deposit offers are blocked (FR-035). */
+@named("player_no_deposit_blocked")
+final case class PlayerNoDepositBlocked(playerId: String, occurredAt: Instant) extends CasinoPlayersFact
+
+@named("player_no_deposit_block_cleared")
+final case class PlayerNoDepositBlockCleared(playerId: String, actorId: String, occurredAt: Instant)
+    extends CasinoPlayersFact
+
 @named("player_message_created")
 final case class PlayerMessageCreated(playerId: String, messageId: String, sendClass: String, occurredAt: Instant)
     extends CasinoPlayersFact
@@ -163,6 +180,10 @@ object CasinoPlayers extends Topic[CasinoPlayersFact]("casino.players", Vector("
     FamilyDef.of[PlayerConsentChanged]("player_consent_changed"),
     FamilyDef.of[PlayerFraudFlagged]("player_fraud_flagged"),
     FamilyDef.of[PlayerFraudCleared]("player_fraud_cleared"),
+    FamilyDef.of[PlayerDuplicateCheckStarted]("player_duplicate_check_started"),
+    FamilyDef.of[PlayerDuplicateCheckEnded]("player_duplicate_check_ended"),
+    FamilyDef.of[PlayerNoDepositBlocked]("player_no_deposit_blocked"),
+    FamilyDef.of[PlayerNoDepositBlockCleared]("player_no_deposit_block_cleared"),
     FamilyDef.of[PlayerEmailChanged]("player_email_changed"),
     FamilyDef.of[PlayerMessageCreated]("player_message_created"),
     FamilyDef.of[PlayerMessageRead]("player_message_read"),

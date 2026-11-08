@@ -179,6 +179,17 @@ final class OperatorStatusRoutes(ctx: Ctx):
       ok(Json.obj("playerId" -> playerId, "flagCleared" -> true, "linkedCasesFound" -> open.size))
     }
 
+  /**
+   * Lifts the weak duplicate signal's block (spec 011 FR-036; the original's `BPR:2037-2074`), recorded
+   * with the operator and the time; the signals stay as the record of why it was set. A player with no
+   * block is answered the same, as the original.
+   */
+  def clearNoDepositBlock(p: Principal, playerId: String): Reply =
+    known(playerId) { _ =>
+      player(playerId).call(PlayerEntity.clearNoDepositBlock).invoke(ClearNoDepositBlock(p.subject, now())): Unit
+      ok(Json.obj("playerId" -> playerId, "blockCleared" -> true))
+    }
+
   // ── the reads ──────────────────────────────────────────────────────────────────────────────────
 
   /** The original's list: `search`, `status`, `page` (from 1), `pageSize` (1–200, 25); `{items, total}`. */
@@ -425,6 +436,10 @@ object OperatorStatusRoutes:
   val ActivityPage: Int            = 50
   val ListLimit: Int               = 10000
   val AgentBound: FiniteDuration   = 5.seconds
+
+  /** Who may clear a no-deposit block (spec 011 FR-036): the original's clear-suspect-flag roles. */
+  val BlockRoles: Set[String] =
+    Set("brand_admin", "resource_admin", "brand_compliance", "compliance_officer", "fraud_analyst", "platform_admin")
 
   def brandJson(c: BrandConfig): ObjectNode =
     Json.obj("name" -> c.name, "legalName" -> c.legalName, "playerSiteBase" -> c.playerSiteBase, "reportingZone" -> c.reportingZone,

@@ -191,19 +191,41 @@ func replaceInStrings(body json.RawMessage, text, placeholder string) (json.RawM
 	return json.RawMessage(bytes.TrimSpace(buf.Bytes())), true
 }
 
-// Collapse keeps the last of consecutive GETs of the same path: a poll's earlier answers are only the
-// state not having settled yet.
+// pollRound is the most reads one round of a poll makes: a test reading the balance and the player
+// in turn until both settle is a round of two.
+const pollRound = 4
+
+// Collapse keeps the last round of a poll: consecutive GETs whose paths repeat the round of GETs just
+// before them, one path or up to pollRound in turn. A poll's earlier answers are only the state not
+// having settled yet.
 func Collapse(r recorder.Recording) recorder.Recording {
 	var steps []recorder.Step
 	for _, s := range r.Steps {
-		if n := len(steps); n > 0 && s.Request.Method == "GET" && steps[n-1].Request.Method == "GET" && steps[n-1].Request.Path == s.Request.Path {
-			steps[n-1] = s
-			continue
-		}
 		steps = append(steps, s)
+		for k := 1; k <= pollRound; k++ {
+			if repeatsRound(steps, k) {
+				steps = append(steps[:len(steps)-2*k], steps[len(steps)-k:]...)
+				break
+			}
+		}
 	}
 	r.Steps = steps
 	return r
+}
+
+// repeatsRound is whether the last k steps are GETs of the same paths, in the same order, as the k before.
+func repeatsRound(steps []recorder.Step, k int) bool {
+	n := len(steps)
+	if n < 2*k {
+		return false
+	}
+	for i := 0; i < k; i++ {
+		a, b := steps[n-2*k+i].Request, steps[n-k+i].Request
+		if a.Method != "GET" || b.Method != "GET" || a.Path != b.Path {
+			return false
+		}
+	}
+	return true
 }
 
 // Secrets are the body fields a recording never keeps: the recorder drops credential headers, but a

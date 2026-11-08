@@ -357,6 +357,48 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing:
     assert(!kit.call(PlayerEntity.clearDuplicate)(ClearDuplicate("c-1", Some("op-1"), at)).persisted)
   }
 
+  test("the duplicate check (spec 011 FR-034): started once with the registration time, ended once with its outcome") {
+    val kit = registered
+    val started = kit.call(PlayerEntity.startDuplicateCheck)(At(later(1)))
+    assertEquals(started.events, Vector(DuplicateCheckStarted(at, later(1))))
+    assert(!kit.call(PlayerEntity.startDuplicateCheck)(At(later(2))).persisted)
+    assertEquals(kit.currentState.duplicateCheck, Some(DuplicateCheck(later(1))))
+    assert(kit.currentState.duplicateCheck.exists(_.inProgress))
+    assertEquals(kit.call(PlayerEntity.endDuplicateCheck)(EndDuplicateCheck(CheckOutcome.Clear, Set.empty, later(2))).events,
+      Vector(DuplicateCheckEnded(CheckOutcome.Clear, later(2))))
+    assertEquals(kit.currentState.duplicateCheck, Some(DuplicateCheck(later(1), Some(CheckOutcome.Clear), Some(later(2)))))
+    assert(!kit.call(PlayerEntity.endDuplicateCheck)(EndDuplicateCheck(CheckOutcome.Weak, Set("check_failed"), later(3))).persisted,
+      "a retried end changes nothing")
+    assertEquals(kit.currentState.noDepositBlock, None)
+    assert(!fresh.call(PlayerEntity.startDuplicateCheck)(At(at)).persisted, "no player, no check")
+  }
+
+  test("a weak end (spec 011 FR-035) blocks the no-deposit offers in the same change; a strong one does not") {
+    val kit = registered
+    kit.call(PlayerEntity.startDuplicateCheck)(At(at)): Unit
+    val weak = kit.call(PlayerEntity.endDuplicateCheck)(EndDuplicateCheck(CheckOutcome.Weak, Set("email_variant"), later(1)))
+    assertEquals(weak.events, Vector(DuplicateCheckEnded(CheckOutcome.Weak, later(1)), NoDepositBlocked(Set("email_variant"), later(1))))
+    assert(kit.currentState.noDepositBlocked)
+    assertEquals(kit.currentState.noDepositBlock, Some(NoDepositBlock(Set("email_variant"), later(1))))
+
+    val strong = registered
+    strong.call(PlayerEntity.startDuplicateCheck)(At(at)): Unit
+    assertEquals(strong.call(PlayerEntity.endDuplicateCheck)(EndDuplicateCheck(CheckOutcome.Strong, Set.empty, later(1))).events.size, 1)
+    assert(!strong.currentState.noDepositBlocked)
+  }
+
+  test("ClearNoDepositBlock (spec 011 FR-036) lifts the block with the operator and the time, keeping its signals; again is no event") {
+    val kit = registered
+    assert(!kit.call(PlayerEntity.clearNoDepositBlock)(ClearNoDepositBlock("op-1", at)).persisted, "nothing to clear")
+    kit.call(PlayerEntity.startDuplicateCheck)(At(at)): Unit
+    kit.call(PlayerEntity.endDuplicateCheck)(EndDuplicateCheck(CheckOutcome.Weak, Set("email_variant"), at)): Unit
+    assertEquals(kit.call(PlayerEntity.clearNoDepositBlock)(ClearNoDepositBlock("op-1", later(5))).events,
+      Vector(NoDepositBlockCleared("op-1", later(5))))
+    assertEquals(kit.currentState.noDepositBlock, Some(NoDepositBlock(Set("email_variant"), at, Some("op-1"), Some(later(5)))))
+    assert(!kit.currentState.noDepositBlocked)
+    assert(!kit.call(PlayerEntity.clearNoDepositBlock)(ClearNoDepositBlock("op-2", later(6))).persisted)
+  }
+
   // ── erasure ───────────────────────────────────────────────────────────────
 
   test("FileErasure refuses not_closed") {

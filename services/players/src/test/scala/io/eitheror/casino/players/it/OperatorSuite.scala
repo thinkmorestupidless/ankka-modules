@@ -167,7 +167,8 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
       "PATCH" -> s"/players/$id/suspend", "PATCH" -> s"/players/$id/reinstate", "POST" -> s"/players/$id/close",
       "POST" -> s"/players/$id/reopen", "PUT" -> s"/players/$id/vip-tier", "PUT" -> s"/players/$id/pot-vip",
       "POST" -> s"/players/$id/notes", "GET" -> s"/players/$id/messages", "POST" -> s"/players/$id/messages", "GET" -> "/merge-tags",
-      "POST" -> "/messages/preview", "POST" -> s"/players/$id/clear-suspect-flag", "GET" -> "/brand-config", "PUT" -> "/brand-config",
+      "POST" -> "/messages/preview", "POST" -> s"/players/$id/clear-suspect-flag",
+      "POST" -> s"/players/$id/clear-no-deposit-block", "GET" -> "/brand-config", "PUT" -> "/brand-config",
       "GET" -> "/currency-config", "PUT" -> "/currency-config", "GET" -> "/allow-list", "PUT" -> "/allow-list")
     for (m, path) <- routes do
       val r = kit.request(m, kit.operatorPath(path), if m == "GET" then None else Some("{}"), kit.asOperator(roles = "brand_other"))
@@ -259,4 +260,49 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     val (_, id) = kit.activePlayer()
     val r = op("POST", s"/players/$id/clear-suspect-flag")
     assertEquals((r.status, r.json.get("flagCleared").asBoolean, r.json.get("linkedCasesFound").asInt), (200, true, 0))
+  }
+
+  /** A player whose email is a variant of another's: the check ends weak and blocks the no-deposit offers (spec 011 FR-035). */
+  private def blocked(fields: (String, Any)*): String =
+    val n = java.util.UUID.randomUUID().toString.take(8).map(c => if c.isDigit then ('g' + (c - '0')).toChar else c)
+    assertEquals(kit.register("email" -> s"$n.lovelace@gmail.com").status, 201)
+    val r = kit.register((("email" -> s"$n.lovelace+promo@gmail.com") +: fields)*)
+    assertEquals(r.status, 201, r.text)
+    val id = r.str("playerId")
+    kit.eventually("the no-deposit block", 30.seconds)(Option.when(player(id).noDepositBlocked)(id))
+
+  private def profileOf(id: String) = op("GET", s"/players/$id/profile").json.get("player")
+
+  test("clear-no-deposit-block (spec 011 FR-036): forbidden without a fraud or compliance role; with one, lifted and recorded") {
+    val id = blocked()
+    assert(profileOf(id).get("noDepositOfferBlocked").asBoolean)
+    val path = kit.operatorPath(s"/players/$id/clear-no-deposit-block")
+    val refused = kit.request("POST", path, Some("{}"), kit.asOperator(subject = "op-7"))
+    assertEquals((refused.status, refused.str("error")), (403, "forbidden"))
+    assert(player(id).noDepositBlocked)
+    for role <- Vector("brand_admin", "resource_admin", "brand_compliance", "compliance_officer", "fraud_analyst") do
+      val r = kit.request("POST", path, Some("{}"), kit.asOperator(roles = s"brand_${kit.slug},$role", subject = "op-7"))
+      assertEquals((r.status, r.str("playerId"), r.json.get("blockCleared").asBoolean), (200, id, true), role)
+    val block = player(id).noDepositBlock.get
+    assertEquals((block.active, block.clearedBy, block.signals), (false, Some("op-7"), Set("email_variant")))
+    assert(block.clearedAt.isDefined)
+    assert(!profileOf(id).has("noDepositOfferBlocked"), "the profile shows the block only while it holds")
+    assertEquals(kit.request("POST", kit.operatorPath("/players/nobody/clear-no-deposit-block"), Some("{}"),
+      kit.asOperator(roles = "platform_admin")).status, 404)
+  }
+
+  test("dismissing a fraud case linking a blocked player clears the flag and leaves the no-deposit block (spec 011 FR-036)") {
+    val identity = Seq[(String, Any)]("firstName" -> s"Bl${java.util.UUID.randomUUID().toString.take(8)}", "lastName" -> "Ock",
+      "dateOfBirth" -> "1991-03-04")
+    val id    = blocked(identity*)
+    val other = kit.activePlayer(identity*)._2
+    val caseId = io.eitheror.casino.players.registration.RegistrationWorkflow.caseOf(other)
+    kit.eventually("the blocked player flagged", 30.seconds)(player(id).fraud)
+    assertEquals(op("PATCH", s"/fraud-cases/$caseId/dismiss").status, 200)
+    assertEquals(player(id).fraud, None)
+    assert(player(id).noDepositBlocked)
+    assert(profileOf(id).get("noDepositOfferBlocked").asBoolean)
+    assert(kit.request("POST", kit.operatorPath(s"/players/$id/clear-no-deposit-block"), Some("{}"),
+      kit.asOperator(roles = "platform_admin")).status == 200)
+    assert(!player(id).noDepositBlocked)
   }

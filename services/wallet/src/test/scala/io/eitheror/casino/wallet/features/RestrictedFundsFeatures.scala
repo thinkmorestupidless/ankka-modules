@@ -180,7 +180,7 @@ class RestrictedFundsFeatures extends WalletFeatures("restricted-funds.feature")
   }
 
   When("the pending cap is closed") { () =>
-    act(run(walletKit.call(WalletEntity.closePendingCap)(ClosePendingCap(nextKey("close"), now())))): Unit
+    act(run(walletKit.call(WalletEntity.closePendingCap)(ClosePendingCap(nextKey("close"), None, now())))): Unit
   }
 
   Then("the record is closed") { () => assertEquals(focused.status, Status.Closed) }

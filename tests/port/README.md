@@ -204,6 +204,15 @@ original can show (48 `pass` and 9 `fail` on both runs), and the original's thre
 `TestScenario18_MultiAccountDetection_*` tests (`pass`). `players/README.md` says how they were made,
 where that differs from `tests/original/README.md`, and why each of the nine differs.
 
+## rewards (spec 011, T066)
+
+Recorded 2026-11-02 from the original at `7630feb0` (with #730), on its own KinD stack, twice, on fresh
+ids: 47 recordings, every one `pass` on both runs. 25 from the Go suite (scenarios 16, 18, 19, 21, 244,
+245 and 254, the bonus bust and five free-spins plays) and 22 by `tests/original/rewards-driver/`.
+`TestScenario23_RewardGrantExpiry` fails on the original itself and
+`TestScenario21_CodeMinDepositDepositNumberWindow` did not repeat; neither is kept. `rewards/README.md`
+says which requirement each establishes, how the run differed from `tests/original/README.md`, and why.
+
 ## payouts (spec 007, T053)
 
 Recorded 2026-10-31 from the original on its own KinD stack (casino-service at `e7d8f2de`, with the

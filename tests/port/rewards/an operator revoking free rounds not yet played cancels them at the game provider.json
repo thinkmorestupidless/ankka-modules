@@ -1,0 +1,330 @@
+{
+  "scenario": "an operator revoking free rounds not yet played cancels them at the game provider",
+  "requirement": "011/FR-017",
+  "recorded_at": "2026-11-02T15:56:52.550114Z",
+  "original": {
+    "commit": "7630feb0"
+  },
+  "runs": 2,
+  "service": "rewards",
+  "steps": [
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "aaf237b3-8066-389e-a000-fd4c111e18db",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the player's verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "aaf237b3-8066-389e-a000-fd4c111e18db",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the player's duplicate check has ended",
+      "request": {
+        "method": "GET",
+        "path": "/twins/casino-spinvibe/{playerId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "account_status": "active",
+          "brandId": "spinvibe",
+          "brand_ref": "spinvibe",
+          "consent_source": "registration",
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "an-operator-revoking-free-roun-rd6dda54fc52-email-cbe9a46a@example.test",
+          "email_local_normalized": "an-operator-revoking-free-roun-rdddafc-email-cbeaa",
+          "kyc_check_deadline_at": "2026-12-02T15:56:52.647729742Z",
+          "kyc_status": "unverified",
+          "language": "en",
+          "last_device_browser": "Unknown",
+          "last_device_os": "Unknown",
+          "last_login_at": "2026-11-02T15:56:52.748760313Z",
+          "marketing_consent": "false",
+          "pending_duplicate_check": "false",
+          "registered_at": "2026-11-02T15:56:52.647729742Z",
+          "registration_bonus_code": "",
+          "sms_marketing_consent": "false",
+          "username": "an-operator-revoking-free-roun-rd6dda54fc52-email-cbe9a46a@example.test",
+          "walletBalance": "0",
+          "walletCurrency": "EUR"
+        }
+      },
+      "vary": {
+        "$.email": "differs between two runs of the original",
+        "$.email_local_normalized": "differs between two runs of the original",
+        "$.kyc_check_deadline_at": "differs between two runs of the original",
+        "$.last_login_at": "differs between two runs of the original",
+        "$.registered_at": "differs between two runs of the original",
+        "$.username": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: give the player free rounds",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "freeSpinsExpiryDays": 7,
+          "gameId": "book-of-ra",
+          "provider": "ST8",
+          "spinCount": 10,
+          "spinValue": "0.10",
+          "type": "FREE_SPINS",
+          "winningsDestination": "real_balance"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "grantId": "fefb9386-c55e-4279-9f92-531c98004706",
+          "providerStatus": "active",
+          "status": "granted",
+          "type": "FREE_SPINS"
+        }
+      },
+      "capture": {
+        "grantId": "$.grantId"
+      },
+      "vary": {
+        "$.grantId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the free rounds name their reward",
+      "request": {
+        "method": "GET",
+        "path": "/twins/free-spins-grants/{grantId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brand_id": "spinvibe",
+          "claim_ref": "bonus-claims/44a4a926-a3d7-4342-94f8-2eaa4bb41bfb",
+          "currency": "EUR",
+          "free_spins_expires_at": "2026-11-09T15:56:52.768628710Z",
+          "game_id": "book-of-ra",
+          "game_name": "Book of Ra",
+          "grant_id": "fefb9386-c55e-4279-9f92-531c98004706",
+          "granted_at": "2026-11-02T15:56:52.768622335Z",
+          "max_convertible_amount": "0",
+          "player_id": "aaf237b3-8066-389e-a000-fd4c111e18db",
+          "provider": "ST8",
+          "provider_bonus_id": "fefb9386-c55e-4279-9f92-531c98004706",
+          "provider_poll_attempts": "0",
+          "provider_status": "active",
+          "source": "operator_manual_adhoc",
+          "spin_count": "10",
+          "spin_value": "0.10",
+          "status": "granted",
+          "wagering_multiplier": "0",
+          "winnings_destination": "real_balance"
+        }
+      },
+      "capture": {
+        "claimId": "$.claim_ref"
+      },
+      "vary": {
+        "$.claim_ref": "differs between two runs of the original",
+        "$.free_spins_expires_at": "differs between two runs of the original",
+        "$.grant_id": "differs between two runs of the original",
+        "$.granted_at": "differs between two runs of the original",
+        "$.player_id": "differs between two runs of the original",
+        "$.provider_bonus_id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "revoke the free rounds as forfeit",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/casino/spinvibe/bonuses/{claimId}/revoke",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "mode": "forfeit"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "clawbackApplied": "0.00",
+          "freeSpins": true,
+          "mode": "forfeit",
+          "status": "revoked"
+        }
+      }
+    },
+    {
+      "name": "observe: the game provider has cancelled them",
+      "request": {
+        "method": "GET",
+        "path": "/test/bonus/{grantId}",
+        "service": "fake-st8"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusId": "fefb9386-c55e-4279-9f92-531c98004706",
+          "count": 10,
+          "currency": "EUR",
+          "gameCodes": [
+            "book-of-ra"
+          ],
+          "instances": {
+            "aaf237b3-8066-389e-a000-fd4c111e18db": {
+              "remaining": 10,
+              "status": "canceled"
+            }
+          },
+          "players": [
+            "aaf237b3-8066-389e-a000-fd4c111e18db"
+          ],
+          "site": "fake-st8",
+          "type": "free_bets",
+          "value": "0.10"
+        }
+      },
+      "vary": {
+        "$.bonusId": "differs between two runs of the original",
+        "$.instances.aaf237b3-8066-389e-a000-fd4c111e18db": "differs between two runs of the original",
+        "$.players[0]": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the reward is revoked",
+      "request": {
+        "method": "GET",
+        "path": "/twins/bonus-claims/{claimId}",
+        "service": "substrate"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brand_id": "spinvibe",
+          "brand_ref": "spinvibe",
+          "cap_expires_at": null,
+          "clawback_applied": false,
+          "currency": "EUR",
+          "expires_at": "2026-11-09T15:56:52.768628710Z",
+          "face_value": 0,
+          "free_spins_grant_ref": "fefb9386-c55e-4279-9f92-531c98004706",
+          "grant_id": "bonus-claims/44a4a926-a3d7-4342-94f8-2eaa4bb41bfb",
+          "granted_at": "2026-11-02T15:56:52.768622335Z",
+          "last_event_ref": "reward-events-spinvibe/b09ce19a-2f6f-4245-a30a-17905a7c3f4a",
+          "offer_id": "",
+          "offer_name": "Free Spins",
+          "offer_ref": "",
+          "payload_type": "free_spins",
+          "payment_ref": "",
+          "player_ref": "aaf237b3-8066-389e-a000-fd4c111e18db",
+          "priority": 0,
+          "release_requirement": 0,
+          "released_progress": 0,
+          "revoke_mode": "forfeit",
+          "revoked_by": "1bece117-dd03-4dc4-ac75-c003a014b7e6",
+          "source": "operator_manual",
+          "status": "REVOKED",
+          "terminated_at": "2026-11-02T15:56:53.061158640Z",
+          "type": "FREE_SPINS",
+          "wagering_expires_at": null
+        }
+      },
+      "vary": {
+        "$.expires_at": "differs between two runs of the original",
+        "$.free_spins_grant_ref": "differs between two runs of the original",
+        "$.grant_id": "differs between two runs of the original",
+        "$.granted_at": "differs between two runs of the original",
+        "$.last_event_ref": "differs between two runs of the original",
+        "$.player_ref": "differs between two runs of the original",
+        "$.terminated_at": "differs between two runs of the original"
+      }
+    }
+  ]
+}

@@ -20,6 +20,9 @@
         "bonus_name": {
           "type": "string"
         },
+        "code": {
+          "type": "string"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
@@ -35,6 +38,12 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
           "type": "string"
         },
         "type": {
@@ -59,6 +68,9 @@
         "bonus_name": {
           "type": "string"
         },
+        "code": {
+          "type": "string"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
@@ -76,6 +88,15 @@
         "player_id": {
           "type": "string"
         },
+        "reason": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
         "type": {
           "const": "bonus_cancelled"
         }
@@ -87,10 +108,22 @@
     {
       "additionalProperties": true,
       "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
         "bonus_id": {
           "type": "string"
         },
         "bonus_name": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
           "type": "string"
         },
         "occurred_at": {
@@ -107,6 +140,12 @@
           "type": "string"
         },
         "reason": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
           "type": "string"
         },
         "type": {
@@ -126,6 +165,9 @@
         "bonus_name": {
           "type": "string"
         },
+        "code": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -137,6 +179,12 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
           "type": "string"
         },
         "type": {
@@ -156,6 +204,9 @@
         "bonus_name": {
           "type": "string"
         },
+        "code": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -167,6 +218,12 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
           "type": "string"
         },
         "type": {
@@ -184,6 +241,9 @@
           "type": "string"
         },
         "bonus_name": {
+          "type": "string"
+        },
+        "code": {
           "type": "string"
         },
         "game_ids": {
@@ -208,6 +268,12 @@
         "rounds": {
           "type": "integer"
         },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
         "type": {
           "const": "free_spins_granted"
         }
@@ -225,6 +291,9 @@
         "bonus_name": {
           "type": "string"
         },
+        "code": {
+          "type": "string"
+        },
         "currency": {
           "pattern": "^[A-Z]{3}$",
           "type": "string"
@@ -240,6 +309,12 @@
           "type": "string"
         },
         "player_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "tag": {
           "type": "string"
         },
         "type": {
@@ -263,6 +338,9 @@
         },
         "occurred_at": {
           "format": "date-time",
+          "type": "string"
+        },
+        "outcome": {
           "type": "string"
         },
         "player_id": {

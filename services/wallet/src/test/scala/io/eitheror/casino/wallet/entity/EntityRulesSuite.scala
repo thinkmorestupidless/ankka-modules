@@ -3,6 +3,7 @@ package io.eitheror.casino.wallet.entity
 import com.thinkmorestupidless.ankka.core.Codecs
 import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, LogCapturing}
 import io.eitheror.casino.wallet.entity.WalletEvent.*
+import io.eitheror.casino.wallet.funding.{Clawback, Record, Status}
 
 import java.time.{Duration, Instant}
 
@@ -95,6 +96,129 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.call(WalletEntity.previewHold)(PreviewHold(5000)).replyValue.refusal, Some("INSUFFICIENT_FUNDS"))
   }
 
+  // ── an award's concurrency limit (spec 011 W1) ──────────────────────────────
+
+  private def awardUnder(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], key: String,
+      requested: Option[Int], brand: Option[Int]): Outcome =
+    kit.call(WalletEntity.award)(Award(key, "bonus", 1000, 1, 2000, 0, None, Rules(), Award.limit(requested, brand), t0)).replyValue
+
+  private def oneActive(id: String) =
+    val kit = EventSourcedTestKit.of(WalletEntity, id)
+    kit.call(WalletEntity.deposit)(deposit("d-1", 10000, t0))
+    assert(awardUnder(kit, "g-1", None, None).accepted)
+    kit
+
+  test("W1: the award's own limit is the limit, over the brand's") {
+    val refused = oneActive("w1-body/EUR")
+    assertEquals(awardUnder(refused, "g-2", Some(1), None).code, Some("BONUS_ALREADY_ACTIVE"))
+    val allowed = oneActive("w1-body2/EUR")
+    assert(awardUnder(allowed, "g-2", Some(2), Some(1)).accepted)
+    assertEquals(allowed.currentState.openRecords.count(_.status == Status.Active), 2)
+  }
+
+  test("W1: with no limit on the award the brand's applies, and with neither there is none") {
+    val brand = oneActive("w1-brand/EUR")
+    assertEquals(awardUnder(brand, "g-2", None, Some(1)).code, Some("BONUS_ALREADY_ACTIVE"))
+    val none = oneActive("w1-none/EUR")
+    assert(awardUnder(none, "g-2", None, None).accepted)
+    assert(awardUnder(none, "g-3", None, None).accepted)
+    assertEquals(none.currentState.openRecords.count(_.status == Status.Active), 3)
+  }
+
+  test("W1: the limit counts active records only, so a pending cap does not hold an award back") {
+    val kit    = EventSourcedTestKit.of(WalletEntity, "w1-cap/EUR")
+    val capped = AwardedRecord(Record("rf-cap", "g-cap", Status.ConvertedPendingCap, remainingAllowance = 100), "bonus", None, t0, None)
+    kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 10000, 0, Vector(capped), 0, 0, 0, t0)): Unit
+    assert(awardUnder(kit, "g-1", Some(1), None).accepted)
+  }
+
+  // ── closing a pending cap by its grant (spec 011 W2) ────────────────────────
+
+  private def twoCapped(id: String) =
+    val kit = EventSourcedTestKit.of(WalletEntity, id)
+    def capped(rf: String, grant: String, priority: Long) =
+      AwardedRecord(Record(rf, grant, Status.ConvertedPendingCap, priority = priority, remainingAllowance = 100), "bonus", None, t0, None)
+    kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 1000, 0, Vector(capped("rf-1", "g-1", 1), capped("rf-2", "g-2", 2)), 0, 0, 0, t0)): Unit
+    kit
+
+  test("W2: with two pending caps a close naming the second closes the second, and the first stays waiting") {
+    val kit     = twoCapped("w2-named/EUR")
+    val outcome = kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", Some("g-2"), t0)).replyValue
+    assertEquals(outcome.closedRecordId, Some("rf-2"))
+    assertEquals(kit.currentState.openRecords.map(_.id), Vector("rf-1"))
+  }
+
+  test("W2: a close naming no grant closes the first, as before; one naming a closed grant is NOT_PENDING_CAP") {
+    val kit = twoCapped("w2-first/EUR")
+    assertEquals(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", None, t0)).replyValue.closedRecordId, Some("rf-1"))
+    assertEquals(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-2", Some("g-1"), t0)).replyValue.code, Some("NOT_PENDING_CAP"))
+    assertEquals(kit.currentState.openRecords.map(_.id), Vector("rf-2"))
+  }
+
+  test("W2: a close naming no grant keeps the digest it had before the grant was added, so a retry is a repeat") {
+    // Before W2 the command's payload was empty: key and time are never digested.
+    val before = io.eitheror.casino.contract.money.Digest.of(Vector("command" -> "close-pending-cap"))
+    assertEquals(MoneyCommand.digestOf("close-pending-cap", ClosePendingCap("cp-1", None, t0), ClosePendingCap.Unset), before)
+    assertNotEquals(MoneyCommand.digestOf("close-pending-cap", ClosePendingCap("cp-1", Some("g-1"), t0), ClosePendingCap.Unset), before)
+  }
+
+  // ── the unused secondary (spec 011 W3) ──────────────────────────────────────
+
+  /** Three active awards on 1,500 real, each with a baseline of 1,000: g-1 primary, g-2 unused, g-3 played. */
+  private def threeActive(id: String, baselines: Boolean = true) =
+    val kit = EventSourcedTestKit.of(WalletEntity, id)
+    def active(rf: String, grant: String, priority: Long, progress: Long) =
+      AwardedRecord(Record(rf, grant, Status.Active, priority = priority, balance = 200, releaseRequirement = 1000,
+        releasedProgress = progress), "bonus", None, t0, Option.when(baselines)(Clawback.Baseline(1000, 0)))
+    kit.call(WalletEntity.openMigrated)(OpenMigrated("m", 1500, 0,
+      Vector(active("rf-1", "g-1", 0, 300), active("rf-2", "g-2", 1, 0), active("rf-3", "g-3", 2, 100)), 0, 0, 0, t0)): Unit
+    kit
+
+  private def cancelOf(kit: EventSourcedTestKit[WalletEntity, WalletState, WalletEvent], grant: String, requireBaseline: Boolean = false) =
+    kit.call(WalletEntity.cancel)(CancelAward(s"c-$grant", Some(grant), t0, requireBaseline)).replyValue
+
+  test("W3: a cancel naming a secondary with no release progress claws back nothing and still closes it (BR:2919-2925)") {
+    val kit     = threeActive("w3-unused/EUR")
+    val outcome = cancelOf(kit, "g-2")
+    assertEquals((outcome.clawbackApplied, outcome.forfeited, outcome.realBalance), (Some(0L), Vector("rf-2"), 1500L))
+  }
+
+  test("W3: the primary, or a secondary with release progress, claws back from its baseline") {
+    assertEquals(cancelOf(threeActive("w3-primary/EUR"), "g-1").clawbackApplied, Some(500L))
+    assertEquals(cancelOf(threeActive("w3-played/EUR"), "g-3").clawbackApplied, Some(500L))
+  }
+
+  // ── a reclaim needs a baseline (spec 011 W4) ────────────────────────────────
+
+  test("W4: a cancel that requires a baseline is refused MISSING_BASELINE when the named record has none, and moves nothing") {
+    val kit     = threeActive("w4-none/EUR", baselines = false)
+    val outcome = cancelOf(kit, "g-1", requireBaseline = true)
+    assertEquals(outcome.code, Some("MISSING_BASELINE"))
+    assertEquals((kit.currentState.realBalance, kit.currentState.openRecords.size), (1500L, 3))
+    assertEquals(io.eitheror.casino.wallet.wire.Wire.status("MISSING_BASELINE"), 409)
+    // A repeat under the key is refused the same way.
+    assertEquals(cancelOf(kit, "g-1", requireBaseline = true).code, Some("MISSING_BASELINE"))
+  }
+
+  test("W4: without the requirement a record with no baseline closes with no clawback, as before (FR-017)") {
+    val outcome = cancelOf(threeActive("w4-player/EUR", baselines = false), "g-1")
+    assertEquals((outcome.code, outcome.clawbackApplied, outcome.forfeited), (None, Some(0L), Vector("rf-1")))
+  }
+
+  test("W4: with a baseline the reclaim claws back from it; a grant not open is GRANT_NOT_OPEN before the baseline is asked") {
+    assertEquals(cancelOf(threeActive("w4-ok/EUR"), "g-1", requireBaseline = true).clawbackApplied, Some(500L))
+    assertEquals(cancelOf(threeActive("w4-closed/EUR", baselines = false), "g-z", requireBaseline = true).code, Some("GRANT_NOT_OPEN"))
+  }
+
+  test("W4: a reclaim of an unused secondary claws back from its baseline, as the original's revoke did (BR:1024-1041)") {
+    assertEquals(cancelOf(threeActive("w4-secondary/EUR"), "g-2", requireBaseline = true).clawbackApplied, Some(500L))
+  }
+
+  test("W4: a cancel that does not require a baseline keeps the digest it had before the field was added") {
+    val before = io.eitheror.casino.contract.money.Digest.of(Vector("command" -> "cancel", "grantRef" -> "Some(g-1)"))
+    assertEquals(MoneyCommand.digestOf("cancel", CancelAward("c-1", Some("g-1"), t0), CancelAward.Unset), before)
+  }
+
   // ── personal data (FR-033) ──────────────────────────────────────────────────
 
   test("an adjustment's reason is held as Personal in the event, and the category is not personal") {
@@ -130,7 +254,7 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     kit.call(WalletEntity.confirm)(Confirm("cf-1", "w-2", t0))
     kit.call(WalletEntity.reverse)(Reverse("rv-1", "w-2", t0))
     kit.call(WalletEntity.setTurnoverOverride)(SetTurnoverOverride(Some(TurnoverTerms(2, "gross_wagered")), "op", t0))
-    kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", t0))
+    kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp-1", None, t0))
     val events = kit.allEvents
     events.foreach(e => assertEquals(serializer.fromBytes(serializer.toBytes(e)), e))
     val kinds = events.map(_.getClass.getSimpleName).toSet
@@ -154,7 +278,7 @@ class EntityRulesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(reply(kit.call(WalletEntity.award)(Award("g", " ", 1, 1, 1, 0, None, Rules(), None, t0)).replyValue),
       ("MISSING_BONUS_REF", "bonus_ref is required"))
     assertEquals(reply(kit.call(WalletEntity.forfeit)(ForfeitAward("f", None, t0)).replyValue), ("NO_ACTIVE_BONUS", "No active bonus to forfeit"))
-    assertEquals(reply(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp", t0)).replyValue),
+    assertEquals(reply(kit.call(WalletEntity.closePendingCap)(ClosePendingCap("cp", None, t0)).replyValue),
       ("NOT_PENDING_CAP", "No CONVERTED_PENDING_CAP bonus to close"))
     assertEquals(reply(kit.call(WalletEntity.switchPrimary)(SwitchPrimary("s", "zz", t0)).replyValue), ("GRANT_NOT_FOUND", "Grant zz not found"))
     assertEquals(reply(kit.call(WalletEntity.hold)(Hold("h", 5000, true, t0)).replyValue), ("INSUFFICIENT_FUNDS", "Insufficient real balance for withdrawal"))

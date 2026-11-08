@@ -23,8 +23,12 @@ disagree, the contract wins.
 | `VipTierChanged` | `vip_tier_changed` | `player_id`, `previous_tier`, `new_tier`, `actor_id` |
 | `ProfileEdited`, `DateOfBirthCorrected` | `player_profile_updated` | `player_id`, `changed_fields`, and as `Personal`: `given_name`, `family_name`, `date_of_birth`, `telephone`, `address_line`, `city`, `post_code`; `country` plain (spec 009 FR-016 reads them) |
 | `ConsentChanged` | `player_consent_changed` | `player_id`, `channel` (`email` \| `sms` \| `messages`, the last the operator's suppression of in-app marketing, FR-030), `consented`, `source`; one fact per channel changed |
-| `DuplicateFlagged` | `player_fraud_flagged` | `player_id`, `fraud_case_id`, `signal` (`identity` \| `device` \| `identity,device`) |
+| `DuplicateFlagged` | `player_fraud_flagged` | `player_id`, `fraud_case_id`, `signal`, the signals sorted and comma-joined (`identity`, `device`; and from spec 011 FR-035 `email_variant` with `address` and/or `address_rate`) |
 | `DuplicateCleared` | `player_fraud_cleared` | `player_id`, `fraud_case_id` |
+| `DuplicateCheckStarted` | `player_duplicate_check_started` | `player_id`, `registered_at` — the registration's check begun, before the match (spec 011 FR-034) |
+| `DuplicateCheckEnded` | `player_duplicate_check_ended` | `player_id`, `outcome` (`strong` \| `weak` \| `clear` \| `skipped`, the last by the kill switch) — the end and its outcome, one event (spec 011 FR-034, FR-035) |
+| `NoDepositBlocked` | `player_no_deposit_blocked` | `player_id` — a weak signal (an email variant alone, or a comparison that failed), persisted in one change with the `weak` end (spec 011 FR-035) |
+| `NoDepositBlockCleared` | `player_no_deposit_block_cleared` | `player_id`, `actor_id` — the operator who cleared it (spec 011 FR-036) |
 | `MessageEntity.Created` | `player_message_created` | `player_id`, `message_id`, `send_class` (the message's category) |
 | `MessageEntity.Read` | `player_message_read` | `player_id`, `message_id` |
 | `MessageEntity.Deleted` | `player_message_deleted` | `player_id`, `message_id` |
@@ -47,7 +51,7 @@ only from the migration (spec FR-031), and a migrated `blocked` player's later t
 ## `platform.audit` (`AuditPublisher`)
 
 One `audit_record` per operator action (suspend, reinstate, close, reopen, tier, PotVIP, date of
-birth, note, message, force-end, config change, fraud review, reset-password, export, erasure) with
+birth, note, message, force-end, config change, fraud review, no-deposit block clear (spec 011), reset-password, export, erasure) with
 the operator's subject, the player as the subject entity, the action, the reason where one was
 given, and never a `Personal` value (the note's text, the message's body and the date of birth are
 not on the record; the record names the field).

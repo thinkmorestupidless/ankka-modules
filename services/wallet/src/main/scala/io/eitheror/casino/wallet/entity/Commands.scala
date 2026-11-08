@@ -81,11 +81,34 @@ final case class Award(key: String, bonusRef: String, amount: Long, wageringMult
     priority: Long, expiresAt: Option[Instant], rules: Rules, maxConcurrentAwards: Option[Int], at: Instant)
     extends MoneyCommand
 
+object Award:
+  /**
+   * The concurrency limit an award is held to (spec 011 W1): the one the award request carries,
+   * which `rewards` takes from the offer, else the brand's; neither is no limit. The original's
+   * wallet read only the request's (`WalletConcurrency.reached`); the brand's stays for callers that
+   * send none.
+   */
+  def limit(requested: Option[Int], brand: Option[Int]): Option[Int] = requested.orElse(brand)
+
 final case class ForfeitAward(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand
 
-final case class CancelAward(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand
+/**
+ * `requireBaseline`: an operator's reclaim (spec 011 W4), refused `MISSING_BASELINE` when the record
+ * has no clawback baseline, where a player's cancel closes it with none (FR-017).
+ */
+final case class CancelAward(key: String, grantRef: Option[String], at: Instant, requireBaseline: Boolean = false)
+    extends MoneyCommand
 
-final case class ClosePendingCap(key: String, at: Instant) extends MoneyCommand
+object CancelAward:
+  /** Left out of the digest while unset, so a cancel sent before the field was added keeps its digest. */
+  val Unset: Set[(String, String)] = Set("requireBaseline" -> "false")
+
+/** `grantRef` names the award whose pending cap closes (spec 011 W2); without it the first closes. */
+final case class ClosePendingCap(key: String, grantRef: Option[String], at: Instant) extends MoneyCommand
+
+object ClosePendingCap:
+  /** Left out of the digest while unset, so a close sent before the grant was added keeps its digest. */
+  val Unset: Set[(String, String)] = Set("grantRef" -> "None")
 
 final case class SwitchPrimary(key: String, grantRef: String, at: Instant) extends MoneyCommand
 

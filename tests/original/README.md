@@ -16,6 +16,7 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `ingest-driver/` | drives the original's cashier edge, the routes spec 006's `ingest` takes over, for what the suite never sends; see *Recording the cashier edge* |
 | `players-driver/` | drives the original's `casino-service` player, session and backoffice routes and its Keycloak for what spec 008's `players` takes over; see *Recording the players* |
 | `payouts-driver/` | drives the original's `casino-service` withdrawal routes (the request, the terminals, the destinations, the queue, the decisions and the internal outcome route) for what spec 007's `payouts` takes over (scenario 30); see *Recording the payouts* |
+| `rewards-driver/` | drives the original's `casino-service` reward routes (the #730 gates, the operator's awards with no offer, the revoke of free rounds, the preview, the reorder, the delete and the reward lists) for the scenarios of spec 011's features its suite does not reach; see *Recording the rewards* |
 | `gateway-driver/` | drives the original's `psp-gateway` against `psp-stub`, with a receiver standing in for merchant-service and casino-service (spec 005); see *Recording the gateway directly* |
 | `recorder/` | the transport `record_test.go` installs |
 | `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies and `X-Internal-Secret` from headers |
@@ -344,3 +345,67 @@ could not reach is listed, with its reason, in `tests/port/payouts/README.md`.
 The run of 2026-10-31 (casino-service at the original's `e7d8f2de`, the rest of the stack at `a78decf1`)
 made `tests/port/payouts/`: the driver's 56 and scenario 251's four, every one `pass` on both runs. Its
 README says where that run differed from these steps.
+
+## Recording the rewards
+
+`rewards-driver/` (spec 011 research R2, T065) drives the original's `casino-service` reward routes for
+the scenarios of `features/rewards/*.feature` its Go suite does not reach: the #730 gates (the duplicate
+check in progress, its ten-minute window, the weak duplicate signal, the brand's kill switch, and
+Customer.io's award told to try again), the segment and tier rules, the operator's free bonus and free
+rounds with no offer, the revoke of free rounds (unplayed, and played out), a reclaim with no baseline, a
+revoke with no mode, a cancel of a reward the player does not hold, the preview, the reorder, the delete
+and the operator's two reward lists. `NotDriven` names, for every other scenario, the suite's test that
+records it or why the original cannot show it, and `go test ./original/rewards-driver/...` checks every
+name against the features offline.
+
+- Each scenario takes a fresh player with no names (so no identity hash), registered, verified by the link
+  the original would send and signed in, and waits for the registration's duplicate check to end before
+  writing its own flags (`pending_duplicate_check`, `no_deposit_offer_blocked`, `suspected_duplicate`,
+  `registered_at`, `segments`, `vip_tier_rank`) to the player twin, where the detector writes them.
+- Offers are written to substrate as scenario 21's `s21CreateOffer` writes them and deactivated when the
+  scenario ends. The webhook's signing key is a made-up one written to the brand's legacy CRM config, as
+  scenario 21 does, and the config is put back afterwards. Played-out free rounds are marked `used` where
+  settle-free-spins-round marks them.
+- The kill switch (`casino-disable-multi-account-detection`) is given a strategy for the brand alone in
+  Unleash's admin API, enabled, and removed afterwards; the claim is made again until casino-service's
+  Unleash client has read it.
+- On the kind stack fake-st8 serves no `/api/operator/v1/bonus/offers`, so the original cannot list spin
+  values (it answers 502 and lets every value through) and never answers `not_configured`: those
+  scenarios are `NotDriven`, and "free rounds given when the game provider cannot say which spin values it
+  offers go ahead" is what the stack shows.
+
+The Go suite's reward scenarios (spec 011 Recordings) need two things on the kind stack:
+
+- **Emails that stay distinct after the duplicate check strips digits.** From #730 casino-service strips
+  digits from an email's local part and counts a shared result from the same IP within 24 hours as a strong
+  duplicate signal. The suite's emails are built from hex run ids, so a second run's players were
+  duplicates of the first's (`SUSPECTED_DUPLICATE`, `invalid_code`). `e2e-recording.patch` spells the run
+  id's digits as letters in scenarios 16, 18 and 19's emails (`recLetters`).
+- **The fake-st8 launches first, on a freshly restarted fake-st8.** A test with an ST8 harness (19, 254,
+  the bonus bust) registers the suite's own key with the adapter, which replaces fake-st8's, after which
+  fake-st8's launch answers "session expired". Each run restarts fake-st8, runs `FreeSpinsPlay_` and
+  `244_` alone, then the rest, then scenario 23 by `test-e2e-cadence`'s steps with `-json`. The suite's
+  `WalletInternalURL` is wallet-service's port 9001, forwarded to 19001; substrate to 18080.
+
+Its secrets and passwords come from the environment: `TEST_OPERATOR_EMAIL` and `TEST_OPERATOR_PASSWORD`
+(brand_admin at the brand) and `EITHEROR_UNLEASH_TOKEN` (Unleash's admin token; without it the kill
+switch's scenario is skipped and writes nothing). The webhook's signature and timestamp and the Unleash
+token are sent and never recorded.
+
+casino-service's Unleash token is `*:*`, which reads Unleash's `default` environment; the kind stack's
+`default` project does not carry it, so add it once (`POST /api/admin/projects/default/environments`
+with `{"environment":"default"}`) and run with `-unleash-environment default`. Unleash answers on host
+port 4242 and fake-st8 on 8096 (their node ports' host mappings).
+
+```bash
+kubectl --context kind-eitheror-dev -n eitheror port-forward svc/eitheror-bundle-substrate 18080:9000 &
+cd tests
+for run in 1 2; do
+  EITHEROR_RECORD_TO=/tmp/rewards-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -timeout 60m -json ./original/rewards-driver/... \
+      -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -substrate-url http://localhost:18080 \
+      -fake-st8-url http://localhost:8096 -unleash-url http://localhost:4242 -unleash-environment default -brand spinvibe \
+      -operator-client casino-backoffice > /tmp/rewards-$run.json
+done
+go run ./original/merge -run1 /tmp/rewards-1 -run2 /tmp/rewards-2 -results1 /tmp/rewards-1.json -results2 /tmp/rewards-2.json -out port
+```

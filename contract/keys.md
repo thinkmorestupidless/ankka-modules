@@ -57,6 +57,7 @@ same for every brand and are literals in the descriptors, not keys.
 | game-provider-mode | casino | string | no | | | `GAME_PROVIDER_MODE` |
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
+| rewards-code-document-url | casino | string | no | | | `REWARDS_CODE_DOCUMENT_URL` |
 | push-provider-key | engagement | string | yes | `<slug>-push/API_KEY` | | `PUSH_PROVIDER_KEY` |
 | model-provider-key | support | string | yes | `<slug>-model/API_KEY` | | `MODEL_PROVIDER_KEY` |
 | predictions-categories | predictions | string | no | | | `PREDICTIONS_CATEGORIES` |
@@ -88,6 +89,10 @@ minor units and shares. `predictions-taker-fee-bps` is `0` and `predictions-gate
 ankka-predictions 0.2.0 charges one (R8). The reasoning mirror's key is added with the mirror,
 when ankka-reasoning 0.2.0 is cut (R14).
 
+`rewards-code-document-url` (spec 011 R13) is where `rewards` fetches the programme's bonus code
+document for the brand. It is `none` when a brand writes none, and `rewards` then matches brand codes
+only, until spec 013 publishes a document.
+
 ## Not yet built
 
 Services a manifest names whose specs have not built them yet: no `services/<name>/build.sbt`
@@ -97,7 +102,6 @@ any publish while a manifest it publishes names one of these (contracts/release.
 
 | Service | Module | Spec |
 |---|---|---|
-| rewards | casino | 011 |
 | engagement | engagement | 014 |
 | reporting | reporting | 015 |
 | support-agent | support | 017 |

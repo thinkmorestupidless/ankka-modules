@@ -442,8 +442,14 @@ object Resolver:
     // The pools (spec 025 FR-009): the clawback converted first.
     plan.flatMap(p => poolStep(w, newReal, Parts.zero)(Pools.debit(_, applied, convertedFirst = true)).map((parts, pools) => p.copy(parts = parts, newPools = pools)))
 
-  def closePendingCap(@annotation.unused w: Wallet, recs: Vector[Record]): Either[Deny, ClosePlan] =
-    val i = recs.indexWhere(_.status == Status.ConvertedPendingCap)
+  /**
+   * Closes the first CONVERTED_PENDING_CAP record, or the one `grantRef` names when given (spec 011
+   * W2, as the original scoped it by grant, `WR:315-336`): a named grant whose record is not pending
+   * cap, or has no open record, is `NOT_PENDING_CAP`, and nothing closes.
+   */
+  def closePendingCap(@annotation.unused w: Wallet, recs: Vector[Record], grantRef: Option[String] = None): Either[Deny, ClosePlan] =
+    val i = grantRef.fold(recs.indexWhere(_.status == Status.ConvertedPendingCap))(g =>
+      recs.indexWhere(r => r.grantRef == g && r.status == Status.ConvertedPendingCap))
     if i < 0 then Left(Deny(Codes.NotPendingCap, Messages.NoPendingCapToClose))
     else
       val working = recs.updated(i, recs(i).copy(status = Status.Closed))

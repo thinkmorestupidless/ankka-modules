@@ -41,7 +41,8 @@ object CallbackRoute:
 
 /**
  * `/v1/casino/brands/...`: the brand-segmented callbacks (public, signed), the brand's catalogue
- * configuration and operator catalogue (operator), and the free-rounds routes `rewards` calls (service).
+ * configuration and operator catalogue (operator), the free-rounds routes `rewards` calls (service), and
+ * a game's bonus types (`rewards` alone).
  * One endpoint per prefix, since two may not share one; each route's audience is its own ACL (FR-027).
  */
 final class BrandsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/brands"):
@@ -146,6 +147,20 @@ final class BrandsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/brands
             SpinValues.cached(provider, codes, currency, CatalogueReads.at(ctx.now()))(a.spinValues(configuration, codes, currency)) match
               case Right(values) => ok(Json.obj("values" -> values))
               case Left(_)       => refuse(503, "provider_unavailable")
+      }
+    }
+  }
+
+  // A game's bonus types, for `rewards`' game check alone (spec 011 research R6, G1). `{provider}` is a
+  // literal per adapter, as above, so the route keeps to two path parameters.
+  withAcl(Routes.serviceOf("rewards")) {
+    adapters.foreach { a =>
+      val provider = a.name
+      get(s"/{brand}/game-provider/$provider/games/{gameCode}") { (segment: String, gameCode: String) =>
+        ctx.ownBrand(segment)
+        ctx.catalogue.one(gameCode, Some(provider)) match
+          case Right(Some(g)) => ok(Json.obj("gameCode" -> g.code, "bonusTypes" -> g.fields.get.bonusTypes))
+          case _              => refuse(404, "game_not_found")
       }
     }
   }

@@ -159,8 +159,10 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
    * first outcome and persists nothing; with another digest it is `KEY_REUSED`, recorded under a
    * synthetic key so the original key's outcome is untouched; a new key is decided by `decide`.
    */
-  private def keyed(command: MoneyCommand, wireName: String)(decide: String => Effect[Outcome]): Effect[Outcome] =
-    keyedWithDigest(command, wireName, MoneyCommand.digest(wireName, command))(decide)
+  /** `unset`: fields added to a command later, left out of the digest while they hold their default. */
+  private def keyed(command: MoneyCommand, wireName: String, unset: Set[(String, String)] = Set.empty)(
+      decide: String => Effect[Outcome]): Effect[Outcome] =
+    keyedWithDigest(command, wireName, MoneyCommand.digestOf(wireName, command, unset))(decide)
 
   private def keyedWithDigest(command: MoneyCommand, wireName: String, digest: String)(decide: String => Effect[Outcome]): Effect[Outcome] =
     currentState.seen.check(Key.unsafe(command.key), digest) match
@@ -443,15 +445,25 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           restricted, c.at, outcome, s.depositPool, s.convertedPool)).thenReply(_ => outcome)
   }
 
-  def cancelAward(c: CancelAward): Effect[Outcome] = keyed(c, "cancel") { digest =>
+  def cancelAward(c: CancelAward): Effect[Outcome] = keyed(c, "cancel", CancelAward.Unset) { digest =>
     val s = currentState
     // The baseline: the named award's, else the primary active record's, else the latest award's (FR-017).
     val source = c.grantRef.flatMap(s.recordByGrant)
       .orElse(s.openRecords.find(_.status == Status.Active).flatMap(r => s.record(r.id)))
       .orElse(s.records.maxByOption(_.awardedAt))
-    val clawback = Clawback.of(source.flatMap(_.baseline), s.realBalance, s.totalDeposits)
+    // A named secondary that has funded no stake produced no winnings: real balance grew from the
+    // primary's play, so it claws back nothing (spec 011 W3, the original's unused secondary). An
+    // operator's reclaim claws back from the baseline regardless, as the original's revoke did.
+    val primary = s.openRecords.find(_.status == Status.Active)
+    val unusedSecondary = !c.requireBaseline && c.grantRef.exists(g =>
+      s.openRecords.find(r => r.grantRef == g && r.status == Status.Active).exists(r => !primary.exists(_.id == r.id) && r.releasedProgress == 0))
+    val clawback = if unusedSecondary then 0L else Clawback.of(source.flatMap(_.baseline), s.realBalance, s.totalDeposits)
     Resolver.cancelRecord(s.fundingWallet, s.openRecords, clawback, c.grantRef) match
       case Left(deny) => refuseDeny(c, "cancel", digest, deny)
+      // A reclaim with no baseline is uncomputable: refused, not a silent clawback of 0 (spec 011 W4).
+      case Right(_) if c.requireBaseline && source.flatMap(_.baseline).isEmpty =>
+        val grant = c.grantRef.orElse(source.map(_.grantRef)).getOrElse("")
+        refuse(c, "cancel", digest, Refusals.MissingBaseline, Refusals.missingBaseline(grant), Map("grantRef" -> grant))
       case Right(plan) =>
         val restricted = s.withUpdates(plan.recordUpdates).restrictedBalance
         val txId       = transactionId(c.key)
@@ -464,14 +476,15 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           .thenReply(_ => outcome)
   }
 
-  def closePendingCap(c: ClosePendingCap): Effect[Outcome] = keyed(c, "close-pending-cap") { digest =>
+  def closePendingCap(c: ClosePendingCap): Effect[Outcome] = keyed(c, "close-pending-cap", ClosePendingCap.Unset) { digest =>
     val s = currentState
-    Resolver.closePendingCap(s.fundingWallet, s.openRecords) match
+    Resolver.closePendingCap(s.fundingWallet, s.openRecords, c.grantRef) match
       case Left(deny) => refuseDeny(c, "close-pending-cap", digest, deny)
       case Right(plan) =>
         val txId    = transactionId(c.key)
         val outcome = accepted("close-pending-cap", c, Some(txId), s.realBalance, s.restrictedBalance).copy(closedRecordId = plan.closedRecords.headOption)
-        effects.persist(PendingCapClosed(c.key, digest, txId, plan.closedRecords.head, plan.recordUpdates, c.at, outcome)).thenReply(_ => outcome)
+        effects.persist(PendingCapClosed(c.key, digest, txId, plan.closedRecords.head, plan.recordUpdates, c.at, outcome,
+          s.realBalance, s.restrictedBalance, s.depositPool, s.convertedPool)).thenReply(_ => outcome)
   }
 
   def switchPrimary(c: SwitchPrimary): Effect[Outcome] = keyed(c, "switch") { digest =>

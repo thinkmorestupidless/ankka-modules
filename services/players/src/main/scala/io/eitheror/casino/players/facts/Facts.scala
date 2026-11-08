@@ -54,6 +54,11 @@ object Facts:
       case e: EmailChanged         => Some(f.PlayerEmailChanged(playerId, e.address, e.at))
       case e: DuplicateFlagged     => Some(f.PlayerFraudFlagged(playerId, e.caseId, e.signals.toVector.sorted.mkString(","), e.at))
       case e: DuplicateCleared     => Some(f.PlayerFraudCleared(playerId, e.caseId, e.at))
+      // spec 011 FR-034 to FR-036: the duplicate check, its outcome, and the weak signal's block
+      case e: DuplicateCheckStarted => Some(f.PlayerDuplicateCheckStarted(playerId, e.registeredAt, e.at))
+      case e: DuplicateCheckEnded   => Some(f.PlayerDuplicateCheckEnded(playerId, e.outcome, e.at))
+      case e: NoDepositBlocked      => Some(f.PlayerNoDepositBlocked(playerId, e.at))
+      case e: NoDepositBlockCleared => Some(f.PlayerNoDepositBlockCleared(playerId, e.actorId, e.at))
       case _                       => None
     fact.map(Published(_, eventId("player", playerId, sequence)))
 
@@ -136,6 +141,8 @@ object Facts:
       case e: ConsentChanged if e.source == "operator" =>
         op("consent", e.actorId, None, Vector(change(e.channel, (!e.granted).toString, e.granted.toString)), e.at)
       case e: DuplicateCleared if e.actorId.nonEmpty => op("fraud-clear", e.actorId, None, Vector.empty, e.at)
+      case e: NoDepositBlockCleared =>
+        op("no-deposit-block-clear", Some(e.actorId), None, Vector(change("noDepositOfferBlocked", "true", "false")), e.at)
       case e: ResetLinkSent => op("reset-password", Some(e.operatorId), None, Vector(named("password")), e.at)
       case _ => None
     action.map(record(brand, eventId("audit/player", playerId, sequence), _))

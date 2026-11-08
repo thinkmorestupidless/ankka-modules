@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.players.clients.Geo
 
-import Answers.notYet
+import Answers.{notYet, refusal}
 
 /*
  * The seven endpoints of contracts/routes.md, one prefix each with the brand's slug as a literal (R14).
@@ -114,6 +114,11 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
   get("/merge-tags") { () => status.mergeTags }
   postBody("/messages/preview") { (text: String) => status.preview(text) }
   post(s"$P/clear-suspect-flag") { (id: String) => status.clearSuspectFlag(principal, id) }
+  // spec 011 FR-036: the ACL admits the brand's operator; the handler asks for a fraud or compliance role
+  post(s"$P/clear-no-deposit-block") { (id: String) =>
+    if principal.roles.exists(OperatorStatusRoutes.BlockRoles) then status.clearNoDepositBlock(principal, id)
+    else refusal(403, "forbidden", "a fraud or compliance role is needed to clear the block")
+  }
   get("/fraud-cases") { () => FraudRoutes(ctx).cases(query.raw("status")) }
   patch("/fraud-cases/{caseId}/review") { (id: String) => FraudRoutes(ctx).review(principal, id) }
   patchBody("/fraud-cases/{caseId}/dismiss") { (id: String, text: String) => FraudRoutes(ctx).dismiss(principal, id, text) }

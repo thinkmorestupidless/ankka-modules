@@ -58,6 +58,12 @@ Phase 1; if it does, the catalogue reads become `Routes.public` and FR-027 is co
 | POST | `/v1/casino/brands/{brand}/game-provider/{provider}/bonuses/{grantId}/cancel` | `{playerId}` | `{status}` |
 | GET | `/v1/casino/brands/{brand}/game-provider/{provider}/spin-values` | `gameCodes` (repeated or comma-separated), `currency` | `{values:[…]}` sorted, cached for the day; `{status:"not_configured"}`; 503 `provider_unavailable` |
 
+## Rewards (`Routes.serviceOf("rewards")`, spec 011 research R6 G1)
+
+| Method | Path | Body | Answer |
+|---|---|---|---|
+| GET | `/v1/casino/brands/{brand}/game-provider/{provider}/games/{gameCode}` | | `{gameCode, bonusTypes}` from the catalogue (a game the provider lists, enabled and in its feed); 404 `game_not_found`; another caller 403. `{provider}` is a literal per adapter, as the service routes', since a route takes at most two path parameters |
+
 ## Not served (dropped from the original)
 
 `/st8/test/*`, `/internal/register-token/*`, `/internal/register-player/*`, `/st8/launch-stub`,

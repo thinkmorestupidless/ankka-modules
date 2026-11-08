@@ -147,6 +147,8 @@ final class OperatorProfileRoutes(ctx: Ctx):
       o.set[JsonNode]("duplicateSignals", Json.arr(f.signals.toVector.sorted*))
       o.put("duplicateDetectedAt", f.flaggedAt.toString)
     }
+    // spec 011 FR-036: shown as the flag is, only while it holds (the original's `noDepositOfferBlocked`)
+    if s.noDepositBlocked then o.put("noDepositOfferBlocked", true)
     o
 
 object OperatorProfileRoutes:

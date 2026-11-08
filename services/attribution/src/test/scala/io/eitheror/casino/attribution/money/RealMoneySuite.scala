@@ -1,6 +1,7 @@
 package io.eitheror.casino.attribution.money
 
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
+import io.eitheror.casino.attribution.MoneyEvent
 import io.eitheror.casino.attribution.money.RealMoney.Leg
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
@@ -28,7 +29,8 @@ class RealMoneySuite extends munit.FunSuite with LogCapturing:
     HoldReleased("p", zar, "t11", "w-1", m(1000), s(5700), m(0), at),
     WalletWithdrawalReversed("p", zar, "t12", "w-1", m(1000), s(6700), m(0), at),
     ProviderCredited("p", zar, "t13", "prov-1", m(700), "real", None, s(7400), m(0), at),
-    ProviderCredited("p", zar, "t14", "prov-2", m(900), "restricted", Some("aw-3"), s(7400), m(900), at)
+    ProviderCredited("p", zar, "t14", "prov-2", m(900), "restricted", Some("aw-3"), s(7400), m(900), at),
+    RestrictedFundsClosed("p", zar, "t22", "aw-1", "cap_expired", s(7400), m(900), at)
   )
 
   /** Spec 025: the parts a fact carries, deposit and converted. */
@@ -109,4 +111,56 @@ class RealMoneySuite extends munit.FunSuite with LogCapturing:
     assertEquals(RealMoney.dedupeId(all(1), None), "bet_placed/t2/")
     assertEquals(RealMoney.dedupeId(all(5), None), "restricted_funds_awarded/t6/aw-1")
     assertEquals(RealMoney.dedupeId(all(13), Some("")), "provider_credited/t14/aw-3")
+  }
+
+  /**
+   * Spec 011 SC-004: what the wallet publishes over one reward's life, keyed as `rewards` keys its calls (a funds
+   * reward's award key is the reward id; a free-rounds reward's winnings award is `<reward>/winnings`, a late round's
+   * `<reward>/late/<round>`, and its provider credit's reference the reward id). The bonus cost is a funds reward's
+   * award, once, under the reward; a free-rounds reward's winnings awards cost nothing here, since its cost is
+   * `free_spins_settled`'s; a provider credit on restricted money is cost here, and the record drops it when the
+   * reference is a free-rounds reward's. The conversion, the clawback, the close and a redelivered award add nothing.
+   */
+  test("spec 011: a reward's life costs its award once, under the reward id; free-rounds winnings awards cost nothing") {
+    val award = RestrictedFundsAwarded("p", zar, "t30", "rw-1", m(3000), m(90000), s(5000), m(3000), at)
+    val life: Vector[MoneyTransactionsFact] = Vector(
+      award,
+      RestrictedFundsConverted("p", zar, "t31", "rw-1", m(900), s(5900), m(0), at),
+      RestrictedFundsClosed("p", zar, "t32", "rw-1", "cap_expired", s(5900), m(0), at),
+      RestrictedFundsAwarded("p", zar, "t33", "rw-2", m(1000), m(10000), s(5900), m(1000), at),
+      RestrictedFundsForfeited("p", zar, "t34", "rw-2", m(1000), "adjustment", m(1200), s(4700), m(0), at),
+      ProviderCredited("p", zar, "t35", "rw-3", m(250), "restricted", Some("rw-1"), s(4700), m(250), at),
+      RestrictedFundsAwarded("p", zar, "t36", "rw-4/winnings", m(600), m(6000), s(4700), m(850), at),
+      RestrictedFundsAwarded("p", zar, "t37", "rw-4/late/rd-9", m(50), m(500), s(4700), m(900), at)
+    )
+    assertEquals(life.flatMap(RealMoney.bonusCost), Vector(3000L -> "rw-1", 1000L -> "rw-2", 250L -> "rw-3"))
+    // a redelivered award is the same message, which the attribution record keeps once by its dedupe id
+    assertEquals(RealMoney.dedupeId(award, None), RealMoney.dedupeId(award.copy(), None))
+    assertEquals(RealMoney.dedupeId(life(2), None), "restricted_funds_closed/t32/rw-1")
+  }
+
+  test("spec 011: a free-rounds grant's winnings award is told by its key; a funds reward's is not") {
+    assert(RealMoney.freeRoundsWinnings("rw-4/winnings"))
+    assert(RealMoney.freeRoundsWinnings("rw-4/late/rd-9"))
+    assert(!RealMoney.freeRoundsWinnings("rw-1"))
+    assert(!RealMoney.freeRoundsWinnings("winnings"))
+  }
+
+  private def settled(reward: String, win: Long, when: Instant) =
+    FreeSpinsSettled("p", reward, "Spins", "o-1", "free_spins", m(win), zar, when)
+
+  test("spec 011: free_spins_settled is a free-rounds grant's bonus cost, each settlement under its own reference") {
+    val first = RealMoney.freeRoundsCost(settled("rw-4", 600, at), None).get
+    assertEquals((first.kind, first.currency, first.amount, first.at), (MoneyEvent.BonusCost, "ZAR", 600L, at))
+    assertEquals(first.reference, s"rw-4/settled/${at.toEpochMilli}")
+    assertEquals(first.dedupeId, s"free_spins_settled/rw-4/${at.toEpochMilli}/600")
+    // a late round's settlement is a second cost, not the first again; a redelivery is the same
+    val late = RealMoney.freeRoundsCost(settled("rw-4", 50, at.plusSeconds(60)), None).get
+    assertNotEquals(late.reference, first.reference)
+    assertNotEquals(late.dedupeId, first.dedupeId)
+    assertEquals(RealMoney.freeRoundsCost(settled("rw-4", 600, at), None), Some(first))
+    // the ce-id, when the runtime hands it over, is the dedupe id
+    assertEquals(RealMoney.freeRoundsCost(settled("rw-4", 600, at), Some("rw-4/7")).map(_.dedupeId), Some("rw-4/7"))
+    // rounds that won nothing cost nothing
+    assertEquals(RealMoney.freeRoundsCost(settled("rw-5", 0, at), None), None)
   }

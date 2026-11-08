@@ -38,6 +38,7 @@ jobs:
       responsible-gambling: ${{ steps.filter.outputs.responsible-gambling }}
       kyc: ${{ steps.filter.outputs.kyc }}
       payouts: ${{ steps.filter.outputs.payouts }}
+      rewards: ${{ steps.filter.outputs.rewards }}
       markets: ${{ steps.filter.outputs.markets }}
       exchange: ${{ steps.filter.outputs.exchange }}
     steps:
@@ -123,6 +124,11 @@ jobs:
               - services/payouts/**
               - features/payouts/**
               - tests/port/payouts/**
+            rewards:
+              - *build
+              - services/rewards/**
+              - features/rewards/**
+              - tests/port/rewards/**
             markets:
               - *build
               - services/markets/**
@@ -419,6 +425,29 @@ jobs:
       - name: payouts' suites
         working-directory: services/payouts
         run: sbt test
+
+  # rewards (spec 011): its own sbt build against the contract published from this commit. `sbt test` runs
+  # the unit suites; the integration, parity and feature suites start Postgres in Docker and run with -Dit=true.
+  rewards:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.rewards == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: rewards' suites
+        working-directory: services/rewards
+        run: sbt test
+      - name: rewards' integration, parity and feature suites
+        working-directory: services/rewards
+        run: sbt -Dit=true "testOnly io.eitheror.casino.rewards.it.* io.eitheror.casino.rewards.port.* io.eitheror.casino.rewards.features.*"
 
   # markets (spec 023): its own sbt build against the contract published from this commit, on
   # ankka-predictions from Maven Central; its integration suites run on the runner's Docker.

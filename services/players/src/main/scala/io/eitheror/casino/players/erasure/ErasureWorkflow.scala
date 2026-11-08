@@ -207,11 +207,16 @@ object ErasureWorkflow
   def stateOf(components: ComponentClient, playerId: String): ErasureFlow =
     components.forWorkflow(id(playerId)).call(status).invoke()
 
-  /** The player's lookup tokens, read before the profile is erased. */
+  /**
+   * The player's lookup tokens, read before the profile is erased: the registration's, and the email
+   * variant of every address the player holds (the registered one may since have been replaced).
+   */
   def tokensOf(neighbours: Neighbours, p: PlayerState): Vector[String] =
     neighbours.secret(Secrets.LookupKey).toOption.toVector.flatMap { key =>
-      LookupTokens.identity(key, p.profile.get("firstName").getOrElse(""), p.profile.get("lastName").getOrElse(""),
-        p.profile.get("dateOfBirth").getOrElse("")).toVector ++ p.registration.deviceFingerprint.flatMap(f => LookupTokens.device(key, f.reveal))
+      val registered = LookupTokens.of(key, p.profile.get("firstName").getOrElse(""), p.profile.get("lastName").getOrElse(""),
+        p.profile.get("dateOfBirth").getOrElse(""), p.registration.deviceFingerprint.map(_.reveal), "",
+        p.registration.networkAddress.map(_.reveal))
+      (registered.map(LookupTokens.split(_)._2) ++ p.emails.flatMap(e => LookupTokens.emailVariant(key, e.address.reveal))).distinct
     }
 
   /**

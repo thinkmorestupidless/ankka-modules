@@ -476,7 +476,12 @@ attribution record.
   restricted funds, or by money converted from them, earns the affiliate nothing, as the original's
   rule had it (its specs 250 and 253; Clarifications 2026-10-28); bonus costs from `restricted_funds_awarded`, and from a `provider_credited` landing on
   restricted funds, on `money.transactions`, recognised at the award and never negative (spec 011
-  FR-028); withdrawals from `casino.withdrawals`
+  FR-028), except a free-rounds grant's: its cost is each `free_spins_settled` on `casino.rewards`
+  (the amount paid, at the finalisation and again for each late round), whatever the winnings'
+  destination, and its winnings award (`<reward>/winnings`, `<reward>/late/<round>`) and its
+  provider credit (naming the reward, told from `free_spins_granted`) are not counted, so nothing
+  is counted twice (spec 011 Clarifications and research, "Free-rounds cost from
+  free_spins_settled"); withdrawals from `casino.withdrawals`
   (`withdrawal_requested` → `withdrawal-requested`, `withdrawal_completed` →
   `withdrawal-completed`, `withdrawal_failed` → `withdrawal-failed`, `withdrawal_reversed` →
   `withdrawal-reversed`; `withdrawal_approved` and `withdrawal_cancelled` produce no fact — spec
@@ -584,8 +589,9 @@ attribution record.
   reads each fact's deposit part. Before spec 025 it counted real balance's movement, converted
   money included; that divergence is closed, and the parity run's two converted-money recordings
   now match the original (a day the original wrote at 0 GGR, its play all converted, is a day the
-  port emits no `ggr-daily` for). Bonus cost is recognised at the award from the wallet's fact; the original's call at
-  the bonus grant never reached its affiliate service.
+  port emits no `ggr-daily` for). Bonus cost is recognised at the award from the wallet's fact, and a free-rounds grant's
+  at each `free_spins_settled` (spec 011, "Free-rounds cost from free_spins_settled"); the
+  original's call at the bonus grant never reached its affiliate service.
 - Commission, plans, overrides, the network tree, payouts, the portal and fraud flags leave the
   brand for the programme (spec 013).
 

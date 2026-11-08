@@ -131,41 +131,57 @@ object CasinoWithdrawals extends Topic[CasinoWithdrawalsFact]("casino.withdrawal
 
 // ── casino.rewards (rewards) ──────────────────────────────────────────────
 
-/** Every grant family carries the offer's id, name and type (spec 011 FR-027); `bonus_*` kept (FR-014). */
+/**
+ * Every grant family carries the offer's id, name and type (spec 011 FR-027); `bonus_*` kept (FR-014).
+ * `source`, `code` and `tag` say how the reward was given; `outcome` on a code entry is `matched`,
+ * `invalid` or `ineligible`.
+ */
 sealed trait CasinoRewardsFact extends Fact:
   def playerId: String
   def key: String = playerId
 
 @named("bonus_granted")
 final case class BonusGranted(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
-    amountCents: MinorUnits, currency: Currency, bonusCode: Option[String], occurredAt: Instant) extends CasinoRewardsFact
+    amountCents: MinorUnits, currency: Currency, bonusCode: Option[String],
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None)
+    extends CasinoRewardsFact
 
 @named("bonus_cancelled")
 final case class BonusCancelled(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
-    amountCents: MinorUnits, currency: Currency, occurredAt: Instant) extends CasinoRewardsFact
+    amountCents: MinorUnits, currency: Currency,
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None,
+    reason: Option[String] = None) extends CasinoRewardsFact
 
 @named("bonus_forfeited")
 final case class BonusForfeited(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
-    reason: String, occurredAt: Instant) extends CasinoRewardsFact
+    reason: String, occurredAt: Instant, amountCents: Option[MinorUnits] = None, currency: Option[Currency] = None,
+    source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None) extends CasinoRewardsFact
 
 @named("bonus_completed")
 final case class BonusCompleted(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
-    occurredAt: Instant) extends CasinoRewardsFact
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None)
+    extends CasinoRewardsFact
 
 @named("grant_expired")
 final case class GrantExpired(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
-    occurredAt: Instant) extends CasinoRewardsFact
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None)
+    extends CasinoRewardsFact
 
 @named("free_spins_granted")
 final case class FreeSpinsGranted(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
-    rounds: Int, gameIds: Vector[String], occurredAt: Instant) extends CasinoRewardsFact
+    rounds: Int, gameIds: Vector[String],
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None)
+    extends CasinoRewardsFact
 
 @named("free_spins_settled")
 final case class FreeSpinsSettled(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
-    winCents: MinorUnits, currency: Currency, occurredAt: Instant) extends CasinoRewardsFact
+    winCents: MinorUnits, currency: Currency,
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None)
+    extends CasinoRewardsFact
 
 @named("bonus_code_entered")
-final case class BonusCodeEntered(playerId: String, code: String, occurredAt: Instant) extends CasinoRewardsFact
+final case class BonusCodeEntered(playerId: String, code: String, occurredAt: Instant, outcome: Option[String] = None)
+    extends CasinoRewardsFact
 
 object CasinoRewardsFact:
   given JsonValueCodec[CasinoRewardsFact] = FactCodecs.make

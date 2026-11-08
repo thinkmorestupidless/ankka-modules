@@ -25,10 +25,10 @@ Prefix `/v1/casino/brands/<brand>`; `W` = `/wallets/{player}/{currency}`.
 | `POST W/provider-credits` | game-provider | `provider-credit` | `key`, `amount`, `providerRef`, `reason`, `actor` | balances, `txnId`, `landedOn` |
 | `GET W/balance` | any | `balance` | — | `realBalance`, `restrictedBalance`, `currency`, `primary` |
 | `GET W/restricted-funds` | rewards, support-agent | `restricted-funds-status` | — | `records[]` in order, `headline` |
-| `POST W/awards` | rewards | `award` | `key` (= grant id), `bonusRef`, `amount`, `wageringMultiplier`, `maxWin`, `priority`, `expiresAt`, the rule snapshot | balances, `txnId`, `recordId`, `wageringRequirement` |
+| `POST W/awards` | rewards | `award` | `key` (= grant id), `bonusRef`, `amount`, `wageringMultiplier`, `maxWin`, `priority`, `expiresAt`, the rule snapshot, `maxConcurrentGrants?` (W1) | balances, `txnId`, `recordId`, `wageringRequirement` |
 | `POST W/awards/forfeit` | rewards | `forfeit` | `key`, `grantRef?` | balances, `forfeited` |
-| `POST W/awards/cancel` | rewards | `cancel` | `key`, `grantRef?` | balances, `clawbackAmount`, `forfeited` |
-| `POST W/awards/close-pending-cap` | rewards | `close-pending-cap` | `key` | `closedRecordId` |
+| `POST W/awards/cancel` | rewards | `cancel` | `key`, `grantRef?`, `requireBaseline` (false; W4) | balances, `clawbackAmount`, `forfeited` |
+| `POST W/awards/close-pending-cap` | rewards | `close-pending-cap` | `key`, `grantRef?` (W2) | `closedRecordId` |
 | `POST W/awards/switch` | rewards | `switch` | `key`, `grantRef` (in the body: two path parameters at most) | `priority`, `alreadyPrimary` |
 | `PUT /wallet-config/bet-switches` | rewards | `set-bet-switches` | `contributionRateByGameType`, `bonusWageringCounts`, `partialSplitsAllowed`, `maxConcurrentAwards?` | the configuration |
 | `POST W/holds` | payouts | `hold` | `key` (= request id), `amount`, `playerConfirmed` | balances, `txnId`, `confirmationRequired`, `forfeited`, `clawbackAmount`, `voidedAmount`, `paidAmount`, `cancelGrants` |
@@ -41,6 +41,27 @@ Prefix `/v1/casino/brands/<brand>`; `W` = `/wallets/{player}/{currency}`.
 | `GET W/sums?type=&from=&to=` | responsible-gambling, reporting | `SumsView` | — | `type`, `total`, `currency`, `count` (the original's `transaction-sum`) |
 | `GET W/lifetime-totals` | reporting, support-agent | `LifetimeTotalsView` | — | `deposited`, `wagered`, `won` |
 | `GET W/transactions?type=&walletType=&from=&to=&page=&pageSize=` | support-agent, reporting | `TransactionsView` | — | `{transactions, page, pageSize, total}` (the original's) |
+
+### The award routes as spec 011 amends them (research R6)
+
+- **W1.** `maxConcurrentGrants`, when present, is the award's limit on active records (the offer's,
+  as the original's wallet took it, `WalletRoutes.scala:69-72, 3859-3861`); absent, the brand's
+  `maxConcurrentAwards`; neither, no limit. Reaching it is `BONUS_ALREADY_ACTIVE`. Pending-cap
+  records do not count.
+- **W2.** `close-pending-cap` with `grantRef` closes that award's record; one that is not pending
+  cap, or has no open record, is `NOT_PENDING_CAP` and nothing closes. Without it the first pending
+  cap closes, as before.
+- **W3.** A `cancel` naming an active record that is not primary and has no release progress claws
+  back 0 and still closes it (the original's unused secondary, `BonusRoutes.scala:2919-2925`).
+- **W4.** `requireBaseline: true` is an operator's reclaim: refused `MISSING_BASELINE` (409) when the
+  named record (else the primary, else the latest) has no baseline, after the grant is checked open
+  (`GRANT_NOT_OPEN` first). A reclaim claws back from the baseline even for an unused secondary, as
+  the original's revoke did (`BonusRoutes.scala:1012-1041`). False, a record with no baseline claws
+  back 0 (FR-017).
+- **W5.** Every pending cap the wallet closes is a `restricted_funds_closed` fact ([facts.md](facts.md)).
+
+`grantRef` on close and `requireBaseline` on cancel are left out of the command's digest while unset,
+so a retry sent before the amendment is still a repeat.
 
 ## Granted routes (the brand's 040 grants to `payments`/`merchant`; `Layout.BrandGrantsMade`)
 
