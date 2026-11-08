@@ -26,7 +26,7 @@ class CrmSuite extends munit.FunSuite:
     assertEquals((CustomerIo.trackHost("eu"), CustomerIo.appHost("eu")), ("https://track-eu.customer.io", "https://api-eu.customer.io"))
   }
 
-  test("a 2xx is accepted, a 429 or a 5xx retried, any other answer refused with its body") {
+  test("a 2xx is accepted, a 429 or a 5xx retried, any other answer refused by its status") {
     assertEquals(CustomerIo.answer(200), CrmAnswer.Accepted(200))
     assert(CustomerIo.answer(429).isInstanceOf[CrmAnswer.Retryable])
     assert(CustomerIo.answer(503).isInstanceOf[CrmAnswer.Retryable])

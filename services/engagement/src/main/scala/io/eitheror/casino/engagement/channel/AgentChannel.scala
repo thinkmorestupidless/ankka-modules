@@ -68,8 +68,8 @@ final case class AgentAnswer(open: Boolean, connections: Int, seq: Long)
 final case class QueuedFrame(seq: Long, online: PlayerOnline)
 
 /**
- * A poll's answer: the connection's frames after the cursor, at most 16, the oldest dropped beyond that (`dropped`
- * of them). `seq` is the next cursor. `open` false ends the stream: the connection was closed or expired.
+ * A poll's answer: the connection's frames after the cursor, at most 16; `dropped` counts the frames beyond
+ * that, and any drops the connection (FR-024). `seq` is the next cursor. `open` false ends the stream: closed or expired.
  */
 final case class AgentPolled(open: Boolean, frames: Vector[QueuedFrame], dropped: Int, seq: Long)
 
@@ -147,7 +147,7 @@ object AgentChannel
   /** The frames kept for the brand. */
   val RingSize = 32
 
-  /** A connection's queue: beyond it the oldest frames are dropped, as the original's 16-frame queue. */
+  /** A connection's queue: a connection with more waiting is dropped, as with the original's 16-frame queue. */
   val Queue = 16
 
   /** A lease not refreshed for longer than this is a dead instance's. */
