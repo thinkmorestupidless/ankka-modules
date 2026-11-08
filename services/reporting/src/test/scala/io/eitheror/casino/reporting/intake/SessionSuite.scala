@@ -51,6 +51,6 @@ class SessionSuite extends munit.FunSuite:
     val r   = Recorded()
     val kit = ConsumerTestKit.of(SessionsFacts(Settings("goldvibe")), client = r.client)
     assertEquals(kit.onMessage(Some(f.GameSessionStarted("p-1", "gs-1", "g-1", "s-1", at))).effect, ConsumerEffect.Done)
-    assertEquals(r.calls.map(c => (c.component, c.entity, c.method)), Vector(("session", "g1/gs-1", "record")))
+    assertEquals(r.entityCalls.map(c => (c.component, c.entity, c.method)), Vector(("session", "g1/gs-1", "record")))
     assertEquals(kit.onMessage(None).effect, ConsumerEffect.Ignore)
   }

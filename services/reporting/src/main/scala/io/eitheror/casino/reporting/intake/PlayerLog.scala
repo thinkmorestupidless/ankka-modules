@@ -164,6 +164,7 @@ final class PlayersFactsConsumer(client: ComponentClient, settings: Settings) ex
     case Some(p) =>
       client.forEventSourcedEntity(EntityId(PlayerLog.id(settings.generation, p.playerId))).call(PlayerLog.record)
         .invoke(PlayerFact(FactId.of(f.CasinoPlayers, p), p)): Unit
+      Coverage.observed(client, settings, f.CasinoPlayers.name, p.occurredAt)
       effects.done()
 
 final class PlayersFacts(settings: Settings) extends Consumer.Companion[PlayersFactsConsumer, Option[f.CasinoPlayersFact], Nothing](

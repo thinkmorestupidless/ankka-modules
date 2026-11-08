@@ -89,6 +89,7 @@ final class SessionsFactsConsumer(client: ComponentClient, settings: Settings) e
     case Some(s) =>
       client.forKeyValueEntity(EntityId(Session.id(settings.generation, Sessions.sessionId(s)))).call(Session.record)
         .invoke(SessionFact(s)): Unit
+      Coverage.observed(client, settings, f.CasinoSessions.name, FactId.occurredAt(s))
       effects.done()
 
 final class SessionsFacts(settings: Settings) extends Consumer.Companion[SessionsFactsConsumer, Option[f.CasinoSessionsFact], Nothing](

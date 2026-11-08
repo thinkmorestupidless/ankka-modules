@@ -135,6 +135,7 @@ final class WithdrawalsFactsConsumer(client: ComponentClient, settings: Settings
     case Some(w) =>
       client.forEventSourcedEntity(EntityId(Withdrawal.id(settings.generation, payoutId(w)))).call(Withdrawal.record)
         .invoke(WithdrawalFact(FactId.of(f.CasinoWithdrawals, w), w)): Unit
+      Coverage.observed(client, settings, f.CasinoWithdrawals.name, FactId.occurredAt(w))
       effects.done()
 
 final class WithdrawalsFacts(settings: Settings)

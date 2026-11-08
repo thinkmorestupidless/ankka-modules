@@ -133,6 +133,7 @@ final class PaymentsFactsConsumer(client: ComponentClient, settings: Settings) e
     case Some(p) =>
       client.forEventSourcedEntity(EntityId(Payment.id(settings.generation, p.paymentId))).call(Payment.record)
         .invoke(PaymentFact(FactId.of(f.PaymentsPayments, p), p)): Unit
+      Coverage.observed(client, settings, f.PaymentsPayments.name, p.occurredAt)
       effects.done()
 
 final class PaymentsFacts(settings: Settings) extends Consumer.Companion[PaymentsFactsConsumer, Option[f.PaymentsPaymentsFact], Nothing](

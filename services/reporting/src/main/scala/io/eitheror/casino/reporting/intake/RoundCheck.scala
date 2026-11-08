@@ -118,6 +118,7 @@ final class RoundsFactsConsumer(client: ComponentClient, settings: Settings) ext
       client.forKeyValueEntity(EntityId(RoundCheck.id(settings.generation, r.playerId, r.currency.code, r.roundId)))
         .call(RoundCheck.provider)
         .invoke(ProviderSettled(r.playerId, r.currency.code, r.roundId, figures, Days.dayOf(r.occurredAt, settings.reportingZone))): Unit
+      Coverage.observed(client, settings, f.CasinoRounds.name, r.occurredAt)
       effects.done()
 
 final class RoundsFacts(settings: Settings) extends Consumer.Companion[RoundsFactsConsumer, Option[f.CasinoRoundsFact], Nothing](

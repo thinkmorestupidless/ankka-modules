@@ -24,6 +24,7 @@ object ReportingService:
     SessionsFacts(settings).descriptor,
     RoundCheck.descriptor,
     RoundLegs(settings).descriptor,
+    Coverage.descriptor,
     day.BrandDay.descriptor,
     day.OpenDays.descriptor,
     day.CloseDays.descriptor

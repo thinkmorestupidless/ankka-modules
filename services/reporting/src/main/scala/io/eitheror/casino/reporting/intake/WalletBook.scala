@@ -208,6 +208,7 @@ final class MoneyFactsConsumer(client: ComponentClient, settings: Settings)
     case Some(m: f.MoneyTransactionsFact) =>
       client.forEventSourcedEntity(EntityId(WalletBook.id(settings.generation, m.playerId, m.currency.code)))
         .call(WalletBook.move).invoke(MoveFact(FactId.of(f.MoneyTransactions, m), settings.reportingZone.getId, m)): Unit
+      Coverage.observed(client, settings, f.MoneyTransactions.name, m.occurredAt)
       effects.done()
     case Some(_) => effects.ignore()
 

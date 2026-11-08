@@ -49,6 +49,6 @@ class WithdrawalSuite extends munit.FunSuite:
     val r   = Recorded()
     val kit = ConsumerTestKit.of(WithdrawalsFacts(Settings("goldvibe")), client = r.client)
     assertEquals(kit.onMessage(Some(completed)).effect, ConsumerEffect.Done)
-    assertEquals(r.calls.map(c => (c.component, c.entity, c.method)), Vector(("withdrawal", "g1/w-1", "record")))
+    assertEquals(r.entityCalls.map(c => (c.component, c.entity, c.method)), Vector(("withdrawal", "g1/w-1", "record")))
     assertEquals(kit.onMessage(None).effect, ConsumerEffect.Ignore)
   }

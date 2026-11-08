@@ -125,6 +125,7 @@ final class RewardsFactsConsumer(client: ComponentClient, settings: Settings) ex
       Grants.bonusId(r).fold(effects.ignore()) { bonus =>
         client.forEventSourcedEntity(EntityId(Grant.id(settings.generation, bonus))).call(Grant.record)
           .invoke(GrantFact(FactId.of(f.CasinoRewards, r), r)): Unit
+        Coverage.observed(client, settings, f.CasinoRewards.name, FactId.occurredAt(r))
         effects.done()
       }
 

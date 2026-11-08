@@ -101,6 +101,6 @@ class PlayerLogSuite extends munit.FunSuite:
     val r   = Recorded()
     val kit = ConsumerTestKit.of(PlayersFacts(Settings("goldvibe")), client = r.client)
     assertEquals(kit.onMessage(Some(f.PlayerLoggedIn("p-1", "s-1", at))).effect, ConsumerEffect.Done)
-    assertEquals(r.calls.map(c => (c.component, c.entity, c.method)), Vector(("player-log", "g1/p-1", "record")))
+    assertEquals(r.entityCalls.map(c => (c.component, c.entity, c.method)), Vector(("player-log", "g1/p-1", "record")))
     assertEquals(kit.onMessage(None).effect, ConsumerEffect.Ignore)
   }

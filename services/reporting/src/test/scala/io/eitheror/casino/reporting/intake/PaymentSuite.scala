@@ -70,7 +70,7 @@ class PaymentSuite extends munit.FunSuite:
     val r   = Recorded()
     val kit = ConsumerTestKit.of(PaymentsFacts(Settings("goldvibe", generation = 2)), client = r.client)
     assertEquals(kit.onMessage(Some(captured)).effect, ConsumerEffect.Done)
-    assertEquals(r.calls.map(c => (c.component, c.entity, c.method)), Vector(("payment", "g2/pay-1", "record")))
+    assertEquals(r.entityCalls.map(c => (c.component, c.entity, c.method)), Vector(("payment", "g2/pay-1", "record")))
     assertEquals(r.calls.head.as[PaymentFact](using Payment.given_Serializer_PaymentFact).fact, captured)
     assertEquals(kit.onMessage(None).effect, ConsumerEffect.Ignore)
   }

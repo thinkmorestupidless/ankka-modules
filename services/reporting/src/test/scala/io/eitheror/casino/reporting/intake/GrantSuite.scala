@@ -56,7 +56,7 @@ class GrantSuite extends munit.FunSuite:
     assertEquals(kit.onMessage(Some(granted)).effect, ConsumerEffect.Done)
     assertEquals(kit.onMessage(Some(f.BonusCodeEntered("p-1", "WELCOME", at))).effect, ConsumerEffect.Ignore)
     assertEquals(kit.onMessage(None).effect, ConsumerEffect.Ignore)
-    assertEquals(r.calls.map(c => (c.component, c.entity, c.method)), Vector(("grant", "g1/b-1", "record")))
+    assertEquals(r.entityCalls.map(c => (c.component, c.entity, c.method)), Vector(("grant", "g1/b-1", "record")))
   }
 
   test("rewards-facts is registered only when the brand runs casino") {
