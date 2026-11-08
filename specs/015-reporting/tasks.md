@@ -146,7 +146,7 @@ access. Nothing story-specific starts before this phase ends.
   contracts/routes.md through `withAcl`), `r/api/Wire.scala` (the common parameters, `unknown_currency`,
   `incomplete_period`), `GET /status`, `GET`/`PUT /settings`; `r-test/it/AccessSuite.scala` (each route's
   roles; another brand refused; the flag's 404)
-- [ ] T032 `r-test/features/ReportingSteps.scala` and `GherkinSuite` wiring over `features/reporting/`,
+- [X] T032 `r-test/features/ReportingSteps.scala` and `GherkinSuite` wiring over `features/reporting/`,
   with every scenario pending until its story binds it
 
 **Checkpoint**: the producers publish the new fields, facts land once in the intake, days fold and close.
