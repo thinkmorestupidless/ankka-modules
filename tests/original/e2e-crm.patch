@@ -53,3 +53,17 @@ diff --git a/tl/runtime/capabilities/customerio_dispatch/cio_client.go b/tl/runt
  	if region == "eu" {
  		return "https://api-eu.customer.io/v1/send/email"
  	}
+diff --git a/substrate/push-gateway/src/main/scala/io/eitheror/substrate/push/MultiRealmJwtValidator.scala b/substrate/push-gateway/src/main/scala/io/eitheror/substrate/push/MultiRealmJwtValidator.scala
+--- a/substrate/push-gateway/src/main/scala/io/eitheror/substrate/push/MultiRealmJwtValidator.scala
++++ b/substrate/push-gateway/src/main/scala/io/eitheror/substrate/push/MultiRealmJwtValidator.scala
+@@ -96,5 +96,9 @@
+         "trusted by this deployment — there is no safe single-realm default here."
+     )
+     val keycloakUrl = sys.env.getOrElse("KEYCLOAK_URL", "http://keycloak:8180")
+-    val configs     = realms.map(realm => JwtValidatorConfig(keycloakUrl = keycloakUrl, realm = realm))
++    // Recording only (ankka-modules tests/original/e2e-crm.patch): the issuer Keycloak signs with, when
++    // it is not KEYCLOAK_URL (substrate-iam's KEYCLOAK_ISSUER_URL, for every realm).
++    val issuerBase  = sys.env.get("KEYCLOAK_ISSUER_BASE_URL").filter(_.nonEmpty)
++    val configs     = realms.map(realm =>
++      JwtValidatorConfig(keycloakUrl = keycloakUrl, realm = realm, issuerUrlOverride = issuerBase.map(b => s"$b/realms/$realm")))
+     apply(configs, cache)

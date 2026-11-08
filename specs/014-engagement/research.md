@@ -463,6 +463,20 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   after the run, by the person each call names. They go in the recording's `outbound`, which spec
   001's `contracts/recording.md` already defines and the recorder now carries (`recorder.Outbound`,
   stub `crm-track` or `crm-app`: the method, the path and the body, never a header).
+- **push-gateway refuses every token on kind** (2026-11-08, T051). It checks a token's issuer against
+  `KEYCLOAK_URL/realms/<realm>`, with no override (`MultiRealmJwtValidator.fromEnv`). Keycloak signs
+  `https://auth.eitheror.local/…`, so every stream on the original's kind stack answers 401.
+  Asked and answered: patch the recording checkout instead of leaving the stream unrecorded.
+  `e2e-crm.patch` adds `KEYCLOAK_ISSUER_BASE_URL` to push-gateway, as substrate-iam's
+  `KEYCLOAK_ISSUER_URL` does for the other services.
+  - Operator tokens are still refused 401, because push-gateway's only realm is `casino-spinvibe` (the
+    chart's default). So the original's presence route serves no operator on this install, and
+    `subject_unresolved` is reached only by a player-realm token without a player id.
+  - R2's "scenarios 40 and 30" are not Go tests at the recorded commit. Registration and withdrawal
+    CRM traffic is recorded through the scenarios that register and withdraw (16, 21, 26–28).
+- **The original's inbox names no class** (T051): a CRM send's item carries `originName: "Customer.io
+  campaign"` and no marketing or service class. The class is this port's (FR-018); parity compares
+  the item's presence and origin.
 
 ## Design finished
 

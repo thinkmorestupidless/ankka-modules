@@ -216,7 +216,7 @@ func (o *stub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reply(201, `{"notificationId":"msg-1","state":"unread","createdAt":"2026-11-08T00:00:00Z","subject":"Your account","body":"x"}`)
 	case strings.HasSuffix(p, "/messages") && r.Method == http.MethodGet:
 		id := strings.Split(p, "/")[5]
-		reply(200, `{"items":[%s],"total":%d,"unreadCount":%d}`, map[bool]string{true: `{"category":"marketing"}`}[o.inbox[id] > 0], o.inbox[id], o.inbox[id])
+		reply(200, `{"items":[%s],"total":%d,"unreadCount":%d}`, map[bool]string{true: `{"originName":"Customer.io campaign","state":"sent"}`}[o.inbox[id] > 0], o.inbox[id], o.inbox[id])
 	case strings.HasSuffix(p, "/read"):
 		o.signal("inbox.changed")
 		reply(200, `{"ok":true}`)

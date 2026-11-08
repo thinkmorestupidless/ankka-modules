@@ -147,7 +147,8 @@ func campaigns() []Def {
 				inbox := s.Eventually(func() Response { return s.Inbox("the player reads their inbox", "") },
 					func(r Response) bool { return Total(r) == "1" })
 				s.Want(inbox, http.StatusOK)
-				if Total(inbox) != "1" || !strings.Contains(string(inbox.Raw), "marketing") {
+				// The original's inbox names no class: a CRM send is the item whose origin is the campaign.
+				if Total(inbox) != "1" || !strings.Contains(string(inbox.Raw), `"originName":"Customer.io campaign"`) {
 					s.t.Errorf("%s: the inbox is not one marketing item: %s", s.rec.Scenario, string(inbox.Raw))
 				}
 				// The player records' refusals, as the webhook answers them.

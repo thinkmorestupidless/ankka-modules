@@ -426,7 +426,26 @@ The original hard-codes Customer.io's hosts (`CustomerIOClient.scala:72-76`,
 the TL runner every `notify-*` function image carries (`just kind-build-casino-pack`, which rebuilds
 only what changed; the guests are unchanged, so no TinyGo build). Without the patch the original
 would call Customer.io itself, and `preflight -crm` cannot see that: check casino-service's and a
-`notify-*` pod's environment before the first run. `affiliate_status_crm` (spec 013's) calls Track's
+`notify-*` pod's environment before the first run.
+
+The patch also lets push-gateway take the issuer Keycloak signs with, `KEYCLOAK_ISSUER_BASE_URL`.
+Its `MultiRealmJwtValidator.fromEnv` builds each realm's validator from `KEYCLOAK_URL` alone, unlike
+substrate-iam's other validators, and on kind Keycloak signs every token
+`https://auth.eitheror.local/realms/<realm>`. Without it push-gateway refuses every player's
+stream 401, and no stream scenario can be recorded. Rebuild push-gateway
+(`deploy/kind/build-and-load.sh --component push-gateway`), set
+`KEYCLOAK_ISSUER_BASE_URL=https://auth.eitheror.local` on `deploy/eitheror-bundle-push-gateway`,
+and port-forward it to 18096. Its realms stay `casino-spinvibe` alone, as `bundle/helm/values.yaml`
+has them, so an operator's token is still refused 401: that is the original's own answer.
+
+Scenario 21's tests and the free-spins grant put the brand's CRM configuration back to what they
+found when they end, which on a fresh stack is empty. Seed again (`crm-seed`) before each group of
+scenarios and before the driver.
+
+On kind, psp-gateway points at the providers' sandboxes and an ngrok tunnel. Point it at psp-stub on
+the host first, with compose.override.yml's settings through `host.docker.internal`.
+
+`affiliate_status_crm` (spec 013's) calls Track's
 `/api/v1/events`, which the stub answers 404; no engagement scenario reaches it.
 
 On the kind stack the stub runs on the host and the pods reach it through Docker's host name:
