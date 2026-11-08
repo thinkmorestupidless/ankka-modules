@@ -24,14 +24,22 @@ object Exports:
   val BonusReport        = "bonus"
   val PspReport          = "psp"
 
+  /** The day-end's export (US6), a `day-end-export` document. */
+  val DayEndReport = "day-end"
+
   /** The ledger export's players, by id, comma separated, `*` for every one: the email search it was given, resolved. */
   val Ids = "ids"
 
+  /** The document's own reference, which a file that prints it (the day-end's) reads its rows with; not recorded twice. */
+  val Reference = "reference"
+
   /**
    * What an export is of: the report, its period and the parameters its rows are read with, all of them already chosen
-   * (the currency, the filters), so a job reads what the request would have. None is personal.
+   * (the currency, the filters), so a job reads what the request would have; and the kind of document it is. None is
+   * personal.
    */
-  final case class Ask(report: String, from: LocalDate, to: LocalDate, parameters: Map[String, String] = Map.empty):
+  final case class Ask(report: String, from: LocalDate, to: LocalDate, parameters: Map[String, String] = Map.empty,
+      kind: String = Document.ReportExport):
     def period: Period             = Period(from, to)
     def p(k: String): Option[String] = parameters.get(k).filter(_.nonEmpty)
     def currency: String           = p("currency").getOrElse("EUR")
@@ -42,6 +50,7 @@ object Exports:
     case TransactionsReport => TransactionHeader
     case BonusReport        => BonusHeader
     case PspReport          => PspHeader
+    case DayEndReport       => DayEnd.Header
     case other              => throw IllegalArgumentException(s"no export '$other'")
 
   /** The column a report's rows name a player in. */
@@ -105,6 +114,8 @@ object Exports:
           l.depositValue, l.withdrawalCount.toString, l.withdrawalRequests.toString, o(l.avgWithdrawalHours), l.belowThreshold.toString,
           s.currency))
     case TransactionsReport => page(r, ask, 0, Int.MaxValue)
+    case DayEndReport =>
+      DayEnd.of(r, ask.from, DayEnd.state(r, ask.from)).fold(Vector.empty[Vector[String]])(DayEnd.rows(_, ask.p(Reference).getOrElse("")))
     case other              => throw IllegalArgumentException(s"no export '$other'")
 
   private def transactionRow(l: TransactionLine): Vector[String] =
@@ -126,30 +137,31 @@ object Exports:
 
   /** The record's parameters: the report, what was asked, never the ledger's players (the record says only that a search was given). */
   private def recorded(asked: Reports.Asked, ask: Ask): Map[String, String] =
-    Map("report" -> ask.report) ++ (ask.parameters - Ids) ++ asked.currency.map("asked" -> _)
+    Map("report" -> ask.report) ++ (ask.parameters - Ids - Reference) ++ asked.currency.map("asked" -> _)
 
   /**
    * An export (research R9): over the brand's synchronous limit (`syncRows`), a `DocumentJob` and `202 {reference,
-   * status}` (FR-022); under it rendered here, kept under `reports/report-export/<reference>.csv` with the player ids it
-   * names in its sidecar, recorded, and served as the attachment `<report>-report-<reference>.csv`.
+   * status}` (FR-022); under it rendered here, kept under `reports/<kind>/<reference>.csv` with the player ids it names in
+   * its sidecar, recorded as a document of the ask's kind, and served as the attachment `<report>-report-<reference>.csv`.
    */
-  def exported(ctx: Ctx, asked: Reports.Asked, ask: Ask): Answer =
+  def exported(ctx: Ctx, asked: Reports.Asked, ask0: Ask): Answer =
     val reads     = ctx.reads
     val reference = UUID.randomUUID().toString
-    val name      = Document.objectName(Document.ReportExport, reference, "csv")
+    val ask       = ask0.copy(parameters = ask0.parameters.updated(Reference, reference))
+    val name      = Document.objectName(ask.kind, reference, "csv")
     val file      = s"${ask.report}-report-$reference.csv"
     val at        = ctx.now()
-    val record = DocumentState(reference = reference, kind = Document.ReportExport, format = "csv", parameters = recorded(asked, ask),
+    val record = DocumentState(reference = reference, kind = ask.kind, format = "csv", parameters = recorded(asked, ask),
       from = Some(ask.from.toString), to = Some(ask.to.toString), askedBy = asked.operator, generatedAt = Some(at),
       objectName = Some(name), fileName = Some(file), contentType = Some(RevenueCsv.ContentType))
     upTo(reads, ask, ctx.reporting.syncRows.toLong) match
       case Left(_) =>
-        Jobs.started(ctx, record, JobRequest(reference, Document.ReportExport, ask.report, "csv", ask.from.toString, ask.to.toString,
+        Jobs.started(ctx, record, JobRequest(reference, ask.kind, ask.report, "csv", ask.from.toString, ask.to.toString,
           ask.parameters, asked.operator, None, name, file, RevenueCsv.ContentType))
       case Right(rows) =>
         val body = Csv(header(ask.report), rows).getBytes(UTF_8)
         Keeping.keep(ctx.components, ctx.clients.storage.default, record.copy(readyAt = Some(at), rows = rows.size.toLong), body,
-          named(ask.report, rows), ctx.reporting.lifetimeOf(Document.ReportExport))
+          named(ask.report, rows), ctx.reporting.lifetimeOf(ask.kind))
         Keeping.served(ctx.components, reference, asked.operator, at)
         attachment(RevenueCsv.ContentType, file, body)
 
@@ -158,7 +170,7 @@ object Exports:
    * row count is read once, on the first page, and carried.
    */
   def jobPage(r: Reads, req: JobRequest, n: Int, carried: Map[String, Long]): Jobs.Rendered =
-    val ask    = Ask(req.report, LocalDate.parse(req.from), LocalDate.parse(req.to), req.parameters)
+    val ask    = Ask(req.report, LocalDate.parse(req.from), LocalDate.parse(req.to), req.parameters, req.kind)
     val total  = carried.getOrElse("total", count(r, ask))
     val offset = n * Jobs.PageRows
     val rows   = page(r, ask, offset, Jobs.PageRows)

@@ -44,13 +44,17 @@ final case class PaymentFigures(attempts: Long = 0, completed: Long = 0, value: 
 
 /**
  * A withdrawal gateway's day: requests, completions and the seconds from request to completion, summed over the
- * `timed` completions whose request was seen, which the average divides by (FR-011).
+ * `timed` completions whose request was seen, which the average divides by (FR-011); and the completions' amount, which
+ * the day-end lists per gateway (FR-018).
  */
-final case class GatewayFigures(requests: Long = 0, completed: Long = 0, completionSeconds: Long = 0, timed: Long = 0):
+final case class GatewayFigures(requests: Long = 0, completed: Long = 0, completionSeconds: Long = 0, timed: Long = 0,
+    amount: Long = 0):
   def +(o: GatewayFigures): GatewayFigures =
-    GatewayFigures(requests + o.requests, completed + o.completed, completionSeconds + o.completionSeconds, timed + o.timed)
+    GatewayFigures(requests + o.requests, completed + o.completed, completionSeconds + o.completionSeconds, timed + o.timed,
+      amount + o.amount)
   def -(o: GatewayFigures): GatewayFigures =
-    GatewayFigures(requests - o.requests, completed - o.completed, completionSeconds - o.completionSeconds, timed - o.timed)
+    GatewayFigures(requests - o.requests, completed - o.completed, completionSeconds - o.completionSeconds, timed - o.timed,
+      amount - o.amount)
 
 /** An amount and a count, as a deposit or a withdrawal hour of a day holds them. */
 final case class Flow(amount: Long = 0, count: Long = 0):
@@ -139,7 +143,7 @@ final case class Correction(source: String, arrivedAt: Instant, delta: Delta)
 
 /** A round the close lists: its figures differ, or one side lacks it (FR-018). */
 final case class Difference(player: String, currency: String, roundId: String, status: String, providerStake: Long = 0,
-    providerWin: Long = 0, walletStake: Long = 0, walletWin: Long = 0, walletRollback: Long = 0)
+    providerWin: Long = 0, walletStake: Long = 0, walletWin: Long = 0, walletRollback: Long = 0, provider: String = "")
 
 /** A correction to an earlier day that arrived during this one, so the day-end opens with it (FR-019). */
 final case class OpeningCorrection(day: String, arrivedAt: Instant, delta: Delta)

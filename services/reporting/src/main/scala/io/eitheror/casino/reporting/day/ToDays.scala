@@ -60,7 +60,8 @@ object ToDays:
       case c: WithdrawalEvent.Completed =>
         val seconds = c.requestedAt.map(r => Duration.between(r, c.at).getSeconds.max(0L))
         on(c.at, Delta(money = Money(withdrawals = c.amount, withdrawalCount = 1),
-          gateways = Map(c.gateway -> GatewayFigures(completed = 1, completionSeconds = seconds.getOrElse(0L), timed = seconds.fold(0L)(_ => 1L)))))
+          gateways = Map(c.gateway -> GatewayFigures(completed = 1, completionSeconds = seconds.getOrElse(0L),
+            timed = seconds.fold(0L)(_ => 1L), amount = c.amount))))
       case _ => Map.empty
 
   /** Bonus cost (spec 011 FR-028): a funds grant's amount when granted, a free-rounds grant's winnings when settled. */

@@ -532,3 +532,23 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   kind, synchronous or a job's; `record_id` `audit/document/<reference>/<sequence>`, the period `<from>/<to>`.
 - **T055, the documents routes** (asked 2026-11-08, answer "as built"): `500 document_failed` for a failed job,
   `progress` a whole percent, and `GET /documents`' shape and default period; routes.md carries them.
+- **T060, the close's inputs**: `close-days` hands `BrandDay.Close` what the views hold when it runs: the day's rounds
+  (`Rounds` by day) for the games and the differences, the open restricted funds records' balances (`Wallets`) per
+  currency for the liability, and the withdrawals requested before the day's end in its zone and not ended by it for
+  the pending holds. A close that runs late reads the liability later than the day's end; the views keep no balance
+  at an instant to read it then.
+- **T060, a round only the wallet holds** is counted under the game `unknown/unknown` (the provider and the game
+  `unknown`), its provider GGR 0; a cancelled round's provider figures count nothing; the wallet's stake is net of
+  rollbacks. A difference names the provider, `""` for a round only the wallet holds.
+- **T060, the day-end read**: rendered from the day's entity state (`DayFixed`), not the view, so a closed day reads
+  the same bytes on every read (SC-008); every list is sorted. Its `reference` is a name-based UUID of the brand, the
+  generation and the day, so it is stable. A day not closed, with a record or none, is `409 day_open`; a day that is
+  not a date `400 invalid_date` naming `day`. Late facts add entries to `corrections` and nothing else changes.
+- **T060, the day-end's JSON** fills what routes.md leaves to the build: a correction's `figures` (the currency and
+  the day's figures it changed, money as decimal strings), the deposits per provider (`provider`, `count`, `amount`;
+  a provider with attempts and no completed deposit is listed with 0), withdrawals per gateway, the games per
+  provider and game with `providerGgr` and `walletGgr`, and the totals per currency.
+- **T060, the day-end's export** is long-format CSV (`section, currency, item, field, value`), since its sections have
+  different columns: a `day-end` section first with the export's own reference, the day-end's reference, the day, the
+  zone and `closedAt`. It is `day-end-report-<reference>.csv`, a `day-end-export` document under that kind's
+  lifetime; the export's reference is fixed before its rows are read, so the file prints it.

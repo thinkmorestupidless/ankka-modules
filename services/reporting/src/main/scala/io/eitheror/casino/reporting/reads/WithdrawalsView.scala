@@ -55,4 +55,11 @@ object WithdrawalsView extends View.Companion[WithdrawalRows, WithdrawalEvent, W
   val completedBetween = query("completed-between")(
     s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'outcome' = 'completed' AND (payload::jsonb->>'endedAt')::timestamptz >= (:from)::timestamptz AND (payload::jsonb->>'endedAt')::timestamptz < (:to)::timestamptz ORDER BY payload::jsonb->>'endedAt', row_key")
 
+  /** The requests made before `at` and not ended by it: the pending holds at a close (research R7). */
+  val pendingAt = query("pending-at")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND (payload::jsonb->>'requestedAt')::timestamptz < (:at)::timestamptz AND (payload::jsonb->>'endedAt' IS NULL OR (payload::jsonb->>'endedAt')::timestamptz >= (:at)::timestamptz) ORDER BY row_key")
+
   def create(ctx: ViewComponentContext) = new WithdrawalRows
+
+  def pending(views: com.thinkmorestupidless.ankka.runtime.ViewClient, generation: Int, at: Instant): Vector[WithdrawalRow] =
+    views.forView(WithdrawalsView).ask(pendingAt, 10_000_000, "generation" -> generation.toString, "at" -> at.toString)

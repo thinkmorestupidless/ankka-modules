@@ -19,7 +19,7 @@ object ReportingRuntime:
 
   /**
    * What a day's close is given from views over every wallet and round (the games, the differences, the liability,
-   * the pending holds, the corrections that arrived during it). None until the day-end's reads are wired (US6).
+   * the pending holds, the corrections that arrived during it): `DayEndInputs.gather`, set at start; none before.
    */
   val closeInputs: AtomicReference[String => CloseInputs] = AtomicReference(_ => CloseInputs())
 

@@ -255,10 +255,10 @@ lifetimes and erasure.
 
 **Independent test**: `DayEndSuite`; the four scenarios of `day-end.feature`.
 
-- [ ] T058 [P] [US6] Bind the four scenarios in `r-test/features/DayEndSteps.scala`
-- [ ] T059 [P] [US6] `r-test/it/DayEndSuite.scala`: the close at attribution's instant; providers' and games'
+- [X] T058 [P] [US6] Bind the four scenarios in `r-test/features/DayEndSteps.scala`
+- [X] T059 [P] [US6] `r-test/it/DayEndSuite.scala`: the close at attribution's instant; providers' and games'
   sections; differences; a late fact a correction and in the next opening; byte-identical reads (SC-008)
-- [ ] T060 [US6] `r/api/DayEnd.scala` `GET /day-end/{day}` from `DayFixed`, `GET /day-end/{day}/export` (a
+- [X] T060 [US6] `r/api/DayEnd.scala` `GET /day-end/{day}` from `DayFixed`, `GET /day-end/{day}/export` (a
   `day-end-export` document)
 
 ---

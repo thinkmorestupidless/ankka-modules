@@ -32,8 +32,8 @@ object Documents:
     val reports = Seq("brand_admin", "resource_admin", "platform_admin")
     kind match
       case Document.DisputeReport => None
-      case "compliance-export"    => Some(reports :+ "brand_compliance")
-      case "day-end-export"       => Some(reports :+ "brand_finance")
+      case Document.ComplianceExport => Some(reports :+ "brand_compliance")
+      case Document.DayEndExport     => Some(reports :+ "brand_finance")
       case _                      => Some(reports)
 
   /** Whether the operator (already admitted as one of the brand's) may have a document of `kind`. */

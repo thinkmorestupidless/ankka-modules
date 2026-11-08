@@ -140,8 +140,10 @@ object Document extends EventSourcedEntity.Companion[Document, DocumentState, Do
   val Erasure  = "erasure"
 
   /** The kinds (data-model.md; `ReportingSettings.Kinds`). */
-  val ReportExport  = "report-export"
-  val DisputeReport = "dispute-report"
+  val ReportExport     = "report-export"
+  val DisputeReport    = "dispute-report"
+  val DayEndExport     = "day-end-export"
+  val ComplianceExport = "compliance-export"
 
   def applied(s: DocumentState, e: DocumentEvent): DocumentState = e match
     case DocumentEvent.Started(d)              => d.copy(status = Generating)

@@ -68,6 +68,10 @@ object Rounds extends View.Companion[RoundRows, RoundCheckState, RoundRow](
 
   private val Every = 10_000_000
 
+  /** A reporting day's rounds, by the round's day (research R7). */
+  def ofDay(views: ViewClient, generation: Int, day: String): Vector[RoundRow] =
+    views.forView(Rounds).ask(byDay, Every, "generation" -> generation.toString, "day" -> day)
+
   def ofGameSession(views: ViewClient, generation: Int, session: String): Vector[RoundRow] =
     views.forView(Rounds).ask(byGameSession, Every, "generation" -> generation.toString, "session" -> session)
 

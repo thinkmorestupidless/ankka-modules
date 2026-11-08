@@ -57,8 +57,8 @@ class ToDaysSuite extends munit.FunSuite:
       Map("2026-11-08" -> Delta("EUR", 12, gateways = Map("unity" -> GatewayFigures(requests = 1)))))
     val done = WithdrawalEvent.Completed("f", "w-1", "p-1", 2500, "EUR", "unity", at.plusSeconds(7200), Some(at))
     assertEquals(ToDays.withdrawal(done, jhb), Map("2026-11-08" -> Delta("EUR", 14, Money(withdrawals = 2500, withdrawalCount = 1),
-      gateways = Map("unity" -> GatewayFigures(completed = 1, completionSeconds = 7200, timed = 1)))))
-    assertEquals(ToDays.withdrawal(done.copy(requestedAt = None), jhb)("2026-11-08").gateways("unity"), GatewayFigures(completed = 1))
+      gateways = Map("unity" -> GatewayFigures(completed = 1, completionSeconds = 7200, timed = 1, amount = 2500)))))
+    assertEquals(ToDays.withdrawal(done.copy(requestedAt = None), jhb)("2026-11-08").gateways("unity"), GatewayFigures(completed = 1, amount = 2500))
   }
 
   test("grants: a funds grant's amount and a free-rounds settlement's win are bonus cost") {

@@ -58,6 +58,19 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
             case _               => assertEquals((r.status, r.text.contains("forbidden")), (403, true), s"$who: ${r.text}")
     }
 
+  /** Routes whose admitted answer is not a 200 here (a day not closed): admitted is anything but the refusals. */
+  private val refusedOnly: Vector[(String, Set[String])] = Vector(
+    "/day-end/2099-01-01" -> (reportRoles + "brand_finance"),
+    "/day-end/2099-01-01/export" -> (reportRoles + "brand_finance"))
+
+  for (route, admitted) <- refusedOnly do
+    test(s"GET $route admits ${admitted.toVector.sorted.mkString(", ")} and refuses everyone else") {
+      for (who, as) <- audiences do
+        val r = kit.get(route, as)
+        if admitted(who) then assertEquals(r.status, 409, s"$who: ${r.text}")
+        else assert(Set(401, 403)(r.status), s"$who: ${r.status} ${r.text}")
+    }
+
   test("PUT /settings admits brand_admin and platform_admin only") {
     for (who, as) <- audiences do
       val r = kit.request("PUT", kit.path("/settings"), Some("{}"), as)

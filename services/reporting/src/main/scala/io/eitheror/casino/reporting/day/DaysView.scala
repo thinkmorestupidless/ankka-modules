@@ -68,7 +68,17 @@ object DaysView extends View.Companion[DayRows, DayEvent, DayRow](
   val currencyRows = query("currencies")(
     s"SELECT DISTINCT ON (c) payload FROM $table, jsonb_object_keys(payload::jsonb->'currencies') AS c WHERE payload::jsonb->>'generation' = :generation ORDER BY c")
 
+  /** A generation's days before `day` holding a correction: where the corrections that arrived during `day` are. */
+  val correctedBefore = query("corrected-before")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'day' < :day AND jsonb_array_length(COALESCE(payload::jsonb->'corrections', '[]'::jsonb)) > 0 ORDER BY payload::jsonb->>'day'")
+
   def create(ctx: ViewComponentContext) = new DayRows
+
+  /** One day's row, if a fact has reached it. */
+  def row(views: ViewClient, generation: Int, day: LocalDate): Option[DayRow] = rows(views, generation, day, day).headOption
+
+  def corrected(views: ViewClient, generation: Int, before: LocalDate): Vector[DayRow] =
+    views.forView(DaysView).ask(correctedBefore, 100_000, "generation" -> generation.toString, "day" -> before.toString).toVector
 
   /** The period's rows; a day no fact has reached has none. */
   def rows(views: ViewClient, generation: Int, from: LocalDate, to: LocalDate): Vector[DayRow] =

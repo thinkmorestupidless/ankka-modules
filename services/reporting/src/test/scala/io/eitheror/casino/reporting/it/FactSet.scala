@@ -427,6 +427,11 @@ object FactSet:
           done.map(w => Duration.between(w.requested, w.completed.get).getSeconds).sum)
       }.filter((_, v) => v != (0L, 0L, 0L)).toMap
 
+    /** The withdrawals in `currency` requested before `at` and not completed by it: the pending holds at a close. */
+    def pendingAt(at: Instant, currency: String): Long =
+      sets.flatMap(_.withdrawals).filter(w => w.currency == currency && w.requested.isBefore(at) && w.completed.forall(!_.isBefore(at)))
+        .map(_.amount).sum
+
     /** Every open restricted funds record in `currency` as its last movement left it. */
     def openRecords(currency: String, exclude: Boolean = false): Vector[Rec] =
       sets.flatMap(_.records).filter(_.currency == currency).foldLeft(Vector.empty[Rec]) { (acc, r) =>
