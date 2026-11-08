@@ -14,5 +14,11 @@ object ReportingService:
     Payment.descriptor,
     PaymentsFacts(settings).descriptor,
     Withdrawal.descriptor,
-    WithdrawalsFacts(settings).descriptor
-  )
+    WithdrawalsFacts(settings).descriptor,
+    Grant.descriptor
+  ) ++ casino(settings)
+
+  /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */
+  private def casino(settings: Settings): Seq[ComponentDescriptor] =
+    if !settings.casino then Nil
+    else Seq(RewardsFacts(settings).descriptor)

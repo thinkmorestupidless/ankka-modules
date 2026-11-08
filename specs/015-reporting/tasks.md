@@ -118,7 +118,7 @@ access. Nothing story-specific starts before this phase ends.
   `seen`; `r-test/intake/WalletBookSuite.scala` (kit: every family, a repeat, a converted stake, a trade)
 - [X] T019 [P] `r/intake/Payment.scala` and `payments-facts`; suite
 - [X] T020 [P] `r/intake/Withdrawal.scala` and `withdrawals-facts`; suite
-- [ ] T021 [P] `r/intake/Grant.scala` and `rewards-facts` (registered only when `CASINO_MODULES` names
+- [X] T021 [P] `r/intake/Grant.scala` and `rewards-facts` (registered only when `CASINO_MODULES` names
   `casino`); suite
 - [ ] T022 [P] `r/intake/PlayerLog.scala` and `players-facts`: the status and KYC folds, the email as
   `Personal` under `player/<id>`, the test flag, RG and KYC document events; suite
