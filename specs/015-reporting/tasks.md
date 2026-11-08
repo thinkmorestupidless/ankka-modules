@@ -45,7 +45,7 @@ their new fields.
   cases in `contract/src/test/scala/io/eitheror/casino/contract/facts/` (round trip; an old fact decodes;
   `Compatibility` passes)
 - [X] T002 Regenerate `contract/schemas/` with `just schemas`; `just test` green
-- [ ] T003 [P] Create `services/reporting/` on `services/rewards/`'s template with ankka **0.16.0** and the
+- [X] T003 [P] Create `services/reporting/` on `services/rewards/`'s template with ankka **0.16.0** and the
   eviction lines of `services/engagement/build.sbt` (research R2): `build.sbt`, `project/`,
   `service.json` (runtime `0.16.0`, `provisionObjectStorage`, `"personal": true`), `docker-compose.yml`
   (postgres:17-alpine on 5445), `README.md` stub, `r/ReportingService.scala` registering nothing yet; add
