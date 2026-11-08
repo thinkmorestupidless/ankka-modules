@@ -81,7 +81,7 @@ access. Nothing story-specific starts before this phase ends.
   (`services/game-provider/.../catalogue/`), absent when the game is not in it; confirm which session
   `session_id` is (research R20 item 2) and state it; tests in `RoundFactsSuite`; amend
   `specs/003-game-provider/spec.md` FR-019
-- [ ] T009 [P] wallet: `payment.dispute.closed` carries the amount and currency of the payment's dispute
+- [X] T009 [P] wallet: `payment.dispute.closed` carries the amount and currency of the payment's dispute
   and refuses an outcome outside `won`, `lost` (`400 invalid_outcome`); movements that change restricted
   funds records carry `records` from the record model (`services/wallet/.../entity/Model.scala`); tests in
   the wallet's facts and endpoint suites; amend `specs/002-wallet/spec.md` (FR-022a, the facts' FR)

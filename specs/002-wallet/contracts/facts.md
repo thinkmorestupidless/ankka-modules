@@ -45,6 +45,13 @@ until it does. The additions are additive: no existing field or family changes.
 Common: `player_id`, `currency`, `transaction_id`, `real_balance_after`, `restricted_balance_after`,
 `occurred_at` (the event's time).
 
+`records` (spec 015 research R11) on `bet_placed`, `win_credited`, `bet_rolled_back`,
+`restricted_funds_awarded`, `restricted_funds_converted`, `restricted_funds_forfeited` and
+`restricted_funds_closed`: the event's `recordUpdates` (an award's new record), each as `award_id` (the
+record's grant), `status` (`ACTIVE`, `CONVERTED_PENDING_CAP`, `FORFEITED`, `CLOSED`), `balance_cents`,
+`progress_cents` (`releasedProgress`), `requirement_cents` (`releaseRequirement`), after the movement;
+every fact of the event carries all of them; absent when the event changed no record.
+
 On `admin_adjusted`: spec 001 FR-023 names the operator's free-text reason personal; the contract's
 `AdminAdjusted.reason` is a plain `String`, so the publisher puts the adjustment's category there
 (`goodwill`, `correction`, `other`) and never the text. If the spec wants the text on the fact it must
@@ -67,7 +74,7 @@ has four publishers (money, captured, payments, audit).
 | `… (expired \| abandoned)` | `payment.expired` / `payment.abandoned` |
 | `… (refunded)` | `payment.refunded` (`amount_cents`, `currency`) |
 | `… (dispute_opened)` | `payment.dispute.opened` (`amount_cents`, `currency`, `reason`) |
-| `… (dispute_closed)` | `payment.dispute.closed` (`outcome`) |
+| `… (dispute_closed)` | `payment.dispute.closed` (`outcome` `won` \| `lost`; `amount_cents`, `currency`: the close's, else the dispute's as opened, both or neither; spec 015) |
 
 ## `platform.audit` (consumer `AuditPublisher`)
 

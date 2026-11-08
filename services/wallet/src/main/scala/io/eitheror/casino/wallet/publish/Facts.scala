@@ -23,6 +23,15 @@ object Facts:
   private def grantOf(updates: Vector[RecordUpdate], recordId: String): String =
     updates.find(_.id == recordId).fold("")(_.grantRef)
 
+  /**
+   * Spec 015 R11: each restricted funds record the movement changed, as it stands after it, named by its
+   * award; the status is the record's own (`ACTIVE`, `CONVERTED_PENDING_CAP`, `FORFEITED`, `CLOSED`).
+   * Every fact of the movement carries all of them; a movement that changed none writes nothing.
+   */
+  private def progress(updates: Vector[RecordUpdate]): Option[Vector[f.RecordProgress]] =
+    Option.when(updates.nonEmpty)(updates.map(u =>
+      f.RecordProgress(u.grantRef, u.status, units(u.balance), units(u.releasedProgress), units(u.releaseRequirement))))
+
   /** `money.transactions` for one wallet event; audit-only events yield nothing. */
   def moneyTransactions(walletId: String, event: WalletEvent): Vector[Published[f.MoneyTransactionsMessage]] =
     val playerId = walletId.takeWhile(_ != '/')
@@ -41,14 +50,14 @@ object Facts:
         // A cancel with no open record still claws back (FR-017): the movement is on the topic.
         one(f.RestrictedFundsForfeited(playerId, currency, txId, "", units(0), cause, units(clawback), real(realAfter),
           units(restrictedAfter), at, dep(depositAfter), dep(convertedAfter), part(clawbackParts.deposit),
-          part(clawbackParts.converted)), txId)
+          part(clawbackParts.converted), progress(updates)), txId)
       else
         forfeits.zipWithIndex.map { (x, i) =>
           val parts = if i == 0 then clawbackParts else Parts.zero
           Published(
             f.RestrictedFundsForfeited(playerId, currency, txId, grantOf(updates, x.recordId), units(x.amount), cause,
               units(if i == 0 then clawback else 0L), real(realAfter), units(restrictedAfter), at, dep(depositAfter),
-              dep(convertedAfter), part(parts.deposit), part(parts.converted)),
+              dep(convertedAfter), part(parts.deposit), part(parts.converted), progress(updates)),
             s"$txId/${x.recordId}"
           )
         }
@@ -57,7 +66,7 @@ object Facts:
     def closed(txId: String, recordId: String, reason: String, updates: Vector[RecordUpdate], realAfter: Long,
         restrictedAfter: Long, depositAfter: Long, convertedAfter: Long, at: java.time.Instant, id: String): Published[f.MoneyTransactionsMessage] =
       Published(f.RestrictedFundsClosed(playerId, currency, txId, grantOf(updates, recordId), reason, real(realAfter),
-        units(restrictedAfter), at, dep(depositAfter), dep(convertedAfter)), id)
+        units(restrictedAfter), at, dep(depositAfter), dep(convertedAfter), progress(updates)), id)
 
     event match
       case e: DepositConfirmed =>
@@ -69,22 +78,22 @@ object Facts:
         val parts = e.bet.parts.getOrElse(Parts.zero)
         val bet = one(f.BetPlaced(playerId, currency, e.bet.transactionId, e.bet.roundKey, e.bet.gameId, units(e.bet.amount),
           e.bet.walletType, real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
-          part(parts.deposit), part(parts.converted)), e.bet.transactionId)
+          part(parts.deposit), part(parts.converted), progress(e.recordUpdates)), e.bet.transactionId)
         bet ++ e.conversions.map { c =>
           Published(f.RestrictedFundsConverted(playerId, currency, e.bet.transactionId, grantOf(e.recordUpdates, c.recordId),
             units(c.amount), real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
-            part(0L), part(c.amount)), s"${e.bet.transactionId}/${c.recordId}")
+            part(0L), part(c.amount), progress(e.recordUpdates)), s"${e.bet.transactionId}/${c.recordId}")
         }
 
       case e: WinCredited =>
         one(f.WinCredited(playerId, currency, e.transactionId, e.roundKey, e.gameId, units(e.amount), e.walletType,
           real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
-          part(e.parts.converted)), e.transactionId)
+          part(e.parts.converted), progress(e.recordUpdates)), e.transactionId)
 
       case e: BetRolledBack =>
         one(f.BetRolledBack(playerId, currency, e.transactionId, e.roundKey, units(e.amount), real(e.realAfter),
           units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
-          part(e.parts.converted)), e.transactionId)
+          part(e.parts.converted), progress(e.recordUpdates)), e.transactionId)
 
       case e: RoundSettledAsLoss =>
         one(f.RoundSettledAsLoss(playerId, currency, e.transactionId, e.roundKey, real(e.realAfter), units(e.restrictedAfter), e.at,
@@ -95,7 +104,7 @@ object Facts:
       case e: RestrictedFundsAwarded =>
         one(f.RestrictedFundsAwarded(playerId, currency, e.transactionId, e.awarded.grantRef, units(e.awarded.record.balance),
           units(e.awarded.record.releaseRequirement), real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter),
-          dep(e.convertedAfter)), e.transactionId)
+          dep(e.convertedAfter), progress(Vector(RecordUpdate.from(e.awarded.record, closedNow = false)))), e.transactionId)
 
       case e: RestrictedFundsForfeited =>
         forfeited(e.transactionId, e.forfeits, e.cause, 0L, Parts.zero, e.recordUpdates, e.realAfter, e.restrictedAfter,
@@ -204,12 +213,20 @@ object Facts:
           for c <- cur yield f.PaymentRefunded(paymentId, o.playerId, o.paymentProvider, units(o.amount.getOrElse(0L)), c, o.at)
         case "dispute_opened" =>
           for c <- cur yield f.PaymentDisputeOpened(paymentId, o.playerId, o.paymentProvider, units(o.amount.getOrElse(0L)), c, o.reason.getOrElse(""), o.at)
-        case "dispute_closed" => Some(f.PaymentDisputeClosed(paymentId, o.playerId, o.paymentProvider, o.disputeOutcome.getOrElse(""), o.at))
+        case "dispute_closed" =>
+          // Spec 015 R11: the dispute's amount and currency, as the entity resolved them when it recorded the
+          // close; both or neither, so a reader never takes an amount without its currency.
+          val money = for a <- o.amount; c <- cur yield (units(a), c)
+          Some(f.PaymentDisputeClosed(paymentId, o.playerId, o.paymentProvider, o.disputeOutcome.getOrElse(""), o.at,
+            money.map(_._1), money.map(_._2)))
         case _                => None
       fact.map(Published(_, s"$paymentId/${o.outcome}"))
 
   /** The outcomes that carry a currency must name one; checked at the route so the fact can always be written. */
   def needsCurrency(outcome: String): Boolean = Set("initiated", "refunded", "dispute_opened")(outcome)
+
+  /** A closed dispute's outcome is the brand's, `won` or `lost` (spec 015 R11); anything else is refused. */
+  def validDisputeOutcome(o: Option[String]): Boolean = o.exists(f.DisputeOutcome.values)
 
   /** One `platform.audit` record per money event and refusal (FR-031; spec 018 FR-001). No personal field. */
   def audit(brand: String, walletId: String, event: WalletEvent): Option[Published[f.PlatformAuditFact]] =

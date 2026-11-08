@@ -110,6 +110,31 @@ class MoneyPathsItSuite extends Harness:
     assert(published.head.contains("\"payment.failed\"") && published.head.contains("\"code\":\"DECLINED\""), published.head)
   }
 
+  test("spec 015: a dispute closed lost carries the amount opened; an outcome outside won and lost is 400 invalid_outcome") {
+    val path = s"/v1/casino/brands/$brand/payments/pay-88/outcome"
+    val bad  = send("POST", path, Some("""{"outcome":"dispute_closed","playerId":"dp","paymentProvider":"unityfinance","disputeOutcome":"reversed"}"""), as = merchant)
+    assertEquals((bad._1, field(bad._2, "error")), (400, Some("invalid_outcome")))
+    assertEquals(send("POST", path, Some("""{"outcome":"dispute_closed","playerId":"dp","paymentProvider":"unityfinance"}"""), as = merchant)._1, 400)
+    assertEquals(send("POST", path, Some("""{"outcome":"dispute_opened","playerId":"dp","paymentProvider":"unityfinance","amount":2500,"currency":"EUR","reason":"chargeback"}"""), as = merchant)._1, 200)
+    assertEquals(send("POST", path, Some("""{"outcome":"dispute_closed","playerId":"dp","paymentProvider":"unityfinance","disputeOutcome":"lost"}"""), as = merchant)._1, 200)
+    val closed = eventually(facts("payments.payments", "pay-88"))(_.exists(_.contains("payment.dispute.closed"))).filter(_.contains("payment.dispute.closed"))
+    assertEquals(closed.size, 1)
+    assert(closed.head.contains("\"outcome\":\"lost\"") && closed.head.contains("\"amount_cents\":2500") && closed.head.contains("\"currency\":\"EUR\""), closed.head)
+  }
+
+  test("spec 015: a bet against an award carries the record's progress after it, its status the record's own") {
+    deposit("wp", "pay-1", 1000)
+    send("POST", s"${wallet("wp")}/awards", Some("""{"key":"grant-1","bonusRef":"welcome","amount":2000,"wageringMultiplier":10,"maxWin":5000}"""), as = rewards)
+    bet("wp", "b-1", "r1", 1500) // 1000 real and 500 from the record
+    val money = eventually(facts("money.transactions", "wp/EUR"))(_.exists(_.contains("\"bet_placed\"")))
+    val awarded = money.find(_.contains("restricted_funds_awarded")).get
+    assert(awarded.contains("\"records\":[{\"award_id\":\"grant-1\",\"status\":\"ACTIVE\""), awarded)
+    assert(awarded.contains("\"requirement_cents\":20000"), awarded)
+    val placed = money.find(_.contains("\"bet_placed\"")).get
+    assert(placed.contains("\"award_id\":\"grant-1\"") && placed.contains("\"status\":\"ACTIVE\""), placed)
+    assert(!money.find(_.contains("deposit_confirmed")).get.contains("\"records\""), "a deposit changes no record")
+  }
+
   private def bet(player: String, key: String, round: String, amount: Long) =
     send("POST", s"${wallet(player)}/bets", Some(s"""{"key":"$key","roundId":"$round","gameId":"slot-a","amount":$amount}"""))
 

@@ -31,6 +31,8 @@ object Refusals:
   val CreditLineReached            = "CREDIT_LINE_REACHED"
   val NotClearing                  = "NOT_CLEARING"
   val CreditLineBelowBalance       = "CREDIT_LINE_BELOW_BALANCE"
+  /** A closed dispute's outcome outside `won`, `lost` (spec 015); lowercase as the spec names it. */
+  val InvalidOutcome               = "invalid_outcome"
 
   val walletNotFound    = "Wallet not found"
   val walletAlreadyOpen = "Wallet already open"
