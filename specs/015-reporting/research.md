@@ -409,3 +409,6 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T025, pending holds at close** (open question of the intake agent, settled 2026-11-08): `WalletBook` cannot see a hold
   end on completion (the wallet's hold confirmation emits no fact), so the day-end's pending holds are the
   `Withdrawal`s requested and not yet ended at the close, read through `CloseInputs` (US6). No contract change.
+- **T011, disputes at the gateway** (R11, R20 item 3): only Unity Finance documents a dispute state; the eight other
+  adapters report none (evidence in spec 005 FR-017a). A dispute is recorded only on a captured deposit, each kind once
+  (a re-opening after a close is ignored), and delivered after its capture.
