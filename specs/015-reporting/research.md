@@ -479,3 +479,8 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   completions and hours per gateway are the period's `BrandDay` sections, summed; a provider and a gateway of the same
   name are one row, ordered by name. Test accounts are counted (the setting excludes them from the dashboard and the
   revenue report only, spec Edge cases). `belowThreshold` is a rate under 95, false when the rate is `null`.
+- **T042, `depositVolume` a string** (asked 2026-11-08, answer "make it a string"): payment health's
+  `pspBreakdown[].depositVolume` follows the common rule, a 2-dp string, where the original answered a number; the
+  backoffice's payment-health panel must parse it, which T074 (SC-007) records as a change beyond the base URL.
+- **T049, the bonus and provider CSVs** (asked 2026-11-08, answer "summary row first"): the summary first under
+  `all`, then one row per offer or provider; the bonus CSV gains `activeCount`, filled on the summary row.

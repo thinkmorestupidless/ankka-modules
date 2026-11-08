@@ -48,8 +48,11 @@ final case class ActivityFeed(events: Vector[ActivityEvent])
 final case class BonusSummary(activeBonusCount: Long, totalLiability: String, bonusCostToday: String, totalLiabilityMinorUnits: Long,
     bonusCostTodayMinorUnits: Long, avgWageringCompletionPct: Int, currency: String, currencies: Vector[String])
 
-/** `depositVolume` is the original's JSON number, in the currency's places (FR-027). */
-final case class PspHealth(pspName: String, depositVolume: BigDecimal, depositCount: Long, successRatePct: Option[BigDecimal])
+/**
+ * `depositVolume` is a 2-place string as every amount here, where the original answered a JSON number (decided
+ * 2026-11-08; the backoffice's payment-health panel must parse it).
+ */
+final case class PspHealth(pspName: String, depositVolume: String, depositCount: Long, successRatePct: Option[BigDecimal])
 final case class PaymentHealth(depositSuccessRatePct: Option[BigDecimal], avgWithdrawalHours: Option[BigDecimal], currency: String,
     currencies: Vector[String], pspBreakdown: Vector[PspHealth])
 
@@ -247,5 +250,5 @@ object Dashboard:
         Figures.ratePct(pay.map(_._2.completed).sum, pay.map(_._2.attempts).sum),
         Figures.averageHours(gates.map(_.completionSeconds).sum, gates.map(_.timed).sum),
         c, chosen.currencies,
-        pay.map((name, p) => PspHealth(name, Money.number(p.value, c), p.completed, Figures.ratePct(p.completed, p.attempts)))))
+        pay.map((name, p) => PspHealth(name, Money(p.value, c), p.completed, Figures.ratePct(p.completed, p.attempts)))))
     })

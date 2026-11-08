@@ -45,7 +45,7 @@ class DashboardSuite extends munit.FunSuite with LogCapturing:
     assertEquals(providers.get("dash-psp-a"), Some(Some(BigDecimal("75.0"))))
     val b = j.path("pspBreakdown").elements.asScala.find(_.path("pspName").asText == "dash-psp-b").get
     assert(b.path("successRatePct").isNull, b.toString)
-    assert(b.path("depositVolume").isNumber, b.toString)
+    assert(b.path("depositVolume").isTextual, b.toString)
   }
 
   test("the trend over today is by the hour to the current one, each hour's GGR and NGR in the zone") {

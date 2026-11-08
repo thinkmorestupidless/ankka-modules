@@ -145,7 +145,7 @@ final class Dashboards(kit: Kit, prefix: String):
 
   def healthShown(j: JsonNode): Health =
     Health(numberOrNull(j.path("depositSuccessRatePct")), numberOrNull(j.path("avgWithdrawalHours")),
-      j.path("pspBreakdown").elements.asScala.toVector.map(p => (p.path("pspName").asText, BigDecimal(p.path("depositVolume").decimalValue),
+      j.path("pspBreakdown").elements.asScala.toVector.map(p => (p.path("pspName").asText, BigDecimal(p.path("depositVolume").asText),
         p.path("depositCount").asLong, numberOrNull(p.path("successRatePct")))))
 
   def health: JsonNode = settled("/dashboard/payment-health?currency=EUR")(healthShown, healthWanted)

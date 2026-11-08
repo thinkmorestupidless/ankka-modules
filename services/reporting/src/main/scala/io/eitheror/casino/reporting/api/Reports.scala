@@ -261,15 +261,15 @@ object Reports:
   }
 
   private val BonusHeader = Vector("offerId", "offerName", "offerType", "grantsCount", "totalGrantedValue", "convertedCount",
-    "convertedValue", "forfeitedCount", "cancelledCount", "conversionRatePct", "currency")
+    "convertedValue", "forfeitedCount", "cancelledCount", "conversionRatePct", "activeCount", "currency")
 
   /** The summary first, as the revenue CSV's, under `all` (the filter's every-offer value), then one row per offer. */
   private def bonusCsv(s: BonusTotals, offers: Vector[BonusOffer], all: Counted): String =
     Csv(BonusHeader, Vector("all", "", "", s.totalGrantsCount.toString, s.totalGrantedValue, s.convertedCount.toString,
       Money(all.convertedValue, s.currency), s.forfeitedCount.toString, s.cancelledCount.toString, s.conversionRatePct.toString,
-      s.currency) +: offers.map(o => Vector(o.offerId, o.offerName, o.offerType, o.grantsCount.toString, o.totalGrantedValue,
+      s.activeCount.toString, s.currency) +: offers.map(o => Vector(o.offerId, o.offerName, o.offerType, o.grantsCount.toString, o.totalGrantedValue,
       o.convertedCount.toString, o.convertedValue, o.forfeitedCount.toString, o.cancelledCount.toString, o.conversionRatePct.toString,
-      o.currency)))
+      "", o.currency)))
 
   // ── payment providers ─────────────────────────────────────────────────────────────────────────
 

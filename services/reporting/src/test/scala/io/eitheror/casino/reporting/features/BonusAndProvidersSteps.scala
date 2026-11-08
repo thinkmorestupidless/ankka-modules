@@ -143,7 +143,9 @@ class BonusAndProvidersFeatures extends ReportingFeatures("bonus-and-providers.f
     val rows   = lines.tail.map(l => header.zip(l.split(",", -1)).toMap)
     // The summary first under `all`, then the offer's row.
     assertEquals(rows.map(_("offerId")), Vector("all", offer))
-    assertEquals(rows.tail, offersWanted(Some(offer)))
+    assertEquals(rows.tail.map(_ - "activeCount"), offersWanted(Some(offer)))
+    assertEquals(rows.tail.map(_("activeCount")), Vector(""))
+    assertEquals(rows.head("activeCount"), summaryWanted(Some(offer))("activeCount"))
     assertEquals(rows.head("grantsCount"), summaryWanted(Some(offer))("totalGrantsCount"))
   }
 

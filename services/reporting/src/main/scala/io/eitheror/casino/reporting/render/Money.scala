@@ -10,8 +10,6 @@ object Money:
   def apply(minor: Long, currency: String): String =
     Currency.from(currency).fold(_ => Amounts.render(minor, Currency.unsafe("XXX")), Amounts.render(minor, _))
 
-  /** An amount where the original answered a JSON number (`depositVolume`, FR-027): the same places, exact. */
-  def number(minor: Long, currency: String): BigDecimal = BigDecimal(apply(minor, currency))
 
   /** An email cut as the original's tables cut it: `n` characters and `…`. */
   def truncated(email: String, n: Int): String = if email.length > n then email.take(n) + "…" else email

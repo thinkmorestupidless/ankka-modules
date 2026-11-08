@@ -21,7 +21,9 @@ Common to every route:
   original's quoting), a header row of the JSON answer's field names, money as the JSON's 2-dp strings. The revenue
   CSV's columns are `date, bets, wins, ggr, depositPoolGgr, bonusCosts, chargebacks, ngr, deposits, withdrawals,
   netCashFlow, currency, ngrBasis`; its first row after the header is the summary, dated `<from>/<to>`, then one
-  row per day (added 2026-11-08).
+  row per day (added 2026-11-08). Every report CSV with a summary puts it first: the bonus and provider CSVs label
+  it `all` in the first column, then one row per offer or provider; the bonus CSV's columns are the offers' fields
+  and `activeCount`, filled on the summary row only.
 - Refusals are `{"error": <code or the original's text>}`.
 
 ## Admission
@@ -56,7 +58,7 @@ Common to every route:
 | `GET /dashboard/rankings` | `range`, `currency` | `{range, games:[{gameId, gameName, provider, sessionCount}], players:[{playerId, truncatedEmail, countryCode, ggrAmount, totalWagered, currency}]}`, 10 each | game names from rounds; players every one |
 | `GET /dashboard/activity` | — | `{events:[{eventId, eventType, playerId, truncatedEmail, amountMinorUnits:null, currency:null, occurredAt}]}`, today, newest first, 50 | — |
 | `GET /dashboard/bonus-summary` | `currency` | `{activeBonusCount, totalLiability, bonusCostToday, totalLiabilityMinorUnits, bonusCostTodayMinorUnits, avgWageringCompletionPct, currency}` | both field-name sets; figures, not zeros |
-| `GET /dashboard/payment-health` | `currency` | `{depositSuccessRatePct, avgWithdrawalHours, currency, pspBreakdown:[{pspName, depositVolume, depositCount, successRatePct}]}` | figures; `null` with no attempts |
+| `GET /dashboard/payment-health` | `currency` | `{depositSuccessRatePct, avgWithdrawalHours, currency, pspBreakdown:[{pspName, depositVolume, depositCount, successRatePct}]}` | figures; `null` with no attempts; `depositVolume` a 2-dp string where the original's was a number (decided 2026-11-08) |
 | `GET /players/{playerId}/dispute-report` | `sessionId` xor (`fromDate`, `toDate`), `format` (`html`, `csv`, `pdf`) | `200` attachment `dispute-report-{reference}.{ext}`; HTML and CSV in `ReportService`'s layout | `pdf` new; over the limit `202`; the game's name and type from rounds; status the outcome |
 
 Dispute report refusals, the original's texts and order: `400 "provide either sessionId or
