@@ -60,6 +60,8 @@ class FreeRoundsFeatures extends RewardsFeatures("free-rounds.feature"):
   private def asResult(r: io.eitheror.casino.rewards.it.Reply): Result =
     import scala.jdk.CollectionConverters.*
     (r.status, r.json.text("error")) match
+      // The player still holds the offer: a step that gives it again waits for this to pass.
+      case (200, _) if r.json.path("alreadyProcessed").asBoolean(false) => Result.Refused("already_processed", Vector.empty)
       case (200, _)   => Result.Granted(r.json.text("grantId").getOrElse(fail(r.text)), r.json.text("providerStatus").getOrElse(fail(r.text)))
       case (502, _)   => Result.ProviderRejected(r.json.text("grantId").getOrElse(fail(r.text)))
       case (503, _)   => Result.Unavailable
