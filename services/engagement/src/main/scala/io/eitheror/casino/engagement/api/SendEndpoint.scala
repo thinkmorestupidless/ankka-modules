@@ -6,7 +6,8 @@ import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.engagement.Json
 import io.eitheror.casino.engagement.Json.*
 import io.eitheror.casino.engagement.events.{Classes, SendClass}
-import io.eitheror.casino.engagement.profile.ProfileState
+import io.eitheror.casino.engagement.profile.{Profile, ProfileState}
+import io.eitheror.casino.engagement.reads.SendsView
 import io.eitheror.casino.engagement.send.{DataField, Kind, Outcome, Send, SendRequest, SendState}
 
 import java.time.Instant
@@ -23,6 +24,42 @@ final class SendEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/${ct
   val acl: Acl = Routes.service()
 
   postBody("/sends") { (text: String) => SendRoute.serve(ctx, text) }
+
+  withAcl(Routes.playersOnly) {
+    post("/erasure/players/{player}") { (player: String) => ok(Erasure.erase(ctx, player)) }
+  }
+
+/**
+ * The player's erasure, for `players` (FR-016, research R15). The profile is erased first, so a send that starts
+ * after it is discarded at its first step; every open send of the subject is then ended `discarded`; then a `Send`
+ * of trigger `erasure` asks Customer.io to delete the person, and a CRM outage parks it for an operator like any
+ * send. A brand with no CRM configured has no person to delete. A repeat answers the first deletion's outcome.
+ */
+object Erasure:
+  /** How long the route waits for the deletion's first attempt. */
+  val Bound: java.time.Duration = java.time.Duration.ofSeconds(10)
+
+  def erase(ctx: Ctx, player: String): JsonNode =
+    ctx.components.forKeyValueEntity(com.thinkmorestupidless.ankka.core.EntityId(player)).call(Profile.erase).invoke(): Unit
+    val open = Iterator.from(1).map(p => SendsView.byPlayer(ctx.sends, player, p).rows).takeWhile(_.nonEmpty).flatten
+      .filter(r => r.trigger != Send.Erasure && (r.outcome == Outcome.Pending || r.outcome == Outcome.Parked)).toVector
+    // The view may lag: a send is ended only when its own state says it is still open.
+    val discarded = open.count(r => !ctx.sendState(r.key).ended && ctx.send(r.key).call(Send.erase).invoke().outcome == Outcome.Discarded)
+    val crm =
+      if !ctx.config.configured then "none"
+      else
+        val r = SendRequest(s"${Send.Erasure}/$player", player, Send.Erasure, None, SendClass.Service.wire, SendRequest.Crm,
+          "", ctx.now(), calls = Vector(Kind.Delete))
+        ctx.send(r.key).call(Send.start).invoke(r): Unit
+        val until = System.nanoTime() + Bound.toNanos
+        def settled(): SendState =
+          val s = ctx.sendState(r.key)
+          if s.ended || s.outcome == Outcome.Parked || System.nanoTime() >= until then s
+          else
+            Thread.sleep(50)
+            settled()
+        if settled().outcome == Outcome.Accepted then "deleted" else "failed"
+    Json.obj("service" -> "engagement", "subject" -> s"player/$player", "crm" -> crm, "sends" -> discarded)
 
 object SendRoute:
   /** How long the route waits for the first attempt's outcome (contracts/routes.md). */

@@ -230,7 +230,7 @@ the views and the audit publisher green under their suites.
       `missing_fields`, `unknown_trigger`); the links never logged above debug.
       `T/it/SendRouteSuite.scala`: one send per key, the fallback, `not_configured`, `suppressed`,
       `refused`, a caller that is not the brand's refused.
-- [ ] T037 [US4] The erasure route `POST /erasure/players/{player}` (`Routes.playersOnly`; research
+- [X] T037 [US4] The erasure route `POST /erasure/players/{player}` (`Routes.playersOnly`; research
       R15): a `Send` of trigger `erasure` making the CRM's `delete`, every open `Send` of the subject
       discarded, `Profile.erase`, the answer's certificate. `T/it/ErasureSuite.scala` (SC-007: the
       `delete` at `FakeCrm`; a replayed fact silent) and `T/it/DumpSuite.scala` (SC-006: `pg_dump`

@@ -146,8 +146,11 @@ final class Profile(context: KeyValueEntityContext) extends KeyValueEntity[Profi
 
   private def id(s: ProfileState): ProfileState = if s.playerId.isEmpty then s.copy(playerId = context.entityId) else s
 
+  /** An erased player's profile takes no later fact (FR-016): nothing personal is written back, and nothing changes. */
   private def answer(next: ProfileState, applied: Applied): Effect[Applied] =
-    if applied.changed then effects.updateState(next).thenReply(_ => applied) else effects.reply(applied)
+    if currentState.erased then effects.reply(applied.copy(changed = false))
+    else if applied.changed then effects.updateState(next).thenReply(_ => applied)
+    else effects.reply(applied)
 
   def players(c: PlayersFact): Effect[Applied] =
     val before = id(currentState)
