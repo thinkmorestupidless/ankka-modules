@@ -25,6 +25,7 @@ object ReportingService:
     RoundCheck.descriptor,
     RoundLegs(settings).descriptor,
     Coverage.descriptor,
+    io.eitheror.casino.reporting.settings.ReportingSettings.descriptor,
     day.BrandDay.descriptor,
     day.OpenDays.descriptor,
     day.CloseDays.descriptor

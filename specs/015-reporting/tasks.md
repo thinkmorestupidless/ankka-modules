@@ -134,7 +134,7 @@ access. Nothing story-specific starts before this phase ends.
 - [X] T027 `r/day/CloseDays.scala`: the `close-days` timer every five minutes (`a/money/DayCloser.scala`'s
   shape) and the `OpenDays` query it needs; suite with `MovableClock`
 - [X] T028 [P] `r/intake/Coverage.scala`: the earliest `occurredAt` per topic in the generation; suite
-- [ ] T029 [P] `r/settings/ReportingSettings.scala`: the key value entity, defaults and ranges of
+- [X] T029 [P] `r/settings/ReportingSettings.scala`: the key value entity, defaults and ranges of
   data-model.md, `400 invalid_setting`; suite
 
 ### The kit, the endpoint and access
