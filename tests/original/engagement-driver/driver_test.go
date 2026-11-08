@@ -328,7 +328,13 @@ func record(t *testing.T, def Def) (recorder.Recording, string, *stub, []string)
 	o := newStub()
 	srv := httptest.NewServer(o)
 	defer srv.Close()
-	dir := t.TempDir()
+	// Not t.TempDir: it names the directory after the subtest, and a scenario name with its example is longer than a
+	// Linux file name may be.
+	dir, err := os.MkdirTemp("", "engagement-driver-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	run := &lenient{T: t}
 	Scenario(run, stubConfig(srv, dir), def.Scenario(), def.Requirement, func(s *Session) { def.Run(run, s) })
 	b, err := os.ReadFile(filepath.Join(dir, "engagement", FileName(def.Scenario())+".json"))
