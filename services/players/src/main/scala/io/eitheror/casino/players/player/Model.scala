@@ -113,6 +113,7 @@ final case class PlayerState(
     favourites: Set[String] = Set.empty,
     vipTier: Option[String] = None,
     potVip: Boolean = false,
+    testAccount: Boolean = false,
     fraud: Option[FraudFlag] = None,
     duplicateCheck: Option[DuplicateCheck] = None,
     noDepositBlock: Option[NoDepositBlock] = None,
@@ -191,6 +192,8 @@ object PlayerEvent:
   final case class Reopened(actorId: String, reason: String, at: Instant)                          extends PlayerEvent
   final case class VipTierChanged(previous: Option[String], tier: String, actorId: Option[String], at: Instant) extends PlayerEvent
   final case class PotVipSet(potVip: Boolean, actorId: Option[String], at: Instant)                extends PlayerEvent
+  /** An operator's profile update changed the test-account flag (spec 015 R11): reporting reads it. */
+  final case class TestAccountSet(testAccount: Boolean, actorId: String, at: Instant)              extends PlayerEvent
   final case class DuplicateFlagged(caseId: String, linked: Set[String], signals: Set[String], at: Instant) extends PlayerEvent
   final case class DuplicateCleared(caseId: String, actorId: Option[String], at: Instant)        extends PlayerEvent
   /** The duplicate check begun (spec 011 FR-034), with the registration time its readers count from. */
@@ -262,6 +265,7 @@ final case class Reopen(operatorId: String, reason: String, retention: java.time
 final case class SetVipTier(tier: String, actorId: Option[String], at: Instant)
 final case class VipAnswer(previous: Option[String], changed: Boolean)
 final case class SetPotVip(potVip: Boolean, actorId: Option[String], at: Instant)
+final case class SetTestAccount(testAccount: Boolean, actorId: String, at: Instant)
 final case class FlagDuplicate(caseId: String, linked: Set[String], signals: Set[String], at: Instant)
 final case class ClearDuplicate(caseId: String, actorId: Option[String], at: Instant)
 /** The check's end: its outcome, and for a weak one the signals that block the no-deposit offers. */

@@ -347,6 +347,18 @@ class PlayerEntitySuite extends munit.FunSuite with LogCapturing:
     assert(!kit.call(PlayerEntity.setPotVip)(SetPotVip(true, Some("op-1"), at)).persisted)
   }
 
+  test("SetTestAccount: false until set, a change recorded with the operator, the value already held no event (spec 015 R11)") {
+    val kit = active
+    assert(!kit.currentState.testAccount)
+    assert(!kit.call(PlayerEntity.setTestAccount)(SetTestAccount(false, "op-1", at)).persisted)
+    val set = kit.call(PlayerEntity.setTestAccount)(SetTestAccount(true, "op-1", at))
+    assertEquals(set.events, Vector(TestAccountSet(true, "op-1", at)))
+    assert(kit.currentState.testAccount)
+    assert(!kit.call(PlayerEntity.setTestAccount)(SetTestAccount(true, "op-2", at)).persisted)
+    assert(kit.call(PlayerEntity.setTestAccount)(SetTestAccount(false, "op-2", at)).persisted)
+    assert(!kit.currentState.testAccount)
+  }
+
   test("FlagDuplicate is idempotent under the case id; ClearDuplicate removes the flag with its last case") {
     val kit = active
     assert(kit.call(PlayerEntity.flagDuplicate)(FlagDuplicate("c-1", Set("p-1", "p-9"), Set("identity"), at)).persisted)

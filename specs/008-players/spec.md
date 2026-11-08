@@ -543,6 +543,11 @@ store and `payments` for a personal field; fetch the response.
   (empty when none); PotVIP MUST be a flag whose change writes an operator note; an operator's
   password reset MUST send the realm's link and MUST NOT be an account-trail event. (Source:
   `BackofficePlayerRoutes`.)
+- **FR-033a**: The operator's profile update MUST take the test-account flag `isTestAccount` as the
+  original does (a boolean, anything else dropped; false until set), the operator's profile MUST
+  answer it, `player_registered` MUST carry `test_account` (false), and a change MUST publish
+  `player_test_account_changed` with the operator. (Source: spec 015 R11, FR-008, FR-024;
+  `PlayerProfileRoutes.scala:869`.)
 - **FR-034**: Operator notes MUST be personal data under the player, pinnable, visible to operators
   only; the operator's player list, search, profile, wallet summary (from `money.transactions`
   facts), activity, bets and CRM views MUST be views `players` builds, filtered by brand role (001

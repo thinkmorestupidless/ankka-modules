@@ -11,7 +11,8 @@ disagree, the contract wins.
 
 | Event | Family | Payload |
 |---|---|---|
-| `Registered` | `player_registered` | `player_id`, `registered_at`, `country`, `currency`, `vip_tier` (none), `btag`, `click_id`, `bonus_code` — the last three as presented and unverified; and the registration's profile as `player_profile_updated` carries one, as `Personal`: `given_name`, `family_name`, `date_of_birth`, `telephone`, `address_line`, `city`, `post_code`, each present when registered (spec 009, research *Findings* T048); `email`, the registered address, as `Personal` (spec 007 R7) |
+| `Registered` | `player_registered` | `player_id`, `registered_at`, `country`, `currency`, `vip_tier` (none), `btag`, `click_id`, `bonus_code` — the last three as presented and unverified; and the registration's profile as `player_profile_updated` carries one, as `Personal`: `given_name`, `family_name`, `date_of_birth`, `telephone`, `address_line`, `city`, `post_code`, each present when registered (spec 009, research *Findings* T048); `email`, the registered address, as `Personal` (spec 007 R7); `test_account`, always `false` (spec 015 R11) |
+| `TestAccountSet` | `player_test_account_changed` | `player_id`, `test_account`, `actor_id` — an operator's profile update changed `isTestAccount` (spec 015 R11) |
 | `EmailPromoted`, `EmailChanged` | `player_email_changed` | `player_id`, `email` as `Personal`: the new primary address (spec 007 R7) |
 | `SignedIn` | `player_logged_in` | `player_id`, `session_id` |
 | `PlayerSessionEntity.Ended` | `player_logged_out` | `player_id`, `session_id`, `close_reason` |

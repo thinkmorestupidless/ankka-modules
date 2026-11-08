@@ -73,7 +73,7 @@ access. Nothing story-specific starts before this phase ends.
 
 ### The amended producers (research R11)
 
-- [ ] T007 [P] players: the operator's profile update accepts `isTestAccount` (the original's
+- [X] T007 [P] players: the operator's profile update accepts `isTestAccount` (the original's
   `C/PlayerProfileRoutes.scala:870`), the player entity records it, `player_registered` carries
   `test_account`, a change publishes `player_test_account_changed`; tests in the players suites; amend
   `specs/008-players/spec.md` (an FR line naming spec 015) and `contracts/routes.md`
