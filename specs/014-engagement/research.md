@@ -452,6 +452,17 @@ R10 a broadcast rather than a poll; the poll is cheap enough that no spec is rai
   to the same value and so the same id; two facts differ at least in their `occurredAt`. A recording's
   ids are its own, so parity compares by event name, not key (T052). Under *For ankka*: a consumer
   that could read the message's `ce-id` would use the producer's id.
+- **The original's Customer.io hosts are hard-coded** (2026-11-08, T049): R2 says
+  `CUSTOMERIO_TRACK_URL`/`CUSTOMERIO_APP_URL` are the clients' base URLs, but neither client reads
+  any variable. `CustomerIOClient.scala:72-76` and `cio_client.go:23-35` choose between the
+  regions' hosts. `tests/original/e2e-crm.patch` adds the two variables to both, with the hard-coded
+  hosts as the default, and applies only to a recording checkout. It is the first patch here to change
+  the original's service code rather than its suite, so the recording rebuilds casino-service and the
+  TL runner (not the guests; no TinyGo). The stub's calls are made behind the original's consumers,
+  where the suite's transport cannot see them, so `crm-captures` attaches them to each recording
+  after the run, by the person each call names. They go in the recording's `outbound`, which spec
+  001's `contracts/recording.md` already defines and the recorder now carries (`recorder.Outbound`,
+  stub `crm-track` or `crm-app`: the method, the path and the body, never a header).
 
 ## Design finished
 

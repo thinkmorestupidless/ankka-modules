@@ -318,7 +318,7 @@ end in `just players-run` + `just engagement-run`.
 
 ## Phase 10: The recordings and parity
 
-- [ ] T049 The recording wiring (research R2): `tests/original/` gains the `crm-stub` in the compose
+- [X] T049 The recording wiring (research R2): `tests/original/` gains the `crm-stub` in the compose
       override with `CUSTOMERIO_TRACK_URL`/`CUSTOMERIO_APP_URL` pointed at it, a step in
       `e2e-recording.patch` that seeds the recording brand's `crm-config` with the stub's keys and a
       transactional id for every trigger, `preflight` refusing to start without the stub (FR-029),

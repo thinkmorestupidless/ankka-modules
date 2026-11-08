@@ -1,0 +1,55 @@
+diff --git a/substrate/casino-service/src/main/scala/io/eitheror/casino/CustomerIOClient.scala b/substrate/casino-service/src/main/scala/io/eitheror/casino/CustomerIOClient.scala
+--- a/substrate/casino-service/src/main/scala/io/eitheror/casino/CustomerIOClient.scala
++++ b/substrate/casino-service/src/main/scala/io/eitheror/casino/CustomerIOClient.scala
+@@ -69,11 +69,14 @@
+   private val log = LoggerFactory.getLogger(getClass)
+   given ExecutionContext = system.executionContext
+ 
++  // Recording only (ankka-modules tests/original/e2e-crm.patch): the hosts can be pointed at crm-stub.
+   private def trackBase(region: String): String =
+-    if region == "eu" then "https://track-eu.customer.io" else "https://track.customer.io"
++    sys.env.get("CUSTOMERIO_TRACK_URL").filter(_.nonEmpty).getOrElse(
++      if region == "eu" then "https://track-eu.customer.io" else "https://track.customer.io")
+ 
+   private def appBase(region: String): String =
+-    if region == "eu" then "https://api-eu.customer.io" else "https://api.customer.io"
++    sys.env.get("CUSTOMERIO_APP_URL").filter(_.nonEmpty).getOrElse(
++      if region == "eu" then "https://api-eu.customer.io" else "https://api.customer.io")
+ 
+   import CustomerIOClient.encodeAttributes
+ 
+diff --git a/tl/runtime/capabilities/customerio_dispatch/cio_client.go b/tl/runtime/capabilities/customerio_dispatch/cio_client.go
+--- a/tl/runtime/capabilities/customerio_dispatch/cio_client.go
++++ b/tl/runtime/capabilities/customerio_dispatch/cio_client.go
+@@ -10,7 +10,9 @@
+ 	"log"
+ 	"math/rand"
+ 	"net/http"
++	"os"
+ 	"strconv"
++	"strings"
+ 	"time"
+ )
+ 
+@@ -20,7 +22,11 @@
+ 	jitterFraction = 0.25
+ )
+ 
++// Recording only (ankka-modules tests/original/e2e-crm.patch): the hosts can be pointed at crm-stub.
+ func trackBaseURL(region string) string {
++	if v := os.Getenv("CUSTOMERIO_TRACK_URL"); v != "" {
++		return strings.TrimSuffix(v, "/") + "/api/v2/entity"
++	}
+ 	if region == "eu" {
+ 		return "https://track-eu.customer.io/api/v2/entity"
+ 	}
+@@ -28,6 +34,9 @@
+ }
+ 
+ func appBaseURL(region string) string {
++	if v := os.Getenv("CUSTOMERIO_APP_URL"); v != "" {
++		return strings.TrimSuffix(v, "/") + "/v1/send/email"
++	}
+ 	if region == "eu" {
+ 		return "https://api-eu.customer.io/v1/send/email"
+ 	}

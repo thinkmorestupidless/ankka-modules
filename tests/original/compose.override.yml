@@ -35,3 +35,19 @@ services:
       # the stubs post webhooks here; a browser cannot resolve it, so hosted pages are driven by the suite
       PSP_GATEWAY_BASE_URL: "http://psp-gateway:8087"
     depends_on: [psp-stub]
+
+  # Customer.io's two hosts (spec 014 research R2). The original's clients read these variables only
+  # with e2e-crm.patch applied; without it they call Customer.io itself.
+  crm-stub:
+    image: crm-stub
+    build:
+      context: ../../../ankka-casino/tests
+      dockerfile: stubs/crm-stub/Dockerfile
+    ports:
+      - "18201-18202:18201-18202"
+
+  casino-service:
+    environment:
+      CUSTOMERIO_TRACK_URL: "http://crm-stub:18201"
+      CUSTOMERIO_APP_URL: "http://crm-stub:18202"
+    depends_on: [crm-stub]
