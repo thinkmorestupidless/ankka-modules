@@ -100,7 +100,7 @@ object Round extends EventSourcedEntity.Companion[Round, RoundState, RoundEvent]
     val tx = cmd.tx
     def summary(outcome: String) = SettlementSummary(after.provider, after.roundId, after.playerId, after.currency, after.gameCode,
       after.sessionId, after.totalStake, after.win, outcome, after.providerTransactionIds, after.walletTransactionIds,
-      after.freeRoundsGrant, tx.receivedAt)
+      after.freeRoundsGrant, tx.receivedAt, after.gameName, after.gameType)
     if tx.answer.status != "ok" then None
     else if CreditKinds(tx.kind) then
       val actions = tx.movements.map(_.action).toSet
@@ -122,7 +122,7 @@ object Round extends EventSourcedEntity.Companion[Round, RoundState, RoundEvent]
     event match
       case RoundOpened(o) =>
         s.copy(provider = o.provider, roundId = o.roundId, playerId = o.playerId, currency = o.currency, gameCode = o.gameCode,
-          sessionId = o.sessionId, status = RoundState.Open, openedAt = Some(o.at))
+          sessionId = o.sessionId, status = RoundState.Open, openedAt = Some(o.at), gameName = o.gameName, gameType = o.gameType)
       case DebitRecorded(tx, opened) =>
         val r = recorded(tx); r.copy(openBets = r.openBets ++ opened, totalStake = r.totalStake + tx.amount)
       case BuyinRecorded(tx, opened) =>

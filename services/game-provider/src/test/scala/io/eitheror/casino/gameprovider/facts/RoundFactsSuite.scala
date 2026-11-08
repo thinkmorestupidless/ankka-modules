@@ -44,6 +44,15 @@ class RoundFactsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(free.payloads.loneElement.asInstanceOf[RoundSettled].freeRoundsGrant, Some("g-1"))
   }
 
+  test("the game's name and type are the catalogue's the round recorded, and absent for a game it did not hold (spec 015)") {
+    val kit   = ConsumerTestKit.of(RoundFacts)
+    val named = kit.onMessage(RoundEvent.RoundSettled(summary.copy(gameName = Some("Book of Ra"), gameType = Some("slots"))), "st8/r-1", 7)
+    val fact  = named.payloads.loneElement.asInstanceOf[RoundSettled]
+    assertEquals((fact.gameName, fact.gameType), (Some("Book of Ra"), Some("slots")))
+    val unnamed = kit.onMessage(RoundEvent.RoundSettled(summary), "st8/r-2", 4).payloads.loneElement.asInstanceOf[RoundSettled]
+    assertEquals((unnamed.gameName, unnamed.gameType, unnamed.gameId), (None, None, "book-of-ra"), "the game id stands for the name")
+  }
+
   test("every other event of a round publishes nothing") {
     val kit = ConsumerTestKit.of(RoundFacts)
     val opened = kit.onMessage(RoundEvent.RoundOpened(RoundOpening("st8", "r-1", "p-1", "EUR", None, None, at)), "st8/r-1", 1)

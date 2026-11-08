@@ -62,9 +62,13 @@ final case class UnacknowledgedEntry(
 ):
   def open: Boolean = cleared.isEmpty
 
-/** The round's identity and context, taken from the first callback that names it. */
+/**
+ * The round's identity and context, taken from the first callback that names it. The game's name and
+ * type (its catalogue category) are the catalogue's when the round opens, absent for a game it does not
+ * hold, so `round_settled` names the game from recorded state (spec 015 FR-019 amendment).
+ */
 final case class RoundOpening(provider: String, roundId: String, playerId: String, currency: String, gameCode: Option[String],
-    sessionId: Option[String], at: Instant)
+    sessionId: Option[String], at: Instant, gameName: Option[String] = None, gameType: Option[String] = None)
 
 final case class RoundState(
     provider: String = "",
@@ -82,7 +86,9 @@ final case class RoundState(
     unacknowledged: Vector[UnacknowledgedEntry] = Vector.empty,
     status: String = RoundState.New,
     openedAt: Option[Instant] = None,
-    settledAt: Option[Instant] = None
+    settledAt: Option[Instant] = None,
+    gameName: Option[String] = None,
+    gameType: Option[String] = None
 ):
   def isNew: Boolean = status == RoundState.New
 
@@ -117,7 +123,9 @@ final case class SettlementSummary(
     providerTransactionIds: Vector[String],
     walletTransactionIds: Vector[String],
     freeRoundsGrant: Option[String],
-    at: Instant
+    at: Instant,
+    gameName: Option[String] = None,
+    gameType: Option[String] = None
 )
 
 sealed trait RoundEvent

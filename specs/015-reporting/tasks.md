@@ -77,7 +77,7 @@ access. Nothing story-specific starts before this phase ends.
   `C/PlayerProfileRoutes.scala:870`), the player entity records it, `player_registered` carries
   `test_account`, a change publishes `player_test_account_changed`; tests in the players suites; amend
   `specs/008-players/spec.md` (an FR line naming spec 015) and `contracts/routes.md`
-- [ ] T008 [P] game-provider: `round_settled` carries `game_name`, `game_type` from the catalogue
+- [X] T008 [P] game-provider: `round_settled` carries `game_name`, `game_type` from the catalogue
   (`services/game-provider/.../catalogue/`), absent when the game is not in it; confirm which session
   `session_id` is (research R20 item 2) and state it; tests in `RoundFactsSuite`; amend
   `specs/003-game-provider/spec.md` FR-019

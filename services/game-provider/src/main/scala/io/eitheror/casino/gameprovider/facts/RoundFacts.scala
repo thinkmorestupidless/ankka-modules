@@ -37,6 +37,16 @@ object RoundFacts extends Consumer.Companion[RoundFacts, RoundEvent, CasinoRound
   // The topic's contract, which the project declares: ankka refuses a publisher that names none (T082).
   override val produces: Option[Publication] = Some(Publication(CasinoRounds.name, Some(CasinoRounds.contract), None))
 
+  /**
+   * `sessionId` is the game session's id, the `session_id` of `casino.sessions`' `game_session_started`:
+   * the launch opens it at `players` (`api/Launch.scala:96`, whose answer is the `GameSessionEntity`'s id,
+   * `players/.../api/GameSessionRoutes.scala:67-71`) and attaches it to the ticket; the provider's callbacks
+   * name the ticket, and the round takes the session from it when it opens (`api/callbacks/Callbacks.scala`,
+   * `opening`). Empty when no ticket named the round (a buyin or payout without one); a random id, matching
+   * no session, when `players` did not answer the launch (FR-009). `gameName` and `gameType` (the
+   * catalogue's category) are the catalogue's when the round opened, absent for a game it did not hold
+   * (spec 015 research R11).
+   */
   def fact(s: SettlementSummary): RoundSettled =
     RoundSettled(
       playerId = s.playerId,
@@ -54,5 +64,7 @@ object RoundFacts extends Consumer.Companion[RoundFacts, RoundEvent, CasinoRound
       providerTransactionIds = s.providerTransactionIds,
       walletTransactionIds = s.walletTransactionIds,
       freeRoundsGrant = s.freeRoundsGrant,
-      occurredAt = s.at
+      occurredAt = s.at,
+      gameName = s.gameName,
+      gameType = s.gameType
     )

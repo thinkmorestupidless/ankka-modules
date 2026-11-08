@@ -51,6 +51,21 @@ class RoundSuite extends munit.FunSuite with LogCapturing:
     assertEquals(settled.walletTransactionIds, Vector("w-t-1", "w-t-2", "w-c1", "w-c2"))
   }
 
+  test("the game's name and type recorded at the opening travel on the settlement; an opening without them settles without") {
+    val named = EventSourcedTestKit.of(Round, "st8/r-1")
+    val withGame = opening.copy(gameName = Some("Book of Ra"), gameType = Some("slots"))
+    named.call(Round.record)(debit("t-1", 100, 900).copy(opening = withGame))
+    val r = named.call(Round.record)(credit("c-1", 0, Vector("t-1"), Vector(Movement(Movement.Loss, "c-1/t-1", Some("t-1"), 0, "w-c1")), 900)
+      .copy(opening = opening))
+    val settled = r.eventOfType[RoundEvent.RoundSettled].summary
+    assertEquals((settled.gameName, settled.gameType, settled.sessionId), (Some("Book of Ra"), Some("slots"), Some("gs-1")),
+      "the first callback's opening, not a later one's")
+    val plain = kit
+    plain.call(Round.record)(debit("t-1", 100, 900))
+    val p = plain.call(Round.record)(credit("c-1", 0, Vector("t-1"), Vector(Movement(Movement.Loss, "c-1/t-1", Some("t-1"), 0, "w-c1")), 900))
+    assertEquals((p.eventOfType[RoundEvent.RoundSettled].summary.gameName, p.eventOfType[RoundEvent.RoundSettled].summary.gameType), (None, None))
+  }
+
   test("a zero credit settles every open bet as a loss and publishes outcome loss") {
     val k = kit
     k.call(Round.record)(debit("t-1", 100, 900))

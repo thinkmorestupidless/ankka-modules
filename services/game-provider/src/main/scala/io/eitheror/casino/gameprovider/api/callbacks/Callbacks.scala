@@ -6,6 +6,7 @@ import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.gameprovider.Json
+import io.eitheror.casino.gameprovider.catalogue.{Game, GameFields}
 import io.eitheror.casino.gameprovider.clients.*
 import io.eitheror.casino.gameprovider.config.ProviderConfigurations
 import io.eitheror.casino.gameprovider.money.Amounts
@@ -107,8 +108,16 @@ final class Callbacks(
 
   private def round(entityId: String) = components.forEventSourcedEntity(EntityId(entityId))
 
+  /** The round's opening; the game's name and category are the catalogue's, so the round records them (spec 015). */
   private def opening(roundId: String, player: String, currency: String, t: Option[TicketState], gameCode: Option[String]) =
-    RoundOpening(provider, roundId, player, currency, gameCode.orElse(t.map(_.gameCode)).filter(_.nonEmpty), t.map(_.sessionId).filter(_.nonEmpty), now())
+    val code = gameCode.orElse(t.map(_.gameCode)).filter(_.nonEmpty)
+    val game = code.flatMap(catalogued)
+    RoundOpening(provider, roundId, player, currency, code, t.map(_.sessionId).filter(_.nonEmpty), now(),
+      game.map(_.name).filter(_.nonEmpty), game.map(_.category).filter(_.nonEmpty))
+
+  /** The catalogue's fields for a game of this provider; none when it holds no such game or cannot be read, which fails no bet. */
+  private def catalogued(code: String): Option[GameFields] =
+    Try(components.forKeyValueEntity(EntityId(Game.entityId(provider, code))).call(Game.get).invoke()).toOption.flatMap(_.fields)
 
   private def txKey(body: CallbackBody): String =
     body.transactionId.filter(_.length <= 200).getOrElse(stop(Status.Error))
@@ -243,7 +252,7 @@ final class Callbacks(
       wallet.balance(player, currency).toOption.map(b => render(b.total, currency)), Some(currency)))
     // The referenced transaction is found by its own workflow, which names its round (the index it replaces).
     val referenced = workflow(refId).call(BetWorkflow.status).invoke().job.filter(_.player == player).getOrElse(stop(notFound))
-    val open = RoundOpening(provider, referenced.roundId, player, currency, referenced.opening.gameCode, referenced.opening.sessionId, now())
+    val open = referenced.opening.copy(provider = provider, playerId = player, currency = currency, at = now())
     run(BetJob(provider, Callback.Cancel.wire, "cancel", cancelId, referenced.roundId, referenced.roundEntity, player, currency, 0,
       referenced.gameId, referenced.sessionId, None, None, Some(refId), accountLocked = false, raw, open))
 
