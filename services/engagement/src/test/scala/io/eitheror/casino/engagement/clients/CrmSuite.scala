@@ -27,11 +27,11 @@ class CrmSuite extends munit.FunSuite:
   }
 
   test("a 2xx is accepted, a 429 or a 5xx retried, any other answer refused with its body") {
-    assertEquals(CustomerIo.answer(200, ""), CrmAnswer.Accepted(200))
-    assert(CustomerIo.answer(429, "").isInstanceOf[CrmAnswer.Retryable])
-    assert(CustomerIo.answer(503, "").isInstanceOf[CrmAnswer.Retryable])
-    assertEquals(CustomerIo.answer(400, "bad"), CrmAnswer.Refused(400, "bad"))
-    assertEquals(CustomerIo.answer(401, "no"), CrmAnswer.Refused(401, "no"))
+    assertEquals(CustomerIo.answer(200), CrmAnswer.Accepted(200))
+    assert(CustomerIo.answer(429).isInstanceOf[CrmAnswer.Retryable])
+    assert(CustomerIo.answer(503).isInstanceOf[CrmAnswer.Retryable])
+    assertEquals(CustomerIo.answer(400), CrmAnswer.Refused(400, "Customer.io refused 400"))
+    assertEquals(CustomerIo.answer(401), CrmAnswer.Refused(401, "Customer.io refused 401"))
   }
 
   test("an unreachable host is retried, and a missing key refused without a call") {

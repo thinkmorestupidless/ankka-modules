@@ -66,17 +66,21 @@ final class CustomerIo(trackUrl: Option[String], appUrl: Option[String], timeout
       .POST(HttpRequest.BodyPublishers.ofString(Json.render(body))).build()
     Try(http.send(request, HttpResponse.BodyHandlers.ofString())).fold(
       e => CrmAnswer.Retryable(None, e.getClass.getSimpleName),
-      r => CustomerIo.answer(r.statusCode, Option(r.body).getOrElse(""))
+      r => CustomerIo.answer(r.statusCode)
     )
 
 object CustomerIo:
   def trackHost(region: String): String = if region == "eu" then "https://track-eu.customer.io" else "https://track.customer.io"
   def appHost(region: String): String   = if region == "eu" then "https://api-eu.customer.io" else "https://api.customer.io"
 
-  def answer(status: Int, body: String): CrmAnswer =
+  /**
+   * The answer by its status alone. A refusal's body is not kept: Customer.io's can name the value it rejected (an
+   * address, an attribute), and the send's state is not sealed (SC-006).
+   */
+  def answer(status: Int): CrmAnswer =
     if status / 100 == 2 then CrmAnswer.Accepted(status)
     else if status == 429 || status >= 500 then CrmAnswer.Retryable(Some(status), s"Customer.io answered $status")
-    else CrmAnswer.Refused(status, body.take(500))
+    else CrmAnswer.Refused(status, s"Customer.io refused $status")
 
   /** The attributes as the original wrote them: FR-003's nine as numbers where they read as one, the rest strings. */
   def attributes(values: Vector[(String, String)]): ObjectNode =
