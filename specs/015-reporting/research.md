@@ -406,3 +406,6 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T027, the close-days timer's wiring**: a timed action has no view client, so (as attribution's `Wiring`)
   `ReportingRuntime` holds the settings and the `open-before` read, set by `ReportingService.wire` and
   `started`. No `Main` calls them yet; whatever starts the service (T030 onwards) must call both.
+- **T025, pending holds at close** (open question of the intake agent, settled 2026-11-08): `WalletBook` cannot see a hold
+  end on completion (the wallet's hold confirmation emits no fact), so the day-end's pending holds are the
+  `Withdrawal`s requested and not yet ended at the close, read through `CloseInputs` (US6). No contract change.
