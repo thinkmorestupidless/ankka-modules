@@ -3,7 +3,7 @@ package io.eitheror.casino.programme.it
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
-import io.eitheror.casino.programme.accounts.{Affiliate, EmailIndex, Membership, Secrets}
+import io.eitheror.casino.programme.accounts.{Affiliate, ClaimEmail, EmailIndex, Membership, Secrets}
 import io.eitheror.casino.programme.sealing.Digest
 import io.eitheror.casino.programme.brands.{BrandProgramme, Plan, UpdateBrand}
 import io.eitheror.casino.programme.links.Link
@@ -44,11 +44,30 @@ class MembershipsSuite extends munit.FunSuite with LogCapturing:
     val email  = s"${kit.fresh("orphan")}@example.com"
     val key    = kit.eventually("the email index key")(Secrets(kit.secrets).emailIndexKey.toOption)
     val digest = Digest.of(email, key)
-    kit.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.claim).invoke("aff-never-made"): Unit
+    // An enrolment that failed after its claim, longer ago than an enrolment takes.
+    kit.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.claim).invoke(ClaimEmail("aff-never-made", kit.now.minusSeconds(600))): Unit
     val r = apply("goldvibe", email)
     assertEquals(r.status, 201, r.text)
     val aff = r.json.get("affiliateId").asText
     assertEquals(kit.components.forKeyValueEntity(EntityId(digest)).call(EmailIndex.get).invoke().affiliate, Some(aff))
+  }
+
+  test("two applications for one address at once make one account: the second is refused while the first enrols") {
+    val email = s"${kit.fresh("twice")}@example.com"
+    given scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+    val both = scala.concurrent.Future.sequence(Seq.fill(2)(scala.concurrent.Future(apply("goldvibe", email))))
+    val rs   = scala.concurrent.Await.result(both, scala.concurrent.duration.Duration(60, "s"))
+    assertEquals(rs.map(_.status).sorted, Seq(201, 409), rs.map(_.text).mkString(" | "))
+    val key    = kit.eventually("the email index key")(Secrets(kit.secrets).emailIndexKey.toOption)
+    val made   = rs.find(_.status == 201).get.json.get("affiliateId").asText
+    assertEquals(kit.components.forKeyValueEntity(EntityId(Digest.of(email, key))).call(EmailIndex.get).invoke().affiliate, Some(made))
+  }
+
+  test("an address claimed a moment ago by an enrolment not yet finished is refused, not taken over") {
+    val email  = s"${kit.fresh("enrolling")}@example.com"
+    val key    = kit.eventually("the email index key")(Secrets(kit.secrets).emailIndexKey.toOption)
+    kit.components.forKeyValueEntity(EntityId(Digest.of(email, key))).call(EmailIndex.claim).invoke(ClaimEmail("aff-enrolling", kit.now)): Unit
+    assertEquals(apply("goldvibe", email).status, 409)
   }
 
   private def status(aff: String, brand: String) =
@@ -93,7 +112,8 @@ class MembershipsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(made.status, 201, made.text)
     val aff = made.json.get("affiliateId").asText
     kit.eventually("the realm user")(kit.realm.byEmail(email).filter(_.roles == Set("affiliate", "brand_goldvibe"))): Unit
-    Thread.sleep(1000) // the provisioning consumer has had its turn
+    // An absence: bounded by the wait above, which the same consumer's handling of the approval wrote first.
+    Thread.sleep(1000)
     assertEquals(kit.components.forKeyValueEntity(EntityId(Link.defaultIdOf(aff, "goldvibe"))).call(Link.get).invoke().exists, false)
   }
 

@@ -20,14 +20,14 @@ final class Enrolment(api: Api):
     }
 
   /**
-   * The email's index entry for `affiliate`. One whose account was never made (an enrolment that failed
-   * after its claim) is let go first, or the address could never register again; a live holder refuses.
+   * The email's index entry for `affiliate`. A holder whose account was never made (an enrolment that
+   * failed after its claim) is taken over once its claim is stale, or the address could never register
+   * again; a live holder, or one still enrolling, refuses.
    */
   def claim(digest: String, affiliate: String): Unit =
-    val index = api.components.forKeyValueEntity(EntityId(digest))
-    index.call(EmailIndex.get).invoke().affiliate.filter(h => h != affiliate && !api.account(h).exists)
-      .foreach(orphan => index.call(EmailIndex.release).invoke(orphan): Unit)
-    index.call(EmailIndex.claim).invoke(affiliate): Unit
+    val index  = api.components.forKeyValueEntity(EntityId(digest))
+    val orphan = index.call(EmailIndex.get).invoke().affiliate.filter(h => h != affiliate && !api.account(h).exists)
+    index.call(EmailIndex.claim).invoke(ClaimEmail(affiliate, api.now(), orphan)): Unit
 
   /** A new account under `affiliate`, its email claimed in the index. */
   def open(affiliate: String, digest: String, identity: Identity, parent: Option[String], overrideBp: Int, fields: AccountFields,
