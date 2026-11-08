@@ -340,7 +340,7 @@ end in `just players-run` + `just engagement-run`.
 
 ## Phase 11: Polish and cross-cutting
 
-- [ ] T053 [P] `services/engagement/README.md`: components, suites, local run, the `/v1/stream` note;
+- [X] T053 [P] `services/engagement/README.md`: components, suites, local run, the `/v1/stream` note;
       `modules/engagement/module.json` checked against the service (`just modules render goldvibe`).
 - [ ] T054 [P] `specs/001-brands-and-projects/contracts/routes.md`: the engagement rows (five prefixes
       and their audiences); `contract/access/routes.md` re-checked against T011.
