@@ -20,12 +20,18 @@ Feature: A sub-affiliate subtree earns override
     Then they are unattributed at brand "B"
     And no override is written
 
-  Scenario: an invitation creates the sub pending under the parent with the parent's plan unless it says otherwise
-    Given a parent
-    When they invite a sub by email or share an invite link
-    Then the sub's account is created pending under the parent
-    And the sub inherits the parent's plan at each brand the parent names unless the invitation says otherwise
-    And the parent is told when the sub applies
+  Scenario: an email invitation makes the sub active at once on the parent's plan unless it says otherwise
+    Given a parent with active memberships at brands "A" and "B"
+    When they invite a sub by email naming brands "A" and "B"
+    Then the sub's account is created under the parent with active memberships at brands "A" and "B"
+    And the sub is on the parent's plan at each brand unless the invitation says otherwise
+    And the sub is invited to sign in
+
+  Scenario: an invite link creates the sub pending under the parent for the parent to approve
+    Given a parent's invite link for brand "A"
+    When a person applies through it
+    Then the sub's account is created under the parent with a pending membership at brand "A"
+    And the parent is told that an approval is pending
 
   Scenario: a parent's action on a sub applies within their own subtree and is audited as the parent's
     Given a parent

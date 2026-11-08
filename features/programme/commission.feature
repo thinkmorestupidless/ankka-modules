@@ -13,10 +13,11 @@ Feature: A brand's facts become commission
     When a second "registration" fact for the same player at brand "A" is consumed
     Then it is ignored as a duplicate
 
-  Scenario: a first deposit at or above the plan's minimum deposit writes one CPA fact in the deposit's currency
-    Given an attributed player on a CPA or hybrid plan with a minimum deposit of "2000"
-    When a "first-deposit" fact of "2000" arrives
-    Then one CPA fact for the plan's amount is written in the deposit's currency, dated when the deposit occurred
+  Scenario: a first deposit at or above the plan's minimum deposit writes one CPA fact in the plan's currency
+    Given an attributed player on a CPA or hybrid plan with a CPA of "5000" in "EUR" and a minimum deposit of "2000"
+    When a "first-deposit" fact of "2000" in "USD" arrives
+    Then one CPA fact of "5000" is written in "EUR", dated when the deposit occurred
+    And the deposit is counted in the player's totals in "USD"
 
   Scenario: a later deposit in any period writes no second CPA fact and is still counted in the player's totals
     Given an attributed player whose first deposit paid CPA
@@ -35,6 +36,24 @@ Feature: A brand's facts become commission
     When "ggr-daily", "ggr-adjustment", "bonus-cost" and "chargeback" facts arrive
     Then NGR is folded as GGR minus bonus cost, chargebacks and the brand's admin, payment and provider fee percentages
     And a RevShare fact is written for exactly the delta between the commission on the cumulative NGR and what has already been emitted, positive or negative
+
+  Scenario Outline: only the GGR source the brand names folds and the other kind is recorded for reconciliation
+    Given brand "A" whose GGR source is "<source>"
+    And an attributed player at brand "A" with "ggr-daily" and "ggr-round" facts for the same day
+    When both are consumed
+    Then only the "<folds>" facts fold into NGR and write fee facts
+    And the "<recorded>" facts are recorded for reconciliation
+
+    Examples:
+      | source | folds     | recorded  |
+      | daily  | ggr-daily | ggr-round |
+      | rounds | ggr-round | ggr-daily |
+
+  Scenario: a GGR day from before the player's binding is recorded and folds nothing
+    Given a player bound by a late bonus code
+    When a "ggr-daily" fact marked as before the binding arrives
+    Then it is recorded on the player
+    And it folds into no NGR and writes no fee or commission fact
 
   Scenario: without negative carryover a negative period floors RevShare at zero and the next period starts fresh
     Given an attributed player on a plan without negative carryover

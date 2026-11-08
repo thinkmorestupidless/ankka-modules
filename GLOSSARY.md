@@ -297,9 +297,20 @@ A person or company that sends players to a brand and is paid commission for wha
 An issuer of tags and reader of facts: the programme, another installation's programme, or a third party. A brand knows a network by its id, its key document, its revocation list and the pseudonym key it holds for it.
 
 ### programme
-The installation's own affiliate network, shared by every brand: it issues tags, publishes its key document, revocation list and legacy tag document, reads every brand's facts, turns them into commission and pays affiliates. It knows a player only by a pseudonym.
+The installation's own affiliate network, shared by every brand and by every hosted brand: it issues tags, publishes its key document, revocation list and legacy tag document, reads every brand's facts, turns them into commission and pays affiliates. It knows a player only by a pseudonym.
 
 Avoid: affiliate service, affiliate-service
+
+### hosted brand
+A brand of another company that an operator of the installation has added to the programme under a contract signed outside the platform. It posts its facts to the programme's network webhook, as any brand elsewhere does, and its managers see nothing of other brands.
+
+Avoid: tenant, customer brand
+
+### usage report
+The programme's account of one brand's calendar month, for invoicing outside the platform: facts received, active memberships, commission recorded and commission paid, each per currency. It holds no fee.
+
+### GGR source
+A brand's programme setting naming which GGR facts fold into NGR: daily (`ggr-daily` and `ggr-adjustment`, the default) or rounds (`ggr-round`). Facts of the other kind are recorded for reconciliation; a change takes effect from the next reporting day.
 
 ### tag
 The value an affiliate's link or bonus code carries to a brand, signed by the network that issued it, naming the network, the affiliate, the link, a campaign, up to five sub-ids, the signing key and when it was issued. A brand verifies it with the network's key document and asks the network nothing.
@@ -527,7 +538,7 @@ An affiliate and every affiliate below them; what an affiliate sees and acts wit
 Avoid: network tree, downline
 
 ### invitation
-A parent's one-use offer to a sub, by email or invite link, which creates the sub pending under the parent on the parent's plan unless it says otherwise.
+A parent's offer to a sub: by email, used once, which makes the sub active at once at each brand the parent names; or by invite link, serving until revoked, which creates the sub pending for the parent to approve. Either puts the sub on the parent's plan unless it says otherwise.
 
 ### operator invitation
 The shared payments' one-use offer to a new operator, who accepts it and sets a password to become active at their level.

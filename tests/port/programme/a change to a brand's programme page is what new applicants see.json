@@ -1,0 +1,353 @@
+{
+  "scenario": "a change to a brand's programme page is what new applicants see",
+  "requirement": "013/FR-034",
+  "recorded_at": "2026-11-07T10:15:10.210656Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      },
+      "capture": {
+        "plan": "$.planId"
+      }
+    },
+    {
+      "name": "create the account: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "affiliate-{run}@example.com",
+          "name": "Driver affiliate",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "01815601-f648-4a29-a2b3-14b85acedc09",
+          "email": "affiliate-{run}@example.com"
+        }
+      },
+      "capture": {
+        "affiliate": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "add a note",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/notes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "authorId": "driver",
+          "text": "Driver note"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "noteId": "1f5008a7-1eaa-4cb4-b4ba-58be4bbdb44c"
+        }
+      },
+      "vary": {
+        "$.noteId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "list the notes",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/notes",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "name": "read the audit",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/audit",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      },
+      "vary": {
+        "$": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the settings",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/settings",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adminFeePercent": "0",
+          "bonusCostThreshold": "3",
+          "chargebackThreshold": "2",
+          "paymentFeePercent": "0",
+          "payoutCycleDay": "1",
+          "providerFeePercent": "0"
+        }
+      }
+    },
+    {
+      "name": "change the settings",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/affiliates/{brand}/settings",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "adminFeePercent": "0",
+          "bonusCostThreshold": "3",
+          "chargebackThreshold": "2",
+          "paymentFeePercent": "0",
+          "payoutCycleDay": "1",
+          "providerFeePercent": "0"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read the programme page",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/programme",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "minimumPayoutAmount": "50.00",
+          "payoutCycleDays": "30"
+        }
+      }
+    },
+    {
+      "name": "change the programme page",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/affiliates/{brand}/programme",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "minimumPayoutAmount": "50.00",
+          "payoutCycleDays": "30"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read the changed programme page",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/programme",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "minimumPayoutAmount": "50.00",
+          "payoutCycleDays": "30"
+        }
+      }
+    },
+    {
+      "name": "message the affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/messages",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "body": "Driver message",
+          "targetAffiliateId": "{affiliate}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "sent": 1
+        }
+      }
+    },
+    {
+      "name": "add a creative",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/creatives",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "creativeType": "banner",
+          "description": "Driver banner",
+          "dimensions": "728x90",
+          "fileUrl": "https://example.com/creatives/banner-728x90.png",
+          "name": "Banner {run}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "creativeId": "6d957d07-7c4b-47cb-99b4-73bf4d225713"
+        }
+      },
+      "capture": {
+        "creative": "$.creativeId"
+      },
+      "vary": {
+        "$.creativeId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "list the creatives",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/creatives",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      },
+      "vary": {
+        "$": "the brand's creatives include earlier runs'"
+      }
+    },
+    {
+      "name": "delete the creative",
+      "request": {
+        "method": "DELETE",
+        "path": "/v1/affiliates/{brand}/creatives/{creative}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "a new applicant applies",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/apply",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "applicant-{run}@example.com",
+          "name": "Driver applicant",
+          "termsVersion": "{period}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "93965977-41a2-4891-980c-6cde9747fee4",
+          "status": "PENDING"
+        }
+      },
+      "capture": {
+        "applicant": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

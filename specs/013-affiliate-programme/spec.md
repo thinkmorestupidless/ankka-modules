@@ -10,9 +10,9 @@
 
 ## Context
 
-Today `affiliate-service` is one service per brand deployment. Every twin namespace it writes is keyed by brand (`affiliates-{brand}`, `affiliate-plans-{brand}`, `affiliate-facts-{brand}-{affiliate}`, `affiliate-payouts-{brand}`), an affiliate belongs to exactly one brand, and the brand an affiliate works for is read from the first `brand_{id}` realm role on their token. The casino tells the service what happened over nine internal `notify/*` routes (registration, deposit, ggr, withdrawal, withdrawal-reversal, pending-approval, bonus-cost, chargeback) and the service turns each into commission under ADR 0042: immutable facts, folded fresh on every read, settled by a payout close that stamps each payable fact with the payout that claimed it. The portal (`/v1/my/{affiliate}/…`) and the operator surface (`/v1/affiliates/{brand}/…`) read that fold. Spec 107 planned a brand selector for an affiliate working several brands; it was never built, and spec 181 put multiple brands out of scope.
+Today `affiliate-service` is one service per brand deployment. Every twin namespace it writes is keyed by brand (`affiliates-{brand}`, `affiliate-plans-{brand}`, `affiliate-facts-{brand}-{affiliate}`, `affiliate-payouts-{brand}`), an affiliate belongs to exactly one brand, and the brand an affiliate works for is read from the first `brand_{id}` realm role on their token. The casino tells the service what happened over eight internal `notify/*` routes (registration, deposit, ggr, withdrawal, withdrawal-reversal, pending-approval, bonus-cost, chargeback) and the service turns each into commission under ADR 0042: immutable facts, folded fresh on every read, settled by a payout close that stamps each payable fact with the payout that claimed it. The portal (`/v1/my/{affiliate}/…`) and the operator surface (`/v1/affiliates/{brand}/…`) read that fold. Spec 107 planned a brand selector for an affiliate working several brands; it was never built, and spec 181 put multiple brands out of scope.
 
-This spec moves the programme into a shared ankka project, `programme`, one per installation, that serves every brand and knows a player only by the pseudonym the brand gives it. Facts arrive under the attribution protocol spec 012 defines, from a brand in this installation over its granted `affiliates.attribution` topic, or from a brand elsewhere over the protocol's feed. Everything about the tag, the facts, the click and the pseudonym is 012's definition; this spec restates none of it. Commission, settlement, the portal, the operator surface, fraud flags, notes, audit and affiliate communications stay as they behave today, with brand as a dimension of the ledger and a filter on every read rather than the boundary of the service. The original's behaviour is the specification (constitution I); every departure is listed under *Changes from the original*.
+This spec moves the programme into a shared ankka project, `programme`, one per installation, that serves every brand of eitheror's and every hosted brand an operator of the installation adds, and knows a player only by the pseudonym the brand gives it. Facts arrive under the attribution protocol spec 012 defines, from a brand in this installation over its granted `affiliates.attribution` topic, or from a brand elsewhere over the protocol's feed. Everything about the tag, the facts, the click and the pseudonym is 012's definition; this spec restates none of it. Commission, settlement, the portal, the operator surface, fraud flags, notes, audit and affiliate communications stay as they behave today, with brand as a dimension of the ledger and a filter on every read rather than the boundary of the service. The original's behaviour is the specification (constitution I); every departure is listed under *Changes from the original*.
 
 ## Clarifications
 
@@ -22,7 +22,7 @@ This spec moves the programme into a shared ankka project, `programme`, one per 
 - Q: Is a commission plan per affiliate, or per affiliate per brand? → A: Per membership. A brand's programme settings name the plan a new membership starts on; a manager with that brand's role may change it. One affiliate can be on CPA at one brand and hybrid at another.
 - Q: Is the network tree per brand or per network? → A: Per network. A parent affiliate is a parent at every brand both belong to; override is computed per brand from the sub's earnings at that brand, and a parent earns nothing at a brand where the sub has no membership.
 - Q: Where is the ledger kept? → A: One commission account per (affiliate, brand, currency), immutable facts exactly as ADR 0042: NGR inputs (GGR, bonus cost, chargeback, admin, payment and provider fees) and payable facts (CPA, RevShare, override, adjustment) carrying the payout that settled them.
-- Q: The original's first-deposit guard is per player per *period*, so a player who deposits in January and again in March pays CPA twice. Bug or choice? → A: A bug in the original (spec 107 FR-015 says CPA is paid on a qualifying *first* deposit). The guard becomes lifetime per (player, brand). Listed under *Changes from the original* for Sheldon to confirm.
+- Q: The original's first-deposit guard is per player per *period*, so a player who deposits in January and again in March pays CPA twice. Bug or choice? → A: A bug in the original (spec 107 FR-015 says CPA is paid on a qualifying *first* deposit). The guard becomes lifetime per (player, brand). Listed under *Changes from the original*; confirmed 2026-11-01.
 - Q: How does the programme receive facts? → A: As spec 012 says: a brand in this installation grants the programme its attribution topic (ankka 040) and the programme consumes it; a brand elsewhere delivers the same facts over the protocol's signed feed or webhook. Every fact is deduplicated by its idempotency id before anything is written.
 - Q: Who issues the tag? → A: The programme. It is the network the tag names; it signs the tag spec 012 FR-002 defines for its links and bonus codes, publishes its key document and revocation list, and during the transition a legacy tag document mapping each imported `btag` UUID to its affiliate and link (012 FR-023). A brand fetches those documents; it never calls the programme at registration.
 - Q: Who tracks clicks? → A: The brand's `attribution` service (012 FR-006), which emits a `click` fact for each. The programme counts clicks from those facts and serves no click route; the player site reports clicks to the brand, as it does today.
@@ -48,14 +48,21 @@ Named here because constitution I keeps the original's behaviour unless a change
 
 1. **One account, many memberships.** An affiliate is one account with a membership per brand. Today an affiliate is one account per brand, and the brand is read from a realm role.
 2. **The first-deposit guard is lifetime.** CPA is paid once per (player, brand), never again in a later period. Today the guard is per period.
-3. **Postbacks are retried**, with backoff, for up to 24 hours, and their outcome is visible. Today one attempt, failures swallowed.
+3. **Postbacks are retried**, with backoff, for up to 24 hours, and their outcome is visible. Today one attempt, failures swallowed. A postback is also sent for every deposit; today only for a registration, a first deposit and a RevShare change.
 4. **The tag is a signed token** issued by the programme (spec 012). Today `btag` is a UUID looked up in a global index. Legacy UUIDs keep working for the transition.
-5. **Facts arrive under the protocol**, not over nine internal routes. The programme has no `notify/*` routes.
-6. **The ledger is per currency.** Today a payout's currency is "the first currency found among the period's facts", acknowledged in the code as best effort. A commission account is per (affiliate, brand, currency), so no fold ever mixes currencies.
+5. **Facts arrive under the protocol**, not over eight internal routes. The programme has no `notify/*` routes.
+6. **The ledger is per currency.** Today a payout's currency is "the first currency found among the period's facts", acknowledged in the code as best effort. A commission account is per (affiliate, brand, currency), so no fold ever mixes currencies, and a payout is per currency, never converted.
 7. **Bonus-code attribution feeds commission.** Today a player who signs up with an affiliate bonus code gets the affiliate id on their profile but no registration record, so their deposits and play are never attributed (a gap the survey of the original found). Under spec 012 the brand emits the registration fact for a bonus-code signup like any other, and the programme treats it the same.
-8. **`clickId` reaches the registration postback.** Today the casino never forwards it, so `{clickid}` is empty. Spec 012's registration fact carries it.
-9. **The affiliate's payment details are `Personal`** under the affiliate's subject (ankka 042), which closes the ADR 0040 decision-6 exception (free-text IBANs in event-sourced state) rather than carrying it forward.
+8. **`clickId` on the registration postback: no change.** The original forwards it when the player site sends it (`PlayerRoutes.scala:523`); spec 012's registration fact carries it the same way. Kept in this list only so the number stays.
+9. **An affiliate's identity and payment details are encrypted** under a key of the affiliate's own, held in the secret store, and erasure destroys the key; this closes the ADR 0040 decision-6 exception (free-text IBANs in event-sourced state) rather than carrying it forward, before ankka 042 exists.
 10. **Dropped:** the "impersonate affiliate" feature (already removed by ADR 0040, kept removed); the per-player deposit-funnel milestone counters that the original acknowledges as racy "analytics-grade" counts are derived from facts in a view rather than written in the hot path.
+11. **CPA is in the plan's currency.** Today a plan's CPA amount has no currency and is paid in whatever currency the first deposit was, so a 50 CPA is €50 on a euro deposit and ¥50 on a yen one. A plan names its CPA currency, and CPA is written in it.
+12. **Other companies' brands may join.** Today the service serves the one brand it is deployed with. The programme serves eitheror's brands and *hosted brands* an operator of the installation adds, and publishes a usage report per brand for invoicing.
+13. **Status moves only through its transitions.** The original's `PATCH accounts/{aff}/status` writes any status string; it is not served.
+14. **A manager's override figure at approval is an adjustment.** Today it overwrites the payout's override and total with no fact behind them; now the difference is an adjustment fact the payout claims, so the total stays the fold of what it claims.
+15. **One clock.** Today a fact's period is the month in the server's zone, a period ends at a UTC month boundary, and day ranges are read in Europe/Berlin; now all three are the brand's reporting zone.
+16. **New for managers:** revoking a manager (the original has no route for it), and an export of approved payouts served by the programme (the original's backoffice builds its CSV in the browser, with fewer columns).
+17. **The audit names what happened, who did it and when, never who the affiliate is.** The original's audit rows are its event twins and carry the affiliate's email, name and, on an invitation, the set-password URL with its live token. The programme's rows are `{auditId, affiliateId, brandId, event, actorId, recordedAt, details}`, and identity stays sealed under the affiliate's key (change 9). A joiner's application by an invite link is a row of its own, as the original's `AFFILIATE_PENDING_APPROVAL` by `invite-link` (asked 2026-11-07).
 
 ### Session 2026-10-08 (reconciliation 2)
 
@@ -65,6 +72,49 @@ Settled with specs 008–011 once they existed.
   programme publishes per brand (FR-023a), fetched as a public client like the key document; the
   programme answers no per-code lookups and a brand calls nothing at claim time (spec 011 FR-019,
   FR-021).
+
+### Session 2026-11-01
+
+- Q: Which currency is a CPA fact written in? The original's plan amount has no currency, so CPA
+  lands in the deposit's currency. → A: The plan's. A plan names one CPA amount and currency, and
+  CPA is written in it whatever the deposit's currency; the deposit is counted in its own. Listed
+  under *Changes from the original*.
+- Q: With the ledger per currency, is a payout per currency or converted to one the affiliate
+  names? → A: Per currency, never converted: one payout per (affiliate, brand, currency, period),
+  and finance pays each.
+- Q: Is the programme only eitheror's brands, or a hosted network for other companies' brands
+  too? → A: Hosted too. A brand of another company may join; it is a *hosted brand*, and it is
+  treated like any brand elsewhere (spec 012's webhooks).
+- Q: How does a hosted brand join? → A: An operator of the installation adds it, with its
+  settings, programme page, default plan and first manager, once a contract is signed outside the
+  platform. There is no self-serve sign-up.
+- Q: How is a hosted brand charged? → A: Outside the platform. The programme publishes a *usage
+  report* per brand and month (facts received, active memberships, commission recorded, commission
+  paid, each per currency) that eitheror invoices from; it computes no fee.
+- Q: Is the original's per-period first-deposit guard a bug? → A: Yes. CPA is paid once per
+  (player, brand), ever; confirmed, no plan option.
+- Q: How does a parent's invitation start a sub? → A: As the original: an email invitation makes the
+  sub's membership active at once at each brand the parent names, with a login; an invite link makes
+  it pending for the parent to approve. An email invitation is used once; an invite link serves until
+  revoked, at most 50 applications an hour.
+- Q: A manager's override figure at approval? → A: The difference from the folded override is written
+  as an adjustment fact the payout claims; the payout's total stays the fold of what it claims (ADR
+  0042). Listed under *Changes from the original*.
+- Q: Keep the raw status route? → A: No; status moves only through FR-002's transitions.
+- Q: Do GGR days from before a late code's binding (`beforeBinding`) earn commission? → A: No. They
+  are recorded on the player and shown, and fold nothing, as a late code binds forward only (spec 012,
+  2026-10-28).
+- Q: How do brands outside this installation deliver facts? → A: By spec 012's signed webhooks, to one
+  public route of the programme, for hosted brands and eitheror's brands elsewhere alike; a brand here
+  by its granted topic. Pulling a feed is not built until a brand needs it.
+- Q: How are personal fields kept before ankka 042? → A: Encrypted: each affiliate's identity and
+  payment fields under a data key of their own in the secret store; erasure destroys the key. A
+  duplicate email is found through a keyed digest of it, never the address.
+- Q: When a brand sends both `ggr-daily` and `ggr-round` facts, which does the fold count? → A:
+  The one the brand's *GGR source* setting names: daily (the default) or rounds. Facts of the other
+  kind are recorded for reconciliation and never fold; a change of the setting takes effect from the
+  next reporting day in the brand's zone, so no day is counted twice or missed (spec 012 research,
+  finding 3).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -84,6 +134,7 @@ An affiliate who already sends traffic to one brand applies to a second. They si
 - added `features/programme/memberships.feature`: revenue read with no brand filter lists each brand separately with totals per currency
 - added `features/programme/memberships.feature`: a suspended membership still records facts and writes no new payable fact while another brand is unaffected
 - added `features/programme/memberships.feature`: a rejected applicant may apply again
+- added `features/programme/memberships.feature`: a status change outside the membership's transitions is refused
 - added `features/programme/memberships.feature`: an application from an email with a pending or active membership at that brand is refused as a duplicate
 
 ---
@@ -100,10 +151,12 @@ A brand emits attribution facts; the programme turns each into the commission th
 
 - added `features/programme/commission.feature`: a registration fact records the player as attributed to the affiliate at that brand
 - added `features/programme/commission.feature`: a second registration fact for the same player at the same brand is ignored as a duplicate
-- added `features/programme/commission.feature`: a first deposit at or above the plan's minimum deposit writes one CPA fact in the deposit's currency
+- added `features/programme/commission.feature`: a first deposit at or above the plan's minimum deposit writes one CPA fact in the plan's currency
 - added `features/programme/commission.feature`: a later deposit in any period writes no second CPA fact and is still counted in the player's totals
 - added `features/programme/commission.feature`: a first deposit below the minimum deposit writes no CPA fact and leaves the first-deposit guard unset
 - added `features/programme/commission.feature`: GGR, bonus cost and chargeback facts fold into NGR and a RevShare fact for the delta
+- added `features/programme/commission.feature`: only the GGR source the brand names folds and the other kind is recorded for reconciliation
+- added `features/programme/commission.feature`: a GGR day from before the player's binding is recorded and folds nothing
 - added `features/programme/commission.feature`: without negative carryover a negative period floors RevShare at zero and the next period starts fresh
 - added `features/programme/commission.feature`: with negative carryover a deficit persists until positive NGR covers it
 - added `features/programme/commission.feature`: a fact whose id was consumed before writes nothing and is counted as a duplicate
@@ -127,7 +180,8 @@ A parent affiliate invites sub-affiliates, approves, suspends and reactivates th
 - added `features/programme/network.feature`: each ancestor is written an override fact for its percentage of the source's earnings, recomputed as a delta
 - added `features/programme/network.feature`: a parent earns override at a brand where both hold a membership
 - added `features/programme/network.feature`: a parent earns nothing at a brand where the sub has no membership
-- added `features/programme/network.feature`: an invitation creates the sub pending under the parent with the parent's plan unless it says otherwise
+- added `features/programme/network.feature`: an email invitation makes the sub active at once on the parent's plan unless it says otherwise
+- added `features/programme/network.feature`: an invite link creates the sub pending under the parent for the parent to approve
 - added `features/programme/network.feature`: a parent's action on a sub applies within their own subtree and is audited as the parent's
 - added `features/programme/network.feature`: an operator's suspension of a sub stands over the parent
 - added `features/programme/network.feature`: an affiliate sees every descendant and nothing above or beside them
@@ -148,7 +202,7 @@ A manager closes a period for a brand. Every unsettled payable fact that occurre
 
 - added `features/programme/settlement.feature`: a close claims every unclaimed payable fact up to the period's end for a pending payout
 - added `features/programme/settlement.feature`: a close below the affiliate's minimum payout threshold claims nothing and carries the facts forward
-- added `features/programme/settlement.feature`: approving a pending payout records the override figure the manager chose
+- added `features/programme/settlement.feature`: approving a pending payout with another override figure writes the difference as an adjustment the payout claims
 - added `features/programme/settlement.feature`: a late fact swept into an approved payout reverts it to pending and supersedes the approval
 - added `features/programme/settlement.feature`: a late fact for a paid payout leaves it unchanged and is claimed by the next close
 - added `features/programme/settlement.feature`: facts in two currencies close as two payouts
@@ -256,6 +310,25 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 
 ---
 
+### User Story 10 - Another company's brand runs on the programme (Priority: P3)
+
+An operator of the installation adds a hosted brand under a contract signed outside the platform. Its managers run it like any brand, its facts arrive by webhook, it sees nothing of eitheror's brands, and each month eitheror invoices it from the programme's usage report.
+
+**Why this priority**: The programme becomes a product others can buy; no hosted brand is contracted yet.
+
+**Independent Test**: Add a hosted brand, deliver its facts by webhook, sign in as its manager and as a manager of an eitheror brand that shares an affiliate with it, and read the month's usage report.
+
+**Acceptance Scenarios**:
+
+- added `features/programme/hosting.feature`: an operator of the installation adds a hosted brand with its configuration, programme page, default plan and first manager
+- added `features/programme/hosting.feature`: a hosted brand's facts arrive by webhook and become commission as any brand's do
+- added `features/programme/hosting.feature`: a webhook whose signature does not verify is refused and records nothing
+- added `features/programme/hosting.feature`: a manager of a hosted brand sees nothing of an affiliate's membership at another company's brand
+- added `features/programme/hosting.feature`: the usage report gives a brand's month per currency and no fee
+- added `features/programme/hosting.feature`: a manager cannot read the usage report
+
+---
+
 ### Edge Cases
 
 - A fact arrives for a brand the programme has no membership record for from that affiliate: recorded as unattributed with the reason, never silently dropped.
@@ -266,9 +339,11 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 - An affiliate is a member of a brand that is retired: the membership is frozen, its ledger stays readable, its unpaid facts can still be closed and paid.
 - Two closes for the same brand and period run at once: the payout id is deterministic per (affiliate, brand, currency, period), so both stamp the same payout and the second recomputes the same total.
 - A fact's currency has no plan amount (a CPA plan priced in EUR, a first deposit in USD): the CPA fact is written in the plan's currency at the plan's amount; the deposit itself is counted in its own currency.
-- An invitation token is used twice: the second use is refused and the parent is told.
+- An email invitation is used twice: the second use is refused and the parent is told. An invite link past 50 applications in an hour refuses the next until the hour passes.
 - The programme's signing key is rotated: tags signed by the previous key verify until its published expiry; links are not re-issued.
 - A manager loses a brand role: their next request for that brand is refused; nothing they did is undone.
+- A brand's GGR source changes from daily to rounds mid-day: that day folds its `ggr-daily`; rounds fold from the next day, and the day's rounds are recorded for reconciliation.
+- A brand's manager asks for the usage report: refused; it is an operator of the installation's.
 - The feed for a brand elsewhere delivers facts out of order by days: the fold is by occurred-at, so the ledger is the same as if they had arrived in order.
 
 ## Requirements *(mandatory)*
@@ -278,7 +353,7 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 **Accounts and memberships**
 
 - **FR-001**: The programme MUST keep one affiliate account per person or company, identified within the programme, with display name, contact, company, website, traffic source, accepted terms version, payment details, postback URL, minimum payout threshold, an optional parent affiliate and an override percentage.
-- **FR-002**: An account MUST hold a membership per brand with status pending, active, suspended or rejected, the plan at that brand, the application details and the terms version accepted for that brand; status transitions MUST be pending→active, pending→rejected, active↔suspended, and rejected→pending on reapplication, each audited with the actor.
+- **FR-002**: An account MUST hold a membership per brand with status pending, active, suspended or rejected, the plan at that brand, the application details and the terms version accepted for that brand; status transitions MUST be pending→active, pending→rejected, active↔suspended, and rejected→pending on reapplication, each audited with the actor; no other status change MUST be possible, except that an email invitation (FR-027) MAY make a rejected membership active, as the original's invitation went to an address whose account was rejected (`AffiliateRoutes.scala:1112`). A membership MAY carry a RevShare percentage of its own, which takes precedence over the plan's (as the original's `revShareOverride`).
 - **FR-003**: A public application for a brand MUST create the account when the email is new and otherwise add a membership to the existing account; it MUST refuse an email with a pending or active membership at that brand.
 - **FR-004**: An affiliate MUST see and act only within their own account and subtree; a manager MUST see and act only on brands whose role they hold; the programme MUST decide admission by realm roles (`affiliate`, `affiliate_manager`, operator roles, `brand_{id}`), never by the token's actor type.
 - **FR-005**: Every account, membership, plan, link, code, payout, adjustment, flag, note and network action MUST be audited with actor, time, before and after, readable per brand by a manager with that brand's role and, for network actions, by the ancestor who acted.
@@ -286,11 +361,11 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 **Plans and settings**
 
 - **FR-006**: A commission plan MUST belong to one brand and carry type (CPA, RevShare, hybrid), CPA amount and currency, RevShare percentage, minimum deposit for CPA, and whether negative NGR carries over; the brand's settings MUST name the default plan for new memberships.
-- **FR-007**: A brand's settings MUST carry admin, payment and provider fee percentages, the bonus-cost and chargeback fraud thresholds, the payout cycle and the reporting time zone; a brand's programme page MUST carry the public terms, contact and description applicants see.
+- **FR-007**: A brand's settings MUST carry admin, payment and provider fee percentages, the bonus-cost and chargeback fraud thresholds, the payout cycle, the reporting time zone and the GGR source (daily, the default, or rounds); a brand's programme page MUST carry the public terms, contact and description applicants see.
 
 **Facts in**
 
-- **FR-008**: The programme MUST consume the fourteen attribution fact kinds spec 012 FR-011 defines, with the fields 012 FR-012 names and no other, from a brand's granted `affiliates.attribution` topic in this installation and from the protocol's feed or webhook for a brand elsewhere, verifying the sender, and MUST treat the two channels identically after verification.
+- **FR-008**: The programme MUST consume the fourteen attribution fact kinds spec 012 FR-011 defines, with the fields 012 FR-012 names and no other, from a brand's granted `affiliates.attribution` topic in this installation and from the protocol's signed webhook for a brand elsewhere, verifying the sender, and MUST treat the two channels identically after verification. A fact whose `brand` is not the brand of the channel it came on MUST be recorded as mismatched and write nothing.
 - **FR-009**: The programme MUST deduplicate every fact by its idempotency id before writing anything, on every channel, and MUST count duplicates per brand.
 - **FR-010**: A `registration` fact MUST create the player's attribution at that brand (affiliate, link, campaign, sub-ids, click id, country, occurred-at) once, every field taken from the fact; a later `registration` fact for the same player at the same brand MUST be ignored. A `click` fact MUST be recorded against its link with the click id, device type and country it carries.
 - **FR-011**: A fact for a player without attribution at that brand, for a revoked link, or for an affiliate with no membership at that brand MUST be recorded as unattributed with its reason and MUST write no commission.
@@ -299,7 +374,7 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 
 - **FR-012**: The ledger MUST be immutable facts per (affiliate, brand, currency): NGR inputs (GGR, bonus cost, chargeback, admin fee, payment fee, provider fee) and payable facts (CPA, RevShare, override, adjustment), each with amount in minor units, occurred-at, recorded-at, period, an optional source affiliate, and the payout that settled it when settled. A fact MUST never change except to record its settlement.
 - **FR-013**: A first-deposit fact at or above the plan's minimum deposit MUST write one CPA fact in the plan's currency; the first-deposit guard MUST be lifetime per (player, brand); a first deposit below the threshold MUST not set the guard.
-- **FR-014**: Every fact that moves NGR MUST trigger a fresh fold of the affiliate's facts at that brand and currency under the plan's window (lifetime or period) and MUST write a RevShare fact for the delta between commission on the cumulative NGR and the RevShare already emitted, positive or negative, zero omitted; admin, payment and provider fee facts MUST be written per GGR fact (`ggr-daily`, `ggr-adjustment` or `ggr-round`) at the brand's percentages without flooring.
+- **FR-014**: Every fact that moves NGR MUST trigger a fresh fold of the affiliate's facts at that brand and currency under the plan's window (lifetime or period) and MUST write a RevShare fact for the delta between commission on the cumulative NGR and the RevShare already emitted, positive or negative, zero omitted; admin, payment and provider fee facts MUST be written per GGR fact that folds at the brand's percentages without flooring. Only the GGR source the brand's settings name MUST fold: `ggr-daily` and `ggr-adjustment` for daily, `ggr-round` for rounds; a GGR fact of the other kind MUST be recorded for reconciliation and MUST NOT fold; a change of the GGR source MUST take effect from the next reporting day in the brand's zone. A refund arrives as a `chargeback` (spec 012 R9) and folds as one. A `ggr-daily` fact marked before the binding MUST be recorded on the player and MUST NOT fold. Periods and days MUST be counted in the brand's reporting zone.
 - **FR-015**: After any change to an affiliate's payable earnings in a period, every ancestor MUST be written an override fact for the delta between their override percentage of the source's period earnings (CPA, RevShare, adjustment) and the override already emitted for that source, scoped per (ancestor, source), visiting each ancestor once.
 - **FR-016**: A suspended membership MUST still receive NGR inputs and MUST receive no new payable facts until reactivated; on reactivation the next fold MUST catch up.
 - **FR-017**: Every read of revenue, breakdown, deductions or a player's figures MUST be a fold of the facts, served from a view that is rebuilt from the facts and never accumulated; period selection MUST accept a month, a month range, a day range in the brand's reporting zone, or all time, as today.
@@ -307,7 +382,7 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 **Settlement**
 
 - **FR-018**: Closing a period for a brand MUST, for every membership at that brand and every currency, claim every unsettled payable fact that occurred on or before the period's end for the payout identified by (affiliate, brand, currency, period), compute the total as the fold of everything that payout claims, and write the payout as pending; a total below the affiliate's minimum threshold MUST claim nothing.
-- **FR-019**: A payout MUST move pending→approved, pending→rejected, approved→paid, and approved→pending when a close changes its total; any other transition MUST be refused. Approval MAY record an override-commission figure, zero included. A paid payout MUST never change.
+- **FR-019**: A payout MUST move pending→approved, pending→rejected, approved→paid, and approved→pending when a close changes its total; any other transition MUST be refused. Approval MAY carry an override-commission figure, zero included; the difference between it and the override the payout claims MUST be written as an adjustment fact the payout claims, so its total stays the fold of what it claims. A paid payout MUST never change. A rejected payout MUST keep what it claimed, as a paid one does: its facts are neither paid nor claimed by a later close (research.md T056).
 - **FR-020**: Closing MUST be idempotent: a repeated close for the same brand and period MUST re-claim nothing already claimed and recompute the same totals.
 - **FR-021**: A manager MUST be able to export approved payouts for a brand and period as a file carrying affiliate, display name, email, payment details, brand, currency, period, CPA, RevShare, override, adjustments, total, approver and time; the export MUST be audited as a read of payment details.
 - **FR-022**: A manager MUST be able to write a credit or debit adjustment for an affiliate at a brand in a currency with a reason; it MUST be a payable fact.
@@ -319,16 +394,16 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
   brand fetches and caches the same way (spec 001 FR-016), a *code document* per brand: every live
   affiliate bonus code at that brand with its text, the brand offer it names and its signed tag; a
   revoked or deleted code MUST leave the document on the next publication, and the document MUST
-  carry a version and a time so a brand's `rewards` (spec 011 FR-021) can report staleness.
+  carry a version and a time so a brand's `rewards` (spec 011 FR-021) can report staleness. Its shape is the one spec 012's contracts/protocol.md defines.
 - **FR-024**: The programme MUST serve no click route; it MUST record each `click` fact a brand emits against the link it names, and click counts MUST be a view over those facts.
 - **FR-025**: A bonus code MUST be unique per brand regardless of case; concurrent creation of the same text MUST yield one; revocation MUST free the text.
-- **FR-026**: During the transition spec 012 defines, the programme MUST publish the legacy tag document 012 FR-023 defines, mapping every imported `btag` UUID to the affiliate and link it was imported against, and MUST withdraw it when the transition ends; it MUST answer no per-tag lookups.
-- **FR-027**: An affiliate MUST be able to create invite links and email invitations for subs; an invitation MUST be usable once, MUST create the sub pending under the inviter, and MUST inherit the inviter's plan at each named brand unless the invitation names another.
+- **FR-026**: During the transition spec 012 defines, the programme MUST publish the legacy tag document 012 FR-023 defines, mapping every imported `btag` UUID to the affiliate and link it was imported against, in the shape spec 012's contracts/protocol.md defines, and MUST withdraw it when the transition ends; it MUST answer no per-tag lookups.
+- **FR-027**: An affiliate MUST be able to create invite links and email invitations for subs. An email invitation MUST be usable once and MUST make the sub's membership active at once at each brand the inviter names, with a login; an invite link MUST serve until revoked, at most 50 applications an hour, and MUST create the sub pending under the inviter for the inviter to approve. Either MUST put the sub on the inviter's plan at each named brand unless it names another.
 
 **Network**
 
 - **FR-028**: The network MUST be one tree per programme; a sub's parent MUST be fixed at creation and changeable only by a manager; cycles MUST be refused on write and tolerated on read.
-- **FR-029**: An ancestor MUST be able to approve, suspend and reactivate a sub's memberships, change its plan at a brand where the ancestor also holds a membership, change its override, and edit its account fields, all audited as the ancestor's action; an operator's suspension MUST stand over an ancestor's reactivation.
+- **FR-029**: An ancestor MUST be able to approve, suspend and reactivate a sub's memberships, change its plan at a brand where the ancestor also holds a membership (and every account between them has one there), change its override, and edit its account fields, all audited as the ancestor's action; an operator's suspension MUST stand over an ancestor's reactivation.
 - **FR-030**: An affiliate MUST be able to read their subtree with status, plan, override and revenue per period and brand, and network health counts, and MUST be refused anything outside it.
 
 **Managers**
@@ -336,7 +411,7 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 - **FR-031**: A manager with the right operator role MUST be able to list, add, reset and revoke programme managers for a brand, provisioning them in the realm with `affiliate_manager` and the brand's role.
 - **FR-032**: A manager MUST be able to raise, list and dismiss fraud flags; the programme MUST raise a flag once per (player, brand, reason) when the brand's thresholds are crossed; a dismissed flag MUST notify the affiliate.
 - **FR-033**: A manager MUST be able to read an affiliate's dashboard, stats, commission, links, payouts and notifications read-only, and MUST have no way to act as the affiliate.
-- **FR-034**: A manager MUST be able to keep notes on an affiliate per brand and manage creatives per brand, as today.
+- **FR-034**: A manager MUST be able to keep notes on an affiliate per brand, manage creatives per brand (a creative names an address, as today; the programme stores no file), and send an affiliate a message that arrives as a notification, as today. An affiliate's first and last sign-in and their account's event history MUST be kept and readable, as today.
 
 **Communications**
 
@@ -345,12 +420,18 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 
 **Personal data**
 
-- **FR-037**: An affiliate's name, email, company, website, traffic source and payment details MUST be personal values under the affiliate's subject; a manager MUST be able to file the affiliate's erasure with a hold to the end of the retention period finance names; after erasure every amount, fact, payout and audit entry MUST remain with identity fields erased.
+- **FR-037**: An affiliate's name, email, company, website, traffic source and payment details MUST be personal values under the affiliate's subject, stored only encrypted under a data key of the affiliate's own held in the secret store; a duplicate email MUST be found by a keyed digest, never by the address. A manager MUST be able to file the affiliate's erasure with a hold to the end of the retention period finance names; erasure MUST destroy the data key, after which every amount, fact, payout and audit entry MUST remain with identity fields reading as erased.
 - **FR-038**: The programme MUST hold a player only as the pseudonym the brand gave it (012 FR-013), the brand, country, click details and figures, never a player id, and MUST forget country and click details on the player's `player-closed` fact.
 
 **Migration**
 
 - **FR-039**: An import from Spinvibe MUST carry accounts, memberships, plans, links with their legacy `btag`, bonus codes, invite links, creatives, notes, audit, fraud flags, settings, the programme page, player attributions with pseudonyms, every commission fact with its settlement, and every payout; MUST be repeatable without duplication; and MUST produce the same fold as the original for every affiliate and period.
+
+**Hosted brands**
+
+- **FR-040**: An operator of the installation MUST be able to add a hosted brand to the programme with its configuration, programme page, default plan and first manager, and issue the webhook address and shared secret it delivers facts with (spec 012); nothing else MUST create a brand in the programme, and a hosted brand MUST then be served exactly as any brand elsewhere.
+- **FR-041**: A manager MUST see nothing of a brand whose role they do not hold, including an affiliate's memberships, figures, payouts, notes and flags there, when the affiliate is also a member of brands of another company. Closing and erasing an account a manager does not hold every brand of are refused naming those brands, so the manager knows whom to ask (research.md T082); no other refusal names them.
+- **FR-042**: The programme MUST publish a usage report per brand and calendar month in the brand's reporting zone, with facts received, active memberships, commission recorded and commission paid, each per currency, readable by an operator of the installation; it MUST compute no fee.
 
 ### Key Entities
 
@@ -366,6 +447,8 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 - **Click**: a `click` fact received from a brand, recorded against its link.
 - **Fraud flag**, **note**, **notification**, **postback attempt**, **audit entry**.
 - **Programme manager**: a realm user with `affiliate_manager` and brand roles.
+- **Hosted brand**: another company's brand added to the programme by an operator of the installation; delivers facts by webhook.
+- **Usage report**: a brand's month: facts received, active memberships, commission recorded and paid, per currency.
 
 ## Success Criteria *(mandatory)*
 
@@ -377,13 +460,15 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 - **SC-004**: A fact delivered twice on the same channel, or once on each of two channels, writes exactly one set of ledger entries.
 - **SC-005**: A fact is reflected in the affiliate's revenue view within 10 seconds of its delivery under the installation's normal load.
 - **SC-006**: Across a thousand closes with interleaved late facts, no payable fact is ever claimed by two payouts and no unsettled fact older than the latest closed period remains unclaimed.
-- **SC-007**: A database dump of the programme holds no readable affiliate name, email or payment details, and no brand player id.
+- **SC-007**: A database dump of the programme, its journals included, holds no readable affiliate name, email or payment details, and no brand player id; after an erasure, not even the secret store can read them.
 - **SC-008**: Spinvibe's import reproduces every affiliate's revenue and payouts for every period, and runs twice without duplication.
 - **SC-009**: A failed postback is retried and its last outcome is visible within one minute of the final attempt.
+- **SC-010**: A hosted brand's manager and an eitheror brand's manager, sharing one affiliate, each read that affiliate and see nothing of the other's brand.
 
 ## Assumptions
 
-- The programme is one network per installation; a second network (a partner's programme) is a separate consumer of spec 012, not a second instance of this spec.
+- The programme is one network per installation; a second network (a partner's programme) is a separate consumer of spec 012, not a second instance of this spec. A hosted brand is a brand elsewhere under spec 012, not an installation of ours.
+- A hosted brand's managers sign in to the same `eitheror` realm, provisioned with `affiliate_manager` and the brand's role (FR-031).
 - Affiliates and managers sign in to the casino's operator Keycloak, `eitheror` realm, with the roles spec 198 agreed; the programme verifies those tokens through ankka's service identity (022). Keycloak stays external (constitution scope).
 - Spec 012 defines the fact kinds and fields, the tag, the keys, the click, the pseudonym, the channels and the transition; this spec consumes them, issues the tag and publishes the documents, and restates none of the definitions. The protocol's feed authenticates a brand elsewhere; the programme trusts a brand's statement of attribution only when it matches its own record.
 - Transactional email goes through Customer.io with the brand's sender configuration, as today; the programme holds the credentials in its secret store (ankka 038).
@@ -399,14 +484,12 @@ Today's single-brand affiliates, their plans, links, bonus codes, invite links, 
 
 ## Out of scope
 
-- A second network, a third-party network's own portal, or reselling the programme to other operators (see the open question).
+- A second network, or a third-party network's own portal.
+- Self-serve sign-up for a hosted brand, and computing or collecting its fee: billing is outside the platform, from the usage report.
 - Changing commission mathematics beyond the lifetime first-deposit guard and per-currency ledgers.
 - Frontends: the affiliate portal and the backoffice's affiliate pages change base URLs and gain a brand filter; their design is not this spec's.
 - Paying affiliates: the programme records and exports; payment happens outside, as today.
 
 ## Open Questions
 
-- **Multi-currency payout.** [NEEDS CLARIFICATION: with the ledger per currency, is a payout per currency (recommended: no conversion, finance pays each) or does the affiliate name one payout currency and the programme convert at a recorded rate at close?]
-- **Who the programme serves.** [NEEDS CLARIFICATION: is the programme only eitheror's brands, or also brands on other installations (the feed channel makes it possible) as a hosted affiliate network — which changes who may create a brand in the programme and who pays?]
-- **Lifetime first-deposit guard.** [NEEDS CLARIFICATION: confirm the change from per-period to lifetime CPA per (player, brand); if the per-period behaviour was a deliberate "re-acquisition" deal, it becomes a plan option instead.]
-- From spec 012 (2026-10-25, [spec 012 research](../012-affiliate-protocol/research.md), *Findings for other specs*, finding 3): a refund arrives as a `chargeback` with a `/refund` reference and a closed dispute emits nothing; FR-014 must fold either the `ggr-round` facts or the day's `ggr-daily`, never both; FR-023a's code document and FR-026's legacy tag document take the shapes of 012's contracts/protocol.md.
+None. The three open questions and spec 012's finding 3 were settled on 2026-11-01 (Clarifications).

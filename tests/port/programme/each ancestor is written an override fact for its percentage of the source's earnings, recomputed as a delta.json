@@ -1,0 +1,411 @@
+{
+  "scenario": "each ancestor is written an override fact for its percentage of the source's earnings, recomputed as a delta",
+  "requirement": "013/FR-015",
+  "recorded_at": "2026-11-07T10:15:05.98934Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      },
+      "capture": {
+        "plan": "$.planId"
+      }
+    },
+    {
+      "name": "create the account: parent",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "parent-{run}@example.com",
+          "name": "Driver parent",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "a57beb15-d5a0-41e6-bba1-d0bf40679928",
+          "email": "parent-{run}@example.com"
+        }
+      },
+      "capture": {
+        "parent": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "invite a sub by email",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{parent}/sub-affiliates/invite",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "sub-{run}@example.com",
+          "overridePercent": "10"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "f6606758-c909-4913-8362-7c3300aa7452",
+          "email": "sub-{run}@example.com"
+        }
+      },
+      "capture": {
+        "sub": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create the account: outsider",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "outsider-{run}@example.com",
+          "name": "Driver outsider",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "a082aa18-4aab-409b-b9a6-31ec34de0b2a",
+          "email": "outsider-{run}@example.com"
+        }
+      },
+      "capture": {
+        "outsider": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create a tracking link: sub",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{sub}/tracking-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {subToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "campaign": "autumn",
+          "landingPath": "/welcome"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "278aa053-dde2-4e9e-838b-1ed921f4b3fc"
+        }
+      },
+      "capture": {
+        "subBtag": "$.btag"
+      },
+      "vary": {
+        "$.btag": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "notify the registration of the sub's player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{subBtag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "{period}-07T10:15:06Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{sub}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify the sub's player's first deposit",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/deposit",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "50.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{txn}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{sub}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read the parent's revenue for the period",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{parent}/revenue?period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "{parent}",
+          "bonusCosts": "0.00",
+          "brandId": "{brand}",
+          "chargebacks": "0.00",
+          "cpaCommission": "0.00",
+          "excludedGgr": "0.00",
+          "fraudFlagCount": "0",
+          "ftdCount": "0",
+          "ggr": "0.00",
+          "ngr": "0.00",
+          "overrideCommission": "5.00",
+          "paymentFees": "0.00",
+          "period": "{period}",
+          "providerFees": "0.00",
+          "registrationCount": "0",
+          "revShareCommission": "0.00",
+          "totalCommission": "5.00"
+        }
+      }
+    },
+    {
+      "name": "read the parent's network",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{parent}/network?maxDepth=3\u0026period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{parent}",
+          "children": [
+            {
+              "affiliateId": "{sub}",
+              "children": [],
+              "displayName": "",
+              "overridePercent": "10",
+              "planId": "{plan}",
+              "revenueForPeriod": {
+                "cpaCommission": "50.00",
+                "depositCount": "1",
+                "ftdCount": "1",
+                "ngr": "0.00",
+                "overrideCommission": "0.00",
+                "registrationCount": 1,
+                "revShareCommission": "0.00",
+                "totalCommission": "50.00",
+                "totalDepositAmount": "50.00"
+              },
+              "status": "ACTIVE"
+            }
+          ],
+          "displayName": "Driver parent",
+          "overridePercent": "0",
+          "planId": "{plan}",
+          "revenueForPeriod": {
+            "cpaCommission": "0.00",
+            "ftdCount": "0",
+            "ngr": "0.00",
+            "overrideCommission": "5.00",
+            "revShareCommission": "0.00",
+            "totalCommission": "5.00"
+          },
+          "status": "ACTIVE"
+        }
+      },
+      "vary": {
+        "$.children": "differs between two runs of the original",
+        "$.displayName": "differs between two runs of the original",
+        "$.planId": "differs between two runs of the original",
+        "$.status": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the sub as its parent",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{parent}/network/{sub}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{sub}",
+          "brandId": "{brand}",
+          "createdAt": "{period}-07T10:15:06.160489863Z",
+          "email": "sub-{run}@example.com",
+          "keycloakUserId": "7a885f7f-38e7-409a-ae8a-df21a6a73bc6",
+          "overridePercent": "10",
+          "parentAffiliateId": "{parent}",
+          "planId": "{plan}",
+          "status": "ACTIVE"
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original",
+        "$.keycloakUserId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "read the sub's revenue as its parent",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{sub}/revenue?period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "adjustments": "0.00",
+          "adminFees": "0.00",
+          "affiliateId": "{sub}",
+          "bonusCosts": "0.00",
+          "brandId": "{brand}",
+          "chargebacks": "0.00",
+          "cpaCommission": "50.00",
+          "depositCount": "1",
+          "excludedGgr": "0.00",
+          "fraudFlagCount": "0",
+          "ftdCount": "1",
+          "ggr": "0.00",
+          "ngr": "0.00",
+          "overrideCommission": "0.00",
+          "paymentFees": "0.00",
+          "period": "{period}",
+          "providerFees": "0.00",
+          "registrationCount": "1",
+          "revShareCommission": "0.00",
+          "totalCommission": "50.00",
+          "totalDepositAmount": "50.00"
+        }
+      }
+    },
+    {
+      "name": "read the parent as the sub",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{parent}/account",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {subToken}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": "The supplied authentication is not authorized to access this resource"
+      }
+    },
+    {
+      "name": "read an outsider as the parent",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{outsider}/account",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": "The supplied authentication is not authorized to access this resource"
+      }
+    },
+    {
+      "name": "read the outsider in the parent's network",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{parent}/network/{outsider}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {parentToken}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "body": {
+          "error": "forbidden"
+        }
+      }
+    }
+  ]
+}

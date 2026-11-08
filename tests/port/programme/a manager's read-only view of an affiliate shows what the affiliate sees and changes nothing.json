@@ -1,0 +1,172 @@
+{
+  "scenario": "a manager's read-only view of an affiliate shows what the affiliate sees and changes nothing",
+  "requirement": "013/FR-033",
+  "recorded_at": "2026-11-07T10:15:10.342442Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      },
+      "capture": {
+        "plan": "$.planId"
+      }
+    },
+    {
+      "name": "create the account: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "affiliate-{run}@example.com",
+          "name": "Driver affiliate",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "fe928f9d-c1db-4f76-a710-7439601c065d",
+          "email": "affiliate-{run}@example.com"
+        }
+      },
+      "capture": {
+        "affiliate": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "view the affiliate's dashboard?period=2026-11",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/view/dashboard?period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "fraudFlagCount": "0",
+          "period": "{period}",
+          "registrationCount": "0"
+        }
+      }
+    },
+    {
+      "name": "view the affiliate's stats?period=2026-11",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/view/stats?period={period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "fraudFlagCount": "0",
+          "period": "{period}",
+          "registrationCount": "0"
+        }
+      }
+    },
+    {
+      "name": "view the affiliate's commission/2026-11",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/view/commission/{period}",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "name": "view the affiliate's links",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/view/links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "name": "view the affiliate's payouts",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/view/payouts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    },
+    {
+      "name": "view the affiliate's notifications",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/accounts/{affiliate}/view/notifications",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": []
+      }
+    }
+  ]
+}

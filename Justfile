@@ -266,6 +266,32 @@ attribution-it:
 attribution-run:
     cd services/attribution && ANKKA_HTTP_PORT=9007 ANKKA_DB_PORT=5437       CASINO_BRAND=goldvibe CASINO_PROJECT=goldvibe CASINO_REAL_MONEY=false CASINO_REPORTING_ZONE=Africa/Johannesburg       ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino       ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs       sbt run
 
+# affiliate-programme's unit suites (spec 013). The contract is published first.
+programme-test:
+    sbt contract/publishLocal
+    cd services/affiliate-programme && sbt test
+
+# affiliate-programme's integration and feature suites (Docker).
+programme-it:
+    cd services/affiliate-programme && sbt -Dit=true "testOnly io.eitheror.casino.programme.it.* io.eitheror.casino.programme.features.*"
+
+# affiliate-programme's parity suites: the recordings of tests/port/programme and attribution's ledger reads (Docker).
+programme-parity:
+    cd services/affiliate-programme && sbt -Dit=true "testOnly io.eitheror.casino.programme.port.*"
+
+# affiliate-programme, locally on 9018 (`sbt schema && docker compose up -d` in services/affiliate-programme).
+# With no ANKKA_KAFKA_BOOTSTRAP_SERVERS goldvibe's affiliates.attribution is carried in memory (quickstart §6).
+# The secret store's key is made once in target/local-secret-key and kept: the store is encrypted under it. The
+# manager and affiliate routes trust dev-kind's eitheror realm through a port-forward on 18180.
+programme-run:
+    # The secret store's key for local runs, made once and kept beside the build (never committed).
+    cd services/affiliate-programme && mkdir -p target && ([ -s target/local-secret-key ] || openssl rand -base64 32 > target/local-secret-key)
+    cd services/affiliate-programme && ANKKA_SECRET_KEY=$(cat target/local-secret-key) ANKKA_HTTP_PORT=9018 ANKKA_DB_PORT=5441       CASINO_PROJECT=programme PROGRAMME_BRANDS=goldvibe       AFFILIATE_PORTAL_BASE_URL=http://localhost:3013 AFFILIATE_BACKOFFICE_BASE_URL=http://localhost:3014 KEYCLOAK_REALM=eitheror       ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino       ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs       sbt run
+
+# Quickstart §6 against a running `programme-run`: an affiliate earns one CPA through a hosted brand's webhook.
+programme-walk:
+    python3 -I tests/local/programme-walk.py
+
 # The nine provider stubs as one programme (spec 005 FR-025), their webhooks sent to a local psp-gateway.
 psp-stub gateway="http://localhost:9001":
     cd tests && go build -o stubs/bin/ ./stubs/psp-stub

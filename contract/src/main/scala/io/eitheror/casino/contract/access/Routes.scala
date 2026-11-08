@@ -149,6 +149,37 @@ object Routes:
       else Some(s"${Refusal.NotAffiliate}: the affiliate role is required")
     }
 
+  /** The realm roles that make an affiliate manager of the programme (spec 013 research R11). */
+  val AffiliateManagerRoles: Set[String] = Set("affiliate_manager", "brand_admin", "platform_admin")
+
+  /** A refusal on the programme's manager routes. */
+  val NotAffiliateManager = "not_affiliate_manager"
+
+  /**
+   * A manager of the shared affiliate programme (spec 013 FR-004): signed in at the `eitheror` realm
+   * holding `affiliate_manager`, `brand_admin` or `platform_admin`. Which brands they manage is
+   * [[brandsOf]], checked by the route.
+   */
+  def affiliateManager(authenticate: => Acl = Oidc.authenticate()): Acl =
+    refine(authenticate) { p =>
+      if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: managers sign in at the eitheror realm")
+      else if p.roles.exists(AffiliateManagerRoles) then None
+      else Some(s"$NotAffiliateManager: the affiliate_manager role is required")
+    }
+
+  /** The brands a staff principal holds: every brand for `platform_admin`, else its `brand_<slug>` roles. */
+  enum BrandSet:
+    case Every
+    case Only(slugs: Set[String])
+
+    def holds(slug: String): Boolean = this match
+      case Every       => true
+      case Only(slugs) => slugs(slug)
+
+  def brandsOf(p: Principal): BrandSet =
+    if p.roles.contains("platform_admin") then BrandSet.Every
+    else BrandSet.Only(p.roles.collect { case r if r.startsWith("brand_") && r.length > 6 => r.drop(6) }.toSet)
+
   /** A partner's confidential client for this brand: role `partner_<slug>` (spec 016 FR-015). */
   def partner(slug: String, authenticate: => Acl = Oidc.authenticate()): Acl =
     refine(authenticate) { p =>

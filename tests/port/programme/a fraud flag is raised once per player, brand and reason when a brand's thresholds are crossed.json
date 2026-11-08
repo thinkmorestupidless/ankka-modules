@@ -1,0 +1,414 @@
+{
+  "scenario": "a fraud flag is raised once per player, brand and reason when a brand's thresholds are crossed",
+  "requirement": "013/FR-032",
+  "recorded_at": "2026-11-07T10:15:09.42224Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a369729b9696c756cce0d841cd0d80d9"
+  },
+  "runs": 2,
+  "service": "programme",
+  "steps": [
+    {
+      "name": "setup: the brand's settings at the original's defaults, fees at zero",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/affiliates/{brand}/settings",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "adminFeePercent": "0",
+          "bonusCostThreshold": "3",
+          "chargebackThreshold": "2",
+          "paymentFeePercent": "0",
+          "payoutCycleDay": "1",
+          "providerFeePercent": "0"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "create the plan",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/commission-plans",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "cpaAmount": "50.00",
+          "minimumDepositThreshold": "20.00",
+          "negativeCarryover": "false",
+          "planName": "Plan {run}",
+          "planType": "CPA"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "planId": "{plan}",
+          "planName": "Plan {run}"
+        }
+      },
+      "capture": {
+        "plan": "$.planId"
+      }
+    },
+    {
+      "name": "create the account: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/affiliates/{brand}/accounts",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "affiliate-{run}@example.com",
+          "name": "Driver affiliate",
+          "planId": "{plan}"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "affiliateId": "f2f5ae34-4e52-495b-b6c6-25d245c79bf7",
+          "email": "affiliate-{run}@example.com"
+        }
+      },
+      "capture": {
+        "affiliate": "$.affiliateId"
+      },
+      "vary": {
+        "$.affiliateId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "create a tracking link: affiliate",
+      "request": {
+        "method": "POST",
+        "path": "/v1/my/{affiliate}/tracking-links",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "campaign": "autumn",
+          "landingPath": "/welcome"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "btag": "2ea5ee62-1622-4791-a662-559841919d46"
+        }
+      },
+      "capture": {
+        "affiliateBtag": "$.btag"
+      },
+      "vary": {
+        "$.btag": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "notify the registration of player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/registration",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "btag": "{affiliateBtag}",
+          "country": "GB",
+          "playerId": "{player}",
+          "registeredAt": "{period}-07T10:15:09Z"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "affiliateId": "{affiliate}",
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify bonus cost 1",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/bonus-cost",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{bonus1}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify bonus cost 2",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/bonus-cost",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{bonus2}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "notify bonus cost 3",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/affiliates/{brand}/notify/bonus-cost",
+        "service": "programme",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "10.00",
+          "currency": "GBP",
+          "playerId": "{player}",
+          "transactionId": "{bonus3}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "list the fraud flags",
+      "request": {
+        "method": "GET",
+        "path": "/v1/affiliates/{brand}/fraud-flags",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "affiliateId": "259b13a3-2a44-4f17-8a29-2480d286f2a9",
+              "brandId": "{brand}",
+              "dismissed": "false",
+              "flaggedAt": "{period}-07T09:17:03.976829826Z",
+              "period": "{period}",
+              "playerId": "b397e931-f58a-449c-be0f-7ebd8d192e38",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/4f20ae0c-2c31-3889-8876-628f5ae73ec4"
+          },
+          {
+            "properties": {
+              "affiliateId": "3fee1415-64a3-4fd9-b1d4-20fc51134284",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:34:31.868457207Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:34:31.535108985Z",
+              "period": "{period}",
+              "playerId": "eca50944-f387-4570-837c-c769e7a23bcf",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/65cc29f7-aa34-341e-bae5-e92564072208"
+          },
+          {
+            "properties": {
+              "affiliateId": "315d7ac8-4c78-456b-be3f-7dc16d2d2307",
+              "brandId": "{brand}",
+              "dismissed": "false",
+              "flaggedAt": "{period}-07T09:17:42.289711767Z",
+              "period": "{period}",
+              "playerId": "46631752-adfa-4c88-a2fb-cb482b853bd0",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/d13d7ddc-1cfa-3177-b807-99b0d74446af"
+          },
+          {
+            "properties": {
+              "affiliateId": "bc089848-092c-49d5-b867-22e0cda22111",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:34:41.863492065Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:34:41.598415567Z",
+              "period": "{period}",
+              "playerId": "1800855e-50fd-4fdc-8ceb-e9998f455780",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/4b97be8b-b874-3892-b971-154edd34bdd2"
+          },
+          {
+            "properties": {
+              "affiliateId": "2363b904-6601-49fe-98ec-89eafb7ebec0",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:39:12.428843657Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:39:12.167152598Z",
+              "period": "{period}",
+              "playerId": "b279290c-64df-43b9-9457-5fc7b47aa2be",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/fcbde883-b562-38f7-b9bd-3a0c56d31fe1"
+          },
+          {
+            "properties": {
+              "affiliateId": "b1d852f6-0970-47ad-a45f-9dd211124f97",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:39:02.383712650Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:39:02.122204446Z",
+              "period": "{period}",
+              "playerId": "d43ccbe0-9874-4bc1-9852-41a4deac6494",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/2ef66ec0-e023-3480-8cdc-d186d8d8abff"
+          },
+          {
+            "properties": {
+              "affiliateId": "2ff9d87a-6c69-4538-9df3-eed396b508ab",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:39:46.674222327Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:39:46.412576972Z",
+              "period": "{period}",
+              "playerId": "57aa686c-5a46-42ee-ac88-4df249fecbbe",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/5bec3d3d-9749-3e6d-9734-701b6922c7e9"
+          },
+          {
+            "properties": {
+              "affiliateId": "76004447-cf68-4653-ac84-6d6ed91c18ff",
+              "brandId": "{brand}",
+              "dismissalReason": "reviewed: a promotion",
+              "dismissed": "true",
+              "dismissedAt": "{period}-07T09:39:56.637886560Z",
+              "dismissedBy": "driver",
+              "flaggedAt": "{period}-07T09:39:56.371954690Z",
+              "period": "{period}",
+              "playerId": "87b1b8e1-538a-45ad-af24-f49c8b20b02b",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/ff031c71-a835-3bb1-9d85-aa291b69e512"
+          },
+          {
+            "properties": {
+              "affiliateId": "{affiliate}",
+              "brandId": "{brand}",
+              "dismissed": "false",
+              "flaggedAt": "{period}-07T10:15:09.683993700Z",
+              "period": "{period}",
+              "playerId": "{player}",
+              "reason": "3+ bonus deductions"
+            },
+            "twinId": "affiliate-fraud-flags-{brand}/{flag}"
+          }
+        ]
+      },
+      "vary": {
+        "$": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "dismiss the flag",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/affiliates/{brand}/fraud-flags/{flag}/dismiss",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {staffToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "operatorId": "driver",
+          "reason": "reviewed: a promotion"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "ok": true
+        }
+      }
+    },
+    {
+      "name": "read the affiliate's notifications",
+      "request": {
+        "method": "GET",
+        "path": "/v1/my/{affiliate}/notifications",
+        "service": "programme",
+        "headers": {
+          "Authorization": "Bearer {affiliateToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": [
+          {
+            "properties": {
+              "body": "A fraud flag raised against your account has been reviewed and dismissed.",
+              "createdAt": "{period}-07T10:15:09.955947860Z",
+              "type": "FRAUD_DISMISSED"
+            },
+            "twinId": "affiliate-notifications-{affiliate}/d696d52e-652c-4000-a078-b3f082302aea"
+          }
+        ]
+      },
+      "vary": {
+        "$[0].properties.createdAt": "differs between two runs of the original",
+        "$[0].twinId": "differs between two runs of the original"
+      }
+    }
+  ]
+}

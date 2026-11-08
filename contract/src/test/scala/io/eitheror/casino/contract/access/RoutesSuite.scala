@@ -191,3 +191,23 @@ class RoutesSuite extends munit.FunSuite:
   test("a signed-in recipe refuses an ACL that cannot authenticate") {
     intercept[IllegalArgumentException](Routes.player("goldvibe", com.thinkmorestupidless.ankka.http.Acl.AllowAll))
   }
+
+  test("spec 013: an affiliate manager holds affiliate_manager, brand_admin or platform_admin at the eitheror realm") {
+    val acl = Routes.affiliateManager(verified)
+    Seq("affiliate_manager", "brand_admin", "platform_admin").foreach { role =>
+      assertEquals(outcome(acl, Request(token = Some(operatorWith(role, "brand_goldvibe")))), Outcome.Served, role)
+    }
+    val refused = outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "operator")))).asInstanceOf[Outcome.Refused]
+    assertEquals(refused.status, 403)
+    assert(refused.toString.contains("not_affiliate_manager"), refused.toString)
+    assertEquals(outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
+  }
+
+  test("spec 013: brandsOf is the brand_<slug> roles held, and every brand for platform_admin") {
+    def principal(roles: String*) = com.thinkmorestupidless.ankka.http.Principal("m", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
+    assertEquals(Routes.brandsOf(principal("affiliate_manager", "brand_goldvibe", "brand_silvervibe", "brand_")),
+      Routes.BrandSet.Only(Set("goldvibe", "silvervibe")))
+    assert(!Routes.brandsOf(principal("affiliate_manager")).holds("goldvibe"))
+    assertEquals(Routes.brandsOf(principal("platform_admin")), Routes.BrandSet.Every)
+    assert(Routes.brandsOf(principal("platform_admin")).holds("anything"))
+  }

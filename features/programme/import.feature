@@ -32,3 +32,10 @@ Feature: A brand's single-brand affiliates move into the programme
     Given the import of brand "spinvibe" ran
     When it is run again
     Then nothing is duplicated
+
+  Scenario: an imported account whose email an earlier account holds is imported as its duplicate
+    Given the affiliate accounts of brand "spinvibe", a later one with an earlier one's email
+    When they are imported
+    Then the earlier keeps the email and its sign-in
+    And the later keeps its membership and its ledger, without the email or a sign-in
+    And the import names the later as a duplicate of the earlier

@@ -137,3 +137,11 @@ class Spec001RenderSuite extends munit.FunSuite:
     assert(!shared.descriptors.find(_.name == "ingest").get.service.env.exists(_.name == "MERCHANT_BRANDS"))
   }
 
+
+  test("spec 013: the programme's service is told every brand whose facts it consumes, comma-separated") {
+    val shared    = Render.plan(Manifest.load(Fixtures.root.resolve("shared/programme/manifest.json")).fold(ps => throw AssertionError(ps.mkString("; ")), identity),
+      None, Vector("spinvibe", "goldvibe"))
+    val programme = shared.descriptors.find(_.name == "affiliate-programme").get
+    assertEquals(programme.service.env.find(_.name == "PROGRAMME_BRANDS").flatMap(_.value), Some("goldvibe,spinvibe"))
+    assertEquals(programme.service.env.find(_.name == "KEYCLOAK_ADMIN_PASSWORD").flatMap(_.secretKeyRef).map(_.name), Some("keycloak-operators-admin"))
+  }
