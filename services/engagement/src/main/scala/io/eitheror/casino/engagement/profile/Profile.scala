@@ -19,6 +19,7 @@ final case class Applied(changed: Boolean, registeredAt: Option[Instant] = None,
 object Profiles:
   private val RecentPayments = 20
   private val RecentDeposits = 50
+  val Remembered             = 32
 
   /** `at` is newer than the last fact applied to `group`: a repeat, or an older fact, changes nothing. */
   private def newer(p: ProfileState, group: String, at: Instant): Boolean = p.seen.get(group).forall(at.isAfter)
@@ -132,10 +133,13 @@ object Profiles:
   def erase(p: ProfileState): ProfileState =
     p.copy(email = None, givenName = None, familyName = None, dateOfBirth = None, erased = true)
 
-/** A fact of each topic the profile reads. The contract's codecs; the entity never stores these. */
-final case class PlayersFact(fact: f.CasinoPlayersFact)
-final case class MoneyFact(fact: f.MoneyTransactionsFact)
-final case class PaymentsFact(fact: f.PaymentsPaymentsFact)
+/**
+ * A fact of each topic the profile reads, with its fact id (`Sends.factId`), under which the answer is remembered.
+ * The contract's codecs; the entity never stores these.
+ */
+final case class PlayersFact(fact: f.CasinoPlayersFact, factId: String = "")
+final case class MoneyFact(fact: f.MoneyTransactionsFact, factId: String = "")
+final case class PaymentsFact(fact: f.PaymentsPaymentsFact, factId: String = "")
 
 /**
  * A player as engagement knows them (key value, id = player; data-model.md `Profile`): built from the brand's facts,
@@ -154,26 +158,45 @@ final class Profile(context: KeyValueEntityContext) extends KeyValueEntity[Profi
 
   /** An identify attribute moved: the attributes before and after, on one day, so only the fact can move them. */
   private def identified(before: ProfileState, next: ProfileState): Boolean =
-    val today = LocalDate.now(java.time.ZoneOffset.UTC)
+    val today = LocalDate.ofInstant(io.eitheror.casino.engagement.EngagementRuntime.now(), java.time.ZoneOffset.UTC)
     next != before && Attributes.of(before, "", today) != Attributes.of(next, "", today)
 
   def players(c: PlayersFact): Effect[Applied] =
-    val before = id(currentState)
-    val next   = Profiles.players(before, c.fact)
-    answer(next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount,
-      identified = identified(before, next)))
+    recalled(c.factId) {
+      val before = id(currentState)
+      val next   = Profiles.players(before, c.fact)
+      (next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount,
+        identified = identified(before, next)))
+    }
 
   def money(c: MoneyFact): Effect[Applied] =
-    val before        = id(currentState)
-    val (next, count) = Profiles.money(before, c.fact)
-    answer(next, Applied(next != before, next.registeredAt, count, next.depositCount, identified = identified(before, next)))
+    recalled(c.factId) {
+      val before        = id(currentState)
+      val (next, count) = Profiles.money(before, c.fact)
+      (next, Applied(next != before, next.registeredAt, count, next.depositCount, identified = identified(before, next)))
+    }
 
   def payments(c: PaymentsFact): Effect[Applied] =
-    val before  = id(currentState)
-    val next    = Profiles.payments(before, c.fact)
-    val payment = next.recentPayments.find(_.paymentId == c.fact.paymentId)
-    answer(next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount, payment,
-      identified(before, next)))
+    recalled(c.factId) {
+      val before  = id(currentState)
+      val next    = Profiles.payments(before, c.fact)
+      val payment = next.recentPayments.find(_.paymentId == c.fact.paymentId)
+      (next, Applied(next != before, next.registeredAt, before.depositCount, next.depositCount, payment,
+        identified(before, next)))
+    }
+
+  /**
+   * A fact delivered again answers what it answered the first time, so its sends are derived as they were: the
+   * consumer writes the profile before it claims the sends, and a claim that failed is retried by redelivery (SC-008).
+   * The answers of the last `Profiles.Remembered` facts that changed the profile are kept by fact id.
+   */
+  private def recalled(factId: String)(apply: => (ProfileState, Applied)): Effect[Applied] =
+    currentState.answered.find(_.factId == factId).filter(_ => factId.nonEmpty && !currentState.erased) match
+      case Some(a) => effects.reply(a.applied)
+      case None =>
+        val (next, applied) = apply
+        val kept = if factId.isEmpty then next.answered else (next.answered :+ Answered(factId, applied)).takeRight(Profiles.Remembered)
+        answer(next.copy(answered = kept), applied)
 
   /** Whether the count was reset (FR-009). */
   def resetDepositDay(day: LocalDate): Effect[Boolean] =

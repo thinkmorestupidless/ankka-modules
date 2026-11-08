@@ -53,9 +53,13 @@ final case class ProfileState(
     consents: Map[String, Consent] = Map.empty,
     recentPayments: Vector[RecentPayment] = Vector.empty,
     erased: Boolean = false,
-    seen: Map[String, Instant] = Map.empty
+    seen: Map[String, Instant] = Map.empty,
+    answered: Vector[Answered] = Vector.empty
 ):
   def subject: DataSubject = ProfileState.subject(playerId)
+
+/** What applying a fact answered, kept by its fact id so a redelivery answers the same (`Profile.recalled`). */
+final case class Answered(factId: String, applied: Applied)
 
 object ProfileState:
   def subject(playerId: String): DataSubject = DataSubject(s"player/$playerId")

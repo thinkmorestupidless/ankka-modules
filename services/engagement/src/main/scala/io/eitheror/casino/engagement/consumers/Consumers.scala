@@ -42,8 +42,9 @@ final class PlayersConsumer(client: ComponentClient) extends Consumer[Option[Cas
     case Some(f) => applied(f)
 
   private def applied(f: CasinoPlayersFact): Effect =
-    val applied = profile(client, f.playerId).call(Profile.players).invoke(PlayersFact(f))
-    Sends.start(client, Sends.of(f.playerId, Sends.factId(CasinoPlayers, f), f, applied))
+    val factId  = Sends.factId(CasinoPlayers, f)
+    val applied = profile(client, f.playerId).call(Profile.players).invoke(PlayersFact(f, factId))
+    Sends.start(client, Sends.of(f.playerId, factId, f, applied))
     effects.done()
 
 object PlayersConsumer extends Consumer.Companion[PlayersConsumer, Option[CasinoPlayersFact], Nothing](
@@ -57,8 +58,9 @@ final class MoneyConsumer(client: ComponentClient) extends Consumer[Option[Money
       Read.unreadable(MoneyTransactions.name, messageContext.subject)
       effects.ignore()
     case Some(f: MoneyTransactionsFact) =>
-      val applied = profile(client, f.playerId).call(Profile.money).invoke(MoneyFact(f))
-      Sends.start(client, Sends.of(f.playerId, Sends.factId(MoneyTransactions, f), f, applied))
+      val factId  = Sends.factId(MoneyTransactions, f)
+      val applied = profile(client, f.playerId).call(Profile.money).invoke(MoneyFact(f, factId))
+      Sends.start(client, Sends.of(f.playerId, factId, f, applied))
       effects.done()
     case Some(_) => effects.ignore()
 
@@ -73,8 +75,9 @@ final class PaymentsConsumer(client: ComponentClient) extends Consumer[Option[Pa
       Read.unreadable(PaymentsPayments.name, messageContext.subject)
       effects.ignore()
     case Some(f) =>
-      val applied = profile(client, f.playerId).call(Profile.payments).invoke(PaymentsFact(f))
-      Sends.start(client, Sends.of(f.playerId, Sends.factId(PaymentsPayments, f), f, applied))
+      val factId  = Sends.factId(PaymentsPayments, f)
+      val applied = profile(client, f.playerId).call(Profile.payments).invoke(PaymentsFact(f, factId))
+      Sends.start(client, Sends.of(f.playerId, factId, f, applied))
       effects.done()
 
 object PaymentsConsumer extends Consumer.Companion[PaymentsConsumer, Option[PaymentsPaymentsFact], Nothing](

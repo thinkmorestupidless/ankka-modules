@@ -108,6 +108,32 @@ class ProfileSuite extends munit.FunSuite:
     }
   }
 
+  test("a fact delivered again answers what it answered first, so its first deposit and identify are not lost (SC-008)") {
+    TestKeyring.around { _ =>
+      val k     = kit
+      val first = k.call(Profile.money)(MoneyFact(deposit("t-1", 1250, at), "fact-1")).replyValue
+      assertEquals((first.changed, first.depositCountBefore, first.depositCountAfter, first.identified), (true, 0L, 1L, true))
+      val again = k.call(Profile.money)(MoneyFact(deposit("t-1", 1250, at), "fact-1"))
+      assertEquals(again.replyValue, first)
+      assertEquals(again.state.depositCount, 1L)
+      assert(!k.call(Profile.money)(MoneyFact(deposit("t-1", 1250, at))).replyValue.changed, "with no fact id, a repeat is unchanged")
+    }
+  }
+
+  test("the answers kept are the last few facts' and are not replayed for an erased player") {
+    TestKeyring.around { _ =>
+      val k = kit
+      for i <- 1 to Profiles.Remembered + 5 do
+        k.call(Profile.money)(MoneyFact(deposit(s"t-$i", 100, at.plusSeconds(i.toLong)), s"fact-$i")): Unit
+      val s = k.call(Profile.get).state
+      assertEquals(s.answered.size, Profiles.Remembered)
+      assertEquals(s.answered.head.factId, "fact-6")
+      assert(k.call(Profile.money)(MoneyFact(deposit("t-30", 100, at.plusSeconds(30)), "fact-30")).replyValue.changed)
+      k.call(Profile.erase): Unit
+      assert(!k.call(Profile.money)(MoneyFact(deposit("t-30", 100, at.plusSeconds(30)), "fact-30")).replyValue.changed)
+    }
+  }
+
   test("a deposit after the 03:00 boundary starts the next day's count") {
     TestKeyring.around { _ =>
       val k = kit
