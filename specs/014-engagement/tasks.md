@@ -324,7 +324,7 @@ end in `just players-run` + `just engagement-run`.
       transactional id for every trigger, `preflight` refusing to start without the stub (FR-029),
       and each recording's `captures` gaining the stub's `__received` entries; `tests/original/README.md`
       updated.
-- [ ] T050 [P] `tests/original/engagement-driver/`: one scenario per feature scenario the suite does
+- [X] T050 [P] `tests/original/engagement-driver/`: one scenario per feature scenario the suite does
       not reach (research R2: the configuration routes with masking and the seed, the webhook's four
       refusals and its `send_message` and `target_offer` paths, the daily reset route, the agent-stream
       ticket and stream, the player stream's frames, `GET /v1/presence`), on the original's routes,
