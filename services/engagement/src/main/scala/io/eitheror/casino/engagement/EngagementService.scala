@@ -63,6 +63,8 @@ object EngagementService:
     .withExtension(broker)
     .withExtension(timers)
     .withExtension(HttpServer.of(EngagementService.endpoints(() => Oidc.authenticate())*))
+    // An erasure filed at the installation reaches the CRM too (R15, feature 042), as the route `players` calls does.
+    .withErasureHandler(api.Erasure.handler)
   // The installation names its keyring for a service with personal fields; a local run keeps its keys in its own
   // database (feature 042).
   val keyed =

@@ -1,6 +1,8 @@
 package io.eitheror.casino.engagement.it
 
-import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.core.{DataSubject, EntityId}
+import com.thinkmorestupidless.ankka.sdk.ErasureContext
+import io.eitheror.casino.engagement.api.Erasure
 import io.eitheror.casino.engagement.profile.Profile
 import io.eitheror.casino.engagement.reads.SendsView
 import io.eitheror.casino.engagement.send.Outcome
@@ -68,6 +70,24 @@ class ErasureSuite extends munit.FunSuite:
     val a = erase(p)
     assertEquals((a.status, a.str("crm")), (200, "failed"), a.text)
     assertEquals(facts.settled(s"erasure/$p").outcome, Outcome.Parked)
+  }
+
+  test("an erasure filed at the installation runs the same: the CRM's person deleted, the profile erased; another subject is not ours") {
+    val p = facts.player("erase")
+    def run(subject: String, again: Boolean = false) = Erasure.handler.run(new ErasureContext:
+      def client   = kit.components
+      def secrets  = throw UnsupportedOperationException("not read")
+      def services = throw UnsupportedOperationException("not read")
+      def storage  = throw UnsupportedOperationException("not read")
+      def erasureSeq = 1L
+      def rerun      = again
+    )(DataSubject(subject))
+    assertEquals(run(s"player/$p").objectsErased, 1L)
+    assertEquals(kit.crm.deletes(p).size, 1)
+    assert(kit.components.forKeyValueEntity(EntityId(p)).call(Profile.get).invoke().erased)
+    run(s"player/$p", again = true): Unit
+    assertEquals(kit.crm.deletes(p).size, 1, "a re-run deletes nothing more")
+    assertEquals(run("merchant/m-1").objectsErased, 0L)
   }
 
   test("no service but players may erase") {

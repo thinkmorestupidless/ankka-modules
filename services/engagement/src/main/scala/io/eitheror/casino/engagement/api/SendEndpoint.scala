@@ -3,7 +3,7 @@ package io.eitheror.casino.engagement.api
 import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
-import io.eitheror.casino.engagement.Json
+import io.eitheror.casino.engagement.{EngagementRuntime, Json}
 import io.eitheror.casino.engagement.Json.*
 import io.eitheror.casino.engagement.events.{Classes, SendClass}
 import io.eitheror.casino.engagement.profile.{Profile, ProfileState}
@@ -39,27 +39,50 @@ object Erasure:
   /** How long the route waits for the deletion's first attempt. */
   val Bound: java.time.Duration = java.time.Duration.ofSeconds(10)
 
-  def erase(ctx: Ctx, player: String): JsonNode =
-    ctx.components.forKeyValueEntity(com.thinkmorestupidless.ankka.core.EntityId(player)).call(Profile.erase).invoke(): Unit
-    val open = Iterator.from(1).map(p => SendsView.byPlayer(ctx.sends, player, p).rows).takeWhile(_.nonEmpty).flatten
-      .filter(r => r.trigger != Send.Erasure && (r.outcome == Outcome.Pending || r.outcome == Outcome.Parked)).toVector
+  def erase(ctx: Ctx, player: String): JsonNode = erase(ctx.components, ctx.clients.viewClient, player)
+
+  /**
+   * The erasure (R15), from the route `players` calls or from the installation's erasure (`handler`): the profile
+   * marked, the player's open sends discarded, and the CRM's person deleted. Safe to run again: each step answers what
+   * it did the first time.
+   */
+  def erase(components: com.thinkmorestupidless.ankka.sdk.ComponentClient, views: com.thinkmorestupidless.ankka.runtime.ViewClient,
+      player: String): JsonNode =
+    def send(key: String) = components.forWorkflow(com.thinkmorestupidless.ankka.core.EntityId(key))
+    components.forKeyValueEntity(com.thinkmorestupidless.ankka.core.EntityId(player)).call(Profile.erase).invoke(): Unit
+    val open = SendsView.open(views.forView(SendsView), player).filter(_.trigger != Send.Erasure)
     // The view may lag: a send is ended only when its own state says it is still open.
-    val discarded = open.count(r => !ctx.sendState(r.key).ended && ctx.send(r.key).call(Send.erase).invoke().outcome == Outcome.Discarded)
+    val discarded = open.count(r => !send(r.key).call(Send.outcome).invoke().ended && send(r.key).call(Send.erase).invoke().outcome == Outcome.Discarded)
+    val config = components.forKeyValueEntity(com.thinkmorestupidless.ankka.core.EntityId(EngagementRuntime.settings.brand))
+      .call(io.eitheror.casino.engagement.config.Configuration.get).invoke()
     val crm =
-      if !ctx.config.configured then "none"
+      if !config.configured then "none"
       else
         val r = SendRequest(s"${Send.Erasure}/$player", player, Send.Erasure, None, SendClass.Service.wire, SendRequest.Crm,
-          "", ctx.now(), calls = Vector(Kind.Delete))
-        ctx.send(r.key).call(Send.start).invoke(r): Unit
+          "", EngagementRuntime.now(), calls = Vector(Kind.Delete))
+        send(r.key).call(Send.start).invoke(r): Unit
         val until = System.nanoTime() + Bound.toNanos
         def settled(): SendState =
-          val s = ctx.sendState(r.key)
+          val s = send(r.key).call(Send.outcome).invoke()
           if s.ended || s.outcome == Outcome.Parked || System.nanoTime() >= until then s
           else
             Thread.sleep(50)
             settled()
         if settled().outcome == Outcome.Accepted then "deleted" else "failed"
     Json.obj("service" -> "engagement", "subject" -> s"player/$player", "crm" -> crm, "sends" -> discarded)
+
+  /**
+   * The service's part of an erasure filed at the installation (feature 042): the same as the route's, for a subject
+   * `player/<id>`; any other subject is not this service's. The CRM's deletion is the one object it erases.
+   */
+  val handler: com.thinkmorestupidless.ankka.sdk.ErasureHandler =
+    com.thinkmorestupidless.ankka.sdk.ErasureHandler { ctx => subject =>
+      val name = subject.value
+      if !name.startsWith("player/") || name.length <= "player/".length then com.thinkmorestupidless.ankka.sdk.ErasureReport(0)
+      else
+        val answer = erase(ctx.client, EngagementRuntime.views(), name.stripPrefix("player/"))
+        com.thinkmorestupidless.ankka.sdk.ErasureReport(if answer.path("crm").asText == "deleted" then 1 else 0)
+    }
 
 object SendRoute:
   /** How long the route waits for the first attempt's outcome (contracts/routes.md). */

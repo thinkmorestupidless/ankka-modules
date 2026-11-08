@@ -73,6 +73,14 @@ object SendsView extends View.Companion[SendsViewUpdater, SendState, SendRow](
   /** A player's sends, newest first (`GET /players/{player}/sends`). */
   def byPlayer(view: ViewQueries[SendRow], playerId: String, page: Int = 1): Page = paged(view, player(playerId), page)
 
+  /** A player's sends not yet ended, pending or parked, for erasure: one query, however many sends they have. */
+  def open(view: ViewQueries[SendRow], playerId: String): Vector[SendRow] =
+    view.ordered(and(Vector(player(playerId), jsonText("outcome") ++ sql" IN (${Outcome.Pending}, ${Outcome.Parked})")), newest,
+      OpenLimit)
+
+  /** More open sends than any one player has: a player's sends end within the attempts' minutes or park. */
+  private val OpenLimit = 10000
+
   /** The parked sends, newest first, `search` on the trigger and the reason, any case (`GET /parked-sends`). */
   def parked(view: ViewQueries[SendRow], search: Option[String] = None, page: Int = 1): Page =
     val term = search.map(_.trim).filter(_.nonEmpty).map(containing)
