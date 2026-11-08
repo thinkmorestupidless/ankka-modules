@@ -138,6 +138,9 @@ object AgentChannel
       stateSerializer = EngagementCodecs.serializer[AgentChannelState]("agent-channel-state"),
       eventSerializer = EngagementCodecs.serializer[AgentChannelEvent]("agent-channel-event")
     ):
+  // One per brand, written by every agent's lease and every login: recovery starts from a snapshot.
+  override def snapshotEvery: Option[Int] = Some(100)
+
   import AgentChannelCommand.*
   import AgentChannelEvent as E
 

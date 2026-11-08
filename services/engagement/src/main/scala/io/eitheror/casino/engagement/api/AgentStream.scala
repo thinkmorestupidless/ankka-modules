@@ -62,7 +62,9 @@ object AgentStream:
         leased <- lease
         polled <- if leased then channel.call(AgentChannel.poll).invokeAsync(Poll(id, cursor)) else Future.successful(gone)
       yield
-        if !polled.open then
+        // More than the 16-frame queue waiting drops the connection with no frame, as the original (FR-024); the
+        // backoffice reconnects and takes the presence afresh.
+        if !polled.open || polled.dropped > 0 then
           ended = true
           Vector.empty
         else

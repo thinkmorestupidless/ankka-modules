@@ -1,7 +1,9 @@
 package io.eitheror.casino.engagement.it
 
+import com.thinkmorestupidless.ankka.core.EntityId
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.engagement.Json
+import io.eitheror.casino.engagement.channel.{AgentChannel, PlayerOnline}
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets.UTF_8
@@ -61,6 +63,17 @@ class AgentStreamSuite extends munit.FunSuite:
       s"""{"player_id":"$p","player_email_prefix":"$p","session_id":"$session","occurred_at":"$at"}""")
     kit.advance(JDuration.ofSeconds(16))
     assertEquals(Json.render(Json.parse(s.next("ping", 5.seconds)._2).get), "{}")
+  }
+
+  test("more than the 16-frame queue waiting drops the connection with no frame (FR-024)") {
+    val s = stream(ticket())
+    assertEquals(s.status, 200, s.body)
+    val brand = kit.components.forEventSourcedEntity(EntityId(kit.slug))
+    // Sixty logins between two polls of one second each: some poll finds more than sixteen after its cursor.
+    for i <- 1 to 60 do
+      brand.call(AgentChannel.signal).invoke(PlayerOnline.of(s"p-$i", Some(s"p-$i@x.test"), s"s-$i", Instant.now())): Unit
+    assert(s.awaitClosed(10.seconds), "the stream was not dropped")
+    assertEquals(s.frames.count(_._1 == "player_online"), 0)
   }
 
   test("a ticket is spent by its first use; a second use is refused") {
