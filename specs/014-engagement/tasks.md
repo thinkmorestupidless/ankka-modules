@@ -209,7 +209,7 @@ the views and the audit publisher green under their suites.
 
 - [X] T033 [US3] Bind `features/engagement/suppression.feature` in
       `T/features/SuppressionFeatures.scala`; it fails first.
-- [ ] T034 [US3] `T/it/SuppressionSuite.scala` (SC-003): for each trigger of FR-011's two lists and
+- [X] T034 [US3] `T/it/SuppressionSuite.scala` (SC-003): for each trigger of FR-011's two lists and
       each suppression cause (an open case of either type, consent withdrawn, no consent fact, the
       operator's flag, a closed account), the marketing class refused with its reason, untracked, the
       identify carrying the four attributes, the audit record written; the service class sent; at the
