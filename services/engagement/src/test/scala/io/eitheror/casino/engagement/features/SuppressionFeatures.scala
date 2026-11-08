@@ -137,11 +137,18 @@ class SuppressionFeatures extends EngagementFeatures("suppression.feature"):
 
   // Scenario: the exclusion ending.
 
-  Given("the player's exclusion is ending") { () => openCase() }
+  // The real flow: responsible-gambling opens the case and has players set the status; at the end it closes the case
+  // and has players lift the exclusion, which players publishes as the player back to active.
+  Given("the player's exclusion is ending") { () =>
+    openCase()
+    val at = Instant.now().minusSeconds(60)
+    players(f.PlayerSelfExcluded(player, "active", "self_excluded", "system", None, None, at, None, at))
+  }
 
   When("the {string} fact arrives") { (family: String) =>
     assertEquals(family, "rg_case_closed")
     publishPlayers(f.RgCaseClosed(player, caseId, Suppression.SelfExclusionCase, "expired", Instant.now()))
+    publishPlayers(f.PlayerReinstated(player, "self_excluded", "active", "system", None, Some("exclusion_lifted"), Instant.now()))
   }
 
   Then("the player is identified as not suppressed") { () =>

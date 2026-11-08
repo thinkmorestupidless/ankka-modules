@@ -54,6 +54,9 @@ object Facts:
         Some(f.PlayerReinstated(playerId, Status.Suspended, Status.Active, Actor.Operator, e.actorId, e.reason, e.at))
       case e: SelfExcluded =>
         Some(f.PlayerSelfExcluded(playerId, e.previous, Status.SelfExcluded, Actor.System, None, None, e.at, e.until, e.at))
+      // The exclusion's end, as the player back to active (014 US3): the family every reader already maps to active.
+      case e: ExclusionLifted =>
+        Some(f.PlayerReinstated(playerId, Status.SelfExcluded, Status.Active, Actor.System, None, Some("exclusion_lifted"), e.at))
       case e: Closed =>
         Some(f.PlayerClosed(playerId, e.previous, Status.Closed, e.actor, e.actorId, Some(e.reason), e.at))
       case e: Reopened =>

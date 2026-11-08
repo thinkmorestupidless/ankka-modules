@@ -16,7 +16,7 @@ disagree, the contract wins.
 | `SignedIn` | `player_logged_in` | `player_id`, `session_id` |
 | `PlayerSessionEntity.Ended` | `player_logged_out` | `player_id`, `session_id`, `close_reason` |
 | `Suspended` | `player_suspended` | `player_id`, `previous_value`, `new_value`, `actor`, `actor_id`, `reason` |
-| `Reinstated` | `player_reinstated` | the same five |
+| `Reinstated`, `ExclusionLifted` | `player_reinstated` | the same five; for `ExclusionLifted` (responsible-gambling's sync, spec 010) `previous_value` `self_excluded`, `actor` `system`, `reason` `exclusion_lifted` (added by spec 014's review) |
 | `SelfExcluded` | `player_self_excluded` | the same five; `excluded_at`, `until` |
 | `Closed` | `player_closed` | the same five (`actor` `player` for FR-032a, `reason` `player_request`) |
 | `Reopened` | `player_reopened` | the same five — **new family** |

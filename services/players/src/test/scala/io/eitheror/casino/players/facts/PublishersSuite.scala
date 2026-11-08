@@ -34,6 +34,8 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
       Reinstated(Some("op-1"), Some("cleared"), at) -> PlayerReinstated("p-1", "suspended", "active", "operator", Some("op-1"), Some("cleared"), at),
       SelfExcluded(Status.Active, Some(at.plusSeconds(60)), at) ->
         PlayerSelfExcluded("p-1", "active", "self_excluded", "system", None, None, at, Some(at.plusSeconds(60)), at),
+      // An exclusion's end is the player back to active, so engagement and game-provider stop treating them as excluded.
+      ExclusionLifted(at) -> PlayerReinstated("p-1", "self_excluded", "active", "system", None, Some("exclusion_lifted"), at),
       Closed(Status.Active, Actor.Player, Some("p-1"), "player_request", at) ->
         PlayerClosed("p-1", "active", "closed", "player", Some("p-1"), Some("player_request"), at),
       Reopened("op-1", "asked", at) -> PlayerReopened("p-1", "closed", "active", "operator", Some("op-1"), Some("asked"), at),
