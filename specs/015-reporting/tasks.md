@@ -238,7 +238,7 @@ lifetimes and erasure.
 - [ ] T053 [US5] `r/documents/Document.scala`, `r/documents/Documents.scala` (view), `r/documents/DocumentJob.scala`
   (render paged, store, pause for the lifetime, expire), `r/documents/Sweep.scala` (`sweep-documents`
   hourly), the `.players` sidecar and subject-prefixed names (research R9)
-- [ ] T054 [US5] `r/render/DisputeReport.scala`: HTML and CSV in `C/ReportService.scala`'s layout (its
+- [X] T054 [US5] `r/render/DisputeReport.scala`: HTML and CSV in `C/ReportService.scala`'s layout (its
   `ReportServiceSpec` cases ported as `r-test/render/DisputeReportSuite.scala`), PDF from the HTML (research
   R20 item 5)
 - [ ] T055 [US5] `r/api/Disputes.scala` `GET /players/{playerId}/dispute-report` and `r/api/Documents.scala`
