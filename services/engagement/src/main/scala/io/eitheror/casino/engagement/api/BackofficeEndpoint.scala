@@ -12,12 +12,19 @@ import Answers.*
 
 /**
  * `/v1/casino/backoffice/<slug>` (contracts/routes.md): what the brand's operators read of engagement. The status
- * first (US1); the sends, the parked sends, presence and the agent stream come with US7.
+ * (US1) and the agent stream under its ticket, since `EventSource` sends no bearer; the sends, the parked sends and
+ * presence come with the rest of US7.
  */
 final class BackofficeEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoffice/${ctx.slug}"):
   val acl: Acl = Routes.operator(ctx.slug, ctx.authenticate())
 
   get("/engagement/status") { () => ok(Status.of(ctx)) }
+
+  post("/agent-stream/ticket") { () => ok(AgentStream.ticket(ctx, principal.subject)) }
+
+  withAcl(Routes.public) {
+    sseEvents("/agent-stream") { () => AgentStream.open(ctx, request.query.raw("ticket")) }
+  }
 
 /** `GET /engagement/status`, apart from the endpoint so a suite can read it. */
 object Status:

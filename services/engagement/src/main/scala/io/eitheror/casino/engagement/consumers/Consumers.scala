@@ -4,8 +4,8 @@ import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId}
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.facts.*
 import io.eitheror.casino.engagement.EngagementRuntime
-import io.eitheror.casino.engagement.channel.{Channel, ChannelCommand, Frames, Origin}
-import io.eitheror.casino.engagement.profile.{Applied, MoneyFact, PaymentsFact, PlayersFact, Profile}
+import io.eitheror.casino.engagement.channel.{AgentChannel, Channel, ChannelCommand, Frames, Origin, PlayerOnline}
+import io.eitheror.casino.engagement.profile.{Applied, MoneyFact, PaymentsFact, PlayersFact, Profile, ProfileState}
 
 /**
  * The brand's facts into this service (data-model.md *Consumers*): each applied to the player's `Profile`, where it
@@ -16,7 +16,8 @@ private def profile(client: ComponentClient, playerId: String) = client.forKeyVa
 
 /**
  * `casino.players`: the profile, its events and identifies (contracts/facts.md); an inbox item created, read or deleted
- * is a signal on the player's channel (R10), which holds it only while a connection is open.
+ * is a signal on the player's channel (R10), which holds it only while a connection is open; a login is also told to
+ * the brand's agent stream.
  */
 final class PlayersConsumer(client: ComponentClient) extends Consumer[Option[CasinoPlayersFact], Nothing]:
   private def signal(playerId: String, messageId: String, origin: String): Effect =
@@ -31,10 +32,19 @@ final class PlayersConsumer(client: ComponentClient) extends Consumer[Option[Cas
     case Some(m: PlayerMessageCreated) => signal(m.playerId, m.messageId, Origin.Created)
     case Some(m: PlayerMessageRead)    => signal(m.playerId, m.messageId, Origin.Read)
     case Some(m: PlayerMessageDeleted) => signal(m.playerId, m.messageId, Origin.Deleted)
-    case Some(f) =>
-      val applied = profile(client, f.playerId).call(Profile.players).invoke(PlayersFact(f))
-      Sends.start(client, Sends.of(f.playerId, Sends.factId(CasinoPlayers, f), f, applied))
-      effects.done()
+    case Some(l: PlayerLoggedIn) =>
+      val done = applied(l)
+      // The backoffice's agent stream is told who came online, with the profile's email prefix (US7).
+      val email = ProfileState.reveal(profile(client, l.playerId).call(Profile.get).invoke().email)
+      client.forEventSourcedEntity(EntityId(EngagementRuntime.settings.brand)).call(AgentChannel.signal)
+        .invoke(PlayerOnline.of(l.playerId, email, l.sessionId, l.occurredAt)): Unit
+      done
+    case Some(f) => applied(f)
+
+  private def applied(f: CasinoPlayersFact): Effect =
+    val applied = profile(client, f.playerId).call(Profile.players).invoke(PlayersFact(f))
+    Sends.start(client, Sends.of(f.playerId, Sends.factId(CasinoPlayers, f), f, applied))
+    effects.done()
 
 object PlayersConsumer extends Consumer.Companion[PlayersConsumer, Option[CasinoPlayersFact], Nothing](
       ComponentId("engagement-players-consumer"), Read.from(CasinoPlayers)):

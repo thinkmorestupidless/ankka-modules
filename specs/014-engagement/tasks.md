@@ -292,7 +292,7 @@ end in `just players-run` + `just engagement-run`.
 
 - [X] T045 [US7] Bind `features/engagement/operators.feature` in `T/features/OperatorsFeatures.scala`;
       it fails first.
-- [ ] T046 [US7] `S/channel/AgentTicket.scala` (key value, id = ticket: issue, redeem once within
+- [X] T046 [US7] `S/channel/AgentTicket.scala` (key value, id = ticket: issue, redeem once within
       30 s for the brand), `S/channel/AgentChannel.scala` (event sourced, id = slug: connections, the
       `PlayerOnline` ring, a 16-frame queue dropped on overflow); `BackofficeEndpoint`'s `POST
       /agent-stream/ticket` and `GET /agent-stream?ticket=` (`sse`, no bearer, `invalid_ticket`;
