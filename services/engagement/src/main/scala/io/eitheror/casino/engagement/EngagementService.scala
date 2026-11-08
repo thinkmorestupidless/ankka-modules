@@ -27,7 +27,8 @@ object EngagementService:
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl, project: String = ""): Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => api.BackofficeEndpoint(api.Ctx(authenticate, clients, project)),
-    clients => api.SendEndpoint(api.Ctx(authenticate, clients, project))
+    clients => api.SendEndpoint(api.Ctx(authenticate, clients, project)),
+    clients => api.WebhookEndpoint(api.Ctx(authenticate, clients, project))
   )
 
   /** Once the service has started: the timers and the views reachable from the components. */

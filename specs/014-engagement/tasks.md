@@ -245,7 +245,7 @@ end in `just players-run` + `just engagement-run`.
 
 - [X] T038 [US5] Bind `features/engagement/campaigns.feature` in `T/features/CampaignsFeatures.scala`;
       it fails first.
-- [ ] T039 [US5] `S/api/WebhookEndpoint.scala` (`/v1/casino/customerio`, `Routes.public`): `POST
+- [X] T039 [US5] `S/api/WebhookEndpoint.scala` (`/v1/casino/customerio`, `Routes.public`): `POST
       /webhook/{brand}` with `Signature`'s refusals in order and the body read within 5 s, `wrong_brand`,
       `invalid_body`, `unknown_action`, the three actions relayed through `clients.Rewards` and
       `clients.Players` with each answer passed through (contracts/routes.md's action table), the
