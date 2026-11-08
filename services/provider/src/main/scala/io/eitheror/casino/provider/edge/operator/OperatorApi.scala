@@ -28,7 +28,8 @@ import scala.util.control.NonFatal
 final class OperatorApi(
     client: ComponentClient,
     cache: BrandCache,
-    health: (String, String) => Boolean
+    health: (String, String) => Boolean,
+    games: String => com.thinkmorestupidless.ankka.sdk.ServiceClient
 ) extends HttpEndpoint("/api/operator/v1"):
 
   val acl: Acl = Routes.public
@@ -97,6 +98,92 @@ final class OperatorApi(
   postBody("/games") { (text: String) =>
     val site = Http.read(text).flatMap(b => OperatorApi.site(b.raw.get("site")))
     admitted(site, text)(listing)
+  }
+
+  // ---- free rounds (T041, research R9): handed to the game, routed by the index -------------------
+
+  private val mapper = com.fasterxml.jackson.databind.ObjectMapper()
+
+  /** A call to the game service that owns a bonus's game; its answer as JSON, or `None` when it did not answer. */
+  private def onGame(owner: String, method: String, path: String, body: Option[com.fasterxml.jackson.databind.JsonNode])
+      : Option[(Int, com.fasterxml.jackson.databind.JsonNode)] =
+    try
+      val r = games(owner).request(method, path, body.map(mapper.writeValueAsBytes), body.map(_ => "application/json"), Nil)
+      Some(r.status -> Option(mapper.readTree(r.body)).getOrElse(mapper.createObjectNode()))
+    catch case NonFatal(e) =>
+      GameHealth.log.warn(s"game service $owner did not answer $method $path: $e")
+      None
+
+  /**
+   * The game's answer as the brand reads one: the stand-in's envelope when the game holds the bonus,
+   * or the game's own word (`rejected`, `failed`) as the status, which the brand's adapter maps.
+   */
+  private def answered(bonusId: String, game: Option[(Int, com.fasterxml.jackson.databind.JsonNode)]): Http.Answer =
+    game match
+      case None => Http.json(200, GoJson.strings("status" -> "failed"))
+      case Some((status, _)) if status == 404 => Http.json(200, GoJson.strings("status" -> "error"))
+      case Some((_, node)) =>
+        val word = St8Protocol.text(node, "status").getOrElse("failed")
+        if word == "rejected" || word == "failed" then Http.json(200, GoJson.strings("status" -> word))
+        else
+          import scala.jdk.CollectionConverters.*
+          val instances = Option(node.get("instances")).toVector.flatMap(_.elements().asScala).map { i =>
+            GoJson.sorted("player" -> Str(St8Protocol.text(i, "player").getOrElse("")),
+              "remaining" -> Num(Option(i.get("remaining")).map(_.asLong()).getOrElse(0L).toString),
+              "status" -> Str(St8Protocol.text(i, "status").getOrElse("")))
+          }
+          Http.json(200, GoJson.sorted("bonus" -> GoJson.sorted("bonus_id" -> Str(bonusId), "instances" -> Arr(instances)), "status" -> Str("ok")))
+
+  private def route(bonusId: String, entry: BrandEntry): Option[BonusRoute] =
+    try Some(client.forKeyValueEntity(EntityId(bonusId)).call(BonusIndex.get).invoke()).filter(_.brand == entry.slug)
+    catch case _: CommandError => None
+
+  postBody("/bonus/create") { (text: String) =>
+    Http.read(text, strings = Set("bonus_id", "value", "type", "currency"), stringArrays = Set("players", "game_codes"), flexInts = Set("count", "duration")) match
+      case None => Http.badRequest
+      case Some(body) =>
+        admitted(OperatorApi.site(body.raw.get("site")), text) { entry =>
+          // One game per bonus: every code must be one game's, registered and the brand's to run.
+          val found = body.strings("game_codes").distinct.map(game)
+          found match
+            case Vector(Some(g)) if entry.runs(g.code) =>
+              val bonusId = body.string("bonus_id")
+              val seconds = body.flexInt("duration")
+              val ask = mapper.createObjectNode()
+              ask.put("bonusId", bonusId).put("brand", entry.slug).put("code", g.code)
+                .put("count", body.flexInt("count")).put("value", body.string("value")).put("currency", body.string("currency"))
+              val players = ask.putArray("players")
+              body.strings("players").foreach(players.add)
+              // The brand asks a duration in seconds; the game takes whole days, never fewer than asked.
+              if seconds > 0 then ask.put("durationDays", math.ceil(seconds / 86400.0).toInt): Unit
+              try
+                client.forKeyValueEntity(EntityId(bonusId)).call(BonusIndex.put).invoke(BonusRoute(bonusId, entry.slug, g.code, g.owner, Wiring.now())): Unit
+                answered(bonusId, onGame(g.owner, "POST", "/v1/game/bonus", Some(ask)))
+              catch case _: CommandError => refused(OperatorApi.UnknownGame)
+            case _ => refused(OperatorApi.UnknownGame)
+        }
+  }
+
+  // Signed over its query as the adapter writes it: `bonus_id=<id>&site=<site>`.
+  get("/bonus/get") { () =>
+    val id   = query.raw("bonus_id").getOrElse("")
+    val site = query.raw("site")
+    admitted(site, s"bonus_id=$id&site=${site.getOrElse("")}") { entry =>
+      route(id, entry).fold(Http.json(200, GoJson.strings("status" -> "error")))(r => answered(id, onGame(r.owner, "GET", s"/v1/game/bonus/$id", None)))
+    }
+  }
+
+  postBody("/bonus/cancel") { (text: String) =>
+    Http.read(text, strings = Set("bonus_id", "player")) match
+      case None => Http.badRequest
+      case Some(body) =>
+        admitted(OperatorApi.site(body.raw.get("site")), text) { entry =>
+          val id = body.string("bonus_id")
+          route(id, entry).fold(Http.json(200, GoJson.strings("status" -> "error"))) { r =>
+            val ask = mapper.createObjectNode().put("player", body.string("player"))
+            answered(id, onGame(r.owner, "POST", s"/v1/game/bonus/$id/cancel", Some(ask)))
+          }
+        }
   }
 
 object OperatorApi:

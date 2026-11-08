@@ -478,8 +478,8 @@ provider is not a Curaçao brand by default.
 
 ### Measurable Outcomes
 
-- **SC-001**: The simulator's operator API recordings replay against the provider with zero
-  differences beyond the named page address, and spec 003's brand-side suites stay green under the
+- **SC-001**: The simulator's operator API recordings replay against the provider with zero differences beyond the named page address and the developer (every house game is eitheror's, data-model Game; decided 2026-11-08),
+  and spec 003's brand-side suites stay green under the
   amendment; the first round on `dev-kind` through a real brand is spec 027's acceptance.
 - **SC-002**: A new game reaches a brand with no change to the brand beyond its next nightly
   refresh: zero brand-side writes per game added.

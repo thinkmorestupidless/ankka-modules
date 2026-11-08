@@ -85,11 +85,21 @@ class ProviderIntegrationSuite extends munit.FunSuite with LogCapturing:
           assertEquals(game.check(t).status, 200)
           t
         }
+        val g    = game
         val pool = java.util.concurrent.Executors.newFixedThreadPool(10)
         try
-          val calls = tickets.flatMap(t => (1 to perBrand / sessions).map(r => (() => game.stake(t, s"r-$r", 1).text("status")): java.util.concurrent.Callable[Option[String]]))
+          val calls = tickets.flatMap(t => (1 to perBrand / sessions).map(r => (() => g.stake(t, s"r-$r", 1)): java.util.concurrent.Callable[g.Answer]))
           val answered = pool.invokeAll(calls.asJava)
-          assertEquals(answered.asScala.count(_.get().contains("ok")), perBrand)
+          // Past the brand's wait a stake answers `pending` and is settled by its callback (game contract):
+          // under this load the fake brand misses the wait now and then, and SC-006 is about isolation.
+          val words = answered.asScala.map(_.get()).map { a =>
+            if a.text("status").contains("pending") then
+              val id = a.text("callbackId").get
+              kit.eventually()(Option(kit.callback(id)).filter(_.outcome == Callback.Acknowledged)): Unit
+              "ok"
+            else a.text("status").getOrElse("no status")
+          }.groupMapReduce(identity)(_ => 1)(_ + _)
+          assertEquals(words.getOrElse("ok", 0), perBrand, s"stakes answered: $words")
         finally pool.shutdown()
         tickets.toSet
 

@@ -42,6 +42,7 @@ final class TestGame(@volatile var provider: String = ""):
   private val lock    = Object()
   private val bonuses = mutable.Map.empty[String, Bonus]
   private val ends    = mutable.Map.empty[String, Instant]
+  private val codes   = mutable.Set("test-slot", "test-table")
   @volatile private var healthy = true
 
   server.answer(handle)
@@ -55,16 +56,30 @@ final class TestGame(@volatile var provider: String = ""):
   /** Registers both test games under this game's page address; answers each registration. */
   def register(): Vector[Answer] = Vector(registerGame("test-slot", "Slots"), registerGame("test-table", "Table games"))
 
-  def registerGame(code: String, category: String, demo: Boolean = true): Answer =
+  def registerGame(code: String, category: String, demo: Boolean = true, name: Option[String] = None,
+      bonusTypes: Vector[String] = Vector("free_bets"), features: Vector[String] = Vector.empty, themes: Vector[String] = Vector.empty): Answer =
     val body = obj(
-      "name" -> s"Test ${code.stripPrefix("test-")}", "category" -> category,
-      "bonusTypes" -> Vector("free_bets"), "features" -> Vector.empty[String], "themes" -> Vector.empty[String],
+      "name" -> name.getOrElse(s"Test ${code.stripPrefix("test-")}"), "category" -> category,
+      "bonusTypes" -> bonusTypes, "features" -> features, "themes" -> themes,
       "restrictedTerritories" -> Vector.empty[String], "prohibitedTerritories" -> Vector.empty[String],
       "demo" -> demo, "pageAddress" -> s"$address/play/$code"
     )
-    call("PUT", s"/v1/games/registry/$code", Some(body))
+    val answer = call("PUT", s"/v1/games/registry/$code", Some(body))
+    if answer.status == 200 then lock.synchronized(codes += code): Unit
+    answer
 
   def deregister(code: String): Answer = call("DELETE", s"/v1/games/registry/$code", None)
+
+  /**
+   * One free round as a game plays it: an instance of `bonusId` spent for `player`, then a stake of
+   * zero of kind `free_debit` on `roundId` and a settle with `win` minor units. `None` when the
+   * player has no active instance left; otherwise the stake's and the settle's answers.
+   */
+  def freeRound(token: String, roundId: String, bonusId: String, player: String, win: Long): Option[(Answer, Answer)] =
+    spendFreeRound(bonusId, player).map { _ =>
+      val staked = stake(token, roundId, 0L, "free_debit")
+      (staked, settle(token, roundId, win))
+    }
 
   /** What the game page does first with the launch ticket it was handed. */
   def check(token: String): Answer = call("POST", s"/v1/games/sessions/$token/check", None)
@@ -130,7 +145,7 @@ final class TestGame(@volatile var provider: String = ""):
     val code    = s("code")
     val players = Option(n.get("players")).map(_.elements().asScala.map(_.asText()).toVector).getOrElse(Vector.empty)
     val count   = Option(n.get("count")).map(_.asInt()).getOrElse(0)
-    if !Set("test-slot", "test-table").contains(code) || players.isEmpty || count <= 0 then
+    if !lock.synchronized(codes.contains(code)) || players.isEmpty || count <= 0 then
       json(200, obj("status" -> "rejected", "instances" -> Vector.empty[String]))
     else
       // The test game's own schedule is a week; the deadline is never earlier than durationDays.

@@ -27,7 +27,8 @@ object Provider:
   val descriptors: Seq[ComponentDescriptor] = Seq(
     SessionEntity.descriptor, CallbackEntity.descriptor, Deliver.descriptor,
     RunCallbacks.descriptor, SweepAction.descriptor,
-    GameEntity.descriptor, GameIndex.descriptor, BrandEntryEntity.descriptor, BrandIndex.descriptor, SessionsByBrand.descriptor
+    GameEntity.descriptor, GameIndex.descriptor, BrandEntryEntity.descriptor, BrandIndex.descriptor, SessionsByBrand.descriptor,
+    io.eitheror.casino.provider.edge.operator.BonusIndex.descriptor
   )
 
   /** What the endpoints share: built once, from the first clients offered. */
@@ -44,7 +45,7 @@ object Provider:
       c => KeyDocument(parts(c).keys),
       c => { val p = parts(c); Health(() => p.ready.get()) },
       c => GamesEndpoint(c.componentClient),
-      c => OperatorApi(c.componentClient, cache, GameHealth(name => c.services(name)).apply),
+      c => OperatorApi(c.componentClient, cache, GameHealth(name => c.services(name)).apply, name => c.services(name)),
       c => ProviderEndpoint(c.componentClient, c.viewClient, cache, parts(c).keys, authenticate.getOrElse(Oidc.authenticate()))
     )
     at.fold(HttpServer.of(factories*))((host, port) => HttpServer.at(host, port)(factories*))
