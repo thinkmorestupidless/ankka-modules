@@ -29,7 +29,7 @@ suites alone. `MERCHANT_LEAK_COUNT=200 sbt "testOnly *LeakSuite"` runs SC-003's 
 | key value | `merchant-key-index` | a key's digest to its sub-brand, in one lookup (FR-004, SC-006) |
 | event sourced, key value | `operator`, `invitation-token` | an operator of the backoffice and an invitation's token by digest, 72 hours, used once (FR-027) |
 | view | `holdings`, `companies`, `sub-brands`, `terminals-by-sub-brand`, `payments`, `active-keys`, `operators`, `sessions-by-customer` | the listings; `payments` serves the backoffice page, the summary, the deposit count and the uncredited captures |
-| consumer | `outcome-reporter` | every outcome but the capture, to the brand wallet's outcome route (FR-022) |
+| consumer | `outcome-reporter` | every outcome but the capture, disputes included (spec 015), to the brand wallet's outcome route (FR-022) |
 | consumer | `key-indexer`, `merchant-facts` | the key index; `merchant_key_issued`/`_deactivated` on `payments.merchants` (FR-005) |
 | consumer | `*-audit` (seven) | `audit_record` on `platform.audit`, one consumer per entity (FR-034) |
 | timed action | `seed` | the brands of `MERCHANT_BRANDS`, under the original's ids (FR-003) |
@@ -47,7 +47,7 @@ is exposed for its operator routes and `accept-invitation`; every other route re
 | Prefix | Audience |
 |---|---|
 | `/v1/holdings`, `/v1/companies`, `/v1/sub-brands`, `/v1/merchants`, `/v1/catalog` | a payments operator (`Routes.paymentsOperator`) |
-| `/v1/payments` | operators (the backoffice page, summary, uncredited, retry, routing rules, terminals, metrics) and `psp-gateway` (`/{id}/capture`, `/{id}/fail`) |
+| `/v1/payments` | operators (the backoffice page, summary, uncredited, retry, routing rules, terminals, metrics) and `psp-gateway` (`/{id}/capture`, `/{id}/fail`, `/{id}/dispute`) |
 | `/v1/operators` | operators; `accept-invitation` public, admitted by the invitation's token |
 | `/v1/cashier` | `ingest` (spec 006) by identity |
 | `/internal/v1` | `psp-gateway` by identity: a credential's and a terminal's secrets at the moment of use |

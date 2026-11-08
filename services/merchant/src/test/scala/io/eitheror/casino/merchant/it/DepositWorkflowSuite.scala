@@ -243,6 +243,44 @@ class DepositWorkflowSuite extends SharedKitSuite:
     kit.eventually("credited")(Option(kit.flow(id)).filter(_.status == DepositFlow.Credited))
   }
 
+  test("a dispute opened and closed lost reaches the brand's wallet as two outcomes, the payment staying captured (spec 015)") {
+    val r  = kit.subBrand()
+    val id = kit.payment(r)
+    assertEquals(kit.capture(id).status, 200)
+    val o = kit.dispute(id, "outcome" -> "dispute_opened", "reason" -> "chargeback")
+    assertEquals(o.status, 200, o.text)
+    assertEquals(kit.dispute(id, "outcome" -> "dispute_opened", "reason" -> "chargeback").status, 200, "a repeat is acknowledged")
+    val c = kit.dispute(id, "outcome" -> "dispute_closed", "disputeOutcome" -> "lost")
+    assertEquals(c.status, 200, c.text)
+    val opened = kit.eventually("dispute_opened reported")(kit.wallet.reported.find(r => r.paymentId == id && r.outcome == "dispute_opened"))
+    assertEquals((opened.amount, opened.currency, opened.reason, opened.paymentProvider, opened.disputeOutcome),
+      (Some(5000L), Some("EUR"), Some("chargeback"), "DREAMZPAY", None), "the deposit's amount and currency where the gateway names none")
+    val closed = kit.eventually("dispute_closed reported")(kit.wallet.reported.find(r => r.paymentId == id && r.outcome == "dispute_closed"))
+    assertEquals((closed.disputeOutcome, closed.amount, closed.currency, closed.paymentProvider), (Some("lost"), None, None, "DREAMZPAY"))
+    assertEquals(kit.wallet.reportsOf(id).count(_.json.flatMap(_.text("outcome")).contains("dispute_opened")), 1, "the repeat records nothing")
+    assertEquals(kit.paymentState(id).status, Status.Captured)
+  }
+
+  test("a dispute closed with the provider's amount and currency carries them; an outcome outside won and lost is refused invalid_outcome") {
+    val r  = kit.subBrand()
+    val id = kit.payment(r)
+    assertEquals(kit.capture(id).status, 200)
+    val bad = kit.dispute(id, "outcome" -> "dispute_closed", "disputeOutcome" -> "reversed")
+    assertEquals((bad.status, bad.str("error")), (400, "invalid_outcome"))
+    assertEquals(kit.dispute(id, "outcome" -> "dispute_closed").status, 400)
+    assertEquals(kit.dispute(id, "outcome" -> "refunded").status, 400)
+    assertEquals(kit.dispute(id, "outcome" -> "dispute_closed", "disputeOutcome" -> "won", "currency" -> "eur!").status, 400)
+    assertEquals(kit.paymentState(id).dispute, None)
+    assertEquals(kit.dispute(id, "outcome" -> "dispute_closed", "disputeOutcome" -> "won", "amount" -> 2500L, "currency" -> "EUR").status, 200)
+    val closed = kit.eventually("dispute_closed reported")(kit.wallet.reported.find(r => r.paymentId == id && r.outcome == "dispute_closed"))
+    assertEquals((closed.disputeOutcome, closed.amount, closed.currency), (Some("won"), Some(2500L), Some("EUR")))
+  }
+
+  test("a dispute for a payment that does not exist is acknowledged and ignored, as a failure is") {
+    assertEquals(kit.dispute("pay-unknown", "outcome" -> "dispute_opened").status, 200)
+    assertEquals(kit.paymentState("pay-unknown").exists, false)
+  }
+
   test("RG_UNAVAILABLE is retried as a 5xx is") {
     val r  = kit.subBrand()
     val id = kit.payment(r)

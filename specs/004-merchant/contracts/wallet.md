@@ -26,10 +26,12 @@ is retried and the first outcome returned (US3 scenario 2).
 ## `POST /v1/casino/brands/{brand}/payments/{paymentId}/outcome` — the outcomes (FR-022)
 
 From the `OutcomeReporter` consumer (research R7), for every outcome but the capture. Body:
-`outcome` (`initiated` \| `failed` \| `expired` \| `abandoned`), `playerId`, `paymentProvider`,
-`terminal?`, `amount` and `currency` (required for `initiated`), `code?`, `reason?`. Answers
-`recorded`, `firstRecorded`; a repeat is `recorded: false` and nothing changes. The consumer retries
-any non-2xx by its own at-least-once delivery. `refunded` and the dispute outcomes are spec 005's
-to report when a provider reports them; the body carries the provider likewise.
+`outcome` (`initiated` \| `failed` \| `expired` \| `abandoned` \| `dispute_opened` \|
+`dispute_closed`), `playerId`, `paymentProvider`, `terminal?`, `amount` and `currency` (required for
+`initiated` and `dispute_opened`; a close's where the provider gave them), `code?`, `reason?` (a
+dispute's reason on `dispute_opened`), `disputeOutcome` (`won` \| `lost`, `dispute_closed` only; spec
+015). Answers `recorded`, `firstRecorded`; a repeat is `recorded: false` and nothing changes. The
+consumer retries any non-2xx by its own at-least-once delivery. `refunded` is spec 005's to report
+when a provider reports it; the body carries the provider likewise.
 
 A sub-brand that names no brand makes neither call.

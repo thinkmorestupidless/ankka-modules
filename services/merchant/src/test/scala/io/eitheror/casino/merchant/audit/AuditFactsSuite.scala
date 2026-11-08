@@ -47,6 +47,14 @@ class AuditFactsSuite extends munit.FunSuite with LogCapturing:
     assertEquals((p.brand, p.action, p.recordClass, p.subjectKind), ("goldvibe", "payment initiated", "money", "payment"))
   }
 
+  test("a dispute opened and closed are money records naming the gateway, the amount and the outcome (spec 015)") {
+    val o = AuditFacts.payment(PaymentEvent.DisputeOpened(5000, "EUR", Some("fraud"), at), Some("goldvibe")).get
+    assertEquals((o.action, o.actor, o.changes.map(c => c.field -> c.after), o.recordClass),
+      ("payment dispute opened", Actor.service("psp-gateway"), Vector("amount" -> Some("5000"), "currency" -> Some("EUR")), "money"))
+    val c = AuditFacts.payment(PaymentEvent.DisputeClosed("lost", None, None, at), Some("goldvibe")).get
+    assertEquals((c.action, c.changes.map(c => c.field -> c.after)), ("payment dispute closed", Vector("outcome" -> Some("lost"))))
+  }
+
   test("a mirrored flag and an acceptance name the system and the operator themselves") {
     import io.eitheror.casino.merchant.operators.OperatorEvent
     val m = one(ConsumerTestKit.of(OperatorAudit).onMessage(OperatorEvent.EnabledMirrored(false, at), subject = "u-1", sequenceNumber = 4))

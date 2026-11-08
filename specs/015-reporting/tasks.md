@@ -85,7 +85,7 @@ access. Nothing story-specific starts before this phase ends.
   and refuses an outcome outside `won`, `lost` (`400 invalid_outcome`); movements that change restricted
   funds records carry `records` from the record model (`services/wallet/.../entity/Model.scala`); tests in
   the wallet's facts and endpoint suites; amend `specs/002-wallet/spec.md` (FR-022a, the facts' FR)
-- [ ] T010 [P] merchant: forward `dispute_opened` and `dispute_closed` outcomes from psp-gateway to the brand's
+- [X] T010 [P] merchant: forward `dispute_opened` and `dispute_closed` outcomes from psp-gateway to the brand's
   wallet as the other outcomes; tests; amend `specs/004-merchant/spec.md` FR-022
 - [ ] T011 [P] psp-gateway: Unity Finance's deposit states `chargeback` and `chargebacked` become dispute
   outcomes (`services/psp-gateway/.../unityfinance/UnityFinance.scala:182-197`); read the eight other
