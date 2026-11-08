@@ -28,7 +28,7 @@ Feature: Finance and the trading desk read the brand's prediction markets
     Examples:
       | ending                         | shown                                                         |
       | voided after trading           | void, with each share's equal part paid and the remainder kept |
-      | resolved and then corrected    | its payments before the correction and after it               |
+      | resolved and then corrected before it was final | the outcome first resolved, the corrected outcome and the payments made on it |
 
   Scenario: the traders report holds one row per player who traded with volume, fees paid, positions paid and net result
     Given a period in which players traded
