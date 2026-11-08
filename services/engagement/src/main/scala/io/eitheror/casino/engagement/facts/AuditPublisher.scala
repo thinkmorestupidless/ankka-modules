@@ -2,9 +2,10 @@ package io.eitheror.casino.engagement.facts
 
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.audit.{AuditCompanion, AuditConsumer}
-import io.eitheror.casino.contract.facts.{AuditChange, AuditRecord}
+import com.thinkmorestupidless.ankka.core.Metadata
+import io.eitheror.casino.contract.facts.{AuditChange, AuditRecord, PlatformAuditFact}
 import io.eitheror.casino.engagement.EngagementRuntime
-import io.eitheror.casino.engagement.config.{Configuration, CrmConfig}
+import io.eitheror.casino.engagement.config.{ConfigNote, Configuration, CrmConfig}
 import io.eitheror.casino.engagement.send.{Send, SendState}
 
 /**
@@ -27,15 +28,21 @@ object Audit:
           AuditChange("class", None, Some(r.sendClass))) ++ s.reason.filter(_ => refused).map(x => AuditChange("reason", None, Some(x))),
         correlationId = key, causationId = id, recordClass = if byHand then "operator" else "system", occurredAt = note.at)
 
-  def config(brand: String, slug: String, c: CrmConfig): Option[AuditRecord] =
-    c.lastChange.map { note =>
+  /**
+   * A record per change the state keeps (FR-029): a consumer of a key value entity may skip a state, so each state
+   * carries its last few notes and all are written; the audit stores a record id once (018 FR-010).
+   */
+  def configs(brand: String, slug: String, c: CrmConfig): Vector[AuditRecord] =
+    (if c.recentChanges.isEmpty then c.lastChange.toVector else c.recentChanges).map(record(brand, slug, _))
+
+  private def record(brand: String, slug: String, note: ConfigNote): AuditRecord = {
       val id = s"crm-config/$slug/${note.version}"
       AuditRecord(recordId = id, brand = brand, service = "engagement", action = "engagement.config.changed",
         actorKind = "operator", actorId = if note.by.nonEmpty then note.by else "engagement", approverId = None,
         subjectKind = "brand", subjectId = slug, outcome = "accepted", reasonCode = None,
         changes = note.fields.map(f => AuditChange(f, None, None)), correlationId = id, causationId = id,
         recordClass = "operator", occurredAt = note.at)
-    }
+  }
 
 final class SendAudit extends AuditConsumer[SendState]:
   protected def audit(s: SendState): Option[AuditRecord] = Audit.send(EngagementRuntime.settings.brand, messageContext.subject, s)
@@ -44,7 +51,15 @@ object SendAudit extends AuditCompanion[SendAudit, SendState]("send-audit", Chan
   def create(ctx: ConsumerContext) = new SendAudit
 
 final class ConfigAudit extends AuditConsumer[CrmConfig]:
-  protected def audit(c: CrmConfig): Option[AuditRecord] = Audit.config(EngagementRuntime.settings.brand, messageContext.subject, c)
+  protected def audit(c: CrmConfig): Option[AuditRecord] = configs(c).lastOption
+
+  private def configs(c: CrmConfig) = Audit.configs(EngagementRuntime.settings.brand, messageContext.subject, c)
+
+  override def onMessage(c: CrmConfig): Effect =
+    val records = configs(c)
+    if records.isEmpty then effects.ignore()
+    else effects.produceAll(records.map(r =>
+      effects.message(r: PlatformAuditFact).withKey(r.key).withMetadata(Metadata.empty.set("ce-id", r.recordId))))
 
 object ConfigAudit extends AuditCompanion[ConfigAudit, CrmConfig]("crm-config-audit", ChangeSource.stateOf(Configuration)):
   def create(ctx: ConsumerContext) = new ConfigAudit

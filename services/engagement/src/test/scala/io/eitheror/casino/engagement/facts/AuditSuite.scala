@@ -59,10 +59,17 @@ class AuditSuite extends munit.FunSuite:
   test("a configuration change names the fields and the keys rewritten, never a value") {
     val c = CrmConfig("site-1", "eu", "hello@goldvibe.example", Map("DepositConfirmed" -> "7"),
       lastChange = Some(ConfigNote(3, "op-1", Vector("region", "trackApiKey"), at)))
-    val r = Audit.config("goldvibe", "goldvibe", c).get
+    val r = Audit.configs("goldvibe", "goldvibe", c).last
     assertEquals((r.action, r.subjectKind, r.subjectId, r.actorId, r.recordId),
       ("engagement.config.changed", "brand", "goldvibe", "op-1", "crm-config/goldvibe/3"))
     assertEquals(r.changes.map(ch => (ch.field, ch.before, ch.after)), Vector(("region", None, None), ("trackApiKey", None, None)))
     for v <- Seq("site-1", "hello@goldvibe.example", "eu\"") do assert(!text(r).contains(v), text(r))
-    assertEquals(Audit.config("goldvibe", "goldvibe", c.copy(lastChange = None)), None)
+    assertEquals(Audit.configs("goldvibe", "goldvibe", c.copy(lastChange = None)), Vector.empty)
+  }
+
+  test("each change the state keeps is a record, so a skipped state loses none (FR-029); its id is the change's") {
+    val notes = Vector(ConfigNote(4, "op-1", Vector("region"), at), ConfigNote(5, "op-2", Vector("siteId"), at.plusSeconds(1)))
+    val c     = CrmConfig("site-2", "us", lastChange = notes.lastOption, recentChanges = notes)
+    assertEquals(Audit.configs("goldvibe", "goldvibe", c).map(r => (r.recordId, r.actorId)),
+      Vector(("crm-config/goldvibe/4", "op-1"), ("crm-config/goldvibe/5", "op-2")))
   }

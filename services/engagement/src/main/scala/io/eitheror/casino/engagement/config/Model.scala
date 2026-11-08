@@ -8,7 +8,8 @@ import java.time.Instant
  * disabled). The three keys are in the secret store under `Secrets`' names, never here.
  */
 final case class CrmConfig(siteId: String = "", region: String = "us", fromEmail: String = "",
-    triggers: Map[String, String] = Map.empty, updatedAt: Option[Instant] = None, lastChange: Option[ConfigNote] = None):
+    triggers: Map[String, String] = Map.empty, updatedAt: Option[Instant] = None, lastChange: Option[ConfigNote] = None,
+    recentChanges: Vector[ConfigNote] = Vector.empty):
   def configured: Boolean = siteId.nonEmpty
 
   /** The transactional id for `trigger`, when one is set. */
@@ -21,7 +22,8 @@ final case class CrmConfig(siteId: String = "", region: String = "us", fromEmail
       (triggers.keySet ++ next.triggers.keySet).toVector.sorted.filter(k => transactional(k) != next.transactional(k)).map(k => s"triggers.$k")
 
 /**
- * The last change of a brand's configuration, for its audit record (contracts/facts.md `engagement.config.changed`):
+ * A change of a brand's configuration, for its audit record (the last, and the last `Configuration.Kept` of them, as a
+ * consumer of a key value entity may see only the latest state) (contracts/facts.md `engagement.config.changed`):
  * the operator, the fields changed by name, and the keys rewritten by name, never a value; `version` numbers it.
  */
 final case class ConfigNote(version: Int, by: String, fields: Vector[String], at: Instant)

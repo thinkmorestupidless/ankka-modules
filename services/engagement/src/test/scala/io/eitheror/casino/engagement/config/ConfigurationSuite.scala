@@ -21,7 +21,8 @@ class ConfigurationSuite extends munit.FunSuite:
         Vector("triggers.DepositConfirmed", "triggers.PaymentFailed", "trackApiKey"))
       assertEquals(kit.call(Configuration.put)(ConfigChange(next, "op-1")).replyValue.changed, Vector.empty)
       val kept = kit.call(Configuration.get).replyValue
-      assertEquals(kept.copy(updatedAt = None, lastChange = None), next)
+      assertEquals(kept.copy(updatedAt = None, lastChange = None, recentChanges = Vector.empty), next)
+      assertEquals(kept.recentChanges.map(_.version), Vector(1, 2), "each change kept for its audit record")
       assertEquals(kept.lastChange.map(n => (n.version, n.by, n.fields)),
         Some((2, "op-1", Vector("triggers.DepositConfirmed", "triggers.PaymentFailed", "trackApiKey"))))
     }

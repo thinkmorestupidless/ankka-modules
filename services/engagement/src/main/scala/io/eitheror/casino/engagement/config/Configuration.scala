@@ -18,7 +18,9 @@ final class Configuration(@scala.annotation.unused context: KeyValueEntityContex
     else
       val at   = io.eitheror.casino.engagement.EngagementRuntime.now()
       val note = ConfigNote(currentState.lastChange.fold(1)(_.version + 1), change.by, changed, at)
-      effects.updateState(change.config.copy(updatedAt = Some(at), lastChange = Some(note))).thenReply(c => Put(c, changed))
+      val recent = (currentState.recentChanges :+ note).takeRight(Configuration.Kept)
+      effects.updateState(change.config.copy(updatedAt = Some(at), lastChange = Some(note), recentChanges = recent))
+        .thenReply(c => Put(c, changed))
 
   def get: ReadOnlyEffect[CrmConfig] = effects.reply(currentState)
 
@@ -27,6 +29,9 @@ object Configuration
       componentId = ComponentId("crm-configuration"),
       stateSerializer = EngagementCodecs.serializer[CrmConfig]("crm-config")
     ):
+  /** The change notes a configuration keeps for its audit: more than an operator makes between two reads. */
+  val Kept = 16
+
   given JsonValueCodec[CrmConfig] = EngagementCodecs.stored[CrmConfig]
   given Serializer[CrmConfig]     = EngagementCodecs.serializer[CrmConfig]("crm-config-reply")
   given Serializer[Put]           = EngagementCodecs.serializer[Put]("crm-config-put")
