@@ -41,6 +41,11 @@ final class ClickRecord(@scala.annotation.unused context: KeyValueEntityContext)
       effects.updateState(ClickState(f.factId, f.brand, f.link, f.affiliate, f.campaign, f.subIds, f.clickId, f.deviceType, f.country,
         Some(f.occurredAt), Some(c.at))).thenReplyState
 
+  /** FR-038: the click's details go once its player is closed; the link it counts towards stays. */
+  def forget: Effect[ClickState] =
+    if currentState.clickId.isEmpty && currentState.country.isEmpty && currentState.deviceType.isEmpty then effects.reply(currentState)
+    else effects.updateState(currentState.copy(clickId = None, country = None, deviceType = None)).thenReplyState
+
   def get: ReadOnlyEffect[ClickState] = effects.reply(currentState)
 
 object ClickRecord extends KeyValueEntity.Companion[ClickRecord, ClickState](
@@ -52,4 +57,5 @@ object ClickRecord extends KeyValueEntity.Companion[ClickRecord, ClickState](
   def create(context: KeyValueEntityContext) = new ClickRecord(context)
 
   val record = command("record")(_.record)
+  val forget = command("forget")(_.forget)
   val get    = query("get")(_.get)

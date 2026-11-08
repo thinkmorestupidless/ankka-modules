@@ -23,6 +23,10 @@ object Wiring:
   /** The realm `Provisioning` gives affiliates their sign-in and roles in. */
   val realm: AtomicReference[KeycloakAdmin] = AtomicReference(KeycloakAdmin.unconfigured)
 
+  /** A brand's clicks carrying a click id (brand, click id): the `Clicks` view's, set once the service has started. */
+  val clicksWith: AtomicReference[(String, String) => Vector[io.eitheror.casino.programme.players.ClickState]] =
+    AtomicReference((_, _) => throw IllegalStateException("the views are not wired: ProgrammeService.wireViews"))
+
   /** The accounts a close owes (brand, period, after): the `Unsettled` view's, set once the service has started. */
   val owed: AtomicReference[(String, String, String) => Vector[UnsettledRow]] =
     AtomicReference((_, _, _) => throw IllegalStateException("the views are not wired: ProgrammeService.wireViews"))

@@ -38,3 +38,5 @@ final class KitCalls extends IntakeCalls:
   def apply(brand: String, ps: String, cmd: ApplyFact): Outcome = playerOf(brand, ps).call(PlayerAttribution.applyFact)(cmd).replyValue
   def outcome(brand: String, factId: String, o: String): Unit   = inboxOf(brand, factId).call(FactInbox.outcome)(o): Unit
   def click(fact: Click): Unit                             = clicks += fact
+  val forgotten = scala.collection.mutable.ArrayBuffer.empty[(String, String)]
+  def forgetClicks(brand: String, clickId: String): Unit   = forgotten += (brand -> clickId)

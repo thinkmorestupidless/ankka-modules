@@ -32,6 +32,8 @@ trait IntakeCalls:
   def outcome(brand: String, factId: String, outcome: String): Unit
   /** A click fact: recorded against its link (FR-024). */
   def click(fact: Click): Unit
+  /** FR-038: forgets the details of the brand's clicks that carry `clickId`. */
+  def forgetClicks(brand: String, clickId: String): Unit
 
 object IntakeCalls:
   /** The calls made through the component client, as the consumers and the webhook endpoint make them. */
@@ -56,6 +58,9 @@ object IntakeCalls:
     def click(fact: Click): Unit =
       client.forKeyValueEntity(ClickRecord.entityId(fact.brand, fact.factId)).call(ClickRecord.record)
         .invoke(RecordClick(fact, Wiring.clock.get().instant())): Unit
+    def forgetClicks(brand: String, clickId: String): Unit =
+      Wiring.clicksWith.get()(brand, clickId).foreach(c =>
+        client.forKeyValueEntity(ClickRecord.entityId(c.brand, c.id)).call(ClickRecord.forget).invoke(): Unit)
 
 /**
  * A fact received on a channel (contracts/inbound.md *Intake*): the brand's own channel only, claimed
@@ -87,8 +92,12 @@ final class Intake(calls: IntakeCalls, now: () => Instant):
 
   private def record(f: PlayerFact): String =
     val player   = calls.player(f.brand, f.pseudonym)
+    // FR-038, whatever the attribution: the clicks go before the player forgets which was theirs, so a retry finds them.
+    if f.kind == PlayerFact.PlayerClosed then
+      player.clickId.orElse(player.binding.flatMap(_.clickId)).foreach(calls.forgetClicks(f.brand, _))
     val named    = if f.kind == PlayerFact.Registration then Some((f.affiliate, f.link)) else player.binding.map(b => (b.affiliate, b.link))
-    val refusal  = named.flatMap { (affiliate, link) =>
+    // A closing earns nothing, so nothing refuses it: the player forgets its details wherever it was bound.
+    val refusal  = named.filter(_ => f.kind != PlayerFact.PlayerClosed).flatMap { (affiliate, link) =>
       if calls.link(link).revokedAt.isDefined then Some("revoked_link")
       else if !Intake.member(calls.membership(affiliate, f.brand)) then Some("not_a_member")
       else None

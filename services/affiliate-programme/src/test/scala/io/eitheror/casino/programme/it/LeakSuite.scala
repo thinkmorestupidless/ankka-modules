@@ -4,7 +4,8 @@ import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.programme.accounts.{Affiliate, Erasure, ErasureRules, Secrets}
 import io.eitheror.casino.programme.brands.Plan
-import io.eitheror.casino.programme.players.PlayerAttribution
+import io.eitheror.casino.programme.links.Clicks
+import io.eitheror.casino.programme.players.{ClickRecord, PlayerAttribution}
 import io.eitheror.casino.programme.sealing.Sealing
 
 import java.nio.charset.StandardCharsets.UTF_8
@@ -113,19 +114,53 @@ class LeakSuite extends munit.FunSuite with LogCapturing:
     assertNotEquals(again.json.get("affiliateId").asText, aff)
   }
 
-  test("FR-038: a closed player's click id rests nowhere but the journal, its postback's address dropped once sent") {
+  test("an erasure the realm refuses every time erases nothing and is recorded failed; filed again, it erases") {
+    val applied = kit.request("POST", "/v1/affiliates/goldvibe/apply", Some(s"""{"email":"${kit.fresh("refused")}@example.com"}"""), kit.fromInternet)
+    val aff     = applied.json.get("affiliateId").asText
+    val mgr     = kit.asManager()
+    val plan    = kit.plan("goldvibe", kit.fresh("p"), Plan.Cpa, cpa = 1_000)
+    assertEquals(kit.request("POST", s"/v1/affiliates/goldvibe/accounts/$aff/approve", Some(s"""{"planId":"$plan"}"""), mgr).status, 200)
+    kit.eventually("the realm user")(kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke().keycloakUser): Unit
+    assertEquals(kit.request("POST", s"/v1/affiliates/goldvibe/accounts/$aff/close", headers = mgr).status, 200)
+    kit.realm.failing = Some("the realm answers 500")
+    try
+      val filed = kit.request("POST", s"/v1/affiliates/goldvibe/accounts/$aff/erasure", headers = mgr)
+      assertEquals(filed.status, 202, filed.text)
+      kit.moveClock(ErasureRules.holdUntil(kit.now, 1825).plus(Duration.ofMinutes(1)))
+      kit.eventually("failed", 120.seconds)(
+        Option(kit.components.forWorkflow(EntityId(aff)).call(Erasure.status).invoke()).filter(_.status == ErasureRules.Failed)): Unit
+      Secrets(kit.secrets).invalidate()
+      assertEquals(Secrets(kit.secrets).existingDataKey(aff).map(_.isDefined), Right(true))
+      assertEquals(kit.components.forEventSourcedEntity(EntityId(aff)).call(Affiliate.get).invoke().erased, None)
+    finally kit.realm.failing = None
+    // Its hold already served: filed again, it goes straight to erasing.
+    assertEquals(kit.request("POST", s"/v1/affiliates/goldvibe/accounts/$aff/erasure", headers = mgr).status, 202)
+    kit.eventually("erased", 60.seconds)(
+      Option(kit.components.forWorkflow(EntityId(aff)).call(Erasure.status).invoke()).filter(_.status == ErasureRules.Erased)): Unit
+  }
+
+  test("FR-038: a closed player's click id and its click's details rest nowhere but the journal, its postback's address dropped once sent") {
     val clickId = s"click-${UUID.randomUUID()}"
     val aff     = kit.affiliate(kit.fresh("aff"), "goldvibe", kit.plan("goldvibe", kit.fresh("p"), Plan.Cpa, cpa = 1_000))
     Messaging.postbackTo(kit, aff)
     val facts  = Facts("goldvibe", aff, kit.link(kit.fresh("lnk"), aff, "goldvibe"), clickId = Some(clickId))
     val player = kit.fresh("ps")
+    val click  = facts.click(kit.now)
+    kit.publish(click)
+    kit.eventually("the click")(Option(kit.components.forKeyValueEntity(ClickRecord.entityId("goldvibe", click.factId)).call(ClickRecord.get)
+      .invoke()).filter(_.clickId.contains(clickId))): Unit
     kit.publish(facts.registration(player, kit.now))
     kit.publish(facts.firstDeposit(player, 5_000, kit.now))
     kit.eventually("the postback, with the click id")(kit.postbacks.calls.find(_.query.get("click").contains(clickId))): Unit
     kit.publish(facts.playerClosed(player, kit.now))
     kit.eventually("closed")(Option(kit.components.forEventSourcedEntity(PlayerAttribution.entityId("goldvibe", player))
       .call(PlayerAttribution.get).invoke()).filter(_.closed.isDefined)): Unit
-    Thread.sleep(1500) // the views' last poll
+    kit.eventually("the click forgotten")(Option(kit.components.forKeyValueEntity(ClickRecord.entityId("goldvibe", click.factId))
+      .call(ClickRecord.get).invoke()).filter(c => c.clickId.isEmpty && c.country.isEmpty)): Unit
+    kit.eventually("the click's row forgotten")(Option(kit.views.forView(Clicks).ask(Clicks.withClickId, "brand" -> "goldvibe",
+      "click_id" -> clickId)).filter(_.isEmpty)): Unit
+    // Bounded by the waits above, which the same handlers wrote first: this covers the views' last poll.
+    Thread.sleep(1500)
     // The journal keeps the events the player's state is made from; their retention waits for ankka 042 (research).
     val leaks = found(Vector(clickId)).filterNot(_.contains("event_journal"))
     assert(leaks.isEmpty, leaks.mkString("\n"))

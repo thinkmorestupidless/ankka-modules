@@ -15,6 +15,10 @@ object Clicks extends View.Companion[ClicksView, ClickState, ClickState](
       source = ChangeSource.stateOf(ClickRecord),
       rowSerializer = ClickCodecs.given_Serializer_ClickState
     ):
+  /** A brand's clicks that carry `clickId`: what a closed player's binding names (FR-038). */
+  val withClickId = query("with-click-id")(
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'brand' = :brand AND payload::jsonb->>'clickId' = :click_id")
+
   def create(ctx: ViewComponentContext) = new ClicksView
 
 /**

@@ -77,6 +77,17 @@ class IntakeKitSuite extends munit.FunSuite with LogCapturing:
     assertEquals(calls.playerOf("goldvibe", "ps-1").call(io.eitheror.casino.programme.players.PlayerAttribution.get).replyValue.guard, None)
   }
 
+  test("FR-038: a closed player's clicks are forgotten by the click id it was bound with, even where its link is revoked") {
+    val calls = world()
+    intake(calls).handle(registration(), "topic:goldvibe", "goldvibe"): Unit
+    calls.linkOf("lnk-1").call(Link.revoke)(at): Unit
+    val closed = contract.PlayerClosedAttributed(1, "x-1", at, "goldvibe", "programme", "aff-1", "lnk-1", None, Vector.empty, None, "ps-1", "self-exclusion")
+    intake(calls).handle(closed, "topic:goldvibe", "goldvibe"): Unit
+    assertEquals(calls.forgotten.toVector, Vector("goldvibe" -> "c-1"))
+    val p = calls.playerOf("goldvibe", "ps-1").call(io.eitheror.casino.programme.players.PlayerAttribution.get).replyValue
+    assertEquals((p.country, p.clickId, p.closed.isDefined), (None, None, true))
+  }
+
   test("an affiliate who is not a member is unattributed not_a_member; a suspended one still records") {
     val pending = world(Some("pending"))
     assertEquals(intake(pending).handle(registration(), "topic:goldvibe", "goldvibe"), Received.Recorded("unattributed:not_a_member"))
