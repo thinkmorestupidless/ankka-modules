@@ -86,7 +86,7 @@ registry, the consumers' decoding, the kit.
   fields; a property that no real id of the input record appears anywhere in the output
 - [ ] T012 [P] `a/query/Query.scala` and `a-test/query/QuerySuite.scala`: the filters of
   contracts/routes.md, the opaque cursor, the SQL fragments for `Records`
-- [ ] T013 [P] `a/retention/Retention.scala` and `a-test/retention/RetentionSuite.scala`: `cutoff`,
+- [X] T013 [P] `a/retention/Retention.scala` and `a-test/retention/RetentionSuite.scala`: `cutoff`,
   `raise` refusing below the current or the installation's
 - [ ] T014 `a/AuditCodecs.scala`: serializers for every stored type, named manifests
 - [ ] T015 [P] `a/store/Record.scala`: the key value entity of data-model.md (`keep` → `kept` |
