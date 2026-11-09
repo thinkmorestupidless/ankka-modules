@@ -293,9 +293,9 @@ generation.
   re-read of 24 hours of records after a raised generation (SC-006); write `services/audit/PERF.md`
   with the share kept, the lag, the first page at a year, the export time and the re-read time; a
   criterion missed is reported, not tuned away
-- [ ] T059 [P] `services/audit/README.md`: components, settings, suites, how to re-read after a restore
-- [ ] T060 [P] `tests/port/README.md`: the audit's section
-- [ ] T061 [P] Spec 008's facts row for the erasure records, in `specs/008-players/spec.md`
+- [X] T059 [P] `services/audit/README.md`: components, settings, suites, how to re-read after a restore
+- [X] T060 [P] `tests/port/README.md`: the audit's section
+- [X] T061 [P] Spec 008's facts row for the erasure records, in `specs/008-players/spec.md`
 - [ ] T062 `just features`, `just test`, `just audit-test`, `just audit-it` and the three neighbours'
   suites green; `sbt scalafmtCheckAll` in each changed build
 - [ ] T063 A kind deploy of `shared/reasoner` beside `goldvibe` (quickstart §5), `--context kind-…`

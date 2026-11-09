@@ -681,6 +681,12 @@ store and `payments` for a personal field; fetch the response.
   and `responsible-gambling` before the cashier is opened.
 - The verification token stays stateless and replayable within 24 hours, as the original deliberately
   chose; it is kept because verification is idempotent.
+- The erasure workflow writes a `platform.audit` record at each state it reaches (spec 018 FR-019,
+  research R15): `erasure.filed`, `erasure.held`, `erasure.applied` and `erasure.completed`; actor
+  kind `system`, actor `players`, subject the player, outcome `accepted`, category `erasure`, one
+  change `erasure` naming the state, under the erasure's correlation id. `filed` comes from
+  `ErasureFiled`; the others from `ErasureStageReached`, persisted once per state, so a retried step
+  writes nothing more. The original records none.
 
 ## Recordings
 
