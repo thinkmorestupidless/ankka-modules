@@ -124,14 +124,18 @@ object Facts:
 
   // ── platform.audit ────────────────────────────────────────────────────────
 
-  /** What an operator did, before it is a record: never a personal value (the field is named instead). */
+  /**
+   * What an operator, or a player on their own account, did, before it is a record: never a personal value
+   * (the field is named instead). A player's own action is of category `account` (spec 018 FR-004).
+   */
   final case class Action(action: String, actorId: String, subjectKind: String, subjectId: String, reason: Option[String],
-      changes: Vector[f.AuditChange], at: Instant)
+      changes: Vector[f.AuditChange], at: Instant, actorKind: String = "operator"):
+    def category: String = if actorKind == "player" then "account" else "operator"
 
   private def record(brand: String, id: String, a: Action): Published[f.AuditRecord] =
-    Published(f.AuditRecord(recordId = id, brand = brand, service = "players", action = a.action, actorKind = "operator",
+    Published(f.AuditRecord(recordId = id, brand = brand, service = "players", action = a.action, actorKind = a.actorKind,
       actorId = a.actorId, approverId = None, subjectKind = a.subjectKind, subjectId = a.subjectId, outcome = "accepted",
-      reasonCode = a.reason, changes = a.changes, correlationId = id, causationId = id, recordClass = "operator",
+      reasonCode = a.reason, changes = a.changes, correlationId = id, causationId = id, recordClass = a.category,
       occurredAt = a.at), id)
 
   private def change(field: String, before: String, after: String) = f.AuditChange(field, Some(before), Some(after))
@@ -139,11 +143,27 @@ object Facts:
   /** A field whose value is personal: named, with no value (spec 018 FR-003). */
   private def named(field: String) = f.AuditChange(field, None, None)
 
-  /** The operator's actions on a player (contracts/facts.md's `platform.audit`). */
+  /**
+   * The operator's actions on a player (contracts/facts.md's `platform.audit`), and the player's own on their
+   * account (spec 018 FR-004: registration, profile and addresses, session limit, exclusion, consent, closure).
+   */
   def playerAudit(brand: String, playerId: String, sequence: Long, event: PlayerEvent): Option[Published[f.AuditRecord]] =
     def op(action: String, actorId: Option[String], reason: Option[String], changes: Vector[f.AuditChange], at: Instant) =
       Some(Action(action, actorId.getOrElse(""), "player", playerId, reason, changes, at))
+    def own(action: String, changes: Vector[f.AuditChange], at: Instant) =
+      Some(Action(action, playerId, "player", playerId, None, changes, at, actorKind = "player"))
     val action: Option[Action] = event match
+      case e: Registered    => own("register", Vector(f.AuditChange("currency", None, Some(e.currency))), e.at)
+      case e: ProfileEdited => own("profile-edit", e.changed.toVector.sorted.map(named), e.at)
+      case e: EmailAdded    => own("email-add", Vector(named("email")), e.at)
+      case e: EmailPromoted => own("email-promote", Vector(named("email")), e.at)
+      case e: EmailRemoved  => own("email-remove", Vector(named("email")), e.at)
+      case e: EmailChanged  => own("email-change", Vector(named("email")), e.at)
+      case e: SessionLimitSet => own("session-limit", Vector(f.AuditChange("sessionMinutes", None, e.minutes.map(_.toString))), e.at)
+      case e: SelfExcluded  => own("self-exclude", Vector(change("status", e.previous, Status.SelfExcluded)), e.at)
+      case e: ConsentChanged if e.source == "player" =>
+        own("consent", Vector(change(e.channel, (!e.granted).toString, e.granted.toString)), e.at)
+      case e: Closed if e.actor == Actor.Player => own("close", Vector(change("status", e.previous, Status.Closed)), e.at)
       case e: Suspended  => op("suspend", e.actorId, Some(e.reason), Vector(change("status", e.previous, Status.Suspended)), e.at)
       case e: SuspensionUpdated => op("suspend", e.actorId, Some(e.reason), Vector.empty, e.at)
       case e: Reinstated => op("reinstate", e.actorId, e.reason, Vector(change("status", Status.Suspended, Status.Active)), e.at)

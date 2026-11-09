@@ -127,8 +127,11 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
     val dob = audit.onMessage(DateOfBirthCorrected(Personal("1990-01-03"), "op-1", "typo", at), "p-1", 4)
     assertEquals(dob.payloads.head.asInstanceOf[AuditRecord].changes, Vector(AuditChange("dateOfBirth", None, None)))
     assert(!dob.messages.head.text.contains("1990-01-03"), dob.messages.head.text)
-    assertEquals(audit.onMessage(Closed(Status.Active, Actor.Player, Some("p-1"), "x", at), "p-1", 5).messages, Vector.empty,
-      "a player's own close is not an operator action")
+    // A player's own close is a record under the player, not an operator's (spec 018 FR-004).
+    val own = audit.onMessage(Closed(Status.Active, Actor.Player, Some("p-1"), "x", at), "p-1", 5).payloads.head.asInstanceOf[AuditRecord]
+    assertEquals((own.action, own.actorKind, own.actorId, own.recordClass), ("close", "player", "p-1", "account"))
+    assertEquals(audit.onMessage(Closed(Status.Active, Actor.System, None, "x", at), "p-1", 8).messages, Vector.empty,
+      "the system's close is no person's action")
     val cleared = audit.onMessage(NoDepositBlockCleared("op-1", at), "p-1", 6).payloads.head.asInstanceOf[AuditRecord]
     assertEquals((cleared.action, cleared.actorId, cleared.subjectId, cleared.changes),
       ("no-deposit-block-clear", "op-1", "p-1", Vector(AuditChange("noDepositOfferBlocked", Some("true"), Some("false")))))
