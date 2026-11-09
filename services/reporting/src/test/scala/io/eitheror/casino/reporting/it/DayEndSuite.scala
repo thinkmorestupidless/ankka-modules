@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
+import io.eitheror.casino.reporting.day.CloseDays
 import io.eitheror.casino.reporting.documents.Document
 
 import java.time.Instant
@@ -127,3 +128,32 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
       n.path("figures").path("bets").asText))
     assert(opening.contains((d.day.toString, arrived.toString, "1.25")), opening.toString)
   }
+
+  test("a rebuild into a new generation closes the day only once its consumers have read past it: the same day-end, no replayed corrections (R7, SC-004)") {
+    // Yesterday of a today of its own: the latest day any fact is dated on, so the new generation's consumers read past it
+    // only with these facts, and a run of close-days once the day is open in the replay finds a consumer behind it (players,
+    // whose latest is a registration the day before) and leaves it open.
+    val today = kit.freshToday()
+    val r     = DayEnded(kit, today.minusDays(1)).usual().publish().settle()
+    val before = r.close()
+    val from   = kit.settings.generation
+    assertEquals(kit.rebuild(), from + 1)
+    // The day is open in the new generation once a fact of it is folded: from then, a close without the wait fixes it.
+    kit.eventually("the day in the new generation", 60.seconds)(
+      io.eitheror.casino.reporting.day.DaysView.row(kit.views, kit.settings.generation, r.day))
+    val runs = kit.probe.fired("close-days").size
+    kit.moveClock(CloseDays.Every + 1.minute)
+    kit.eventually("a run of close-days in the new generation")(Option.when(kit.probe.fired("close-days").size > runs)(())): Unit
+    Thread.sleep(500)
+    DayEnded.assertOpen(kit, r.day)
+    r.settle()
+    val after = DayEnded.closeDue(kit, r.day)
+    def fixedPart(j: JsonNode) = DayEnded.fixed(j).deepCopy[com.fasterxml.jackson.databind.node.ObjectNode]()
+      .without[JsonNode](java.util.List.of("closedAt", "reference"))
+    assertEquals(fixedPart(after), fixedPart(before))
+    // Nothing replayed was folded into the day after it closed. (The kit's topics hold facts out of date order, since
+    // suites publish on days of their own, so an older day of the new generation may close mid-replay by the rule; a
+    // brand's topics are in the order its facts happened.)
+    assertEquals((DayEnded.list(after.path("corrections")), DayEnded.list(after.path("openingCorrections"))), (Vector.empty, Vector.empty))
+  }
+

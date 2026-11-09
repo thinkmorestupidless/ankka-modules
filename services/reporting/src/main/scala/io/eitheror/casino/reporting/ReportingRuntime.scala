@@ -32,3 +32,9 @@ object ReportingRuntime:
   val clock: AtomicReference[() => Instant] = AtomicReference(() => Instant.now())
 
   def now(): Instant = clock.get()()
+
+  /**
+   * When this run of the service started serving its generation (research R7): a day consumer that has read nothing since
+   * is idle `CLOSE_IDLE` after it. A new generation is always a new start, so this is never before the generation's.
+   */
+  val startedAt: AtomicReference[Instant] = AtomicReference(Instant.now())

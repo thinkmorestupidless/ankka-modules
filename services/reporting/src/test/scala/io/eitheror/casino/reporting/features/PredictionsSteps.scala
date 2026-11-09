@@ -261,8 +261,7 @@ class PredictionsFeatures extends ReportingFeatures("predictions.feature"):
     p.positionPaid(b, p.player(1), "yes", 5, 1_99, p.at("17:30"))
     p.remainder(b, 1, p.at("17:30"))
     p.publish().settled()
-    kit.moveClock(6.minutes)
-    DayEnded.closed(kit, p.day): Unit
+    DayEnded.closeDue(kit, p.day): Unit
   }
 
   When("finance reads the day-end") { () =>

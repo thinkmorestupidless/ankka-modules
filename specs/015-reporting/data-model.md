@@ -79,12 +79,14 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
 - `ReportingSettings` (key value, `brand`): `reportsTab`, `excludeTestAccounts`, `defaultCurrency`,
   `syncRows` (1–10,000), `syncDays` (1–365), `lifetimeHours` per kind (1–2,160, default 24).
 - `Coverage` (key value, `<topic>`): the earliest `occurredAt` folded in this generation.
+- `FoldProgress` (key value, `<consumer>`, one per `to-days` consumer): the latest fact time it has folded in
+  this generation and the instant it last read an event, which `close-days` waits on (research R7).
 
 ## Timers
 
 | Timer | Period | Does |
 |---|---|---|
-| `close-days` | 5 minutes | closes every open `BrandDay` whose end plus the grace has passed (research R7) |
+| `close-days` | 5 minutes | closes every open `BrandDay` whose end plus the grace has passed, once every `to-days` consumer has folded a fact past that or read nothing for `CLOSE_IDLE` (research R7) |
 | `sweep-documents` | 1 hour | deletes any ready object past its lifetime and marks its record (research R9) |
 
 ## Consumers

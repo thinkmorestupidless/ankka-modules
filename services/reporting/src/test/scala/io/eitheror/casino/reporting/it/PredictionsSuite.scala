@@ -96,8 +96,7 @@ class PredictionsSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("the day-end holds each market's fees, payments and remainder and the fee account's credits, listing every trade they differ on (FR-031)") {
-    kit.moveClock(6.minutes)
-    val pr = DayEnded.closed(kit, p.day).path("currencies").path("EUR").path("predictions")
+    val pr = DayEnded.closeDue(kit, p.day).path("currencies").path("EUR").path("predictions")
     val markets = pr.path("markets").elements.asScala.map(fields).map(r => r("marketId") -> r).toMap
     assertEquals((markets(a)("takerFees"), markets(a)("resolutionPayments"), markets(a)("feeCredits")),
       (p.money(p.fees(Some(a))), p.money(p.payments(Some(a))), p.money(p.fees(Some(a)) - 1)))

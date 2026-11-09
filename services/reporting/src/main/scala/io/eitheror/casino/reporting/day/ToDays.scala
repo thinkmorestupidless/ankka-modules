@@ -95,56 +95,70 @@ object ToDays:
  * The consumer `to-days` (data-model.md *Consumers*), one per intake entity, since a consumer reads one source: each
  * event of this generation's entities folded into its days' `BrandDay`, under the source entity and the event's
  * sequence, so a redelivery folds nothing twice. The delta is marked a test account's when the player's `PlayerLog`
- * says so at the fold (research R4); a flag changed later does not restate a day already folded.
+ * says so at the fold (research R4); a flag changed later does not restate a day already folded. Every event read, of
+ * this generation or another, is told to the consumer's `FoldProgress` with its fact time, which `close-days` waits on
+ * (research R7).
  */
-abstract class DayFolder[E](client: ComponentClient, settings: Settings, clock: Clock, source: String) extends Consumer[E, Nothing]:
+abstract class DayFolder[E](client: ComponentClient, settings: Settings, clock: Clock, source: String, consumer: String)
+    extends Consumer[E, Nothing]:
   protected def deltas(e: E, zone: ZoneId): Map[String, Delta]
   protected def player(e: E): String
+  /** The event's fact time, which its consumer's progress is told; none for an event that has none. */
+  protected def factAt(e: E): Option[Instant]
   /** The flag the event itself carries, when it carries one. */
   protected def testFlag(e: E): Option[Boolean] = None
 
   def onMessage(e: E): Effect =
     val subject = messageContext.subject
-    if !Generation.belongs(subject, settings.generation) then effects.ignore()
+    val now     = clock.instant()
+    if !Generation.belongs(subject, settings.generation) then
+      FoldProgress.observed(client, settings, consumer, None, now)
+      effects.ignore()
     else
       val ds = deltas(e, settings.reportingZone)
-      if ds.isEmpty then effects.ignore()
-      else
+      if ds.nonEmpty then
         val test = testFlag(e).getOrElse(
           client.forEventSourcedEntity(EntityId(PlayerLog.id(settings.generation, player(e)))).call(PlayerLog.testAccount).invoke())
         val seq = messageContext.sequenceNumber
-        val now = clock.instant()
         ds.toSeq.sortBy(_._1).foreach { (day, d) =>
           client.forEventSourcedEntity(EntityId(BrandDay.id(settings.generation, day))).call(BrandDay.fold)
             .invoke(Fold(s"$source/$subject", seq, d.copy(test = test || d.test), now)): Unit
         }
-        effects.done()
+      FoldProgress.observed(client, settings, consumer, factAt(e), now)
+      if ds.isEmpty then effects.ignore() else effects.done()
 
 final class WalletDays(client: ComponentClient, settings: Settings, clock: Clock)
-    extends DayFolder[BookEvent](client, settings, clock, WalletBook.componentId.toString):
+    extends DayFolder[BookEvent](client, settings, clock, WalletBook.componentId.toString, ToDaysConsumers.WalletsName):
   protected def deltas(e: BookEvent, zone: ZoneId) = ToDays.wallet(e, zone)
+  protected def factAt(e: BookEvent) = e match
+    case m: Moved => Some(m.at)
+    case _        => None
   protected def player(e: BookEvent) = e match
     case m: Moved => m.player
     case _        => ""
 
 final class PaymentDays(client: ComponentClient, settings: Settings, clock: Clock)
-    extends DayFolder[PaymentEvent](client, settings, clock, Payment.componentId.toString):
+    extends DayFolder[PaymentEvent](client, settings, clock, Payment.componentId.toString, ToDaysConsumers.PaymentsName):
   protected def deltas(e: PaymentEvent, zone: ZoneId) = ToDays.payment(e, zone)
+  protected def factAt(e: PaymentEvent) = Some(e.at)
   protected def player(e: PaymentEvent) = e.player
 
 final class WithdrawalDays(client: ComponentClient, settings: Settings, clock: Clock)
-    extends DayFolder[WithdrawalEvent](client, settings, clock, Withdrawal.componentId.toString):
+    extends DayFolder[WithdrawalEvent](client, settings, clock, Withdrawal.componentId.toString, ToDaysConsumers.WithdrawalsName):
   protected def deltas(e: WithdrawalEvent, zone: ZoneId) = ToDays.withdrawal(e, zone)
+  protected def factAt(e: WithdrawalEvent) = Some(e.at)
   protected def player(e: WithdrawalEvent) = e.player
 
 final class GrantDays(client: ComponentClient, settings: Settings, clock: Clock)
-    extends DayFolder[GrantEvent](client, settings, clock, Grant.componentId.toString):
+    extends DayFolder[GrantEvent](client, settings, clock, Grant.componentId.toString, ToDaysConsumers.GrantsName):
   protected def deltas(e: GrantEvent, zone: ZoneId) = ToDays.grant(e, zone)
+  protected def factAt(e: GrantEvent) = Some(e.at)
   protected def player(e: GrantEvent) = e.player
 
 final class PlayerDaysFolder(client: ComponentClient, settings: Settings, clock: Clock)
-    extends DayFolder[PlayerLogEvent](client, settings, clock, PlayerLog.componentId.toString):
+    extends DayFolder[PlayerLogEvent](client, settings, clock, PlayerLog.componentId.toString, ToDaysConsumers.PlayersName):
   protected def deltas(e: PlayerLogEvent, zone: ZoneId) = ToDays.player(e, zone)
+  protected def factAt(e: PlayerLogEvent) = Some(e.at)
   protected def player(e: PlayerLogEvent) = e.player
   override protected def testFlag(e: PlayerLogEvent) = e match
     case r: PlayerLogEvent.Registered => Some(r.testAccount)
@@ -152,41 +166,53 @@ final class PlayerDaysFolder(client: ComponentClient, settings: Settings, clock:
 
 /** A market's events: about no one player, so no test account's. */
 final class MarketDays(client: ComponentClient, settings: Settings, clock: Clock)
-    extends DayFolder[MarketBookEvent](client, settings, clock, MarketBook.componentId.toString):
+    extends DayFolder[MarketBookEvent](client, settings, clock, MarketBook.componentId.toString, ToDaysConsumers.MarketsName):
   protected def deltas(e: MarketBookEvent, zone: ZoneId) = ToDays.market(e, zone)
+  protected def factAt(e: MarketBookEvent) = Some(e.at)
   protected def player(e: MarketBookEvent) = ""
   override protected def testFlag(e: MarketBookEvent) = Some(false)
 
 /** The `to-days` companions, each `to-days-<source>-g<n>`; the markets' only when the brand runs `predictions`. */
 object ToDaysConsumers:
+  val WalletsName     = "to-days-wallets"
+  val PaymentsName    = "to-days-payments"
+  val WithdrawalsName = "to-days-withdrawals"
+  val GrantsName      = "to-days-grants"
+  val PlayersName     = "to-days-players"
+  val MarketsName     = "to-days-markets"
+
+  /** The consumers the settings register, by name (without the generation): every one a due day waits for (R7). */
+  def names(settings: Settings): Seq[String] =
+    Seq(WalletsName, PaymentsName, WithdrawalsName, GrantsName, PlayersName) ++ Option.when(settings.predictions)(MarketsName)
+
   final class Wallets(settings: Settings, clock: Clock = Clock.systemUTC())
       extends Consumer.Companion[WalletDays, BookEvent, Nothing](
-        Generation.componentId("to-days-wallets", settings.generation), ChangeSource.eventsOf(WalletBook)):
+        Generation.componentId(WalletsName, settings.generation), ChangeSource.eventsOf(WalletBook)):
     def create(ctx: ConsumerContext) = new WalletDays(ctx.componentClient, settings, clock)
 
   final class Payments(settings: Settings, clock: Clock = Clock.systemUTC())
       extends Consumer.Companion[PaymentDays, PaymentEvent, Nothing](
-        Generation.componentId("to-days-payments", settings.generation), ChangeSource.eventsOf(Payment)):
+        Generation.componentId(PaymentsName, settings.generation), ChangeSource.eventsOf(Payment)):
     def create(ctx: ConsumerContext) = new PaymentDays(ctx.componentClient, settings, clock)
 
   final class Withdrawals(settings: Settings, clock: Clock = Clock.systemUTC())
       extends Consumer.Companion[WithdrawalDays, WithdrawalEvent, Nothing](
-        Generation.componentId("to-days-withdrawals", settings.generation), ChangeSource.eventsOf(Withdrawal)):
+        Generation.componentId(WithdrawalsName, settings.generation), ChangeSource.eventsOf(Withdrawal)):
     def create(ctx: ConsumerContext) = new WithdrawalDays(ctx.componentClient, settings, clock)
 
   final class Grants(settings: Settings, clock: Clock = Clock.systemUTC())
       extends Consumer.Companion[GrantDays, GrantEvent, Nothing](
-        Generation.componentId("to-days-grants", settings.generation), ChangeSource.eventsOf(Grant)):
+        Generation.componentId(GrantsName, settings.generation), ChangeSource.eventsOf(Grant)):
     def create(ctx: ConsumerContext) = new GrantDays(ctx.componentClient, settings, clock)
 
   final class Players(settings: Settings, clock: Clock = Clock.systemUTC())
       extends Consumer.Companion[PlayerDaysFolder, PlayerLogEvent, Nothing](
-        Generation.componentId("to-days-players", settings.generation), ChangeSource.eventsOf(PlayerLog)):
+        Generation.componentId(PlayersName, settings.generation), ChangeSource.eventsOf(PlayerLog)):
     def create(ctx: ConsumerContext) = new PlayerDaysFolder(ctx.componentClient, settings, clock)
 
   final class Markets(settings: Settings, clock: Clock = Clock.systemUTC())
       extends Consumer.Companion[MarketDays, MarketBookEvent, Nothing](
-        Generation.componentId("to-days-markets", settings.generation), ChangeSource.eventsOf(MarketBook)):
+        Generation.componentId(MarketsName, settings.generation), ChangeSource.eventsOf(MarketBook)):
     def create(ctx: ConsumerContext) = new MarketDays(ctx.componentClient, settings, clock)
 
   def all(settings: Settings, clock: Clock = Clock.systemUTC()): Seq[com.thinkmorestupidless.ankka.core.ComponentDescriptor] = Seq(

@@ -81,6 +81,7 @@ final class Kit(val brand: String = "goldvibe", modules: Set[String] = Set("casi
     current = next
     ReportingService.wire(next)
     Coverage.forget()
+    io.eitheror.casino.reporting.day.FoldProgress.forget()
     testKit.startService(descriptors = ReportingService.descriptors(next, clock))
     ReportingService.started(next, testKit.service.viewClient, timers.timerScheduler, () => clock.instant())
     next.generation

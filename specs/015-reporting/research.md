@@ -145,6 +145,19 @@ places.
   copied with the same grace (the core manifest gives attribution `CLOSE_GRACE` `15m` as a literal; the
   reporting manifest gives the same literal, and a manifest test holds the two equal, R14), so a day closes at the instant `ggr-daily` does (FR-006). ankka timers are intervals only (ankka
   032); a sweep has no DST trouble.
+- **Only once caught up** (review, 2026-11-09): a due day closes only when every `to-days` consumer (the five,
+  and `to-days-markets` with `predictions`) has either folded a fact dated at or after the day's end plus the
+  grace, or read nothing for `CLOSE_IDLE` (15 minutes). Each consumer tells its `FoldProgress` (key value,
+  `g<n>/<consumer>`) the latest fact time it has folded and the instant it last read an event (of any
+  generation, so passing over an older generation's events is not idleness), from the fold it already makes; an
+  instance tells at most every 30 seconds, and at once when a fact takes the latest past another day's close. Idle
+  is counted from the later of the last read and the instant this run of the service started serving its
+  generation (`ReportingRuntime.startedAt`, set at every start): a consumer that has read nothing in the
+  generation holds a due day for `CLOSE_IDLE` after the start, and a restart after downtime gives every
+  consumer `CLOSE_IDLE` to resume before a day closes on idleness. A new generation is always a new start, so
+  the start is never before the generation's; it is not stored, since a restart's own start is the later bound.
+  ankka 0.16 reports no consumer lag (T031), so caught-up is inferred: a consumer stuck retrying one fact looks
+  idle, and the views the close reads (`Rounds`, `Wallets`, `WithdrawalsView`) are not waited for.
 - **What**: `BrandDay.close` fixes the day-end: an event `DayFixed` holding, per currency, every section of
   FR-018 and FR-031 and the zone the day was closed in. A read renders from that event, so it is
   byte-identical (SC-008).
@@ -637,3 +650,7 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
     platform_admin), but carries only the `account` audience: a deployment sets the staff audience to `account` or adds an
     audience mapper to `casino-backoffice`;
   - the dispute report and 09 pass only once the brand's data is the service's (spec 019, the migration).
+- **A day closes when its consumers have caught up** (review, decided 2026-11-09): each to-days consumer records, per
+  generation, the latest fact time it folded and when it last folded anything; `close-days` closes a due day only once every
+  consumer has folded a fact dated after the day's end plus the grace, or has folded nothing for 15 minutes. ankka 0.16
+  reports no consumer lag (T031), so caught-up is inferred; a consumer stuck retrying one fact looks idle.

@@ -74,7 +74,10 @@ class ToDaysSuite extends munit.FunSuite:
     assertEquals(ToDays.player(r, jhb), Map("2026-11-08" -> Delta(hour = 12, registrations = 1, test = true)))
   }
 
-  private def recorded(test: Boolean) = Recorded(c => if c.method == "test-account" then test.toString.getBytes else "true".getBytes)
+  override def beforeEach(context: BeforeEach): Unit = FoldProgress.forget()
+
+  private def recorded(test: Boolean) = Recorded(c =>
+    if c.method == "test-account" then test.toString.getBytes else Recorded.answer(c))
   private def folds(r: Recorded): Vector[(Call, Fold)] =
     r.calls.filter(_.method == "fold").map(c => c -> c.as[Fold](using BrandDay.given_Serializer_Fold))
 
@@ -98,10 +101,10 @@ class ToDaysSuite extends munit.FunSuite:
     val kit = ConsumerTestKit.of(ToDaysConsumers.Payments(settings), client = r.client)
     kit.onMessage(Captured("f", "pay-1", "p-1", "psp-a", 1000, "EUR", at), subject = "g1/pay-1"): Unit
     assert(folds(r).forall(!_._2.delta.test))
-    val before = r.calls.length
+    val before = r.entityCalls.length
     assertEquals(kit.onMessage(Captured("f", "pay-1", "p-1", "psp-a", 1000, "EUR", at), subject = "g2/pay-1").effect, ConsumerEffect.Ignore)
     assertEquals(kit.onMessage(Ended("f", "pay-1", "p-1", "psp-a", "expired", at), subject = "g1/pay-1").effect, ConsumerEffect.Ignore)
-    assertEquals(r.calls.length, before)
+    assertEquals(r.entityCalls.length, before)
   }
 
   test("a registration's flag is its own; the player's log is not asked") {
@@ -116,4 +119,40 @@ class ToDaysSuite extends munit.FunSuite:
     val ids = ReportingService.descriptors(Settings("goldvibe", generation = 4)).map(_.componentId.toString)
     assertEquals(ids.filter(_.startsWith("to-days")).toSet,
       Set("to-days-wallets-g4", "to-days-payments-g4", "to-days-withdrawals-g4", "to-days-grants-g4", "to-days-players-g4"))
+  }
+
+  private def told(r: Recorded): Vector[(String, Progressed)] =
+    r.calls.filter(_.component == "fold-progress").map(c => c.entity -> c.as[Progressed](using FoldProgress.given_Serializer_Progressed))
+
+  test("every event read is told to the consumer's progress with its fact time; another generation's with none") {
+    val r     = recorded(test = false)
+    val clock = MovableClock.at(at.plusSeconds(5))
+    val kit   = ConsumerTestKit.of(ToDaysConsumers.Payments(settings, clock), client = r.client)
+    kit.onMessage(Captured("f", "pay-1", "p-1", "psp-a", 1000, "EUR", at), subject = "g1/pay-1"): Unit
+    assertEquals(told(r), Vector("g1/to-days-payments" -> Progressed("to-days-payments", Some(at), at.plusSeconds(5))))
+    // inside the refresh and the same close day: not told again
+    kit.onMessage(Ended("f", "pay-2", "p-1", "psp-a", "expired", at.plusSeconds(60)), subject = "g1/pay-2"): Unit
+    assertEquals(told(r).size, 1)
+    // past the next day's end plus the grace: told at once, with the latest fact time seen
+    val next = Instant.parse("2026-11-08T22:15:00Z")
+    kit.onMessage(Ended("f", "pay-3", "p-1", "psp-a", "expired", next), subject = "g1/pay-3"): Unit
+    assertEquals(told(r).last._2, Progressed("to-days-payments", Some(next), at.plusSeconds(5)))
+    // the refresh passed: another generation's event is told as activity, the latest kept
+    clock.moveBy(scala.concurrent.duration.Duration.fromNanos(FoldProgress.Refresh.toNanos))
+    kit.onMessage(Captured("f", "pay-9", "p-1", "psp-a", 1000, "EUR", at), subject = "g7/pay-9"): Unit
+    assertEquals(told(r).last._2, Progressed("to-days-payments", Some(next), clock.instant()))
+  }
+
+  test("FoldProgress keeps the latest of each time it is told") {
+    val k = com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit.of(FoldProgress, FoldProgress.id(1, "to-days-wallets"))
+    k.call(FoldProgress.record)(Progressed("to-days-wallets", Some(at), at.plusSeconds(10))): Unit
+    k.call(FoldProgress.record)(Progressed("to-days-wallets", Some(at.minusSeconds(60)), at.plusSeconds(5))): Unit
+    assertEquals(k.currentState, ProgressState("to-days-wallets", Some(at), Some(at.plusSeconds(10))))
+    k.call(FoldProgress.record)(Progressed("to-days-wallets", None, at.plusSeconds(20))): Unit
+    assertEquals(k.currentState, ProgressState("to-days-wallets", Some(at), Some(at.plusSeconds(20))))
+  }
+
+  test("the markets' consumer is waited for only with the predictions module") {
+    assertEquals(ToDaysConsumers.names(settings).size, 5)
+    assertEquals(ToDaysConsumers.names(settings.copy(modules = Set("predictions"))).last, "to-days-markets")
   }

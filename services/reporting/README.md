@@ -24,7 +24,8 @@ old one serves.
 | `to-days-wallets`, `-payments`, `-withdrawals`, `-grants`, `-players`, `-markets` | consumers (one per source) | each intake event folded into its days' `BrandDay`, under its source and sequence |
 | `BrandDay` | event sourced, id `g<n>/<day>` | a reporting day in the brand's zone, per currency: money, providers, gateways, the hours, the markets; fixed once at its close (`DayFixed`), then corrections |
 | `days`, `open-days` | views of `BrandDay` | the days the reports and the dashboard read; the open days the closer reads |
-| `close-days` | recurring timed action, every 5 minutes | closes every day whose end plus `CLOSE_GRACE` has passed, with what the views hold then (`DayEndInputs`) |
+| `FoldProgress` | key value, id `g<n>/<consumer>` | per `to-days` consumer, the latest fact time it folded and when it last read an event |
+| `close-days` | recurring timed action, every 5 minutes | closes every day whose end plus `CLOSE_GRACE` has passed, once every `to-days` consumer has folded a fact past that or read nothing for `CLOSE_IDLE` (research R7), with what the views hold then (`DayEndInputs`) |
 | `wallets`, `players`, `sessions`, `payments`, `withdrawals`, `rounds`, `player-days`, `activity`, `transactions`, `grants`, `compliance` | views | the reads the reports, the dashboard, the ledger, the dispute report and the compliance exports answer from |
 | `ReportingSettings` | key value, id `brand` | what an operator sets: the Reports tab, test accounts, the default currency, the synchronous limits, each kind's lifetime |
 | `Document`, `documents` | event sourced, id = reference; view | a document's record from asked to served, expired or failed (FR-021, FR-026) |
@@ -52,6 +53,7 @@ variable, when it cannot be read.
 | `CASINO_REPORTING_ZONE` | `UTC` | the zone a reporting day is counted in, attribution's |
 | `CASINO_MODULES` | none | the modules the brand runs, comma separated: `casino` reads `casino.rounds` and `casino.rewards`; `predictions` reads `markets.events` and `exchange.trades` and serves the prediction routes |
 | `CLOSE_GRACE` | `15m` | how long a day waits after its end before it closes, attribution's, so both close at one instant |
+| `CLOSE_IDLE` | `15m` | how long a `to-days` consumer must have read nothing (or, having read nothing, the service have run) before a due day stops waiting for it |
 | `REPORTING_GENERATION` | `1` | the generation the intake and the days are built and served in |
 | `ANKKA_AUTH_*` | | the player and staff issuers (`Oidc.authenticate`) |
 | `ANKKA_KAFKA_BOOTSTRAP_SERVERS` | none | the broker; without one the facts are read in memory (a local run) |

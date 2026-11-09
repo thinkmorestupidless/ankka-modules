@@ -72,10 +72,8 @@ final class DayEnded(kit: Kit, val day: LocalDate, val currency: String = DayEnd
 
   def end: java.time.Instant = Days.endOf(day.toString, kit.zone)
 
-  /** What the close is due: the clock moved past the next run of `close-days`. */
-  def close(): JsonNode =
-    kit.moveClock(6.minutes)
-    DayEnded.closed(kit, day)
+  /** What the close is due: the clock moved past the next run of `close-days` and every day consumer's idle bound. */
+  def close(): JsonNode = DayEnded.closeDue(kit, day)
 
   /**
    * Facts for this closed day arriving during a today of its own, which a deposit of its own makes a day: answers today
@@ -131,21 +129,32 @@ object DayEnded:
 
   def read(kit: Kit, day: LocalDate): Reply = kit.get(s"/day-end/$day", finance(kit))
 
+  /**
+   * `day`, already past its end and the grace, closed: the clock moved past `CLOSE_IDLE` and a run of `close-days`, so a
+   * consumer that has folded nothing past the day since the facts were published no longer holds it (research R7).
+   */
+  def closeDue(kit: Kit, day: LocalDate): JsonNode =
+    kit.moveClock(idleRun(kit))
+    closed(kit, day)
+
+  /** Past every day consumer's idle bound and the next run of `close-days`. */
+  def idleRun(kit: Kit): FiniteDuration = kit.settings.closeIdle.toMillis.millis + 1.minute
+
   /** The day-end once the day has closed. */
   def closed(kit: Kit, day: LocalDate): JsonNode =
     kit.eventually(s"$day closed", 60.seconds)(Some(read(kit, day)).filter(_.status == 200)).json
 
   /**
    * `day` (today) left open until its end and the grace have passed, and then closed: answers its day-end. The clock is
-   * moved to ten minutes after its end, where a run of `close-days` leaves it open, then 16 minutes on, past the grace and
-   * past a run of `close-days` (every five minutes) after it.
+   * moved to ten minutes after its end, where a run of `close-days` leaves it open, then `CLOSE_IDLE` and a minute on, past
+   * the grace, the consumers' idle bound and a run of `close-days` (every five minutes) after it.
    */
   def closeAtGrace(kit: Kit, day: LocalDate): JsonNode =
     val end = Days.endOf(day.toString, kit.zone)
     kit.moveClock(java.time.Duration.between(kit.now, end.plusSeconds(10 * 60)).toMillis.millis)
     Thread.sleep(1_000)
     assertOpen(kit, day)
-    kit.moveClock(16.minutes)
+    kit.moveClock(idleRun(kit))
     // A run of `close-days` still catching up when the clock moved read it before the move and set its next run from
     // after it, so the day waits for that next run: the clock is moved on to it (still past the grace) if it has to.
     scala.util.Try(kit.eventually(s"$day closed", 20.seconds)(Option.when(read(kit, day).status == 200)(())))

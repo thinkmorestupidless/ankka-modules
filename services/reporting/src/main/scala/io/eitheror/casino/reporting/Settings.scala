@@ -7,8 +7,9 @@ import scala.util.Try
  * What the service is told at start (research R7, R8, R12, R14): the brand and its project, whether it takes
  * real money, the reporting zone its days are counted in (attribution's), the modules it runs beside, the
  * grace a day waits after its end before it closes (attribution's `CLOSE_GRACE`, so the two close at the same
- * instant), and the generation every intake and day entity id begins with. What an operator changes is the
- * brand's `ReportingSettings`, not a setting here.
+ * instant), the generation every intake and day entity id begins with, and how long a day consumer must have read
+ * nothing before a due day stops waiting for it (`CLOSE_IDLE`, research R7). What an operator changes is the brand's
+ * `ReportingSettings`, not a setting here.
  */
 final case class Settings(
     brand: String,
@@ -17,7 +18,8 @@ final case class Settings(
     reportingZone: ZoneId = ZoneId.of("UTC"),
     modules: Set[String] = Set.empty,
     closeGrace: Duration = Duration.ofMinutes(15),
-    generation: Int = 1
+    generation: Int = 1,
+    closeIdle: Duration = Duration.ofMinutes(15)
 ):
   /** Whether the casino module runs in this project, so `casino.rounds` and `casino.rewards` exist to be read (R12). */
   def casino: Boolean = modules.contains("casino")
@@ -37,6 +39,7 @@ object Settings:
       zone       <- zoneOf(env, d.reportingZone)
       grace      <- duration(env, "CLOSE_GRACE", d.closeGrace)
       generation <- generationOf(env, d.generation)
+      idle       <- duration(env, "CLOSE_IDLE", d.closeIdle)
     yield Settings(
       brand,
       env.get("CASINO_PROJECT").map(_.trim).filter(_.nonEmpty).getOrElse(brand),
@@ -44,7 +47,8 @@ object Settings:
       zone,
       env.get("CASINO_MODULES").map(_.split(',').map(_.trim).filter(_.nonEmpty).toSet).getOrElse(Set.empty),
       grace,
-      generation)
+      generation,
+      idle)
 
   /** Attribution's reading of the zone (`services/attribution/.../Settings.scala`), so both count the same day. */
   private def zoneOf(env: Map[String, String], default: ZoneId): Either[String, ZoneId] =
