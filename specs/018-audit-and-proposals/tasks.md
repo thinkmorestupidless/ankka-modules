@@ -93,7 +93,7 @@ registry, the consumers' decoding, the kit.
   `collision`, `drop`), with its kit suite `a-test/store/RecordSuite.scala`
 - [X] T016 [P] `a/registry/Pseudonym.scala` and `a/registry/Identity.scala` with kit suites: the first
   `issue` draws a UUIDv4, every later one returns it; `bind` written once, `conflict` otherwise
-- [ ] T017 `a/registry/RegistryKey.scala`: the `registry-key` secret, generated at first start when
+- [X] T017 `a/registry/RegistryKey.scala`: the `registry-key` secret, generated at first start when
   absent, read once; a kit case that two starts read the same key
 - [ ] T018 `a/store/Records.scala`: the view over `Record` state with `page`, `count`, `olderThan`;
   verify that a `drop` deletes the row (research R4), else write a tombstone and delete on it, and
