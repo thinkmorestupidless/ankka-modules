@@ -61,6 +61,18 @@ class IngestUnitSuite extends munit.FunSuite with LogCapturing:
       Set("undecodable", "brand_mismatch", "personal_value", "collision"))
   }
 
+  test("a pseudonym bound to someone else holds the message, reported, and the source goes on") {
+    val calls     = KitCalls()
+    val pseudonym = calls.issue(io.eitheror.casino.audit.ids.Ids.registryId(keys.registry, "goldvibe", "player", "p-1"))
+    calls.bind(pseudonym, io.eitheror.casino.audit.registry.Bind("goldvibe", "player", "someone-else")): Unit
+    assertEquals(ingest(calls, record(id = "conflicted")), Outcome.Held(Quarantined.PseudonymConflict))
+    assertEquals(calls.stored.size, 0)
+    assertEquals(calls.quarantined.size, 1)
+    // The next message, about another player, is kept.
+    val next = record(id = "next").copy(subjectId = "p-2")
+    assertEquals(ingest(calls, next), Outcome.Kept)
+  }
+
   test("payments' records name any brand, or payments") {
     val calls = KitCalls()
     assertEquals(ingest(calls, record(brand = "payments", id = "merchant/m-1"), Source.Payments), Outcome.Kept)

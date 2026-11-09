@@ -62,12 +62,14 @@ object Ingest:
           case Decision.Keep =>
             val pseudonyms = Stored.people(r).map { (kind, realId) =>
               val pseudonym = calls.issue(Ids.registryId(keys.registry, r.brand, kind, realId))
-              if calls.bind(pseudonym, Bind(r.brand, kind, realId)) == Identity.Conflict then
-                throw IllegalStateException(s"pseudonym $pseudonym is bound to someone else")
-              (kind, realId) -> pseudonym
+              (kind, realId) -> (pseudonym -> (calls.bind(pseudonym, Bind(r.brand, kind, realId)) == Identity.Conflict))
             }.toMap
-            val stored = Stored.from(r, source, (kind, id) => pseudonyms((kind, id)), keys.registry, now)
-            store(source, stored, r.occurredAt, skewed, now, calls, () => hold(Quarantined.Collision))
+            // A pseudonym bound to someone else will not bind on a redelivery either: the message is held
+            // and reported, as a collision is, rather than stopping its source behind it.
+            if pseudonyms.values.exists(_._2) then hold(Quarantined.PseudonymConflict)
+            else
+              val stored = Stored.from(r, source, (kind, id) => pseudonyms((kind, id))._1, keys.registry, now)
+              store(source, stored, r.occurredAt, skewed, now, calls, () => hold(Quarantined.Collision))
 
   /** A brand's `platform.modules` change, as an installation record about the brand. */
   def module(brand: String, bytes: Array[Byte], now: Instant, calls: IngestCalls, keys: IngestKeys): Outcome =

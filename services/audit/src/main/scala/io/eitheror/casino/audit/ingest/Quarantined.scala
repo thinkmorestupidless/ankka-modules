@@ -43,6 +43,7 @@ object Quarantined extends KeyValueEntity.Companion[Quarantined, QuarantinedStat
   val BrandMismatch = "brand_mismatch"
   val PersonalValue = "personal_value"
   val Collision     = "collision"
+  val PseudonymConflict = "pseudonym_conflict"
 
   def id(source: String, bytes: Array[Byte]): String =
     s"$source/${HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes))}"
