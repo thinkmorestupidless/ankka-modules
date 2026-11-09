@@ -43,6 +43,11 @@ object Documents:
   /** Whether the operator (already admitted as one of the brand's) may have the document. */
   def admitted(p: Principal, d: DocumentState): Boolean = rolesOf(d).forall(_.exists(p.roles.contains))
 
+  /** A refusal's words: every role that admits, as `the a, b or c permission is needed`. */
+  def needed(roles: Seq[String]): String =
+    val named = if roles.size == 1 then roles.head else s"${roles.init.mkString(", ")} or ${roles.last}"
+    s"the $named permission is needed"
+
   /**
    * An export is not found when its report is: one of the Reports tab while the tab is hidden (FR-024), a prediction
    * report's while the brand does not run the module, whatever the tab (FR-032).
@@ -70,7 +75,7 @@ object Documents:
   def get(ctx: Ctx, p: Principal, reference: String): Answer =
     val d = Keeping.document(ctx.components, reference).call(Document.get).invoke()
     if !d.recorded || hidden(ctx, d) then notFound
-    else if !admitted(p, d) then refuse(403, Refusal(Forbidden, message = Some(s"the ${rolesOf(d).get.head} permission is needed")))
+    else if !admitted(p, d) then refuse(403, Refusal(Forbidden, message = Some(needed(rolesOf(d).get))))
     else
       val at = ctx.now()
       d.status match
