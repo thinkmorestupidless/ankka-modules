@@ -378,3 +378,5 @@ outlives an erasure (FR-023).
   Decided 2026-11-09: ship with the miss reported; a follow-up spec amends `contracts/ingest.md` and
   `SourceState` (count in the consumer, flush once a second; pseudonyms concurrently) and measures on
   Kafka on kind.
+- **T063 skipped** (2026-11-09): the `ankka` kind cluster's control plane was not running (its API at
+  127.0.0.1:49180 refused connections), so `shared/reasoner` was not deployed beside `goldvibe`.
