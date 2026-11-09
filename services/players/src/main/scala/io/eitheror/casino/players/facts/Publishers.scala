@@ -85,11 +85,14 @@ object GameSessionsPublisher
 
 // ── platform.audit ─────────────────────────────────────────────────────────
 
-/** The operator's actions on a player. Actions a workflow or route makes (force-end, reset, export, erasure, config) are audited where they are made. */
+/**
+ * The operator's and the player's actions on a player, and an erasure's states. Actions a workflow or route
+ * makes (force-end, reset, export, config) are audited where they are made.
+ */
 final class AuditPublisher extends AuditConsumer[PlayerEvent]:
   protected def audit(change: PlayerEvent): Option[AuditRecord] =
-    Facts.playerAudit(PlayersRuntime.settings.brand, messageContext.subject, messageContext.sequenceNumber, change)
-      .map(_.fact)
+    val (brand, subject, sequence) = (PlayersRuntime.settings.brand, messageContext.subject, messageContext.sequenceNumber)
+    Facts.playerAudit(brand, subject, sequence, change).orElse(Facts.erasureAudit(brand, subject, sequence, change)).map(_.fact)
 
 object AuditPublisher extends AuditCompanion[AuditPublisher, PlayerEvent]("audit-publisher", ChangeSource.eventsOf(PlayerEntity)):
   def create(ctx: ConsumerContext) = new AuditPublisher

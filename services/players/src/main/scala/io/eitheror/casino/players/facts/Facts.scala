@@ -184,6 +184,24 @@ object Facts:
       case _ => None
     action.map(record(brand, eventId("audit/player", playerId, sequence), _))
 
+  /**
+   * An erasure request's state (spec 018 FR-019, research R7): `erasure.<state>`, kept by the shared audit
+   * as an installation record of the brand. The actor is the system; the correlation is the erasure's, so
+   * every state of one request is found together; nothing personal.
+   */
+  def erasureAudit(brand: String, playerId: String, sequence: Long, event: PlayerEvent): Option[Published[f.AuditRecord]] =
+    val reached = event match
+      case e: ErasureFiled        => Some(("filed", e.correlationId, e.at))
+      case e: ErasureStageReached => Some((e.stage, e.correlationId, e.at))
+      case _                      => None
+    reached.map { (state, correlation, at) =>
+      val id = eventId("audit/erasure", playerId, sequence)
+      Published(f.AuditRecord(recordId = id, brand = brand, service = "players", action = s"erasure.$state", actorKind = "system",
+        actorId = "players", approverId = None, subjectKind = "player", subjectId = playerId, outcome = "accepted", reasonCode = None,
+        changes = Vector(f.AuditChange("erasure", None, Some(state))), correlationId = correlation, causationId = correlation,
+        recordClass = "erasure", occurredAt = at), id)
+    }
+
   /** An operator's message to a player: the body is never on the record. */
   def messageAudit(brand: String, messageId: String, sequence: Long, event: MessageEvent): Option[Published[f.AuditRecord]] =
     event match

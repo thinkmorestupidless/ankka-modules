@@ -243,12 +243,12 @@ brand's records.
 - [ ] T047 [P] [US5] `a-test/features/InstallationFeatures.scala`: bind
   `features/audit/installation.feature` (13 runs); rollback, restore switch and every grant row ignored
   with "ankka publishes no project events (research R7)"
-- [ ] T048 [P] [US5] `services/players/src/test/scala/.../erasure/ErasureAuditSuite.scala`: a record per
+- [X] T048 [P] [US5] `services/players/src/test/scala/.../erasure/ErasureAuditSuite.scala`: a record per
   erasure state
 
 ### Implementation for User Story 5
 
-- [ ] T049 [US5] `pl/erasure/`: the erasure workflow writes a record per state (filed, held, applied,
+- [X] T049 [US5] `pl/erasure/`: the erasure workflow writes a record per state (filed, held, applied,
   completed) through the service's audit path; T048 passes
 - [ ] T050 [US5] `a/ingest/Consumers.scala`: `modules-<slug>` per brand over `Ingest` with
   `Stored.fromModule`

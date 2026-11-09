@@ -92,7 +92,8 @@ final case class VerificationEmail(lastSentAt: Option[Instant] = None, pending: 
 
 final case class Suspension(reason: String, at: Instant)
 
-final case class ErasureFiling(correlationId: String, holdUntil: Instant)
+/** `stages`: the erasure's states already recorded for the audit beyond `filed` (spec 018 FR-019). */
+final case class ErasureFiling(correlationId: String, holdUntil: Instant, stages: Set[String] = Set.empty)
 
 /**
  * A player (data-model.md): the status and its trail, the profile, the addresses, the consents, the
@@ -209,6 +210,8 @@ object PlayerEvent:
   final case class PendingBonusCodeCleared(at: Instant)                                            extends PlayerEvent
   final case class ErasureFiled(correlationId: String, holdUntil: Instant, at: Instant)            extends PlayerEvent
   final case class Erased(at: Instant)                                                             extends PlayerEvent
+  /** An erasure reached `held`, `applied` or `completed`: the audit's record of it (spec 018 FR-019); nothing personal. */
+  final case class ErasureStageReached(correlationId: String, stage: String, at: Instant)          extends PlayerEvent
 
   /** A status carried over from the original by the migration (spec 019), `blocked` among them; no command persists it. */
   final case class StatusImported(status: String, at: Instant)                                     extends PlayerEvent
@@ -270,4 +273,5 @@ final case class EndDuplicateCheck(outcome: String, weakSignals: Set[String], at
 final case class ClearNoDepositBlock(actorId: String, at: Instant)
 final case class Withdrawal(withdrawalId: String, at: Instant)
 final case class FileErasure(correlationId: String, holdUntil: Instant, at: Instant)
+final case class ErasureStage(stage: String, at: Instant)
 final case class SendResetLink(operatorId: String, at: Instant)
