@@ -111,9 +111,13 @@ enum Delivery:
 
   def word: String = this match
     case NotYet               => "NotYet"
-    case Delivered(_, _)      => "Delivered"
+    case Delivered(_, _)      => Delivery.DeliveredWord
     case Refused(_, _, _)     => "Refused"
     case Undelivered(_, _, _) => "Undelivered"
+
+object Delivery:
+  /** `Delivered`'s word, which has no instance to name it by: the listings' rows hold the word. */
+  val DeliveredWord: String = "Delivered"
 
 /** Where the player is sent to pay (FR-003): a page, or a crypto destination. */
 enum Destination:

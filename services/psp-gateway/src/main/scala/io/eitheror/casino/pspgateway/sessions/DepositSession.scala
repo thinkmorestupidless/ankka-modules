@@ -66,7 +66,10 @@ final case class DepositState(
 
   def exists: Boolean = claim.isDefined
 
-  def captured: Boolean = outcome.exists(_.isInstanceOf[Outcome.Captured])
+  def captured: Boolean = outcome.exists {
+    case _: Outcome.Captured => true
+    case _                   => false
+  }
 
   /**
    * The delivery the session waits on, in order: the outcome's until it is delivered, then each dispute's
