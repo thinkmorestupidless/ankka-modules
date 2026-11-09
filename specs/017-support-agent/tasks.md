@@ -110,7 +110,7 @@ criteria name suites, and the plan names them.
     `{status:"self_excluded"}`.
   - Suites per route: admission, a player refused, a repeat, `key_reused`, each refusal code.
   - Then spec 010 (FR-002, FR-014, FR-018, FR-025) and its contract rows; register the endpoint.
-- [ ] T013 Run `just service players test`, `just service payouts test` and
+- [X] T013 Run `just service players test`, `just service payouts test` and
       `just service responsible-gambling test` (each `it` with `-Dit=true`), all green. Then
       `just features` at 0 findings.
 
