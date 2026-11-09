@@ -193,6 +193,7 @@ class RevenueSuite extends munit.FunSuite with LogCapturing:
     val generation = kit.settings.generation
     assertEquals(kit.rebuild(), generation + 1)
     for (c, text) <- Vector("EUR", "USD").zip(before) do
-      kit.eventually(s"the rebuilt $c report", 60.seconds)(Some(ggr(c)).filter(_.text == text)): Unit
+      // The new generation replays every topic the shared kit's suites have published so far.
+      kit.eventually(s"the rebuilt $c report", 180.seconds)(Some(ggr(c)).filter(_.text == text)): Unit
     assertEquals(kit.get("/status", kit.asOperator).json.path("generation").asInt, generation + 1)
   }

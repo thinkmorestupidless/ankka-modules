@@ -176,6 +176,10 @@ class ComplianceFeatures extends ReportingFeatures("compliance-exports.feature")
     assertEquals(kit.get(s"/documents/$ref", as).status, 200, "still served before its lifetime ends")
     kit.moveClock(2.minutes)
     assertEquals(kit.get(s"/documents/$ref", as).error, "document_expired")
+    // A sweep still catching up when the clock moved read it before the move and set its next run an hour on: the
+    // clock is moved on to that run if it has to be (as `DayEnded.closeAtGrace` does for the close).
+    scala.util.Try(kit.eventually(s"$ref expired by the sweep", 20.seconds)(Option.when(record(ref).status == Document.Expired)(())))
+      .getOrElse(kit.moveClock(io.eitheror.casino.reporting.documents.Sweep.Every))
     val gone = kit.eventually(s"$ref expired", 60.seconds)(Some(record(ref)).filter(_.status == Document.Expired))
     assertEquals(gone.endedBy, Some(Document.Lifetime))
     assertEquals(kit.testKit.storage.default.getBytes(gone.objectName.get), None)
