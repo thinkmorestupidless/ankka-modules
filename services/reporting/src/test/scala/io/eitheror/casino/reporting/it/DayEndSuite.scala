@@ -20,7 +20,7 @@ import DayEnded.{fields, list}
  * read; a late fact a correction on its day and in the opening of the day-end of the day it arrived; and the export.
  */
 class DayEndSuite extends munit.FunSuite with LogCapturing:
-  override val munitTimeout = 300.seconds
+  override val munitTimeout = 30.minutes
   private lazy val kit = SharedKit.kit
 
   private var d: DayEnded    = null
@@ -154,17 +154,24 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     // The close reads the views as they stand (the liability is the open records' balance at the close), so it is made
     // once the replay has reached what the old generation's close read: every currency, each one's liability and pending
     // holds, and the rounds' differences. (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers
-    // would be idle only once they are.)
+    // would be idle only once they are. The replay is every suite's facts in a full run: minutes, at its rate.)
     val currencies = before.path("currencies").fieldNames.asScala.toVector.sorted
     def held(c: String, field: String) = before.path("currencies").path(c).path(field).asText
-    kit.eventually("the new generation's close inputs as the old one's", 120.seconds) {
-      val in = io.eitheror.casino.reporting.day.DayEndInputs.gather(kit.views, kit.settings, r.day.toString)
-      def shown(m: Map[String, Long], c: String) = io.eitheror.casino.reporting.render.Money(m.getOrElse(c, 0L), c)
-      Option.when(
-        io.eitheror.casino.reporting.day.DaysView.currencies(kit.views, kit.settings.generation) == currencies &&
-          currencies.forall(c => shown(in.liability, c) == held(c, "liability") && shown(in.pendingHolds, c) == held(c, "pendingHolds")) &&
-          in.differences.size == before.path("differences").size)(())
-    }
+    var seen = ""
+    try
+      kit.eventually("the new generation's close inputs as the old one's", DayEnded.Replay) {
+        val in = io.eitheror.casino.reporting.day.DayEndInputs.gather(kit.views, kit.settings, r.day.toString)
+        def shown(m: Map[String, Long], c: String) = io.eitheror.casino.reporting.render.Money(m.getOrElse(c, 0L), c)
+        val held2 = io.eitheror.casino.reporting.day.DaysView.currencies(kit.views, kit.settings.generation)
+        seen = s"currencies $held2 (want $currencies); " + currencies.map(c =>
+          s"$c liability ${shown(in.liability, c)} (want ${held(c, "liability")}), holds ${shown(in.pendingHolds, c)} (want ${held(c, "pendingHolds")})")
+          .mkString("; ") + s"; differences ${in.differences.size} (want ${before.path("differences").size})"
+        Option.when(
+          held2 == currencies &&
+            currencies.forall(c => shown(in.liability, c) == held(c, "liability") && shown(in.pendingHolds, c) == held(c, "pendingHolds")) &&
+            in.differences.size == before.path("differences").size)(())
+      }
+    catch case e: AssertionError => fail(s"${e.getMessage}: $seen")
     val after = DayEnded.closeDue(kit, r.day)
     def fixedPart(j: JsonNode) = DayEnded.fixed(j).deepCopy[com.fasterxml.jackson.databind.node.ObjectNode]()
       .without[JsonNode](java.util.List.of("closedAt", "reference"))

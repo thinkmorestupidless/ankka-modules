@@ -135,7 +135,23 @@ object DayEnded:
    */
   def closeDue(kit: Kit, day: LocalDate): JsonNode =
     kit.moveClock(idleRun(kit))
+    closedOnceIdle(kit, day)
+
+  /**
+   * The day-end once the day has closed, the clock moved past `CLOSE_IDLE` again each time half a minute passes without
+   * it. A consumer still replaying after a rebuild (another suite's, every fact on the kit's topics) tells its progress
+   * at the moved clock, so it is active, not idle, until the replay ends (research R7); the close waits for that, as a
+   * brand's does, for at most `Replay`.
+   */
+  def closedOnceIdle(kit: Kit, day: LocalDate): JsonNode =
+    val until = System.nanoTime() + Replay.toNanos
+    def done = read(kit, day).status == 200
+    while !done && System.nanoTime() < until do
+      if scala.util.Try(kit.eventually(s"$day closed", 30.seconds)(Option.when(done)(()))).isFailure then kit.moveClock(idleRun(kit))
     closed(kit, day)
+
+  /** How long a close waits for a replay of the kit's topics to end. */
+  val Replay: FiniteDuration = 20.minutes
 
   /** Past every day consumer's idle bound and the next run of `close-days`. */
   def idleRun(kit: Kit): FiniteDuration = kit.settings.closeIdle.toMillis.millis + 1.minute
@@ -159,7 +175,7 @@ object DayEnded:
     // after it, so the day waits for that next run: the clock is moved on to it (still past the grace) if it has to.
     scala.util.Try(kit.eventually(s"$day closed", 20.seconds)(Option.when(read(kit, day).status == 200)(())))
       .getOrElse(kit.moveClock(CloseDays.Every))
-    closed(kit, day)
+    closedOnceIdle(kit, day)
 
   def assertOpen(kit: Kit, day: LocalDate): Unit =
     val r = read(kit, day)

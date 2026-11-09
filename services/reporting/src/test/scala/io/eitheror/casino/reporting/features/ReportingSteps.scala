@@ -14,7 +14,7 @@ import scala.jdk.CollectionConverters.*
  * days of its own (`Kit.days`), since the database and the brand's days outlive scenarios.
  */
 abstract class ReportingFeatures(file: String) extends GherkinSuite(s"${ReportingFeatures.Directory}/$file") with LogCapturing:
-  override val munitTimeout: Duration = 300.seconds
+  override val munitTimeout: Duration = 30.minutes
 
   protected def kit: Kit = SharedKit.kit
   protected var last: Reply = null

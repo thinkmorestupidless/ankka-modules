@@ -16,7 +16,7 @@ import scala.concurrent.duration.*
  * unmatched, and a range over the brand's seven days, or more rounds than its synchronous limit, made a job.
  */
 class DisputeSuite extends munit.FunSuite with LogCapturing:
-  override val munitTimeout = 300.seconds
+  override val munitTimeout = 30.minutes
   private lazy val kit = SharedKit.kit
 
   private var d: LocalDate = null

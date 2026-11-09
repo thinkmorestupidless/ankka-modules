@@ -15,7 +15,7 @@ import Marketed.fields
  * no route for a brand without the module.
  */
 class PredictionsSuite extends munit.FunSuite with LogCapturing:
-  override val munitTimeout = 300.seconds
+  override val munitTimeout = 30.minutes
   private lazy val kit = SharedKit.kit
 
   private var p: Marketed = null
