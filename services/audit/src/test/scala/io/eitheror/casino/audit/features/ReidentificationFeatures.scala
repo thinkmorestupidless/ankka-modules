@@ -42,7 +42,7 @@ class ReidentificationFeatures extends AuditFeatures("re-identification.feature"
   Then("a record of the re-identification names them, the pseudonym and the reason") { () =>
     val made = kit.eventually()(kit.own(IdentitiesRoute.Who).find(r => r.subject == pseudonym && r.outcome == "done"))
     assert(made.actor.nonEmpty && made.actor != id("officer"))
-    assertEquals(made.visibility, Visibility.Brand)
+    assertEquals(made.visibility, Visibility.Installation)
     assert(made.changes.exists(c => c.field == "reason" && c.after.contains("regulator_request")))
   }
 

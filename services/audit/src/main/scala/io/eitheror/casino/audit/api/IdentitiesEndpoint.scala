@@ -7,7 +7,6 @@ import io.eitheror.casino.audit.Wiring
 import io.eitheror.casino.audit.ids.Ids
 import io.eitheror.casino.audit.own.Own
 import io.eitheror.casino.audit.registry.{Bind, Identity, Pseudonym}
-import io.eitheror.casino.audit.stored.Visibility
 import io.eitheror.casino.contract.access.Routes
 
 import scala.util.Try
@@ -51,7 +50,7 @@ object IdentitiesRoute:
   private def recorded(ctx: Ctx, p: Principal, brand: String, action: String, subject: String, reason: String,
       outcome: String = "done", reasonCode: Option[String] = None): Unit =
     Own.record(ctx.calls, brand, action, Own.staff(ctx.calls, brand, p.subject), "pseudonym", subject, outcome, reasonCode,
-      Vector(Own.change("reason", reason)), ctx.now(), visibility = Visibility.Brand): Unit
+      Vector(Own.change("reason", reason)), ctx.now()): Unit
 
   private def refusedFor(ctx: Ctx, p: Principal, brand: String, action: String, subject: String, reason: String): Answer =
     recorded(ctx, p, brand, action, subject, reason, outcome = "refused", reasonCode = Some(NotReidentifier))

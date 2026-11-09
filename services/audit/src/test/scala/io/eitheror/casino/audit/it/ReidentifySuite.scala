@@ -30,7 +30,7 @@ class ReidentifySuite extends munit.FunSuite:
     assertEquals(r.status, 200, r.text)
     assertEquals((r.json.get("brand").asText, r.json.get("kind").asText, r.json.get("id").asText), ("goldvibe", "player", real))
     val made = recordFor(IdentitiesRoute.Who, pseudonym, "done")
-    assertEquals((made.brand, made.visibility), ("goldvibe", Visibility.Brand))
+    assertEquals((made.brand, made.visibility), ("goldvibe", Visibility.Installation))
     assert(made.changes.exists(c => c.field == "reason" && c.after.contains("regulator_request")))
     assert(made.actor.nonEmpty && made.actor != "officer-who")
     assert(!made.toString.contains(real), made.toString)

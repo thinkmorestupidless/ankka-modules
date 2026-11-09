@@ -125,8 +125,9 @@ class QueryItSuite extends munit.FunSuite:
     assert(fields("filters").contains("brand=goldvibe") && fields("filters").contains("correlation"), fields.toString)
     assertEquals(fields("range"), "2026-11-01T00:00:00Z..")
     assertEquals(fields("count"), "1")
-    // Not answered to the brand's officer: the audit's own records are the installation's.
-    assertEquals(kit.query(kit.asBrandCompliance("goldvibe"), "brand" -> "goldvibe", "service" -> "audit").records, Vector.empty)
+    // Installation records about the brand are the brand's officer's to read too (FR-020), and only the brand's.
+    val own = kit.query(kit.asBrandCompliance("goldvibe"), "brand" -> "goldvibe", "service" -> "audit").records
+    assert(own.exists(_.get("key").asText == made.key) && own.forall(_.get("brand").asText == "goldvibe"), own.toString)
     val recorded = kit.own("audit.query").size
     kit.query(kit.asInstallationCompliance(), "service" -> "audit")
     Thread.sleep(500)

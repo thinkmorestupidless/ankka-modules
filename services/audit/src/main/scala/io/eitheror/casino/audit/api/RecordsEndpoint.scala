@@ -4,15 +4,14 @@ import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.audit.own.Own
 import io.eitheror.casino.audit.query.{Asked, Filters, Query}
 import io.eitheror.casino.audit.store.Records
-import io.eitheror.casino.audit.stored.Visibility
 import io.eitheror.casino.contract.access.Routes
 
 import Wire.*
 
 /**
  * `GET /v1/audit-records` (FR-013, FR-015; contracts/routes.md): the store, filtered, a page at a time in
- * order of occurrence. A brand's compliance officer names a brand their roles hold and sees what is
- * visible to brands; the installation's sees every brand, or the one named. Each query is a record of
+ * order of occurrence. A brand's compliance officer names a brand their roles hold and sees every record
+ * of it, of either visibility (FR-020); the installation's sees every brand, or the one named. Each query is a record of
  * its own, unless it asks after the audit's own records alone (one level, no recursion).
  */
 final class RecordsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/audit-records"):
@@ -28,17 +27,15 @@ object RecordsRoute:
 
   /** The filters a caller's roles allow, or the refusal. */
   def scoped(ctx: Ctx, p: Principal, asked: Asked): Either[String, Filters] =
-    val brands: Either[String, (Set[String], Option[String])] = Routes.auditScope(p) match
-      case Routes.BrandSet.Every => Right(asked.brand.fold(ctx.everyBrand)(Set(_)) -> None)
+    val brands: Either[String, Set[String]] = Routes.auditScope(p) match
+      case Routes.BrandSet.Every => Right(asked.brand.fold(ctx.everyBrand)(Set(_)))
       case Routes.BrandSet.Only(slugs) =>
         asked.brand.filter(slugs) match
-          case Some(b) => Right(Set(b) -> Some(Visibility.Brand))
+          case Some(b) => Right(Set(b))
           case None    => Left(asked.brand.fold(s"$BrandNotInRoles: name one of your brands")(b => s"$BrandNotInRoles: $b is not one of your brands"))
-    brands.map { (scope, visibility) =>
+    brands.map { scope =>
       asked.filters.copy(
-        brands = Option.when(asked.brand.isDefined || visibility.isDefined)(scope),
-        // A brand's officer sees what is visible to brands, whatever they ask.
-        visibility = visibility.orElse(asked.filters.visibility),
+        brands = Option.when(asked.brand.isDefined)(scope),
         correlations = asked.correlation.fold(Vector.empty)(ctx.correlations(_, scope))
       )
     }

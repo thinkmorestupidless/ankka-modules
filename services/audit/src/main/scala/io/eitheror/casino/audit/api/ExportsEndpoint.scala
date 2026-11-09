@@ -6,7 +6,6 @@ import com.thinkmorestupidless.ankka.http.*
 import com.thinkmorestupidless.ankka.sdk.SignedAccess
 import io.eitheror.casino.audit.exports.{Export, ExportFormat, ExportState, StartExport}
 import io.eitheror.casino.audit.own.Own
-import io.eitheror.casino.audit.stored.Visibility
 import io.eitheror.casino.contract.access.Routes
 
 import java.time.Instant
@@ -51,11 +50,11 @@ object ExportsRoute:
   private def instant(field: String, v: Option[String]): Either[String, Option[Instant]] =
     v.fold(Right(None))(t => Try(Instant.parse(t)).toOption.map(Some(_)).toRight(s"$BadRequest: $field '$t' is not an instant"))
 
-  /** The visibility a caller may export at for the brand, or the refusal (as the records route scopes a query). */
+  /** Whether a caller may export the brand, every record of it of either visibility (FR-020), or the refusal. */
   private def scope(p: Principal, brand: String): Either[String, Option[String]] =
     Routes.auditScope(p) match
       case Routes.BrandSet.Every                       => Right(None)
-      case Routes.BrandSet.Only(slugs) if slugs(brand) => Right(Some(Visibility.Brand))
+      case Routes.BrandSet.Only(slugs) if slugs(brand) => Right(None)
       case _                                           => Left(s"${RecordsRoute.BrandNotInRoles}: $brand is not one of your brands")
 
   private def shown(id: String, s: ExportState, url: Option[String]): Answer =
