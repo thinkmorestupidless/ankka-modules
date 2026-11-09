@@ -9,6 +9,7 @@ import io.eitheror.casino.reporting.documents.Document
 
 import java.time.Instant
 import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 
 import DayEnded.{fields, list}
 
@@ -147,6 +148,11 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     Thread.sleep(500)
     DayEnded.assertOpen(kit, r.day)
     r.settle()
+    // The close lists every currency the generation holds figures in, from the days view: the replay has reached each.
+    // (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers would be idle only once they are.)
+    val currencies = before.path("currencies").fieldNames.asScala.toVector.sorted
+    kit.eventually("every currency in the new generation", 120.seconds)(Option.when(
+      io.eitheror.casino.reporting.day.DaysView.currencies(kit.views, kit.settings.generation) == currencies)(()))
     val after = DayEnded.closeDue(kit, r.day)
     def fixedPart(j: JsonNode) = DayEnded.fixed(j).deepCopy[com.fasterxml.jackson.databind.node.ObjectNode]()
       .without[JsonNode](java.util.List.of("closedAt", "reference"))
