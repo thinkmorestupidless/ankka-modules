@@ -84,7 +84,7 @@ registry, the consumers' decoding, the kit.
 - [X] T011 `a/stored/Stored.scala` and `a-test/stored/StoredSuite.scala`: `Stored`, `from(record,
   source, pseudonyms, key)`, `fromModule(change, brand)`, visibility per research R6 and the amount
   fields; a property that no real id of the input record appears anywhere in the output
-- [ ] T012 [P] `a/query/Query.scala` and `a-test/query/QuerySuite.scala`: the filters of
+- [X] T012 [P] `a/query/Query.scala` and `a-test/query/QuerySuite.scala`: the filters of
   contracts/routes.md, the opaque cursor, the SQL fragments for `Records`
 - [X] T013 [P] `a/retention/Retention.scala` and `a-test/retention/RetentionSuite.scala`: `cutoff`,
   `raise` refusing below the current or the installation's
