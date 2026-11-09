@@ -296,7 +296,7 @@ generation.
 - [X] T059 [P] `services/audit/README.md`: components, settings, suites, how to re-read after a restore
 - [X] T060 [P] `tests/port/README.md`: the audit's section
 - [X] T061 [P] Spec 008's facts row for the erasure records, in `specs/008-players/spec.md`
-- [ ] T062 `just features`, `just test`, `just audit-test`, `just audit-it` and the three neighbours'
+- [X] T062 `just features`, `just test`, `just audit-test`, `just audit-it` and the three neighbours'
   suites green; `sbt scalafmtCheckAll` in each changed build
 - [X] T063 A kind deploy of `shared/reasoner` beside `goldvibe` (quickstart §5), `--context kind-…`
   only; optional, and skipped with a note when the kind installation is not up

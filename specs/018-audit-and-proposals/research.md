@@ -380,3 +380,8 @@ outlives an erasure (FR-023).
   Kafka on kind.
 - **T063 skipped** (2026-11-09): the `ankka` kind cluster's control plane was not running (its API at
   127.0.0.1:49180 refused connections), so `shared/reasoner` was not deployed beside `goldvibe`.
+- **T062** (2026-11-09): `just features` 0 findings; root `just test` green; audit 46 unit and 71
+  integration, feature and parity (2 skipped, R7); wallet 764, responsible-gambling 157, players 424.
+  Players' first full run failed `RealmSuite`'s p99 (147.9 ms of 100) and one `LeakSuite` case; both
+  passed alone and on a second full run. No build here has the scalafmt plugin, so
+  `scalafmtCheckAll` was not run.
