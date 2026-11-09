@@ -31,9 +31,12 @@ type Request struct {
 	Body    json.RawMessage   `json:"body,omitempty"`
 }
 
+// Headers are the response headers a driver keeps because the answer's shape is in them (a report's
+// Content-Type and Content-Disposition); the suite's transport keeps none.
 type Response struct {
-	Status int             `json:"status"`
-	Body   json.RawMessage `json:"body,omitempty"`
+	Status  int               `json:"status"`
+	Headers map[string]string `json:"headers,omitempty"`
+	Body    json.RawMessage   `json:"body,omitempty"`
 }
 
 // Vary is this step's answer's fields that differed between the two runs: checked for presence only.

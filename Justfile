@@ -283,8 +283,10 @@ reporting-perf:
 # Records the original's reports, dashboard and dispute report on kind (contracts/recording.md), twice, and merges
 # the runs into tests/port/reporting/. The original runs on a local kind cluster only (`kubectl --context kind-…`);
 # the operator users and their passwords are the person's (tests/original/README.md, *Recording the reports*).
-reporting-record casino="http://localhost:8091" keycloak="http://localhost:8180" brand="spinvibe":
-    cd tests && for run in 1 2; do EITHEROR_RECORD_TO=/tmp/reporting-$run go test -tags e2e -count=1 -json ./original/reporting-driver/... -args -casino-url {{casino}} -keycloak-url {{keycloak}} -brand {{brand}} > /tmp/reporting-$run.json; done
+# The environment carries EITHEROR_OPERATOR_USER/_PASSWORD, EITHEROR_SUPPORT_USER/_PASSWORD,
+# WALLET_SERVICE_INTERNAL_SECRET and EITHEROR_UNLEASH_TOKEN; wallet-service's internal API is port-forwarded to 19001.
+reporting-record casino="http://localhost:8091" keycloak="http://localhost:8180" brand="spinvibe" fakest8="http://localhost:8096" wallet="http://localhost:19001" unleash="http://localhost:4242" flagoff="reports-off" original="$HOME/Documents/projects/eitheror/eitheror-platform":
+    cd tests && for run in 1 2; do rm -rf /tmp/reporting-$run; EITHEROR_RECORD_TO=/tmp/reporting-$run EITHEROR_ORIGINAL_COMMIT=$(git -C {{original}} rev-parse --short HEAD) go test -tags e2e -count=1 -timeout 30m -json ./original/reporting-driver/... -args -casino-url {{casino}} -keycloak-url {{keycloak}} -fake-st8-url {{fakest8}} -wallet-internal-url {{wallet}} -unleash-url {{unleash}} -unleash-environment default -brand {{brand}} -flag-off-brand {{flagoff}} -operator-client casino-backoffice > /tmp/reporting-$run.json; done
     cd tests && go run ./original/merge -run1 /tmp/reporting-1 -run2 /tmp/reporting-2 -results1 /tmp/reporting-1.json -results2 /tmp/reporting-2.json -out port
 
 # reporting's parity tests: each recording of tests/port/reporting compared by shape (Docker).

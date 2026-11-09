@@ -17,6 +17,7 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `players-driver/` | drives the original's `casino-service` player, session and backoffice routes and its Keycloak for what spec 008's `players` takes over; see *Recording the players* |
 | `payouts-driver/` | drives the original's `casino-service` withdrawal routes (the request, the terminals, the destinations, the queue, the decisions and the internal outcome route) for what spec 007's `payouts` takes over (scenario 30); see *Recording the payouts* |
 | `rewards-driver/` | drives the original's `casino-service` reward routes (the #730 gates, the operator's awards with no offer, the revoke of free rounds, the preview, the reorder, the delete and the reward lists) for the scenarios of spec 011's features its suite does not reach; see *Recording the rewards* |
+| `reporting-driver/` | seeds a player through the original's own routes, then drives `casino-service`'s reports, dashboard and dispute report (with their refusals and the Reports flag off) for what spec 015's `reporting` takes over; see *Recording the reports* |
 | `gateway-driver/` | drives the original's `psp-gateway` against `psp-stub`, with a receiver standing in for merchant-service and casino-service (spec 005); see *Recording the gateway directly* |
 | `recorder/` | the transport `record_test.go` installs |
 | `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies and `X-Internal-Secret` from headers |
@@ -409,3 +410,75 @@ for run in 1 2; do
 done
 go run ./original/merge -run1 /tmp/rewards-1 -run2 /tmp/rewards-2 -results1 /tmp/rewards-1.json -results2 /tmp/rewards-2.json -out port
 ```
+
+## Recording the reports
+
+`reporting-driver/` (spec 015 research R18, T070) drives the original's `casino-service` at the routes
+spec 015's `reporting` takes over, which its Go suite never calls: the six reports under
+`/v1/casino/backoffice/{brand}/reports`, the dashboard's eight reads under `…/dashboard`, and the dispute
+report under `…/players/{id}/dispute-report`. One recording per row of
+`specs/015-reporting/contracts/recording.md`, and per suffix of a `-*` row (the trend's four ranges, the
+rankings' two, and the dispute report's five 400s and two 404s, named in `Wildcards`): 31 in all. `go
+test ./original/reporting-driver/...` checks every name against that table offline; `NotDriven` is
+empty, since the original can show every one.
+
+- First the Reports tab is shown for the brand alone: casino-service reads the `backoffice-reporting-tab`
+  flag from Unleash for the brand the path names, and answers `404 not_found` when it is off (as it is
+  where the flag was never made). The driver creates the flag and the `brandId` context field when
+  missing, gives the flag a strategy naming the brand, enables it, waits until `/reports/ggr` answers,
+  and takes all of that back when the run ends. Without `EITHEROR_UNLEASH_TOKEN` the flag is taken as
+  it is, and the run waits for it to be on.
+- Then `reporting-seed` sows, through the original's own routes, a player registered, verified by the
+  link the original would send and signed in (the login session, found through the backoffice's session
+  list); a deposit through wallet-service's internal route, as payouts-driver makes one; two game
+  sessions launched within that login session and bound at fake-st8; five rounds staked and settled
+  through fake-st8's `/test/bet`, `/test/win` and `/test/lose`, which call the ST8 adapter as ST8 does; the
+  operator's bonus with no offer; and the player's own permanent exclusion, last. It waits until the
+  rounds and the activity feed show them. Every step of it is `setup:` or `observe:`, so a replay
+  compares nothing in it; it is kept so a reader sees what the figures rest on.
+- Every recording names the seed's values (`{playerId}`, `{playerSessionId}`, `{gameSessionId}`,
+  `{otherGameSessionId}`) and the period (`{from}`, `{to}`: the thirty days to today, UTC, as the
+  backoffice sends them). A compared step also keeps the answer's `Content-Type` and
+  `Content-Disposition`, since a dispute report's shape is in them.
+- `reports-flag-off` asks all six reports of `-flag-off-brand`, a brand the flag's strategy does not
+  name (it need not exist: the original reads the flag before anything else), recorded as
+  `{flagOffBrand}`. If the flag has a strategy of its own that admits every brand, that recording fails.
+- The original's figures are its twenty-player sample's, so the parity tests (T071) compare shapes; the
+  dispute report's reference number and generation time differ on every run, and the merge marks the
+  whole document as varying.
+
+Its secrets and passwords come from the environment, never flags: `EITHEROR_OPERATOR_PASSWORD`,
+`EITHEROR_SUPPORT_PASSWORD`, `WALLET_SERVICE_INTERNAL_SECRET` (casino-service's config on the kind
+stack) and `EITHEROR_UNLEASH_TOKEN` (Unleash's admin token). The wallet's signature and Unleash's token
+are sent and never recorded.
+
+Two operators in the original's `eitheror` realm, created by hand:
+
+| User | Realm roles | Attributes | For |
+|---|---|---|---|
+| `EITHEROR_OPERATOR_USER` (`dev-operator` does) | `platform_admin`, or `brand_admin` or `resource_admin` | a scope that holds the brand (`eitheror_scope_level` `platform`, `eitheror_scope_id` `*`) | every recording, and the seed's session list, rounds and bonus |
+| `EITHEROR_SUPPORT_USER`, e.g. `reporting-support` | `support_agent` only | the same scope | `reports-refused-role`: the reports refuse it (`403`) and the dashboard admits it; without it that recording is skipped |
+
+casino-service's Unleash token is `*:*`, which reads Unleash's `default` environment (see *Recording the
+rewards* for adding it to the `default` project); run with `-unleash-environment default`. Restart
+fake-st8 first if a run of the original's suite has registered its own ST8 key since. The ports are the
+kind stack's: casino-service 8091, Keycloak 8180, fake-st8 8096, Unleash 4242; wallet-service's internal
+API is forwarded:
+
+```bash
+kubectl --context kind-eitheror-dev -n eitheror port-forward svc/wallet-service 19001:9001 &
+cd tests
+go run ./original/preflight -original <the original's checkout> -register http://localhost:8091 -brand spinvibe
+for run in 1 2; do
+  rm -rf /tmp/reporting-$run
+  EITHEROR_RECORD_TO=/tmp/reporting-$run EITHEROR_ORIGINAL_COMMIT=$(git -C <the original's checkout> rev-parse --short HEAD) \
+    go test -tags e2e -count=1 -timeout 30m -json ./original/reporting-driver/... \
+      -args -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -fake-st8-url http://localhost:8096 \
+      -wallet-internal-url http://localhost:19001 -unleash-url http://localhost:4242 -unleash-environment default \
+      -brand spinvibe -flag-off-brand reports-off -operator-client casino-backoffice > /tmp/reporting-$run.json
+done
+go run ./original/merge -run1 /tmp/reporting-1 -run2 /tmp/reporting-2 -results1 /tmp/reporting-1.json -results2 /tmp/reporting-2.json -out port
+```
+
+`just reporting-record` runs the two runs and the merge with these defaults. The merge writes
+`tests/port/reporting/`, where T071's parity tests read the recordings.
