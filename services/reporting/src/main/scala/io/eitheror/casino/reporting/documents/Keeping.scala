@@ -11,6 +11,18 @@ import java.time.Instant
  * erasure alike: the object under its name, the player ids it names in its sidecar, the record told.
  */
 object Keeping:
+  /**
+   * The parts of `objectName`, in order, streamed into it: each part's stream opened only when the one before it has been
+   * read, its length declared from what the bucket says the parts hold, so the document is never held whole.
+   */
+  def joinParts(bucket: Bucket, objectName: String, pages: Int, contentType: String): Unit =
+    val names  = (0 until pages).map(Document.part(objectName, _))
+    val length = names.flatMap(bucket.stat).map(_.length).sum
+    val parts  = names.iterator.map(n => bucket.get(n).fold[java.io.InputStream](java.io.ByteArrayInputStream(Array.emptyByteArray))(_.body))
+    val body   = java.io.SequenceInputStream(scala.jdk.CollectionConverters.IteratorHasAsJava(parts).asJavaEnumeration)
+    try bucket.put(objectName, body, length, contentType)
+    finally body.close()
+
   val PlayersType = "text/plain; charset=UTF-8"
 
   def document(components: ComponentClient, reference: String) = components.forEventSourcedEntity(EntityId(reference))

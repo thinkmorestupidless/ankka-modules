@@ -16,7 +16,9 @@ import java.time.Instant
  * is read from `Players` when the page is answered, so an erased player reads `[erased]` with the row unchanged.
  */
 final case class TransactionRow(generation: Int, player: String = "", currency: String = "", transactionId: String = "",
-    at: Instant = Instant.EPOCH, tpe: String = "", amount: Long = 0, reference: String = "")
+    at: Instant = Instant.EPOCH, tpe: String = "", amount: Long = 0, reference: String = "", factId: String = ""):
+  /** The row's key: its wallet's id and its fact's. */
+  def key: String = s"${Generation.id(generation, player, currency)}/$factId"
 
 object TransactionRow:
   given Serializer[TransactionRow] = ReportingCodecs.row[TransactionRow]("transaction-row")
@@ -27,7 +29,7 @@ final class TransactionsView extends KeyedView[TransactionRow]:
     case m: Moved if m.casino && m.kind.nonEmpty =>
       Generation.of(change.subject).fold(effects.ignore())(g =>
         effects.updateRow(s"${change.subject}/${m.factId}",
-          TransactionRow(g, m.player, m.currency, m.transactionId, m.at, m.kind, m.amount, m.reference)))
+          TransactionRow(g, m.player, m.currency, m.transactionId, m.at, m.kind, m.amount, m.reference, m.factId)))
     case _ => effects.ignore()
 
 object Transactions extends KeyedView.Companion[TransactionsView, TransactionRow](
@@ -44,6 +46,12 @@ object Transactions extends KeyedView.Companion[TransactionsView, TransactionRow
    * for every `bonus_*` type, `ledger/Types.matches`) and of the players `ids` names (`*` for every player), from `offset`.
    */
   val between = query("between")(s"SELECT payload FROM $table WHERE $where ORDER BY (payload::jsonb->>'at')::timestamptz DESC, row_key DESC OFFSET (:offset)::int")
+
+  /**
+   * `between`'s rows in its order, a page at a time before the row at `before_at` keyed `before` (`infinity` and `""` for
+   * the first page): what an export reads every row with, where an offset would read every row before it again.
+   */
+  val betweenBefore = query("between-before")(s"SELECT payload FROM $table WHERE $where AND ((payload::jsonb->>'at')::timestamptz, row_key) < ((:before_at)::timestamptz, :before) ORDER BY (payload::jsonb->>'at')::timestamptz DESC, row_key DESC")
 
   def create(ctx: ViewComponentContext) = new TransactionsView
 
@@ -71,11 +79,18 @@ object Transactions extends KeyedView.Companion[TransactionsView, TransactionRow
         typed ++ SqlFragment.raw(" AND ") ++ jsonText("player") ++ sql" = ANY(string_to_array(${ids.mkString(",")}, ','))")
       views.forView(Transactions).count(condition)
 
-  def all(views: ViewClient, asked: Asked): Vector[TransactionRow] =
-    @scala.annotation.tailrec
-    def from(offset: Int, acc: Vector[TransactionRow]): Vector[TransactionRow] =
-      val rows = page(views, asked, offset, Page)
-      if rows.size < Page then acc ++ rows else from(offset + rows.size, acc ++ rows)
-    from(0, Vector.empty)
+  /** Every row `between` holds for `asked`, a page of `size` at a time as the iterator is read, never all at once. */
+  def pages(views: ViewClient, asked: Asked, size: Int = Paging.Page): Iterator[Vector[TransactionRow]] =
+    if asked.players.exists(_.isEmpty) then Iterator.empty
+    else
+      val values = asked.values(0).filterNot(_._1 == "offset")
+      def after(last: Option[TransactionRow]) = views.forView(Transactions).ask(betweenBefore, size,
+        (values ++ Seq("before_at" -> last.fold("infinity")(_.at.toString), "before" -> last.fold("")(_.key)))*)
+      Iterator.unfold(Option(Option.empty[TransactionRow])) {
+        case None       => None
+        case Some(last) =>
+          val rows = after(last)
+          Option.when(rows.nonEmpty)(rows -> Option.when(rows.size == size)(rows.lastOption))
+      }
 
-  val Page = 10_000
+  def all(views: ViewClient, asked: Asked): Vector[TransactionRow] = pages(views, asked).flatten.toVector

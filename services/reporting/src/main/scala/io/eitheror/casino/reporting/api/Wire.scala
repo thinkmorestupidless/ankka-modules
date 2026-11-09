@@ -3,7 +3,7 @@ package io.eitheror.casino.reporting.api
 import com.github.plokhotnyuk.jsoniter_scala.core.{JsonValueCodec, writeToString}
 import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
 import com.thinkmorestupidless.ankka.core.EntityId
-import com.thinkmorestupidless.ankka.http.{Bytes, Respond}
+import com.thinkmorestupidless.ankka.http.{Bytes, Respond, Streamed}
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.reporting.Settings
@@ -32,6 +32,18 @@ object Wire:
     Respond(Bytes("application/json", writeToString(a).getBytes(UTF_8)), status)
 
   def ok[A: JsonValueCodec](a: A): Answer = json(200, a)
+
+  /**
+   * An answer written as `body` is read, never held whole (`Streamed`, chunked). ankka recognises a `Streamed` body in a
+   * `Respond` by its value, so it travels as an `Answer` beside the routes' other answers.
+   */
+  def streamed(contentType: String, body: java.io.InputStream): Answer =
+    Respond(Streamed(contentType, None, body), 200).asInstanceOf[Answer]
+
+  /** The chunks one after another as one stream, each made only when the one before it has been read. */
+  def concatenated(chunks: Iterator[Array[Byte]]): java.io.InputStream =
+    java.io.SequenceInputStream(scala.jdk.CollectionConverters.IteratorHasAsJava(
+      chunks.map(b => java.io.ByteArrayInputStream(b): java.io.InputStream)).asJavaEnumeration)
 
   /** A document served as an attachment under a file name carrying its reference (FR-021). */
   def attachment(contentType: String, fileName: String, body: Array[Byte]): Answer =

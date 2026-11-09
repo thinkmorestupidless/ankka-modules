@@ -200,7 +200,7 @@ object Reports:
 
   /**
    * `GET /reports/transactions/export` (FR-010, FR-012): every matching row, no cap; JSON as the original's page (page 0,
-   * the size every row), or `format=csv`, a job over the synchronous limit. An email search is handed on as the players it
+   * the size every row), streamed (`ledgerJson`), or `format=csv`, a job over the synchronous limit. An email search is handed on as the players it
    * matched, so neither the job nor the record keeps the text (`playerEmail: given` says one was given).
    */
   def transactionsExport(ctx: Ctx, asked: Asked, ledger: Ledger): Answer = tab(ctx) {
@@ -209,11 +209,28 @@ object Reports:
         val ids = ledger.email.map(emailMatches(ctx.reads, _))
         Exports.exported(ctx, asked, Exports.Ask(Exports.TransactionsReport, period.from, period.to,
           Map("type" -> ledger.filter, Exports.Ids -> ids.fold("*")(_.mkString(","))) ++ ledger.email.map(_ => "playerEmail" -> "given")))
-      else
-        val all = ledgerLines(ctx.reads, Transactions.all(ctx.views, ledgerAsked(ctx, period, ledger)))
-        ok(TransactionsPage(period.from.toString, period.to.toString, 0, all.size, all.size.toLong, if all.isEmpty then 0 else 1, all))
+      else streamed("application/json", ledgerJson(ctx.reads, ledgerAsked(ctx, period, ledger), period))
     })
   }
+
+  private given JsonValueCodec[TransactionLine] = Wire.answer[TransactionLine]
+
+  /**
+   * The JSON export as the original's page (page 0, the size every row), written as its rows are read a page at a time
+   * (`Transactions.pages`), so neither the service nor the response holds them all: the rows first, then the counts of
+   * what was written, so the two always agree.
+   */
+  def ledgerJson(r: Reads, asked: Transactions.Asked, period: Period): java.io.InputStream =
+    var written = 0L
+    val head = s"""{"from":"${period.from}","to":"${period.to}","page":0,"transactions":["""
+    val rows = Transactions.pages(r.views, asked).map { page =>
+      val text = ledgerLines(r, page).map(l => com.github.plokhotnyuk.jsoniter_scala.core.writeToString(l)).mkString(",")
+      val out  = (if written > 0 then "," else "") + text
+      written += page.size
+      out
+    }
+    def tail = s"""],"pageSize":$written,"totalCount":$written,"totalPages":${if written == 0 then 0 else 1}}"""
+    Wire.concatenated((Iterator.single(head) ++ rows ++ Iterator.fill(1)(tail)).map(_.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
 
   // ── bonus ─────────────────────────────────────────────────────────────────────────────────────
 

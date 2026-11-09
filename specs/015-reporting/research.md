@@ -515,8 +515,13 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T053, a job's pages**: a step renders 1,000 rows of an export (the ledger read a page of the view at a time, the
   other reports computed and sliced) or a dispute report's login sessions up to 1,000 rounds (one at least), and
   keeps each page as an object `<object>.parts/<n>` with the player ids it names beside it (`.players`), never in the
-  journal; a dispute report's running totals (amounts only) are carried in the job's state. `store` joins the pages,
-  writes the document and its `.players`, deletes the pages, then pauses for the lifetime read at that moment.
+  journal; a dispute report's running totals (amounts only) are carried in the job's state. `store` streams an
+  export's pages into the document one after another (`Keeping.joinParts`, the length summed from the pages' stat), so
+  memory holds a chunk of one page, never the document; a dispute report's pages are joined in memory, since its HTML
+  and PDF are rendered whole, and they hold one player's sessions over the range asked. It writes the `.players`,
+  deletes the pages, then pauses for the lifetime read at that moment. The JSON ledger export is streamed too
+  (`Streamed`, chunked): its rows are written a page at a time as they are read, keyed on time and row key, and the
+  counts follow the rows.
 - **T053, a pause's deadline is on the system clock**: ankka 0.16's workflow engine sets a pause's deadline from
   `System.currentTimeMillis()` while the timer sweeper fires it by the runtime's clock, so in a test whose clock has
   moved past the system's a pause wakes at once. The `expire` step expires only a document whose `expiresAt` has

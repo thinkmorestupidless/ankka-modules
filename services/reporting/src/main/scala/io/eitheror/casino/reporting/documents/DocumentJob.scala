@@ -39,8 +39,10 @@ object JobState:
 /**
  * A document over the synchronous limit (data-model.md `DocumentJob`, `<reference>`; FR-022): `render` a page at a time
  * (`Jobs.PageRows` rows, or a dispute report's login sessions to as many rounds), each page an object of its own beside
- * the document, so neither the journal nor memory holds the rows; `store` joins the pages into the document, keeps it with
- * the players it names, and pauses for the kind's lifetime; `expire` deletes it and marks the record. A step that fails
+ * the document, so neither the journal nor memory holds the rows; `store` streams an export's pages into the document one
+ * after another (`Keeping.joinParts`), so memory holds one chunk of one page at a time, and renders a dispute report from
+ * its pages joined, which its PDF needs whole and which hold one player's sessions over the range asked; it keeps the
+ * document with the player ids it names (those it holds in memory) and pauses for the kind's lifetime; `expire` deletes it and marks the record. A step that fails
  * is retried three times, then `failed` deletes the pages and marks the record failed. A document erased or failed while
  * its job runs is not kept, and one whose named players were erased meanwhile is dropped (FR-021).
  */
@@ -92,7 +94,6 @@ final class DocumentJob(context: WorkflowContext) extends Workflow[JobState]:
     val req = s.request.get
     if document(req.reference).call(Document.get).invoke().status != Document.Generating then abandon(req)
     else
-      val parts = (0 until s.pages).map(n => bucket.getBytes(Document.part(req.objectName, n)).fold("")((_, b) => String(b, UTF_8)))
       val named = (0 until s.pages).flatMap(n => bucket.getBytes(Document.partPlayers(req.objectName, n)).toVector
         .flatMap((_, b) => String(b, UTF_8).split('\n').toVector)).filter(_.nonEmpty).distinct.toVector
       if (named ++ req.subject).exists(DocumentJob.erased) then
@@ -100,8 +101,11 @@ final class DocumentJob(context: WorkflowContext) extends Workflow[JobState]:
         document(req.reference).call(Document.expire).invoke(Expire(now(), Document.Erasure)): Unit
         stepEffects.updateState(s.copy(step = JobState.Done)).thenEnd
       else
-        val body = Jobs.finish(reads, req, parts.mkString, s.carried)
-        bucket.putBytes(req.objectName, body, req.contentType)
+        if req.kind == Document.DisputeReport then
+          // Rendered whole, as HTML or a PDF of it: one player's sessions over the range asked, joined in memory.
+          val parts = (0 until s.pages).map(n => bucket.getBytes(Document.part(req.objectName, n)).fold("")((_, b) => String(b, UTF_8)))
+          bucket.putBytes(req.objectName, Jobs.finish(reads, req, parts.mkString, s.carried), req.contentType)
+        else Keeping.joinParts(bucket, req.objectName, s.pages, req.contentType)
         Keeping.putNamed(bucket, req.objectName, named)
         Keeping.dropParts(bucket, req.objectName)
         val hours = settingsNow.lifetimeOf(req.kind)
