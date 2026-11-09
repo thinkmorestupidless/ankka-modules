@@ -544,8 +544,11 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   memory holds a chunk of one page, never the document; a dispute report's pages are joined in memory, since its HTML
   and PDF are rendered whole, and they hold one player's sessions over the range asked. It writes the `.players`,
   deletes the pages, then pauses for the lifetime read at that moment. The JSON ledger export is streamed too
-  (`Streamed`, chunked): its rows are written a page at a time as they are read, keyed on time and row key, and the
-  counts follow the rows.
+  (`Streamed`, chunked): its rows are written a page at a time as they are read, keyed on time and row key. The
+  counts come first, in the original's field order, from a count asked before the rows (second-round review): one
+  query more over the period's rows. A movement folded between the two is written and not counted, as with the
+  original's own count and page. A failure partway aborts the connection, so a client never reads a shorter body
+  that parses.
 - **T053, a pause's deadline is on the system clock**: ankka 0.16's workflow engine sets a pause's deadline from
   `System.currentTimeMillis()` while the timer sweeper fires it by the runtime's clock, so in a test whose clock has
   moved past the system's a pause wakes at once. The `expire` step expires only a document whose `expiresAt` has

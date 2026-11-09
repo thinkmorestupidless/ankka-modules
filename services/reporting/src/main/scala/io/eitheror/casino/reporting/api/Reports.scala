@@ -209,7 +209,9 @@ object Reports:
         val ids = ledger.email.map(emailMatches(ctx.reads, _))
         Exports.exported(ctx, asked, Exports.Ask(Exports.TransactionsReport, period.from, period.to,
           Map("type" -> ledger.filter, Exports.Ids -> ids.fold("*")(_.mkString(","))) ++ ledger.email.map(_ => "playerEmail" -> "given")))
-      else streamed("application/json", ledgerJson(ctx.reads, ledgerAsked(ctx, period, ledger), period))
+      else
+        val q = ledgerAsked(ctx, period, ledger)
+        streamed("application/json", ledgerJson(ctx.reads, q, period, Transactions.count(ctx.views, q)))
     })
   }
 
@@ -217,22 +219,24 @@ object Reports:
 
   /**
    * The JSON export as the original's page (page 0, the size every row), written as its rows are read a page at a time
-   * (`Transactions.pages`), so neither the service nor the response holds them all: the rows first, then the counts of
-   * what was written, so the two always agree. A view failing partway fails the stream after the `200` is sent: ankka
+   * (`Transactions.pages`), so neither the service nor the response holds them all. The counts come first, in the
+   * original's field order (`TransactionsPage`), from `Transactions.count` asked before the rows, as the original's page
+   * counted: one query more over the period's rows, against the pages' own. A movement folded between the count and the
+   * rows (a period ending today) is written and not counted, as in the original. A view failing partway fails the stream after the `200` is sent: ankka
    * writes the body chunked and aborts the connection without its last chunk, so the client reads an error, never a
    * shorter body that parses (`it.StreamedFailureSuite`).
    */
-  def ledgerJson(r: Reads, asked: Transactions.Asked, period: Period): java.io.InputStream =
+  def ledgerJson(r: Reads, asked: Transactions.Asked, period: Period, total: Long): java.io.InputStream =
     var written = 0L
-    val head = s"""{"from":"${period.from}","to":"${period.to}","page":0,"transactions":["""
-    val rows = Transactions.pages(r.views, asked).map { page =>
+    val head = s"""{"from":"${period.from}","to":"${period.to}","page":0,"pageSize":$total,"totalCount":$total,""" +
+      s""""totalPages":${if total == 0 then 0 else 1},"transactions":["""
+    val rows = Transactions.pages(r.views, asked).filter(_.nonEmpty).map { page =>
       val text = ledgerLines(r, page).map(l => com.github.plokhotnyuk.jsoniter_scala.core.writeToString(l)).mkString(",")
       val out  = (if written > 0 then "," else "") + text
       written += page.size
       out
     }
-    def tail = s"""],"pageSize":$written,"totalCount":$written,"totalPages":${if written == 0 then 0 else 1}}"""
-    Wire.concatenated((Iterator.single(head) ++ rows ++ Iterator.fill(1)(tail)).map(_.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+    Wire.concatenated((Iterator.single(head) ++ rows ++ Iterator.single("]}")).map(_.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
 
   // ── bonus ─────────────────────────────────────────────────────────────────────────────────────
 

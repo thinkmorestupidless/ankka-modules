@@ -100,6 +100,10 @@ class LedgerSuite extends munit.FunSuite with LogCapturing:
     val json = kit.get(s"/reports/transactions/export?from=$day&to=$day&playerEmail=many.transactions", kit.asFinance)
     assertEquals(json.status, 200, json.text.take(500))
     assertEquals((json.json.path("totalCount").asLong, json.json.path("page").asInt), (Count.toLong, 0))
+    // The counts before the rows, in the original page's field order (constitution I).
+    assertEquals(json.json.fieldNames.asScala.toVector,
+      Vector("from", "to", "page", "pageSize", "totalCount", "totalPages", "transactions"))
+    assertEquals((json.json.path("pageSize").asLong, json.json.path("totalPages").asInt), (Count.toLong, 1))
     assertEquals(rows(json.json), want)
     val job = kit.get(s"/reports/transactions/export?from=$day&to=$day&playerEmail=many.transactions&format=csv", kit.asFinance)
     assertEquals((job.status, job.json.path("status").asText), (202, "generating"), job.text.take(500))
