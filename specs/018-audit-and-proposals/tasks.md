@@ -188,7 +188,7 @@ every person by a pseudonym, the same person the same at one brand and another a
   `retainedFrom`, the query records and the no-recursion rule (FR-013, FR-015, SC-005)
 - [ ] T035 [P] [US3] `a-test/it/ExportSuite.scala`: CSV and JSON lines, the signed URL, the same key
   twice, a record at request and at completion (FR-014, SC-005)
-- [ ] T036 [P] [US3] `a-test/export/ExportLinesSuite.scala`: `Csv.line` and `JsonLines.line`
+- [X] T036 [P] [US3] `a-test/export/ExportLinesSuite.scala`: `Csv.line` and `JsonLines.line`
   (research R10)
 - [ ] T037 [P] [US3] `a-test/features/QueriesFeatures.scala`: bind `features/audit/queries.feature`
   (6)
@@ -196,7 +196,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Implementation for User Story 3
 
-- [ ] T039 [P] [US3] `a/export/Lines.scala`: `Csv`, `JsonLines`
+- [X] T039 [P] [US3] `a/export/Lines.scala`: `Csv`, `JsonLines`
 - [ ] T040 [US3] `a/api/RecordsEndpoint.scala` and `a/api/Wire.scala`: `GET /v1/audit-records`, its
   record of itself, its refusals
 - [ ] T041 [US3] `a/exports/Export.scala`, `a/exports/ExportFormat.scala`, `a/exports/Exports.scala`
