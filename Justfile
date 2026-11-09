@@ -312,6 +312,36 @@ programme-run:
     cd services/affiliate-programme && mkdir -p target && ([ -s target/local-secret-key ] || openssl rand -base64 32 > target/local-secret-key)
     cd services/affiliate-programme && ANKKA_SECRET_KEY=$(cat target/local-secret-key) ANKKA_HTTP_PORT=9018 ANKKA_DB_PORT=5441       CASINO_PROJECT=programme PROGRAMME_BRANDS=goldvibe       AFFILIATE_PORTAL_BASE_URL=http://localhost:3013 AFFILIATE_BACKOFFICE_BASE_URL=http://localhost:3014 KEYCLOAK_REALM=eitheror       ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino       ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs       sbt run
 
+# the shared audit's suites (spec 018; Docker for the integration kit). The contract is published first.
+audit-test:
+    sbt contract/publishLocal
+    cd services/audit && sbt test
+
+# the shared audit's integration and feature suites (Docker).
+audit-it:
+    cd services/audit && sbt -Dit=true "testOnly io.eitheror.casino.audit.it.* io.eitheror.casino.audit.features.*"
+
+# the shared audit's parity suites: the recordings of tests/port/audit (Docker).
+audit-parity:
+    cd services/audit && sbt -Dit=true "testOnly io.eitheror.casino.audit.port.*"
+
+# the shared audit at scale: quickstart §4's ingest, queries and export, and a re-read (Docker; writes PERF.md's figures).
+audit-perf:
+    cd services/audit && AUDIT_PERF=1 sbt -Dit=true "testOnly io.eitheror.casino.audit.perf.*"
+
+# the shared audit, locally on 9019 (`sbt schema && docker compose up -d` in services/audit). With no
+# ANKKA_KAFKA_BOOTSTRAP_SERVERS goldvibe's topics are carried in memory. The secret store's key is made once in
+# target/local-secret-key and kept: the registry key is stored under it. Staff tokens are verified against
+# dev-kind's eitheror realm through a port-forward on 18180.
+audit-run:
+    cd services/audit && mkdir -p target && ([ -s target/local-secret-key ] || openssl rand -base64 32 > target/local-secret-key)
+    cd services/audit && ANKKA_SECRET_KEY=$(cat target/local-secret-key) ANKKA_HTTP_PORT=9019 ANKKA_DB_PORT=5443 \
+      CASINO_PROJECT=reasoner AUDIT_BRANDS=goldvibe KEYCLOAK_REALM=eitheror \
+      ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs \
+      sbt run
+
 # Quickstart §6 against a running `programme-run`: an affiliate earns one CPA through a hosted brand's webhook.
 programme-walk:
     python3 -I tests/local/programme-walk.py
