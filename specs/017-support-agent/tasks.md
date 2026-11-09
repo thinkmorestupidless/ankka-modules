@@ -41,7 +41,7 @@ criteria name suites, and the plan names them.
   - `src/main/resources/application.conf` (`ankka.service.name = support-agent`,
     `ankka.service-client.timeout = 5s`).
   - `README.md` (components, routes, env, run, suites).
-- [ ] T003 Update `modules/support/module.json`:
+- [X] T003 Update `modules/support/module.json`:
   - runtime `0.16.0`;
   - env `AGENT_COMPACTION_BYTES` and `AGENT_COMPACTION_RECENT` (values 100000 and 10), and
     `AGENT_JUDGE` (key `judgment-provider`, optional);

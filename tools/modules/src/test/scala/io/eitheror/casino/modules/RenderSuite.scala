@@ -48,7 +48,8 @@ class RenderSuite extends munit.FunSuite:
     "rewards"       -> Set("REWARDS_CODE_DOCUMENT_URL"),
     // spec 014 R12: the Customer.io secrets enter through the configuration route, not the manifest.
     "engagement"    -> Set(),
-    "support-agent" -> Set("MODEL_PROVIDER_KEY"),
+    // spec 017 R11, R8: the model provider, compaction and the judge are the service's settings.
+    "support-agent" -> Set("MODEL_PROVIDER_KEY", "AGENT_MODEL_PROVIDER", "AGENT_COMPACTION_BYTES", "AGENT_COMPACTION_RECENT", "AGENT_JUDGE"),
     // spec 012 plan research R12, R7, R5, R3, R10, R15: attribution's own settings.
     "attribution"   -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "COUNTRY_HEADER", "DOCUMENT_TIMEOUT", "CLOSE_GRACE", "WEBHOOK_TIMEOUT")
   )
@@ -76,8 +77,9 @@ class RenderSuite extends munit.FunSuite:
         assertEquals(d.service.resources.instanceType, size, d.name)
         d.copy(service = d.service.copy(resources = before.service.resources))
       }
-      // engagement runs on ankka 0.16.0 for its `Personal` (spec 014, research), spec 001 on 0.13.0.
-      val runtime = if d.name == "engagement" then resized.copy(service = resized.service.copy(runtime = before.service.runtime)) else resized
+      // engagement runs on ankka 0.16.0 for its `Personal` (spec 014, research), and support-agent for its sessions'
+      // data subject (spec 017 R2); spec 001 on 0.13.0.
+      val runtime = if Set("engagement", "support-agent")(d.name) then resized.copy(service = resized.service.copy(runtime = before.service.runtime)) else resized
       val now = comparable(runtime, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
       assertEquals(now, comparable(before, Set("SUPPORT_AGENT_ENABLED")), d.name)
       assertEquals(d.service.env.map(_.name).filter(NewIdentity), Vector("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE"), d.name)

@@ -14,7 +14,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/support-agent:0.0.0",
         "expose": true,
-        "runtime": "0.13.0",
+        "runtime": "0.16.0",
         "env": [
           {
             "name": "CASINO_PROJECT",
@@ -75,6 +75,22 @@
           {
             "name": "MODEL_PROVIDER_KEY",
             "key": "model-provider-key"
+          },
+          {
+            "name": "AGENT_MODEL_PROVIDER",
+            "value": "anthropic"
+          },
+          {
+            "name": "AGENT_COMPACTION_BYTES",
+            "value": "100000"
+          },
+          {
+            "name": "AGENT_COMPACTION_RECENT",
+            "value": "10"
+          },
+          {
+            "name": "AGENT_JUDGE",
+            "key": "judgment-provider"
           }
         ]
       }
@@ -145,6 +161,11 @@
       "key": "model-provider-key",
       "type": "string",
       "secret": true
+    },
+    {
+      "key": "judgment-provider",
+      "type": "string",
+      "secret": false
     }
   ],
   "retention": "7d"
