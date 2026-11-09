@@ -107,6 +107,23 @@ class ExportSuite extends munit.FunSuite:
     assert(made.forall(_.changes.exists(c => c.field == "range" && c.after.contains(s"$from..$to"))))
   }
 
+  test("a stage of an export recorded again, as a retried step or a second request under the key writes it, is the same record") {
+    loaded()
+    val key = kit.fresh("e")
+    exportAs(key, kit.asBrandCompliance("goldvibe"))
+    finished(key, kit.asBrandCompliance("goldvibe"))
+    val state = kit.components.forWorkflow(Export.entityId(key)).call(Export.get).invoke()
+    val calls = io.eitheror.casino.audit.ingest.IngestCalls.of(kit.components)
+    def again(stage: String) =
+      io.eitheror.casino.audit.own.Own.record(calls, state.brand, Export.Action, state.actor, "export", state.brand, "done", None,
+        Vector.empty, Instant.parse("2026-11-09T10:00:00Z"), id = Some(s"export/$key/$stage"))
+    // A name written twice is one record; a name already written with other content is kept out, never a second.
+    val first = again("again")
+    assertEquals(again("again").key, first.key)
+    assertEquals(calls.keep(first).outcome, io.eitheror.casino.audit.store.Record.Same)
+    assertEquals(calls.keep(again(Export.Running)).outcome, io.eitheror.casino.audit.store.Record.Collision)
+  }
+
   test("a body that is not an export's shape, or a key that is not a name, is refused") {
     val officer = kit.asBrandCompliance("goldvibe")
     assertEquals(kit.request("POST", "/v1/audit-exports", Some("""{"key":"a/b","brand":"goldvibe"}"""), officer).status, 400)

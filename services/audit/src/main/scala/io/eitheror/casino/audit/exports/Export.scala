@@ -76,14 +76,15 @@ final class Export(context: WorkflowContext) extends Workflow[ExportState]:
       val in   = FileInputStream(file.toFile)
       try context.storage.bucket(Export.Bucket).put(name, in, Files.size(file), ExportFormat.contentType(s.format))
       finally in.close()
-      Export.recorded(IngestCalls.of(context.componentClient), s, Own.change("count", count.toString))
+      Export.recorded(IngestCalls.of(context.componentClient), context.workflowId, Export.Done, s, Own.change("count", count.toString))
       context.componentClient.forKeyValueEntity(ExportFormat.entityId(s.brand)).call(ExportFormat.exported)
         .invoke(Wiring.clock.get().instant()): Unit
       stepEffects.updateState(s.copy(status = Export.Done, count = Some(count), objectName = Some(name))).thenEnd
     finally Files.deleteIfExists(file): Unit
 
   def failedStep: StepEffect =
-    Export.recorded(IngestCalls.of(context.componentClient), currentState, Own.change("status", Export.Failed), outcome = Export.Failed)
+    Export.recorded(IngestCalls.of(context.componentClient), context.workflowId, Export.Failed, currentState, Own.change("status", Export.Failed),
+      outcome = Export.Failed)
     stepEffects.updateState(currentState.copy(status = Export.Failed)).thenEnd
 
   def get: ReadOnlyEffect[ExportState] = effects.reply(currentState)
@@ -104,15 +105,18 @@ object Export extends Workflow.Companion[Export, ExportState](
 
   def entityId(key: String): EntityId = EntityId(key)
 
-  /** The export's record: who exported what range of which brand, in which format, and how it ended. */
-  def recorded(calls: IngestCalls, s: ExportState, last: io.eitheror.casino.audit.stored.StoredChange,
+  /**
+   * The export's record: who exported what range of which brand, in which format, and how it ended. Named
+   * `export/<key>/<stage>`, so a retried step or a second request under the key writes no second record.
+   */
+  def recorded(calls: IngestCalls, key: String, stage: String, s: ExportState, last: io.eitheror.casino.audit.stored.StoredChange,
       outcome: String = "done"): Unit =
     Own.record(calls, s.brand, Action, s.actor, "export", s.brand, outcome, None, Vector(
       Own.change("brand", s.brand),
       Own.change("range", s"${s.from.fold("")(_.toString)}..${s.to.fold("")(_.toString)}"),
       Own.change("format", s.format),
       last
-    ), Wiring.clock.get().instant()): Unit
+    ), Wiring.clock.get().instant(), id = Some(s"export/$key/$stage")): Unit
 
   given Serializer[StartExport] = AuditCodecs.serializer[StartExport]("start-export")
 

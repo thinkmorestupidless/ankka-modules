@@ -53,7 +53,7 @@ final class Sweep(context: WorkflowContext) extends Workflow[SweepState]:
     val changes = Vector(Own.change("cutoff", s.cutoff.get.toString), Own.change("removed", s.total.toString)) ++
       s.removed.toVector.sorted.map((month, n) => Own.change(s"removed.$month", n.toString))
     Own.record(IngestCalls.of(context.componentClient), s.brand, Sweep.Action, "sweep", "brand", s.brand, "done", None, changes,
-      Wiring.clock.get().instant(), actorKind = "system"): Unit
+      Wiring.clock.get().instant(), actorKind = "system", id = Some(s"sweep/${context.workflowId}")): Unit
     stepEffects.updateState(s.copy(finished = true)).thenEnd
 
   def get: ReadOnlyEffect[SweepState] = effects.reply(currentState)

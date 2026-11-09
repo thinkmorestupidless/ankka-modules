@@ -25,13 +25,14 @@ object Own:
     pseudonym
 
   /**
-   * Writes one record of the audit's own, its actor the staff member's pseudonym (from [[staff]]); its id is
-   * new, so no two are the same record.
+   * Writes one record of the audit's own, its actor the staff member's pseudonym (from [[staff]]). Its id is
+   * new unless the caller names one: a step that may run again names its record, so the second write is
+   * the same record, or a collision kept out, never a second record.
    */
   def record(calls: IngestCalls, brand: String, action: String, actor: String, subjectKind: String, subject: String,
       outcome: String, reasonCode: Option[String], changes: Vector[StoredChange], now: Instant,
-      visibility: String = Visibility.Installation, actorKind: String = "operator"): Stored =
-    val s = Stored.own(UUID.randomUUID().toString, brand, action, actorKind, actor, subjectKind, subject,
+      visibility: String = Visibility.Installation, actorKind: String = "operator", id: Option[String] = None): Stored =
+    val s = Stored.own(id.getOrElse(UUID.randomUUID().toString), brand, action, actorKind, actor, subjectKind, subject,
       outcome, reasonCode, changes, Wiring.requiredKeys.registry, now, visibility)
     calls.keep(s): Unit
     s

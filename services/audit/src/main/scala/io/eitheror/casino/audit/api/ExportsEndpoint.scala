@@ -87,7 +87,7 @@ object ExportsRoute:
               val format = ctx.clients.componentClient.forKeyValueEntity(ExportFormat.entityId(b.brand)).call(ExportFormat.get).invoke().format
               val actor  = Own.staff(ctx.calls, b.brand, p.subject)
               val s      = workflow.call(Export.start).invoke(StartExport(b.brand, format, from, to, visibility, actor, ctx.now()))
-              Export.recorded(ctx.calls, s, Own.change("status", Export.Running))
+              Export.recorded(ctx.calls, b.key, Export.Running, s, Own.change("status", Export.Running))
               json(202, obj("id" -> Some(text(b.key)), "status" -> Some(text(s.status))))
 
   def status(ctx: Ctx, p: Principal, id: String): Answer =
