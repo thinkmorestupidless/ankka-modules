@@ -107,6 +107,7 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
       case _: ResetLinkSent           => s
       case e: ErasureFiled =>
         status(Status.ErasurePending, "erasure_filed", Actor.System).copy(erasure = Some(ErasureFiling(e.correlationId, e.holdUntil)))
+      case e: ErasureStageReached => s.copy(erasure = s.erasure.map(f => f.copy(stages = f.stages + e.stage)))
       case _: Erased =>
         status(Status.Erased, "erased", Actor.System).copy(
           profile = s.profile.erased,
@@ -210,7 +211,7 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
     else
       val edit   = Profile(s.profile, asked ++ country.map(cc => "country" -> Some(cc)), s.locked)
       if edit.changed.isEmpty then effects.reply(Edited())
-      else effects.persist(ProfileEdited(edit.profile, edit.changed, c.at)).thenReply(_ => Edited(None, edit.changed))
+      else effects.persist(ProfileEdited(edit.profile, edit.changed, c.at, c.operatorId)).thenReply(_ => Edited(None, edit.changed))
 
   def correctDateOfBirth(c: CorrectDateOfBirth): Effect[Done] =
     val today = LocalDate.ofInstant(c.at, ZoneOffset.UTC)
@@ -408,6 +409,12 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
     else if s.status != Status.Closed then effects.reply(Done.refused("not_closed"))
     else effects.persist(ErasureFiled(c.correlationId, c.holdUntil, c.at)).thenReply(_ => Done.changed)
 
+  /** Records an erasure's state once (spec 018 FR-019); a state recorded already, or no erasure filed, changes nothing. */
+  def erasureStage(c: ErasureStage): Effect[Done] =
+    currentState.erasure match
+      case Some(f) if !f.stages(c.stage) => effects.persist(ErasureStageReached(f.correlationId, c.stage, c.at)).thenReply(_ => Done.changed)
+      case _                             => effects.reply(Done.unchanged)
+
   def erase(c: At): Effect[Done] =
     if currentState.status == Status.Erased then effects.reply(Done.unchanged)
     else effects.persist(Erased(c.at)).thenReply(_ => Done.changed)
@@ -459,6 +466,7 @@ object PlayerEntity
   given Serializer[ClearNoDepositBlock]   = PlayersCodecs.serializer[ClearNoDepositBlock]("clear-no-deposit-block")
   given Serializer[Withdrawal]            = PlayersCodecs.serializer[Withdrawal]("withdrawal")
   given Serializer[FileErasure]           = PlayersCodecs.serializer[FileErasure]("file-erasure")
+  given Serializer[ErasureStage]          = PlayersCodecs.serializer[ErasureStage]("erasure-stage")
   given Serializer[SendResetLink]         = PlayersCodecs.serializer[SendResetLink]("send-reset-link")
   given Serializer[PlayerState]           = PlayersCodecs.serializer[PlayerState]("player-state-reply")
 
@@ -514,6 +522,7 @@ object PlayerEntity
   val fileErasure           = command("file-erasure")(_.fileErasure)
   val resetLinkSent         = command("reset-link-sent")(_.resetLinkSent)
   val erase                 = command("erase")(_.erase)
+  val erasureStage          = command("erasure-stage")(_.erasureStage)
   val get                   = query("get")(_.get)
 
   /** `account_restricted` naming the status as the wire names it. */

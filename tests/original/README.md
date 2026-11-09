@@ -8,7 +8,8 @@ original's repository except in your own local checkout, and nothing is pushed t
 
 | Path | What it is |
 |---|---|
-| `compose.override.yml` | `psp-stub` (the nine payment-provider stubs) beside the original's stack, and the gateway pointed at it |
+| `compose.override.yml` | `psp-stub` (the nine payment-provider stubs) beside the original's stack, and the gateway pointed at it; `crm-stub` (Customer.io's two hosts) and casino-service pointed at it |
+| `e2e-crm.patch` | lets the original's two Customer.io clients (casino-service's `CustomerIOClient`, the TL runtime's `customerio_dispatch`) take their hosts from `CUSTOMERIO_TRACK_URL` / `CUSTOMERIO_APP_URL`, which the original hard-codes; see *Recording the engagement* |
 | `e2e-recording.patch` | adds `record_test.go` to the original's `tests/e2e`: with `EITHEROR_RECORD_TO` set, every request a test makes is recorded, and any to a host off this machine is refused |
 | `e2e-rg-kyc.patch` | the responsible-gambling and KYC scenarios the original's suite lacks (FR-030); see `e2e-rg-kyc.md` |
 | `e2e-merchant.patch` | unskips `TestScenario12_OnboardingGate3_FullChain`; corrects scenario 12's and 13's routing-rules calls to the route as served (spec 004 research R6); registers scenarios 12 to 14's DreamzPay terminal as a gateway integration carrying its credentials, as the original has needed since `2add2353`; clears a new casino player's `VERIFY_EMAIL` in scenario 14; and corrects two stale assertions (`memberId`, the wallet's minor units). See `tests/port/README.md` |
@@ -17,11 +18,14 @@ original's repository except in your own local checkout, and nothing is pushed t
 | `players-driver/` | drives the original's `casino-service` player, session and backoffice routes and its Keycloak for what spec 008's `players` takes over; see *Recording the players* |
 | `payouts-driver/` | drives the original's `casino-service` withdrawal routes (the request, the terminals, the destinations, the queue, the decisions and the internal outcome route) for what spec 007's `payouts` takes over (scenario 30); see *Recording the payouts* |
 | `rewards-driver/` | drives the original's `casino-service` reward routes (the #730 gates, the operator's awards with no offer, the revoke of free rounds, the preview, the reorder, the delete and the reward lists) for the scenarios of spec 011's features its suite does not reach; see *Recording the rewards* |
+| `engagement-driver/` | drives the original's CRM configuration, Customer.io webhook, daily reset, agent-stream and player-stream routes and presence for the scenarios of spec 014's features its suite does not reach; see *Recording the engagement* |
+| `crm-seed/` | points the recording brand's CRM configuration at crm-stub, a transactional id for every trigger, and puts the found one back after the run |
+| `crm-captures/` | after a run, gives each recording the calls crm-stub received for its players (`outbound`, contracts/recording.md) |
 | `reporting-driver/` | seeds a player through the original's own routes, then drives `casino-service`'s reports, dashboard and dispute report (with their refusals and the Reports flag off) for what spec 015's `reporting` takes over; see *Recording the reports* |
 | `gateway-driver/` | drives the original's `psp-gateway` against `psp-stub`, with a receiver standing in for merchant-service and casino-service (spec 005); see *Recording the gateway directly* |
 | `recorder/` | the transport `record_test.go` installs |
 | `merge/` | turns two runs into the committed recordings: `vary`, captures, `suite-result.json`; collapses a poll's repeated reads to the last, and redacts passwords and tokens from bodies and `X-Internal-Secret` from headers |
-| `preflight/` | refuses to start while any outside system the original calls has no stub answering: psp-stub's nine ports, the game provider and, given `-receiver`, the gateway driver's receiver; given `-cashier`, also that the original's cashier route answers |
+| `preflight/` | refuses to start while any outside system the original calls has no stub answering: psp-stub's nine ports, the game provider and, given `-receiver`, the gateway driver's receiver; given `-cashier`, also that the original's cashier route answers; given `-crm`, crm-stub on both hosts |
 
 ## Steps
 
@@ -410,6 +414,62 @@ for run in 1 2; do
 done
 go run ./original/merge -run1 /tmp/rewards-1 -run2 /tmp/rewards-2 -results1 /tmp/rewards-1.json -results2 /tmp/rewards-2.json -out port
 ```
+
+## Recording the engagement
+
+Spec 014 research R2: the Go suite's scenarios that make CRM traffic, with every call the original makes
+to Customer.io answered by `crm-stub` and attached to the scenario's recording, and `engagement-driver/`
+for what the suite never reaches.
+
+The original hard-codes Customer.io's hosts (`CustomerIOClient.scala:72-76`,
+`tl/runtime/capabilities/customerio_dispatch/cio_client.go:23-35`), so a recording needs
+`e2e-crm.patch` applied to the recording checkout and both changed parts rebuilt: casino-service, and
+the TL runner every `notify-*` function image carries (`just kind-build-casino-pack`, which rebuilds
+only what changed; the guests are unchanged, so no TinyGo build). Without the patch the original
+would call Customer.io itself, and `preflight -crm` cannot see that: check casino-service's and a
+`notify-*` pod's environment before the first run.
+
+The patch also lets push-gateway take the issuer Keycloak signs with, `KEYCLOAK_ISSUER_BASE_URL`.
+Its `MultiRealmJwtValidator.fromEnv` builds each realm's validator from `KEYCLOAK_URL` alone, unlike
+substrate-iam's other validators, and on kind Keycloak signs every token
+`https://auth.eitheror.local/realms/<realm>`. Without it push-gateway refuses every player's
+stream 401, and no stream scenario can be recorded. Rebuild push-gateway
+(`deploy/kind/build-and-load.sh --component push-gateway`), set
+`KEYCLOAK_ISSUER_BASE_URL=https://auth.eitheror.local` on `deploy/eitheror-bundle-push-gateway`,
+and port-forward it to 18096. Its realms stay `casino-spinvibe` alone, as `bundle/helm/values.yaml`
+has them, so an operator's token is still refused 401: that is the original's own answer.
+
+Scenario 21's tests and the free-spins grant put the brand's CRM configuration back to what they
+found when they end, which on a fresh stack is empty. Seed again (`crm-seed`) before each group of
+scenarios and before the driver.
+
+On kind, psp-gateway points at the providers' sandboxes and an ngrok tunnel. Point it at psp-stub on
+the host first, with compose.override.yml's settings through `host.docker.internal`.
+
+`affiliate_status_crm` (spec 013's) calls Track's
+`/api/v1/events`, which the stub answers 404; no engagement scenario reaches it.
+
+On the kind stack the stub runs on the host and the pods reach it through Docker's host name:
+
+```bash
+git -C <the recording checkout> apply ../ankka-modules/tests/original/e2e-crm.patch
+cd tests && go build -o stubs/bin/ ./stubs/crm-stub && stubs/bin/crm-stub &
+kubectl --context kind-eitheror-dev -n eitheror set env deploy/<casino-service> deploy/<each notify-* function> \
+  CUSTOMERIO_TRACK_URL=http://host.docker.internal:18201 CUSTOMERIO_APP_URL=http://host.docker.internal:18202
+go run ./original/preflight -original <the recording checkout> -register http://localhost:8091 -crm http://localhost:18201,http://localhost:18202
+TEST_OPERATOR_PASSWORD=… go run ./original/crm-seed -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 \
+  -brand spinvibe -operator-client casino-backoffice -saved /tmp/crm-config-spinvibe.json
+```
+
+Then, for each run on fresh ids, with the stub's log reset first (`curl -X POST localhost:18201/__control -d
+'{"mode":"reset"}'`): the suite's scenarios 40, 16, 21, 30, the RG and KYC scenarios of
+`e2e-rg-kyc.patch`, `TestScenarioFreeSpinsPlay_CustomerIOGrant` (operator credentials) and
+`scenario_free_spins_stacking`, run as *Recording the rewards* runs them; then `engagement-driver/`;
+then `go run ./original/crm-captures -dir /tmp/engagement-$run`. That attaches to a recording each
+call whose person (`identifiers.id`, `identifiers.email` or `to`) its steps name, with headers
+dropped and any `message_data` value whose key names a token, link or code redacted. Merge as for
+any service, into `tests/port/engagement/`. Scenarios 21 and stacking are already under
+`tests/port/rewards/` and are replayed from there. Afterwards, `crm-seed … -restore`.
 
 ## Recording the reports
 

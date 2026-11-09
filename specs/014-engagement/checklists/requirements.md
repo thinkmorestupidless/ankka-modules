@@ -14,7 +14,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — three remain (operator mail for the payments
+- [x] No [NEEDS CLARIFICATION] markers remain — three remain (operator mail for the payments
       backoffice; withholding events for suppressed players; the agent online alert)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable

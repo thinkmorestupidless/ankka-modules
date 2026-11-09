@@ -60,6 +60,17 @@ type Recording struct {
 	// Vary is the recording-wide form recordings made before 2026-10-18 carry: a path there is
 	// presence-only in every step, which is why a step now keeps its own (Step.Vary).
 	Vary map[string]string `json:"vary,omitempty"`
+	// Outbound is what the original sent a stub for this scenario, oldest first (contracts/recording.md).
+	// crm-stub's calls are attached after the run by original/crm-captures (spec 014 research R2): the
+	// original's sends happen behind its consumers, where this transport never sees them.
+	Outbound []Outbound `json:"outbound,omitempty"`
+}
+
+// Outbound is one call the original made to a stub, without its headers (the stub's credentials).
+type Outbound struct {
+	Stub     string    `json:"stub"`
+	Request  Request   `json:"request"`
+	Response *Response `json:"response,omitempty"`
 }
 
 // Services maps a base URL the suite is configured with to the rebuilt service a request to it

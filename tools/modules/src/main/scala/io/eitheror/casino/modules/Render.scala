@@ -129,6 +129,8 @@ object Render:
       case shared: SharedManifest if shared.projectId == "payments" && pin.name == "merchant" => Vector("MERCHANT_BRANDS" -> merchantBrands(brands))
       // The brands whose `affiliates.attribution` the programme consumes, one consumer each (spec 013 research R3).
       case shared: SharedManifest if shared.projectId == "programme" && pin.name == "affiliate-programme" => Vector("PROGRAMME_BRANDS" -> brands.sorted.mkString(","))
+      // The brands whose `platform.audit` and `platform.modules` the shared audit consumes (spec 018 research R2).
+      case shared: SharedManifest if shared.projectId == "reasoner" && pin.name == "audit" => Vector("AUDIT_BRANDS" -> brands.sorted.mkString(","))
       case _                    => Vector.empty)
     val env =
       (identity ++ auth).map((k, v) => EnvVar(k, value = Some(v))) ++

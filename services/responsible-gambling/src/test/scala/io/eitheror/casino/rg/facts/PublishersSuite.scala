@@ -34,8 +34,16 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(fact(LimitSet("p-1", k, 90, None, Actor.Player, at)),
       Some(f.RgLimitApplied("p-1", "SESSION_MINUTES", None, Some(90), "set", at, None)))
 
-  test("a staged change and the other events publish nothing"):
-    Seq[ProfileEvent](PendingStaged("p-1", eur, Some(1), at, Actor.Player, at), PendingCancelled(eur, at), BreakSet("p-1", at, "c", Actor.Player, at),
+  test("a raise or a removal staged is a loosening requested, with the value asked for and when it applies; a lowering is not"):
+    val later = at.plusSeconds(86_400)
+    assertEquals(fact(PendingStaged("p-1", eur, Some(20_000), later, Actor.Player, at)),
+      Some(f.RgLimitLooseningRequested("p-1", "DEPOSIT_DAILY", Some("daily"), Some(20_000), Some("EUR"), later, at)))
+    assertEquals(fact(PendingStaged("p-1", eur, None, later, Actor.Player, at)),
+      Some(f.RgLimitLooseningRequested("p-1", "DEPOSIT_DAILY", Some("daily"), None, Some("EUR"), later, at)))
+    assert(fact(LimitSet("p-1", eur, 5_000, Some(9_000), Actor.Player, at)).forall(!_.isInstanceOf[f.RgLimitLooseningRequested]))
+
+  test("a cancelled change and the other events publish nothing"):
+    Seq[ProfileEvent](PendingCancelled(eur, at), BreakSet("p-1", at, "c", Actor.Player, at),
       ReturnRequested(at, Actor.Player, at), RealityCheckSet(Some(15), None, at), Erased(at)).foreach(e => assertEquals(fact(e), None, e.toString))
 
   test("a case opened carries permanent on a self-exclusion only; a case closed its closure"):
@@ -50,8 +58,10 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
   test("the CloudEvents id is the event's"):
     assertEquals(Facts.players("p-1", 7, LimitRemoved(eur, 5, op, at)).map(_.id), Some("profile/p-1/7"))
 
-  test("an operator's change is one audit record; a player's none"):
-    assertEquals(audit(LimitSet("p-1", eur, 5_000, None, Actor.Player, at)), None)
+  test("an operator's change is one audit record, and a player's own change one under the player (spec 018 FR-004); the system's none"):
+    val own = audit(LimitSet("p-1", eur, 5_000, None, Actor.Player, at)).get
+    assertEquals((own.actorKind, own.actorId, own.subjectId, own.recordClass), ("player", "p-1", "p-1", "account"))
+    assertEquals(audit(LimitSet("p-1", eur, 5_000, None, Actor.System, at)), None)
     val r = audit(LimitSet("p-1", eur, 5_000, Some(9_000), op, at)).get
     assertEquals((r.service, r.action, r.actorId, r.subjectId, r.changes),
       ("responsible-gambling", "limit-set", "op-1", "p-1", Vector(f.AuditChange("DEPOSIT_DAILY/EUR", Some("9000"), Some("5000")))))

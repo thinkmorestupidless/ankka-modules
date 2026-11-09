@@ -55,8 +55,9 @@ final class ProfileRoutes(ctx: Ctx):
       edit(playerId, edits(body(text), Profile.editable), allow.countries)
     }
 
-  private[api] def edit(playerId: String, asked: Map[String, Option[String]], allowList: Set[String]): Reply =
-    player(playerId).call(PlayerEntity.editProfile).invoke(EditProfile(asked, allowList, now())).refusal match
+  private[api] def edit(playerId: String, asked: Map[String, Option[String]], allowList: Set[String],
+      operatorId: Option[String] = None): Reply =
+    player(playerId).call(PlayerEntity.editProfile).invoke(EditProfile(asked, allowList, now(), operatorId)).refusal match
       case Some(r) if r.code == "invalid_country" => refusal(400, r.code, "The country is not one this brand allows")
       case Some(r)                                => refusal(400, r.code, "No editable fields were provided")
       case None                                   => ok(Json.obj("updated" -> true))

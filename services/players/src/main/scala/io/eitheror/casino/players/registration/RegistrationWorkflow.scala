@@ -246,6 +246,7 @@ final class RegistrationWorkflow(context: WorkflowContext) extends Workflow[Regi
           case Some(SendOutcome.Accepted) =>
             player.call(PlayerEntity.verificationSent).invoke(At(at)): Unit
             stepEffects.updateState(s.copy(firstSendAt = Some(first), sends = s.sends + 1)).thenTransitionTo(RegistrationWorkflow.forget)
+          // Not configured, suppressed or refused (FR-004): an answer, so the player is left pending, not retried.
           case Some(other) =>
             RegistrationWorkflow.log.info(s"registration ${s.playerId}: the verification email was not sent ($other)")
             player.call(PlayerEntity.verificationPending).invoke(At(at)): Unit

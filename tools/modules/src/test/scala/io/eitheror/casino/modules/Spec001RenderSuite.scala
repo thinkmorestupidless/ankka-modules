@@ -115,10 +115,11 @@ class Spec001RenderSuite extends munit.FunSuite:
     assert(!push.notes.exists(_.startsWith("retention below intent")), push.notes.mkString("; "))
   }
 
-  test("a shared project's grants are made once per brand") {
+  test("a shared project's grants are made once per brand, and its grant to another shared project once (spec 018)") {
     val shared = Render.plan(Fixtures.load("shared-payments"), None, Vector("goldvibe", "spinvibe"))
     assertEquals(shared.grantsMade.map(_.principal).toSet,
-      Set("service:goldvibe/payouts", "service:goldvibe/players", "service:spinvibe/payouts", "service:spinvibe/players"))
+      Set("service:goldvibe/payouts", "service:goldvibe/players", "service:spinvibe/payouts", "service:spinvibe/players", "service:reasoner/audit"))
+    assertEquals(shared.grantsMade.count(_.principal == "service:reasoner/audit"), 1)
     assertEquals(shared.grantsMade.filter(_.principal == "service:goldvibe/payouts").map(_.target),
       Vector("route:psp-gateway POST /v1/payments/withdrawals", "route:psp-gateway GET /v1/payments/withdrawals/{requestId}",
         "route:psp-gateway GET /v1/payments/withdrawal-terminals"))
@@ -144,4 +145,12 @@ class Spec001RenderSuite extends munit.FunSuite:
     val programme = shared.descriptors.find(_.name == "affiliate-programme").get
     assertEquals(programme.service.env.find(_.name == "PROGRAMME_BRANDS").flatMap(_.value), Some("goldvibe,spinvibe"))
     assertEquals(programme.service.env.find(_.name == "KEYCLOAK_ADMIN_PASSWORD").flatMap(_.secretKeyRef).map(_.name), Some("keycloak-operators-admin"))
+  }
+
+  test("spec 018: the shared audit is told every brand whose records and module changes it consumes, comma-separated") {
+    val shared = Render.plan(Manifest.load(Fixtures.root.resolve("shared/reasoner/manifest.json")).fold(ps => throw AssertionError(ps.mkString("; ")), identity),
+      None, Vector("spinvibe", "goldvibe"))
+    val audit = shared.descriptors.find(_.name == "audit").get
+    assertEquals(audit.service.env.find(_.name == "AUDIT_BRANDS").flatMap(_.value), Some("goldvibe,spinvibe"))
+    assertEquals(audit.service.env.find(_.name == "KEYCLOAK_ADMIN_PASSWORD").flatMap(_.secretKeyRef).map(_.name), Some("keycloak-operators-admin"))
   }

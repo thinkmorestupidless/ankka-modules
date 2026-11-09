@@ -17,6 +17,13 @@
   (player, on their own id; `support-agent` and `game-provider` by `Routes.serviceOf` on one route
   each), `/offers` (operator holding a brand, resource or platform admin role), `/reward-grants`
   (operator, roles checked in the handler) and `/reward-campaigns` (service, `engagement` alone).
+- `engagement` (spec 014) serves five prefixes, one endpoint each: `/v1/stream` (player, `sse`; a
+  sign-in naming no player is `403 subject_unresolved`), `/v1/casino/customerio` (public; the
+  handler verifies Customer.io's signature with the brand's key), `/v1/casino/brands/{brand}/engagement`
+  (service: `players` alone, by `Routes.serviceOf`, on `/sends` and the erasure target),
+  `/v1/casino/backoffice/{brand}` (operator; its agent stream public, admitted by a one-use ticket an
+  operator takes) and `/v1/casino/crm-config` (operator holding `brand_admin`, `resource_admin` or
+  `platform_admin`, the brand in the path).
 
 ## Classes and recipes (`contract.access`)
 

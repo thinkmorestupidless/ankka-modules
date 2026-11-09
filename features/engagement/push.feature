@@ -30,7 +30,13 @@ Feature: A player's open page learns the inbox changed within seconds
   Scenario: a connection whose sign-in no longer verifies at the re-check is closed as invalid
     Given a push connection whose sign-in no longer verifies at the "30" second re-check
     When the check runs
-    Then the connection is closed with "token_invalid"
+    Then the connection is closed with "revalidation_failed"
+
+  Scenario: a connection past its recycle age is closed as recycled and the page reconnects
+    Given a push connection open for more than "5" minutes
+    When the sweep runs
+    Then the connection is closed with "connection_recycled"
+    And the page opens the stream again
 
   Scenario: an operator's or a part's sign-in without a player id is refused the stream
     Given an operator's or a part's sign-in without a player id

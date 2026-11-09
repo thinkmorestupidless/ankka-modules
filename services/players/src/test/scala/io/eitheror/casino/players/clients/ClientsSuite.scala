@@ -77,7 +77,7 @@ class ClientsSuite extends munit.FunSuite with LogCapturing:
     assert(kyc("""{"allowed":false}""").depositCheck("p-1", 100, "EUR", bound).isInstanceOf[Raced.Failed[?]])
   }
 
-  test("engagement's send: accepted, not configured, suppressed; the key, trigger and link are sent") {
+  test("engagement's send: accepted, not configured, suppressed, refused with its reason; the key, trigger and link are sent") {
     val services = scripted(Engagement.Service)(_ => json(200, """{"status":"accepted"}"""))
     assertEquals(answered(Engagement.http(services, "goldvibe").send("k-1", "p-1", "EmailAddressVerification", "a@example.test",
       "https://site/verify?t=x", bound)), SendOutcome.Accepted)
@@ -89,6 +89,10 @@ class ClientsSuite extends munit.FunSuite with LogCapturing:
       answered(Engagement.http(scripted(Engagement.Service)(_ => json(200, body)), "goldvibe").send("k", "p", "t", "a", "l", bound))
     assertEquals(outcome("""{"status":"not_configured"}"""), SendOutcome.NotConfigured)
     assertEquals(outcome("""{"status":"suppressed","reason":"bounced"}"""), SendOutcome.Suppressed("bounced"))
+    assertEquals(outcome("""{"status":"refused","reason":"no_address"}"""), SendOutcome.Refused("no_address"))
+    assertEquals(outcome("""{"status":"refused","reason":"blocked"}"""), SendOutcome.Refused("blocked"))
+    assert(Engagement.http(scripted(Engagement.Service)(_ => json(200, """{"status":"later"}""")), "goldvibe")
+      .send("k", "p", "t", "a", "l", bound).isInstanceOf[Raced.Failed[?]], "an answer it does not know is not one")
   }
 
   test("the wallet's deposit sums; erasure's certificate and export's part from a target, in another project too") {

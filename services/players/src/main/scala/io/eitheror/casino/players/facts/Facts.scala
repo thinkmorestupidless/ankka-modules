@@ -25,9 +25,23 @@ object Facts:
 
   // ── casino.players ────────────────────────────────────────────────────────
 
-  /** `casino.players` for one player event; the events contracts/facts.md does not publish yield nothing. */
-  def players(playerId: String, sequence: Long, event: PlayerEvent): Option[Published[f.CasinoPlayersFact]] =
-    val fact: Option[f.CasinoPlayersFact] = event match
+  /**
+   * `casino.players` for one player event; the events contracts/facts.md does not publish yield nothing.
+   * A registration is also one `player_consent_changed` per channel, the consent given there with the source
+   * `registration` (FR-028), so `engagement` learns it; each has its own id, the event's and the channel.
+   */
+  def players(playerId: String, sequence: Long, event: PlayerEvent): Vector[Published[f.CasinoPlayersFact]] =
+    val id = eventId("player", playerId, sequence)
+    val consents: Vector[Published[f.CasinoPlayersFact]] = event match
+      case e: Registered =>
+        Vector("email" -> e.consents.email, "sms" -> e.consents.sms).map { (channel, c) =>
+          Published(f.PlayerConsentChanged(playerId, channel, c.granted, "registration", e.at), s"$id/consent/$channel")
+        }
+      case _ => Vector.empty
+    playerFact(playerId, event).map(Published(_, id)).toVector ++ consents
+
+  private def playerFact(playerId: String, event: PlayerEvent): Option[f.CasinoPlayersFact] =
+    event match
       case e: Registered =>
         def personal(field: String) = e.profile.get(field).map(Personal(_))
         Some(f.PlayerRegistered(playerId, e.at, e.registration.tag, e.registration.clickId, e.registration.bonusCode,
@@ -42,6 +56,9 @@ object Facts:
         Some(f.PlayerReinstated(playerId, Status.Suspended, Status.Active, Actor.Operator, e.actorId, e.reason, e.at))
       case e: SelfExcluded =>
         Some(f.PlayerSelfExcluded(playerId, e.previous, Status.SelfExcluded, Actor.System, None, None, e.at, e.until, e.at))
+      // The exclusion's end, as the player back to active (014 US3): the family every reader already maps to active.
+      case e: ExclusionLifted =>
+        Some(f.PlayerReinstated(playerId, Status.SelfExcluded, Status.Active, Actor.System, None, Some("exclusion_lifted"), e.at))
       case e: Closed =>
         Some(f.PlayerClosed(playerId, e.previous, Status.Closed, e.actor, e.actorId, Some(e.reason), e.at))
       case e: Reopened =>
@@ -62,7 +79,6 @@ object Facts:
       case e: NoDepositBlocked      => Some(f.PlayerNoDepositBlocked(playerId, e.at))
       case e: NoDepositBlockCleared => Some(f.PlayerNoDepositBlockCleared(playerId, e.actorId, e.at))
       case _                       => None
-    fact.map(Published(_, eventId("player", playerId, sequence)))
 
   /**
    * The profile as `player_profile_updated` carries it (spec 009 FR-016): the eight fields `kyc` reads,
@@ -110,14 +126,18 @@ object Facts:
 
   // ── platform.audit ────────────────────────────────────────────────────────
 
-  /** What an operator did, before it is a record: never a personal value (the field is named instead). */
+  /**
+   * What an operator, or a player on their own account, did, before it is a record: never a personal value
+   * (the field is named instead). A player's own action is of category `account` (spec 018 FR-004).
+   */
   final case class Action(action: String, actorId: String, subjectKind: String, subjectId: String, reason: Option[String],
-      changes: Vector[f.AuditChange], at: Instant)
+      changes: Vector[f.AuditChange], at: Instant, actorKind: String = "operator"):
+    def category: String = if actorKind == "player" then "account" else "operator"
 
   private def record(brand: String, id: String, a: Action): Published[f.AuditRecord] =
-    Published(f.AuditRecord(recordId = id, brand = brand, service = "players", action = a.action, actorKind = "operator",
+    Published(f.AuditRecord(recordId = id, brand = brand, service = "players", action = a.action, actorKind = a.actorKind,
       actorId = a.actorId, approverId = None, subjectKind = a.subjectKind, subjectId = a.subjectId, outcome = "accepted",
-      reasonCode = a.reason, changes = a.changes, correlationId = id, causationId = id, recordClass = "operator",
+      reasonCode = a.reason, changes = a.changes, correlationId = id, causationId = id, recordClass = a.category,
       occurredAt = a.at), id)
 
   private def change(field: String, before: String, after: String) = f.AuditChange(field, Some(before), Some(after))
@@ -125,11 +145,28 @@ object Facts:
   /** A field whose value is personal: named, with no value (spec 018 FR-003). */
   private def named(field: String) = f.AuditChange(field, None, None)
 
-  /** The operator's actions on a player (contracts/facts.md's `platform.audit`). */
+  /**
+   * The operator's actions on a player (contracts/facts.md's `platform.audit`), and the player's own on their
+   * account (spec 018 FR-004: registration, profile and addresses, session limit, exclusion, consent, closure).
+   */
   def playerAudit(brand: String, playerId: String, sequence: Long, event: PlayerEvent): Option[Published[f.AuditRecord]] =
     def op(action: String, actorId: Option[String], reason: Option[String], changes: Vector[f.AuditChange], at: Instant) =
       Some(Action(action, actorId.getOrElse(""), "player", playerId, reason, changes, at))
+    def own(action: String, changes: Vector[f.AuditChange], at: Instant) =
+      Some(Action(action, playerId, "player", playerId, None, changes, at, actorKind = "player"))
     val action: Option[Action] = event match
+      case e: Registered    => own("register", Vector(f.AuditChange("currency", None, Some(e.currency))), e.at)
+      case e: ProfileEdited if e.operatorId.isDefined => op("profile-edit", e.operatorId, None, e.changed.toVector.sorted.map(named), e.at)
+      case e: ProfileEdited => own("profile-edit", e.changed.toVector.sorted.map(named), e.at)
+      case e: EmailAdded    => own("email-add", Vector(named("email")), e.at)
+      case e: EmailPromoted => own("email-promote", Vector(named("email")), e.at)
+      case e: EmailRemoved  => own("email-remove", Vector(named("email")), e.at)
+      case e: EmailChanged  => own("email-change", Vector(named("email")), e.at)
+      case e: SessionLimitSet => own("session-limit", Vector(f.AuditChange("sessionMinutes", None, e.minutes.map(_.toString))), e.at)
+      case e: SelfExcluded  => own("self-exclude", Vector(change("status", e.previous, Status.SelfExcluded)), e.at)
+      case e: ConsentChanged if e.source == "player" =>
+        own("consent", Vector(change(s"consent.${e.channel}", (!e.granted).toString, e.granted.toString)), e.at)
+      case e: Closed if e.actor == Actor.Player => own("close", Vector(change("status", e.previous, Status.Closed)), e.at)
       case e: Suspended  => op("suspend", e.actorId, Some(e.reason), Vector(change("status", e.previous, Status.Suspended)), e.at)
       case e: SuspensionUpdated => op("suspend", e.actorId, Some(e.reason), Vector.empty, e.at)
       case e: Reinstated => op("reinstate", e.actorId, e.reason, Vector(change("status", Status.Suspended, Status.Active)), e.at)
@@ -141,13 +178,31 @@ object Facts:
       case e: PotVipSet => op("pot-vip", e.actorId, None, Vector(change("potVip", (!e.potVip).toString, e.potVip.toString)), e.at)
       case e: DateOfBirthCorrected => op("date-of-birth", Some(e.operatorId), Some(e.reason), Vector(named("dateOfBirth")), e.at)
       case e: ConsentChanged if e.source == "operator" =>
-        op("consent", e.actorId, None, Vector(change(e.channel, (!e.granted).toString, e.granted.toString)), e.at)
+        op("consent", e.actorId, None, Vector(change(s"consent.${e.channel}", (!e.granted).toString, e.granted.toString)), e.at)
       case e: DuplicateCleared if e.actorId.nonEmpty => op("fraud-clear", e.actorId, None, Vector.empty, e.at)
       case e: NoDepositBlockCleared =>
         op("no-deposit-block-clear", Some(e.actorId), None, Vector(change("noDepositOfferBlocked", "true", "false")), e.at)
       case e: ResetLinkSent => op("reset-password", Some(e.operatorId), None, Vector(named("password")), e.at)
       case _ => None
     action.map(record(brand, eventId("audit/player", playerId, sequence), _))
+
+  /**
+   * An erasure request's state (spec 018 FR-019, research R7): `erasure.<state>`, kept by the shared audit
+   * as an installation record of the brand. The actor is the system; the correlation is the erasure's, so
+   * every state of one request is found together; nothing personal.
+   */
+  def erasureAudit(brand: String, playerId: String, sequence: Long, event: PlayerEvent): Option[Published[f.AuditRecord]] =
+    val reached = event match
+      case e: ErasureFiled        => Some(("filed", e.correlationId, e.at))
+      case e: ErasureStageReached => Some((e.stage, e.correlationId, e.at))
+      case _                      => None
+    reached.map { (state, correlation, at) =>
+      val id = eventId("audit/erasure", playerId, sequence)
+      Published(f.AuditRecord(recordId = id, brand = brand, service = "players", action = s"erasure.$state", actorKind = "system",
+        actorId = "players", approverId = None, subjectKind = "player", subjectId = playerId, outcome = "accepted", reasonCode = None,
+        changes = Vector(f.AuditChange("erasure", None, Some(state))), correlationId = correlation, causationId = correlation,
+        recordClass = "erasure", occurredAt = at), id)
+    }
 
   /** An operator's message to a player: the body is never on the record. */
   def messageAudit(brand: String, messageId: String, sequence: Long, event: MessageEvent): Option[Published[f.AuditRecord]] =

@@ -92,7 +92,8 @@ final case class VerificationEmail(lastSentAt: Option[Instant] = None, pending: 
 
 final case class Suspension(reason: String, at: Instant)
 
-final case class ErasureFiling(correlationId: String, holdUntil: Instant)
+/** `stages`: the erasure's states already recorded for the audit beyond `filed` (spec 018 FR-019). */
+final case class ErasureFiling(correlationId: String, holdUntil: Instant, stages: Set[String] = Set.empty)
 
 /**
  * A player (data-model.md): the status and its trail, the profile, the addresses, the consents, the
@@ -169,7 +170,8 @@ object PlayerEvent:
   final case class GameSessionOpened(sessionId: String, at: Instant)                               extends PlayerEvent
   final case class GameSessionEnded(sessionId: String, at: Instant)                                extends PlayerEvent
   final case class SessionLimitSet(minutes: Option[Int], at: Instant)                              extends PlayerEvent
-  final case class ProfileEdited(profile: Profile, changed: Set[String], at: Instant)               extends PlayerEvent
+  /** `operatorId` names the operator who edited on the player's behalf (spec 018 FR-004); none is the player's own edit. */
+  final case class ProfileEdited(profile: Profile, changed: Set[String], at: Instant, operatorId: Option[String] = None) extends PlayerEvent
   final case class DateOfBirthCorrected(value: Personal[String], operatorId: String, reason: String, at: Instant) extends PlayerEvent
   final case class EmailAdded(address: Personal[String], at: Instant)                             extends PlayerEvent
   final case class EmailAddressVerified(address: Personal[String], at: Instant)                   extends PlayerEvent
@@ -211,6 +213,8 @@ object PlayerEvent:
   final case class PendingBonusCodeCleared(at: Instant)                                            extends PlayerEvent
   final case class ErasureFiled(correlationId: String, holdUntil: Instant, at: Instant)            extends PlayerEvent
   final case class Erased(at: Instant)                                                             extends PlayerEvent
+  /** An erasure reached `held`, `applied` or `completed`: the audit's record of it (spec 018 FR-019); nothing personal. */
+  final case class ErasureStageReached(correlationId: String, stage: String, at: Instant)          extends PlayerEvent
 
   /** A status carried over from the original by the migration (spec 019), `blocked` among them; no command persists it. */
   final case class StatusImported(status: String, at: Instant)                                     extends PlayerEvent
@@ -247,7 +251,7 @@ final case class SetSessionLimit(minutes: Option[Int], at: Instant)
 /** Each open game session and the minutes the new limit leaves it (none when there is no limit). */
 final case class Remainders(open: Map[String, Int] = Map.empty, limited: Boolean = false)
 
-final case class EditProfile(edit: Map[String, Option[String]], allowList: Set[String], at: Instant)
+final case class EditProfile(edit: Map[String, Option[String]], allowList: Set[String], at: Instant, operatorId: Option[String] = None)
 final case class Edited(refusal: Option[Refusal] = None, changed: Set[String] = Set.empty)
 final case class CorrectDateOfBirth(value: String, reason: String, operatorId: String, at: Instant)
 final case class Address(address: String, at: Instant)
@@ -273,4 +277,5 @@ final case class EndDuplicateCheck(outcome: String, weakSignals: Set[String], at
 final case class ClearNoDepositBlock(actorId: String, at: Instant)
 final case class Withdrawal(withdrawalId: String, at: Instant)
 final case class FileErasure(correlationId: String, holdUntil: Instant, at: Instant)
+final case class ErasureStage(stage: String, at: Instant)
 final case class SendResetLink(operatorId: String, at: Instant)

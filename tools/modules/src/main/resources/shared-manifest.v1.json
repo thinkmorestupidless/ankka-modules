@@ -234,7 +234,7 @@
       "properties": {
         "principal": {
           "type": "string",
-          "pattern": "^service:\\{brand\\}/[a-z][a-z0-9-]*$"
+          "pattern": "^service:(\\{brand\\}|[a-z][a-z0-9-]*)/[a-z][a-z0-9-]*$"
         },
         "target": {
           "oneOf": [

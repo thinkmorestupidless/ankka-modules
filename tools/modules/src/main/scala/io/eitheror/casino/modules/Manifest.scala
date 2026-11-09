@@ -74,11 +74,13 @@ final case class SharedManifest(
 ) extends Manifest:
   def realMoney: Boolean = false
 
+  /** Each grant naming `{brand}` once per brand; a grant to another shared project (spec 018) once. */
   def grantsFor(brands: Vector[String]): Vector[Grant] =
-    for
+    val (perBrand, once) = grantsMade.partition(_.principal.contains("{brand}"))
+    (for
       brand <- brands
-      grant <- grantsMade
-    yield grant.copy(principal = grant.principal.replace("{brand}", brand))
+      grant <- perBrand
+    yield grant.copy(principal = grant.principal.replace("{brand}", brand))) ++ once
 
 object Manifest:
 
@@ -174,7 +176,8 @@ object Manifest:
   private def sharedRules(shared: SharedManifest): Vector[Problem] =
     val expected = Layout.SharedProjects.getOrElse(shared.projectId, Vector.empty)
     val names    = shared.services.map(_.name)
-    val expectedGrants = Layout.brandGrantsReceived("{brand}").filter(g => granter(g) == shared.projectId)
+    val expectedGrants = Layout.brandGrantsReceived("{brand}").filter(g => granter(g) == shared.projectId) ++
+      Layout.SharedGrantsMade.getOrElse(shared.projectId, Vector.empty)
     expected.filterNot(names.contains).map(s => Problem("services", s"service '$s' is missing; project '${shared.projectId}' holds ${expected.mkString(", ")}")) ++
       names.filterNot(expected.contains).map(s => Problem("services", s"service '$s' is not one of project '${shared.projectId}' (FR-003)")) ++
       Layout.SharedTopics.getOrElse(shared.projectId, Vector.empty).filterNot(shared.topics.map(_.name).contains)

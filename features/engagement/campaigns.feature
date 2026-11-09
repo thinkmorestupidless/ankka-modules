@@ -27,7 +27,7 @@ Feature: A CRM campaign acts on a player through the brand's CRM webhook
     Given a brand with a signing key for its CRM webhook, a valid signature over the request and a time within the window
     When a "send_message" action arrives with a delivery id, a title and a body
     Then one inbox item of the marketing class is written through the brand's player records under that delivery id
-    And it is refused as "marketing_suppressed", "account_closed" or "player_not_found" as the player records answer
+    And when the player records refuse it, the answer is their refusal, "marketing_suppressed", "account_closed" or "player_not_found"
     And a repeat with the same delivery id writes nothing
 
   Scenario: a send action without a delivery id is refused rather than given a fresh key

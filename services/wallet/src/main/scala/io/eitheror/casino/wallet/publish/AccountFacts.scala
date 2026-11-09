@@ -28,7 +28,7 @@ object AccountFacts:
     val a: Option[A] = event match
       case e: AccountEvent.AccountClaimed  => Some(A("claim", "accepted", "service", e.owner, "", None, accountId, e.at))
       case e: AccountEvent.CreditLineSet   => Some(A("set-credit-line", "accepted", "service", e.actor, "", None, accountId, e.at))
-      case e: AccountEvent.CommandRefused  => Some(A(e.commandType, e.code, "service", "", "", Some(e.code), e.key, e.at))
+      case e: AccountEvent.CommandRefused  => Some(A(e.commandType, "refused", "service", "", e.key, Some(e.code.toLowerCase), e.key, e.at))
       case e: AccountEvent.AccountAdjusted =>
         Some(A("adjust", "accepted", "operator", e.actorId, e.transactionId, Some(e.category), e.key, e.at))
       case _: AccountEvent.AccountDebited | _: AccountEvent.AccountCredited => None

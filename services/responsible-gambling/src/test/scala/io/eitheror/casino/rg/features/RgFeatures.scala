@@ -124,13 +124,17 @@ abstract class RgFeatures(file: String) extends GherkinSuite(s"../../features/re
 
   protected def facts: Vector[CasinoPlayersFact] =
     kit.facts(CasinoPlayers).filter {
-      case f: RgCaseOpened   => f.playerId == player
-      case f: RgCaseClosed   => f.playerId == player
-      case f: RgLimitApplied => f.playerId == player
-      case _                 => false
+      case f: RgCaseOpened              => f.playerId == player
+      case f: RgCaseClosed              => f.playerId == player
+      case f: RgLimitApplied            => f.playerId == player
+      case f: RgLimitLooseningRequested => f.playerId == player
+      case _                            => false
     }
 
   protected def audits: Vector[AuditRecord] = kit.facts(PlatformAudit).collect { case r: AuditRecord if r.subjectId == player => r }
+
+  /** The operators' records of the player: a player's own changes are records too (spec 018 FR-004). */
+  protected def operatorAudits: Vector[AuditRecord] = audits.filter(_.actorKind == "operator")
 
   protected def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = kit.eventually(what, within)(f)
 

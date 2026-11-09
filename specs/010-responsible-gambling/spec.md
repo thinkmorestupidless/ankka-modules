@@ -493,12 +493,15 @@ CRM events and exports RGCase twins.
 - **FR-030**: The service MUST produce on `casino.players` (spec 001 FR-011), keyed by the player:
   `rg_limit_applied` (type, currency, value or none, actor, cause: set, lowered, applied, removed),
   `rg_case_opened` (case id, type, trigger, closes-at, and for a self-exclusion whether permanent or
-  the period's end), `rg_case_closed` (case id, reason); `player_self_excluded` is `players`', produced
-  when this service has it set the status (FR-018, spec 008 FR-032); and MUST tell `engagement`'s
-  consumers nothing else: `deposit_limit_set`, `loss_limit_set`, `session_limit_set`,
-  `rg_limit_loosened`, `cooling_off_set` and `self_exclusion_activated` are derived by
-  `engagement` (spec 014) from these facts, once each. Established from `CrmService` and
-  `customerio_dispatch`.
+  the period's end), `rg_case_closed` (case id, reason), and `rg_limit_loosening_requested` (type,
+  period, the new value or none for a removal, currency, applies-at), produced when a raise or a
+  removal is staged, a day before it applies, because the original tracked `rg_limit_loosened` at
+  the request and not at the application (asked by spec 014, 2026-11-03); `player_self_excluded` is
+  `players`', produced when this service has it set the status (FR-018, spec 008 FR-032); and MUST
+  tell `engagement`'s consumers nothing else: `deposit_limit_set`, `loss_limit_set`,
+  `session_limit_set`, `rg_limit_loosened`, `cooling_off_set` and `self_exclusion_activated` are
+  derived by `engagement` (spec 014) from these facts, once each. Established from `CrmService`,
+  `RgRoutes` and `customerio_dispatch`.
 - **FR-031**: `engagement` MUST send an excluded or cooling-off player no marketing while the
   case is open (spec 014 enforces; this service's facts make it knowable); `reporting` (spec 015)
   MUST count exclusions and limits from the same facts; the regulator's case export MUST be built

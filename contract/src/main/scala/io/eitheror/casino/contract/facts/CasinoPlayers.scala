@@ -168,6 +168,14 @@ final case class RgCaseClosed(playerId: String, rgCaseId: String, caseType: Stri
 final case class RgLimitApplied(playerId: String, limitType: String, period: Option[String], value: Option[Long],
     causedBy: String, occurredAt: Instant, currency: Option[String] = None) extends CasinoPlayersFact
 
+/**
+ * A raise or a removal staged: it applies at `appliesAt`, after the cooling period (spec 010 FR-030), and `engagement`
+ * tracks it at the request as the original did (spec 014 R6). `value` is the requested limit; none for a removal.
+ */
+@named("rg_limit_loosening_requested")
+final case class RgLimitLooseningRequested(playerId: String, limitType: String, period: Option[String], value: Option[Long],
+    currency: Option[String], appliesAt: Instant, occurredAt: Instant) extends CasinoPlayersFact
+
 object CasinoPlayersFact:
   given JsonValueCodec[CasinoPlayersFact] = FactCodecs.make
 
@@ -204,5 +212,6 @@ object CasinoPlayers extends Topic[CasinoPlayersFact]("casino.players", Vector("
     FamilyDef.of[PlayerSofCleared]("player_sof_cleared"),
     FamilyDef.of[RgCaseOpened]("rg_case_opened"),
     FamilyDef.of[RgCaseClosed]("rg_case_closed"),
-    FamilyDef.of[RgLimitApplied]("rg_limit_applied")
+    FamilyDef.of[RgLimitApplied]("rg_limit_applied"),
+    FamilyDef.of[RgLimitLooseningRequested]("rg_limit_loosening_requested")
   )

@@ -17,6 +17,38 @@ Not recorded yet. `programme/README.md` says what the directory will hold: thirt
 `tests/original/programme-driver/`, one per driver scenario of
 `specs/013-affiliate-programme/contracts/recording.md`, how they are made, and the marked divergences.
 
+## engagement (spec 014, T051)
+
+Recorded 2026-11-08 from the original at `7630feb0`, twice on fresh ids. The run used its kind stack
+with `e2e-recording.patch`, `e2e-rg-kyc.patch` and `e2e-crm.patch`. Customer.io was answered by
+`crm-stub` on the host, and spinvibe's CRM configuration was seeded at the stub before each group,
+with a transactional id for every trigger. The payment providers were answered by `psp-stub`, after
+psp-gateway was repointed from the sandboxes. `tests/original/README.md` *Recording the engagement*
+says how. 73 recordings, each with the CRM calls its players caused in `outbound` (`crm-track`,
+`crm-app`):
+
+| Recordings | Requirement |
+|---|---|
+| 53 of the suite: `TestScenario16_*` (2), `TestScenario21_CleanGrantEveryPath` and `_SuspectedDuplicate_RefusedOnEveryPath`, `TestScenarioFreeSpinsPlay_CustomerIOGrant`, and the RG and KYC scenarios 26–28 | 014/FR-006 (the events and their identifies) |
+| 20 of `tests/original/engagement-driver/`, named as the feature scenarios they record | as each names |
+
+Not kept:
+- `TestScenarioFreeSpinsPlay_StacksOnActiveBonus`: its two runs differed in step count three times
+  over, a poll the merge cannot collapse. It is replayed from `tests/port/rewards/` (research R2).
+- `TestScenario27_RGBreaks_OperatorLiftsBreak` and `TestScenario27_RGPlay_SignInSelfExcludedRefused`:
+  they fail on the original itself, in both runs, at the scenario 26 helper's RG answer.
+
+Five scenarios differed in step count between the first two runs; they were recorded twice more and
+that pair kept.
+
+What the original answers where the features say otherwise:
+- **Operators on push-gateway.** An operator's token is refused 401 `unauthenticated`, by
+  `/v1/presence` and by `/v1/stream`. push-gateway trusts only `casino-spinvibe`, as the chart
+  ships it. So `subject_unresolved` and an operator's presence are not shown.
+- **The deposit day's reset** sends the player who deposited two identifies with
+  `daily_deposit_count` 0, where the feature says one.
+- **A CRM send's inbox item** has no class. It is the item whose `originName` is `Customer.io campaign`.
+
 ## game-provider (spec 003, T015)
 
 Recorded 2026-10-10 from the original at `21da61f0`, run on its own KinD stack (`just dev-kind`,
@@ -221,3 +253,12 @@ brand's withdrawal limits; the rest at `a78decf1`), twice, on fresh ids: 56 reco
 show, and the original's four `TestScenario251_*` tests, every one `pass` on both runs.
 `payouts/README.md` says how they were made, what the run found about the original, and how the
 terminal listings are read.
+
+## audit (spec 018, T056)
+
+Nothing recorded: every row is translated, 2026-11-09. The original's audit query is internal and
+unauthenticated and nothing in a brand calls it; its tests are the CLI's over a stub (rows 2–5),
+the in-memory pseudonym registry's (row 6), and one assertion of end-to-end scenario 2 (row 1), which
+would need the original's whole stack started over the kind installation. `audit/README.md` says
+where each row comes from and how `services/audit/.../port/ParitySuite.scala` holds it; `just
+audit-parity` runs them.

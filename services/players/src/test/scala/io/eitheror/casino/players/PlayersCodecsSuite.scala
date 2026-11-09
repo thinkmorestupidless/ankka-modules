@@ -44,7 +44,8 @@ class PlayersCodecsSuite extends munit.FunSuite with LogCapturing:
       ConsentChanged("sms", true, "player", None, at), CookieDecisionRecorded(Personal("d-1"), CookieDecision(true, true, "v", "t", at), at),
       Suspended(Status.Active, "r", Some("op-1"), at), Closed(Status.Active, Actor.Player, None, "x", at),
       VipTierChanged(None, "gold", None, at), DuplicateFlagged("c-1", Set("p-2"), Set("device"), at),
-      ErasureFiled("corr", at, at), Erased(at), StatusImported(Status.Blocked, at), TestAccountSet(true, "op-1", at)
+      ErasureFiled("corr", at, at), ErasureStageReached("corr", "held", at), Erased(at), StatusImported(Status.Blocked, at),
+      TestAccountSet(true, "op-1", at)
     ).foreach(e => roundTrip(e, PlayerEntity.eventSerializer))
     roundTrip(player.copy(testAccount = true), PlayerEntity.stateSerializer)
   }

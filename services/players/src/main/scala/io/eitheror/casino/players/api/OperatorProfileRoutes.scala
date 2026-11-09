@@ -70,7 +70,7 @@ final class OperatorProfileRoutes(ctx: Ctx):
         flag
         ok(Json.obj("updated" -> true))
       else
-        val reply = ProfileRoutes(ctx).edit(playerId, asked, Set.empty)
+        val reply = ProfileRoutes(ctx).edit(playerId, asked, Set.empty, Some(p.subject))
         if reply.status == 200 then flag
         reply
     }

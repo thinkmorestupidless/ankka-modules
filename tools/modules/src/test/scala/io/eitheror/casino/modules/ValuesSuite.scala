@@ -76,5 +76,5 @@ class ValuesSuite extends munit.FunSuite:
   test("every secret key of core and casino is covered by goldvibe's secrets; one not declared is named") {
     val v = goldvibe.toOption.get
     assertEquals(Values.uncovered(v, keys, Set("players-realm-admin", "st8-api-key")), Vector.empty)
-    assertEquals(Values.uncovered(v, keys, Set("push-provider-key")).map(_.message), Vector("secret key 'push-provider-key' has no secret"))
+    assertEquals(Values.uncovered(v, keys, Set("model-provider-key")).map(_.message), Vector("secret key 'model-provider-key' has no secret"))
   }

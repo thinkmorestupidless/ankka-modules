@@ -150,3 +150,21 @@ func TestTheRegistrationRouteMustRefuseAnEmptyRegistration(t *testing.T) {
 		t.Fatalf("a silent casino-service: %q", why)
 	}
 }
+
+func TestCrmStubMustAnswerOnBothHosts(t *testing.T) {
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/healthz" {
+			w.WriteHeader(200)
+			return
+		}
+		w.WriteHeader(404)
+	}))
+	defer up.Close()
+	if why := CrmAnswers(up.URL+","+up.URL+"/", up.Client()); why != "" {
+		t.Fatalf("both hosts answering: %s", why)
+	}
+	why := CrmAnswers(up.URL+",http://127.0.0.1:1", up.Client())
+	if !strings.HasPrefix(why, Crm) || !strings.Contains(why, "127.0.0.1:1") {
+		t.Fatalf("the App host silent: %q", why)
+	}
+}

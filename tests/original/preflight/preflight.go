@@ -4,7 +4,8 @@
 // recording of the gateway (spec 005), the gateway driver's receiver, which stands in for
 // merchant-service and casino-service; and, for a recording of the cashier edge (spec 006), the
 // original's cashier route itself, so a run does not record a merchant-service that is not up; and, for a
-// recording of attribution (spec 012), the original's affiliate service. Exit 0 when all answer, 1 naming each that does not, 2 when
+// recording of attribution (spec 012), the original's affiliate service; and, for a recording of
+// engagement (spec 014), crm-stub on both of Customer.io's hosts. Exit 0 when all answer, 1 naming each that does not, 2 when
 // the original cannot be read.
 //
 //	go run ./original/preflight -original ../../eitheror-platform
@@ -12,6 +13,7 @@
 //	go run ./original/preflight -original ../../eitheror-platform -cashier http://localhost:8085
 //	go run ./original/preflight -original ../../eitheror-platform -affiliate http://localhost:8082
 //	go run ./original/preflight -original ../../eitheror-platform -register http://localhost:8085 -brand spinvibe
+//	go run ./original/preflight -original ../../eitheror-platform -crm http://localhost:18201,http://localhost:18202
 //
 // For a recording of players (spec 008) the original's registration route must answer too.
 package main
@@ -67,6 +69,32 @@ func AffiliateAnswers(base string, client *http.Client) string {
 		return fmt.Sprintf("%s: %s answered %d", Affiliate, base, resp.StatusCode)
 	}
 	return ""
+}
+
+// Crm is the name crm-stub is reported under.
+const Crm = "crm-stub"
+
+// CrmAnswers says why crm-stub does not answer on each of the given bases (Track's and App's), or ""
+// when both do: the original's CRM clients are pointed at it by e2e-crm.patch, and a send that
+// reached Customer.io itself would leave the machine.
+func CrmAnswers(bases string, client *http.Client) string {
+	var why []string
+	for _, base := range strings.Split(bases, ",") {
+		base = strings.TrimSuffix(strings.TrimSpace(base), "/")
+		resp, err := client.Get(base + "/healthz")
+		if err != nil {
+			why = append(why, fmt.Sprintf("nothing answers at %s (%v)", base, err))
+			continue
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			why = append(why, fmt.Sprintf("%s answered %d", base, resp.StatusCode))
+		}
+	}
+	if len(why) == 0 {
+		return ""
+	}
+	return Crm + ": " + strings.Join(why, "; ")
 }
 
 // Cashier is the name the original's cashier route is reported under.
@@ -178,6 +206,7 @@ func main() {
 	register := flag.String("register", "", "the original casino-service, whose registration route is checked when given (a recording of players)")
 	brand := flag.String("brand", "spinvibe", "the brand the registration route is checked for")
 	affiliate := flag.String("affiliate", "", "the original affiliate-service, whose health route is checked when given (a recording of attribution)")
+	crm := flag.String("crm", "", "crm-stub's Track and App bases, comma-separated, checked when given (a recording of engagement)")
 	flag.Parse()
 	providers, err := Providers(*original)
 	if err != nil {
@@ -202,6 +231,12 @@ func main() {
 	if *affiliate != "" {
 		systems = append(systems, Affiliate)
 		if why := AffiliateAnswers(*affiliate, client); why != "" {
+			missing = append(missing, why)
+		}
+	}
+	if *crm != "" {
+		systems = append(systems, Crm)
+		if why := CrmAnswers(*crm, client); why != "" {
 			missing = append(missing, why)
 		}
 	}

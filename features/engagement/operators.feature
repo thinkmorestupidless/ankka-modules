@@ -24,6 +24,14 @@ Feature: An operator sees what was sent, what failed, and who is online
     When an operator discards it with a reason
     Then the record names who discarded it and why
 
+  Scenario: a parked marketing class send retried for a player suppressed since is refused, audited and leaves the parked sends
+    Given a parked send of the marketing class for a player who has since self-excluded or withdrawn consent
+    When an operator retries it
+    Then no send is made
+    And the send record's outcome becomes "marketing_suppressed" with the reason
+    And the refusal is an audit record naming the operator
+    And it is no longer a parked send
+
   Scenario: a new CRM app key is stored in the secret store and read back masked, and a masked value sent back preserves the secret
     Given the brand's CRM configuration page
     When an operator saves a new app key
