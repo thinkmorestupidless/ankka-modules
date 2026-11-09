@@ -61,7 +61,7 @@ The installation's one handling of payment providers, shared by every brand: it 
 Avoid: merchant, psp-gateway
 
 ### shared audit
-The installation's one record of what every brand did, kept outside the brands and naming a player by a pseudonym and never by a real id. Its registry alone maps a real id to its pseudonym, and is read only by a recorded re-identification.
+The installation's one record of the actions taken in every brand, kept outside the brands and naming a player by a pseudonym and never by a real id; a money event no person caused stays in its brand. Its registry alone maps a real id to its pseudonym, and is read only by a recorded re-identification.
 
 Avoid: reasoner
 

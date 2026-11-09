@@ -95,7 +95,9 @@ carried over.
 - Q: Which actions are audited — every bet? → A: Yes. The glossary's `audit record` is "written by
   every part for every money command and refusal", and the brand specs already require it. A bet's
   record is small, and a gambling regulator's window is for the whole transaction log. The cost is
-  stated in Assumptions; the ingest rate is a success criterion. Reads are not audited, with one
+  stated in Assumptions; the ingest rate is a success criterion. (Narrowed 2026-11-09: every bet is
+  still a record on the brand's topic, but the shared audit stores actions, not money events no person
+  caused.) Reads are not audited, with one
   exception: a read that shows a person's documents or payment details (spec 009's view links, spec
   013's payout export) is an action and is recorded as one.
 - Q: Who reads the brand's own records, with real ids? → A: The brand. `platform.audit` is a topic of
@@ -168,6 +170,34 @@ carried over.
   installation's. Pseudonyms are per (brand, kind, real id) as for any record; a record naming no
   brand is scoped to `payments`.
 
+### Session 2026-11-09 (at the plan)
+
+- Q: FR-019 reads each brand's history from ankka's control plane, but in ankka 0.16 a service cannot:
+  the history routes take a person's token, keep the last 100 lines and have no cursor, and no topic
+  of control-plane events exists. Where do installation records come from? → A: From topics now, and
+  from ankka for the rest. Each brand's `platform.modules` (already granted to the audit by `core`)
+  gives the vendor's deployments: a module enabled, upgraded, disabled or failed. Erasure requests'
+  states come from `players`' own records on `platform.audit` (spec 008's erasure workflow writes
+  them). Rollbacks, restores and switches, grants' changes and secret changes wait for an ankka spec
+  that publishes a project's events to a topic the project grants like any other; until it lands the
+  brand's status names those sources "not stated", and their scenarios are bound and ignored with
+  that reason. No undocumented path to the control plane is used.
+- Q: The wallet writes a record for every bet, win, loss, rollback, hold and reservation (about two a
+  spin), each with no amount; they are nearly all the volume and duplicate the brand's own ledger.
+  What does the shared audit store? → A: Actions, not money events. It stores every record of an
+  action a person, an agent or the platform took (operator, player-account, agent, KYC, responsible
+  gambling, send and installation records), every refusal, and the money actions a person took
+  (adjustments, overrides, payout decisions), with their amounts. A record of category `money` whose
+  actor is a service or the system and whose outcome is not a refusal stays in the brand: the
+  wallet's journal and `money.transactions` are its transaction log. This narrows the 2026-10-08
+  answer that every bet is held in the shared audit; every service still writes every record to its
+  brand's topic (FR-004), which `players` and `reporting` read.
+- Q: Roles are granted in Keycloak, where the audit cannot see. How is each grant of an audit role a
+  record (FR-016)? → A: Through the audit. An installation owner grants and revokes the audit's roles
+  through a route of the audit service, which calls Keycloak's admin API as `merchant` and the
+  programme do, so each grant is a record when it is made. A daily read of the realm records every
+  holder whose grant did not come through the route as granted outside the audit.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Every action in a brand leaves one record (Priority: P1)
@@ -198,8 +228,9 @@ record each, in the shape, with the actor, the outcome and the changes.
 
 ### User Story 2 - The shared audit holds every brand's records and no real id (Priority: P1)
 
-The shared `audit` service consumes each brand's `platform.audit` under the brand's grant, replaces
-every subject and actor id with a pseudonym from its registry, and appends the record to its store.
+The shared `audit` service consumes each brand's `platform.audit` under the brand's grant, keeps the
+records of actions (a money event no person caused stays in the brand), replaces every person's id
+with a pseudonym from its registry, and appends the record to its store.
 A query of the store, an export, a log line — nothing the shared audit emits carries a real id.
 
 **Why this priority**: This is the cross-brand record the regulator and the group's compliance need,
@@ -213,6 +244,7 @@ different pseudonym at the other brand.
 
 - added `features/audit/shared.feature`: a record written in a brand that allows the shared audit appears in the shared store with a pseudonym in place of every person's id and every other field unchanged
 - added `features/audit/shared.feature`: a record about what is not a person keeps that id as written, and a person's id in it is a pseudonym
+- added `features/audit/shared.feature`: a money event no person caused stays in the brand, and an operator's adjustment reaches the shared store with its amount
 - added `features/audit/shared.feature`: a player's records at one brand all name the same pseudonym
 - added `features/audit/shared.feature`: the same person at two brands has differing pseudonyms and nothing in the store joins them
 - added `features/audit/shared.feature`: a record already in the store arriving again leaves the store unchanged
@@ -317,6 +349,9 @@ database; verify.
 - **A record is malformed or carries a value where a change to a personal field should carry none.**
   It is refused at the writer: the helper cannot build it. A malformed record on the topic (a foreign
   producer) is stored in a quarantine with its raw bytes and reported; it is never dropped silently.
+- **A source of installation records does not exist yet** (rollbacks, restores, grants, secrets
+  until ankka publishes a project's events). The brand's status names it "not stated"; nothing is
+  guessed from another source.
 - **The registry is unavailable.** Ingest pauses; nothing is written without a pseudonym; the lag is
   reported. Records are not lost: they remain on the topic within its retention.
 - **Two brands' topics carry the same record id.** Impossible by construction: the record id derives
@@ -375,6 +410,11 @@ database; verify.
   registry, MUST keep any other kind's id as written, and MUST store nothing else that identifies a
   person; the stored record MUST otherwise equal the record written, with the source and its derived
   visibility beside it.
+- **FR-008a**: The service MUST store a record unless its category is `money`, its actor is of kind
+  `service` or `system`, and its outcome is not `refused`; such a record (a bet, a win, a loss, a
+  rollback, a hold, a deposit's credit) MUST be read and passed over, and MUST NOT be stored. A money
+  action a person took (an adjustment, an override, a payout decision) MUST carry its amount, in minor
+  units, as the change `amount` with the currency as the change `currency`. (Clarified 2026-11-09.)
 - **FR-009**: The registry MUST issue one random pseudonym per (brand, kind, real id) on first sight
   and keep it for the record's life; the same real id at another brand MUST receive another pseudonym.
   The registry MUST be the only store in the `reasoner` project that holds a real id (spec 001
@@ -390,8 +430,8 @@ database; verify.
 **Queries and exports**
 
 - **FR-013**: A compliance officer MUST be able to query records by brand, subject pseudonym, actor
-  pseudonym, service, action, outcome, reason code, class, amount range (where the action carries an
-  amount), and period, paged by a cursor in order of occurrence; a role for one brand MUST be refused
+  pseudonym, service, action, outcome, reason code, category, visibility, amount range (where the
+  record carries an `amount` change), and period, paged by a cursor in order of occurrence; a role for one brand MUST be refused
   another brand, and the installation's role MUST see every brand, each record naming its brand.
 - **FR-014**: A compliance officer MUST be able to export a brand's records for a period as a file in
   one of the formats the service offers, a flat CSV (the changes flattened) or JSON lines (one record
@@ -402,9 +442,11 @@ database; verify.
   written about reading records of queries (one level, no recursion).
 - **FR-016**: Roles MUST be the realm's (spec 001; decision 0045): a brand compliance role per brand,
   an installation compliance role, and a re-identification role per brand, held only by a holder of
-  that brand's compliance role, each granted by an installation owner and each grant a record. The
-  installation compliance role MUST NOT re-identify, and no account outside the installation's realm
-  (a regulator's) MUST hold any of them.
+  that brand's compliance role, each granted and revoked by an installation owner through the
+  audit's own route, which makes the change in the realm and records it. A holder of one of these
+  roles whose grant did not come through the route MUST be recorded, when the audit next reads the
+  realm (daily), as granted outside the audit. The installation compliance role MUST NOT re-identify,
+  and no account outside the installation's realm (a regulator's) MUST hold any of them.
 
 **Re-identification**
 
@@ -416,11 +458,13 @@ database; verify.
 
 **Platform actions**
 
-- **FR-019**: The service MUST read each brand project's history from ankka's control plane —
-  deploys, rollbacks, restores and switches (041), grants and their acceptance, withdrawal and
-  revocation (040), erasure requests and their states (042), and changes of secrets by name (038) —
-  and MUST write each as an `installation` record of the brand, with the control plane's actor and
-  time, so the brand's record holds what the platform did to it.
+- **FR-019**: The service MUST write as an `installation` record of the brand what the platform did to
+  it, with the actor and time its source gives: each module change on the brand's `platform.modules`
+  (enabled, upgraded, disabled, failed, requested, values changed: the vendor's deployments, spec
+  021), and each state of an erasure request `players` records. Rollbacks, restores and switches
+  (ankka 041), grants and their acceptance, withdrawal and revocation (040), and changes of secrets by
+  name (038) MUST be written the same way from a topic of the project's events once ankka publishes
+  one; until then the brand's status MUST name those sources "not stated". (Clarified 2026-11-09.)
 - **FR-020**: Visibility MUST be derived from a record's source: a record from a brand's or a shared
   project's topic is `brand`, one written from the control plane's history or by the audit itself
   (FR-015) is `installation`. Every record naming a brand, of either visibility and from any source,
@@ -442,7 +486,8 @@ database; verify.
   an id is not personal data (spec 001 FR-024), the records carry no personal value (FR-003), and the
   regulator's window outlives the player's account.
 - **FR-024**: The service's status MUST show, per brand and per shared source: records received, the lag, the quarantine
-  count, the retention in force, the last export, and whether the grant is in effect.
+  count, the retention in force, the last export, whether the grant is in effect, and each source of
+  installation records with its state (read, or not stated).
 
 **The brand's own records**
 
@@ -470,6 +515,8 @@ database; verify.
 - **Registry**: the shared audit's only store of real ids, mapping each (brand, kind, real id) to its
   pseudonym; readable only through re-identification.
 - **Query**: a compliance officer's filtered, paged read of records, itself recorded.
+- **Role grant**: an installation owner's grant or revocation of an audit role to a person, made
+  through the audit and recorded; or a holding found in the realm that did not come through it.
 - **Export**: a job producing a file of a brand's records for a period in the brand's agreed format,
   recorded at request and completion.
 - **Re-identification**: a role-restricted, reasoned lookup from pseudonym to real id or back, recorded.
@@ -485,9 +532,9 @@ database; verify.
   actions without a record, zero duplicate records.
 - **SC-002**: A search of the shared audit's store, logs and every answer it gives for any real id used
   in the test run finds none; the registry is the only hit.
-- **SC-003**: The shared audit ingests a brand's records at 2,000 records per second per brand with
-  a lag under 30 seconds at that rate, and a brand's bet-time traffic of 500 bets per second adds
-  under 30 seconds of lag.
+- **SC-003**: The shared audit stores a brand's action records at 200 records per second per brand
+  with a lag under 30 seconds at that rate, while passing over the money events of 500 bets per
+  second (about 1,000 records per second) without adding more than 30 seconds of lag.
 - **SC-004**: A compliance query over a brand's year of records answers its first page within 2
   seconds; an export of a month completes within 10 minutes.
 - **SC-005**: Every query, export and re-identification in a test run has a record of itself; zero
@@ -544,10 +591,15 @@ database; verify.
 
 ## Assumptions
 
-- Audit volume is the brand's money-command volume: a brand at 500 bets per second writes 500 records
-  per second; at seven years that is a store in the low terabytes per busy brand. The regulator's
-  window requires it; the installation sizes the audit service's database for it (ankka 041 backs it
-  up).
+- A brand's topic carries its money-command volume (about two records a spin), but the shared store
+  keeps only actions (FR-008a): operator, player-account, agent, KYC, responsible gambling, send and
+  installation records and every refusal, a small fraction of it, in the millions of records a year
+  for a busy brand. The brand's transaction log is its wallet's journal and `money.transactions`,
+  kept for everything (spec 001). The installation sizes the audit service's database for seven
+  years of actions (ankka 041 backs it up).
+- Ankka 0.16 lets no service read the control plane's history, publishes no topic of a project's
+  events, and lets a service declare no index on a view; the first is an ankka spec this one depends
+  on for part of FR-019, and the second matters only if the store's scale grows past the actions.
 - Ankka's control plane exposes each project's history (deploys, grants, restores, erasures, secret
   changes by name) in a form the audit service can read continuously; ankka 040 FR-019's listing, 041's
   restore status and 042's request states are that history. If no one feed exists, the plan adds the
@@ -584,7 +636,11 @@ database; verify.
 - Spec 019: the import of the original's account events.
 - Ankka 040 (grants and their history), 041 (backup of the audit database; restore status), 042
   (erasure request states; `Personal` type the helper refuses), 043 (the topic's retention is not the
-  record's), 022 (service identities as actor ids).
+  record's), 022 (service identities as actor ids). A new ankka spec: a project's events (rollbacks,
+  restores and switches, grants' changes, secret changes) on a topic the project grants (FR-019).
+- Spec 021: `platform.modules`, granted to the audit by `core`, as the source of deployments.
+- Specs 002 and 008, amended here: the wallet's records of a person's money actions carry `amount`
+  and `currency` (FR-008a); `players` records each state of an erasure request (FR-019).
 
 ## Out of scope
 

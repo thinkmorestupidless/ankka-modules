@@ -6,7 +6,7 @@ Feature: The shared audit holds every brand's records and no real id
 
   Scenario: a record written in a brand that allows the shared audit appears in the shared store with a pseudonym in place of every person's id and every other field unchanged
     Given a brand that allows the shared audit to read its audit records
-    When a record is written in the brand
+    When an operator's action is recorded in the brand
     Then it appears in the shared audit's store within the ingest bound
     And the id of every person it names is replaced by a pseudonym
     And every other field is unchanged
@@ -16,6 +16,12 @@ Feature: The shared audit holds every brand's records and no real id
     When an operator's action on a market is recorded in the brand
     Then the shared audit's record names the market by its id as written
     And names the operator by a pseudonym
+
+  Scenario: a money event no person caused stays in the brand, and an operator's adjustment reaches the shared store with its amount
+    Given a brand that allows the shared audit to read its audit records
+    When a bet is placed and an operator adjusts the player's real balance with a reason code
+    Then the bet's record is not in the shared audit's store
+    And the adjustment's record is, with its amount
 
   Scenario: a player's records at one brand all name the same pseudonym
     Given a player with records at one brand
