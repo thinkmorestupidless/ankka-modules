@@ -77,7 +77,8 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
 - `DocumentJob` (workflow, `<reference>`): `render` (paged, 1,000 rows a step) → `store` →
   `pause(lifetime)` → `expire`; `RecoverStrategy` retries a step three times then ends `failed`.
 - `ReportingSettings` (key value, `brand`): `reportsTab`, `excludeTestAccounts`, `defaultCurrency`,
-  `syncRows` (1–10,000), `syncDays` (1–365), `lifetimeHours` per kind (1–2,160, default 24).
+  `syncRows` (1–10,000), `syncDays` (1–365), `lifetimeHours` per kind (1–2,160, default 24). `PUT /settings` is
+  its `change` command, a partial change applied over what it holds, so two partial PUTs at once both land.
 - `Coverage` (key value, `<topic>`): the earliest `occurredAt` folded in this generation.
 - `TestHolds` (key value, `<player>`): whether the player's registration has been folded by the day consumers,
   its test flag, and the folds made before it, which a test account's registration folds again into the test

@@ -1,6 +1,7 @@
 package io.eitheror.casino.reporting.it
 
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
+import io.eitheror.casino.reporting.settings.ReportingSettings
 
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
@@ -140,6 +141,26 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
       assertEquals(j.path("lifetimeHours").path("report-export").asInt, 24)
       assert(j.has("defaultCurrency") && j.path("defaultCurrency").isNull, j.toString)
       assertEquals(kit.reporting.syncRows, 250)
+    finally kit.setReporting(_ => before)
+  }
+
+  test("partial PUTs sent at once each keep what the others changed (review: settings read-modify-write)") {
+    val before = kit.reporting
+    val bodies = Vector("""{"syncRows": 250}""", """{"syncDays": 30}""", """{"excludeTestAccounts": true}""",
+      """{"defaultCurrency": "ZAR"}""") ++ ReportingSettings.Kinds.toVector.sorted.zipWithIndex.map((k, i) =>
+      s"""{"lifetimeHours": {"$k": ${100 + i}}}""")
+    try
+      for round <- 1 to 3 do
+        kit.setReporting(_ => before)
+        val start = java.util.concurrent.CountDownLatch(1)
+        val sent  = bodies.map(b => java.util.concurrent.CompletableFuture.supplyAsync(() =>
+          start.await()
+          kit.request("PUT", kit.path("/settings"), Some(b), kit.asFinance).status))
+        start.countDown()
+        assertEquals(sent.map(_.get(60, java.util.concurrent.TimeUnit.SECONDS)), bodies.map(_ => 200), s"round $round")
+        val s = kit.reporting
+        assertEquals((s.syncRows, s.syncDays, s.excludeTestAccounts, s.defaultCurrency), (250, 30, true, Some("ZAR")), s"round $round")
+        assertEquals(ReportingSettings.Kinds.toVector.sorted.map(s.lifetimeOf), Vector(100, 101, 102, 103), s"round $round")
     finally kit.setReporting(_ => before)
   }
 

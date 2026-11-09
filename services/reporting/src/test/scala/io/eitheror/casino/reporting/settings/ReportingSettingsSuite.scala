@@ -38,6 +38,19 @@ class ReportingSettingsSuite extends munit.FunSuite:
     assertEquals(k.currentState, ReportingSettingsState())
   }
 
+  test("a change applies over what the entity holds: two partial changes both land, a refused one changes nothing") {
+    val k = kit
+    k.call(ReportingSettings.change)(SettingsChange(syncRows = Some(250), lifetimeHours = Map("dispute-report" -> 72))): Unit
+    k.call(ReportingSettings.change)(SettingsChange(syncDays = Some(30), defaultCurrency = Some("ZAR"),
+      lifetimeHours = Map("report-export" -> 48))): Unit
+    val both = ReportingSettingsState(syncRows = 250, syncDays = 30, defaultCurrency = Some("ZAR"),
+      lifetimeHours = Map("dispute-report" -> 72, "report-export" -> 48))
+    assertEquals(k.currentState, both)
+    val refused = k.call(ReportingSettings.change)(SettingsChange(reportsTab = Some(false), syncRows = Some(0)))
+    assertEquals((refused.isError, k.currentState), (true, both))
+    assertEquals(k.call(ReportingSettings.change)(SettingsChange(clearCurrency = true)).replyValue, both.copy(defaultCurrency = None))
+  }
+
   test("a lifetime for a kind that is not a document's is refused") {
     assert(ReportingSettings.validate(ReportingSettingsState(lifetimeHours = Map("ledger" -> 24))).exists(_.startsWith("invalid_setting: lifetimeHours.ledger")))
   }

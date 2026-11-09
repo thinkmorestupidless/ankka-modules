@@ -6,7 +6,7 @@ import com.thinkmorestupidless.ankka.core.{CommandError, EntityId, ErrorCode}
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.reporting.{ReportingRuntime, Settings}
 import io.eitheror.casino.reporting.days.Days
-import io.eitheror.casino.reporting.settings.{ReportingSettings, ReportingSettingsState}
+import io.eitheror.casino.reporting.settings.{ReportingSettings, ReportingSettingsState, SettingsChange}
 
 import java.time.{Instant, LocalDate}
 import scala.jdk.CollectionConverters.*
@@ -154,51 +154,54 @@ object SettingsRoute:
       ReportingSettings.Kinds.toVector.sorted.map(k => k -> s.lifetimeOf(k)).toMap)
 
   /**
-   * The body's fields over what is stored: a field left out keeps its value, `defaultCurrency: null` clears it. A field
-   * of the wrong type is refused naming it; a value out of its range is the entity's refusal, naming the field and the
-   * range.
+   * The body's fields as a change (`SettingsChange`), which the entity applies over what it holds: a field left out
+   * keeps its value, `defaultCurrency: null` clears it. A field of the wrong type is refused naming it; a value out of
+   * its range is the entity's refusal, naming the field and the range.
    */
-  def parse(body: JsonNode, current: ReportingSettingsState): Either[(String, String), ReportingSettingsState] =
+  def parse(body: JsonNode): Either[(String, String), SettingsChange] =
     def field(name: String): Option[JsonNode] = Option(body.get(name))
-    def bool(name: String, was: Boolean): Either[(String, String), Boolean] = field(name) match
-      case None                    => Right(was)
-      case Some(v) if v.isBoolean  => Right(v.asBoolean)
+    def bool(name: String): Either[(String, String), Option[Boolean]] = field(name) match
+      case None                    => Right(None)
+      case Some(v) if v.isBoolean  => Right(Some(v.asBoolean))
       case Some(_)                 => Left(name -> s"$name is true or false")
-    def int(name: String, was: Int): Either[(String, String), Int] = field(name) match
-      case None                                     => Right(was)
-      case Some(v) if v.isIntegralNumber && v.canConvertToInt => Right(v.asInt)
+    def int(name: String): Either[(String, String), Option[Int]] = field(name) match
+      case None                                     => Right(None)
+      case Some(v) if v.isIntegralNumber && v.canConvertToInt => Right(Some(v.asInt))
       case Some(_)                                  => Left(name -> s"$name is a whole number")
-    val currency: Either[(String, String), Option[String]] = field("defaultCurrency") match
-      case None                    => Right(current.defaultCurrency)
-      case Some(v) if v.isNull     => Right(None)
-      case Some(v) if v.isTextual  => Right(Some(v.asText.trim.toUpperCase).filter(_.nonEmpty))
+    // The currency given, and whether it is cleared (`null`, or an empty code).
+    val currency: Either[(String, String), (Option[String], Boolean)] = field("defaultCurrency") match
+      case None                    => Right((None, false))
+      case Some(v) if v.isNull     => Right((None, true))
+      case Some(v) if v.isTextual  =>
+        val code = Some(v.asText.trim.toUpperCase).filter(_.nonEmpty)
+        Right((code, code.isEmpty))
       case Some(_)                 => Left("defaultCurrency" -> "defaultCurrency is a three-letter code")
     val lifetimes: Either[(String, String), Map[String, Int]] = field("lifetimeHours") match
-      case None                   => Right(current.lifetimeHours)
+      case None                   => Right(Map.empty)
       case Some(v) if v.isObject  =>
-        v.properties.asScala.toVector.foldLeft[Either[(String, String), Map[String, Int]]](Right(current.lifetimeHours)) {
+        v.properties.asScala.toVector.foldLeft[Either[(String, String), Map[String, Int]]](Right(Map.empty)) {
           case (Left(e), _) => Left(e)
           case (Right(m), e) if e.getValue.isIntegralNumber && e.getValue.canConvertToInt => Right(m.updated(e.getKey, e.getValue.asInt))
           case (Right(_), e) => Left(s"lifetimeHours.${e.getKey}" -> s"lifetimeHours.${e.getKey} is a whole number of hours")
         }
       case Some(_) => Left("lifetimeHours" -> "lifetimeHours is an object of hours by document kind")
     for
-      tab      <- bool("reportsTab", current.reportsTab)
-      exclude  <- bool("excludeTestAccounts", current.excludeTestAccounts)
+      tab      <- bool("reportsTab")
+      exclude  <- bool("excludeTestAccounts")
       c        <- currency
-      rows     <- int("syncRows", current.syncRows)
-      days     <- int("syncDays", current.syncDays)
+      rows     <- int("syncRows")
+      days     <- int("syncDays")
       lives    <- lifetimes
-    yield ReportingSettingsState(tab, exclude, c, rows, days, lives)
+    yield SettingsChange(tab, exclude, c._1, c._2, rows, days, lives)
 
   def put(ctx: Ctx, text: String): Answer =
     Try(mapper.readTree(text)).toOption.filter(n => n != null && n.isObject) match
       case None => invalidBody
       case Some(body) =>
-        parse(body, ctx.reporting) match
+        parse(body) match
           case Left((field, message)) => invalidSetting(field, message)
-          case Right(next) =>
-            try ok(shown(ctx.components.forKeyValueEntity(EntityId(ReportingSettings.Id)).call(ReportingSettings.put).invoke(next)))
+          case Right(change) =>
+            try ok(shown(ctx.components.forKeyValueEntity(EntityId(ReportingSettings.Id)).call(ReportingSettings.change).invoke(change)))
             catch
               case e: CommandError if e.code == ErrorCode.BadRequest && e.message.startsWith(ReportingSettings.Code) =>
                 val message = e.message.stripPrefix(s"${ReportingSettings.Code}:").trim

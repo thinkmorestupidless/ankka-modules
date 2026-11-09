@@ -20,6 +20,29 @@ final case class ReportingSettingsState(
   /** A kind with no setting of its own keeps the default. */
   def lifetimeOf(kind: String): Int = lifetimeHours.getOrElse(kind, ReportingSettings.LifetimeHours.default)
 
+/**
+ * What a `PUT /settings` body changes: each field given, `clearCurrency` for `defaultCurrency: null`, and the lifetimes
+ * of the kinds it names. The entity applies it over what it holds, so two partial changes at once both land.
+ */
+final case class SettingsChange(
+    reportsTab: Option[Boolean] = None,
+    excludeTestAccounts: Option[Boolean] = None,
+    defaultCurrency: Option[String] = None,
+    clearCurrency: Boolean = false,
+    syncRows: Option[Int] = None,
+    syncDays: Option[Int] = None,
+    lifetimeHours: Map[String, Int] = Map.empty
+):
+  def over(s: ReportingSettingsState): ReportingSettingsState =
+    ReportingSettingsState(
+      reportsTab.getOrElse(s.reportsTab),
+      excludeTestAccounts.getOrElse(s.excludeTestAccounts),
+      if clearCurrency then None else defaultCurrency.orElse(s.defaultCurrency),
+      syncRows.getOrElse(s.syncRows),
+      syncDays.getOrElse(s.syncDays),
+      s.lifetimeHours ++ lifetimeHours
+    )
+
 final class ReportingSettings(@scala.annotation.unused context: KeyValueEntityContext) extends KeyValueEntity[ReportingSettingsState]:
   def emptyState: ReportingSettingsState = ReportingSettingsState()
 
@@ -28,6 +51,9 @@ final class ReportingSettings(@scala.annotation.unused context: KeyValueEntityCo
     ReportingSettings.validate(next) match
       case Some(problem) => effects.error(problem, ErrorCode.BadRequest)
       case None          => effects.updateState(next).thenReplyState
+
+  /** A change over the settings held now, read and written in the entity's one command; refused whole as `put`. */
+  def change(c: SettingsChange): Effect[ReportingSettingsState] = put(c.over(currentState))
 
   def get: ReadOnlyEffect[ReportingSettingsState] = effects.reply(currentState)
 
@@ -64,8 +90,10 @@ object ReportingSettings extends KeyValueEntity.Companion[ReportingSettings, Rep
   val Id = "brand"
 
   given Serializer[ReportingSettingsState] = ReportingCodecs.serializer[ReportingSettingsState]("settings-reply")
+  given Serializer[SettingsChange]         = ReportingCodecs.serializer[SettingsChange]("settings-change")
 
   def create(context: KeyValueEntityContext) = new ReportingSettings(context)
 
-  val put = command("put")(_.put)
+  val put    = command("put")(_.put)
+  val change = command("change")(_.change)
   val get = query("get")(_.get)
