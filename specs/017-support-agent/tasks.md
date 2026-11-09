@@ -196,7 +196,7 @@ runs (red).
 - [X] T027 [US1] Personal fields (FR-018) in `S/agent/Context.scala`: `get_player_state` calls
       `agent-profile` only for `personalFields`. `T/it/PersonalSuite.scala` uses a provider that
       records requests and asserts that no other personal value reaches the model (SC-005).
-- [ ] T028 [US1] Stream the chat in `ChatEndpoint`: `delta` per `AgentPart.Text`, then `done`.
+- [X] T028 [US1] Stream the chat in `ChatEndpoint`: `delta` per `AgentPart.Text`, then `done`.
       `T/it/ChatSuite.scala` covers the first `delta` within 5 s at p95 on the scripted provider
       (SC-002), 400 `missing_fields`, and 403 `session_not_yours`.
 - [ ] T029 [US1] Bind `reads.feature`'s eight scenarios in `SupportFeatures`; all green.
