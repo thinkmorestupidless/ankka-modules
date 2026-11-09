@@ -615,3 +615,5 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   so stored days and rows read as before. A prediction report's export is not found while the module is off, and is
   not hidden by the Reports tab (its report is not), which replaces T068's "admits a report export by the Reports
   tab's roles alone" above.
+- **Prediction exports follow the module** (confirmed 2026-11-09): a prediction report's export is admitted as its report
+  is, 404 without the module and not hidden by the Reports tab.
