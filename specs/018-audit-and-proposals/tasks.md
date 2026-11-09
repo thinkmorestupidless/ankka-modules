@@ -125,7 +125,7 @@ every person by a pseudonym, the same person the same at one brand and another a
   and its `SourceState` holds since when (FR-007–FR-012; the status route is T045's)
 - [X] T023 [P] [US2] `a-test/it/LeakSuite.scala`: every real id used in the run is absent from every
   `Records` row, every answer, every export and the captured log; only `Identity` holds them (SC-002)
-- [ ] T024 [P] [US2] `a-test/features/SharedFeatures.scala`: bind `features/audit/shared.feature` (9)
+- [X] T024 [P] [US2] `a-test/features/SharedFeatures.scala`: bind `features/audit/shared.feature` (9)
 
 ### Implementation for User Story 2
 
