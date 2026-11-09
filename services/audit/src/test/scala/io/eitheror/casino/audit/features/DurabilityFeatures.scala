@@ -152,6 +152,7 @@ class DurabilityFeatures extends AuditFeatures("durability.feature"):
     val brands = r.json.get("brands")
     val keeps = (0 until brands.size).flatMap(i => (0 until brands.get(i).get("sources").size).map(j =>
       brands.get(i).get("sources").get(j).get("topicKeeps").asText))
-    // Every brand's audit records reach back: none is named.
-    assert(keeps.nonEmpty && keeps.forall(_ == StatusRoute.Everything), keeps.toString)
+    // Each source says what its topic keeps; until a brand's topic retention reaches the service it is
+    // "not stated", so no brand is claimed to reach back that may not.
+    assert(keeps.nonEmpty && keeps.forall(_ == StatusRoute.NotStated), keeps.toString)
   }

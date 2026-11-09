@@ -25,7 +25,6 @@ final class StatusEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/audit-status"):
 object StatusRoute:
   val Read      = "read"
   val NotStated = "not stated"
-  val Everything = "everything"
 
   /** What the installation's actions on a brand are read from, and what is not yet stated (research R7). */
   val InstallationSources: Vector[(String, String)] = Vector(
@@ -50,7 +49,9 @@ object StatusRoute:
 
   private def source(ctx: Ctx, s: Source): String =
     val c   = ctx.clients.componentClient.forKeyValueEntity(SourceState.entityId(s.name)).call(SourceState.get).invoke()
-    val lag = c.lastReceived.map(l => math.max(0L, Duration.between(l, ctx.now()).getSeconds))
+    // How far behind its occurrence the newest record handled was when it arrived: the consumer's lag,
+    // not the time since the last message (a quiet source is not behind).
+    val lag = c.lastReceived.zip(c.lastOccurred).map((received, occurred) => math.max(0L, Duration.between(occurred, received).getSeconds))
     obj(
       "source"       -> Some(text(s.name)),
       "stored"       -> Some(c.stored.toString),
@@ -59,9 +60,9 @@ object StatusRoute:
       "lagSeconds"   -> Some(lag.fold("null")(_.toString)),
       "quarantined"  -> Some(Quarantine.countBySource(ctx.clients.viewClient.forView(Quarantine), s.name).toString),
       "skewed"       -> Some(c.skewed.toString),
-      // What the source's topic keeps, so a restore knows whether it reaches back (research R14): every
-      // brand's and payments' `platform.audit` keeps everything; a topic that declared less would say since when.
-      "topicKeeps"   -> Some(text(StatusRoute.Everything))
+      // What the source's topic keeps, so a restore knows whether it reaches back (FR-022, research R14):
+      // "not stated" until a brand's topic retention reaches this service, never a claim it cannot make.
+      "topicKeeps"   -> Some(text(StatusRoute.NotStated))
     )
 
   private def brand(ctx: Ctx, b: String): String =

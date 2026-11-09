@@ -78,7 +78,9 @@ re-read from every brand's `platform.audit`, which keeps everything:
 3. Storing is idempotent: a record already restored is the same record again and changes nothing.
    A person first seen after the restore point is issued a new pseudonym, which re-identifies to the
    same id; an export made between the backup and the restore names the old one.
-4. `GET /v1/audit-status` shows each source's counts and lag, and what its topic keeps
-   (`topicKeeps`); a source whose topic no longer reaches the restore point is a gap to report.
+4. `GET /v1/audit-status` shows each source's counts and lag. Its `topicKeeps` answers `not stated`
+   until a brand's topic retention reaches the service, so whether a brand's topic still reaches the
+   restore point is checked on the brand's manifest (every `platform.audit` keeps everything); one
+   that does not is a gap to report.
 
 Leave `AUDIT_READ_FROM` set: the next restore raises the generation again.
