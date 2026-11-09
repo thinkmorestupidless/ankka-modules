@@ -5,14 +5,14 @@ import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.reporting.Settings
 import io.eitheror.casino.reporting.days.Days
 import io.eitheror.casino.reporting.predictions.{TradeFeeState, TradeFees}
-import io.eitheror.casino.reporting.reads.{RoundRow, Rounds, Wallets, WithdrawalRow, WithdrawalsView}
+import io.eitheror.casino.reporting.reads.{RoundRow, Rounds, WithdrawalRow, WithdrawalsView}
 
 import java.time.{Instant, LocalDate, ZoneId}
 
 /**
  * What a day's close reads from views over every round, wallet and withdrawal (research R7; `CloseInputs`), so the
  * day-end holds what no event of the day carries (FR-018): the games and the differences from `Rounds`, the liability
- * from `Wallets`' open records, the pending holds from the `Withdrawal`s requested before the day's end and not ended
+ * at the day's end from the records' balance changes the days fold (`DaysView.liabilityAt`), the pending holds from the `Withdrawal`s requested before the day's end and not ended
  * by it, the corrections to earlier days that arrived during it (FR-019), and with the predictions module the fee
  * account's credits beside the trades' fees (FR-031). The folds are pure; `gather` reads.
  */
@@ -72,8 +72,9 @@ object DayEndInputs:
     (credits, differ)
 
   /**
-   * The inputs of `day`'s close, read now. The liability is the open records' balance as the views hold them at the
-   * close, which a close run late (a service that was down) reads later than the day's end.
+   * The inputs of `day`'s close, read now. The liability and the pending holds are as of the day's end, not the close:
+   * the liability sums the open records' balance changes the movements dated to the end made, as folded into the days,
+   * so a close run late, or a rebuild's close at the end of its replay, answers what the live close did (SC-004).
    */
   def gather(views: ViewClient, settings: Settings, day: String): CloseInputs =
     val g      = settings.generation
@@ -86,7 +87,7 @@ object DayEndInputs:
     CloseInputs(
       games = games(rounds),
       differences = differences(rounds),
-      liability = held.map(c => c -> Wallets.open(views, g, c).flatMap(_.records.values).map(_.balance).sum).toMap,
+      liability = held.map(c => c -> DaysView.liabilityAt(views, g, day, c)).toMap,
       pendingHolds = pendingHolds(WithdrawalsView.pending(views, g, end)),
       openingCorrections = opening(DaysView.corrected(views, g, LocalDate.parse(day)), Days.startOf(day, zone), end),
       feeCredits = credits,

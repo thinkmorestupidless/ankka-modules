@@ -11,7 +11,9 @@ import java.time.Instant
 /**
  * A day's money in one currency (FR-005, FR-007): stakes, wins and rollbacks (GGR is stakes less rollbacks less
  * wins), the deposit pool's GGR on its rounds' days, bonus cost, chargebacks (lost disputes, counted by number too),
- * deposits confirmed and withdrawals completed. NGR is before the programme's fees.
+ * deposits confirmed and withdrawals completed. NGR is before the programme's fees. `recordsBalance` is what the day's
+ * movements changed the open restricted funds records' balance by, so the liability at a day's end is the sum to it
+ * (FR-018, research R7); no report shows it.
  */
 final case class Money(
     stakes: Long = 0,
@@ -24,7 +26,8 @@ final case class Money(
     deposits: Long = 0,
     depositCount: Long = 0,
     withdrawals: Long = 0,
-    withdrawalCount: Long = 0
+    withdrawalCount: Long = 0,
+    recordsBalance: Long = 0
 ):
   def ggr: Long = Figures.ggr(stakes, wins, rollbacks)
   def ngr: Long = Figures.ngr(ggr, bonusCost, chargebacks)
@@ -32,7 +35,8 @@ final case class Money(
   private def zip(o: Money)(op: (Long, Long) => Long): Money =
     Money(op(stakes, o.stakes), op(wins, o.wins), op(rollbacks, o.rollbacks), op(poolGgr, o.poolGgr), op(bonusCost, o.bonusCost),
       op(chargebacks, o.chargebacks), op(chargebackCount, o.chargebackCount), op(deposits, o.deposits),
-      op(depositCount, o.depositCount), op(withdrawals, o.withdrawals), op(withdrawalCount, o.withdrawalCount))
+      op(depositCount, o.depositCount), op(withdrawals, o.withdrawals), op(withdrawalCount, o.withdrawalCount),
+      op(recordsBalance, o.recordsBalance))
 
   def +(o: Money): Money = zip(o)(_ + _)
   def -(o: Money): Money = zip(o)(_ - _)
@@ -114,7 +118,7 @@ final case class FeeDifference(trade: String, market: String, currency: String, 
 /**
  * A day in one currency (data-model.md *The day*): `total` over every player, `test` the same sections over test
  * accounts only, subtracted at read when the brand excludes them (FR-024); the games, the markets, and the liability
- * and pending holds at close, which the close is given.
+ * and pending holds as of the day's end, which the close is given.
  */
 final case class CurrencyDay(
     total: Section = Section(),
@@ -168,8 +172,8 @@ final case class OpeningCorrection(day: String, arrivedAt: Instant, delta: Delta
 
 /**
  * What the close reads from outside the day, from views over every wallet and round (research R7): the games and
- * the differences from `Rounds`, the liability from `Wallets`, the pending holds from `WithdrawalsView`, and the
- * corrections to earlier days that arrived during it; with the predictions module, the fee account's credits per
+ * the differences from `Rounds`, the liability from the days' folds, the pending holds from `WithdrawalsView` (both as
+ * of the day's end), and the corrections to earlier days that arrived during it; with the predictions module, the fee account's credits per
  * currency and market and the trades whose fee and credit differ (`TradeFees`). Each defaults to none, so a day closes
  * without them.
  */

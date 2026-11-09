@@ -77,6 +77,14 @@ object DaysView extends View.Companion[DayRows, DayEvent, DayRow](
   val correctedBefore = query("corrected-before")(
     s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'day' < :day AND jsonb_array_length(COALESCE(payload::jsonb->'corrections', '[]'::jsonb)) > 0 AND row_key > :after ORDER BY row_key")
 
+  /**
+   * The open restricted funds records' balance in `currency` at the end of `day` (research R7): one row whose
+   * `liabilityAtClose` sums the changes the movements dated to the end of the day made, each day's own and the
+   * corrections that arrived for it, test-only ones aside (they move only the figures without test accounts).
+   */
+  val liabilityTo = query("liability-to")(
+    s"""SELECT jsonb_build_object('generation', (:generation)::int, 'day', :day, 'currencies', jsonb_build_object(:currency, jsonb_build_object('liabilityAtClose', COALESCE(sum(v), 0))))::text AS payload FROM (SELECT COALESCE((j->'currencies'->:currency->'total'->'money'->>'recordsBalance')::bigint, 0) + COALESCE((SELECT sum((c->'delta'->'money'->>'recordsBalance')::bigint) FROM jsonb_array_elements(COALESCE(j->'corrections', '[]'::jsonb)) AS c WHERE c->'delta'->>'currency' = :currency AND COALESCE((c->>'testOnly')::boolean, false) = false), 0) AS v FROM (SELECT payload::jsonb AS j FROM $table OFFSET 0) AS parsed WHERE j->>'generation' = :generation AND j->>'day' <= :day) AS days""")
+
   def create(ctx: ViewComponentContext) = new DayRows
 
   /** One day's row, if a fact has reached it. */
@@ -93,6 +101,11 @@ object DaysView extends View.Companion[DayRows, DayEvent, DayRow](
     val days = (java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1).max(1L).min(Paging.Bound.toLong).toInt
     Paging.boundedTo(days)(views.forView(DaysView), between, "generation" -> generation.toString, "from" -> from.toString,
       "to" -> to.toString)
+
+  /** The liability in `currency` at the end of `day`: `liabilityTo`. */
+  def liabilityAt(views: ViewClient, generation: Int, day: String, currency: String): Long =
+    views.forView(DaysView).ask(liabilityTo, 1, "generation" -> generation.toString, "day" -> day, "currency" -> currency)
+      .headOption.flatMap(_.currencies.get(currency)).fold(0L)(_.liabilityAtClose)
 
   /** Every currency the generation holds figures in, in order. */
   def currencies(views: ViewClient, generation: Int): Vector[String] =

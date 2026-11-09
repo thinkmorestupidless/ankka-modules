@@ -13,7 +13,7 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
 
 | Entity | Id | Fed by | State | Events |
 |---|---|---|---|---|
-| `WalletBook` | `<player>/<currency>` | `money.transactions` (player families) | lifetime deposits, wagered, won; real and restricted balance; pools; open restricted funds records `{awardId, status, balance, progress, requirement}`; open rounds' days (attribution's `RoundIndex`, the last 500 open rounds); pending holds by request; `seen` | `Moved {factId, family, kind, amount, depositPart, roundId?, reference, day, roundDay?, at, casino: Boolean, accountKind?}`; `RecordsChanged {records}` |
+| `WalletBook` | `<player>/<currency>` | `money.transactions` (player families) | lifetime deposits, wagered, won; real and restricted balance; pools; open restricted funds records `{awardId, status, balance, progress, requirement}`; open rounds' days (attribution's `RoundIndex`, the last 500 open rounds); pending holds by request; `seen` | `Moved {factId, family, kind, amount, depositPart, roundId?, reference, day, roundDay?, at, casino: Boolean, accountKind?, recordsChange}` (`recordsChange` what it changed the open records' balance by); `RecordsChanged {records}` |
 | `Payment` | `<payment id>` | `payments.payments` | player, provider, currency, amount, initiated at, outcome (`captured`, `failed`, `expired`, `abandoned`), refund, dispute `{amount, outcome}` | `Initiated`, `Captured`, `Ended {outcome}`, `Refunded`, `DisputeOpened`, `DisputeClosed {outcome, amount}` |
 | `Withdrawal` | `<payout id>` | `casino.withdrawals` | player, gateway, terminal, amount, currency, requested at, approved at, ended at, outcome | `Requested`, `Approved`, `Completed`, `Cancelled`, `Failed`, `Reversed` |
 | `Grant` | `<bonus id>` | `casino.rewards` | player, offer id, name, type, currency, amount, granted at, status (`active`, `converted`, `forfeited`, `cancelled`, `expired`), free-rounds win | `Granted`, `Converted`, `Forfeited`, `Cancelled`, `Expired`, `FreeSpinsSettled {win}` |
@@ -31,14 +31,19 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
 
 - State: `open | closed`, the zone; per currency:
   - `money`: stakes, wins, GGR, deposit pool GGR, bonus cost, chargebacks, NGR, deposits (count, amount),
-    withdrawals (count, amount), registrations;
+    withdrawals (count, amount), registrations; `recordsBalance`, what the day's movements changed the open
+    restricted funds records' balance by (`Moved.recordsChange`), which no report shows;
   - `hours[24]`: GGR and NGR per hour;
   - `providers`: per payment provider, deposit attempts, completed, value; per gateway, withdrawal
     requests, completed, hours-to-completion sum;
   - `games`: per `(game provider, game)`, the provider's stake and win and the wallet's;
   - `predictions`: per market, contracts, notional, trades, fees, resolution payments, remainder, fee
     account credits;
-  - liability at close, pending holds at close;
+  - the liability and the pending holds as of the day's end, which the close is given: the liability the sum of
+    `recordsBalance` over every day to this one, each with its corrections that arrived by the close (test-only
+    ones aside), as `Days.liabilityTo` reads it; the pending holds the withdrawals requested before the end and not
+    ended by it. Both are the day's end's, never the present's, so a close run late or a rebuild's close at the end
+    of its replay answers the live day-end's figures (SC-004, research R7);
   - `testShare`: the same money sections over test accounts only, subtracted at read when the brand
     excludes test accounts (FR-024);
   - `lastSeq` per source entity (dedup).
@@ -51,7 +56,7 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
 
 | View | Kind, source | Row | Queries (declared) |
 |---|---|---|---|
-| `Days` | over `BrandDay` state | the day's state but `lastSeq` | `between(:from, :to)` |
+| `Days` | over `BrandDay` state | the day's state but `lastSeq` | `between(:from, :to)`, `liabilityTo(:day, :currency)` |
 | `Wallets` | over `WalletBook` state | player, currency, lifetimes, restricted balance, open records | `byPlayers(:ids)`, `withOpenRecords` |
 | `Players` | over `PlayerLog` state | player, registered at, country, currency, email **P**, status, KYC status, last login, test account | `registeredBetween(:from, :to)`, `all` (paged) |
 | `PaymentsView` | over `Payment` state | the payment | `initiatedBetween(:from, :to)`, `disputesClosedBetween` |

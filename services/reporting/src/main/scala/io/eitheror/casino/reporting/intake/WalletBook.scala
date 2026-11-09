@@ -53,12 +53,14 @@ sealed trait BookEvent:
  * One movement (data-model.md): `kind` the ledger's type (`Types`), empty for none; `amount` the movement's, signed
  * for an adjustment; `depositPart` its deposit-origin part; `day` its own day in the zone and `roundDay` its round's;
  * `casino` false for spec 022's families, which no casino figure reads (research R4). Beside data-model's fields it
- * carries the player, the currency, the transaction id the ledger shows and the balances after, which the state keeps.
+ * carries the player, the currency, the transaction id the ledger shows and the balances after, which the state keeps;
+ * and `recordsChange`, what the movement changed the wallet's open restricted funds records' balance by, which the day
+ * folds so a day-end's liability is as of the day's end (research R7).
  */
 final case class Moved(factId: String, family: String, kind: String, amount: Long, depositPart: Long, roundId: Option[String],
     reference: String, day: String, roundDay: Option[String], at: Instant, casino: Boolean, accountKind: Option[String],
     player: String, currency: String, transactionId: String, realAfter: Long, restrictedAfter: Long,
-    depositPoolAfter: Option[Long] = None, convertedPoolAfter: Option[Long] = None) extends BookEvent
+    depositPoolAfter: Option[Long] = None, convertedPoolAfter: Option[Long] = None, recordsChange: Long = 0) extends BookEvent
 
 /** The restricted funds records a movement changed, as they stand after it. */
 final case class RecordsChanged(factId: String, records: Vector[OpenRecord]) extends BookEvent
@@ -134,12 +136,12 @@ object Book:
       val (amount, depositPart, roundId, reference) = parts(fact)
       val day      = Days.dayOf(fact.occurredAt, zone)
       val roundDay = roundId.map(r => s.roundDay(r).getOrElse(day))
+      val changed = records(fact).map(r =>
+        OpenRecord(r.awardId, r.status, r.balanceCents.value, r.progressCents.value, r.requirementCents.value))
       val moved = Moved(factId, family(fact), Types.of(fact).getOrElse(""), amount, depositPart, roundId, reference, day,
         roundDay, fact.occurredAt, casino(fact), accountKind(fact), fact.playerId, fact.currency.code, fact.transactionId,
         fact.realBalanceAfter.value, fact.restrictedBalanceAfter.value, fact.depositPoolAfter.map(_.value),
-        fact.convertedPoolAfter.map(_.value))
-      val changed = records(fact).map(r =>
-        OpenRecord(r.awardId, r.status, r.balanceCents.value, r.progressCents.value, r.requirementCents.value))
+        fact.convertedPoolAfter.map(_.value), recordsChange(s.records, changed))
       if changed.isEmpty then Vector(moved) else Vector(moved, RecordsChanged(factId, changed))
 
   /** What a movement adds to the lifetimes (deposits, wagered, won); spec 022's families add nothing. */
@@ -149,6 +151,13 @@ object Book:
     case "bet_rolled_back"                    => (0L, -m.amount, 0L)
     case "win_credited" | "provider_credited" => (0L, 0L, m.amount)
     case _                                    => (0L, 0L, 0L)
+
+  /** The open records' balance. */
+  def liability(open: Map[String, OpenRecord]): Long = open.values.map(_.balance).sum
+
+  /** What a change does to the open records' balance: none for a list already applied, as several facts carry. */
+  def recordsChange(open: Map[String, OpenRecord], changed: Vector[OpenRecord]): Long =
+    if changed.isEmpty then 0L else liability(records(open, changed)) - liability(open)
 
   /** The open records after a change: an upsert by award, a record no longer open removed. */
   def records(open: Map[String, OpenRecord], changed: Vector[OpenRecord]): Map[String, OpenRecord] =

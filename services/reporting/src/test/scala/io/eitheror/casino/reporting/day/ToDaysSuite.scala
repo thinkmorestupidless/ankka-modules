@@ -40,6 +40,14 @@ class ToDaysSuite extends munit.FunSuite:
     assertEquals(ToDays.wallet(RecordsChanged("f", Vector.empty), jhb), Map.empty)
   }
 
+  test("a movement's change to the open records' balance on its own day, beside its money, never its round's (R7)") {
+    assertEquals(ToDays.wallet(moved("restricted_funds_awarded", 500).copy(recordsChange = 500), jhb),
+      Map("2026-11-08" -> Delta("EUR", 12, Money(recordsBalance = 500))))
+    val stake = moved("bet_placed", 200, 150, day = "2026-11-09", roundDay = Some("2026-11-08")).copy(recordsChange = -50)
+    assertEquals(ToDays.wallet(stake, jhb)("2026-11-09").money, Money(stakes = 200, recordsBalance = -50))
+    assertEquals(ToDays.wallet(stake, jhb)("2026-11-08").money.recordsBalance, 0L)
+  }
+
   test("payments: an attempt, a capture, a lost dispute's chargeback; a won dispute nothing") {
     assertEquals(ToDays.payment(Initiated("f", "pay-1", "p-1", "psp-a", "t", 1000, "EUR", at), jhb),
       Map("2026-11-08" -> Delta("EUR", 12, payments = Map("psp-a" -> PaymentFigures(attempts = 1)))))

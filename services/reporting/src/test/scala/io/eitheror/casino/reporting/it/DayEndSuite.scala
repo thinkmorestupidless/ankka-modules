@@ -7,6 +7,7 @@ import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.reporting.ReportingRuntime
 import io.eitheror.casino.reporting.day.{CloseDays, DayClosing, FoldProgress, OpenDays, ToDaysConsumers}
 import io.eitheror.casino.reporting.documents.Document
+import io.eitheror.casino.reporting.reads.Wallets
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -141,6 +142,18 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     val today = kit.freshToday()
     val r     = DayEnded(kit, today.minusDays(1)).usual().publish().settle()
     val before = r.close()
+    // A restricted stake today moves the day's open record after its end, so the records' balance now is not the one at
+    // the day's end, which the day-end holds and the rebuilt day-end must hold too (R7).
+    val award = s"award-${r.tag}"
+    val later = FactSet(kit.zone)
+    later.wager(r.player, r.currency, award, s"de-${r.tag}-after", 1_00, later.at(today, "09:00"), balance = 19_00, progress = 1_00,
+      requirement = 200_00)
+    later.publish(kit)
+    kit.eventually("the record's balance after the day", 60.seconds)(Option.when(Wallets.open(kit.views, kit.settings.generation, r.currency)
+      .exists(_.records.get(award).exists(_.balance == 19_00)))(()))
+    val now = Wallets.open(kit.views, kit.settings.generation, r.currency).flatMap(_.records.values).map(_.balance).sum
+    assertNotEquals(io.eitheror.casino.reporting.render.Money(now, r.currency), before.path("currencies").path(r.currency).path("liability").asText,
+      "the records' balance now is not the day's end's")
     val from   = kit.settings.generation
     assertEquals(kit.rebuild(), from + 1)
     // The day is open in the new generation, and due, once a fact of it is folded: from then, a close without the wait
@@ -156,9 +169,9 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     val status = kit.get("/status", kit.asOperator).json
     assertEquals(status.path("views").elements.asScala.map(_.path("rebuilding").asBoolean).toSet, Set(true), status.toString)
     r.settle()
-    // The close reads the views as they stand (the liability is the open records' balance at the close), so it is made
-    // once the replay has reached what the old generation's close read: every currency, each one's liability and pending
-    // holds, and the rounds' differences. (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers
+    // The close reads the rounds from the views as they stand, and the liability and the pending holds as of the day's
+    // end, so it is made once the replay has reached what the old generation's close read: every currency, each one's
+    // liability and pending holds, and the rounds' differences. (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers
     // would be idle only once they are. The replay is every suite's facts in a full run: minutes, at its rate.)
     val currencies = before.path("currencies").fieldNames.asScala.toVector.sorted
     def held(c: String, field: String) = before.path("currencies").path(c).path(field).asText

@@ -591,10 +591,13 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
 - **T055, the documents routes** (asked 2026-11-08, answer "as built"): `500 document_failed` for a failed job,
   `progress` a whole percent, and `GET /documents`' shape and default period; routes.md carries them.
 - **T060, the close's inputs**: `close-days` hands `BrandDay.Close` what the views hold when it runs: the day's rounds
-  (`Rounds` by day) for the games and the differences, the open restricted funds records' balances (`Wallets`) per
-  currency for the liability, and the withdrawals requested before the day's end in its zone and not ended by it for
-  the pending holds. A close that runs late reads the liability later than the day's end; the views keep no balance
-  at an instant to read it then.
+  (`Rounds` by day) for the games and the differences, the liability, and the withdrawals requested before the
+  day's end in its zone and not ended by it for the pending holds. The liability is as of the day's end (second-round
+  review): each movement's `WalletBook` event carries what it changed the open records' balance by
+  (`Moved.recordsChange`), `to-days` folds it into the movement's own day (`Money.recordsBalance`), and the close
+  sums it over every day to its own (`Days.liabilityTo`, with the corrections that arrived by the close). It was
+  the open records' balance in `Wallets` when the close ran, so a close run late, or a rebuild's close at the end of
+  its replay, read the present's.
 - **T060, a round only the wallet holds** is counted under the game `unknown/unknown` (the provider and the game
   `unknown`), its provider GGR 0; a cancelled round's provider figures count nothing; the wallet's stake is net of
   rollbacks. A difference names the provider, `""` for a round only the wallet holds.

@@ -117,6 +117,19 @@ class WalletBookSuite extends munit.FunSuite:
     assert(!move(k, deposit("t6", 10)).events.exists(_.isInstanceOf[RecordsChanged]))
   }
 
+  test("recordsChange: what each movement changed the open records' balance by, summing to the balance at every step (R7)") {
+    val k    = kit
+    val list = Some(Vector(record("aw-1", balance = 300, progress = 1200), record("aw-2", balance = 100)))
+    val changes = Vector(awarded("t1", "aw-1", 500), bet("t2", "r-1", 200, 0, records = list), bet("t3", "r-1", 0, 0, records = list),
+      converted("t4", "aw-1", 300), closed("t5", "aw-1"), deposit("t6", 10)).map { fact =>
+      val change = moved(move(k, fact)).recordsChange
+      (change, Book.liability(k.currentState.records))
+    }
+    assertEquals(changes.take(3).map(_._1), Vector(500L, -100L, 0L), "awarded, two records after, the same list again")
+    assertEquals(changes.last._1, 0L, "a movement with no records")
+    assertEquals(changes.map(_._1).scanLeft(0L)(_ + _).tail, changes.map(_._2))
+  }
+
   test("holds: placed, then released or reversed") {
     val k = kit
     move(k, held("t1", "w-1", 250)): Unit

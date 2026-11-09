@@ -39,7 +39,9 @@ object ToDays:
         case "bet_rolled_back"                    => Some(Money(rollbacks = m.amount))
         case _                                    => None
       val pool = poolKind.get(m.family).map(k => Money(poolGgr = Figures.poolGgr(k, m.depositPart)))
-      val withOwn = own.fold(Map.empty[String, Delta])(money => at(m.day, Delta(m.currency, h, money)))
+      // The change to the open records' balance on the movement's own day, from which the day-end's liability is summed.
+      val records = Option.when(m.recordsChange != 0)(Money(recordsBalance = m.recordsChange))
+      val withOwn = (own ++ records).reduceOption(_ + _).fold(Map.empty[String, Delta])(money => at(m.day, Delta(m.currency, h, money)))
       pool.fold(withOwn)(money => put(withOwn, m.roundDay.getOrElse(m.day), Delta(m.currency, h, money)))
     case _ => Map.empty
 
