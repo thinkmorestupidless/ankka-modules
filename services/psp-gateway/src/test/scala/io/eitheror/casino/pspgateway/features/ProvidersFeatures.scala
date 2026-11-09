@@ -33,8 +33,11 @@ class ProvidersFeatures extends GatewayFeatures("providers.feature"):
 
   private def nothingMoves(): Unit =
     Thread.sleep(500)
-    if paymentId.nonEmpty then assertEquals(kit.deposit(paymentId).stage, Stage.Initiated)
-    assert(kit.merchant.delivered.isEmpty, kit.merchant.delivered)
+    // The merchant stub is the suite's: an earlier scenario's capture can still reach it, so only this deposit's count.
+    if paymentId.nonEmpty then
+      assertEquals(kit.deposit(paymentId).stage, Stage.Initiated)
+      assert(kit.merchant.deliveredTo(paymentId).isEmpty, kit.merchant.deliveredTo(paymentId))
+    else assert(kit.merchant.delivered.isEmpty, kit.merchant.delivered)
 
   // ── initiate ───────────────────────────────────────────────────────────────────────────────────
 
