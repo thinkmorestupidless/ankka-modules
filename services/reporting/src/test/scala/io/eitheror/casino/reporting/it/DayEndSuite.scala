@@ -151,11 +151,20 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     Thread.sleep(500)
     DayEnded.assertOpen(kit, r.day)
     r.settle()
-    // The close lists every currency the generation holds figures in, from the days view: the replay has reached each.
-    // (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers would be idle only once they are.)
+    // The close reads the views as they stand (the liability is the open records' balance at the close), so it is made
+    // once the replay has reached what the old generation's close read: every currency, each one's liability and pending
+    // holds, and the rounds' differences. (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers
+    // would be idle only once they are.)
     val currencies = before.path("currencies").fieldNames.asScala.toVector.sorted
-    kit.eventually("every currency in the new generation", 120.seconds)(Option.when(
-      io.eitheror.casino.reporting.day.DaysView.currencies(kit.views, kit.settings.generation) == currencies)(()))
+    def held(c: String, field: String) = before.path("currencies").path(c).path(field).asText
+    kit.eventually("the new generation's close inputs as the old one's", 120.seconds) {
+      val in = io.eitheror.casino.reporting.day.DayEndInputs.gather(kit.views, kit.settings, r.day.toString)
+      def shown(m: Map[String, Long], c: String) = io.eitheror.casino.reporting.render.Money(m.getOrElse(c, 0L), c)
+      Option.when(
+        io.eitheror.casino.reporting.day.DaysView.currencies(kit.views, kit.settings.generation) == currencies &&
+          currencies.forall(c => shown(in.liability, c) == held(c, "liability") && shown(in.pendingHolds, c) == held(c, "pendingHolds")) &&
+          in.differences.size == before.path("differences").size)(())
+    }
     val after = DayEnded.closeDue(kit, r.day)
     def fixedPart(j: JsonNode) = DayEnded.fixed(j).deepCopy[com.fasterxml.jackson.databind.node.ObjectNode]()
       .without[JsonNode](java.util.List.of("closedAt", "reference"))
