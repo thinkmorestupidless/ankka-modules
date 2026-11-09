@@ -326,6 +326,10 @@ of a blip.
   original did).
 - **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
   holding the session it ended (amendment P1); `approvalId` is now required on that route.
+- **2026-11-09, a fake cannot see the caller.** ankka 0.16's service client sends no identity on a
+  call to a local service address (deployed, the identity is the workload's certificate), so the kit's
+  fakes cannot record `support-agent` as the caller. They assert that no player token is forwarded,
+  and the neighbours' own suites hold their `serviceOf("support-agent")` ACLs (T013).
 
 ## For ankka
 

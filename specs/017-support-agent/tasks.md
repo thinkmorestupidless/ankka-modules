@@ -149,7 +149,7 @@ criteria name suites, and the plan names them.
   - `put` writes `ConfigVersion` first, then moves the version.
   - A put with nothing changed only replies, and the last 16 notes are kept.
   - `T/config/ConfigurationSuite.scala`.
-- [ ] T021 `T/it/Kit.scala` and `T/it/FakeNeighbours.scala`.
+- [X] T021 `T/it/Kit.scala` and `T/it/FakeNeighbours.scala`.
   - `AnkkaTestKit` over Postgres with `AgentRuntime` descriptors, `ProjectionRuntime()`,
     `TimerRuntime` on a `MovableClock`, and the in-memory broker.
   - `TestModelProvider` and `TestJudgmentProvider` per test, and the five fakes under

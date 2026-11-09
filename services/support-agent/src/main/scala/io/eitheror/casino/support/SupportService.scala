@@ -1,7 +1,7 @@
 package io.eitheror.casino.support
 
-import com.thinkmorestupidless.ankka.agent.{AgentRuntime, CompactionSettings, ModelSummariser}
-import com.thinkmorestupidless.ankka.agent.judgment.JevProvider
+import com.thinkmorestupidless.ankka.agent.{AgentRuntime, CompactionSettings, ModelProvider, ModelSummariser}
+import com.thinkmorestupidless.ankka.agent.judgment.{JevProvider, JudgmentProvider}
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
@@ -9,12 +9,15 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionR
 
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
 object SupportService:
-  /** The agent runtime as the settings make it (R2, R8): compaction on the settings' two numbers, and the judge. */
-  def agents(s: Settings): AgentRuntime =
+  /**
+   * The agent runtime (R2, R8): compaction on the settings' two numbers, summarised by `summariser`, and the judge.
+   * Each turn names its own model (FR-008); the default is the summariser's, which no turn uses.
+   */
+  def agents(s: Settings, summariser: ModelProvider, judge: Option[JudgmentProvider]): AgentRuntime =
     val base = AgentRuntime
-      .withDefaultModel(SupportRuntime.summariser)
-      .withCompaction(CompactionSettings(s.compactionBytes, s.compactionRecent), Some(ModelSummariser(SupportRuntime.summariser)))
-    SupportRuntime.judge.fold(base)(base.withJudgments(_))
+      .withDefaultModel(summariser)
+      .withCompaction(CompactionSettings(s.compactionBytes, s.compactionRecent), Some(ModelSummariser(summariser)))
+    judge.fold(base)(base.withJudgments(_))
 
   def descriptors(agents: AgentRuntime): Seq[ComponentDescriptor] = Seq(
     conversation.Conversation.descriptor,
@@ -34,7 +37,7 @@ object SupportService:
   SupportRuntime.wire(settings)
   SupportRuntime.judge = settings.judge.map(_ => JevProvider.fromEnv())
   val log    = org.slf4j.LoggerFactory.getLogger("support-agent")
-  val agents = SupportService.agents(settings)
+  val agents = SupportService.agents(settings, SupportRuntime.summariser, SupportRuntime.judge)
   // A local run with no broker publishes in memory, so the service starts without Kafka; an installation sets one.
   val broker =
     if sys.env.get("ANKKA_KAFKA_BOOTSTRAP_SERVERS").exists(_.nonEmpty) then ProjectionRuntime.fromEnv()
