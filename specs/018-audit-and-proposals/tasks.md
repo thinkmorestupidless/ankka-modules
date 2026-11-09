@@ -120,7 +120,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Tests for User Story 2
 
-- [ ] T022 [P] [US2] `a-test/it/IngestSuite.scala`: two brands and payments read; kept and passed
+- [X] T022 [P] [US2] `a-test/it/IngestSuite.scala`: two brands and payments read; kept and passed
   over; each quarantine reason; a redelivery changes nothing; a revoked source stops at its last record
   and its `SourceState` holds since when (FR-007–FR-012; the status route is T045's)
 - [ ] T023 [P] [US2] `a-test/it/LeakSuite.scala`: every real id used in the run is absent from every

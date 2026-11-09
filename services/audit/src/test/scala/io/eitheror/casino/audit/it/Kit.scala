@@ -1,5 +1,8 @@
 package io.eitheror.casino.audit.it
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.thinkmorestupidless.ankka.core.Metadata
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
@@ -12,6 +15,10 @@ import io.eitheror.casino.audit.stored.Stored
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.contract.facts.{AuditRecord, ModuleChange, PlatformAudit, PlatformAuditFact, PlatformModules}
 
+import org.slf4j.LoggerFactory
+
+import java.nio.charset.StandardCharsets.UTF_8
+import java.sql.{DriverManager, Types}
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.Await
@@ -31,6 +38,14 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   val settings = configure(Settings(brands = brands))
 
   val timers = TimerRuntime(200.millis, probe, clock)
+
+  /** Every log line of the service, from the start, for the leak suite. */
+  val log: ListAppender[ILoggingEvent] = ListAppender[ILoggingEvent]()
+  log.start()
+  LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].addAppender(log)
+
+  /** Projects whose grant is revoked: what they write no longer reaches the audit (research R2). */
+  @volatile var revoked: Set[String] = Set.empty
 
   RegistryKey.forget()
   QuarantineKey.forget()
@@ -55,7 +70,37 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
     AuditService.wire(settings, clock)
     Seed.run(secrets)
 
-  def stop(): Unit = testKit.stop()
+  def stop(): Unit =
+    LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger].detachAppender(log): Unit
+    testKit.stop()
+
+  /** Every log line so far, formatted, with its exception's message. */
+  def logLines: Vector[String] =
+    import scala.jdk.CollectionConverters.*
+    log.list.asScala.toVector.map(e => s"${e.getFormattedMessage} ${Option(e.getThrowableProxy).map(_.getMessage).getOrElse("")}")
+
+  /** Every row of every table in the service's database, as the table and the row's values joined; `bytea` read as UTF-8. */
+  def database(): Vector[(String, String)] =
+    val c = DriverManager.getConnection(testKit.jdbcUrl, "ankka", "ankka")
+    try
+      val tables = Iterator.unfold(c.getMetaData.getTables(null, null, "%", Array("TABLE"))) { rs =>
+        Option.when(rs.next())((rs.getString("TABLE_SCHEM") + "." + rs.getString("TABLE_NAME"), rs))
+      }.toVector.filterNot(t => t.startsWith("pg_catalog.") || t.startsWith("information_schema."))
+      tables.flatMap { table =>
+        val quoted = table.split('.').map(p => "\"" + p + "\"").mkString(".")
+        val rs     = c.createStatement().executeQuery(s"SELECT * FROM $quoted")
+        val meta   = rs.getMetaData
+        val out    = Vector.newBuilder[(String, String)]
+        while rs.next() do
+          val values = (1 to meta.getColumnCount).flatMap { i =>
+            meta.getColumnType(i) match
+              case Types.BINARY | Types.VARBINARY | Types.LONGVARBINARY => Option(rs.getBytes(i)).map(String(_, UTF_8))
+              case _                                                     => Option(rs.getString(i))
+          }
+          out += table -> values.mkString(" | ")
+        out.result()
+      }
+    finally c.close()
 
   def fresh(prefix: String): String = s"$prefix-${UUID.randomUUID().toString.take(8)}"
 
@@ -66,8 +111,9 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   // ── the broker ──────────────────────────────────────────────────────────────────────────────────
 
   private def send(topic: String, key: String, bytes: Array[Byte], contract: String, id: Option[String]): Unit =
-    val meta = Metadata.empty.set(Metadata.CeSubject, key).set(Metadata.CeType, contract)
-    Await.result(broker.publish(topic, Some(key), bytes, id.fold(meta)(i => meta.set("ce-id", i))), 10.seconds): Unit
+    if !revoked(topic.takeWhile(_ != '/')) then
+      val meta = Metadata.empty.set(Metadata.CeSubject, key).set(Metadata.CeType, contract)
+      Await.result(broker.publish(topic, Some(key), bytes, id.fold(meta)(i => meta.set("ce-id", i))), 10.seconds): Unit
 
   /** A record on `project`'s `platform.audit`, as its services' audit consumers publish it. */
   def publish(project: String, record: AuditRecord): Unit =
@@ -95,6 +141,13 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
       Thread.sleep(100)
       result = check
     result.getOrElse(throw AssertionError(s"not within $within"))
+
+/** One kit for the feature suites of a run: its database outlives scenarios, so every id a scenario names is its own. */
+object SharedKit:
+  lazy val kit: Kit =
+    val k = Kit()
+    sys.addShutdownHook(k.stop())
+    k
 
 object Kit:
   private val Issuer = "https://auth.example/realms/eitheror"
