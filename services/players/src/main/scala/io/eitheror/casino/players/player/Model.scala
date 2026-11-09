@@ -168,7 +168,8 @@ object PlayerEvent:
   final case class GameSessionOpened(sessionId: String, at: Instant)                               extends PlayerEvent
   final case class GameSessionEnded(sessionId: String, at: Instant)                                extends PlayerEvent
   final case class SessionLimitSet(minutes: Option[Int], at: Instant)                              extends PlayerEvent
-  final case class ProfileEdited(profile: Profile, changed: Set[String], at: Instant)               extends PlayerEvent
+  /** `operatorId` names the operator who edited on the player's behalf (spec 018 FR-004); none is the player's own edit. */
+  final case class ProfileEdited(profile: Profile, changed: Set[String], at: Instant, operatorId: Option[String] = None) extends PlayerEvent
   final case class DateOfBirthCorrected(value: Personal[String], operatorId: String, reason: String, at: Instant) extends PlayerEvent
   final case class EmailAdded(address: Personal[String], at: Instant)                             extends PlayerEvent
   final case class EmailAddressVerified(address: Personal[String], at: Instant)                   extends PlayerEvent
@@ -244,7 +245,7 @@ final case class SetSessionLimit(minutes: Option[Int], at: Instant)
 /** Each open game session and the minutes the new limit leaves it (none when there is no limit). */
 final case class Remainders(open: Map[String, Int] = Map.empty, limited: Boolean = false)
 
-final case class EditProfile(edit: Map[String, Option[String]], allowList: Set[String], at: Instant)
+final case class EditProfile(edit: Map[String, Option[String]], allowList: Set[String], at: Instant, operatorId: Option[String] = None)
 final case class Edited(refusal: Option[Refusal] = None, changed: Set[String] = Set.empty)
 final case class CorrectDateOfBirth(value: String, reason: String, operatorId: String, at: Instant)
 final case class Address(address: String, at: Instant)

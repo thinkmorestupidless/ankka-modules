@@ -86,7 +86,7 @@ final class OperatorEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/backoff
     status.players(query.raw("search"), query.raw("status"), query.raw("vipOnly"), query.raw("page"), query.raw("pageSize"))
   }
   get(s"$P/profile") { (id: String) => account.profile(id) }
-  patchBody(s"$P/profile") { (id: String, text: String) => account.editProfile(id, text) }
+  patchBody(s"$P/profile") { (id: String, text: String) => account.editProfile(principal, id, text) }
   patchBody(s"$P/date-of-birth") { (id: String, text: String) => account.dateOfBirth(principal, id, text) }
   get(s"$P/wallet") { (id: String) => status.wallet(id) }
   get(s"$P/activity") { (id: String) => status.activity(id, query.raw("category"), query.raw("page")) }

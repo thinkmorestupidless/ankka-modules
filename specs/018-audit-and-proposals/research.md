@@ -303,3 +303,35 @@ outlives an erasure (FR-023).
   registration, profile edits (the fields named), each email change (named, no value), the session
   limit, self-exclusion, consent the player gave or withdrew, and closure. The system's and a third
   party's changes stay unrecorded.
+- **FR-004 per brand service** (T033, read 2026-11-09 against FR-004's list). No service records a
+  plain read; kyc's document view is the one read recorded, as FR-004 asks. Fixed here, with tests:
+  wallet's account refusals now have outcome `refused` (as its wallet refusals since T030); players
+  records an operator's profile edit under the operator (`ProfileEdited.operatorId`), where T031 had
+  named the player. Each gap below is a finding for its service's spec, not fixed here:
+  - **wallet** (spec 002): refusals made at the route before the entity (an operator adjustment's
+    invalid request or missing key, the service money routes' validation); the from-account move
+    refused for a missing wallet (`AccountMoveWorkflow`, kept in the workflow's state); the operator's
+    `PUT /wallet-config/turnover` and the service's `bet-switches` (`BrandConfigEntity` has no audit
+    publisher); the payment outcomes reported over the payments grant (`PaymentEvent` is not audited).
+  - **game-provider** (spec 003): no audit mapping. A bet refused by responsible gambling or failed
+    closed never reaches the wallet, so no record anywhere; the operator's catalogue configuration,
+    provider configuration, catalogue refresh and unacknowledged replay and resolve leave none.
+  - **payouts** (spec 007): a withdrawal request refused at the gate and a refused cancel; the
+    entity's refusals of approve, reject, confirm and fail, which reply and persist nothing; the
+    operator's read of a request showing the holder's names and IBAN's last four (a payment-details
+    read).
+  - **players** (spec 008): an erasure filed (US5, T049, records its states); a cookie decision
+    (consent); `ExclusionLifted`; the operator's activity export, the brand, currency and allow-list
+    configuration, and a module request; the operator's read of an assembled export carrying payout
+    details.
+  - **kyc** (spec 009): none.
+  - **responsible-gambling** (spec 010): a staged limit raise or removal (`PendingStaged`), and the
+    reality check, which carries no actor.
+  - **rewards** (spec 011): a refused operator award or revoke (only `Activated` and `Revoked` are
+    published).
+  - **engagement** (spec 014): the operator's CRM seed and agent-stream ticket.
+  - **markets** (spec 023): no operator command is recorded (drafts, terms, approve, open, suspend,
+    resume, close, resolve, correct, void); only the driver's exchange refusals.
+  - **exchange** (spec 023): order placements and cancels refused by the gates or the book, unless
+    the wallet's reservation refused them (the placement workflow is ankka-predictions' and has no
+    audit publisher here).

@@ -167,7 +167,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 - [X] T032 [US1] SC-001: in `services/wallet/` and `services/players/` parity suites, assert that every
   replayed money command, refusal and operator action leaves exactly one record on `platform.audit`
   and none twice
-- [ ] T033 [US1] FR-004: read each brand service's audit mapping (wallet, game-provider, payouts,
+- [X] T033 [US1] FR-004: read each brand service's audit mapping (wallet, game-provider, payouts,
   players, kyc, responsible-gambling, rewards, engagement, markets, exchange) against FR-004's list,
   write the result per service to `research.md` under `## Found during implementation`; fix a gap in
   wallet or players with a test, record any other as a finding for its spec

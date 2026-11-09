@@ -56,8 +56,8 @@ final class OperatorProfileRoutes(ctx: Ctx):
     }
 
   /** The player's edit, made by an operator: the same locks and the allow-list left to the player's route. */
-  def editProfile(playerId: String, text: String): Reply =
-    known(playerId)(_ => ProfileRoutes(ctx).edit(playerId, edits(body(text), OperatorFields), Set.empty))
+  def editProfile(p: Principal, playerId: String, text: String): Reply =
+    known(playerId)(_ => ProfileRoutes(ctx).edit(playerId, edits(body(text), OperatorFields), Set.empty, Some(p.subject)))
 
   def dateOfBirth(p: Principal, playerId: String, text: String): Reply =
     known(playerId) { _ =>

@@ -209,7 +209,7 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
     else
       val edit   = Profile(s.profile, asked ++ country.map(cc => "country" -> Some(cc)), s.locked)
       if edit.changed.isEmpty then effects.reply(Edited())
-      else effects.persist(ProfileEdited(edit.profile, edit.changed, c.at)).thenReply(_ => Edited(None, edit.changed))
+      else effects.persist(ProfileEdited(edit.profile, edit.changed, c.at, c.operatorId)).thenReply(_ => Edited(None, edit.changed))
 
   def correctDateOfBirth(c: CorrectDateOfBirth): Effect[Done] =
     val today = LocalDate.ofInstant(c.at, ZoneOffset.UTC)

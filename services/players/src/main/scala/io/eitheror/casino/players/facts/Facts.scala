@@ -154,6 +154,7 @@ object Facts:
       Some(Action(action, playerId, "player", playerId, None, changes, at, actorKind = "player"))
     val action: Option[Action] = event match
       case e: Registered    => own("register", Vector(f.AuditChange("currency", None, Some(e.currency))), e.at)
+      case e: ProfileEdited if e.operatorId.isDefined => op("profile-edit", e.operatorId, None, e.changed.toVector.sorted.map(named), e.at)
       case e: ProfileEdited => own("profile-edit", e.changed.toVector.sorted.map(named), e.at)
       case e: EmailAdded    => own("email-add", Vector(named("email")), e.at)
       case e: EmailPromoted => own("email-promote", Vector(named("email")), e.at)
