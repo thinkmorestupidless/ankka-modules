@@ -66,6 +66,21 @@ class RoundSuite extends munit.FunSuite with LogCapturing:
     assertEquals((p.eventOfType[RoundEvent.RoundSettled].summary.gameName, p.eventOfType[RoundEvent.RoundSettled].summary.gameType), (None, None))
   }
 
+  test("a new round refuses an opening still to be looked up and records nothing; an open round records it as it is") {
+    val k      = kit
+    val lookup = opening.copy(gameLookup = true)
+    val wanted = k.call(Round.record)(debit("t-1", 100, 900).copy(opening = lookup))
+    assert(wanted.replyValue.openingWanted)
+    assertEquals(wanted.events, Vector.empty)
+    assert(k.currentState.isNew)
+    val named = k.call(Round.record)(debit("t-1", 100, 900).copy(opening = opening.copy(gameName = Some("Book of Ra"), gameType = Some("slots"))))
+    assert(!named.replyValue.openingWanted && named.replyValue.first)
+    val later = k.call(Round.record)(debit("t-2", 100, 800).copy(opening = lookup))
+    assert(!later.replyValue.openingWanted && later.replyValue.first, "an open round wants no opening")
+    assertEquals(later.events.map(_.getClass.getSimpleName), Vector("DebitRecorded"))
+    assertEquals(k.currentState.gameName, Some("Book of Ra"))
+  }
+
   test("a zero credit settles every open bet as a loss and publishes outcome loss") {
     val k = kit
     k.call(Round.record)(debit("t-1", 100, 900))

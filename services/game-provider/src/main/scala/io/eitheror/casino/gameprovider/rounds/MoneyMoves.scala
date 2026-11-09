@@ -52,7 +52,7 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
   private def debit(job: BetJob): Either[String, Moved] =
     if job.amount == 0 || job.kind == Kind.FreeDebit then
       // A zero or free debit places no bet; the round is tagged with the session's free rounds first (FR-013).
-      job.freeRoundsGrant.foreach(grant => round(job.roundEntity).call(Round.tagFreeRounds).invoke(TagFreeRounds(job.opening, grant)): Unit)
+      job.freeRoundsGrant.foreach(grant => round(job.roundEntity).call(Round.tagFreeRounds).invoke(TagFreeRounds(Openings.catalogued(components, job.opening), grant)): Unit)
       balance(job).map(b => Moved(RecordTransaction(job.opening, tx(job, 0, Vector.empty, ok(job, b))), countsBet = true))
     else bet(job, buyin = false)
 

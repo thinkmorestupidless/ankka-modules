@@ -25,7 +25,8 @@ final class Round(context: EventSourcedEntityContext) extends EventSourcedEntity
 
   /**
    * Records what the bet workflow did for one transaction. A transaction recorded before is not recorded
-   * twice (the workflow's step may run again after a crash): the first answer is replied. A credit, a payout or a cancel that leaves no bet open also settles or
+   * twice (the workflow's step may run again after a crash): the first answer is replied. A new round asks
+   * for an opening whose game has been looked up (`Recorded.openingWanted`) before it records anything. A credit, a payout or a cancel that leaves no bet open also settles or
    * cancels the round, publishing its summary (FR-019).
    */
   def record(cmd: RecordTransaction): Effect[Recorded] =
@@ -33,6 +34,8 @@ final class Round(context: EventSourcedEntityContext) extends EventSourcedEntity
     val key = cmd.tx.transactionId
     s.transaction(key) match
       case Some(first) => effects.reply(Recorded(first.answer, first = false))
+      case None if s.isNew && cmd.opening.gameLookup =>
+        effects.reply(Recorded(cmd.tx.answer, first = false, openingWanted = true))
       case None =>
         val opening = if s.isNew then Vector(RoundOpened(cmd.opening)) else Vector.empty
         val main    = Round.eventFor(cmd)

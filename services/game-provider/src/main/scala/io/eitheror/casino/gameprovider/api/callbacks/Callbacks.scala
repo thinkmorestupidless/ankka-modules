@@ -6,7 +6,6 @@ import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.gameprovider.Json
-import io.eitheror.casino.gameprovider.catalogue.{Game, GameFields}
 import io.eitheror.casino.gameprovider.clients.*
 import io.eitheror.casino.gameprovider.config.ProviderConfigurations
 import io.eitheror.casino.gameprovider.money.Amounts
@@ -108,16 +107,14 @@ final class Callbacks(
 
   private def round(entityId: String) = components.forEventSourcedEntity(EntityId(entityId))
 
-  /** The round's opening; the game's name and category are the catalogue's, so the round records them (spec 015). */
+  /**
+   * The round's opening. The game's name and category are the catalogue's, so the round records them
+   * (spec 015); they are looked up only when the round is new (`Openings.catalogued`), not here, so a
+   * callback on an open round makes no catalogue read on the provider's money path.
+   */
   private def opening(roundId: String, player: String, currency: String, t: Option[TicketState], gameCode: Option[String]) =
     val code = gameCode.orElse(t.map(_.gameCode)).filter(_.nonEmpty)
-    val game = code.flatMap(catalogued)
-    RoundOpening(provider, roundId, player, currency, code, t.map(_.sessionId).filter(_.nonEmpty), now(),
-      game.map(_.name).filter(_.nonEmpty), game.map(_.category).filter(_.nonEmpty))
-
-  /** The catalogue's fields for a game of this provider; none when it holds no such game or cannot be read, which fails no bet. */
-  private def catalogued(code: String): Option[GameFields] =
-    Try(components.forKeyValueEntity(EntityId(Game.entityId(provider, code))).call(Game.get).invoke()).toOption.flatMap(_.fields)
+    RoundOpening(provider, roundId, player, currency, code, t.map(_.sessionId).filter(_.nonEmpty), now(), gameLookup = code.isDefined)
 
   private def txKey(body: CallbackBody): String =
     body.transactionId.filter(_.length <= 200).getOrElse(stop(Status.Error))
