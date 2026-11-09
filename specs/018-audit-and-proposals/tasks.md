@@ -164,7 +164,7 @@ every person by a pseudonym, the same person the same at one brand and another a
   (research R15)
 - [X] T031 [US1] Whatever T028 and T029 find failing, fixed in their services' audit mappings; their
   suites green
-- [ ] T032 [US1] SC-001: in `services/wallet/` and `services/players/` parity suites, assert that every
+- [X] T032 [US1] SC-001: in `services/wallet/` and `services/players/` parity suites, assert that every
   replayed money command, refusal and operator action leaves exactly one record on `platform.audit`
   and none twice
 - [ ] T033 [US1] FR-004: read each brand service's audit mapping (wallet, game-provider, payouts,
