@@ -103,7 +103,7 @@ registry, the consumers' decoding, the kit.
 - [X] T020 `a/ingest/Ingest.scala`: one message in contracts/ingest.md's order (decode from bytes,
   check against the brand and `PersonalFields.names`, keep or pass over, pseudonymise, store, count),
   as a function the consumers call, with `a-test/ingest/IngestUnitSuite.scala` on the kits
-- [ ] T021 `a-test/it/Kit.scala`: `AnkkaTestKit.start` over Postgres, an `InMemoryBroker` with two
+- [X] T021 `a-test/it/Kit.scala`: `AnkkaTestKit.start` over Postgres, an `InMemoryBroker` with two
   brands' `platform.audit` and `platform.modules` and `payments`' `platform.audit`, `MovableClock`,
   `FakeKeycloak`, the in-memory object store; `just audit-it` runs one empty suite on it
 

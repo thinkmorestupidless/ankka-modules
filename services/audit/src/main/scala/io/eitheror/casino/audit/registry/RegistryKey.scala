@@ -2,7 +2,9 @@ package io.eitheror.casino.audit.registry
 
 import com.thinkmorestupidless.ankka.core.{CommandError, ComponentId}
 import com.thinkmorestupidless.ankka.sdk.*
+import io.eitheror.casino.audit.Wiring
 import io.eitheror.casino.audit.ids.RegistryKeyBytes
+import io.eitheror.casino.audit.ingest.IngestKeys
 
 import java.security.SecureRandom
 import java.util.Base64
@@ -53,15 +55,20 @@ object RegistryKey extends StoredKey("registry-key")
 /** The key the quarantine seals a message's bytes under (research, *Found during implementation*). */
 object QuarantineKey extends StoredKey("quarantine-key")
 
-/** The single timer `seed`, set at every start: the service's keys made when absent. */
+/** The single timer `seed`, set at every start: the service's keys made when absent, and handed to ingest. */
 final class Seed(context: TimedActionContext) extends TimedAction:
   def run: Effect =
-    RegistryKey.make(context.secrets): Unit
-    QuarantineKey.make(context.secrets): Unit
+    Seed.run(context.secrets)
     effects.done()
 
 object Seed extends TimedAction.Companion[Seed](ComponentId("seed")):
   val TimerName = "seed"
+
+  /** Makes both keys when absent and sets them in `Wiring` for the consumers. Idempotent. */
+  def run(store: SecretStore): Unit =
+    RegistryKey.make(store): Unit
+    QuarantineKey.make(store): Unit
+    Wiring.keys.set(Some(IngestKeys(RegistryKey.required(store), QuarantineKey.required(store), Wiring.settings.get().skewBound)))
 
   def create(context: TimedActionContext) = new Seed(context)
   val seed = handler("seed")(_.run)
