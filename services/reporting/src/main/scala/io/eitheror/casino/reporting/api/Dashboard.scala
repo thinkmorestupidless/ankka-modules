@@ -203,9 +203,7 @@ object Dashboard:
           val named = Rounds.latest(ctx.views, g(ctx), id).flatMap(_.provider)
           RankedGame(id, named.flatMap(_.gameName).getOrElse(""), named.fold("")(_.provider), count)
         }
-      val sums = PlayerDays.rows(ctx.views, g(ctx), c, period.from, period.to).filterNot(d => n.leaveOut(d.player))
-        .groupMapReduce(_.player)(d => (d.ggr, d.wagered))((a, b) => (a._1 + b._1, a._2 + b._2))
-      val top     = sums.toVector.sortBy((p, s) => (-s._1, p)).take(10)
+      val top = PlayerDays.top(ctx.views, g(ctx), c, period.from, period.to, n.leaveOut, 10).map(d => d.player -> (d.ggr, d.wagered))
       val players = Players.of(ctx.views, g(ctx), top.map(_._1))
       ok(Rankings(r, c, chosen.currencies, games, top.map { (p, s) =>
         val row = players.get(p)

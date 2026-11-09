@@ -303,6 +303,20 @@ the expected figures independently (SC-001, SC-004, SC-009); `GherkinSuite` over
 players and a month (SC-001, SC-002, SC-003), on purpose only. The amended producers' own suites gain a
 test per new field.
 
+- **Measured at volume (review, should fix 4)**: `PerfSuite` takes `REPORTING_PERF_ROUNDS` rounds a player (100 by
+  default: a million bets a month over 10,000 players), spread over the month's days and hours, half won. On this
+  machine (kit, one JVM, a shared Postgres): 10,000 players at 10 rounds (162,200 legs) folded at 84 to 138 legs a
+  second; the revenue report answered in 26 ms, every dashboard route under 100 ms but the rankings, which read every
+  player day of the range into memory to sum ten players and took 1.5 to 2.4 s (SC-002 missed). The rankings now sum
+  in the view (`PlayerDays.topByGgr`, each payload parsed once) and answer in 332 ms. The brand-wide ledger page takes
+  2 to 3 s (a parallel seq scan of every row and a sort, `count` another scan); SC-003 sets no time. ankka 0.16 views
+  declare no index, so the expression indexes the views page names cannot be declared from the service. At 100 rounds
+  the fold slowed as the journal grew, from 341 legs a second at 151,220 legs (1,000 players) to about 20 at 815,000
+  journal events, with Postgres busy on the projections' reads of `event_journal` (sequential scans of it every few
+  seconds) and 1.8 million rows in `projection_timestamp_offset_store`: ankka's projection layer, not the day entity,
+  whose write keeps pace with every consumer's. A brand's live rate (a million bets a month is under one a second) is
+  far below either; a rebuild of such a month is hours, not minutes.
+
 ## R18. Recordings
 
 No recording of reporting exists, and the Go suite never calls `/reports`, `/dashboard` or the dispute
