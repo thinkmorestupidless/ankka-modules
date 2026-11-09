@@ -39,7 +39,10 @@ final class SourceState(@scala.annotation.unused context: KeyValueEntityContext)
       passedOver = s.passedOver + (if r.kept then 0 else 1),
       skewed = s.skewed + (if r.skewed then 1 else 0),
       lastReceived = Some(s.lastReceived.fold(r.at)(l => if r.at.isAfter(l) then r.at else l)),
-      lastOccurred = Some(s.lastOccurred.fold(r.occurredAt)(l => if r.occurredAt.isAfter(l) then r.occurredAt else l))
+      // A record from a clock running ahead says nothing of how far behind the consumer is, so it does not
+      // move the occurrence the lag is measured from.
+      lastOccurred = if r.skewed then s.lastOccurred
+        else Some(s.lastOccurred.fold(r.occurredAt)(l => if r.occurredAt.isAfter(l) then r.occurredAt else l))
     )).thenReplyState
 
   def get: ReadOnlyEffect[SourceCounts] = effects.reply(currentState)

@@ -82,8 +82,11 @@ class IngestUnitSuite extends munit.FunSuite with LogCapturing:
 
   test("a record occurring further after its arrival than the bound allows is counted as skewed") {
     val calls = KitCalls()
+    ingest(calls, record(id = "behind", occurredAt = now.minus(Duration.ofMinutes(30)))): Unit
     ingest(calls, record(occurredAt = now.plus(Duration.ofMinutes(6)))): Unit
     assertEquals(calls.counts("brand:goldvibe").skewed, 1L)
+    // The lag is still measured from the record that was behind, not hidden by the one ahead.
+    assertEquals(calls.counts("brand:goldvibe").lastOccurred, Some(now.minus(Duration.ofMinutes(30))))
   }
 
   test("a module change is an installation record about the brand") {

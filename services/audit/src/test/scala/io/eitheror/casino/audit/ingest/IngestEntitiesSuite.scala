@@ -24,11 +24,12 @@ class IngestEntitiesSuite extends munit.FunSuite with LogCapturing:
     assertEquals(again.replyValue.arrivedAt, Some(at))
   }
 
-  test("a source's counts: stored and passed over, skewed, and the latest arrival and occurrence") {
+  test("a source's counts: stored and passed over, skewed, the latest arrival, and the latest occurrence not skewed") {
     val k = KeyValueEntityTestKit.of(SourceState, "brand:goldvibe")
     k.call(SourceState.received)(Received(at, at.minusSeconds(1), kept = true, skewed = false)): Unit
     k.call(SourceState.received)(Received(at.plusSeconds(2), at.minusSeconds(30), kept = false, skewed = false)): Unit
     val s = k.call(SourceState.received)(Received(at.plusSeconds(1), at.plusSeconds(900), kept = true, skewed = true)).replyValue
     assertEquals((s.stored, s.passedOver, s.skewed), (2L, 1L, 1L))
-    assertEquals((s.lastReceived, s.lastOccurred), (Some(at.plusSeconds(2)), Some(at.plusSeconds(900))))
+    // The skewed record's occurrence, ahead of its arrival, does not move the one the lag is measured from.
+    assertEquals((s.lastReceived, s.lastOccurred), (Some(at.plusSeconds(2)), Some(at.minusSeconds(1))))
   }
