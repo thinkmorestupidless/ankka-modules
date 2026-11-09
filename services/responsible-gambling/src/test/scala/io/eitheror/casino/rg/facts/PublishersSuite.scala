@@ -58,8 +58,10 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
   test("the CloudEvents id is the event's"):
     assertEquals(Facts.players("p-1", 7, LimitRemoved(eur, 5, op, at)).map(_.id), Some("profile/p-1/7"))
 
-  test("an operator's change is one audit record; a player's none"):
-    assertEquals(audit(LimitSet("p-1", eur, 5_000, None, Actor.Player, at)), None)
+  test("an operator's change is one audit record, and a player's own change one under the player (spec 018 FR-004); the system's none"):
+    val own = audit(LimitSet("p-1", eur, 5_000, None, Actor.Player, at)).get
+    assertEquals((own.actorKind, own.actorId, own.subjectId, own.recordClass), ("player", "p-1", "p-1", "account"))
+    assertEquals(audit(LimitSet("p-1", eur, 5_000, None, Actor.System, at)), None)
     val r = audit(LimitSet("p-1", eur, 5_000, Some(9_000), op, at)).get
     assertEquals((r.service, r.action, r.actorId, r.subjectId, r.changes),
       ("responsible-gambling", "limit-set", "op-1", "p-1", Vector(f.AuditChange("DEPOSIT_DAILY/EUR", Some("9000"), Some("5000")))))

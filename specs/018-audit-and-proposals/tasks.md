@@ -150,7 +150,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 - [X] T027 [P] [US1] Bind `features/audit/records.feature`'s adjustment, refused bet, captured deposit
   and repeated key in `services/wallet/src/test/scala/.../features/AuditRecordsFeatures.scala`;
   run them first and record what fails
-- [ ] T028 [P] [US1] Bind its deposit limit in
+- [X] T028 [P] [US1] Bind its deposit limit in
   `services/responsible-gambling/src/test/scala/.../features/AuditRecordsFeatures.scala`
 - [ ] T029 [P] [US1] Bind its email change in
   `services/players/src/test/scala/.../features/AuditRecordsFeatures.scala`; the support agent's

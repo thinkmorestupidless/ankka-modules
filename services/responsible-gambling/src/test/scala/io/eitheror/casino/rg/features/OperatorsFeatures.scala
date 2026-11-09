@@ -28,7 +28,7 @@ class OperatorsFeatures extends RgFeatures("operators.feature"):
 
   Then("the history names the operator") { () =>
     assertEquals(history().head.text("actor"), Some("operator"))
-    val audit = eventually("the audit record", 5.seconds)(audits.find(_.action == "limit-set"))
+    val audit = eventually("the audit record", 5.seconds)(operatorAudits.find(_.action == "limit-set"))
     assertEquals(audit.actorId, "op-1")
   }
 
@@ -89,7 +89,7 @@ class OperatorsFeatures extends RgFeatures("operators.feature"):
   }
 
   Then("an audit record names the operator, the player, the action and the before and after") { () =>
-    val records = eventually("three records", 5.seconds)(Option.when(audits.size >= 3)(audits))
+    val records = eventually("three records", 5.seconds)(Option.when(operatorAudits.size >= 3)(operatorAudits))
     assertEquals(records.map(_.action).toSet, Set("limit-set", "break-set", "exclude"))
     assert(records.forall(r => r.actorKind == "operator" && r.actorId == "op-1" && r.subjectKind == "player" && r.subjectId == player))
     val limit = records.find(_.action == "limit-set").get.changes.head

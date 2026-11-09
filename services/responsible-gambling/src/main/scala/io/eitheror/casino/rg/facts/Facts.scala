@@ -58,10 +58,14 @@ object Facts:
       actorId = event.operatorId, approverId = None, subjectKind = "brand", subjectId = brand, outcome = "accepted", reasonCode = None,
       changes = changes, correlationId = id, causationId = id, recordClass = "operator", occurredAt = event.at), id)
 
-  /** One record per operator change (FR-028); a player's or the system's changes are not audited here. */
+  /**
+   * One record per operator change (FR-028) and per change a player makes on their own account (spec 018
+   * FR-004: limits, breaks, exclusion); the system's and a third party's changes are not audited here.
+   */
   def audit(brand: String, playerId: String, sequence: Long, event: ProfileEvent): Option[Published[f.AuditRecord]] =
     def op(actor: Actor, action: String, changes: Vector[f.AuditChange]) =
-      actor.id.filter(_ => actor.isOperator).map(id => (id, action, changes))
+      if actor.isOperator then actor.id.map(id => ("operator", id, "operator", action, changes))
+      else Option.when(actor.kind == Actor.Player.kind)(("player", playerId, "account", action, changes))
     val action = event match
       case e: LimitSet     => op(e.actor, "limit-set", Vector(change(limitField(e.key), e.previous.map(_.toString), Some(e.value.toString))))
       case e: LimitRemoved => op(e.actor, "limit-remove", Vector(change(limitField(e.key), Some(e.previous.toString), None)))
@@ -77,9 +81,9 @@ object Facts:
       case e: CaseClosed if e.reason == RgCase.ClosedReason =>
         op(e.actor, "case-close", Vector(change("case", Some("open"), Some("closed"))) ++ e.note.map(_ => named("reason")))
       case _ => None
-    action.map { (actorId, name, changes) =>
+    action.map { (actorKind, actorId, category, name, changes) =>
       val id = eventId("audit/profile", playerId, sequence)
-      Published(f.AuditRecord(recordId = id, brand = brand, service = "responsible-gambling", action = name, actorKind = "operator",
+      Published(f.AuditRecord(recordId = id, brand = brand, service = "responsible-gambling", action = name, actorKind = actorKind,
         actorId = actorId, approverId = None, subjectKind = "player", subjectId = playerId, outcome = "accepted", reasonCode = None,
-        changes = changes, correlationId = id, causationId = id, recordClass = "operator", occurredAt = event.at), id)
+        changes = changes, correlationId = id, causationId = id, recordClass = category, occurredAt = event.at), id)
     }
