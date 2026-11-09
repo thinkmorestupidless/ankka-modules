@@ -96,6 +96,9 @@ the modules tool, the payments manifest, `wallet` and `players`.
 
 No violations; Complexity Tracking is empty.
 
+FR-025 (the brand's own readers) and FR-026 (no audit in the support agent's tools) need nothing built
+here: `players` and `reporting` read the brand's topic (specs 008, 015), and spec 017 builds the agent.
+
 ## Component table (ankka-design)
 
 | Requirement | Component | Why this one | The close alternative, and why not |

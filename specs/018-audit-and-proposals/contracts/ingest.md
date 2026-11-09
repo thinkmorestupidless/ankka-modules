@@ -8,13 +8,16 @@
 | `modules:<slug>` | `platform.modules` | the brand | `core` grants the same |
 | `payments` | `platform.audit` | `payments` | `shared/payments/manifest.json`, added here |
 
-Each is read as bytes from the earliest, at `AUDIT_READ_GENERATION`.
+Each is read as bytes at `AUDIT_READ_GENERATION`: from the earliest at generation 1, from
+`AUDIT_READ_FROM` (the restore point) at a later one.
 
 ## One message, in order
 
 1. **Decode** with the contract's serializer. Failure → `Quarantined(undecodable)`; next message.
 2. **Check**: a brand source's record must name that brand → else `Quarantined(brand_mismatch)`. A
-   change to a personal field that carries a value → `Quarantined(personal_value)`.
+   change whose field is in the contract's `PersonalFields.names`
+   (`contract/.../personal/Personal.scala:38`) and carries a before or after value →
+   `Quarantined(personal_value)`.
 3. **Keep or pass over** (`Keep.decide`, FR-008a). Passed over → `SourceState.received(kept = false)`.
 4. **Pseudonymise**: for each person's id (actor, subject, approver): `Pseudonym.issue` then
    `Identity.bind`. Digest the record, correlation and causation ids, and any other id that contains a

@@ -207,9 +207,12 @@ month).
 ## R14. After a restore (FR-022)
 
 A consumer's start position applies once per group; re-reading needs a raised component version
-(`topics.md:343-398`). The consumers' version is `AUDIT_READ_GENERATION` (default 1): after a
-restore, an installation owner raises it and redeploys, and every consumer re-reads from the
-earliest. Storing is idempotent (R4), so the re-read restores what was lost and changes nothing else.
+(`topics.md:343-398`), and a new group may start at an instant (`StartFrom.At`, `topics.md:113-178`).
+The consumers' version is `AUDIT_READ_GENERATION` (default 1), and generation 1 starts from the
+earliest. After a restore, an installation owner sets `AUDIT_READ_FROM` to the restore point, raises
+the generation and redeploys; every consumer re-reads from that instant, not from the start of years of
+a brand's topic, which is what keeps SC-006 within 10 minutes. Storing is idempotent (R4), so the
+re-read restores what was lost and changes nothing else.
 Every brand's `platform.audit` keeps everything (`module.json:513-516`), so every brand reaches; a
 source whose topic declares less is named in the status with the time its earliest record has.
 
@@ -267,3 +270,7 @@ outlives an erasure (FR-023).
 - **ankka**: a consumer cannot see a revoked grant, `ce-id`, `ce-time` or the broker's timestamp.
 - **Spec 001**: FR-016 names the `payments` grant of `platform.audit` to `reasoner/audit`.
 - **Spec 008**: the erasure workflow's records (R15).
+
+## Design finished
+
+2026-11-09: analyze reported nothing above LOW.

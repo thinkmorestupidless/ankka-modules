@@ -354,9 +354,9 @@ database; verify.
   guessed from another source.
 - **The registry is unavailable.** Ingest pauses; nothing is written without a pseudonym; the lag is
   reported. Records are not lost: they remain on the topic within its retention.
-- **Two brands' topics carry the same record id.** Impossible by construction: the record id derives
-  from the brand, service, entity and command key. A collision is reported as an error, never
-  overwritten.
+- **Two sources carry the same record id.** A record id is unique only within its source, so the
+  store keys a record by its source and its record id; two brands' records never meet. A different
+  record under a key already held is quarantined as a collision and reported, never overwritten.
 - **An actor is a service in a shared project** (`payments`/`merchant`, `reasoner`/`audit` itself).
   A service is not a person: its identity is stored as written (FR-008).
 - **The regulator's export format changes.** The format is a setting per brand naming one of the
@@ -486,8 +486,9 @@ database; verify.
   an id is not personal data (spec 001 FR-024), the records carry no personal value (FR-003), and the
   regulator's window outlives the player's account.
 - **FR-024**: The service's status MUST show, per brand and per shared source: records received, the lag, the quarantine
-  count, the retention in force, the last export, whether the grant is in effect, and each source of
-  installation records with its state (read, or not stated).
+  count, the retention in force, the last export, the last record received and since when (a revoked
+  grant shows as a source that has stopped; ankka 0.16 does not let a consumer see the grant itself),
+  and each source of installation records with its state (read, or not stated).
 
 **The brand's own records**
 

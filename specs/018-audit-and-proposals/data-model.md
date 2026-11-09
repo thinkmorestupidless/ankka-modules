@@ -89,7 +89,8 @@ Nothing in it is a real id of a person (SC-002).
 | `records-<slug>` per brand, `records-payments` | `platform.audit` as bytes | decode, quarantine or `Keep.decide`; for a kept record: `issue` and `bind` each person's pseudonym, build `Stored`, `keep`; `received` on `SourceState` |
 | `modules-<slug>` per brand | `platform.modules` as bytes | decode, build `Stored.fromModule`, `keep` |
 
-Each is versioned by `AUDIT_READ_GENERATION` (R14), starts from `Earliest`.
+Each is versioned by `AUDIT_READ_GENERATION` and starts from `Earliest` at generation 1, from
+`AUDIT_READ_FROM` at a later one (R14).
 
 ## Timed actions
 
@@ -112,6 +113,7 @@ Each is versioned by `AUDIT_READ_GENERATION` (R14), starts from `Earliest`.
 | `AUDIT_BRANDS` | (rendered) | the brands whose sources are read |
 | `AUDIT_RETENTION_YEARS` | `7` | the installation's retention |
 | `AUDIT_READ_GENERATION` | `1` | the consumers' version; raised to re-read after a restore |
+| `AUDIT_READ_FROM` | (none) | the instant a raised generation re-reads from: the restore point; required when the generation is above 1 |
 | `AUDIT_SKEW_BOUND` | `5m` | occurrence after arrival beyond which a record counts as skewed |
 | `AUDIT_PAGE_LIMIT` | `1000` | the largest page a query may ask for |
 | `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_ADMIN_USERNAME`, `KEYCLOAK_ADMIN_PASSWORD` | | as `programme` |

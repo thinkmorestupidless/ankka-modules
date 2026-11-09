@@ -75,8 +75,8 @@ registry, the consumers' decoding, the kit.
 
 **⚠️ CRITICAL**: no story starts before this phase ends.
 
-- [ ] T008 `a/Settings.scala`: data-model.md *Settings*, each parsed with a named error; `SettingsSuite`
-  in `a-test/SettingsSuite.scala`
+- [ ] T008 `a/Settings.scala`: data-model.md *Settings*, each parsed with a named error, a generation
+  above 1 refused without `AUDIT_READ_FROM`; `SettingsSuite` in `a-test/SettingsSuite.scala`
 - [ ] T009 [P] `a/keep/Keep.scala` and `a-test/keep/KeepSuite.scala`: FR-008a over every category ×
   actor kind × outcome (research R3)
 - [ ] T010 [P] `a/ids/Ids.scala` and `a-test/ids/IdsSuite.scala`: `digest` (HMAC-SHA256 under the
@@ -101,8 +101,8 @@ registry, the consumers' decoding, the kit.
 - [ ] T019 [P] `a/ingest/Quarantined.scala`, `a/ingest/Quarantine.scala`,
   `a/ingest/SourceState.scala` with kit suites
 - [ ] T020 `a/ingest/Ingest.scala`: one message in contracts/ingest.md's order (decode from bytes,
-  check, keep or pass over, pseudonymise, store, count), as a function the consumers call, with
-  `a-test/ingest/IngestUnitSuite.scala` on the kits
+  check against the brand and `PersonalFields.names`, keep or pass over, pseudonymise, store, count),
+  as a function the consumers call, with `a-test/ingest/IngestUnitSuite.scala` on the kits
 - [ ] T021 `a-test/it/Kit.scala`: `AnkkaTestKit.start` over Postgres, an `InMemoryBroker` with two
   brands' `platform.audit` and `platform.modules` and `payments`' `platform.audit`, `MovableClock`,
   `FakeKeycloak`, the in-memory object store; `just audit-it` runs one empty suite on it
@@ -122,7 +122,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 - [ ] T022 [P] [US2] `a-test/it/IngestSuite.scala`: two brands and payments read; kept and passed
   over; each quarantine reason; a redelivery changes nothing; a revoked source stops at its last record
-  and the status shows since when (FR-007–FR-012)
+  and its `SourceState` holds since when (FR-007–FR-012; the status route is T045's)
 - [ ] T023 [P] [US2] `a-test/it/LeakSuite.scala`: every real id used in the run is absent from every
   `Records` row, every answer, every export and the captured log; only `Identity` holds them (SC-002)
 - [ ] T024 [P] [US2] `a-test/features/SharedFeatures.scala`: bind `features/audit/shared.feature` (9)
@@ -130,7 +130,8 @@ every person by a pseudonym, the same person the same at one brand and another a
 ### Implementation for User Story 2
 
 - [ ] T025 [US2] `a/ingest/Consumers.scala`: `records-<slug>` per `AUDIT_BRANDS`, `records-payments`,
-  each over `Serializer.bytes` from `Earliest` at version `AUDIT_READ_GENERATION`, calling `Ingest`
+  each over `Serializer.bytes` at version `AUDIT_READ_GENERATION`, from `Earliest` or `AUDIT_READ_FROM`
+  (research R14), calling `Ingest`
 - [ ] T026 [US2] Register the store, registry, ingest components and consumers in
   `a/AuditService.scala`; T022–T024 pass
 
@@ -163,6 +164,13 @@ every person by a pseudonym, the same person the same at one brand and another a
   (research R15)
 - [ ] T031 [US1] Whatever T028 and T029 find failing, fixed in their services' audit mappings; their
   suites green
+- [ ] T032 [US1] SC-001: in `services/wallet/` and `services/players/` parity suites, assert that every
+  replayed money command, refusal and operator action leaves exactly one record on `platform.audit`
+  and none twice
+- [ ] T033 [US1] FR-004: read each brand service's audit mapping (wallet, game-provider, payouts,
+  players, kyc, responsible-gambling, rewards, engagement, markets, exchange) against FR-004's list,
+  write the result per service to `research.md` under `## Found during implementation`; fix a gap in
+  wallet or players with a test, record any other as a finding for its spec
 
 **Checkpoint**: `records.feature` met where it is bound.
 
@@ -176,23 +184,23 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Tests for User Story 3
 
-- [ ] T032 [P] [US3] `a-test/it/QueryItSuite.scala`: each role's scope, every filter, the cursor,
-  `retainedFrom`, the query records and the no-recursion rule (FR-013, FR-015)
-- [ ] T033 [P] [US3] `a-test/it/ExportSuite.scala`: CSV and JSON lines, the signed URL, the same key
-  twice, a record at request and at completion (FR-014)
-- [ ] T034 [P] [US3] `a-test/export/ExportLinesSuite.scala`: `Csv.line` and `JsonLines.line`
+- [ ] T034 [P] [US3] `a-test/it/QueryItSuite.scala`: each role's scope, every filter, the cursor,
+  `retainedFrom`, the query records and the no-recursion rule (FR-013, FR-015, SC-005)
+- [ ] T035 [P] [US3] `a-test/it/ExportSuite.scala`: CSV and JSON lines, the signed URL, the same key
+  twice, a record at request and at completion (FR-014, SC-005)
+- [ ] T036 [P] [US3] `a-test/export/ExportLinesSuite.scala`: `Csv.line` and `JsonLines.line`
   (research R10)
-- [ ] T035 [P] [US3] `a-test/features/QueriesFeatures.scala`: bind `features/audit/queries.feature`
+- [ ] T037 [P] [US3] `a-test/features/QueriesFeatures.scala`: bind `features/audit/queries.feature`
   (6)
-- [ ] T036 [US3] `a-test/port/ParitySuite.scala` rows 2–5 of contracts/recording.md, failing first
+- [ ] T038 [US3] `a-test/port/ParitySuite.scala` rows 2–5 of contracts/recording.md, failing first
 
 ### Implementation for User Story 3
 
-- [ ] T037 [P] [US3] `a/export/Lines.scala`: `Csv`, `JsonLines`
-- [ ] T038 [US3] `a/api/RecordsEndpoint.scala` and `a/api/Wire.scala`: `GET /v1/audit-records`, its
+- [ ] T039 [P] [US3] `a/export/Lines.scala`: `Csv`, `JsonLines`
+- [ ] T040 [US3] `a/api/RecordsEndpoint.scala` and `a/api/Wire.scala`: `GET /v1/audit-records`, its
   record of itself, its refusals
-- [ ] T039 [US3] `a/exports/Export.scala`, `a/exports/ExportFormat.scala`, `a/exports/Exports.scala`
-  and `a/api/ExportsEndpoint.scala` (contracts/routes.md); registered; T032–T036 pass
+- [ ] T041 [US3] `a/exports/Export.scala`, `a/exports/ExportFormat.scala`, `a/exports/Exports.scala`
+  and `a/api/ExportsEndpoint.scala` (contracts/routes.md); registered; T034–T038 pass
 
 **Checkpoint**: compliance reads and exports.
 
@@ -206,15 +214,15 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Tests for User Story 4
 
-- [ ] T040 [P] [US4] `a-test/it/ReidentifySuite.scala`: who, pseudonym (answered or issued), refused
-  and recorded, visible to the brand (FR-017, FR-018)
-- [ ] T041 [P] [US4] `a-test/features/ReidentificationFeatures.scala`: bind
+- [ ] T042 [P] [US4] `a-test/it/ReidentifySuite.scala`: who, pseudonym (answered or issued), refused
+  and recorded, visible to the brand (FR-017, FR-018, SC-005)
+- [ ] T043 [P] [US4] `a-test/features/ReidentificationFeatures.scala`: bind
   `features/audit/re-identification.feature` (4); the activity-tab scenario against `players`' view
   as spec 008 serves it
 
 ### Implementation for User Story 4
 
-- [ ] T042 [US4] `a/api/IdentitiesEndpoint.scala` (contracts/routes.md); registered; T040–T041 pass
+- [ ] T044 [US4] `a/api/IdentitiesEndpoint.scala` (contracts/routes.md); registered; T042–T043 pass
 
 ---
 
@@ -227,27 +235,27 @@ brand's records.
 
 ### Tests for User Story 5
 
-- [ ] T043 [P] [US5] `a-test/it/InstallationSuite.scala`: each module change and each erasure state
-  an installation record beside the brand's, in one order; the status's installation sources (FR-019,
-  FR-020, FR-024)
-- [ ] T044 [P] [US5] `a-test/it/RolesSuite.scala`: grant, revoke, each recorded; an outside holding
+- [ ] T045 [P] [US5] `a-test/it/InstallationSuite.scala`: each module change and each erasure state
+  an installation record beside the brand's, in one order, within 2 minutes of the change (SC-007);
+  the status route and its installation sources (FR-019, FR-020, FR-024)
+- [ ] T046 [P] [US5] `a-test/it/RolesSuite.scala`: grant, revoke, each recorded; an outside holding
   found once (FR-016)
-- [ ] T045 [P] [US5] `a-test/features/InstallationFeatures.scala`: bind
+- [ ] T047 [P] [US5] `a-test/features/InstallationFeatures.scala`: bind
   `features/audit/installation.feature` (13 runs); rollback, restore switch and every grant row ignored
   with "ankka publishes no project events (research R7)"
-- [ ] T046 [P] [US5] `services/players/src/test/scala/.../erasure/ErasureAuditSuite.scala`: a record per
+- [ ] T048 [P] [US5] `services/players/src/test/scala/.../erasure/ErasureAuditSuite.scala`: a record per
   erasure state
 
 ### Implementation for User Story 5
 
-- [ ] T047 [US5] `pl/erasure/`: the erasure workflow writes a record per state (filed, held, applied,
-  completed) through the service's audit path; T046 passes
-- [ ] T048 [US5] `a/ingest/Consumers.scala`: `modules-<slug>` per brand over `Ingest` with
+- [ ] T049 [US5] `pl/erasure/`: the erasure workflow writes a record per state (filed, held, applied,
+  completed) through the service's audit path; T048 passes
+- [ ] T050 [US5] `a/ingest/Consumers.scala`: `modules-<slug>` per brand over `Ingest` with
   `Stored.fromModule`
-- [ ] T049 [P] [US5] `a/roles/KeycloakAdmin.scala` (copied from `pg/accounts/KeycloakAdmin.scala`,
+- [ ] T051 [P] [US5] `a/roles/KeycloakAdmin.scala` (copied from `pg/accounts/KeycloakAdmin.scala`,
   narrowed to role grants and listings), `a/roles/RoleGrant.scala`, `a/roles/Grants.scala`,
   `a/roles/RealmRead.scala` (the daily timed action), `a/api/RolesEndpoint.scala`
-- [ ] T050 [US5] `a/api/StatusEndpoint.scala` with the installation sources; registered; T043–T045
+- [ ] T052 [US5] `a/api/StatusEndpoint.scala` with the installation sources; registered; T045–T047
   pass
 
 ---
@@ -261,35 +269,36 @@ generation.
 
 ### Tests for User Story 6
 
-- [ ] T051 [P] [US6] `a-test/it/DurabilitySuite.scala`: every route and role finds no change or
+- [ ] T053 [P] [US6] `a-test/it/DurabilitySuite.scala`: every route and role finds no change or
   deletion (SC-008); an erased player's records and registry rows unchanged (FR-023); ten years kept
   beside seven; lower refused; the sweep removes only what is past and records its counts; a raised
   generation re-reads with nothing changed (FR-021, FR-022)
-- [ ] T052 [P] [US6] `a-test/features/DurabilityFeatures.scala`: bind `features/audit/durability.feature`
+- [ ] T054 [P] [US6] `a-test/features/DurabilityFeatures.scala`: bind `features/audit/durability.feature`
   (5)
 
 ### Implementation for User Story 6
 
-- [ ] T053 [US6] `a/sweep/RetentionEntity.scala`, `a/sweep/Sweep.scala`, `a/sweep/SweepTimer.scala`
-  (daily), `a/api/RetentionEndpoint.scala`; registered; T051–T052 pass
+- [ ] T055 [US6] `a/sweep/RetentionEntity.scala`, `a/sweep/Sweep.scala`, `a/sweep/SweepTimer.scala`
+  (daily), `a/api/RetentionEndpoint.scala`; registered; T053–T054 pass
 
 ---
 
 ## Phase 9: Polish & cross-cutting
 
-- [ ] T054 Record the original for contracts/recording.md row 1 (`just test-e2e-scenario 2` in `O/`,
+- [ ] T056 Record the original for contracts/recording.md row 1 (`just test-e2e-scenario 2` in `O/`,
   then the query on port 19001) into `tests/port/audit/`, or translate it from the test's assertion when
   the original's stack cannot start; write `tests/port/audit/README.md` saying which
-- [ ] T055 `a-test/port/ParitySuite.scala` rows 1 and 6; `just audit-parity` green
-- [ ] T056 `a-test/perf/IngestPerf.scala` and `just audit-perf`: quickstart §4; write
-  `services/audit/PERF.md` with the share kept, the lag, the first page at a year and the export time;
-  a criterion missed is reported, not tuned away
-- [ ] T057 [P] `services/audit/README.md`: components, settings, suites, how to re-read after a restore
-- [ ] T058 [P] `tests/port/README.md`: the audit's section
-- [ ] T059 [P] Spec 008's facts row for the erasure records, in `specs/008-players/spec.md`
-- [ ] T060 `just features`, `just test`, `just audit-test`, `just audit-it` and the three neighbours'
+- [ ] T057 `a-test/port/ParitySuite.scala` rows 1 and 6; `just audit-parity` green
+- [ ] T058 `a-test/perf/IngestPerf.scala` and `just audit-perf`: quickstart §4 (SC-003, SC-004) and a
+  re-read of 24 hours of records after a raised generation (SC-006); write `services/audit/PERF.md`
+  with the share kept, the lag, the first page at a year, the export time and the re-read time; a
+  criterion missed is reported, not tuned away
+- [ ] T059 [P] `services/audit/README.md`: components, settings, suites, how to re-read after a restore
+- [ ] T060 [P] `tests/port/README.md`: the audit's section
+- [ ] T061 [P] Spec 008's facts row for the erasure records, in `specs/008-players/spec.md`
+- [ ] T062 `just features`, `just test`, `just audit-test`, `just audit-it` and the three neighbours'
   suites green; `sbt scalafmtCheckAll` in each changed build
-- [ ] T061 A kind deploy of `shared/reasoner` beside `goldvibe` (quickstart §5), `--context kind-…`
+- [ ] T063 A kind deploy of `shared/reasoner` beside `goldvibe` (quickstart §5), `--context kind-…`
   only; optional, and skipped with a note when the kind installation is not up
 
 ---
@@ -300,8 +309,8 @@ generation.
 - **US2 (3)** first: the MVP; US3–US6 read its store.
 - **US1 (4)** depends only on Setup: it changes other services and can run beside Phase 2–3.
 - **US3 (5)** after US2. **US4 (6)**, **US5 (7)**, **US6 (8)** after US2, independent of each other,
-  except that T047 (players) must be published before T043's erasure rows can pass.
-- **Polish (9)** last; T054 may run at any time.
+  except that T049 (players) must be published before T045's erasure rows can pass.
+- **Polish (9)** last; T056 may run at any time.
 
 ### Parallel opportunities
 
