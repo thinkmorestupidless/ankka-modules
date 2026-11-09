@@ -88,7 +88,7 @@ registry, the consumers' decoding, the kit.
   contracts/routes.md, the opaque cursor, the SQL fragments for `Records`
 - [X] T013 [P] `a/retention/Retention.scala` and `a-test/retention/RetentionSuite.scala`: `cutoff`,
   `raise` refusing below the current or the installation's
-- [ ] T014 `a/AuditCodecs.scala`: serializers for every stored type, named manifests
+- [X] T014 `a/AuditCodecs.scala`: serializers for every stored type, named manifests
 - [ ] T015 [P] `a/store/Record.scala`: the key value entity of data-model.md (`keep` → `kept` |
   `collision`, `drop`), with its kit suite `a-test/store/RecordSuite.scala`
 - [ ] T016 [P] `a/registry/Pseudonym.scala` and `a/registry/Identity.scala` with kit suites: the first
