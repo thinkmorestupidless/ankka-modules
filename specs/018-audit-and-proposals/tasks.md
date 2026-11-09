@@ -152,7 +152,7 @@ every person by a pseudonym, the same person the same at one brand and another a
   run them first and record what fails
 - [X] T028 [P] [US1] Bind its deposit limit in
   `services/responsible-gambling/src/test/scala/.../features/AuditRecordsFeatures.scala`
-- [ ] T029 [P] [US1] Bind its email change in
+- [X] T029 [P] [US1] Bind its email change in
   `services/players/src/test/scala/.../features/AuditRecordsFeatures.scala`; the support agent's
   scenario ignored with "spec 017 is not built"
 
@@ -162,7 +162,7 @@ every person by a pseudonym, the same person the same at one brand and another a
   carry `amount`, `currency` and `target`; a refusal's causation is the command's key; balances before
   and after where the event carries them. A scenario no event can meet is asked, not guessed
   (research R15)
-- [ ] T031 [US1] Whatever T028 and T029 find failing, fixed in their services' audit mappings; their
+- [X] T031 [US1] Whatever T028 and T029 find failing, fixed in their services' audit mappings; their
   suites green
 - [ ] T032 [US1] SC-001: in `services/wallet/` and `services/players/` parity suites, assert that every
   replayed money command, refusal and operator action leaves exactly one record on `platform.audit`

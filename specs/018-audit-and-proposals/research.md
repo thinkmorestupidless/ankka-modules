@@ -296,3 +296,10 @@ outlives an erasure (FR-023).
   `target` and the balance it moved, before and after; a deposit names `cashier` as its actor and
   lists the same; the turnover override lists `currency` and the terms. "Outcome done" in the
   scenario is the action's own outcome, the wallet's `accepted` (FR-001).
+- **What records.feature found in responsible gambling and players** (T028, T029). Both audited
+  operators' actions only, so a player's limit and a player's email change left no record (FR-004).
+  T028 and T031: a player's change on their own account is a record whose actor is the player, of
+  category `account`: in responsible gambling, the limits, breaks and exclusions; in players,
+  registration, profile edits (the fields named), each email change (named, no value), the session
+  limit, self-exclusion, consent the player gave or withdrew, and closure. The system's and a third
+  party's changes stay unrecorded.
