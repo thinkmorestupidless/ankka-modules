@@ -79,7 +79,7 @@ registry, the consumers' decoding, the kit.
   above 1 refused without `AUDIT_READ_FROM`; `SettingsSuite` in `a-test/SettingsSuite.scala`
 - [X] T009 [P] `a/keep/Keep.scala` and `a-test/keep/KeepSuite.scala`: FR-008a over every category ×
   actor kind × outcome (research R3)
-- [ ] T010 [P] `a/ids/Ids.scala` and `a-test/ids/IdsSuite.scala`: `digest` (HMAC-SHA256 under the
+- [X] T010 [P] `a/ids/Ids.scala` and `a-test/ids/IdsSuite.scala`: `digest` (HMAC-SHA256 under the
   registry key, `d-` and 32 hex), `isPerson`, `contains` (research R5)
 - [ ] T011 `a/stored/Stored.scala` and `a-test/stored/StoredSuite.scala`: `Stored`, `from(record,
   source, pseudonyms, key)`, `fromModule(change, brand)`, visibility per research R6 and the amount
