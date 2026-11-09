@@ -106,9 +106,12 @@ object Revenue:
   /** The day's whole section in `currency` as `dayMoney` counts it: its hours and providers with the corrections in. */
   def daySection(row: DayRow, currency: String, excludeTestAccounts: Boolean): Section =
     val fixed = row.currencies.get(currency).fold(Section())(_.section(excludeTestAccounts))
-    row.corrections
-      .filter(c => c.delta.currency == currency && !(excludeTestAccounts && c.delta.test))
-      .foldLeft(fixed)(_ + _.delta)
+    row.corrections.filter(_.delta.currency == currency).foldLeft(fixed) { (s, c) =>
+      // A test-only correction moved a fold of a test account already counted into the test section: out when excluded.
+      if c.testOnly then (if excludeTestAccounts then s - (Section() + c.delta) else s)
+      else if excludeTestAccounts && c.delta.test then s
+      else s + c.delta
+    }
 
   def of(rows: Seq[DayRow], from: LocalDate, to: LocalDate, currency: String, excludeTestAccounts: Boolean): Revenue =
     val byDay = rows.map(r => r.day -> r).toMap

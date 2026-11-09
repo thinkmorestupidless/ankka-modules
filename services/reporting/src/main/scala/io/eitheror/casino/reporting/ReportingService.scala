@@ -37,6 +37,7 @@ object ReportingService:
     documents.DocumentAudit.descriptor,
     day.BrandDay.descriptor,
     day.FoldProgress.descriptor,
+    day.TestHolds.descriptor,
     day.OpenDays.descriptor,
     day.DaysView.descriptor,
     day.CloseDays.descriptor,

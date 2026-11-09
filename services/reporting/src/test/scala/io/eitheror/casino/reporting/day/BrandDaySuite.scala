@@ -108,3 +108,41 @@ class BrandDaySuite extends munit.FunSuite:
     k.call(BrandDay.close)(Close(at.plusSeconds(86400), "UTC", CloseInputs(openingCorrections = Vector(opening)))): Unit
     assertEquals(k.currentState.openingCorrections, Vector(opening))
   }
+
+  // ── the same figures whichever of a test account's money and its registration is folded first ───────────
+
+  /** The day and its row after `folds`, closed at `closeAfter` folds when given. */
+  private def dayOf(folds: Vector[Fold], closeAfter: Option[Int] = None): DayRow =
+    val s = folds.zipWithIndex.foldLeft(DayState()) { case (s, (f, i)) =>
+      val closed = if closeAfter.contains(i) then Day.close(s, Close(at, "UTC")).fold(s)(Day.apply(s, _)) else s
+      Day.fold(closed, f).fold(closed)(Day.apply(closed, _))
+    }
+    DayRow.of(1, "2026-11-08", s)
+
+  test("a test account's stake folded before its registration and then again test-only gives the figures of the other order") {
+    val real    = Fold("wallet-book/g1/p-1/EUR", 1, stake, at)
+    val first   = Fold("wallet-book/g1/p-3/EUR", 1, testBet, at)                         // registration first: marked
+    val held    = Fold("wallet-book/g1/p-3/EUR", 1, testBet.copy(test = false), at)      // money first: held, unmarked
+    val again   = Fold("test/wallet-book/g1/p-3/EUR", 1, testBet, at, testOnly = true)   // the registration releases it
+    val ordered = dayOf(Vector(real, first))
+    for exclude <- Seq(true, false) do
+      assertEquals(Revenue.daySection(dayOf(Vector(real, held, again)), "EUR", exclude), Revenue.daySection(ordered, "EUR", exclude))
+      assertEquals(Revenue.daySection(dayOf(Vector(real, again, held)), "EUR", exclude), Revenue.daySection(ordered, "EUR", exclude))
+      // the day closed between the fold and its release: the release is a test-only correction
+      assertEquals(Revenue.daySection(dayOf(Vector(real, held, again), closeAfter = Some(2)), "EUR", exclude).money,
+        Revenue.daySection(ordered, "EUR", exclude).money)
+      // closed before either: both corrections
+      assertEquals(Revenue.daySection(dayOf(Vector(real, held, again), closeAfter = Some(1)), "EUR", exclude).money,
+        Revenue.daySection(ordered, "EUR", exclude).money)
+    assertEquals(Revenue.daySection(ordered, "EUR", excludeTestAccounts = true).money.stakes, 1000L)
+  }
+
+  test("a test-only correction is no correction of the day-end, which counts every player") {
+    val k = kit
+    fold(k, "wallet-book/g1/p-3/EUR", 1, testBet.copy(test = false)): Unit
+    k.call(BrandDay.close)(Close(at, "UTC")): Unit
+    k.call(BrandDay.fold)(Fold("test/wallet-book/g1/p-3/EUR", 1, testBet, at, testOnly = true)): Unit
+    assertEquals(k.currentState.corrections.map(_.testOnly), Vector(true))
+    assertEquals(DayEndInputs.opening(Vector(DayRow.of(1, "2026-11-08", k.currentState)), at, at.plusSeconds(1)), Vector.empty)
+  }
+

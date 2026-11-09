@@ -77,7 +77,7 @@ class ToDaysSuite extends munit.FunSuite:
   override def beforeEach(context: BeforeEach): Unit = FoldProgress.forget()
 
   private def recorded(test: Boolean) = Recorded(c =>
-    if c.method == "test-account" then test.toString.getBytes else Recorded.answer(c))
+    if c.method == "standing" then s"""{"registered":true,"test":$test}""".getBytes else Recorded.answer(c))
   private def folds(r: Recorded): Vector[(Call, Fold)] =
     r.calls.filter(_.method == "fold").map(c => c -> c.as[Fold](using BrandDay.given_Serializer_Fold))
 
@@ -111,7 +111,7 @@ class ToDaysSuite extends munit.FunSuite:
     val r   = recorded(test = false)
     val kit = ConsumerTestKit.of(ToDaysConsumers.Players(settings), client = r.client)
     kit.onMessage(PlayerLogEvent.Registered("f", "p-1", at, None, None, None, testAccount = true, at), subject = "g1/p-1"): Unit
-    assert(!r.calls.exists(_.method == "test-account"))
+    assert(!r.calls.exists(_.method == "standing"))
     assert(folds(r).head._2.delta.test)
   }
 
@@ -155,4 +155,52 @@ class ToDaysSuite extends munit.FunSuite:
   test("the markets' consumer is waited for only with the predictions module") {
     assertEquals(ToDaysConsumers.names(settings).size, 5)
     assertEquals(ToDaysConsumers.names(settings.copy(modules = Set("predictions"))).last, "to-days-markets")
+  }
+
+  // ── a test account's money folded before its registration (review, should fix 2) ───────────────
+
+  test("a player PlayerLog has not registered: the fold is held in TestHolds and folded as a real player's") {
+    val r = Recorded(c =>
+      if c.method == "standing" then "{}".getBytes
+      else if c.method == "hold" then "false".getBytes
+      else Recorded.answer(c))
+    val kit = ConsumerTestKit.of(ToDaysConsumers.Wallets(settings), client = r.client)
+    kit.onMessage(moved("deposit_confirmed", 1000), subject = "g1/p-1/EUR", sequenceNumber = 3): Unit
+    val held = r.calls.filter(_.method == "hold")
+    assertEquals(held.map(_.entity), Vector("g1/p-1"))
+    assertEquals(held.head.as[HoldFold](using TestHolds.given_Serializer_HoldFold),
+      HoldFold("wallet-book/g1/p-1/EUR", 3, Map("2026-11-08" -> Delta("EUR", 12, Money(deposits = 1000, depositCount = 1)))))
+    assert(folds(r).forall(!_._2.delta.test))
+  }
+
+  test("a test account's registration folds the folds held before it into the test sections alone") {
+    val deposit = Delta("EUR", 12, Money(deposits = 1000, depositCount = 1))
+    val heldOne = HeldFold("wallet-book/g1/p-1/EUR", 3, Map("2026-11-08" -> deposit))
+    val r = Recorded(c =>
+      if c.component == "test-holds" && c.method == "register" then
+        TestHolds.given_Serializer_Vector.toBytes(Vector(heldOne))
+      else Recorded.answer(c))
+    val kit = ConsumerTestKit.of(ToDaysConsumers.Players(settings), client = r.client)
+    kit.onMessage(PlayerLogEvent.Registered("f", "p-1", at, None, None, None, testAccount = true, at), subject = "g1/p-1"): Unit
+    val register = r.calls.filter(_.method == "register")
+    assertEquals(register.map(c => c.entity -> c.as[Register](using TestHolds.given_Serializer_Register)), Vector("g1/p-1" -> Register(true)))
+    val again = folds(r).filter(_._2.testOnly)
+    assertEquals(again.map(f => (f._1.entity, f._2.source, f._2.seq, f._2.delta)),
+      Vector(("g1/2026-11-08", "test/wallet-book/g1/p-1/EUR", 3L, deposit.copy(test = true))))
+  }
+
+  test("TestHolds: holds before the registration, answers its flag after, and a held fold stays held on redelivery") {
+    val k = com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit.of(TestHolds, TestHolds.id(1, "p-1"))
+    val days = Map("2026-11-08" -> Delta("EUR", 12, Money(stakes = 500)))
+    assertEquals(k.call(TestHolds.hold)(HoldFold("wallet-book/g1/p-1/EUR", 1, days)).replyValue, false)
+    assertEquals(k.call(TestHolds.hold)(HoldFold("payment/g1/pay-1", 2, days)).replyValue, false)
+    assertEquals(k.call(TestHolds.register)(Register(true)).replyValue.map(_.seq), Vector(1L, 2L))
+    // After the registration: the flag, and a redelivered held fold is still held (its test-only part is folded already).
+    assertEquals(k.call(TestHolds.hold)(HoldFold("wallet-book/g1/p-1/EUR", 5, days)).replyValue, true)
+    assertEquals(k.call(TestHolds.hold)(HoldFold("wallet-book/g1/p-1/EUR", 1, days)).replyValue, false)
+    // A registration redelivered answers the same held folds; a real player's none.
+    assertEquals(k.call(TestHolds.register)(Register(true)).replyValue.size, 2)
+    val real = com.thinkmorestupidless.ankka.testkit.KeyValueEntityTestKit.of(TestHolds, TestHolds.id(1, "p-2"))
+    real.call(TestHolds.hold)(HoldFold("wallet-book/g1/p-2/EUR", 1, days)): Unit
+    assertEquals(real.call(TestHolds.register)(Register(false)).replyValue, Vector.empty)
   }

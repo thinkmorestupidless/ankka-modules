@@ -39,5 +39,12 @@ object Recorded:
   /** The components a consumer tells what it has read: `Coverage` and `FoldProgress`. */
   val Bookkeeping: Set[String] = Set("coverage", "fold-progress")
 
-  /** `true` for a command, an empty state for a coverage's or a progress's tell. */
-  val answer: Call => Array[Byte] = c => (if Bookkeeping(c.component) then "{}" else "true").getBytes
+  /**
+   * `true` for a command, an empty state for a coverage's or a progress's tell, a registered real player's standing, and
+   * no held folds for a registration.
+   */
+  val answer: Call => Array[Byte] = c =>
+    (if Bookkeeping(c.component) then "{}"
+     else if c.method == "standing" then """{"registered":true}"""
+     else if c.component == "test-holds" && c.method == "register" then "[]"
+     else "true").getBytes

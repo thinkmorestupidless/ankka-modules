@@ -134,6 +134,29 @@ class RevenueSuite extends munit.FunSuite with LogCapturing:
     assertEquals(shown(settled("EUR"))._1("totalDeposits"), money(100_00 + 20_00 + 20_00))
   }
 
+  test("a test account's money folded before its registration is left out exactly as when the registration came first") {
+    val day = kit.days()
+    val s   = FactSet(kit.zone)
+    val tp  = s.register("rev-late-test", s.at(day.minusDays(1), "09:00"), test = true)
+    val rp  = s.register("rev-late-real", s.at(day.minusDays(1), "09:00"))
+    s.deposit(tp, "EUR", 40_00, s.at(day, "10:00"))
+    s.bet(tp, "EUR", "rev-late-r1", 7_00, 7_00, s.at(day, "10:05"))
+    s.deposit(rp, "EUR", 15_00, s.at(day, "11:00"))
+    def report() = kit.get(s"/reports/ggr?from=$day&to=$day&currency=EUR", kit.asFinance)
+    // The money folded into the day before PlayerLog knows either player.
+    s.publishRegistrationsLast(kit)(kit.eventually("the money folded before the registrations", 60.seconds)(
+      io.eitheror.casino.reporting.day.DaysView.row(kit.views, kit.settings.generation, day)
+        .filter(_.currencies.get("EUR").exists(_.total.money.deposits == 55_00))))
+    try
+      kit.setReporting(_.copy(excludeTestAccounts = true))
+      val want = summaryOf(s.total(day, day, "EUR", true))
+      kit.eventually("the test account left out", 60.seconds)(Some(report()).filter(r => fields(r.json.path("summary")) == want))
+      assertEquals(want("totalDeposits"), money(15_00))
+      assertEquals(want("totalBets"), money(0))
+    finally kit.setReporting(_.copy(excludeTestAccounts = false))
+    assertEquals(fields(report().json.path("summary")), summaryOf(s.total(day, day, "EUR", false)))
+  }
+
   test("the CSV holds the summary row and every daily row with every column, kept with its record and equal to the screen") {
     val screen = shown(settled("EUR"))
     val r = kit.get(s"/reports/ggr?from=$d1&to=$d3&currency=EUR&format=csv", kit.asFinance)

@@ -79,6 +79,9 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
 - `ReportingSettings` (key value, `brand`): `reportsTab`, `excludeTestAccounts`, `defaultCurrency`,
   `syncRows` (1–10,000), `syncDays` (1–365), `lifetimeHours` per kind (1–2,160, default 24).
 - `Coverage` (key value, `<topic>`): the earliest `occurredAt` folded in this generation.
+- `TestHolds` (key value, `<player>`): whether the player's registration has been folded by the day consumers,
+  its test flag, and the folds made before it, which a test account's registration folds again into the test
+  sections alone (research R4).
 - `FoldProgress` (key value, `<consumer>`, one per `to-days` consumer): the latest fact time it has folded in
   this generation and the instant it last read an event, which `close-days` waits on (research R7).
 

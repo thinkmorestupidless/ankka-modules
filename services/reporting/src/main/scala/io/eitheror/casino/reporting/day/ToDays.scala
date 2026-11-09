@@ -95,7 +95,9 @@ object ToDays:
  * The consumer `to-days` (data-model.md *Consumers*), one per intake entity, since a consumer reads one source: each
  * event of this generation's entities folded into its days' `BrandDay`, under the source entity and the event's
  * sequence, so a redelivery folds nothing twice. The delta is marked a test account's when the player's `PlayerLog`
- * says so at the fold (research R4); a flag changed later does not restate a day already folded. Every event read, of
+ * says so at the fold (research R4); a flag changed later does not restate a day already folded. A player whose
+ * registration `PlayerLog` has not folded yet is asked of `TestHolds`, which holds the fold until the registration says
+ * whether it was a test account's, so the figures do not depend on which consumer ran first. Every event read, of
  * this generation or another, is told to the consumer's `FoldProgress` with its fact time, which `close-days` waits on
  * (research R7).
  */
@@ -108,6 +110,15 @@ abstract class DayFolder[E](client: ComponentClient, settings: Settings, clock: 
   /** The flag the event itself carries, when it carries one. */
   protected def testFlag(e: E): Option[Boolean] = None
 
+  /** What a consumer does once an event's days are folded: the registrations' consumer releases the held folds. */
+  protected def afterFold(e: E, now: Instant): Unit = ()
+
+  /** The player's flag from `PlayerLog`, or, before their registration is folded, from `TestHolds` holding the fold. */
+  private def flagOf(player: String, from: String, seq: Long, ds: Map[String, Delta]): Boolean =
+    val standing = client.forEventSourcedEntity(EntityId(PlayerLog.id(settings.generation, player))).call(PlayerLog.standing).invoke()
+    if standing.registered then standing.test
+    else client.forKeyValueEntity(EntityId(TestHolds.id(settings.generation, player))).call(TestHolds.hold).invoke(HoldFold(from, seq, ds))
+
   def onMessage(e: E): Effect =
     val subject = messageContext.subject
     val now     = clock.instant()
@@ -117,13 +128,14 @@ abstract class DayFolder[E](client: ComponentClient, settings: Settings, clock: 
     else
       val ds = deltas(e, settings.reportingZone)
       if ds.nonEmpty then
-        val test = testFlag(e).getOrElse(
-          client.forEventSourcedEntity(EntityId(PlayerLog.id(settings.generation, player(e)))).call(PlayerLog.testAccount).invoke())
-        val seq = messageContext.sequenceNumber
+        val seq  = messageContext.sequenceNumber
+        val from = s"$source/$subject"
+        val test = testFlag(e).getOrElse(flagOf(player(e), from, seq, ds))
         ds.toSeq.sortBy(_._1).foreach { (day, d) =>
           client.forEventSourcedEntity(EntityId(BrandDay.id(settings.generation, day))).call(BrandDay.fold)
-            .invoke(Fold(s"$source/$subject", seq, d.copy(test = test || d.test), now)): Unit
+            .invoke(Fold(from, seq, d.copy(test = test || d.test), now)): Unit
         }
+        afterFold(e, now)
       FoldProgress.observed(client, settings, consumer, factAt(e), now)
       if ds.isEmpty then effects.ignore() else effects.done()
 
@@ -163,6 +175,16 @@ final class PlayerDaysFolder(client: ComponentClient, settings: Settings, clock:
   override protected def testFlag(e: PlayerLogEvent) = e match
     case r: PlayerLogEvent.Registered => Some(r.testAccount)
     case _                            => None
+
+  /** A registration: the folds held before it, a test account's, folded again into the test sections alone. */
+  override protected def afterFold(e: PlayerLogEvent, now: Instant): Unit = e match
+    case r: PlayerLogEvent.Registered =>
+      val held = client.forKeyValueEntity(EntityId(TestHolds.id(settings.generation, r.player))).call(TestHolds.register)
+        .invoke(Register(r.testAccount))
+      for h <- held.sortBy(h => (h.source, h.seq)); (day, d) <- h.days.toSeq.sortBy(_._1) do
+        client.forEventSourcedEntity(EntityId(BrandDay.id(settings.generation, day))).call(BrandDay.fold)
+          .invoke(Fold(TestHolds.source(h.source), h.seq, d.copy(test = true), now, testOnly = true)): Unit
+    case _ => ()
 
 /** A market's events: about no one player, so no test account's. */
 final class MarketDays(client: ComponentClient, settings: Settings, clock: Clock)

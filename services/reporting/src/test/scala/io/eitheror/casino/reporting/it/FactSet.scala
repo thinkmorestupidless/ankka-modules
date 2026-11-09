@@ -236,6 +236,13 @@ final class FactSet(val zone: ZoneId):
     rest.result().foreach(_()(kit))
     kit.remember(this)
 
+  /** Every fact but the registrations, then `between` (to wait for their folds), then the registrations. */
+  def publishRegistrationsLast(kit: Kit)(between: => Unit): Unit =
+    rest.result().foreach(_()(kit))
+    between
+    players.result().foreach(p => kit.publish(f.CasinoPlayers, p))
+    kit.remember(this)
+
   // ── what was published, for the expected figures ───────────────────────────────────────────────
 
   def registered: Vector[f.PlayerRegistered] = players.result()

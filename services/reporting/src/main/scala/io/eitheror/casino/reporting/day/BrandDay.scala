@@ -153,8 +153,11 @@ final case class Delta(
       currency = if currency.nonEmpty then currency else o.currency,
       predictions = Section.merge(predictions, o.predictions, MarketDay())(_ + _))
 
-/** A late fact for a closed day: dated when it arrived, changing nothing fixed (FR-019). */
-final case class Correction(source: String, arrivedAt: Instant, delta: Delta)
+/**
+ * A late fact for a closed day: dated when it arrived, changing nothing fixed (FR-019). `testOnly`: a fold already counted
+ * for every player, found later to be a test account's (`TestHolds`), so it moves only the figures without test accounts.
+ */
+final case class Correction(source: String, arrivedAt: Instant, delta: Delta, testOnly: Boolean = false)
 
 /** A round the close lists: its figures differ, or one side lacks it (FR-018). */
 final case class Difference(player: String, currency: String, roundId: String, status: String, providerStake: Long = 0,
@@ -204,15 +207,19 @@ final case class DayState(
 sealed trait DayEvent
 
 object DayEvent:
-  final case class Folded(source: String, seq: Long, delta: Delta) extends DayEvent
-  final case class Corrected(source: String, seq: Long, arrivedAt: Instant, delta: Delta) extends DayEvent
+  /** `testOnly`: into the test sections alone, for a fold already counted in `total` (`TestHolds`). */
+  final case class Folded(source: String, seq: Long, delta: Delta, testOnly: Boolean = false) extends DayEvent
+  final case class Corrected(source: String, seq: Long, arrivedAt: Instant, delta: Delta, testOnly: Boolean = false) extends DayEvent
   /** The day-end, fixed: every section per currency as it stood at the close, in the zone it closed in (FR-018). */
   final case class DayFixed(zone: String, closedAt: Instant, sections: Map[String, CurrencyDay], differences: Vector[Difference],
       openingCorrections: Vector[OpeningCorrection], registrations: Long = 0, testRegistrations: Long = 0,
       feeDifferences: Vector[FeeDifference] = Vector.empty) extends DayEvent
 
-/** `source` is the source entity's component and id; `seq` its event's sequence; `arrivedAt` when the fold was asked. */
-final case class Fold(source: String, seq: Long, delta: Delta, arrivedAt: Instant)
+/**
+ * `source` is the source entity's component and id; `seq` its event's sequence; `arrivedAt` when the fold was asked;
+ * `testOnly` a held fold of a test account, already in `total`, folded into the test sections alone (`TestHolds`).
+ */
+final case class Fold(source: String, seq: Long, delta: Delta, arrivedAt: Instant, testOnly: Boolean = false)
 
 final case class Close(at: Instant, zone: String, inputs: CloseInputs = CloseInputs())
 
@@ -221,8 +228,8 @@ object Day:
 
   def fold(s: DayState, c: Fold): Option[DayEvent] =
     if s.folded(c.source, c.seq) then None
-    else if s.closed then Some(Corrected(c.source, c.seq, c.arrivedAt, c.delta))
-    else Some(Folded(c.source, c.seq, c.delta))
+    else if s.closed then Some(Corrected(c.source, c.seq, c.arrivedAt, c.delta, c.testOnly))
+    else Some(Folded(c.source, c.seq, c.delta, c.testOnly))
 
   def close(s: DayState, c: Close): Option[DayEvent] =
     Option.unless(s.closed) {
@@ -238,6 +245,16 @@ object Day:
       DayFixed(c.zone, c.at, sections, c.inputs.differences, c.inputs.openingCorrections, s.registrations, s.testRegistrations,
         c.inputs.feeDifferences)
     }
+
+  /** A held fold of a test account into the test sections alone: `total` holds it already. */
+  private def addTest(s: DayState, d: Delta): DayState =
+    val h = d.hour.max(0).min(23)
+    val regs = s.copy(testRegistrations = s.testRegistrations + d.registrations,
+      hourTestRegistrations = s.hourTestRegistrations.updated(h, s.hourTestRegistrations(h) + d.registrations))
+    if d.currency.isEmpty then regs
+    else
+      val day = regs.currencies.getOrElse(d.currency, CurrencyDay())
+      regs.copy(currencies = regs.currencies.updated(d.currency, day.copy(test = day.test + d)))
 
   private def add(s: DayState, d: Delta): DayState =
     val h    = d.hour.max(0).min(23)
@@ -256,9 +273,10 @@ object Day:
             else day.hourPredictions.updated(h, day.hourPredictions(h) + markets))))
 
   def apply(s: DayState, e: DayEvent): DayState = e match
-    case f: Folded    => add(s, f.delta).copy(lastSeq = s.lastSeq.updated(f.source, f.seq))
+    case f: Folded    => (if f.testOnly then addTest(s, f.delta) else add(s, f.delta)).copy(lastSeq = s.lastSeq.updated(f.source, f.seq))
     case c: Corrected =>
-      s.copy(corrections = s.corrections :+ Correction(c.source, c.arrivedAt, c.delta), lastSeq = s.lastSeq.updated(c.source, c.seq))
+      s.copy(corrections = s.corrections :+ Correction(c.source, c.arrivedAt, c.delta, c.testOnly),
+        lastSeq = s.lastSeq.updated(c.source, c.seq))
     case x: DayFixed =>
       s.copy(closed = true, zone = x.zone, closedAt = Some(x.closedAt), currencies = x.sections, differences = x.differences,
         openingCorrections = x.openingCorrections, registrations = x.registrations, testRegistrations = x.testRegistrations,

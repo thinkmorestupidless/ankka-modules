@@ -24,6 +24,7 @@ old one serves.
 | `to-days-wallets`, `-payments`, `-withdrawals`, `-grants`, `-players`, `-markets` | consumers (one per source) | each intake event folded into its days' `BrandDay`, under its source and sequence |
 | `BrandDay` | event sourced, id `g<n>/<day>` | a reporting day in the brand's zone, per currency: money, providers, gateways, the hours, the markets; fixed once at its close (`DayFixed`), then corrections |
 | `days`, `open-days` | views of `BrandDay` | the days the reports and the dashboard read; the open days the closer reads |
+| `TestHolds` | key value, id `g<n>/<player>` | the folds of a player made before their registration was folded, folded again as a test account's when the registration says so (research R4) |
 | `FoldProgress` | key value, id `g<n>/<consumer>` | per `to-days` consumer, the latest fact time it folded and when it last read an event |
 | `close-days` | recurring timed action, every 5 minutes | closes every day whose end plus `CLOSE_GRACE` has passed, once every `to-days` consumer has folded a fact past that or read nothing for `CLOSE_IDLE` (research R7), with what the views hold then (`DayEndInputs`) |
 | `wallets`, `players`, `sessions`, `payments`, `withdrawals`, `rounds`, `player-days`, `activity`, `transactions`, `grants`, `compliance` | views | the reads the reports, the dashboard, the ledger, the dispute report and the compliance exports answer from |

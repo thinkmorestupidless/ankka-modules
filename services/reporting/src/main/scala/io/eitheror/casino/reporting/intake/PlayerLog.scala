@@ -128,6 +128,9 @@ object PlayerLogs:
       case m: EmailChanged       => s.copy(email = m.email.orElse(s.email))
       case _: RgCaseOpened | _: RgCaseClosed | _: RgLimitApplied => s
 
+/** Whether a player's registration has been folded, and whether the player is a test account now. */
+final case class Standing(registered: Boolean = false, test: Boolean = false)
+
 /** A players fact. The contract's codec; the entity stores only its events. */
 final case class PlayerFact(factId: String, fact: f.CasinoPlayersFact)
 
@@ -140,8 +143,11 @@ final class PlayerLog(@scala.annotation.unused context: EventSourcedEntityContex
   def record(c: PlayerFact): Effect[Boolean] =
     PlayerLogs.event(currentState, c.factId, c.fact).fold(effects.reply(false))(e => effects.persist(e).thenReply(_ => true))
 
-  /** Whether the player is a test account now, which the day's fold reads (research R4); no personal value. */
+  /** Whether the player is a test account now (research R4); no personal value. */
   def testAccount: ReadOnlyEffect[Boolean] = effects.reply(currentState.testAccount)
+
+  /** Whether the player's registration is folded and whether they are a test account now: what a day's fold reads (R4). */
+  def standing: ReadOnlyEffect[Standing] = effects.reply(Standing(currentState.registeredAt.isDefined, currentState.testAccount))
 
   def get: ReadOnlyEffect[PlayerLogState] = effects.reply(currentState)
 
@@ -151,6 +157,7 @@ object PlayerLog extends EventSourcedEntity.Companion[PlayerLog, PlayerLogState,
       eventSerializer = ReportingCodecs.serializer[PlayerLogEvent]("player-log-event")
     ):
   given Serializer[PlayerFact] = Serializer.json[PlayerFact]("reporting.player-fact")(using JsonCodecMaker.make[PlayerFact])
+  given Serializer[Standing]   = ReportingCodecs.serializer[Standing]("player-log-standing")
   import ReportingCodecs.given_Serializer_Boolean
 
   def id(generation: Int, player: String): String = Generation.id(generation, player)
@@ -159,6 +166,7 @@ object PlayerLog extends EventSourcedEntity.Companion[PlayerLog, PlayerLogState,
 
   val record      = command("record")(_.record)
   val testAccount = query("test-account")(_.testAccount)
+  val standing    = query("standing")(_.standing)
   val get         = query("get")(_.get)
 
 /** `casino.players` into each player's `PlayerLog`. */

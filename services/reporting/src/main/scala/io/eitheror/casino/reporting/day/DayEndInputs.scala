@@ -51,9 +51,12 @@ object DayEndInputs:
   def pendingHolds(rows: Vector[WithdrawalRow]): Map[String, Long] =
     rows.groupMapReduce(_.currency)(_.amount)(_ + _)
 
-  /** The corrections to the days of `rows` that arrived from `from` (inclusive) to `to` (exclusive). */
+  /**
+   * The corrections to the days of `rows` that arrived from `from` (inclusive) to `to` (exclusive); a test-only one moves
+   * no figure the day-end shows, which counts every player.
+   */
   def opening(rows: Vector[DayRow], from: Instant, to: Instant): Vector[OpeningCorrection] =
-    rows.flatMap(r => r.corrections.filter(c => !c.arrivedAt.isBefore(from) && c.arrivedAt.isBefore(to))
+    rows.flatMap(r => r.corrections.filter(c => !c.testOnly && !c.arrivedAt.isBefore(from) && c.arrivedAt.isBefore(to))
       .map(c => OpeningCorrection(r.day, c.arrivedAt, c.delta))).sortBy(o => (o.arrivedAt, o.day))
 
   /**

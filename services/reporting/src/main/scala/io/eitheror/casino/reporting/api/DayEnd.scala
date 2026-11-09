@@ -107,7 +107,7 @@ object DayEnd:
       DayEndAnswer(day.toString, s.zone, iso(s.closedAt.get), reference(r.settings.brand, r.generation, day.toString),
         ListMap.from(s.currencies.toVector.sortBy(_._1).map((c, d) => c -> currency(c, d, s, r.settings.predictions))),
         s.differences.map(difference),
-        s.corrections.map(c => DayEndCorrection(iso(c.arrivedAt), day.toString, figures(c.delta))),
+        s.corrections.filterNot(_.testOnly).map(c => DayEndCorrection(iso(c.arrivedAt), day.toString, figures(c.delta))),
         s.openingCorrections.map(o => DayEndCorrection(iso(o.arrivedAt), o.day, figures(o.delta))))
     }
 

@@ -92,6 +92,14 @@ places.
   `BrandDay` keeps the test accounts' share of each money section beside the total (`ToDays` reads the
   player's flag from `PlayerLog` as it folds) and a read with the setting on subtracts it. A flag changed
   later does not restate closed days; open days fold from the change.
+- **Money before its registration** (review, 2026-11-09): `PlayerLog` is fed by another consumer, so a fold
+  can reach a player whose registration it has not folded yet. That fold is counted as a real player's and held
+  in `TestHolds` (key value, `g<n>/<player>`); `to-days-players`, folding the registration, asks `TestHolds`
+  for the held folds and, for a test account, folds each again into the days' test sections alone
+  (`Fold.testOnly`; after a close a test-only correction, which only the figures without test accounts read and
+  the day-end does not list). The hold and the registration meet in that one entity, so a fold is either held
+  before it or given its flag after it, and the excluded figures are the same in either order. What stays
+  order-dependent is a `player_test_account_changed` folded after money dated after it, as above.
 
 ## R5. The ledger, the player report and the email search
 
