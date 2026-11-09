@@ -214,15 +214,15 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Tests for User Story 4
 
-- [ ] T042 [P] [US4] `a-test/it/ReidentifySuite.scala`: who, pseudonym (answered or issued), refused
+- [X] T042 [P] [US4] `a-test/it/ReidentifySuite.scala`: who, pseudonym (answered or issued), refused
   and recorded, visible to the brand (FR-017, FR-018, SC-005)
-- [ ] T043 [P] [US4] `a-test/features/ReidentificationFeatures.scala`: bind
+- [X] T043 [P] [US4] `a-test/features/ReidentificationFeatures.scala`: bind
   `features/audit/re-identification.feature` (4); the activity-tab scenario against `players`' view
   as spec 008 serves it
 
 ### Implementation for User Story 4
 
-- [ ] T044 [US4] `a/api/IdentitiesEndpoint.scala` (contracts/routes.md); registered; T042–T043 pass
+- [X] T044 [US4] `a/api/IdentitiesEndpoint.scala` (contracts/routes.md); registered; T042–T043 pass
 
 ---
 

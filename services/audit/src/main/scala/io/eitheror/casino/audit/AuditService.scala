@@ -31,7 +31,8 @@ object AuditService:
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => api.RecordsEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.ExportsEndpoint(api.Ctx(authenticate, clients))
+    clients => api.ExportsEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.IdentitiesEndpoint(api.Ctx(authenticate, clients))
   )
 
   /** What the consumers and timed actions are constructed without (see `Wiring`). */

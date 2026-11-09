@@ -147,6 +147,12 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   def asBrandCompliance(brand: String, subject: String = "officer-1") = as(subject, "brand_compliance", s"brand_$brand")
   def asInstallationCompliance(subject: String = "officer-9")          = as(subject, Routes.AuditCompliance)
   def asOwner(subject: String = "owner-1")                             = as(subject, "platform_admin")
+  def asReidentifier(brand: String, subject: String = "officer-r")    =
+    as(subject, "brand_compliance", s"brand_$brand", Routes.reidentifyRole(brand))
+
+  /** `POST /v1/audit-identities/<route>` with a JSON body. */
+  def identities(route: String, as: Seq[(String, String)], body: String): Reply =
+    request("POST", s"/v1/audit-identities/$route", Some(body), as)
 
   /** `GET /v1/audit-records` with these query parameters. */
   def query(as: Seq[(String, String)], params: (String, String)*): Reply =
