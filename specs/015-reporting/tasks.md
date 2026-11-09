@@ -300,7 +300,7 @@ lifetimes and erasure.
 - [X] T070 [P] `tests/original/reporting-driver/` (Go, `players-driver`'s shape): the seed and the 31
   recordings of contracts/recording.md; the person creates the operator users; record on kind with `just
   reporting-record` into `tests/port/reporting/`
-- [ ] T071 `r-test/port/ReportsParity.scala`, `DashboardParity.scala`, `DisputeParity.scala`: a parity test per
+- [X] T071 `r-test/port/ReportsParity.scala`, `DashboardParity.scala`, `DisputeParity.scala`: a parity test per
   recording comparing shapes, with the marked divergences
 - [X] T072 [P] `services/reporting/README.md`: the components, the suites, how to run it locally
 - [X] T073 Run quickstart §1–§3 and §6 end to end; `just features` green; record the results in the pull

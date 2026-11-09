@@ -101,10 +101,10 @@ curl -s -H "Authorization: Bearer $TOKEN" localhost:9015/v1/casino/brands/goldvi
 
 | Command | What it runs |
 |---|---|
-| `just reporting-test` | publishes the contract, then the unit suites: the pure packages, the entity, workflow and consumer kits (`day`, `days`, `figures`, `intake`, `ledger`, `predictions`, `ranges`, `reads`, `render`, `settings`) |
-| `just reporting-it` | the integration kit and the bound features over Postgres in Docker, an in-memory broker and a clock the test moves: `RevenueSuite`, `DashboardSuite`, `LedgerSuite`, `DayEndSuite`, `DisputeSuite`, `DocumentsSuite`, `PredictionsSuite`, `AuditSuite`, `DumpSuite`, `AccessSuite`, and every scenario of `features/reporting/*.feature` |
+| `just reporting-test` | publishes the contract, then the unit suites: the pure packages, the entity, workflow and consumer kits (`day`, `days`, `figures`, `intake`, `ledger`, `predictions`, `ranges`, `reads`, `render`, `settings`), and `port.CoverageSuite`, which ties every recording of `tests/port/reporting/` to its parity test offline |
+| `just reporting-it` | the integration kit, the parity tests and the bound features over Postgres in Docker, an in-memory broker and a clock the test moves: `RevenueSuite`, `DashboardSuite`, `LedgerSuite`, `DayEndSuite`, `DisputeSuite`, `DocumentsSuite`, `PredictionsSuite`, `AuditSuite`, `DumpSuite`, `AccessSuite`, `ReportsParity`, `DashboardParity`, `DisputeParity`, and every scenario of `features/reporting/*.feature` |
 | `just reporting-perf` | on purpose: 10,000 players and a month; the revenue report under 2 s and every dashboard route under 1 s (SC-001, SC-002; `REPORTING_PERF_PLAYERS` overrides the 10,000) |
-| `just reporting-parity` | the parity tests over `tests/port/reporting/` (T071, once the original is recorded with `just reporting-record` on kind) |
+| `just reporting-parity` | the parity tests alone (T071): each recording of `tests/port/reporting/` replayed on the seed's world (`port/World.scala`) and compared by shape; the divergences, declared and pending, are `port/Divergences.scala` |
 
 Each runs in this directory with `sbt`; `CASINO_VERSION` names the contract's version. One kit is
 shared by every integration suite of a JVM (`SharedKit`), each suite on days of its own (`Kit.days`)

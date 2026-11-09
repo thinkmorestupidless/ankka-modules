@@ -272,9 +272,9 @@ reporting-test:
     sbt contract/publishLocal
     cd services/reporting && sbt test
 
-# reporting's integration and feature suites (Docker).
+# reporting's integration, parity and feature suites (Docker), as CI runs them.
 reporting-it:
-    cd services/reporting && sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.features.*"
+    cd services/reporting && sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.port.* io.eitheror.casino.reporting.features.*"
 
 # reporting at a brand's size, on purpose only: 10,000 players and a month of facts (SC-001, SC-002, SC-003; Docker).
 reporting-perf:
