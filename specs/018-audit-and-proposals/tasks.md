@@ -60,7 +60,7 @@ the consumers' decoding and the kit are foundational.
   declares it, the bucket; `shared/payments/manifest.json`: a grant of `platform.audit` to
   `service:reasoner/audit` to consume, in the shape the shared manifest's schema takes for a topic;
   `just modules validate --all` passes
-- [ ] T006 [P] Add to `justfile` the recipes `audit-test`, `audit-it`, `audit-parity`, `audit-perf`,
+- [X] T006 [P] Add to `justfile` the recipes `audit-test`, `audit-it`, `audit-parity`, `audit-perf`,
   `audit-run` (as the programme's), and to `.github/workflows/ci.yml` the path filter and job for
   `services/audit/**`
 - [ ] T007 [P] Amend spec 001 FR-016 to name `payments`' grant of `platform.audit` to
