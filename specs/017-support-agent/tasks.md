@@ -116,7 +116,7 @@ criteria name suites, and the plan names them.
 
 ### The service's foundations
 
-- [ ] T014 [P] `S/SupportCodecs.scala` and `S/Json.scala`: a codec for every stored type in
+- [X] T014 [P] `S/SupportCodecs.scala` and `S/Json.scala`: a codec for every stored type in
       data-model.md, with the manifests named there; round-trip tests in `T/CodecsSuite.scala`.
 - [ ] T015 [P] Pure, test first: `T/domain/SummariesSuite.scala`, then `S/domain/Summaries.scala`.
   - It produces contracts/tools.md's five summaries, with major units via `contract.money`
