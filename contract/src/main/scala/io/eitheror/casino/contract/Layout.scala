@@ -23,8 +23,8 @@ object Layout:
   /** The module a brand service belongs to. */
   def moduleOf(service: String): Option[String] = Modules.find(_.services.contains(service)).map(_.name)
 
-  /** Brand services that get an object-storage bucket (research R12). */
-  val ObjectStorageServices: Set[String] = Set("kyc", "reporting")
+  /** Services that get an object-storage bucket (research R12): two brand services, and the shared audit's exports (spec 018 R10). */
+  val ObjectStorageServices: Set[String] = Set("kyc", "reporting", "audit")
 
   /**
    * The shared projects and their services (FR-003). `tools` holds the game provider simulator
@@ -71,7 +71,7 @@ object Layout:
 
   /** Topics of the shared projects that are part of the contract (FR-011). */
   val SharedTopics: Map[String, Vector[String]] = Map(
-    // platform.audit: merchant's audit records (spec 004 FR-034, research R13); how reasoner/audit reads them is spec 018's.
+    // platform.audit: merchant's and ingest's audit records (spec 004 FR-034, research R13), granted to reasoner/audit (SharedGrantsMade).
     "payments"  -> Vector("payments.merchants", "platform.audit"),
     "programme" -> Vector.empty,
     "reasoner"  -> Vector.empty,
@@ -95,6 +95,14 @@ object Layout:
     case Erasure
 
   final case class Grant(principal: String, target: GrantTarget)
+
+  /**
+   * The grants one shared project makes another, and no others: `payments`' audit records to the
+   * shared audit (spec 018, Clarification 2026-11-08; spec 001 FR-016 as amended).
+   */
+  val SharedGrantsMade: Map[String, Vector[Grant]] = Map(
+    "payments" -> Vector(Grant("service:reasoner/audit", GrantTarget.Topic("platform.audit", "consume")))
+  )
 
   /** The grants a brand's modules make, and no others (spec 021 FR-006; was spec 001 FR-016's fixed list). */
   lazy val BrandGrantsMade: Vector[Grant] = Modules.flatMap(_.grantsMade)

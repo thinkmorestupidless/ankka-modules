@@ -49,13 +49,13 @@ the consumers' decoding and the kit are foundational.
   `reidentify_<slug>`) and `Routes.installationOwner` (`platform_admin`), each refusing with a named
   code, to `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`, with cases in
   `contract/src/test/scala/io/eitheror/casino/contract/access/RoutesSuite.scala` (research R8)
-- [ ] T003 [P] Add the realm role `audit_compliance` to `brands/_realm/eitheror-operators.json`; make
+- [X] T003 [P] Add the realm role `audit_compliance` to `brands/_realm/eitheror-operators.json`; make
   `tools/modules/src/main/scala/io/eitheror/casino/modules/Realm.scala` `ensure` create
   `reidentify_<slug>` beside `brand_<slug>`, with a case in its suite
-- [ ] T004 [P] Render `AUDIT_BRANDS` (the brands that run `core`) for `reasoner/audit` in
+- [X] T004 [P] Render `AUDIT_BRANDS` (the brands that run `core`) for `reasoner/audit` in
   `tools/modules/src/main/scala/io/eitheror/casino/modules/Render.scala` beside `PROGRAMME_BRANDS`,
   with a case in `RenderSuite`
-- [ ] T005 [P] `shared/reasoner/manifest.json`: the env of data-model.md *Settings* (`AUDIT_BRANDS`
+- [X] T005 [P] `shared/reasoner/manifest.json`: the env of data-model.md *Settings* (`AUDIT_BRANDS`
   rendered), the project secret `keycloak-operators-admin` as `shared/programme/manifest.json`
   declares it, the bucket; `shared/payments/manifest.json`: a grant of `platform.audit` to
   `service:reasoner/audit` to consume, in the shape the shared manifest's schema takes for a topic;

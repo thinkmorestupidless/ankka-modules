@@ -13,11 +13,31 @@
     {
       "name": "audit",
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/audit:0.1.0",
-      "expose": true
+      "expose": true,
+      "objectStorage": true,
+      "env": {
+        "AUDIT_RETENTION_YEARS": "7",
+        "AUDIT_READ_GENERATION": "1",
+        "AUDIT_SKEW_BOUND": "5m",
+        "AUDIT_PAGE_LIMIT": "1000",
+        "KEYCLOAK_URL": "https://auth-casino.127.0.0.1.sslip.io:8443",
+        "KEYCLOAK_REALM": "eitheror",
+        "KEYCLOAK_ADMIN_USERNAME": "secret:keycloak-operators-admin/USERNAME",
+        "KEYCLOAK_ADMIN_PASSWORD": "secret:keycloak-operators-admin/PASSWORD"
+      }
     }
   ],
   "topics": [],
   "grants": {
     "made": []
-  }
+  },
+  "secrets": [
+    {
+      "name": "keycloak-operators-admin",
+      "keys": [
+        "USERNAME",
+        "PASSWORD"
+      ]
+    }
+  ]
 }
