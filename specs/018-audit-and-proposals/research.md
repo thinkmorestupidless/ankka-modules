@@ -288,3 +288,11 @@ outlives an erasure (FR-023).
   `services/audit/.../it/StoreSuite.scala`). A key value entity's `deleteEntity` reaches the
   `stateOf` view `Records` as a deletion and its default handler removes the row, so `drop` deletes
   the record and no tombstone is written (R4's fallback is not needed).
+- **What records.feature found in the wallet** (T027, run before T030). Three scenarios failed on
+  `main`: a refusal's outcome was its code (`INSUFFICIENT_FUNDS`), so `Keep` (which keeps a refusal by
+  `outcome == "refused"`) would have passed over every wallet refusal; its causation was empty; and
+  no money record listed a change. T030: a refusal is `refused` with its code, lowercased, as the
+  reason and the refused command's key as causation; an adjustment lists `amount`, `currency`,
+  `target` and the balance it moved, before and after; a deposit names `cashier` as its actor and
+  lists the same; the turnover override lists `currency` and the terms. "Outcome done" in the
+  scenario is the action's own outcome, the wallet's `accepted` (FR-001).

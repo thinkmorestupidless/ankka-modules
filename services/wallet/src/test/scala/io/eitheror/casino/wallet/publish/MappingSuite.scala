@@ -116,7 +116,8 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
     assertEquals(Facts.moneyTransactions(wallet, refused), Vector.empty)
     assertEquals(Facts.moneyTransactions(wallet, HoldConfirmed("c-1", "d", "w-1", t0, ok)), Vector.empty)
     val audit = Facts.audit("goldvibe", wallet, refused).get.fact.asInstanceOf[f.AuditRecord]
-    assertEquals((audit.outcome, audit.action, audit.subjectId, audit.brand), ("INSUFFICIENT_FUNDS", "place-bet", "p1", "goldvibe"))
+    assertEquals((audit.outcome, audit.reasonCode, audit.action, audit.subjectId, audit.brand, audit.causationId),
+      ("refused", Some("insufficient_funds"), "place-bet", "p1", "goldvibe", "tx-9"))
   }
 
   test("the publisher keys every fact by the wallet and sets the dedupe id as ce-id") {

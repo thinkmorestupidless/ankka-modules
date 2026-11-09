@@ -214,17 +214,29 @@ object Facts:
   /** One `platform.audit` record per money event and refusal (FR-031; spec 018 FR-001). No personal field. */
   def audit(brand: String, walletId: String, event: WalletEvent): Option[Published[f.PlatformAuditFact]] =
     final case class A(key: String, action: String, outcome: String, actorKind: String, actorId: String, txId: String,
-        reason: Option[String], at: java.time.Instant)
+        reason: Option[String], at: java.time.Instant, changes: Vector[f.AuditChange] = Vector.empty)
+    val currency = walletId.dropWhile(_ != '/').drop(1)
+    def set(field: String, value: String)          = f.AuditChange(field, None, Some(value))
+    def moved(field: String, after: Long, by: Long) = f.AuditChange(field, Some((after - by).toString), Some(after.toString))
+    def money(amount: Long, target: String)         = Vector(set("amount", amount.toString), set("currency", currency), set("target", target))
     val a: Option[A] = event match
+      // A refusal's outcome is `refused`, its code the reason, and its causation the refused command's key (spec 018 FR-001).
       case e: CommandRefused =>
-        Some(A(e.key, e.commandType, e.code, "service", "", "", Some(e.code), e.at))
+        val commandKey = e.key.split("#reused#").head
+        Some(A(e.key, e.commandType, "refused", "service", "", commandKey, Some(e.code.toLowerCase), e.at))
       case e: TurnoverOverrideSet =>
-        Some(A(s"turnover-override/${e.at.toEpochMilli}", "set-turnover-override", "accepted", "operator", e.actorId, "", None, e.at))
+        Some(A(s"turnover-override/${e.at.toEpochMilli}", "set-turnover-override", "accepted", "operator", e.actorId, "", None, e.at,
+          Vector(set("currency", currency), set("turnoverOverride", e.terms.fold("none")(_.toString)))))
       case e: AdminAdjusted =>
-        Some(A(e.key, "adjust", "accepted", "operator", e.actorId, e.transactionId, Some(e.category), e.at))
+        val balance = if e.target == "restricted" then moved("restrictedBalance", e.restrictedAfter, e.amount)
+                      else moved("realBalance", e.realAfter, e.amount)
+        Some(A(e.key, "adjust", "accepted", "operator", e.actorId, e.transactionId, Some(e.category), e.at, money(e.amount, e.target) :+ balance))
       case e: ProviderCredited => Some(A(e.key, "provider-credit", "accepted", "service", e.actorId, e.transactionId, None, e.at))
       case e: WalletOpenedFromMigration => Some(A(e.key, "open-migrated", "accepted", "service", "", "", None, e.at))
-      case e: DepositConfirmed       => Some(A(e.key, "deposit", "accepted", "service", "", e.transactionId, None, e.at))
+      // The cashier hands a captured deposit to the wallet under the payment id, the record's correlation.
+      case e: DepositConfirmed =>
+        Some(A(e.key, "deposit", "accepted", "service", "cashier", e.transactionId, None, e.at,
+          money(e.amount, "real") :+ moved("realBalance", e.realAfter, e.amount)))
       case e: BetPlaced              => Some(A(e.key, "place-bet", "accepted", "service", "", e.bet.transactionId, None, e.at))
       case e: WinCredited            => Some(A(e.key, "credit-win", "accepted", "service", "", e.transactionId, None, e.at))
       case e: BetRolledBack          => Some(A(e.key, "rollback-bet", "accepted", "service", "", e.transactionId, None, e.at))
@@ -251,7 +263,7 @@ object Facts:
       Published(
         f.AuditRecord(recordId = recordId, brand = brand, service = "wallet", action = x.action, actorKind = x.actorKind,
           actorId = x.actorId, approverId = None, subjectKind = "player", subjectId = walletId.takeWhile(_ != '/'),
-          outcome = x.outcome, reasonCode = x.reason, changes = Vector.empty, correlationId = x.key, causationId = x.txId,
+          outcome = x.outcome, reasonCode = x.reason, changes = x.changes, correlationId = x.key, causationId = x.txId,
           recordClass = "money", occurredAt = x.at),
         recordId
       )

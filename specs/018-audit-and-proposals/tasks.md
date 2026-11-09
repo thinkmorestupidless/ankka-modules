@@ -147,7 +147,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Tests for User Story 1
 
-- [ ] T027 [P] [US1] Bind `features/audit/records.feature`'s adjustment, refused bet, captured deposit
+- [X] T027 [P] [US1] Bind `features/audit/records.feature`'s adjustment, refused bet, captured deposit
   and repeated key in `services/wallet/src/test/scala/.../features/AuditRecordsFeatures.scala`;
   run them first and record what fails
 - [ ] T028 [P] [US1] Bind its deposit limit in
@@ -158,7 +158,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Implementation for User Story 1
 
-- [ ] T030 [US1] `w/publish/Facts.scala` `audit`: `AdminAdjusted` and `TurnoverOverrideSet` records
+- [X] T030 [US1] `w/publish/Facts.scala` `audit`: `AdminAdjusted` and `TurnoverOverrideSet` records
   carry `amount`, `currency` and `target`; a refusal's causation is the command's key; balances before
   and after where the event carries them. A scenario no event can meet is asked, not guessed
   (research R15)
