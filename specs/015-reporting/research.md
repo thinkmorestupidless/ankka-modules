@@ -154,8 +154,15 @@ places.
   reporting manifest gives the same literal, and a manifest test holds the two equal, R14), so a day closes at the instant `ggr-daily` does (FR-006). ankka timers are intervals only (ankka
   032); a sweep has no DST trouble.
 - **Only once caught up** (review, 2026-11-09): a due day closes only when every `to-days` consumer (the five,
-  and `to-days-markets` with `predictions`) has either folded a fact dated at or after the day's end plus the
-  grace, or read nothing for `CLOSE_IDLE` (15 minutes). Each consumer tells its `FoldProgress` (key value,
+  and `to-days-markets` with `predictions`) is either live and has folded a fact dated at or after the day's
+  end plus the grace, or has read nothing for `CLOSE_IDLE` (15 minutes). Live means its latest fact time is
+  within `CLOSE_GRACE` of the clock (second-round review). The latest is a maximum over what the consumer reads
+  in no order: ankka 0.16 reads a consumer's source in 4 slices at once, spread over the service's instances,
+  and the intake consumers write those journals from topics of 6 or 12 partitions, whose order between them is
+  not kept. So a consumer behind the clock (a rebuild, a first deployment over history, a backlog after
+  downtime) can be past a day in one slice and still hold its facts in another; it holds every due day until it
+  is idle, and no day closes mid-replay. A live consumer reads every slice within seconds of the clock, far
+  inside the grace. Each consumer tells its `FoldProgress` (key value,
   `g<n>/<consumer>`) the latest fact time it has folded and the instant it last read an event (of any
   generation, so passing over an older generation's events is not idleness), from the fold it already makes; an
   instance tells at most every 30 seconds, and at once when a fact takes the latest past another day's close. Idle

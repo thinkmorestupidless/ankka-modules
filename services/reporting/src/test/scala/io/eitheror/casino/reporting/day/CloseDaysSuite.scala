@@ -79,10 +79,13 @@ class CloseDaysSuite extends munit.FunSuite:
     val r = Recorded(_ => "{}".getBytes)
     DayClosing(r.client, _ => Vector(OpenDayRow(2, "2026-11-08")), settings, _ => CloseInputs(), () => at, () => progress, () => started).run()
 
-  /** Every consumer past the 8th but `consumer`, whose progress is `state`. */
+  /** Live at noon on the 9th and past the 8th: a fact a minute old, read now. */
+  private val liveAt9 = ProgressState("", Some(noon9.minusSeconds(60)), Some(noon9))
+
+  /** Every consumer live and past the 8th but `consumer`, whose progress is `state`. */
   private def allBut(consumer: String, state: ProgressState): Vector[ConsumerProgress] =
     ToDaysConsumers.names(settings).toVector.map(c =>
-      if c == consumer then ConsumerProgress(c, state) else ConsumerProgress(c, ProgressState(c, Some(past8), Some(noon9))))
+      if c == consumer then ConsumerProgress(c, state) else ConsumerProgress(c, liveAt9.copy(consumer = c)))
 
   test("behind: a consumer that read a minute ago and has folded nothing past the day's end and the grace holds it") {
     val behind = ProgressState("to-days-wallets", Some(past8.minusSeconds(1)), Some(noon9.minusSeconds(60)))
@@ -90,9 +93,39 @@ class CloseDaysSuite extends munit.FunSuite:
     assertEquals(DayClosing.behind(allBut("to-days-wallets", behind), "2026-11-08", settings, longAgo(), noon9), Vector("to-days-wallets"))
   }
 
-  test("caught up: every consumer has folded a fact at or after the day's end plus the grace") {
-    val at = ProgressState("to-days-wallets", Some(past8), Some(noon9))
+  test("live and past: every consumer has folded a fact after the day's end plus the grace, within the grace of the clock") {
+    val at = ProgressState("to-days-wallets", Some(noon9.minus(settings.closeGrace)), Some(noon9))
     assertEquals(run(allBut("to-days-wallets", at)), Vector("2026-11-08"))
+    assert(DayClosing.live(at, settings, noon9))
+  }
+
+  test("behind but past: a consumer past the day but behind the clock holds it until it is idle (R7, its slices in no order)") {
+    // Its latest is past the 8th, but a minute more than the grace behind the clock: another slice may still hold the 8th.
+    val replaying = ProgressState("to-days-wallets", Some(noon9.minus(settings.closeGrace).minusSeconds(60)), Some(noon9.minusSeconds(5)))
+    assert(!DayClosing.live(replaying, settings, noon9))
+    assertEquals(run(allBut("to-days-wallets", replaying)), Vector.empty)
+    assertEquals(DayClosing.behind(allBut("to-days-wallets", replaying), "2026-11-08", settings, longAgo(), noon9), Vector("to-days-wallets"))
+    // A replay of days long gone, its latest just past the 8th, holds it as well.
+    val justPast = ProgressState("to-days-wallets", Some(past8), Some(noon9.minusSeconds(5)))
+    assertEquals(run(allBut("to-days-wallets", justPast)), Vector.empty)
+  }
+
+  test("behind and idle: a consumer behind the clock that has read nothing for CLOSE_IDLE no longer holds the day") {
+    val ended = ProgressState("to-days-wallets", Some(past8), Some(noon9.minus(settings.closeIdle)))
+    assertEquals(run(allBut("to-days-wallets", ended)), Vector("2026-11-08"))
+    assertEquals(run(allBut("to-days-wallets", ended.copy(activeAt = Some(noon9.minus(settings.closeIdle).plusSeconds(1))))), Vector.empty)
+  }
+
+  test("catching up: the consumers behind the clock and not idle, what /status reports as rebuilding") {
+    val replaying = ProgressState("to-days-wallets", Some(past8), Some(noon9.minusSeconds(5)))
+    assertEquals(DayClosing.catchingUp(allBut("to-days-wallets", replaying), settings, longAgo(), noon9), Vector("to-days-wallets"))
+    // Live, idle, or never started and CLOSE_IDLE after the start: none is catching up.
+    val idle = replaying.copy(activeAt = Some(noon9.minus(settings.closeIdle)))
+    assertEquals(DayClosing.catchingUp(allBut("to-days-wallets", idle), settings, longAgo(), noon9), Vector.empty)
+    assertEquals(DayClosing.catchingUp(allBut("to-days-players", ProgressState()), settings, noon9.minus(settings.closeIdle), noon9), Vector.empty)
+    // Never started, and the service started a minute ago: given CLOSE_IDLE to begin, as the closer gives it.
+    assertEquals(DayClosing.catchingUp(allBut("to-days-players", ProgressState()), settings, noon9.minusSeconds(60), noon9),
+      Vector("to-days-players"))
   }
 
   test("idle: a consumer behind the day that has read nothing for CLOSE_IDLE no longer holds it, one minute short it does") {

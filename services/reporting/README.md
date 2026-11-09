@@ -26,7 +26,7 @@ old one serves.
 | `days`, `open-days` | views of `BrandDay` | the days the reports and the dashboard read; the open days the closer reads |
 | `TestHolds` | key value, id `g<n>/<player>` | the folds of a player made before their registration was folded, folded again as a test account's when the registration says so (research R4) |
 | `FoldProgress` | key value, id `g<n>/<consumer>` | per `to-days` consumer, the latest fact time it folded and when it last read an event |
-| `close-days` | recurring timed action, every 5 minutes | closes every day whose end plus `CLOSE_GRACE` has passed, once every `to-days` consumer has folded a fact past that or read nothing for `CLOSE_IDLE` (research R7), with what the views hold then (`DayEndInputs`) |
+| `close-days` | recurring timed action, every 5 minutes | closes every day whose end plus `CLOSE_GRACE` has passed, once every `to-days` consumer is live (its latest fact within `CLOSE_GRACE` of the clock) and has folded a fact past that, or has read nothing for `CLOSE_IDLE` (research R7), with what the views hold then (`DayEndInputs`) |
 | `wallets`, `players`, `sessions`, `payments`, `withdrawals`, `rounds`, `player-days`, `activity`, `transactions`, `grants`, `compliance` | views | the reads the reports, the dashboard, the ledger, the dispute report and the compliance exports answer from |
 | `ReportingSettings` | key value, id `brand` | what an operator sets: the Reports tab, test accounts, the default currency, the synchronous limits, each kind's lifetime |
 | `Document`, `documents` | event sourced, id = reference; view | a document's record from asked to served, expired or failed (FR-021, FR-026) |

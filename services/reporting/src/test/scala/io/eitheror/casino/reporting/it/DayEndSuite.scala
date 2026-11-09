@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 
-import io.eitheror.casino.reporting.day.CloseDays
+import io.eitheror.casino.reporting.ReportingRuntime
+import io.eitheror.casino.reporting.day.{CloseDays, DayClosing, FoldProgress, OpenDays, ToDaysConsumers}
 import io.eitheror.casino.reporting.documents.Document
 
 import java.time.Instant
@@ -134,21 +135,22 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
   }
 
   test("a rebuild into a new generation closes the day only once its consumers have read past it: the same day-end, no replayed corrections (R7, SC-004)") {
-    // Yesterday of a today of its own: the latest day any fact is dated on, so the new generation's consumers read past it
-    // only with these facts, and a run of close-days once the day is open in the replay finds a consumer behind it (players,
-    // whose latest is a registration the day before) and leaves it open.
+    // Yesterday of a today of its own: the latest day any fact is dated on. Every fact the replay reads is at least an hour
+    // behind the clock, so no consumer of the new generation is live, and each reads within CLOSE_IDLE of the clock: the
+    // closer finds them catching up and leaves the day open, whatever their latest fact times say (R7).
     val today = kit.freshToday()
     val r     = DayEnded(kit, today.minusDays(1)).usual().publish().settle()
     val before = r.close()
     val from   = kit.settings.generation
     assertEquals(kit.rebuild(), from + 1)
-    // The day is open in the new generation once a fact of it is folded: from then, a close without the wait fixes it.
-    kit.eventually("the day in the new generation", 60.seconds)(
-      io.eitheror.casino.reporting.day.DaysView.row(kit.views, kit.settings.generation, r.day))
-    val runs = kit.probe.fired("close-days").size
-    kit.moveClock(CloseDays.Every + 1.minute)
-    kit.eventually("a run of close-days in the new generation")(Option.when(kit.probe.fired("close-days").size > runs)(())): Unit
-    Thread.sleep(500)
+    // The day is open in the new generation, and due, once a fact of it is folded: from then, a close without the wait
+    // fixes it. The closer's own decision, asked at the clock, holds it: no sleep for a timer's run to pass.
+    kit.eventually("the day in the new generation, open for the closer", 60.seconds)(
+      OpenDays.before(kit.views, kit.settings.generation, kit.today.toString).find(_.day == r.day.toString))
+    val waiting = DayClosing.behind(FoldProgress.of(kit.components, kit.settings, ToDaysConsumers.names(kit.settings)),
+      r.day.toString, kit.settings, ReportingRuntime.startedAt.get(), kit.now)
+    assert(waiting.nonEmpty, "every consumer is behind the clock and has read within CLOSE_IDLE: the day waits")
+    assertEquals(CloseDays.closing(kit.components, kit.clock).run().filter(_ == r.day.toString), Vector.empty)
     DayEnded.assertOpen(kit, r.day)
     r.settle()
     // The close reads the views as they stand (the liability is the open records' balance at the close), so it is made
@@ -176,9 +178,10 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     def fixedPart(j: JsonNode) = DayEnded.fixed(j).deepCopy[com.fasterxml.jackson.databind.node.ObjectNode]()
       .without[JsonNode](java.util.List.of("closedAt", "reference"))
     assertEquals(fixedPart(after), fixedPart(before))
-    // Nothing replayed was folded into the day after it closed. (The kit's topics hold facts out of date order, since
-    // suites publish on days of their own, so an older day of the new generation may close mid-replay by the rule; a
-    // brand's topics are in the order its facts happened.)
+    // Nothing replayed was folded into the day after it closed: no day closes while a consumer is behind the clock and has
+    // read within CLOSE_IDLE, so the close comes after the replay. Neither the kit's topics nor a brand's are read in date
+    // order: the kit's suites publish on days of their own, and a brand's consumer reads its slices and its topics'
+    // partitions in no order between them. That is why a consumer's latest fact time counts only while it is live.
     assertEquals((DayEnded.list(after.path("corrections")), DayEnded.list(after.path("openingCorrections"))), (Vector.empty, Vector.empty))
   }
 

@@ -90,7 +90,7 @@ first 16 bytes, in hex, of the SHA-256 of the topic's name and the fact as the c
 
 | Timer | Period | Does |
 |---|---|---|
-| `close-days` | 5 minutes | closes every open `BrandDay` whose end plus the grace has passed, once every `to-days` consumer has folded a fact past that or read nothing for `CLOSE_IDLE` (research R7) |
+| `close-days` | 5 minutes | closes every open `BrandDay` whose end plus the grace has passed, once every `to-days` consumer is live (its latest fact within `CLOSE_GRACE` of the clock) and has folded a fact past that, or has read nothing for `CLOSE_IDLE` (research R7) |
 | `sweep-documents` | 1 hour | deletes any ready object past its lifetime and marks its record (research R9) |
 
 ## Consumers
