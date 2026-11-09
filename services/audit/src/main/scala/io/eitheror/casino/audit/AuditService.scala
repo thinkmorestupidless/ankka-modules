@@ -1,6 +1,8 @@
 package io.eitheror.casino.audit
 
+import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.sdk.TimerScheduler
 import io.eitheror.casino.audit.ingest.{Consumers, Quarantine, Quarantined, SourceState}
@@ -23,6 +25,11 @@ object AuditService:
     SourceState.descriptor,
     Seed.descriptor
   ) ++ Consumers.of(settings).map(_.descriptor)
+
+  /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
+  def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
+    clients => api.RecordsEndpoint(api.Ctx(authenticate, clients))
+  )
 
   /** What the consumers and timed actions are constructed without (see `Wiring`). */
   def wire(settings: Settings, clock: Clock): Unit =
@@ -48,6 +55,7 @@ object AuditService:
     .registerAll(AuditService.descriptors(settings))
     .withExtension(broker)
     .withExtension(timers)
+    .withExtension(HttpServer.of(AuditService.endpoints(() => Oidc.authenticate())*))
     .start(name = "audit")
   AuditService.started(timers.timerScheduler)
   sys.addShutdownHook(service.terminate())

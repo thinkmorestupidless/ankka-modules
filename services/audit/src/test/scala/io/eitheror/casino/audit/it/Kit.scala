@@ -4,7 +4,8 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import com.thinkmorestupidless.ankka.core.Metadata
-import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Principal}
+import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
+import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock, TimerProbe}
 import io.eitheror.casino.audit.{AuditService, Settings, Wiring}
@@ -17,12 +18,25 @@ import io.eitheror.casino.contract.facts.{AuditRecord, ModuleChange, PlatformAud
 
 import org.slf4j.LoggerFactory
 
+import java.net.URI
+import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.nio.charset.StandardCharsets.UTF_8
 import java.sql.{DriverManager, Types}
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.Await
 import scala.concurrent.duration.*
+
+final case class Reply(status: Int, text: String):
+  def json: JsonNode = Reply.mapper.readTree(text)
+  def code: String   = Option(json.get("code")).map(_.asText).getOrElse("")
+  /** The records of a page, as the store holds them. */
+  def records: Vector[JsonNode] =
+    import scala.jdk.CollectionConverters.*
+    json.get("records").elements.asScala.toVector
+
+object Reply:
+  val mapper = ObjectMapper()
 
 /**
  * The whole audit against a throwaway Postgres (ankka's integration kit): an in-memory broker carrying
@@ -51,9 +65,11 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   QuarantineKey.forget()
   AuditService.wire(settings, clock)
 
+  private val server = HttpServer.at("127.0.0.1", 0)(AuditService.endpoints(() => Kit.authenticate)*)
+
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     AuditService.descriptors(settings),
-    Seq(ProjectionRuntime.withBroker(broker, broker), timers)
+    Seq(ProjectionRuntime.withBroker(broker, broker), timers, server)
   )
   probe.bind(testKit)
   // The seed the start timer runs, run now so every suite begins with its keys.
@@ -107,6 +123,36 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   def now: Instant = clock.instant()
 
   def moveClock(to: Instant): Unit = clock.moveTo(to)
+
+  // ── the routes ──────────────────────────────────────────────────────────────────────────────────
+
+  def baseUrl = s"http://127.0.0.1:${server.boundPort.get}"
+
+  private val http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
+
+  def request(method: String, path: String, body: Option[String] = None, headers: Seq[(String, String)] = Nil): Reply =
+    val b = HttpRequest.newBuilder(URI.create(baseUrl + path)).timeout(java.time.Duration.ofSeconds(30))
+      .method(method, body.fold(HttpRequest.BodyPublishers.noBody())(t => HttpRequest.BodyPublishers.ofString(t)))
+    if body.isDefined then b.header("Content-Type", "application/json")
+    headers.foreach((k, v) => b.header(k, v))
+    val r = http.send(b.build(), HttpResponse.BodyHandlers.ofString())
+    Reply(r.statusCode, r.body)
+
+  /** A member of staff holding `roles`, through the gateway. */
+  def as(subject: String, roles: String*): Seq[(String, String)] =
+    Seq(testKit.asCaller(Caller.Gateway), "Authorization" -> s"Bearer staff|$subject|${roles.mkString(",")}")
+
+  def asBrandCompliance(brand: String, subject: String = "officer-1") = as(subject, "brand_compliance", s"brand_$brand")
+  def asInstallationCompliance(subject: String = "officer-9")          = as(subject, Routes.AuditCompliance)
+  def asOwner(subject: String = "owner-1")                             = as(subject, "platform_admin")
+
+  /** `GET /v1/audit-records` with these query parameters. */
+  def query(as: Seq[(String, String)], params: (String, String)*): Reply =
+    val q = params.map((k, v) => s"$k=${java.net.URLEncoder.encode(v, UTF_8)}").mkString("&")
+    request("GET", s"/v1/audit-records${if q.isEmpty then "" else "?" + q}", headers = as)
+
+  /** The audit's own records of an action, oldest first. */
+  def own(action: String): Vector[Stored] = records.filter(r => r.source == "audit" && r.action == action)
 
   // ── the broker ──────────────────────────────────────────────────────────────────────────────────
 
