@@ -23,7 +23,8 @@ final class Motoko(context: AgentContext) extends Agent:
     val s      = SupportRuntime.settings
     val body   = ConfigVersion.body(componentClient, s.brand, turn.configVersion)
     val reads  = SupportRuntime.neighbours(context.services)
-    val tools  = Tools(reads, componentClient, sessionId.toString, turn.playerId, body)
+    val trail  = Trail.of(componentClient, sessionId.toString, SupportRuntime.now)
+    val tools  = Tools(reads, trail, turn.playerId, body, SupportRuntime.now)
     val loaded = if turn.first then Context.first(reads, turn.playerId, body) else None
     val asked  = effects.systemMessage(body.prompt).model(SupportRuntime.model(body.model)).userMessage(turn.message)
     loaded.fold(asked)(asked.withContext).tools(tools.all*).thenStream()

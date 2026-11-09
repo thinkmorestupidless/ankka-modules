@@ -185,13 +185,13 @@ runs (red).
 
 **Independent test**: `reads.feature` green on the kit. T043's recording replays in Phase 10 (T056).
 
-- [ ] T025 [P] [US1] `T/agent/ReadToolsSuite.scala`, written first and failing first: each of the
+- [X] T025 [P] [US1] `T/agent/ReadToolsSuite.scala`, written first and failing first: each of the
       six tools on the scripted provider calls its fake as `support-agent` for the bound player and
       answers the mapped fields.
   - A timeout is answered to the model as "cannot be read right now", and the turn does not fail
     (FR-012).
   - A currency argument is never accepted (FR-011).
-- [ ] T026 [US1] Implement the six read tools in `S/agent/Tools.scala` over the clients and
+- [X] T026 [US1] Implement the six read tools in `S/agent/Tools.scala` over the clients and
       `Mapping`. `get_transaction_history` takes a limit of 1..50, default 10.
 - [ ] T027 [US1] Personal fields (FR-018) in `S/agent/Context.scala`: `get_player_state` calls
       `agent-profile` only for `personalFields`. `T/it/PersonalSuite.scala` uses a provider that
