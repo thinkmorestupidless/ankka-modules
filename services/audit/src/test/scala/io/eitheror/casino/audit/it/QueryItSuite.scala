@@ -118,7 +118,9 @@ class QueryItSuite extends munit.FunSuite:
     val asked = kit.query(kit.asBrandCompliance("goldvibe", "officer-7"), "brand" -> "goldvibe", "correlation" -> corr, "from" -> "2026-11-01T00:00:00Z")
     assertEquals(asked.status, 200, asked.text)
     // The kit's clock stands still, so the new record is told by its key, not its place.
-    val made = kit.eventually()(kit.own("audit.query").find(r => !beforeAsked(r.key) && r.brand == "goldvibe"))
+    // An earlier test's query record may reach the view late, so this one is told by its range too.
+    val made = kit.eventually()(kit.own("audit.query").find(r => !beforeAsked(r.key) && r.brand == "goldvibe" &&
+      r.changes.exists(c => c.field == "range" && c.after.contains("2026-11-01T00:00:00Z.."))))
     assertNotEquals(made.actor, "officer-7")
     assertEquals(made.visibility, "installation")
     val fields = made.changes.map(c => c.field -> c.after.getOrElse("")).toMap
@@ -130,7 +132,10 @@ class QueryItSuite extends munit.FunSuite:
     assert(own.exists(_.get("key").asText == made.key) && own.forall(_.get("brand").asText == "goldvibe"), own.toString)
     val recorded = kit.own("audit.query").size
     kit.query(kit.asInstallationCompliance(), "service" -> "audit")
-    Thread.sleep(500)
-    assertEquals(kit.own("audit.query").size, recorded)
+    // Nothing to wait on for a record that must not appear: a later query's record shows the view has
+    // caught up past it.
+    kit.query(kit.asInstallationCompliance(), "brand" -> "spinvibe")
+    kit.eventually()(Option.when(kit.own("audit.query").size > recorded)(()))
+    assertEquals(kit.own("audit.query").size, recorded + 1)
     assert(before <= beforeAsked.size)
   }
