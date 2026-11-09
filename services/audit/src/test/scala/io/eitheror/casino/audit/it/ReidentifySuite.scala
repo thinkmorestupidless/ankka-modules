@@ -74,3 +74,27 @@ class ReidentifySuite extends munit.FunSuite:
     assertEquals(kit.identities("who", kit.asBrandCompliance("goldvibe"), s"""{"pseudonym":"$nobody","reasonCode":"r"}""").status, 403)
     assertEquals(kit.request("POST", "/v1/audit-identities/who", Some("{}")).status, 401)
   }
+
+  test("a real id typed where a pseudonym belongs is recorded as its digest, never as typed; a reason that is not a code is refused") {
+    val real = kit.fresh("pasted-player-id")
+    val asked = Vector(kit.asReidentifier("goldvibe"), kit.asBrandCompliance("goldvibe"))
+    asked.foreach(as => kit.identities("who", as, s"""{"pseudonym":"$real","reasonCode":"r"}"""): Unit)
+    val digest = io.eitheror.casino.audit.ids.Ids.digest(io.eitheror.casino.audit.registry.RegistryKey.required(kit.secrets), "installation", real)
+    val made   = kit.eventually()(Option(kit.own(IdentitiesRoute.Who).filter(_.subject == digest)).filter(_.size == 2))
+    assertEquals(made.map(_.reasonCode).toSet, Set[Option[String]](Some(IdentitiesRoute.UnknownPseudonym), Some(IdentitiesRoute.NotReidentifier)))
+    assert(kit.records.forall(r => !r.toString.contains(real)), "the typed id is in the store")
+    val text = "the player told me their name is " + real
+    val free = kit.identities("who", kit.asReidentifier("goldvibe"), s"""{"pseudonym":"$real","reasonCode":"$text"}""")
+    assertEquals(free.status, 400, free.text)
+    val lookup = kit.identities("pseudonym", kit.asReidentifier("goldvibe"), s"""{"brand":"goldvibe","kind":"player","id":"x","reasonCode":"Free Text"}""")
+    assertEquals(lookup.status, 400, lookup.text)
+    assert(kit.records.forall(r => !r.toString.contains(text)))
+  }
+
+  test("an agent's pseudonym can be asked for; a service, stored as written, has none") {
+    val agent = kit.identities("pseudonym", kit.asReidentifier("goldvibe"), """{"brand":"goldvibe","kind":"agent","id":"motoko-1","reasonCode":"r"}""")
+    assertEquals(agent.status, 200, agent.text)
+    val service = kit.identities("pseudonym", kit.asReidentifier("goldvibe"), """{"brand":"goldvibe","kind":"service","id":"wallet","reasonCode":"r"}""")
+    assertEquals(service.status, 400, service.text)
+  }
+

@@ -38,7 +38,12 @@ object IdentitiesRoute:
   val Lookup           = "audit.pseudonym"
   val NotReidentifier  = "not_reidentifier"
   val UnknownPseudonym = "unknown_pseudonym"
-  val Kinds            = Set("player", "operator", "affiliate", "service")
+  /** The kinds the registry pseudonymises (FR-008); a service is stored as written and has no pseudonym. */
+  val Kinds            = Ids.PersonKinds
+  /** A reason is a code, never free text (FR-008: nothing written holds a real id; spec.md "a reason code and a reference"). */
+  val ReasonCode       = "[a-z0-9_.-]{1,64}".r
+
+  private val reasonProblem = "bad_request: reasonCode is a code of 1 to 64 lower-case letters, digits, '_', '.' or '-'"
 
   private def body[A: JsonValueCodec](text: String): Either[String, A] =
     Try(readFromString[A](if text.trim.isEmpty then "{}" else text)).toEither.left.map(_ => "bad_request: the body is not the route's shape")
@@ -57,16 +62,19 @@ object IdentitiesRoute:
     refuse(403, NotReidentifier, s"re-identifying at $brand needs brand_compliance, brand_$brand and reidentify_$brand")
 
   def who(ctx: Ctx, p: Principal, raw: String): Answer =
-    body[WhoAsked](raw).filterOrElse(_.reasonCode.nonEmpty, "bad_request: a reason code is required") match
+    body[WhoAsked](raw).filterOrElse(w => ReasonCode.matches(w.reasonCode), reasonProblem) match
       case Left(problem) => refused(400, problem)
       case Right(w) =>
         val identity = ctx.clients.componentClient.forKeyValueEntity(Identity.entityId(w.pseudonym)).call(Identity.get).invoke()
         if !identity.bound then
-          // Unknown: no brand to hold the caller to, so only a re-identifier is told it is unknown.
+          // Unknown, so what was typed may be anything, a real id pasted by mistake among them: the record
+          // names its digest, never the text. No brand to hold the caller to, so only a re-identifier is
+          // told it is unknown.
+          val typed = Ids.digest(Wiring.requiredKeys.registry, Own.Installation, w.pseudonym)
           if reidentifiesAnywhere(p) then
-            recorded(ctx, p, Own.Installation, Who, w.pseudonym, w.reasonCode, outcome = "refused", reasonCode = Some(UnknownPseudonym))
+            recorded(ctx, p, Own.Installation, Who, typed, w.reasonCode, outcome = "refused", reasonCode = Some(UnknownPseudonym))
             refuse(404, UnknownPseudonym, "no such pseudonym")
-          else refusedFor(ctx, p, Own.Installation, Who, w.pseudonym, w.reasonCode)
+          else refusedFor(ctx, p, Own.Installation, Who, typed, w.reasonCode)
         else if !Routes.reidentifies(p, identity.brand) then refusedFor(ctx, p, identity.brand, Who, w.pseudonym, w.reasonCode)
         else
           recorded(ctx, p, identity.brand, Who, w.pseudonym, w.reasonCode)
@@ -75,7 +83,7 @@ object IdentitiesRoute:
   def pseudonym(ctx: Ctx, p: Principal, raw: String): Answer =
     val asked = for
       a <- body[PseudonymAsked](raw)
-      _ <- Either.cond(a.reasonCode.nonEmpty, (), "bad_request: a reason code is required")
+      _ <- Either.cond(ReasonCode.matches(a.reasonCode), (), reasonProblem)
       _ <- Either.cond(Kinds(a.kind), (), s"bad_request: kind is one of ${Kinds.toVector.sorted.mkString(", ")}")
       _ <- Either.cond(a.id.nonEmpty && a.brand.nonEmpty, (), "bad_request: brand and id are required")
     yield a
