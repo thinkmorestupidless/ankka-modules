@@ -77,7 +77,7 @@ registry, the consumers' decoding, the kit.
 
 - [X] T008 `a/Settings.scala`: data-model.md *Settings*, each parsed with a named error, a generation
   above 1 refused without `AUDIT_READ_FROM`; `SettingsSuite` in `a-test/SettingsSuite.scala`
-- [ ] T009 [P] `a/keep/Keep.scala` and `a-test/keep/KeepSuite.scala`: FR-008a over every category ×
+- [X] T009 [P] `a/keep/Keep.scala` and `a-test/keep/KeepSuite.scala`: FR-008a over every category ×
   actor kind × outcome (research R3)
 - [ ] T010 [P] `a/ids/Ids.scala` and `a-test/ids/IdsSuite.scala`: `digest` (HMAC-SHA256 under the
   registry key, `d-` and 32 hex), `isPerson`, `contains` (research R5)
