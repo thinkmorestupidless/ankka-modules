@@ -26,8 +26,9 @@ class DumpSuite extends munit.FunSuite with LogCapturing:
     kit.eventually(s"$ref ready", 120.seconds)(Option.when(Disputed.document(kit, ref).status == Document.Ready)(()))
     val registered = d.minusDays(1)
     assertEquals(kit.get(s"/reports/players?from=$registered&to=$registered&currency=EUR&format=csv", kit.asFinance).status, 200)
-    val search = kit.get(s"/reports/transactions/export?from=$d&to=$d&playerEmail=${p.email}&format=csv", kit.asFinance)
-    assertEquals(search.status, 200, search.text)
-    assert(search.text.contains(p.player), search.text)
+    // The search reads the Players and Transactions views, which reach the published facts in their own time.
+    kit.eventually("the ledger's rows found by the email", 60.seconds)(
+      Some(kit.get(s"/reports/transactions/export?from=$d&to=$d&playerEmail=${p.email}&format=csv", kit.asFinance))
+        .filter(r => r.status == 200 && r.text.contains(p.player))): Unit
     kit.testKit.assertNoPersonalValue(p.email, l.address, l.agent)
   }
