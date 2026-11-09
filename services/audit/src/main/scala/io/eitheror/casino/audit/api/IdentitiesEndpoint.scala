@@ -42,8 +42,13 @@ object IdentitiesRoute:
   val Kinds            = Ids.PersonKinds
   /** A reason is a code, never free text (FR-008: nothing written holds a real id; spec.md "a reason code and a reference"). */
   val ReasonCode       = "[a-z0-9_.-]{1,64}".r
+  /** A real id here is a UUID: anything shaped like one, or a run of 8 hex digits, is refused as a reason. */
+  private val IdShaped = "(?i).*[0-9a-f]{8}.*".r
 
-  private val reasonProblem = "bad_request: reasonCode is a code of 1 to 64 lower-case letters, digits, '_', '.' or '-'"
+  def reason(code: String): Boolean = ReasonCode.matches(code) && !IdShaped.matches(code.replace("-", ""))
+
+  private val reasonProblem =
+    "bad_request: reasonCode is a code of 1 to 64 lower-case letters, digits, '_', '.' or '-', and never shaped like an id"
 
   private def body[A: JsonValueCodec](text: String): Either[String, A] =
     Try(readFromString[A](if text.trim.isEmpty then "{}" else text)).toEither.left.map(_ => "bad_request: the body is not the route's shape")
@@ -59,10 +64,10 @@ object IdentitiesRoute:
 
   private def refusedFor(ctx: Ctx, p: Principal, brand: String, action: String, subject: String, reason: String): Answer =
     recorded(ctx, p, brand, action, subject, reason, outcome = "refused", reasonCode = Some(NotReidentifier))
-    refuse(403, NotReidentifier, s"re-identifying at $brand needs compliance_$brand and reidentify_$brand")
+    refuse(403, NotReidentifier, s"re-identifying at $brand needs audit_compliance_$brand and reidentify_$brand")
 
   def who(ctx: Ctx, p: Principal, raw: String): Answer =
-    body[WhoAsked](raw).filterOrElse(w => ReasonCode.matches(w.reasonCode), reasonProblem) match
+    body[WhoAsked](raw).filterOrElse(w => reason(w.reasonCode), reasonProblem) match
       case Left(problem) => refused(400, problem)
       case Right(w) =>
         val identity = ctx.clients.componentClient.forKeyValueEntity(Identity.entityId(w.pseudonym)).call(Identity.get).invoke()
@@ -83,7 +88,7 @@ object IdentitiesRoute:
   def pseudonym(ctx: Ctx, p: Principal, raw: String): Answer =
     val asked = for
       a <- body[PseudonymAsked](raw)
-      _ <- Either.cond(ReasonCode.matches(a.reasonCode), (), reasonProblem)
+      _ <- Either.cond(reason(a.reasonCode), (), reasonProblem)
       _ <- Either.cond(Kinds(a.kind), (), s"bad_request: kind is one of ${Kinds.toVector.sorted.mkString(", ")}")
       _ <- Either.cond(a.id.nonEmpty && a.brand.nonEmpty, (), "bad_request: brand and id are required")
     yield a

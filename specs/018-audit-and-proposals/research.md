@@ -144,7 +144,7 @@ static permissions in `brands/_realm/eitheror-operators.json`.
 
 | Role | Held as |
 |---|---|
-| a brand's compliance role | `compliance_<slug>`, new, one per brand, added by `Realm.ensure` (amended at review: `brand_compliance` × `brand_<slug>` could not be held for one brand alone) |
+| a brand's compliance role | `audit_compliance_<slug>`, new, one per brand, added by `Realm.ensure` (amended at review: `brand_compliance` × `brand_<slug>` could not be held for one brand alone) |
 | the installation's compliance role | `audit_compliance`, new, static |
 | a brand's re-identification role | `reidentify_<slug>`, new, one per brand, added by `Realm.ensure` beside `brand_<slug>`; admitted only beside the brand's compliance role |
 | an installation owner | `platform_admin` |
@@ -179,7 +179,7 @@ store holds it.
 ## R11. Quarantine (FR-012)
 
 `Quarantined` (key value), id `<source>/<SHA-256 of the bytes>`: the bytes (base64), the source, the
-arrival time and why (`undecodable`, `brand_mismatch`, `personal_value`, `collision`). A record whose
+arrival time and why (`undecodable`, `brand_mismatch`, `personal_value`, `collision`, and, found at review, `pseudonym_conflict`). A record whose
 personal-field change carries a value is quarantined, never stored. The `Quarantine` view counts per
 source for the status.
 
@@ -352,7 +352,7 @@ outlives an erasure (FR-023).
   scenarios. The deployment outline's rollback and restore-switch rows have steps that skip with
   R7's reason (`assume`), so its deployment row still runs; the shared-part outline is ignored whole.
 - **Roles** (R8): a grant is held under the person's installation pseudonym (`<role>/<pseudonym>`),
-  never their realm id. *Superseded at review: one realm role per grant, `compliance_<slug>`; below as built first.* `brand_compliance` kept the brands it was granted for, and its realm role
+  never their realm id. *Superseded at review: one realm role per grant, `audit_compliance_<slug>`; below as built first.* `brand_compliance` kept the brands it was granted for, and its realm role
   goes once the last brand's grant is revoked. A revoke leaves `brand_<slug>`, which is an operator's
   role too. The daily realm read is a recurring timer, `realm-read`, first a minute after start.
 - **The status's last export** is kept on `ExportFormat`, the brand's export settings, when an export
@@ -386,10 +386,14 @@ outlives an erasure (FR-023).
   passed alone and on a second full run. No build here has the scalafmt plugin, so
   `scalafmtCheckAll` was not run.
 - **Review, decided 2026-11-09** (amends R8 and contracts/routes.md):
-  - A brand's compliance role is `compliance_<slug>`, made by `Realm.ensure` beside
+  - A brand's compliance role is `audit_compliance_<slug>`, made by `Realm.ensure` beside
     `reidentify_<slug>`. `auditScope` reads only those, a grant assigns that one role, and a revoke
-    removes exactly it. Re-identifying at a brand needs `compliance_<slug>` and `reidentify_<slug>`.
-    `brand_compliance` and `brand_<slug>` no longer bear on the audit.
+    removes exactly it. Re-identifying at a brand needs `audit_compliance_<slug>` and `reidentify_<slug>`.
+    `brand_compliance` and `brand_<slug>` no longer bear on the audit. (Second round: first named
+    `compliance_<slug>`, renamed because the realm's static `compliance_officer` read as brand `officer`.)
+  - A `reasonCode` shaped like an id (a run of 8 hex digits once `-` is taken out) is refused: real ids
+    are UUIDs, which the code's letters would otherwise admit.
+  - A skewed record does not move `lastOccurred`, so a clock running ahead cannot hide the lag.
   - `GET /v1/audit-roles/{role}` answers each holder's installation pseudonym; `DELETE` takes a
     pseudonym or a realm id.
   - `topicKeeps` is in routes.md and answers `not stated` until a brand's topic retention reaches the

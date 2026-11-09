@@ -1,13 +1,10 @@
 package io.eitheror.casino.audit.api
 
-import com.github.plokhotnyuk.jsoniter_scala.core.{JsonValueCodec, readFromString}
-import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.audit.own.Own
 import io.eitheror.casino.audit.roles.{Grant, Grants, RealmError, Revoke, RoleGrant}
 import io.eitheror.casino.contract.access.Routes
 
-import scala.util.Try
 
 import Wire.*
 

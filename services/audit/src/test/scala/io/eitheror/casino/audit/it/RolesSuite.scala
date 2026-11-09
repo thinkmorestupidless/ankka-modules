@@ -26,17 +26,17 @@ class RolesSuite extends munit.FunSuite:
   test("the owner grants a brand's compliance role and revokes it; exactly that role, each recorded under the brand, no one named by realm id") {
     val person = kit.fresh("u")
     kit.realm.add(person, "brand_spinvibe")
-    val granted = kit.request("PUT", s"/v1/audit-roles/compliance_goldvibe/$person", None, kit.asOwner())
+    val granted = kit.request("PUT", s"/v1/audit-roles/audit_compliance_goldvibe/$person", None, kit.asOwner())
     assertEquals(granted.status, 200, granted.text)
     // The person's operator role at another brand gives them nothing in the audit, and none is added.
-    assertEquals(kit.realm.rolesOf(person), Set("brand_spinvibe", "compliance_goldvibe"))
-    val listing = holders("compliance_goldvibe")
+    assertEquals(kit.realm.rolesOf(person), Set("brand_spinvibe", "audit_compliance_goldvibe"))
+    val listing = holders("audit_compliance_goldvibe")
     assertEquals(listing.get(listed(person)), Some("granted"))
     assert(!listing.keySet.contains(person), "a holder is listed by pseudonym, never by realm id")
-    val grant = kit.eventually()(kit.own(Grants.GrantAction).find(r => r.brand == "goldvibe" && r.changes.exists(_.after.contains("compliance_goldvibe"))))
+    val grant = kit.eventually()(kit.own(Grants.GrantAction).find(r => r.brand == "goldvibe" && r.changes.exists(_.after.contains("audit_compliance_goldvibe"))))
     assert(!grant.toString.contains(person), grant.toString)
     // Revoked by the pseudonym the listing answered.
-    assertEquals(kit.request("DELETE", s"/v1/audit-roles/compliance_goldvibe/${listed(person)}", headers = kit.asOwner()).status, 200)
+    assertEquals(kit.request("DELETE", s"/v1/audit-roles/audit_compliance_goldvibe/${listed(person)}", headers = kit.asOwner()).status, 200)
     assertEquals(kit.realm.rolesOf(person), Set("brand_spinvibe"))
     kit.eventually()(kit.own(Grants.RevokeAction).find(r => r.subject == grant.subject))
   }
@@ -44,11 +44,11 @@ class RolesSuite extends munit.FunSuite:
   test("an officer of two brands revoked at one reads the other alone") {
     val person = kit.fresh("u")
     kit.realm.add(person)
-    Vector("compliance_goldvibe", "compliance_spinvibe").foreach(r =>
+    Vector("audit_compliance_goldvibe", "audit_compliance_spinvibe").foreach(r =>
       assertEquals(kit.request("PUT", s"/v1/audit-roles/$r/$person", None, kit.asOwner()).status, 200))
-    assertEquals(kit.request("DELETE", s"/v1/audit-roles/compliance_goldvibe/$person", headers = kit.asOwner()).status, 200)
+    assertEquals(kit.request("DELETE", s"/v1/audit-roles/audit_compliance_goldvibe/$person", headers = kit.asOwner()).status, 200)
     val roles = kit.realm.rolesOf(person).toSeq
-    assertEquals(roles.toSet, Set("compliance_spinvibe"))
+    assertEquals(roles.toSet, Set("audit_compliance_spinvibe"))
     val as = kit.as(person, roles*)
     assertEquals(kit.query(as, "brand" -> "goldvibe").status, 403)
     assertEquals(kit.query(as, "brand" -> "spinvibe").status, 200)
@@ -63,7 +63,7 @@ class RolesSuite extends munit.FunSuite:
     assertEquals(kit.request("PUT", s"/v1/audit-roles/platform_admin/$person", Some("{}"), kit.asOwner()).code, "unknown_role")
     assertEquals(kit.request("PUT", s"/v1/audit-roles/reidentify_nowhere/$person", Some("{}"), kit.asOwner()).code, "unknown_role")
     assertEquals(kit.request("PUT", s"/v1/audit-roles/brand_compliance/$person", Some("{}"), kit.asOwner()).code, "unknown_role")
-    assertEquals(kit.request("PUT", s"/v1/audit-roles/compliance_nowhere/$person", Some("{}"), kit.asOwner()).code, "unknown_role")
+    assertEquals(kit.request("PUT", s"/v1/audit-roles/audit_compliance_nowhere/$person", Some("{}"), kit.asOwner()).code, "unknown_role")
     assertEquals(kit.request("PUT", "/v1/audit-roles/audit_compliance/nobody", Some("{}"), kit.asOwner()).code, "unknown_person")
     assertEquals(kit.request("PUT", s"/v1/audit-roles/audit_compliance/$person", Some("{}"), kit.asInstallationCompliance()).status, 403)
   }

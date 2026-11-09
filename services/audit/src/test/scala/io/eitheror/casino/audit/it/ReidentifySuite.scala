@@ -88,7 +88,11 @@ class ReidentifySuite extends munit.FunSuite:
     assertEquals(free.status, 400, free.text)
     val lookup = kit.identities("pseudonym", kit.asReidentifier("goldvibe"), s"""{"brand":"goldvibe","kind":"player","id":"x","reasonCode":"Free Text"}""")
     assertEquals(lookup.status, 400, lookup.text)
-    assert(kit.records.forall(r => !r.toString.contains(text)))
+    // An id fits the code's letters, so one shaped like an id is refused too.
+    val uuid = java.util.UUID.randomUUID().toString
+    assertEquals(kit.identities("who", kit.asReidentifier("goldvibe"), s"""{"pseudonym":"$real","reasonCode":"$uuid"}""").status, 400)
+    assertEquals(kit.identities("who", kit.asReidentifier("goldvibe"), s"""{"pseudonym":"$real","reasonCode":"ticket_${uuid.take(8)}"}""").status, 400)
+    assert(kit.records.forall(r => !r.toString.contains(text) && !r.toString.contains(uuid.take(8))))
   }
 
   test("an agent's pseudonym can be asked for; a service, stored as written, has none") {

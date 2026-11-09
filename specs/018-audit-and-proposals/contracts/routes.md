@@ -6,9 +6,9 @@ repository's problem shape: `{"code": "...", "message": "..."}` with a 4xx statu
 
 | Role in the table | Admitted by |
 |---|---|
-| brand compliance (`b`) | `Routes.auditScope`: `compliance_<slug>`, one per brand (a person's `brand_<slug>` and `brand_compliance` do not bear on the audit) |
+| brand compliance (`b`) | `Routes.auditScope`: `audit_compliance_<slug>`, one per brand (a person's `brand_<slug>` and `brand_compliance` do not bear on the audit) |
 | installation compliance (`i`) | `Routes.auditScope`: `audit_compliance` |
-| re-identifier (`r`) | `Routes.reidentifies(p, brand)`: `compliance_<slug>` and `reidentify_<slug>` |
+| re-identifier (`r`) | `Routes.reidentifies(p, brand)`: `audit_compliance_<slug>` and `reidentify_<slug>` |
 | installation owner (`o`) | `Routes.installationOwner`: `platform_admin` |
 
 ## `/v1/audit-records`
@@ -45,13 +45,14 @@ not when `service=audit` is the only service asked for.
 - `POST /v1/audit-identities/pseudonym` — `r` for the brand. Body `{"brand", "kind", "id",
   "reasonCode"}`, `kind` one of `player`, `operator`, `affiliate`, `agent`. `200 {"pseudonym",
   "issued": bool}`. Recorded.
-- `reasonCode` is a code, `[a-z0-9_.-]{1,64}`; anything else is `400 bad_request`, unrecorded.
+- `reasonCode` is a code, `[a-z0-9_.-]{1,64}`, never shaped like an id (a run of 8 hex digits once
+  `-` is taken out, as a UUID has); anything else is `400 bad_request`, unrecorded.
 - Anyone else: `403 not_reidentifier`, and the refusal is recorded (FR-018).
 
 ## `/v1/audit-roles`
 
 - `PUT /v1/audit-roles/{role}/{person}` — `o`. Grants exactly that realm role through Keycloak's admin
-  API. `role` is `audit_compliance`, `compliance_<slug>` or `reidentify_<slug>` of a brand read here;
+  API. `role` is `audit_compliance`, `audit_compliance_<slug>` or `reidentify_<slug>` of a brand read here;
   anything else is `400 unknown_role`. No body. Recorded.
 - `DELETE /v1/audit-roles/{role}/{person}` — `o`. Removes exactly that realm role. Recorded.
 - `{person}` is a holder's installation pseudonym, as the listing answers, or a realm user id.

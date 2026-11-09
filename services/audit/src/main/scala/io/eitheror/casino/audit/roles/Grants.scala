@@ -20,7 +20,7 @@ object Grants:
 
   /**
    * A role the audit grants, one realm role each, and the brand it concerns: none for `audit_compliance`,
-   * the slug for `compliance_<slug>` and `reidentify_<slug>`. A grant assigns exactly it and a revoke
+   * the slug for `audit_compliance_<slug>` and `reidentify_<slug>`. A grant assigns exactly it and a revoke
    * removes exactly it (research, review decisions).
    */
   final case class Role(name: String, brand: Option[String]):
@@ -36,7 +36,7 @@ object Grants:
   def role(name: String, brands: Set[String]): Either[String, Role] =
     if name == Routes.AuditCompliance then Right(Role(name, None))
     else brandOf(name).filter(brands).map(b => Role(name, Some(b)))
-      .toRight(s"unknown_role: $name is not audit_compliance, compliance_<brand> or reidentify_<brand> of a brand read here")
+      .toRight(s"unknown_role: $name is not audit_compliance, audit_compliance_<brand> or reidentify_<brand> of a brand read here")
 
   /** Every role the realm read looks at: the installation's, and each brand's compliance and re-identification. */
   def managed(brands: Vector[String]): Vector[String] =

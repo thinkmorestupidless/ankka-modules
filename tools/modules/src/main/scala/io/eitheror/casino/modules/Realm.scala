@@ -157,7 +157,7 @@ object Realm:
     // The brand's compliance and re-identification roles on the shared audit (spec 018 FR-016), granted
     // only through the audit.
     Vector(
-      s"compliance_$slug" -> s"Reads brand $slug's records in the shared audit",
+      s"audit_compliance_$slug" -> s"Reads brand $slug's records in the shared audit",
       s"reidentify_$slug" -> s"Re-identifies pseudonyms of brand $slug in the shared audit"
     ).foreach { (name, description) =>
       if !admin.roleExists(OperatorsRealm, name) then
