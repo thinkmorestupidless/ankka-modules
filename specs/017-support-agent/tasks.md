@@ -50,12 +50,12 @@ criteria name suites, and the plan names them.
   Then `ModuleManifestSuite`'s built set gains `support-agent`, and the `support-agent` row leaves
   `contract/keys.md`'s "Not yet built" table, in the same commit as `build.sbt`. `just test` green;
   `just modules render goldvibe --modules core,support` shows the service.
-- [ ] T004 [P] `Justfile`: add `support-agent-test`, `support-agent-it`, and
+- [X] T004 [P] `Justfile`: add `support-agent-test`, `support-agent-it`, and
       `support-agent-run brand="goldvibe"` (HTTP 9020, Postgres 5444, both issuers,
       `-Dankka.local-services.{wallet,payouts,players,rewards,responsible-gambling}=…` at their
       `*-run` ports), in the shape of `engagement-run`. The port comment at `Justfile:262` gains
       `support-agent 9020`.
-- [ ] T005 [P] `.github/workflows/ci.yml`: add a `support-agent` paths filter (`*build`,
+- [X] T005 [P] `.github/workflows/ci.yml`: add a `support-agent` paths filter (`*build`,
       `services/support-agent/**`, `features/support-agent/**`, `tests/port/support-agent/**`) and a
       job like engagement's, with a `-Dit=true` step.
 - [ ] T006 [P] `S/Settings.scala`: read every setting from env and fail at start when one is
