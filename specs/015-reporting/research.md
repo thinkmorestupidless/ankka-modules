@@ -617,3 +617,8 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   tab's roles alone" above.
 - **Prediction exports follow the module** (confirmed 2026-11-09): a prediction report's export is admitted as its report
   is, 404 without the module and not hidden by the Reports tab.
+- **The parity divergences** (confirmed 2026-11-09, T071): an operator's award with no offer is in the activity feed and
+  counted in the bonus report (R6, T049; the original read offer claims only); the player report's status (FR-008), the
+  ledger's transactionId and reference (FR-010) and a login session's rounds in its dispute report (FR-016) are answered
+  where the original left them empty; `avgWithdrawalHours` is `null` with no completed withdrawal, where the original
+  answered 0 (routes.md amended).
