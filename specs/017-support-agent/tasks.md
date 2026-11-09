@@ -127,7 +127,7 @@ criteria name suites, and the plan names them.
   - Add a property test: every `apply_cool_off` summary names its end and "cannot be shortened",
     and every `apply_self_exclusion` summary says "permanent" and "cannot be reversed", for any
     argument (FR-022's required statement, by construction; research R8).
-- [ ] T016 [P] Pure, test first: `T/domain/MappingSuite.scala`, then `S/domain/Mapping.scala`.
+- [X] T016 [P] Pure, test first: `T/domain/MappingSuite.scala`, then `S/domain/Mapping.scala`.
   - It maps each neighbour's answer to the model's fields (contracts/neighbours.md *Reads*).
   - Rules: the wallet's 404 becomes zeros; only active grants; `reason` never; `game_id` for
     `game_name`.
