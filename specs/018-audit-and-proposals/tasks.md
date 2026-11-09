@@ -63,7 +63,7 @@ the consumers' decoding and the kit are foundational.
 - [X] T006 [P] Add to `justfile` the recipes `audit-test`, `audit-it`, `audit-parity`, `audit-perf`,
   `audit-run` (as the programme's), and to `.github/workflows/ci.yml` the path filter and job for
   `services/audit/**`
-- [ ] T007 [P] Amend spec 001 FR-016 to name `payments`' grant of `platform.audit` to
+- [X] T007 [P] Amend spec 001 FR-016 to name `payments`' grant of `platform.audit` to
   `reasoner/audit`, in `specs/001-brands-and-projects/spec.md` (research *Findings*)
 
 ---
