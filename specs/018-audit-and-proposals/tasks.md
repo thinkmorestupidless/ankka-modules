@@ -39,7 +39,7 @@ the consumers' decoding and the kit are foundational.
 
 **Purpose**: the build, the contract, realm and tool additions, the manifests, the recipes and CI.
 
-- [ ] T001 Create `services/audit/` on `services/engagement/`'s template: `build.sbt` (Scala 3.9,
+- [X] T001 Create `services/audit/` on `services/engagement/`'s template: `build.sbt` (Scala 3.9,
   `ankkaVersion = "0.16.0"`, the six ankka modules, `casino-contract` at `CASINO_VERSION`, the eviction
   rule engagement's `build.sbt` explains), `service.json` (its database, secret store and
   `"buckets": [{"name": "exports", "exposure": "signed"}]`, no `personal`), `README.md` (a stub naming
