@@ -154,6 +154,11 @@ object Realm:
     if !admin.roleExists(OperatorsRealm, role) then
       admin.createRole(OperatorsRealm, role, s"Operators of brand $slug")
       made += s"role $role added to realm $OperatorsRealm"
+    // The brand's re-identification role on the shared audit (spec 018 FR-016), granted only through the audit.
+    val reidentify = s"reidentify_$slug"
+    if !admin.roleExists(OperatorsRealm, reidentify) then
+      admin.createRole(OperatorsRealm, reidentify, s"Re-identifies pseudonyms of brand $slug in the shared audit")
+      made += s"role $reidentify added to realm $OperatorsRealm"
     made.toVector
 
 /** Keycloak's admin REST API, as the master realm's administrator. */

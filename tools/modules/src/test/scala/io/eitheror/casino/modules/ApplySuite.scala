@@ -109,6 +109,7 @@ class ApplySuite extends munit.FunSuite:
     val first = Apply.run(plan(), cp, options.copy(realm = Some(realms -> json)))
     assert(first.changes.contains("realm casino-goldvibe created"))
     assert(first.changes.contains("role brand_goldvibe added to realm eitheror"))
+    assert(first.changes.contains("role reidentify_goldvibe added to realm eitheror"), "spec 018: the brand's re-identification role")
     assertEquals(Apply.run(plan(), cp, options.copy(realm = Some(realms -> json))).changes, Vector.empty)
     assert(realms.realms("casino-goldvibe").contains("\"casino-goldvibe\""))
   }
