@@ -59,7 +59,7 @@ object FakeNeighbours:
   def wallet(): FakeNeighbour = FakeNeighbour("wallet", {
     case ("GET", s"/wallets/$_/$c/balance") => Answer.ok(Json.obj("realBalance" -> 10000L, "restrictedBalance" -> 0L, "currency" -> c))
     case ("GET", s"/wallets/$_/$_/transactions") => Answer.ok(Json.obj("transactions" -> Json.arr()))
-    case ("GET", s"/wallets/$_/$_/holds/preview") => Answer.ok(Json.obj("forfeits" -> Json.arr()))
+    case ("GET", s"/wallets/$_/$_/holds/preview") => Answer.ok(Json.obj("totalForfeit" -> 0L, "forfeits" -> Json.arr()))
   })
 
   def payouts(): FakeNeighbour = FakeNeighbour("payouts", {

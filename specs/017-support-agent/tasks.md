@@ -209,7 +209,7 @@ runs (red).
 
 **Independent test**: `actions.feature` green. T044's recording replays in Phase 10 (T056).
 
-- [ ] T030 [P] [US2] `T/it/ResumeSuite.scala`, written first, covering these cases:
+- [X] T030 [P] [US2] `T/it/ResumeSuite.scala`, written first, covering these cases:
   - a confirmation followed by `done` on the chat's stream;
   - approve → `action_result` `{success:true}`, a `delta`, `done`, and one fake call keyed by the
     approval id;
