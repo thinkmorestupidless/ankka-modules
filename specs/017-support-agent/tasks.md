@@ -30,7 +30,7 @@ criteria name suites, and the plan names them.
 
 - [X] T001 Publish the contract unchanged: `CASINO_VERSION=0.2.0-017-SNAPSHOT sbt -batch
       contract/publishLocal`; `just test` green.
-- [ ] T002 Run `ankka init` for `services/support-agent/`, shaped like `services/engagement/`.
+- [X] T002 Run `ankka init` for `services/support-agent/`, shaped like `services/engagement/`.
   - `build.sbt`:
     - ankka 0.16.0 with `ankka-agent` added and `VersionScheme.Always` for ankka's artifacts;
     - Scala 3.9.0; munit, munit-scalacheck, postgresql (test);
