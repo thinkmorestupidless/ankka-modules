@@ -49,7 +49,7 @@ object FakeNeighbours:
     case ("GET", s"/players/$_/status") =>
       Answer.ok(Json.obj("status" -> "ACTIVE", "verification" -> "VERIFIED", "displayName" -> "Ann", "currency" -> "GBP"))
     case ("GET", s"/players/$_/agent-profile") =>
-      Answer.ok(Json.obj("email" -> "ann@example.com", "firstName" -> "Ann", "lastName" -> "Lee", "country" -> "GB",
+      Answer.ok(Json.obj("email" -> "ann@example.com", "firstName" -> "Ann", "lastName" -> "Lee", "country" -> "Iceland",
         "language" -> "en", "dateOfBirth" -> "1990-01-01"))
     case ("GET", s"/players/$_/game-sessions") => Answer.ok(Json.obj("sessions" -> Json.arr()))
     case ("POST", s"/players/game-sessions/$s/end") => Answer.ok(Json.obj("sessionId" -> s, "status" -> "ENDED"))

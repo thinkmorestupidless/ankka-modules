@@ -20,9 +20,12 @@ object Context:
     n.players.status(playerId) match
       case c @ Called.Answered(_, _) if c.ok =>
         val status  = c.json.getOrElse(Json.obj())
+        // Only the fields the brand names, asked for and kept: an answer naming more passes no more (FR-018, SC-005).
         val profile =
           if body.personalFields.isEmpty then None
-          else Some(n.players.agentProfile(playerId, body.personalFields)).filter(_.ok).flatMap(_.json)
+          else Some(n.players.agentProfile(playerId, body.personalFields)).filter(_.ok).flatMap(_.json).collect {
+            case o: ObjectNode => o.deepCopy().retain(body.personalFields.toSeq*)
+          }
         Right(Mapping.playerState(status, profile))
       case c => Left(failure(c))
 

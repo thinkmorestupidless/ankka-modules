@@ -193,7 +193,7 @@ runs (red).
   - A currency argument is never accepted (FR-011).
 - [X] T026 [US1] Implement the six read tools in `S/agent/Tools.scala` over the clients and
       `Mapping`. `get_transaction_history` takes a limit of 1..50, default 10.
-- [ ] T027 [US1] Personal fields (FR-018) in `S/agent/Context.scala`: `get_player_state` calls
+- [X] T027 [US1] Personal fields (FR-018) in `S/agent/Context.scala`: `get_player_state` calls
       `agent-profile` only for `personalFields`. `T/it/PersonalSuite.scala` uses a provider that
       records requests and asserts that no other personal value reaches the model (SC-005).
 - [ ] T028 [US1] Stream the chat in `ChatEndpoint`: `delta` per `AgentPart.Text`, then `done`.
