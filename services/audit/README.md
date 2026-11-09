@@ -18,7 +18,7 @@ is the one place a real id is kept.
 
 | Package | Component | Kind | Does |
 |---|---|---|---|
-| `ingest` | `BrandAudit`, `BrandModules`, `PaymentsAudit` (`Consumers.scala`) | consumers | each source's topic under its grant, at the read generation (below); `Ingest.record` decodes, checks, keeps or passes over, pseudonymises and stores |
+| `ingest` | `RecordsConsumer` (each brand's and `payments`' `platform.audit`), `ModulesConsumer` (each brand's `platform.modules`) | consumers | each source's topic under its grant, at the read generation (below); `Ingest.record` decodes, checks, keeps or passes over, pseudonymises and stores |
 | `ingest` | `SourceState` | key value entity, per source | stored, passed over, skewed, last received: the status's figures |
 | `ingest` | `Quarantined`, `Quarantine` | key value entity, view | what could not be stored, its bytes sealed under the quarantine key |
 | `registry` | `Pseudonym`, `Identity` | key value entities | registry id (a keyed digest) → pseudonym, and pseudonym → brand, kind, real id: the one place a real id is kept |
