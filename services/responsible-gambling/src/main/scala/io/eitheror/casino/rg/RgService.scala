@@ -6,7 +6,7 @@ import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, H
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import io.eitheror.casino.rg.api.*
 import io.eitheror.casino.rg.facts.{AuditPublisher, RgPublisher, SettingsAuditPublisher}
-import io.eitheror.casino.rg.profile.ProfileEntity
+import io.eitheror.casino.rg.profile.{ProfileEntity, RgKeys}
 import io.eitheror.casino.rg.settings.BrandSettingsEntity
 import io.eitheror.casino.rg.timers.*
 import io.eitheror.casino.rg.usage.*
@@ -16,6 +16,7 @@ object RgService:
 
   val descriptors: Seq[ComponentDescriptor] = Seq(
     ProfileEntity.descriptor,
+    RgKeys.descriptor,
     UsageEntity.descriptor,
     SessionDayEntity.descriptor,
     BrandSettingsEntity.descriptor,
@@ -37,7 +38,8 @@ object RgService:
     Seq[EndpointClients => HttpEndpoint](
       c => PlayerEndpoint(ctx(c)),
       c => OperatorEndpoint(ctx(c)),
-      c => ServiceEndpoint(ctx(c))
+      c => ServiceEndpoint(ctx(c)),
+      c => SupportEndpoint(ctx(c))
     )
 
   /** Once the service has started: the timers reachable from the consumers and timed actions. */

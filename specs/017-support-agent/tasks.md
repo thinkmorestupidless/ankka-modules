@@ -73,22 +73,22 @@ criteria name suites, and the plan names them.
 
 ### The neighbours' amendments (contracts/neighbours.md)
 
-- [ ] T007 Amendment P2 (players): `GET /{playerId}/status` answers `currency`.
+- [X] T007 Amendment P2 (players): `GET /{playerId}/status` answers `currency`.
   - Code: `services/players/src/main/scala/io/eitheror/casino/players/api/GameSessionRoutes.scala`.
   - Test: the players suite asserting the field.
   - Docs: the row in `specs/008-players/contracts/routes.md`.
-- [ ] T008 Amendment P1 (players): `POST /game-sessions/{sessionId}/end` records `approvalId` as its
+- [X] T008 Amendment P1 (players): `POST /game-sessions/{sessionId}/end` records `approvalId` as its
       key.
   - A repeat answers the first outcome, and another session under the same key is 409 `key_reused`.
   - Suites first, then the code; then `specs/008-players` spec (FR-017) and contract rows.
-- [ ] T009 Amendment P3 (players): `GET /{playerId}/agent-profile?fields=`, admitting
+- [X] T009 Amendment P3 (players): `GET /{playerId}/agent-profile?fields=`, admitting
       `serviceOf("support-agent")` only.
   - It serves `email`, `firstName`, `lastName`, `country`, `language` and `dateOfBirth`; any other
     name is 400 `unknown_field`.
   - It sits beside the status route in `Endpoints.scala`, with its suite (admission, each field,
     unknown, unknown player).
   - Then spec 008 and the contract row.
-- [ ] T010 Amendment A1 (payouts): `services/payouts/src/main/scala/io/eitheror/casino/payouts/api/SupportEndpoint.scala`.
+- [X] T010 Amendment A1 (payouts): `services/payouts/src/main/scala/io/eitheror/casino/payouts/api/SupportEndpoint.scala`.
   - Prefix `/v1/casino/payouts-service/<slug>`, ACL `Routes.serviceOf("support-agent")`.
   - `POST /players/{playerId}/withdrawal-requests` runs `PlayerEndpoint`'s workflow (extract the
     shared body into a function both call), with `MISSING_KEY` and `KEY_REUSED` as there.
@@ -96,13 +96,13 @@ criteria name suites, and the plan names them.
     request.
   - Then spec 007 (FR-004) and `specs/007-payouts/contracts/routes.md`; register the endpoint in
     the service.
-- [ ] T011 Amendment R2–R4 keys (responsible-gambling): `services/responsible-gambling/src/main/scala/io/eitheror/casino/rg/profile/RgKeys.scala`.
+- [X] T011 Amendment R2–R4 keys (responsible-gambling): `services/responsible-gambling/src/main/scala/io/eitheror/casino/rg/profile/RgKeys.scala`.
   - A key value entity per player holding the last 64 keys with each command's outcome and a body
     hash.
   - A repeat answers the outcome; another body is `key_reused`; a key older than those is
     `key_expired`.
   - Codec registered; unit and kit suites.
-- [ ] T012 Amendments R1–R4 (responsible-gambling): `rg/api/SupportEndpoint.scala`.
+- [X] T012 Amendments R1–R4 (responsible-gambling): `rg/api/SupportEndpoint.scala`.
   - Prefix `/v1/casino/rg-service/<slug>`, ACL `Routes.serviceOf("support-agent")`.
   - `GET /{player}/limits?currency=`, `PUT /{player}/limits/{type}` `{value, currency?, key}`,
     `PUT /{player}/cooling-off` `{until, key}`, `PUT /{player}/permanent-exclusion` `{key}`.

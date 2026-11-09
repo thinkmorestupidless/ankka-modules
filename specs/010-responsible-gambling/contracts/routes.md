@@ -48,6 +48,20 @@ activeRestrictions: ["COOLING_OFF"|"SELF_EXCLUDED"], realityCheckIntervalMinutes
 `/settings` and `/{player}` share no prefix beyond the endpoint's (0.13 forbids two endpoints sharing a
 prefix, not two routes under one).
 
+## SupportEndpoint: `/v1/casino/rg-service/<slug>`, `Routes.serviceOf("support-agent")` (spec 017 amendments R1–R4)
+
+`support-agent`'s reads, and the changes a player approved in the chat. Each change is the player's own
+command (actor player, the player's rules), under the body's `key` in `RgKeys`: a repeat answers the first
+outcome, a refusal included; the key with another body is 409 `key_reused`; a key older than the last 64
+the player's keys hold is 409 `key_expired`; no key is 400 `key_required`. A 5xx answer is not kept.
+
+| Method and path | Body | Answer | Refusals |
+|---|---|---|---|
+| `GET /{player}/limits` | query `currency` | 200 the status, as the player route answers it (R1) | 503 |
+| `PUT /{player}/limits/{type}` | `{value, currency?, key}` | 200 the status (R2) | the player route's; `key_required`, `key_reused`, `key_expired` |
+| `PUT /{player}/cooling-off` | `{until, key}` | 200 the status (R3) | the player route's (`break_active` among them); the key's |
+| `PUT /{player}/permanent-exclusion` | `{key}` | 200 `{"status": "self_excluded"}`, also when the player is already excluded (R4) | the key's |
+
 ## ServiceEndpoint: `/v1/casino/brands/<slug>/rg`, `Routes.serviceOf(...)`
 
 The callers' contracts, as already built (`services/wallet/.../api/ResponsibleGambling.scala`,

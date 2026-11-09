@@ -68,6 +68,28 @@ class RequestSuite extends munit.FunSuite with LogCapturing:
     val other = ask(p, d, key, amount = 6000L)
     assertEquals((other.status, other.str("error")), (409, "KEY_REUSED"))
 
+  test("spec 017 A1: support-agent's request is the player's: admitted, keyed the same, and refused to a player token"):
+    val p   = newPlayer()
+    val d   = ready(p)
+    val key = UUID.randomUUID().toString
+    def support(amount: Long = 5000L, headers: Seq[(String, String)] = kit.asService("support-agent")) =
+      kit.json("POST", s"/v1/casino/payouts-service/${kit.slug}/players/$p/withdrawal-requests",
+        Json.obj("amount" -> amount, "currency" -> "EUR", "terminalId" -> "t-bank", "destinationId" -> d, "key" -> key), headers)
+    val first = support()
+    assertEquals(first.status, 201, first.text)
+    assertEquals(first.str("requestId"), io.eitheror.casino.payouts.workflow.WithdrawalWorkflow.requestId(p, key))
+    val repeat = support()
+    assertEquals((repeat.status, repeat.str("requestId"), repeat.str("createdAt")), (201, first.str("requestId"), first.str("createdAt")))
+    // the player's own route under the same key is the same request
+    assertEquals(ask(p, d, key).str("requestId"), first.str("requestId"))
+    assertEquals(kit.wallet.calls("").size, 1)
+    assertEquals(support(amount = 6000L).str("error"), "KEY_REUSED")
+    assertEquals(support(headers = kit.asPlayer(p)).status, 403)
+    assertEquals(support(headers = kit.asService("players")).status, 403)
+    val unkeyed = kit.json("POST", s"/v1/casino/payouts-service/${kit.slug}/players/$p/withdrawal-requests",
+      Json.obj("amount" -> 5000L, "currency" -> "EUR", "terminalId" -> "t-bank", "destinationId" -> d), kit.asService("support-agent"))
+    assertEquals(unkeyed.str("error"), "MISSING_KEY", unkeyed.text)
+
   test("a request opened but not counted, as after a crash before the answer, is counted by RequestsConsumer"):
     val p  = newPlayer()
     val id = s"crash-$p"

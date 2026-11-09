@@ -305,6 +305,20 @@ amended. A turn with several slow tools may pass the gateway's 15 s; it complete
 (R3). **Rejected:** 5 s with no retry, which keeps turns shorter but drops the original's tolerance
 of a blip.
 
+## Found during implementation
+
+- **2026-11-09, `RgKeys`' expired keys.** To answer `key_expired` for a key older than the last 64
+  (contracts/neighbours.md), `RgKeys` keeps the evicted keys as 64-bit digests, with no outcome. They
+  grow by 8 bytes for each change past the 64th, and keys are approval ids, a handful per player.
+  Two duplicates that run together both run the player's command; each command is the same change
+  twice (a limit to the same value, a break to the same end, an exclusion answered 200), and the
+  first answer is the one kept. A 5xx answer is not kept, so its repeat runs again.
+- **2026-11-09, a tool cannot see its approval id.** ankka 0.16's `FunctionTool` handler is not
+  given the approval it ran under. The endpoint records `Decided(approvalId)` on the `Conversation`
+  before it calls `decide`, and an approved tool reads the conversation's approved id as its key.
+- **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
+  holding the session it ended (amendment P1); `approvalId` is now required on that route.
+
 ## For ankka
 
 Nothing blocks this service, and each item below is noted for an ankka spec.

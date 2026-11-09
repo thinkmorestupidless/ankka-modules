@@ -281,6 +281,48 @@ class SessionsSuite extends munit.FunSuite with LogCapturing:
     kit.eventually("audit")(kit.facts(PlatformAudit).collectFirst { case f: AuditRecord if f.actorId == "ap-1" => f })
   }
 
+  test("spec 017 P2: the status names the player's currency") {
+    val (id, _, _) = signedIn()
+    assertEquals(kit.request("GET", kit.servicePath(s"/$id/status"), None, kit.asService("support-agent")).str("currency"), "EUR")
+  }
+
+  test("spec 017 P1: the approval is the end's key: again is the same end, another session is key_reused, none is 400") {
+    val (id, _, ps) = signedIn()
+    val a   = launch(id, Some(ps)).str("sessionId")
+    val b   = launch(id, Some(ps)).str("sessionId")
+    def endOf(session: String, body: String) =
+      kit.request("POST", kit.servicePath(s"/game-sessions/$session/end"), Some(body), kit.asService("support-agent"))
+    assertEquals(endOf(a, """{"approvalId":"ap-k"}""").status, 200)
+    val again = endOf(a, """{"approvalId":"ap-k"}""")
+    assertEquals((again.status, again.str("status")), (200, "ended"), again.text)
+    val reused = endOf(b, """{"approvalId":"ap-k"}""")
+    assertEquals((reused.status, reused.str("error")), (409, "key_reused"), reused.text)
+    assertEquals(game(b).endReason, None)
+    val missing = endOf(b, "{}")
+    assertEquals((missing.status, missing.str("error")), (400, "missing_fields"), missing.text)
+    assertEquals(endOf("no-such-session", """{"approvalId":"ap-z"}""").status, 404)
+    // the 404 claimed nothing: the key still ends a real session
+    assertEquals(endOf(b, """{"approvalId":"ap-z"}""").status, 200)
+    kit.eventually("one audit for ap-k")(Option(kit.facts(PlatformAudit).count { case f: AuditRecord => f.actorId == "ap-k"; case _ => false })
+      .filter(_ == 1))
+  }
+
+  test("spec 017 P3: agent-profile serves only the named fields, refuses another name, and only to support-agent") {
+    val (email, id) = kit.activePlayer("firstName" -> "Ada", "lastName" -> "Lovelace")
+    def profileOf(player: String, fields: String, caller: String = "support-agent") =
+      kit.request("GET", kit.servicePath(s"/$player/agent-profile?fields=$fields"), None, kit.asService(caller))
+    val r = profileOf(id, "email,firstName,country")
+    assertEquals(r.status, 200, r.text)
+    assertEquals((r.str("email"), r.str("firstName"), r.str("country")), (email, "Ada", "GB"))
+    assert(!r.json.has("lastName"), r.text)
+    assertEquals(profileOf(id, "lastName").str("lastName"), "Lovelace")
+    assertEquals(profileOf(id, "").json.size, 0)
+    val unknown = profileOf(id, "firstName,password")
+    assertEquals((unknown.status, unknown.str("error"), unknown.str("field")), (400, "unknown_field", "password"), unknown.text)
+    assertEquals(profileOf("no-such-player", "email").str("error"), "player_not_found")
+    assertEquals(profileOf(id, "email", caller = "rewards").status, 403)
+  }
+
   test("spec 023: exchange reads a player's status, and a service the route does not name is refused") {
     val (id, _, _) = signedIn()
     assertEquals(kit.request("GET", kit.servicePath(s"/$id/status"), None, kit.asService("exchange")).str("status"), "active")

@@ -22,6 +22,7 @@ object PlayersService:
     PlayerEntity.descriptor,
     PlayerSessionEntity.descriptor,
     GameSessionEntity.descriptor,
+    AgentEndKey.descriptor,
     MessageEntity.descriptor,
     NoteEntity.descriptor,
     FraudCaseEntity.descriptor,
