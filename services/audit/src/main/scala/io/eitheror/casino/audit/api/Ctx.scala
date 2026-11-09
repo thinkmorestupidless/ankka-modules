@@ -12,6 +12,8 @@ import java.time.Instant
 
 /** What every endpoint is built with: the authenticator and the service's clients; the settings and clock. */
 final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
+  // Built on every node as its endpoints are: the node's secret store, for the keys (Wiring.keys).
+  if Wiring.secretStore.get().isEmpty then Wiring.secretStore.set(Some(clients.secrets))
   def settings: Settings = Wiring.settings.get()
   def now(): Instant     = Wiring.clock.get().instant()
 

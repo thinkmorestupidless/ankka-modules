@@ -41,3 +41,21 @@ class RegistryKeySuite extends munit.FunSuite:
     RegistryKey.forget()
     assert(RegistryKey.read(failing).left.exists(_.startsWith("the secret store is unavailable")))
   }
+
+  test("a node the seed did not run on reads the keys from its own secret store on first use") {
+    val store = MapStore()
+    io.eitheror.casino.audit.Wiring.keys.set(None)
+    io.eitheror.casino.audit.Wiring.secretStore.set(None)
+    QuarantineKey.forget()
+    // Before the seed has made them anywhere, a message is refused (and redelivered).
+    intercept[IllegalStateException](io.eitheror.casino.audit.Wiring.keysFrom(store))
+    // The seed, on another node: the same database's store, this node's Wiring untouched.
+    val made = RegistryKey.make(store)
+    QuarantineKey.make(store): Unit
+    RegistryKey.forget()
+    QuarantineKey.forget()
+    val read = io.eitheror.casino.audit.Wiring.keysFrom(store)
+    assertEquals(Ids.digest(read.registry, "goldvibe", "x"), Ids.digest(made, "goldvibe", "x"))
+    io.eitheror.casino.audit.Wiring.keys.set(None)
+  }
+

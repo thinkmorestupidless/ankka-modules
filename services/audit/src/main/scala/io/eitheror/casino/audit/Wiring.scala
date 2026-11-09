@@ -16,13 +16,29 @@ object Wiring:
   val clock: AtomicReference[Clock] = AtomicReference(Clock.systemUTC())
 
   /**
-   * The keys ingest digests and seals under, set by the seed once it has read or made them. A consumer's
-   * context has no secret store, so until the seed has run a message is refused and redelivered.
+   * The keys ingest digests and seals under. The seed makes them, on whichever node runs the timer;
+   * every node reads them from the secret store it is handed (an endpoint's at start, a consumer's
+   * context), so a node the seed did not run on reads them too. Until they are made, a message is
+   * refused and redelivered.
    */
   val keys: AtomicReference[Option[IngestKeys]] = AtomicReference(None)
 
+  /** This node's secret store, set as the endpoints are built and by each consumer's message. */
+  val secretStore: AtomicReference[Option[com.thinkmorestupidless.ankka.sdk.SecretStore]] = AtomicReference(None)
+
   def requiredKeys: IngestKeys =
-    keys.get().getOrElse(throw IllegalStateException("the registry and quarantine keys are not read yet: the seed has not run"))
+    keys.get().getOrElse {
+      val store = secretStore.get().getOrElse(throw IllegalStateException("the keys are not read yet: no secret store is wired"))
+      val read  = IngestKeys(io.eitheror.casino.audit.registry.RegistryKey.required(store),
+        io.eitheror.casino.audit.registry.QuarantineKey.required(store), settings.get().skewBound)
+      keys.set(Some(read))
+      read
+    }
+
+  /** The keys, read from `store` on a node that has not read them yet. */
+  def keysFrom(store: com.thinkmorestupidless.ankka.sdk.SecretStore): IngestKeys =
+    if secretStore.get().isEmpty then secretStore.set(Some(store))
+    requiredKeys
 
   /** The service's views, set once it has started: a workflow's step reads the store through them. */
   val viewClient: AtomicReference[Option[com.thinkmorestupidless.ankka.runtime.ViewClient]] = AtomicReference(None)

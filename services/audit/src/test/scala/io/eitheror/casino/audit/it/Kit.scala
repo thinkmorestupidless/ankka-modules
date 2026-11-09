@@ -98,6 +98,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
     QuarantineKey.forget()
     AuditService.wire(settings, clock, realm)
     Wiring.viewClient.set(Some(testKit.service.viewClient))
+    Wiring.secretStore.set(Some(secrets))
     Seed.run(secrets)
 
   def stop(): Unit =

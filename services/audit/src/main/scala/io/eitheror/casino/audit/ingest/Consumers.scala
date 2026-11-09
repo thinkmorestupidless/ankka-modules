@@ -12,12 +12,12 @@ import io.eitheror.casino.contract.facts.{PlatformAudit, PlatformModules}
  */
 final class RecordsConsumer(source: Source, context: ConsumerContext) extends Consumer[Array[Byte], Unit]:
   def onMessage(bytes: Array[Byte]): Effect =
-    Ingest.record(source, bytes, Wiring.clock.get().instant(), IngestCalls.of(context.componentClient), Wiring.requiredKeys): Unit
+    Ingest.record(source, bytes, Wiring.clock.get().instant(), IngestCalls.of(context.componentClient), Wiring.keysFrom(context.secrets)): Unit
     effects.done()
 
 final class ModulesConsumer(brand: String, context: ConsumerContext) extends Consumer[Array[Byte], Unit]:
   def onMessage(bytes: Array[Byte]): Effect =
-    Ingest.module(brand, bytes, Wiring.clock.get().instant(), IngestCalls.of(context.componentClient), Wiring.requiredKeys): Unit
+    Ingest.module(brand, bytes, Wiring.clock.get().instant(), IngestCalls.of(context.componentClient), Wiring.keysFrom(context.secrets)): Unit
     effects.done()
 
 object Consumers:
