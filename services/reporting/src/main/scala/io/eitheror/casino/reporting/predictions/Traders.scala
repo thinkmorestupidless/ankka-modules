@@ -6,6 +6,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.reporting.{ReportingCodecs, ReportingRuntime}
 import io.eitheror.casino.reporting.days.Days
 import io.eitheror.casino.reporting.intake.Generation
+import io.eitheror.casino.reporting.reads.Paging
 
 import java.time.{Instant, LocalDate}
 
@@ -73,5 +74,5 @@ object Traders extends KeyedView.Companion[TradersView, TraderRow](
   def create(ctx: ViewComponentContext) = new TradersView
 
   def rows(views: ViewClient, generation: Int, currency: String, from: LocalDate, to: LocalDate): Vector[TraderRow] =
-    views.forView(Traders).ask(between, 10_000_000, "generation" -> generation.toString, "currency" -> currency,
+    Paging.bounded(views.forView(Traders), between, "generation" -> generation.toString, "currency" -> currency,
       "from" -> from.toString, "to" -> to.toString)

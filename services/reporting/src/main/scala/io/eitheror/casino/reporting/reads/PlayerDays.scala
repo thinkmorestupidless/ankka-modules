@@ -73,5 +73,5 @@ object PlayerDays extends KeyedView.Companion[PlayerDaysView, PlayerDayRow](
   def create(ctx: ViewComponentContext) = new PlayerDaysView
 
   def rows(views: ViewClient, generation: Int, currency: String, from: LocalDate, to: LocalDate): Vector[PlayerDayRow] =
-    views.forView(PlayerDays).ask(between, 10_000_000, "generation" -> generation.toString, "currency" -> currency,
+    Paging.bounded(views.forView(PlayerDays), between, "generation" -> generation.toString, "currency" -> currency,
       "from" -> from.toString, "to" -> to.toString)

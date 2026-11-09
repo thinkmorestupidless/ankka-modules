@@ -66,17 +66,16 @@ object Rounds extends View.Companion[RoundRows, RoundCheckState, RoundRow](
 
   def create(ctx: ViewComponentContext) = new RoundRows
 
-  private val Every = 10_000_000
 
   /** A reporting day's rounds, by the round's day (research R7). */
   def ofDay(views: ViewClient, generation: Int, day: String): Vector[RoundRow] =
-    views.forView(Rounds).ask(byDay, Every, "generation" -> generation.toString, "day" -> day)
+    Paging.bounded(views.forView(Rounds), byDay, "generation" -> generation.toString, "day" -> day)
 
   def ofGameSession(views: ViewClient, generation: Int, session: String): Vector[RoundRow] =
-    views.forView(Rounds).ask(byGameSession, Every, "generation" -> generation.toString, "session" -> session)
+    Paging.bounded(views.forView(Rounds), byGameSession, "generation" -> generation.toString, "session" -> session)
 
   def walletOnly(views: ViewClient, generation: Int, player: String, from: java.time.Instant, to: java.time.Instant): Vector[RoundRow] =
-    views.forView(Rounds).ask(walletOnlyOf, Every, "generation" -> generation.toString, "player" -> player, "from" -> from.toString,
+    Paging.bounded(views.forView(Rounds), walletOnlyOf, "generation" -> generation.toString, "player" -> player, "from" -> from.toString,
       "to" -> to.toString)
 
   def latest(views: ViewClient, generation: Int, game: String): Option[RoundRow] =

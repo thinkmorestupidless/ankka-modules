@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.reporting.{ReportingCodecs, Settings}
 import io.eitheror.casino.reporting.intake.{BookEvent, FactId, Generation, Moved, WalletBook}
+import io.eitheror.casino.reporting.reads.Paging
 
 /** A trade's taker fee as `trade_made` states it: the market, the currency and the trade's day in the brand's zone. */
 final case class Traded(market: String, currency: String, day: String, fee: Long)
@@ -107,4 +108,4 @@ object TradeFees extends View.Companion[TradeFeeRows, TradeFeeState, TradeFeeSta
   def create(ctx: ViewComponentContext) = new TradeFeeRows
 
   def ofDay(views: ViewClient, generation: Int, day: String): Vector[TradeFeeState] =
-    views.forView(TradeFees).ask(onDay, 10_000_000, "generation" -> generation.toString, "day" -> day)
+    Paging.bounded(views.forView(TradeFees), onDay, "generation" -> generation.toString, "day" -> day)

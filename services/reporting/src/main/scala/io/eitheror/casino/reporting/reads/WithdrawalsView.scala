@@ -62,4 +62,4 @@ object WithdrawalsView extends View.Companion[WithdrawalRows, WithdrawalEvent, W
   def create(ctx: ViewComponentContext) = new WithdrawalRows
 
   def pending(views: com.thinkmorestupidless.ankka.runtime.ViewClient, generation: Int, at: Instant): Vector[WithdrawalRow] =
-    views.forView(WithdrawalsView).ask(pendingAt, 10_000_000, "generation" -> generation.toString, "at" -> at.toString)
+    Paging.bounded(views.forView(WithdrawalsView), pendingAt, "generation" -> generation.toString, "at" -> at.toString)

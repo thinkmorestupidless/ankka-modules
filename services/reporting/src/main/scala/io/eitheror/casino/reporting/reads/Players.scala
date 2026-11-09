@@ -60,41 +60,49 @@ object Players extends View.Companion[PlayerRows, PlayerLogEvent, PlayerRow](
       source = ChangeSource.eventsOf(PlayerLog),
       rowSerializer = PlayerRow.given_Serializer_PlayerRow
     ):
-  /** The players registered from `from` (inclusive) to `to` (exclusive), both instants. */
+  /**
+   * The players registered from `from` (inclusive) to `to` (exclusive), both instants, in registration order: a page after
+   * the registration `after_at` and the row `after` (`-infinity` and `""` for the first).
+   */
   val registeredBetween = query("registered-between")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND (payload::jsonb->>'registeredAt')::timestamptz >= (:from)::timestamptz AND (payload::jsonb->>'registeredAt')::timestamptz < (:to)::timestamptz ORDER BY payload::jsonb->>'registeredAt', row_key")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND (payload::jsonb->>'registeredAt')::timestamptz >= (:from)::timestamptz AND (payload::jsonb->>'registeredAt')::timestamptz < (:to)::timestamptz AND ((payload::jsonb->>'registeredAt')::timestamptz, row_key) > ((:after_at)::timestamptz, :after) ORDER BY (payload::jsonb->>'registeredAt')::timestamptz, row_key")
 
-  /** Every player of the generation, a page at a time from `offset` (FR-014's geography, the email search). */
+  /** Every player of the generation, a page at a time after the row `after` (FR-014's geography, the email search). */
   val every = query("every")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation ORDER BY row_key OFFSET (:offset)::int")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND row_key > :after ORDER BY row_key")
 
-  /** The players `ids` names, comma separated. */
+  /** The players `ids` names, comma separated, a page at a time after the row `after`. */
   val byIds = query("by-ids")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'player' = ANY(string_to_array(:ids, ',')) ORDER BY row_key")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'player' = ANY(string_to_array(:ids, ',')) AND row_key > :after ORDER BY row_key")
 
-  /** The generation's test accounts, which the dashboard leaves out when the brand excludes them (FR-024). */
+  /** The generation's test accounts, which the dashboard leaves out when the brand excludes them (FR-024), by page. */
   val testAccounts = query("test-accounts")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'testAccount' = 'true' ORDER BY row_key")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'testAccount' = 'true' AND row_key > :after ORDER BY row_key")
 
   def create(ctx: ViewComponentContext) = new PlayerRows
 
-  private val Page = 10_000
+  /** A row's key: its `PlayerLog`'s id. */
+  def key(r: PlayerRow): String = Generation.id(r.generation, r.player)
 
-  def registered(views: ViewClient, generation: Int, from: Instant, to: Instant): Vector[PlayerRow] =
-    views.forView(Players).ask(registeredBetween, 1_000_000, "generation" -> generation.toString, "from" -> from.toString, "to" -> to.toString)
+  /** Every player registered in the period, in registration order, a page at a time. */
+  def registered(views: ViewClient, generation: Int, from: Instant, to: Instant, size: Int = Paging.Page): Vector[PlayerRow] =
+    val q = views.forView(Players)
+    Paging.all[PlayerRow](
+      after => {
+        val (at, row) = if after == Paging.First then ("-infinity", "") else (after.takeWhile(_ != '|'), after.dropWhile(_ != '|').drop(1))
+        q.ask(registeredBetween, size, "generation" -> generation.toString, "from" -> from.toString, "to" -> to.toString,
+          "after_at" -> at, "after" -> row)
+      },
+      r => s"${r.registeredAt.fold("-infinity")(_.toString)}|${key(r)}", size)
 
   /** Every player of the generation, read a page at a time. */
   def all(views: ViewClient, generation: Int): Vector[PlayerRow] =
-    @scala.annotation.tailrec
-    def from(offset: Int, acc: Vector[PlayerRow]): Vector[PlayerRow] =
-      val page = views.forView(Players).ask(every, Page, "generation" -> generation.toString, "offset" -> offset.toString)
-      if page.size < Page then acc ++ page else from(offset + page.size, acc ++ page)
-    from(0, Vector.empty)
+    Paging.keyed(views.forView(Players), every, key, "generation" -> generation.toString)
 
   def of(views: ViewClient, generation: Int, ids: Iterable[String]): Map[String, PlayerRow] =
     if ids.isEmpty then Map.empty
-    else views.forView(Players).ask(byIds, 100_000, "generation" -> generation.toString, "ids" -> ids.mkString(","))
+    else Paging.keyed(views.forView(Players), byIds, key, "generation" -> generation.toString, "ids" -> ids.mkString(","))
       .map(r => r.player -> r).toMap
 
   def tests(views: ViewClient, generation: Int): Set[String] =
-    views.forView(Players).ask(testAccounts, 1_000_000, "generation" -> generation.toString).map(_.player).toSet
+    Paging.keyed(views.forView(Players), testAccounts, key, "generation" -> generation.toString).map(_.player).toSet

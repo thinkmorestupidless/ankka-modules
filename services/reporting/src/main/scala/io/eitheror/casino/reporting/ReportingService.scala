@@ -73,8 +73,7 @@ object ReportingService:
     ReportingRuntime.viewClient.set(Some(views))
     ReportingRuntime.clock.set(now)
     ReportingRuntime.startedAt.set(now())
-    ReportingRuntime.openBefore.set(d =>
-      views.forView(day.OpenDays).ask(day.OpenDays.openBefore, 10_000, "generation" -> settings.generation.toString, "day" -> d))
+    ReportingRuntime.openBefore.set(d => day.OpenDays.before(views, settings.generation, d))
     ReportingRuntime.closeInputs.set(d => day.DayEndInputs.gather(views, settings, d))
     day.CloseDays.schedule(timers)
     documents.Sweep.schedule(timers)

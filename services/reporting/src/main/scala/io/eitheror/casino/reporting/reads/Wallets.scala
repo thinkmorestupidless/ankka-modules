@@ -50,22 +50,25 @@ object Wallets extends View.Companion[WalletRows, BookEvent, WalletRow](
       source = ChangeSource.eventsOf(WalletBook),
       rowSerializer = WalletRow.given_Serializer_WalletRow
     ):
-  /** The wallets of the players `ids` names, comma separated. */
+  /** The wallets of the players `ids` names, comma separated, a page at a time after the row `after`. */
   val byPlayers = query("by-players")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'player' = ANY(string_to_array(:ids, ',')) ORDER BY row_key")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'player' = ANY(string_to_array(:ids, ',')) AND row_key > :after ORDER BY row_key")
 
-  /** The wallets in `currency` holding an open restricted funds record. */
+  /** The wallets in `currency` holding an open restricted funds record, a page at a time after the row `after`. */
   val withOpenRecords = query("with-open-records")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'currency' = :currency AND payload::jsonb->>'openRecords' = 'true' ORDER BY row_key")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'currency' = :currency AND payload::jsonb->>'openRecords' = 'true' AND row_key > :after ORDER BY row_key")
 
   def create(ctx: ViewComponentContext) = new WalletRows
 
+  /** A row's key: its `WalletBook`'s id. */
+  def key(r: WalletRow): String = Generation.id(r.generation, r.player, r.currency)
+
   def ofPlayers(views: ViewClient, generation: Int, ids: Iterable[String]): Vector[WalletRow] =
     if ids.isEmpty then Vector.empty
-    else views.forView(Wallets).ask(byPlayers, 100_000, "generation" -> generation.toString, "ids" -> ids.mkString(","))
+    else Paging.keyed(views.forView(Wallets), byPlayers, key, "generation" -> generation.toString, "ids" -> ids.mkString(","))
 
   def open(views: ViewClient, generation: Int, currency: String): Vector[WalletRow] =
-    views.forView(Wallets).ask(withOpenRecords, 1_000_000, "generation" -> generation.toString, "currency" -> currency)
+    Paging.keyed(views.forView(Wallets), withOpenRecords, key, "generation" -> generation.toString, "currency" -> currency)
 
   /** How many of the generation's wallets are in `currency`: the default currency's rule (research R6). */
   def count(views: ViewClient, generation: Int, currency: String): Long =

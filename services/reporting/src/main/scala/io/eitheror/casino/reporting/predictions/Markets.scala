@@ -6,6 +6,7 @@ import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.reporting.ReportingCodecs
 import io.eitheror.casino.reporting.intake.{Generation, Lenient}
+import io.eitheror.casino.reporting.reads.Paging
 
 import java.time.Instant
 
@@ -84,7 +85,7 @@ object Markets extends View.Companion[MarketRows, Option[f.MarketsEventsFact], M
   def create(ctx: ViewComponentContext) = new MarketRows
 
   /** Every market: a brand's markets are few, so the report filters them here. */
-  def all(views: ViewClient): Vector[MarketRow] = views.forView(Markets).ask(every, 1_000_000)
+  def all(views: ViewClient): Vector[MarketRow] = Paging.bounded(views.forView(Markets), every)
 
 /**
  * A market's figures as its `MarketBook` holds them, for the market report (data-model.md `MarketFigures`): ankka 0.16
@@ -123,5 +124,5 @@ object MarketFigures extends View.Companion[MarketFiguresRows, MarketBookEvent, 
 
   def of(views: ViewClient, generation: Int, ids: Iterable[String]): Map[String, MarketFiguresRow] =
     if ids.isEmpty then Map.empty
-    else views.forView(MarketFigures).ask(byMarkets, 1_000_000, "generation" -> generation.toString, "ids" -> ids.mkString(","))
+    else Paging.bounded(views.forView(MarketFigures), byMarkets, "generation" -> generation.toString, "ids" -> ids.mkString(","))
       .map(r => r.market -> r).toMap

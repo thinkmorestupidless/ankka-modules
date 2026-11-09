@@ -52,5 +52,5 @@ object Grants extends View.Companion[GrantRows, GrantEvent, GrantRow](
   def granted(views: ViewClient, generation: Int, from: Instant, to: Instant, offer: Option[String]): Vector[GrantRow] =
     val common = Seq("generation" -> generation.toString, "from" -> from.toString, "to" -> to.toString)
     offer match
-      case None    => views.forView(Grants).ask(grantedBetween, 10_000_000, common*)
-      case Some(o) => views.forView(Grants).ask(byOffer, 10_000_000, (common :+ ("offer" -> o))*)
+      case None    => Paging.bounded(views.forView(Grants), grantedBetween, common*)
+      case Some(o) => Paging.bounded(views.forView(Grants), byOffer, (common :+ ("offer" -> o))*)

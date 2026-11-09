@@ -4,6 +4,7 @@ import com.thinkmorestupidless.ankka.core.{ComponentId, Serializer}
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.reporting.ReportingCodecs
+import io.eitheror.casino.reporting.reads.Paging
 
 import java.time.Instant
 
@@ -35,12 +36,10 @@ object Documents extends View.Companion[DocumentRows, DocumentEvent, DocumentSta
 
   def create(ctx: ViewComponentContext) = new DocumentRows
 
-  private val Every = 10_000_000
-
-  def keptNow(views: ViewClient): Vector[DocumentState] = views.forView(Documents).ask(kept, Every)
+  def keptNow(views: ViewClient): Vector[DocumentState] = Paging.bounded(views.forView(Documents), kept)
 
   def expiredBy(views: ViewClient, at: Instant): Vector[DocumentState] =
-    views.forView(Documents).ask(pastLifetime, Every, "at" -> at.toString)
+    Paging.bounded(views.forView(Documents), pastLifetime, "at" -> at.toString)
 
   def listed(views: ViewClient, kind: String, from: Instant, to: Instant): Vector[DocumentState] =
-    views.forView(Documents).ask(byKind, Every, "kind" -> kind, "from" -> from.toString, "to" -> to.toString)
+    Paging.bounded(views.forView(Documents), byKind, "kind" -> kind, "from" -> from.toString, "to" -> to.toString)

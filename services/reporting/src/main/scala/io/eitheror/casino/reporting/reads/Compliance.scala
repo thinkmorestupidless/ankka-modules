@@ -79,8 +79,7 @@ object Compliance extends KeyedView.Companion[ComplianceView, ComplianceRow](
 
   def create(ctx: ViewComponentContext) = new ComplianceView
 
-  private val Every = 10_000_000
 
   def between(views: ViewClient, generation: Int, kind: String, from: Instant, to: Instant): Vector[ComplianceRow] =
-    views.forView(Compliance).ask(if kind == ComplianceRows.Kyc then kycBetween else rgBetween, Every,
+    Paging.bounded(views.forView(Compliance), if kind == ComplianceRows.Kyc then kycBetween else rgBetween,
       "generation" -> generation.toString, "from" -> from.toString, "to" -> to.toString)

@@ -74,12 +74,12 @@ object Sessions extends View.Companion[SessionRows, SessionState, SessionRow](
 
   /** A player's sessions of every kind started from `from` (inclusive) to `to` (exclusive), by start. */
   def ofPlayer(views: ViewClient, generation: Int, player: String, from: Instant, to: Instant): Vector[SessionRow] =
-    views.forView(Sessions).ask(byPlayer, 10_000_000, "generation" -> generation.toString, "player" -> player, "from" -> from.toString,
+    Paging.bounded(views.forView(Sessions), byPlayer, "generation" -> generation.toString, "player" -> player, "from" -> from.toString,
       "to" -> to.toString)
 
   /** A login session's game sessions, by start. */
   def gamesOf(views: ViewClient, generation: Int, session: String): Vector[SessionRow] =
-    views.forView(Sessions).ask(gameSessionsOf, 10_000_000, "generation" -> generation.toString, "session" -> session)
+    Paging.bounded(views.forView(Sessions), gameSessionsOf, "generation" -> generation.toString, "session" -> session)
 
   def gameStarts(views: ViewClient, generation: Int, from: Instant, to: Instant): Vector[SessionRow] =
-    views.forView(Sessions).ask(gameStartsBetween, 10_000_000, "generation" -> generation.toString, "from" -> from.toString, "to" -> to.toString)
+    Paging.bounded(views.forView(Sessions), gameStartsBetween, "generation" -> generation.toString, "from" -> from.toString, "to" -> to.toString)

@@ -5,6 +5,7 @@ import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.*
 import io.eitheror.casino.reporting.ReportingCodecs
 import io.eitheror.casino.reporting.intake.Generation
+import io.eitheror.casino.reporting.reads.Paging
 
 import java.time.{Instant, LocalDate}
 
@@ -69,26 +70,34 @@ object DaysView extends View.Companion[DayRows, DayEvent, DayRow](
   val currencyRows = query("currencies")(
     s"SELECT DISTINCT ON (c) payload FROM $table, jsonb_object_keys(payload::jsonb->'currencies') AS c WHERE payload::jsonb->>'generation' = :generation ORDER BY c")
 
-  /** A generation's days before `day` holding a correction: where the corrections that arrived during `day` are. */
+  /**
+   * A generation's days before `day` holding a correction: where the corrections that arrived during `day` are; a page at
+   * a time after the row `after` (a row's key is `g<n>/<day>`, so key order is day order).
+   */
   val correctedBefore = query("corrected-before")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'day' < :day AND jsonb_array_length(COALESCE(payload::jsonb->'corrections', '[]'::jsonb)) > 0 ORDER BY payload::jsonb->>'day'")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND payload::jsonb->>'day' < :day AND jsonb_array_length(COALESCE(payload::jsonb->'corrections', '[]'::jsonb)) > 0 AND row_key > :after ORDER BY row_key")
 
   def create(ctx: ViewComponentContext) = new DayRows
 
   /** One day's row, if a fact has reached it. */
   def row(views: ViewClient, generation: Int, day: LocalDate): Option[DayRow] = rows(views, generation, day, day).headOption
 
-  def corrected(views: ViewClient, generation: Int, before: LocalDate): Vector[DayRow] =
-    views.forView(DaysView).ask(correctedBefore, 100_000, "generation" -> generation.toString, "day" -> before.toString).toVector
+  /** A row's key: its `BrandDay`'s id. */
+  def key(r: DayRow): String = BrandDay.id(r.generation, r.day)
 
-  /** The period's rows; a day no fact has reached has none. */
+  def corrected(views: ViewClient, generation: Int, before: LocalDate): Vector[DayRow] =
+    Paging.keyed(views.forView(DaysView), correctedBefore, key, "generation" -> generation.toString, "day" -> before.toString)
+
+  /** The period's rows, at most one a day; a day no fact has reached has none. */
   def rows(views: ViewClient, generation: Int, from: LocalDate, to: LocalDate): Vector[DayRow] =
-    val limit = (java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1).max(1L).min(100_000L).toInt
-    views.forView(DaysView).ask(between, limit, "generation" -> generation.toString, "from" -> from.toString, "to" -> to.toString).toVector
+    val days = (java.time.temporal.ChronoUnit.DAYS.between(from, to) + 1).max(1L).min(Paging.Bound.toLong).toInt
+    Paging.boundedTo(days)(views.forView(DaysView), between, "generation" -> generation.toString, "from" -> from.toString,
+      "to" -> to.toString)
 
   /** Every currency the generation holds figures in, in order. */
   def currencies(views: ViewClient, generation: Int): Vector[String] =
-    views.forView(DaysView).ask(currencyRows, 1_000, "generation" -> generation.toString).flatMap(_.currencies.keySet).toVector.distinct.sorted
+    Paging.boundedTo(1_000)(views.forView(DaysView), currencyRows, "generation" -> generation.toString)
+      .flatMap(_.currencies.keySet).distinct.sorted
 
 /** A period's money in one currency, one entry per reporting day, a day no fact reached at zero (FR-007). */
 final case class Revenue(currency: String, days: Vector[(LocalDate, Money)]):

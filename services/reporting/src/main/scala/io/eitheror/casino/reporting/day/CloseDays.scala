@@ -31,9 +31,17 @@ object OpenDays extends View.Companion[OpenDaysView, DayEvent, OpenDayRow](
       source = ChangeSource.eventsOf(BrandDay),
       rowSerializer = OpenDayRow.given_Serializer_OpenDayRow
     ):
-  /** A generation's open days before `day` (an ISO date, so text order is date order). */
+  /**
+   * A generation's open days before `day` (an ISO date, so text order is date order), a page at a time after the row
+   * `after` (a row's key is `g<n>/<day>`, so key order is day order).
+   */
   val openBefore = query("open-before")(
-    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND (payload::jsonb->>'open')::boolean IS NOT FALSE AND payload::jsonb->>'day' < :day ORDER BY payload::jsonb->>'day'")
+    s"SELECT payload FROM $table WHERE payload::jsonb->>'generation' = :generation AND (payload::jsonb->>'open')::boolean IS NOT FALSE AND payload::jsonb->>'day' < :day AND row_key > :after ORDER BY row_key")
+
+  /** A generation's every open day before `day`. */
+  def before(views: com.thinkmorestupidless.ankka.runtime.ViewClient, generation: Int, day: String): Vector[OpenDayRow] =
+    io.eitheror.casino.reporting.reads.Paging.keyed(views.forView(OpenDays), openBefore, r => BrandDay.id(r.generation, r.day),
+      "generation" -> generation.toString, "day" -> day)
 
   def create(ctx: ViewComponentContext) = new OpenDaysView
 
