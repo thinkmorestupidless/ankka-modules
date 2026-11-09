@@ -172,7 +172,7 @@ criteria name suites, and the plan names them.
 - [X] T023 `S/api/ChatEndpoint.scala`, `Ctx.scala` and `Answers.scala`: the two `sseBody` routes
       under `Routes.player(slug)`, in contracts/routes.md's check order. The stories fill in the
       bodies. `S/SupportService.scala` and `SupportRuntime.scala` register every component.
-- [ ] T024 `T/features/SupportFeatures.scala`: bind the six `features/support-agent/` files on the
+- [X] T024 `T/features/SupportFeatures.scala`: bind the six `features/support-agent/` files on the
       kit, each step failing until its story's tasks land.
 
 **Checkpoint:** the neighbours are amended and green, the service starts, and the feature suite
