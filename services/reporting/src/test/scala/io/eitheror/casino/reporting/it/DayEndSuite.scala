@@ -172,7 +172,7 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     // The close reads the rounds from the views as they stand, and the liability and the pending holds as of the day's
     // end, so it is made once the replay has reached what the old generation's close read: every currency, each one's
     // liability and pending holds, and the rounds' differences. (The kit's clock is moved past CLOSE_IDLE at once, where a brand's consumers
-    // would be idle only once they are. The replay is every suite's facts in a full run: minutes, at its rate.)
+    // would be idle only once they are. The replay is the facts of every suite in this test JVM, the rebuilding suites' (build.sbt's `rebuilds`).)
     val currencies = before.path("currencies").fieldNames.asScala.toVector.sorted
     def held(c: String, field: String) = before.path("currencies").path(c).path(field).asText
     var seen = ""

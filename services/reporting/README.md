@@ -111,7 +111,10 @@ curl -s -H "Authorization: Bearer $TOKEN" localhost:9015/v1/casino/brands/goldvi
 
 Each runs in this directory with `sbt`; `CASINO_VERSION` names the contract's version. One kit is
 shared by every integration suite of a JVM (`SharedKit`), each suite on days of its own (`Kit.days`)
-or a today of its own (`Kit.freshToday`). The integration suites need Docker.
+or a today of its own (`Kit.freshToday`). The suites that rebuild into a new generation (`RevenueSuite`,
+`DayEndSuite` and `RevenueFeatures`, named in `build.sbt`'s `rebuilds`) run in a test JVM of their own before the
+rest: a rebuild replays every topic of its JVM's kit, and on a runner of two cores a replay of every suite's facts
+starves the other suites' commands. The integration suites need Docker.
 
 ## Where it came from
 

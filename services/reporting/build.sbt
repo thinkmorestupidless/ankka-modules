@@ -16,6 +16,17 @@ val contractVersion = sys.env.getOrElse("CASINO_VERSION", "0.2.0-SNAPSHOT")
 def needsDocker(name: String): Boolean =
   Seq(".it.", ".port.", ".features.", ".perf.").exists(name.contains) && !name.endsWith(".port.CoverageSuite")
 
+/**
+ * The suites that rebuild into a new generation (SC-004, R7). A rebuild's consumers replay every topic of the JVM's
+ * kit, and the kit, `ReportingRuntime` and the keyring are one per JVM, so these run in a test JVM of their own: the
+ * replay reads only their facts, and it cannot starve the other suites' commands on a runner of two cores.
+ */
+val rebuilds: Set[String] = Set(
+  "io.eitheror.casino.reporting.it.RevenueSuite",
+  "io.eitheror.casino.reporting.it.DayEndSuite",
+  "io.eitheror.casino.reporting.features.RevenueFeatures"
+)
+
 // The service name is also the image name, the descriptor's name, and — once exposed — the first
 // label of the hostname, so it has to be one Kubernetes and DNS accept. Checked here so that a
 // name the template's normalisation could not fix fails at the first `sbt` invocation, with the
@@ -77,6 +88,13 @@ lazy val root = project
     // The test kit starts a throwaway Postgres in Docker; a forked JVM keeps its lifecycle out of
     // sbt's own process.
     Test / fork := true,
+    // Two test JVMs, one after the other (sbt runs one forked group at a time): the rebuilding suites, then the rest.
+    Test / testGrouping := {
+      val (rebuilding, rest) = (Test / definedTests).value.partition(t => rebuilds(t.name))
+      val options            = (Test / forkOptions).value
+      Seq(Tests.Group("rebuilds", rebuilding, Tests.SubProcess(options)), Tests.Group("shared", rest, Tests.SubProcess(options)))
+        .filter(_.tests.nonEmpty)
+    },
     // `sbt test` runs the unit suites only; `sbt -Dit=true "testOnly …"` (`just reporting-it`) runs the
     // integration, parity and feature suites, which need Docker.
     Test / testOptions ++= (if (sys.props.contains("it")) Nil else Seq(Tests.Filter(n => !needsDocker(n)))),
