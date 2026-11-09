@@ -284,3 +284,7 @@ outlives an erasure (FR-023).
   are kept (FR-012) and no search of the store finds what they hold (SC-002); repairing one unseals it
   with the key. Rejected: the bytes in clear (SC-002 would hold for well-formed records only), and a
   digest alone (FR-012 amended, nothing to repair from).
+- **A dropped record leaves the view** (T018, verified 2026-11-09 on ankka 0.16.0 over Postgres,
+  `services/audit/.../it/StoreSuite.scala`). A key value entity's `deleteEntity` reaches the
+  `stateOf` view `Records` as a deletion and its default handler removes the row, so `drop` deletes
+  the record and no tombstone is written (R4's fallback is not needed).
