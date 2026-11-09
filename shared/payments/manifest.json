@@ -113,6 +113,15 @@
         "target": {
           "erasure": true
         }
+      },
+      {
+        "principal": "service:reasoner/audit",
+        "target": {
+          "topic": {
+            "name": "platform.audit",
+            "right": "consume"
+          }
+        }
       }
     ]
   },

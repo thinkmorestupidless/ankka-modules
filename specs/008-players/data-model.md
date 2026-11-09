@@ -170,7 +170,7 @@ password. `forget` deletes it, so the workflow's journal holds no personal value
 |---|---|---|
 | `PlayersPublisher` | events of `PlayerEntity`, `MessageEntity`, `FraudCaseEntity` | `casino.players` families (`contracts/facts.md`) |
 | `SessionsPublisher` | events of the two session entities | `casino.sessions` families |
-| `AuditPublisher` | operator actions' events | `platform.audit` records (spec 018 FR-001's shape) |
+| `AuditPublisher` | operator actions' events; `ErasureStageReached` | `platform.audit` records (spec 018 FR-001's shape); one `erasure.<state>` record per erasure state (spec 018 FR-019) |
 | `RgLimitsConsumer` | `casino.players`, `StartFrom.Latest`, family `rg_limit_applied` | `PlayerEntity.SetSessionLimit`; reschedules the timers |
 | `KycFactsConsumer` | `casino.players`, `StartFrom.Latest`, families `player_kyc_verified`, `player_kyc_rejected` (spec 009) | `PlayerEntity.KycVerified` / `KycWithdrawn`: the date-of-birth lock |
 | `WithdrawalsConsumer` | `casino.withdrawals`, `StartFrom.Latest` | `WithdrawalOpened` / `WithdrawalSettled` on the player (the erasure hold) |

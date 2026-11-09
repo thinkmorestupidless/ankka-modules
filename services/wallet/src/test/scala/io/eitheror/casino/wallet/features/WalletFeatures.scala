@@ -17,7 +17,7 @@ final case class Result(outcome: Outcome, events: Vector[WalletEvent])
  * was described (a real balance, records in any status, open bets, a pending request), and every
  * further Given or When is a real command. Expected values come from the scenario's words.
  */
-abstract class WalletFeatures(file: String) extends GherkinSuite(s"../../features/wallet/$file") with LogCapturing:
+abstract class WalletFeatures(file: String, dir: String = "wallet") extends GherkinSuite(s"../../features/$dir/$file") with LogCapturing:
 
   /** The refusals as the features name them. */
   protected val refusals: Map[String, String] = Map(

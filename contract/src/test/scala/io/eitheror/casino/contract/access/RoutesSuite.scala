@@ -203,6 +203,48 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
   }
 
+  test("spec 018: audit compliance is audit_compliance, or a brand's audit_compliance_<slug>, at the eitheror realm") {
+    val acl = Routes.auditCompliance(verified)
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("audit_compliance")))), Outcome.Served)
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("audit_compliance_goldvibe")))), Outcome.Served)
+    Seq(operatorWith("brand_compliance", "brand_goldvibe"), operatorWith("brand_goldvibe", "operator"), operatorWith("platform_admin")).foreach { token =>
+      val refused = outcome(acl, Request(token = Some(token))).asInstanceOf[Outcome.Refused]
+      assertEquals(refused.status, 403, token)
+      assert(refused.toString.contains("not_audit_compliance"), refused.toString)
+    }
+    assertEquals(outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
+  }
+
+  test("spec 018: auditScope is every brand for audit_compliance, else exactly the brands of its audit_compliance_<slug> roles") {
+    def principal(roles: String*) = com.thinkmorestupidless.ankka.http.Principal("c", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
+    assertEquals(Routes.auditScope(principal("audit_compliance")), Routes.BrandSet.Every)
+    // An operator of silvervibe given goldvibe's compliance reads goldvibe alone.
+    assertEquals(Routes.auditScope(principal("audit_compliance_goldvibe", "brand_compliance", "brand_silvervibe", "brand_admin")),
+      Routes.BrandSet.Only(Set("goldvibe")))
+    assert(Routes.auditScope(principal("brand_compliance", "brand_goldvibe")).isEmpty, "the brand services' compliance reads nothing here")
+    assert(Routes.auditScope(principal("audit_compliance_")).isEmpty)
+    // The realm's static compliance_officer is not read as a brand's role.
+    assert(Routes.auditScope(principal("compliance_officer")).isEmpty)
+  }
+
+  test("spec 018: re-identification needs the brand's compliance role and reidentify_<slug>; the installation's role never suffices") {
+    def principal(roles: String*) = com.thinkmorestupidless.ankka.http.Principal("c", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
+    assert(Routes.reidentifies(principal("audit_compliance_goldvibe", "reidentify_goldvibe"), "goldvibe"))
+    assert(!Routes.reidentifies(principal("audit_compliance_goldvibe", "reidentify_goldvibe"), "silvervibe"))
+    assert(!Routes.reidentifies(principal("audit_compliance_silvervibe", "reidentify_goldvibe"), "goldvibe"))
+    assert(!Routes.reidentifies(principal("brand_compliance", "brand_goldvibe", "reidentify_goldvibe"), "goldvibe"))
+    assert(!Routes.reidentifies(principal("audit_compliance", "reidentify_goldvibe"), "goldvibe"))
+    assert(!Routes.reidentifies(principal("audit_compliance", "platform_admin"), "goldvibe"))
+  }
+
+  test("spec 018: an installation owner is platform_admin; any staff member reaches a route that records its refusals") {
+    assertEquals(outcome(Routes.installationOwner(verified), Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
+    val refused = outcome(Routes.installationOwner(verified), Request(token = Some(operatorWith("audit_compliance")))).asInstanceOf[Outcome.Refused]
+    assert(refused.toString.contains("not_installation_owner"), refused.toString)
+    assertEquals(outcome(Routes.staffMember(verified), Request(token = Some(operatorWith("operator")))), Outcome.Served)
+    assertEquals(outcome(Routes.staffMember(verified), Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
+  }
+
   test("spec 013: brandsOf is the brand_<slug> roles held, and every brand for platform_admin") {
     def principal(roles: String*) = com.thinkmorestupidless.ankka.http.Principal("m", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
     assertEquals(Routes.brandsOf(principal("affiliate_manager", "brand_goldvibe", "brand_silvervibe", "brand_")),

@@ -37,7 +37,7 @@ class AccountMappingSuite extends munit.FunSuite:
     assertEquals(line.action, "set-credit-line")
     val refused = CommandRefused("d-9", "d", "debit", "CREDIT_LINE_REACHED", "m", Map.empty, t0, ok)
     val r       = AccountFacts.audit("goldvibe", account, 3, refused).get.fact.asInstanceOf[f.AuditRecord]
-    assertEquals((r.action, r.outcome, r.reasonCode), ("debit", "CREDIT_LINE_REACHED", Some("CREDIT_LINE_REACHED")))
+    assertEquals((r.action, r.outcome, r.reasonCode), ("debit", "refused", Some("credit_line_reached")))
   }
 
   test("the publishers key by the account and set the dedupe id as ce-id") {

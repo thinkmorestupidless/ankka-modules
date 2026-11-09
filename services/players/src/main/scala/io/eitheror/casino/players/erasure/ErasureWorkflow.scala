@@ -120,6 +120,7 @@ final class ErasureWorkflow(context: WorkflowContext) extends Workflow[ErasureFl
     val lapsed     = s.holdUntil.forall(h => !now().isBefore(h))
     if lapsed && !withdrawal then stepEffects.updateState(s.copy(step = Applying, heldFor = None)).thenTransitionTo(ErasureWorkflow.applyStep)
     else
+      ErasureWorkflow.stage(components, s.playerId, ErasureWorkflow.Held, now())
       val why = if withdrawal then OpenWithdrawal else Retention
       stepEffects.updateState(s.copy(heldFor = Some(why))).thenPause(live.erasureHoldPoll.toMillis.millis, ErasureWorkflow.holdStep)
 
@@ -139,6 +140,7 @@ final class ErasureWorkflow(context: WorkflowContext) extends Workflow[ErasureFl
       case None =>
         val at = now()
         ErasureWorkflow.eraseOwn(components, s, at)
+        ErasureWorkflow.stage(components, s.playerId, ErasureWorkflow.Applied, at)
         val own = Certificate(ErasureWorkflow.Own, at, Json.render(Json.obj("subject" -> s"player/${s.playerId}", "confirmed" -> true)))
         stepEffects.updateState(s.copy(step = Realm, certificates = s.certificates :+ own)).thenTransitionTo(ErasureWorkflow.realmStep)
 
@@ -150,6 +152,7 @@ final class ErasureWorkflow(context: WorkflowContext) extends Workflow[ErasureFl
       case Left(r)                         => throw IllegalStateException(s"erasure of ${s.playerId}: the realm did not answer: ${r.code}")
       case Right(user) =>
         realm.deleteUser(user).left.foreach(r => throw IllegalStateException(s"erasure of ${s.playerId}: the realm user was not removed: ${r.code}"))
+    ErasureWorkflow.stage(components, s.playerId, ErasureWorkflow.Completed, now())
     stepEffects.updateState(s.copy(step = Erased)).thenEnd
 
   /** The part a retried step did not apply: named, and the erasure left for a person (FR-039). */
@@ -178,6 +181,14 @@ object ErasureWorkflow
 
   /** This service's own certificate's name. */
   val Own = "players"
+
+  /** The erasure's states after `filed` the audit records (spec 018 FR-019), each once. */
+  val Held      = "held"
+  val Applied   = "applied"
+  val Completed = "completed"
+
+  def stage(components: ComponentClient, playerId: String, stage: String, at: Instant): Unit =
+    components.forEventSourcedEntity(PlayerEntity.id(playerId)).call(PlayerEntity.erasureStage).invoke(ErasureStage(stage, at)): Unit
 
   /**
    * Every part of the erasure but this service's own, in order (R10): the brand's `wallet` and

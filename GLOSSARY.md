@@ -61,7 +61,7 @@ The installation's one handling of payment providers, shared by every brand: it 
 Avoid: merchant, psp-gateway
 
 ### shared audit
-The installation's one record of what every brand did, kept outside the brands and naming a player by a pseudonym and never by a real id. Its registry alone maps a real id to its pseudonym, and is read only by a recorded re-identification.
+The installation's one record of the actions taken in every brand, kept outside the brands and naming a player by a pseudonym and never by a real id; a money event no person caused stays in its brand. Its registry alone maps a real id to its pseudonym, and is read only by a recorded re-identification.
 
 Avoid: reasoner
 
@@ -1051,13 +1051,13 @@ The instructions and hand-off wording an operator sets for the brand's support a
 Avoid: system message
 
 ### registry
-The shared audit's one store mapping a real id to its pseudonym, per brand and per kind, player, operator, affiliate or service; written when a pseudonym is first issued, read only by a recorded re-identification, and unchanged by a player's erasure.
+The shared audit's one store mapping a real id to its pseudonym, per brand and per kind, player, operator, affiliate or agent; written when a pseudonym is first issued, read only by a recorded re-identification, and unchanged by a player's erasure.
 
 ### re-identification
 A compliance officer with the re-identification role asking the registry who a pseudonym is, with a reason code, and being told the brand, the kind and the real id; recorded, as is a refusal.
 
 ### installation record
-An audit record of class installation about a brand: a deployment, a rollback, a restore, a grant's change or an erasure request's state, listed beside the brand's own records in one order of occurrence.
+An audit record about a brand that the shared audit writes from the installation's history, visible to the brand's compliance role: a deployment, a rollback, a restore, a grant's change or an erasure request's state, listed beside the brand's own records in one order of occurrence.
 
 ### migration
 The move of a brand from the original to the rebuild: a freeze, an export, an import, a parity report, a cutover within a window, sign-off, and the original's retirement; rehearsed against a production snapshot before the real window.

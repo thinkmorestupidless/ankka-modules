@@ -37,6 +37,9 @@
         "name": "brand_compliance"
       },
       {
+        "name": "audit_compliance"
+      },
+      {
         "name": "brand_finance"
       },
       {

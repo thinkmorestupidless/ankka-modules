@@ -230,7 +230,7 @@ class RgItSuite extends munit.FunSuite with LogCapturing:
     val r = kit.json("PUT", kit.operatorPath(s"/$p/limits/DEPOSIT_DAILY"), Json.obj("value" -> "70000", "currency" -> "EUR"), kit.asOperator())
     assertEquals((limitValue(r, "DEPOSIT_DAILY"), r.json.objects("pendingChanges").size), (Some(70_000L), 0))
     assertEquals(kit.request("GET", kit.operatorPath(s"/$p"), None, kit.asOperator(roles = "brand_silvervibe")).status, 403)
-    val audit = kit.eventually("the audit record", 5.seconds)(kit.facts(PlatformAudit).collectFirst { case a: AuditRecord if a.subjectId == p => a })
+    val audit = kit.eventually("the audit record", 5.seconds)(kit.facts(PlatformAudit).collectFirst { case a: AuditRecord if a.subjectId == p && a.actorKind == "operator" => a })
     assertEquals((audit.action, audit.changes.head.before, audit.changes.head.after), ("limit-set", Some("10000"), Some("70000")))
 
   test("cases: opened with a note, noted, closed; the full state carries them"):

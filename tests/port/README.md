@@ -253,3 +253,12 @@ brand's withdrawal limits; the rest at `a78decf1`), twice, on fresh ids: 56 reco
 show, and the original's four `TestScenario251_*` tests, every one `pass` on both runs.
 `payouts/README.md` says how they were made, what the run found about the original, and how the
 terminal listings are read.
+
+## audit (spec 018, T056)
+
+Nothing recorded: every row is translated, 2026-11-09. The original's audit query is internal and
+unauthenticated and nothing in a brand calls it; its tests are the CLI's over a stub (rows 2–5),
+the in-memory pseudonym registry's (row 6), and one assertion of end-to-end scenario 2 (row 1), which
+would need the original's whole stack started over the kind installation. `audit/README.md` says
+where each row comes from and how `services/audit/.../port/ParitySuite.scala` holds it; `just
+audit-parity` runs them.

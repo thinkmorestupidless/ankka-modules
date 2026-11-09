@@ -530,9 +530,11 @@ one of the conditions and check the refusal names it.
 - **FR-016**: A brand MUST grant, under ankka 040: to `payments`/`merchant`, the wallet's deposit
   route and the wallet's payment-outcome route; to `payments`/`psp-gateway`, the payouts outcome
   route; to `programme`/`affiliate-programme`, the `affiliates.attribution` topic to consume; to
-  `reasoner`/`audit`, the `platform.audit` topic to consume. A brand MUST receive from `payments` a
-  grant on `psp-gateway`'s payout route for its `payouts` service. No other grant MUST exist between a
-  brand and a shared project, and none between two brands. A brand's `attribution` service reads the
+  `reasoner`/`audit`, the `platform.audit` topic to consume (and, since spec 021, `platform.modules`).
+  A brand MUST receive from `payments` a grant on `psp-gateway`'s payout route for its `payouts`
+  service. `payments` MUST grant `reasoner`/`audit` its own `platform.audit` topic to consume (spec 018,
+  Clarification 2026-11-08), the one grant between two shared projects. No other grant MUST exist
+  between a brand and a shared project, none between two shared projects, and none between two brands. A brand's `attribution` service reads the
   programme's key document, revocation list and legacy tag document as any public client would (spec
   012 FR-023), and `rewards` reads the programme's code document for the brand the same way (spec 013
   FR-023a); that is not a grant and the programme calls nothing in a brand. A brand starts a
