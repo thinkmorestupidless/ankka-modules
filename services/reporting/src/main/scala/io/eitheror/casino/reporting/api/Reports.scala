@@ -218,7 +218,9 @@ object Reports:
   /**
    * The JSON export as the original's page (page 0, the size every row), written as its rows are read a page at a time
    * (`Transactions.pages`), so neither the service nor the response holds them all: the rows first, then the counts of
-   * what was written, so the two always agree.
+   * what was written, so the two always agree. A view failing partway fails the stream after the `200` is sent: ankka
+   * writes the body chunked and aborts the connection without its last chunk, so the client reads an error, never a
+   * shorter body that parses (`it.StreamedFailureSuite`).
    */
   def ledgerJson(r: Reads, asked: Transactions.Asked, period: Period): java.io.InputStream =
     var written = 0L
