@@ -89,6 +89,7 @@ final case class Section(
 object Section:
   val NoHours: Vector[Long] = Vector.fill(24)(0L)
   val NoFlows: Vector[Flow] = Vector.fill(24)(Flow())
+  val NoMarketHours: Vector[MarketDay] = Vector.fill(24)(MarketDay())
 
   /** Each key of `b` combined into `a`'s, a key `a` lacks combined from its zero. */
   def merge[A](a: Map[String, A], b: Map[String, A], zero: A)(op: (A, A) => A): Map[String, A] =
@@ -121,10 +122,14 @@ final case class CurrencyDay(
     games: Map[String, GameFigures] = Map.empty,
     predictions: Map[String, MarketDay] = Map.empty,
     liabilityAtClose: Long = 0,
-    pendingHoldsAtClose: Long = 0
+    pendingHoldsAtClose: Long = 0,
+    hourPredictions: Vector[MarketDay] = Section.NoMarketHours
 ):
   /** The sections a read shows: every player's, or without the test accounts'. */
   def section(excludeTestAccounts: Boolean): Section = if excludeTestAccounts then total - test else total
+
+  /** Every market's figures to the end of `hour` of the day, so the dashboard's yesterday is to the same hour (FR-028). */
+  def predictionsTo(hour: Int): MarketDay = hourPredictions.take(hour + 1).foldLeft(MarketDay())(_ + _)
 
 /**
  * One source event's part of a day (one currency, one hour): the money, the providers, the registrations (counted
@@ -243,9 +248,12 @@ object Day:
     if d.currency.isEmpty then regs
     else
       val day = regs.currencies.getOrElse(d.currency, CurrencyDay())
+      val markets = d.predictions.values.foldLeft(MarketDay())(_ + _)
       regs.copy(currencies = regs.currencies.updated(d.currency,
         day.copy(total = day.total + d, test = if d.test then day.test + d else day.test,
-          predictions = Section.merge(day.predictions, d.predictions, MarketDay())(_ + _))))
+          predictions = Section.merge(day.predictions, d.predictions, MarketDay())(_ + _),
+          hourPredictions = if d.predictions.isEmpty then day.hourPredictions
+            else day.hourPredictions.updated(h, day.hourPredictions(h) + markets))))
 
   def apply(s: DayState, e: DayEvent): DayState = e match
     case f: Folded    => add(s, f.delta).copy(lastSeq = s.lastSeq.updated(f.source, f.seq))

@@ -214,8 +214,8 @@ class PredictionsFeatures extends ReportingFeatures("predictions.feature"):
     p.publish().settled(p.day).settled(p.day.plusDays(1))
   }
 
-  // The traders report is the Reports tab's roles' (contracts/routes.md); compliance reads it as one of them.
-  private def compliance = kit.asStaff(Seq("brand_admin", "brand_compliance"), "co-1")
+  // The traders report admits compliance as the compliance exports do (contracts/routes.md, decided 2026-11-09).
+  private def compliance = kit.asStaff(Seq("brand_compliance"), "co-1")
 
   private def traders(currency: String): Vector[Map[String, String]] =
     kit.get(s"/predictions/traders?${period(currency)}", compliance).json.path("traders").elements.asScala.map(fields).toVector
@@ -323,7 +323,51 @@ class PredictionsFeatures extends ReportingFeatures("predictions.feature"):
   }
 
   Then("every figure of the dashboard but its predictions summary is unchanged") { () =>
+    // The casino's routes byte for byte; the predictions summary, its own route, holds the market's trading.
     assertEquals(Dashboard.map(kit.get(_, kit.asOperator).text), before.tail)
+    val shown = kit.eventually("the dashboard's predictions", 60.seconds)(
+      Some(kit.get("/dashboard/predictions?currency=EUR", kit.asOperator).json).filter(_.path("trades").path("value").asLong == p.trades.size))
+    assertEquals((shown.path("contractsTraded").path("value").asLong, shown.path("takerFees").path("value").asText),
+      (p.contracts(), p.money(p.fees())))
+  }
+
+  // ── the dashboard's predictions summary ─────────────────────────────────────────────────────────
+
+  private var hour = 0
+
+  Given("trades in {string} yesterday before and after the current hour, and today") { (currency: String) =>
+    val today = kit.freshToday()
+    hour = kit.now.atZone(kit.zone).getHour
+    from = today; to = today
+    p = Marketed(kit, today.minusDays(1), currency, rate)
+    val (a, b) = (p.market(1), p.market(2))
+    p.open(a, p.at("07:00"))
+    p.split(a, p.player(1), p.player(2), 10, 60, p.at(f"${hour - 2}%02d:00"))
+    p.direct(a, p.player(3), p.player(1), 4, 70, p.at(f"${hour + 3}%02d:00"))
+    p.open(b, p.at(today, "07:00"))
+    p.direct(b, p.player(1), p.player(2), 5, 40, p.at(today, f"${hour - 1}%02d:00"))
+    p.direct(b, p.player(3), p.player(4), 3, 50, p.at(today, f"${hour - 1}%02d:30"))
+    p.publish().settled(today.minusDays(1)).settled(today)
+  }
+
+  When("an operator reads the dashboard's predictions summary in {string}") { (currency: String) =>
+    val wanted = p.dashboardWanted(from, hour)
+    answer = kit.eventually("the dashboard's predictions", 60.seconds)(
+      Some(kit.get(s"/dashboard/predictions?currency=$currency", kit.asOperator).json).filter(j => Marketed.dashboardOf(j) == wanted))
+  }
+
+  Then("it holds today's contracts traded, notional volume, trades, distinct traders and taker fees") { () =>
+    val got   = Marketed.dashboardOf(answer)
+    val today = p.dashboard(p.tradesOf(from))
+    assertEquals(Marketed.DashboardFields.map(got(_)._1),
+      Marketed.DashboardFields.map(k => if Marketed.DashboardMoney(k) then p.money(today(k)) else today(k).toString))
+    assertEquals((today("trades"), today("traders")), (2L, 4L))
+    assertEquals(answer.path("currency").asText, p.currency)
+  }
+
+  Then("each against yesterday's to the same hour, with its trend") { () =>
+    assertEquals(Marketed.dashboardOf(answer), p.dashboardWanted(from, hour))
+    assertEquals(Marketed.dashboardOf(answer)("trades"), ("2", "1", "up"), "yesterday's trade after the hour is left out")
   }
 
   // ── a brand without the module ──────────────────────────────────────────────────────────────────
@@ -343,6 +387,8 @@ class PredictionsFeatures extends ReportingFeatures("predictions.feature"):
   }
 
   Then("the dashboard shows no predictions summary") { () =>
+    val summary = kit.get("/dashboard/predictions?currency=EUR", kit.asOperator)
+    assertEquals((summary.status, summary.error), (404, "not_found"), summary.text)
     for route <- Dashboard do
       val r = kit.get(route, kit.asOperator)
       assertEquals(r.status, 200, route)

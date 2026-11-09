@@ -70,6 +70,8 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
     get("/dashboard/activity") { () => Dashboard.activity(ctx) }
     get("/dashboard/bonus-summary") { () => Dashboard.bonusSummary(ctx, query.raw("currency")) }
     get("/dashboard/payment-health") { () => Dashboard.paymentHealth(ctx, query.raw("currency")) }
+    // Not found unless the brand runs the predictions module (FR-028, FR-032).
+    get("/dashboard/predictions") { () => Dashboard.predictions(ctx, query.raw("currency")) }
     // The dispute report admits every operator of the brand, as the original (FR-023).
     get("/players/{playerId}/dispute-report") { (playerId: String) =>
       Disputes.report(ctx, playerId, query.raw("sessionId"), query.raw("fromDate"), query.raw("toDate"), query.raw("format"),
@@ -87,9 +89,11 @@ final class ReportingEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands
   }
 
   // The prediction markets' reports: not found unless the brand runs the module (FR-032); the market report also for
-  // the module's `markets` permission.
+  // the module's `markets` permission, the traders report also for compliance (decided 2026-11-09).
   withAcl(access.predictions) {
     get("/predictions/summary") { () => Predictions.summary(ctx, asked) }
+  }
+  withAcl(access.traders) {
     get("/predictions/traders") { () => Predictions.traders(ctx, asked) }
   }
   withAcl(access.markets) {

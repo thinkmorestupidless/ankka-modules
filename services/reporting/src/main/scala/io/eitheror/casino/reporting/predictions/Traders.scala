@@ -7,12 +7,13 @@ import io.eitheror.casino.reporting.{ReportingCodecs, ReportingRuntime}
 import io.eitheror.casino.reporting.days.Days
 import io.eitheror.casino.reporting.intake.Generation
 
-import java.time.LocalDate
+import java.time.{Instant, LocalDate}
 
 /**
  * A player's day in one market (data-model.md `Traders`, keyed `g<n>/<player>/<market>/<day>`, the day so a period's
  * rows are found): contracts traded, notional, taker fees paid, positions paid, and the net result, what the trades
- * and payments moved to and from the player's real balance (FR-030). `lastSeq` is the book's last event folded.
+ * and payments moved to and from the player's real balance (FR-030). `lastSeq` is the book's last event folded;
+ * `firstTraded` the day's first trade's time, so the dashboard counts yesterday's traders to the same hour (FR-028).
  */
 final case class TraderRow(
     generation: Int,
@@ -25,7 +26,8 @@ final case class TraderRow(
     fees: Long = 0,
     positionsPaid: Long = 0,
     net: Long = 0,
-    lastSeq: Long = 0
+    lastSeq: Long = 0,
+    firstTraded: Option[Instant] = None
 )
 
 object TraderRow:
@@ -41,7 +43,8 @@ final class TradersView extends KeyedView[TraderRow]:
       val moves: Vector[(String, TraderRow => TraderRow)] = event match
         case t: MarketBookEvent.Traded =>
           t.legs.map(l => l.player -> ((r: TraderRow) => r.copy(contracts = r.contracts + l.quantity, notional = r.notional + l.notional,
-            fees = r.fees + l.fee, net = r.net + l.net)))
+            fees = r.fees + l.fee, net = r.net + l.net,
+            firstTraded = Some(r.firstTraded.fold(t.at)(f => if t.at.isBefore(f) then t.at else f)))))
         case p: MarketBookEvent.Paid =>
           Vector(p.player -> ((r: TraderRow) => r.copy(positionsPaid = r.positionsPaid + p.paid, net = r.net + p.paid)))
         case _: MarketBookEvent.Kept => Vector.empty

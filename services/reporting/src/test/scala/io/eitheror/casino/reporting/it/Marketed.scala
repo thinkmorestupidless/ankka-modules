@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.reporting.day.DaysView
+import io.eitheror.casino.reporting.figures.Figures
 import io.eitheror.casino.reporting.predictions.TradeFees
 
 import java.time.{Instant, LocalDate}
@@ -120,9 +121,35 @@ final class Marketed(kit: Kit, val day: LocalDate, val currency: String = "EUR",
 
   private def of(mk: Option[String]) = trades.filter(t => mk.forall(_ == t.marketId))
 
+  private def notionalOf(t: f.TradeMade): Long =
+    t.legs.map(_.outcomeId).distinct.map(o => t.quantity * t.prices.find(_.outcomeId == o).fold(0L)(_.price)).sum
+
   def contracts(mk: Option[String] = None): Long = of(mk).map(_.quantity).sum
-  def notional(mk: Option[String] = None): Long =
-    of(mk).map(t => t.legs.map(_.outcomeId).distinct.map(o => t.quantity * t.prices.find(_.outcomeId == o).fold(0L)(_.price)).sum).sum
+  def notional(mk: Option[String] = None): Long = of(mk).map(notionalOf).sum
+
+  /** The trades of `d` in the zone to the end of `toHour`, as the dashboard reads yesterday to the same hour. */
+  def tradesOf(d: LocalDate, toHour: Int = 23): Vector[f.TradeMade] =
+    trades.filter { t =>
+      val z = t.occurredAt.atZone(kit.zone)
+      z.toLocalDate == d && z.getHour <= toHour
+    }
+
+  /** The dashboard's prediction figures over `ts` (FR-028), by its field names, money in minor units. */
+  def dashboard(ts: Vector[f.TradeMade]): Map[String, Long] = Map(
+    "contractsTraded" -> ts.map(_.quantity).sum, "notionalVolume" -> ts.map(notionalOf).sum, "trades" -> ts.size.toLong,
+    "traders" -> ts.flatMap(_.legs).map(_.playerId).distinct.size.toLong,
+    "takerFees" -> ts.flatMap(_.legs).flatMap(_.feeCents).map(_.value).sum)
+
+  /**
+   * What `GET /dashboard/predictions` must answer on `today` at `hour`, as `field -> (value, yesterday, trend)`: today's
+   * trades against yesterday's to the end of the same hour, money as 2-dp strings.
+   */
+  def dashboardWanted(today: LocalDate, hour: Int): Map[String, (String, String, String)] =
+    val (t, y) = (dashboard(tradesOf(today)), dashboard(tradesOf(today.minusDays(1), hour)))
+    Marketed.DashboardFields.map { k =>
+      val shown = (v: Long) => if Marketed.DashboardMoney(k) then money(v) else v.toString
+      k -> (shown(t(k)), shown(y(k)), Figures.trend(t(k), y(k)))
+    }.toMap
   def fees(mk: Option[String] = None): Long = of(mk).flatMap(_.legs).flatMap(_.feeCents).map(_.value).sum
   def traders(mk: Option[String] = None): Long = of(mk).flatMap(_.legs).map(_.playerId).distinct.size.toLong
   def payments(mk: Option[String] = None): Long = paid.filter(p => mk.forall(_ == p.marketId)).map(_.paidCents.value).sum
@@ -169,3 +196,10 @@ final class Marketed(kit: Kit, val day: LocalDate, val currency: String = "EUR",
 object Marketed:
   def fields(n: JsonNode): Map[String, String] =
     n.properties.asScala.map(e => e.getKey -> (if e.getValue.isNull then "" else e.getValue.asText)).toMap
+
+  val DashboardFields: Vector[String] = Vector("contractsTraded", "notionalVolume", "trades", "traders", "takerFees")
+  val DashboardMoney: Set[String]     = Set("notionalVolume", "takerFees")
+
+  /** `GET /dashboard/predictions`'s answer as `field -> (value, yesterday, trend)`. */
+  def dashboardOf(j: JsonNode): Map[String, (String, String, String)] =
+    DashboardFields.map(k => k -> (j.path(k).path("value").asText, j.path(k).path("yesterday").asText, j.path(k).path("trend").asText)).toMap

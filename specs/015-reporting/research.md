@@ -599,3 +599,14 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   the Reports tab's roles alone.
 - **T064–T065, a brand without the module** is played by the kit's own service with `predictions` taken out of its
   settings for the test: the kit runs one brand's service and the route prefix names it.
+- **T068, decided 2026-11-09** (three decisions of the person): (1) the dashboard's predictions summary is its own
+  route, `GET /dashboard/predictions`, admitted to every operator of the brand, `404 not_found` unless the brand runs
+  the module, answering today's contracts traded, notional volume, trades, traders and taker fees in the KPIs' shape
+  against yesterday to the same hour, while `/dashboard/kpis` keeps its shape; (2) the traders report, and its export's
+  document, are admitted to the three and `brand_compliance`, as `/compliance/*`; (3) contracts/routes.md carries the
+  shapes as built: the day-end's full JSON and its long-format CSV, the compliance answers and their files, and the
+  prediction reports' CSV names. To read yesterday to the same hour, `CurrencyDay` keeps the markets' figures per
+  hour (`hourPredictions`) and a `Traders` row the time of the day's first trade (`firstTraded`); both default empty,
+  so stored days and rows read as before. A prediction report's export is not found while the module is off, and is
+  not hidden by the Reports tab (its report is not), which replaces T068's "admits a report export by the Reports
+  tab's roles alone" above.

@@ -287,7 +287,7 @@ lifetimes and erasure.
   and `trades-facts` (only with `predictions`), `r/predictions/MarketFigures.scala`, `r/predictions/Traders.scala`
 - [X] T067 [US8] `BrandDay`'s predictions section folded by `ToDays` and the day-end's predictions part with the
   fee reconciliation
-- [ ] T068 [US8] `r/api/Predictions.scala` `GET /predictions/summary`, `/predictions/markets`,
+- [X] T068 [US8] `r/api/Predictions.scala` `GET /predictions/summary`, `/predictions/markets`,
   `/predictions/traders`, each of the last two with `format=csv`, and the dashboard's predictions summary
   when the module runs
 

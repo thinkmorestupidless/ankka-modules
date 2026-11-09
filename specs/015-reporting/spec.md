@@ -362,6 +362,7 @@ credits, and the casino's revenue report is unchanged.
 - added `features/reporting/predictions.feature`: a voided or corrected market shows what its resolution paid and what its correction changed
 - added `features/reporting/predictions.feature`: the traders report holds one row per player who traded with volume, fees paid, positions paid and net result
 - added `features/reporting/predictions.feature`: the day-end of a brand running the predictions module holds the day's taker fees, resolution payments and remainders per market, reconciled with the fee account
+- added `features/reporting/predictions.feature`: the dashboard shows today's predictions summary against yesterday's to the same hour
 - added `features/reporting/predictions.feature`: a market trading changes no figure of the revenue report or the dashboard
 - added `features/reporting/predictions.feature`: a brand that does not run the predictions module is shown no predictions summary
 

@@ -115,21 +115,52 @@ class PredictionsSuite extends munit.FunSuite with LogCapturing:
       (p.money(want.bets), p.money(want.ggr), p.money(want.deposits), p.money(want.withdrawals)))
   }
 
-  test("the market report admits the markets permission; the summary and traders do not") {
-    val desk = kit.asStaff(Seq("markets"))
+  test("the market report admits the markets permission, the traders report compliance; the summary neither") {
+    val desk       = kit.asStaff(Seq("markets"))
+    val compliance = kit.asStaff(Seq("brand_compliance"))
     assertEquals(kit.get(s"/predictions/markets?from=${p.day}&to=${p.day}", desk).status, 200)
     assertEquals(kit.get(s"/predictions/summary?$period", desk).status, 403)
     assertEquals(kit.get(s"/predictions/traders?$period", desk).status, 403)
+    assertEquals(kit.get(s"/predictions/traders?$period", compliance).status, 200)
+    assertEquals(kit.get(s"/predictions/summary?$period", compliance).status, 403)
     assertEquals(kit.get(s"/predictions/summary?$period", kit.asOperator).status, 403)
   }
 
-  test("a brand that does not run the predictions module is served no prediction report (FR-032)") {
+  test("the dashboard holds today's prediction figures against yesterday's to the same hour, in the KPIs' shape (FR-028)") {
+    val today = kit.freshToday()
+    val hour  = kit.now.atZone(kit.zone).getHour
+    val d     = Marketed(kit, today.minusDays(1))
+    val (x, y) = (d.market(1), d.market(2))
+    d.open(x, d.at("07:00"))
+    // Yesterday: a split before the current hour, a direct trade after it, which yesterday's figures leave out.
+    d.split(x, d.player(1), d.player(2), 10, 60, d.at("08:00"))
+    d.direct(x, d.player(3), d.player(1), 4, 70, d.at("15:00"))
+    d.open(y, d.at(today, "07:00"))
+    d.direct(y, d.player(1), d.player(2), 5, 40, d.at(today, "09:00"))
+    d.direct(y, d.player(3), d.player(4), 3, 50, d.at(today, "09:30"))
+    d.publish().settled(today.minusDays(1)).settled(today)
+    val wanted = d.dashboardWanted(today, hour)
+    val j = kit.eventually("the dashboard's predictions", 60.seconds)(Some(kit.get("/dashboard/predictions?currency=EUR", kit.asOperator).json)
+      .filter(j => Marketed.dashboardOf(j) == wanted))
+    assertEquals(wanted("trades"), ("2", "1", "up"))
+    assertEquals(wanted("traders"), ("4", "2", "up"), "a player is counted yesterday from the first trade before the hour")
+    assertEquals((j.path("currency").asText, j.path("notionalVolume").path("currency").asText), ("EUR", "EUR"))
+    assertEquals(j.properties.asScala.map(_.getKey).toSet,
+      Set("currency", "currencies", "contractsTraded", "notionalVolume", "trades", "traders", "takerFees"))
+  }
+
+  test("a brand that does not run the predictions module is served no prediction report or dashboard figure (FR-032)") {
     val before = ReportingRuntime.settings.get()
     try
       ReportingRuntime.settings.set(before.copy(modules = before.modules - "predictions"))
-      for route <- Vector(s"/predictions/summary?$period", s"/predictions/traders?$period", s"/predictions/markets?$period") do
+      for route <- Vector(s"/predictions/summary?$period", s"/predictions/traders?$period", s"/predictions/markets?$period",
+          "/dashboard/predictions?currency=EUR") do
         val r = kit.get(route, kit.asFinance)
         assertEquals((r.status, r.error), (404, "not_found"), route)
+      for route <- Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health") do
+        val r = kit.get(s"/dashboard/$route", kit.asOperator)
+        assertEquals(r.status, 200, route)
+        assert(!r.text.toLowerCase.contains("prediction"), s"$route: ${r.text.take(300)}")
       assert(!DayEnded.read(kit, p.day).text.contains("predictions"))
     finally ReportingRuntime.settings.set(before)
   }

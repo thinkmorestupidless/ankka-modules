@@ -1,10 +1,11 @@
 package io.eitheror.casino.reporting.api
 
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
-import io.eitheror.casino.reporting.day.{DayRow, DaysView, Flow, Revenue, Section}
+import io.eitheror.casino.reporting.day.{DayRow, DaysView, Flow, MarketDay, Revenue, Section}
 import io.eitheror.casino.reporting.days.Days
 import io.eitheror.casino.reporting.figures.Figures
 import io.eitheror.casino.reporting.intake.{OpenRecord, Sessions as SessionKinds}
+import io.eitheror.casino.reporting.predictions.Traders
 import io.eitheror.casino.reporting.ranges.Ranges
 import io.eitheror.casino.reporting.reads.{Activity, PlayerDays, Players, Rounds, Sessions, Wallets}
 import io.eitheror.casino.reporting.render.Money
@@ -56,6 +57,10 @@ final case class PspHealth(pspName: String, depositVolume: String, depositCount:
 final case class PaymentHealth(depositSuccessRatePct: Option[BigDecimal], avgWithdrawalHours: Option[BigDecimal], currency: String,
     currencies: Vector[String], pspBreakdown: Vector[PspHealth])
 
+/** Today's prediction markets beside the casino's (FR-028), each figure in the KPIs' shape. Only with the module. */
+final case class DashboardPredictions(currency: String, currencies: Vector[String], contractsTraded: KpiCount, notionalVolume: KpiAmount,
+    trades: KpiCount, traders: KpiCount, takerFees: KpiAmount)
+
 object DashboardCodecs:
   given JsonValueCodec[Kpis]          = Wire.answer[Kpis]
   given JsonValueCodec[Trend]         = Wire.answer[Trend]
@@ -65,6 +70,7 @@ object DashboardCodecs:
   given JsonValueCodec[ActivityFeed]  = Wire.answer[ActivityFeed]
   given JsonValueCodec[BonusSummary]  = Wire.answer[BonusSummary]
   given JsonValueCodec[PaymentHealth] = Wire.answer[PaymentHealth]
+  given JsonValueCodec[DashboardPredictions] = Wire.answer[DashboardPredictions]
 
 /**
  * The dashboard's eight routes (US2; FR-013–FR-015), every figure the brand's from views, never a sample: today and
@@ -252,3 +258,31 @@ object Dashboard:
         c, chosen.currencies,
         pay.map((name, p) => PspHealth(name, Money(p.value, c), p.completed, Figures.ratePct(p.completed, p.attempts)))))
     })
+
+  // ── predictions ───────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * `GET /dashboard/predictions` (FR-028): today's contracts traded, notional volume, trades, distinct traders and taker
+   * fees against yesterday's to the same hour of the zone, each with the trend arrow, as the KPIs. `404 not_found`
+   * unless the brand runs the predictions module; no other dashboard route holds a prediction figure (FR-032).
+   */
+  def predictions(ctx: Ctx, currency: Option[String]): Answer =
+    if !ctx.settings.predictions then notFound
+    else
+      val n = now(ctx)
+      answered(Currencies.choose(ctx, currency, n.settings).map { chosen =>
+        val c    = chosen.currency
+        val yd   = n.today.minusDays(1)
+        val rows = days(ctx, yd, n.today)
+        val today = rows.get(n.today).flatMap(_.currencies.get(c)).fold(MarketDay())(_.predictionsTo(23))
+        val yest  = rows.get(yd).flatMap(_.currencies.get(c)).fold(MarketDay())(_.predictionsTo(n.hour))
+        val zone  = ctx.settings.reportingZone
+        val traded = Traders.rows(ctx.views, g(ctx), c, yd, n.today).filter(_.contracts > 0)
+        val tradersT = traded.filter(_.day == n.today.toString).map(_.player).distinct.size.toLong
+        val tradersY = traded.filter(r => r.day == yd.toString && r.firstTraded.forall(Days.hourOf(_, zone) <= n.hour))
+          .map(_.player).distinct.size.toLong
+        def count(t: Long, y: Long)  = KpiCount(t, y, Figures.trend(t, y))
+        def amount(t: Long, y: Long) = KpiAmount(Money(t, c), Money(y, c), Figures.trend(t, y), c)
+        ok(DashboardPredictions(c, chosen.currencies, count(today.contracts, yest.contracts), amount(today.notional, yest.notional),
+          count(today.trades, yest.trades), count(tradersT, tradersY), amount(today.fees, yest.fees)))
+      })

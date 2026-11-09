@@ -27,20 +27,30 @@ object Documents:
   val Failed  = "document_failed"
   val Forbidden = "forbidden"
 
-  /** The roles a document's kind is admitted by (contracts/routes.md, *Admission*); `None` for every operator of the brand. */
-  def rolesOf(kind: String): Option[Seq[String]] =
+  /**
+   * The roles a document is admitted by, its kind's (contracts/routes.md, *Admission*), and the traders report's export
+   * its report's, as compliance (decided 2026-11-09); `None` for every operator of the brand.
+   */
+  def rolesOf(d: DocumentState): Option[Seq[String]] =
     val reports = Seq("brand_admin", "resource_admin", "platform_admin")
-    kind match
-      case Document.DisputeReport => None
+    d.kind match
+      case Document.DisputeReport    => None
       case Document.ComplianceExport => Some(reports :+ "brand_compliance")
       case Document.DayEndExport     => Some(reports :+ "brand_finance")
-      case _                      => Some(reports)
+      case Document.ReportExport if d.parameters.get("report").contains(Exports.TradersReport) => Some(reports :+ "brand_compliance")
+      case _                         => Some(reports)
 
-  /** Whether the operator (already admitted as one of the brand's) may have a document of `kind`. */
-  def admitted(p: Principal, kind: String): Boolean = rolesOf(kind).forall(_.exists(p.roles.contains))
+  /** Whether the operator (already admitted as one of the brand's) may have the document. */
+  def admitted(p: Principal, d: DocumentState): Boolean = rolesOf(d).forall(_.exists(p.roles.contains))
 
-  /** An export of the Reports tab is not found while the tab is hidden, as its report is (FR-024). */
-  private def hidden(ctx: Ctx, kind: String): Boolean = kind == Document.ReportExport && !ctx.reporting.reportsTab
+  /**
+   * An export is not found when its report is: one of the Reports tab while the tab is hidden (FR-024), a prediction
+   * report's while the brand does not run the module, whatever the tab (FR-032).
+   */
+  private def hidden(ctx: Ctx, d: DocumentState): Boolean =
+    d.kind == Document.ReportExport && {
+      if d.parameters.get("report").exists(_.startsWith("predictions-")) then !ctx.settings.predictions else !ctx.reporting.reportsTab
+    }
 
   private def iso(t: Option[Instant]) = t.map(_.toString)
 
@@ -53,14 +63,14 @@ object Documents:
       val r = ctx.reads
       val k = kind.map(_.trim).filter(_.nonEmpty).getOrElse("all")
       val rows = DocumentsView.listed(ctx.views, k, r.startOf(period.from), r.startOf(period.to.plusDays(1)))
-        .filter(d => admitted(p, d.kind) && !hidden(ctx, d.kind))
+        .filter(d => admitted(p, d) && !hidden(ctx, d))
       ok(DocumentList(rows.map(line)))
     })
 
   def get(ctx: Ctx, p: Principal, reference: String): Answer =
     val d = Keeping.document(ctx.components, reference).call(Document.get).invoke()
-    if !d.recorded || hidden(ctx, d.kind) then notFound
-    else if !admitted(p, d.kind) then refuse(403, Refusal(Forbidden, message = Some(s"the ${rolesOf(d.kind).get.head} permission is needed")))
+    if !d.recorded || hidden(ctx, d) then notFound
+    else if !admitted(p, d) then refuse(403, Refusal(Forbidden, message = Some(s"the ${rolesOf(d).get.head} permission is needed")))
     else
       val at = ctx.now()
       d.status match

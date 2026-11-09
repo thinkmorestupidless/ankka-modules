@@ -43,25 +43,48 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
     "/compliance/rg-cases" -> (reportRoles + "brand_compliance"),
     "/compliance/kyc-decisions" -> (reportRoles + "brand_compliance"),
     "/predictions/summary" -> reportRoles,
-    "/predictions/traders" -> reportRoles,
+    "/predictions/traders" -> (reportRoles + "brand_compliance"),
     "/predictions/markets" -> (reportRoles + "markets"),
     "/status"      -> everyOperator,
     "/settings"    -> Set("brand_admin", "platform_admin")
-  ) ++ Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health")
+  ) ++ Vector("kpis", "trend", "kpi-history", "geo", "rankings", "activity", "bonus-summary", "payment-health", "predictions")
     .map(r => s"/dashboard/$r" -> everyOperator)
+
+  /** The refusal each audience a route does not admit gets, with its route class's code. */
+  private def refused(who: String, r: Reply): Unit = who match
+    case "nobody"        => assertEquals(r.status, 401, s"$who: ${r.text}")
+    case "player"        => assertEquals((r.status, r.text.contains("wrong_issuer")), (403, true), s"$who: ${r.text}")
+    case "another brand" => assertEquals((r.status, r.text.contains("brand_not_in_roles")), (403, true), s"$who: ${r.text}")
+    case _               => assertEquals((r.status, r.text.contains("forbidden")), (403, true), s"$who: ${r.text}")
 
   for (route, admitted) <- routes do
     test(s"GET $route admits ${admitted.toVector.sorted.mkString(", ")} and refuses everyone else with the class's code") {
       for (who, as) <- audiences do
         val r = kit.get(route, as)
         if admitted(who) then assertEquals(r.status, 200, s"$who: ${r.text}")
-        else
-          who match
-            case "nobody"        => assertEquals(r.status, 401, s"$who: ${r.text}")
-            case "player"        => assertEquals((r.status, r.text.contains("wrong_issuer")), (403, true), s"$who: ${r.text}")
-            case "another brand" => assertEquals((r.status, r.text.contains("brand_not_in_roles")), (403, true), s"$who: ${r.text}")
-            case _               => assertEquals((r.status, r.text.contains("forbidden")), (403, true), s"$who: ${r.text}")
+        else refused(who, r)
     }
+
+  test("the traders report's export is admitted as the report is: the three and brand_compliance (decided 2026-11-09)") {
+    val csv = kit.get("/predictions/traders?format=csv", kit.asStaff(Seq("brand_compliance")))
+    assertEquals(csv.status, 200, csv.text)
+    val reference = csv.header("Content-Disposition").flatMap("predictions-traders-report-([0-9a-f-]+)\\.csv".r.findFirstMatchIn(_))
+      .map(_.group(1)).getOrElse(fail(s"no reference in ${csv.headers}"))
+    val admitted = reportRoles + "brand_compliance"
+    for (who, as) <- audiences do
+      val r = kit.get(s"/documents/$reference", as)
+      if admitted(who) then assertEquals(r.status, 200, s"$who: ${r.text}")
+      else refused(who, r)
+    // A prediction report's export follows the module, not the Reports tab, as its report does.
+    try
+      kit.setReporting(_.copy(reportsTab = false))
+      assertEquals(kit.get(s"/documents/$reference", kit.asStaff(Seq("brand_compliance"))).status, 200)
+    finally kit.setReporting(_.copy(reportsTab = true))
+    // Listed to compliance, once the `Documents` view holds its record.
+    kit.eventually("the export listed to compliance")(Option.when(
+      kit.get("/documents?kind=report-export", kit.asStaff(Seq("brand_compliance"))).json.path("documents").elements.asScala
+        .exists(_.path("reference").asText == reference))(()))
+  }
 
   /** Routes whose admitted answer is not a 200 here (a day not closed): admitted is anything but the refusals. */
   private val refusedOnly: Vector[(String, Set[String])] = Vector(

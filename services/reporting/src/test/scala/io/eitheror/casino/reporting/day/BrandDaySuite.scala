@@ -28,6 +28,21 @@ class BrandDaySuite extends munit.FunSuite:
     assertEquals(k.currentState.currencies("GBP").total.money.stakes, 70L)
   }
 
+  test("a market's figures are kept per hour too, so the dashboard reads yesterday to the same hour, and survive the close") {
+    val k = kit
+    val trade = (h: Int, market: String, n: Long) =>
+      Delta("EUR", h, predictions = Map(market -> MarketDay(contracts = n, notional = n * 60, trades = 1, fees = n)))
+    fold(k, "market-book/g1/m-1", 1, trade(8, "m-1", 10)): Unit
+    fold(k, "market-book/g1/m-2", 1, trade(8, "m-2", 3)): Unit
+    fold(k, "market-book/g1/m-1", 2, trade(15, "m-1", 4)): Unit
+    val eur = k.currentState.currencies("EUR")
+    assertEquals((eur.predictionsTo(10).contracts, eur.predictionsTo(10).trades, eur.predictionsTo(23).contracts), (13L, 2L, 17L))
+    assertEquals(eur.predictionsTo(23).notional, eur.predictions.values.map(_.notional).sum)
+    assertEquals(eur.total.hourGgr.sum, 0L, "no casino figure holds a trade")
+    k.call(BrandDay.close)(Close(at, "UTC")): Unit
+    assertEquals(k.currentState.currencies("EUR").predictionsTo(10).contracts, 13L)
+  }
+
   test("an event already folded from its source folds nothing, an older one neither") {
     val k = kit
     assert(fold(k, "wallet-book/g1/p-1/EUR", 5, stake).replyValue)

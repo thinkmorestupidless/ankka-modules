@@ -42,6 +42,12 @@ Feature: Finance and the trading desk read the brand's prediction markets
     Then it holds, per currency and market, the day's taker fees, resolution payments and remainders kept
     And the fee account's credits beside the fees, listing any trade whose fee and credit differ or appear in one only
 
+  Scenario: the dashboard shows today's predictions summary against yesterday's to the same hour
+    Given trades in "EUR" yesterday before and after the current hour, and today
+    When an operator reads the dashboard's predictions summary in "EUR"
+    Then it holds today's contracts traded, notional volume, trades, distinct traders and taker fees
+    And each against yesterday's to the same hour, with its trend
+
   Scenario: a market trading changes no figure of the revenue report or the dashboard
     Given the revenue report and the dashboard for today
     When a market trades and resolves today
