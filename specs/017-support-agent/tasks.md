@@ -58,7 +58,7 @@ criteria name suites, and the plan names them.
 - [X] T005 [P] `.github/workflows/ci.yml`: add a `support-agent` paths filter (`*build`,
       `services/support-agent/**`, `features/support-agent/**`, `tests/port/support-agent/**`) and a
       job like engagement's, with a `-Dit=true` step.
-- [ ] T006 [P] `S/Settings.scala`: read every setting from env and fail at start when one is
+- [X] T006 [P] `S/Settings.scala`: read every setting from env and fail at start when one is
       missing.
   - `CASINO_BRAND`, `CASINO_PROJECT`, `CASINO_REAL_MONEY` (as `players/Settings.scala:44`'s flag);
   - the auth issuers;
