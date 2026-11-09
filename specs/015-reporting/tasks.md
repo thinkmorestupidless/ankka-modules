@@ -295,7 +295,7 @@ lifetimes and erasure.
 
 ## Phase 11: Polish and cross-cutting
 
-- [ ] T069 `r-test/perf/PerfSuite.scala`: 10,000 players and a month; revenue < 2 s, dashboard < 1 s (SC-001,
+- [X] T069 `r-test/perf/PerfSuite.scala`: 10,000 players and a month; revenue < 2 s, dashboard < 1 s (SC-001,
   SC-002); run with `just reporting-perf`
 - [ ] T070 [P] `tests/original/reporting-driver/` (Go, `players-driver`'s shape): the seed and the 31
   recordings of contracts/recording.md; the person creates the operator users; record on kind with `just
