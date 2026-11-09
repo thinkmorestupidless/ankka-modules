@@ -81,7 +81,7 @@ registry, the consumers' decoding, the kit.
   actor kind × outcome (research R3)
 - [X] T010 [P] `a/ids/Ids.scala` and `a-test/ids/IdsSuite.scala`: `digest` (HMAC-SHA256 under the
   registry key, `d-` and 32 hex), `isPerson`, `contains` (research R5)
-- [ ] T011 `a/stored/Stored.scala` and `a-test/stored/StoredSuite.scala`: `Stored`, `from(record,
+- [X] T011 `a/stored/Stored.scala` and `a-test/stored/StoredSuite.scala`: `Stored`, `from(record,
   source, pseudonyms, key)`, `fromModule(change, brand)`, visibility per research R6 and the amount
   fields; a property that no real id of the input record appears anywhere in the output
 - [ ] T012 [P] `a/query/Query.scala` and `a-test/query/QuerySuite.scala`: the filters of
