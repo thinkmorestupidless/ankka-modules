@@ -111,7 +111,8 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     val seq    = kit.testKit.erase(DataSubject(s"player/${a.player}"))
     val report = kit.eventually("the service's part of the erasure")(
       kit.testKit.keyring.acks.find(_.seq == seq).flatMap(_.completion.handler))
-    assertEquals((report.objectsErased, report.error), (3L, None), "the dispute report under the prefix, and two documents ended")
+    assertEquals((report.objectsErased, report.error), (3L, None),
+      "the dispute report under the prefix, and the export listing the player outside it with its sidecar")
     for ref <- Vector(own, names) do
       val r = record(ref)
       assertEquals((r.status, r.endedBy), (Document.Expired, Some(Document.Erasure)), ref)
@@ -145,6 +146,17 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(record(ref).endedBy, Some(Document.Erasure))
     kit.eventually("the view caught up")(Option.when(!Documents.keptNow(kit.views).exists(_.reference == ref))(()))
     assertEquals(kit.request("POST", kit.path(path), headers = kit.asService("players")).json.path("documents").asInt, 0)
+  }
+
+  test("an erasure's report counts a dispute report under the subject's prefix once (review nit)") {
+    val p   = Disputed(kit, d.plusDays(6)).usual().publish()
+    val ref = referenceOf(p.bySession(format = "csv"))
+    Disputed.inView(kit, ref)
+    val under = kit.testKit.storage.default.list(s"subjects/player%2F${p.player}/").size.toLong
+    assert(under >= 1L, "the dispute report is under the prefix")
+    // Ended once, its objects counted once: the subject's objects, and nothing outside them.
+    assertEquals(handler()(s"player/${p.player}").objectsErased, under)
+    assertEquals(record(ref).endedBy, Some(Document.Erasure))
   }
 
   test("an erasure ends the documents readied a moment before, which the Documents view has not reached") {
