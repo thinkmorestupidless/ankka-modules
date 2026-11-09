@@ -179,8 +179,8 @@ func (s *Session) Sow() Seed {
 		map[string]any{"bonusAmount": BonusAmount, "wager": "30", "currency": Currency}, Operator))
 	s.ok(s.Setup("the player excludes themselves", "casino", http.MethodPut,
 		"/v1/casino/rg/"+s.Brand()+"/"+seed.PlayerID+"/permanent-exclusion", nil, Player))
-	// The activity feed reads the players and grants the other reads do: once it shows the exclusion and
-	// the award, the seed is in every read.
+	// The activity feed reads the players the other reads do: once it shows the exclusion, the seed is in
+	// every read.
 	s.Observe("the seed in the activity feed", "casino", s.Dashboard()+"/activity", Operator, func(r Response) bool {
 		seen := map[string]bool{}
 		for _, e := range r.Items("events") {
@@ -188,7 +188,9 @@ func (s *Session) Sow() Seed {
 				seen[str(e, "eventType")] = true
 			}
 		}
-		return seen["self_exclusion"] && seen["bonus_grant"]
+		// The original lists no event for an operator's award with no offer (it is a wallet award, not a reward
+		// grant: recorded 2026-11-09), so the exclusion alone says the seed has reached the reads.
+		return seen["self_exclusion"]
 	})
 	return seed
 }

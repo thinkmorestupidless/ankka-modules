@@ -1,0 +1,32 @@
+{
+  "scenario": "dispute-refusals-range-over-a-year",
+  "requirement": "015/FR-016",
+  "recorded_at": "2026-11-09T09:24:10.364997Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "the dispute report",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/dispute-report?fromDate=2024-01-01\u0026toDate=2025-01-02\u0026format=html",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "date range must not exceed 365 days"
+        }
+      }
+    }
+  ]
+}

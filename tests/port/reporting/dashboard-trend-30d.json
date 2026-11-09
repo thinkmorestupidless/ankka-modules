@@ -1,0 +1,189 @@
+{
+  "scenario": "dashboard-trend-30d",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:07.798994Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "trend-30d",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/trend?range=30d",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "dataPoints": [
+            {
+              "ggr": "0.00",
+              "label": "2026-10-11",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-12",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-13",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-14",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-15",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-16",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-17",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-18",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-19",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-20",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-21",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-22",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-23",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-24",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-25",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-26",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-27",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-28",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-29",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-30",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-10-31",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-01",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-02",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-03",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-04",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-05",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-06",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-07",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-08",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "2.70",
+              "label": "2026-11-09",
+              "ngr": "2.70"
+            }
+          ],
+          "range": "30d"
+        }
+      },
+      "vary": {
+        "$.dataPoints[29].ggr": "differs between two runs of the original",
+        "$.dataPoints[29].ngr": "differs between two runs of the original"
+      }
+    }
+  ]
+}

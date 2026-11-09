@@ -1,0 +1,44 @@
+{
+  "scenario": "dashboard-geo",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:09.746585Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "geo",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/geo",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "countries": [
+            {
+              "countryCode": "GB",
+              "playerCount": 372
+            },
+            {
+              "countryCode": "MT",
+              "playerCount": 2
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.countries[0].playerCount": "differs between two runs of the original"
+      }
+    }
+  ]
+}

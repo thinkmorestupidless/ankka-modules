@@ -1,0 +1,105 @@
+{
+  "scenario": "reports-refused-role",
+  "requirement": "015/FR-023",
+  "recorded_at": "2026-11-09T09:24:06.37442Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "the revenue report as a support operator",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/reports/ggr?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {supportToken}"
+        }
+      },
+      "response": {
+        "status": 403,
+        "headers": {
+          "Content-Type": "text/plain; charset=UTF-8"
+        },
+        "body": "The supplied authentication is not authorized to access this resource"
+      }
+    },
+    {
+      "name": "the dashboard as a support operator",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/kpis",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {supportToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "activeGames": {
+            "trend": "flat",
+            "value": 55,
+            "yesterday": 0
+          },
+          "activeSessions": {
+            "trend": "flat",
+            "value": 55,
+            "yesterday": 0
+          },
+          "depositsToday": {
+            "amount": "300.00",
+            "count": 3,
+            "currency": "EUR",
+            "trend": "up",
+            "yesterdayAmount": "100.00"
+          },
+          "ggrToday": {
+            "currency": "EUR",
+            "trend": "up",
+            "value": "2.70",
+            "yesterday": "0.00"
+          },
+          "ngrToday": {
+            "currency": "EUR",
+            "trend": "up",
+            "value": "2.70",
+            "yesterday": "0.00"
+          },
+          "playersOnline": {
+            "trend": "flat",
+            "value": 3,
+            "yesterday": 0
+          },
+          "registrationsToday": {
+            "trend": "down",
+            "value": 3,
+            "yesterday": 270
+          },
+          "withdrawalsToday": {
+            "amount": "0.00",
+            "count": 0,
+            "currency": "EUR",
+            "trend": "flat",
+            "yesterdayAmount": "0.00"
+          }
+        }
+      },
+      "vary": {
+        "$.activeGames.value": "differs between two runs of the original",
+        "$.activeSessions.value": "differs between two runs of the original",
+        "$.depositsToday.amount": "differs between two runs of the original",
+        "$.depositsToday.count": "differs between two runs of the original",
+        "$.ggrToday.value": "differs between two runs of the original",
+        "$.ngrToday.value": "differs between two runs of the original",
+        "$.playersOnline.value": "differs between two runs of the original",
+        "$.registrationsToday.value": "differs between two runs of the original"
+      }
+    }
+  ]
+}

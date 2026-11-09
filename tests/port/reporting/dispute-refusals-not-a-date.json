@@ -1,0 +1,32 @@
+{
+  "scenario": "dispute-refusals-not-a-date",
+  "requirement": "015/FR-016",
+  "recorded_at": "2026-11-09T09:24:10.467502Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "the dispute report",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/dispute-report?fromDate=01%2F02%2F2026\u0026toDate=2026-02-28\u0026format=html",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "invalid date format; use ISO 8601 (YYYY-MM-DD)"
+        }
+      }
+    }
+  ]
+}

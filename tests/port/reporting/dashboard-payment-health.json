@@ -1,0 +1,42 @@
+{
+  "scenario": "dashboard-payment-health",
+  "requirement": "015/FR-015",
+  "recorded_at": "2026-11-09T09:24:10.080692Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "payment-health",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/payment-health",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "avgWithdrawalHours": 0,
+          "currency": "EUR",
+          "depositSuccessRatePct": 97,
+          "pspBreakdown": [
+            {
+              "depositCount": 0,
+              "depositVolume": 0,
+              "pspName": "All PSPs",
+              "successRatePct": 97
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

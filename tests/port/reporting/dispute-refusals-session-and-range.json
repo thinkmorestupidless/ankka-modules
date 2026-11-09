@@ -1,0 +1,32 @@
+{
+  "scenario": "dispute-refusals-session-and-range",
+  "requirement": "015/FR-016",
+  "recorded_at": "2026-11-09T09:24:10.275972Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "the dispute report",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/dispute-report?sessionId={playerSessionId}\u0026fromDate={from}\u0026toDate={to}\u0026format=html",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "provide either sessionId or fromDate+toDate, not both"
+        }
+      }
+    }
+  ]
+}
