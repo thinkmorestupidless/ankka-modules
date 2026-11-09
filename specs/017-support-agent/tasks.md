@@ -132,7 +132,7 @@ criteria name suites, and the plan names them.
   - Rules: the wallet's 404 becomes zeros; only active grants; `reason` never; `game_id` for
     `game_name`.
   - Port `O/tests/test_read_tools.py`'s cases.
-- [ ] T017 [P] Pure, test first: `Redaction` (FR-028's redacted arguments; data-model.md),
+- [X] T017 [P] Pure, test first: `Redaction` (FR-028's redacted arguments; data-model.md),
       `Frames` (the SSE events of contracts/routes.md, the original's names and fields), and
       `ConfigRules` (data-model.md's field rules, `safeguarding_not_configured`, `unknown_field`),
       each with its suite under `T/domain/`.
