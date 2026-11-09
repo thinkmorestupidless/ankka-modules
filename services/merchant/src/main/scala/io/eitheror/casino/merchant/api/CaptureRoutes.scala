@@ -79,7 +79,8 @@ final class CaptureRoutes(ctx: Ctx):
    * the payment whatever its status, and reported to the brand by the outcome consumer (FR-022). An
    * unknown payment is acknowledged and ignored, as a failure is (FR-019); a close with any other outcome is
    * refused `400 invalid_outcome`, so the gateway records it refused rather than the brand's wallet
-   * refusing it for ever.
+   * refusing it for ever. An amount that is given and not positive is refused `400 INVALID_REQUEST`, as a
+   * currency that is not one is, here rather than at the wallet's fact writer.
    */
   def dispute(paymentId: String, raw: String): Respond[Bytes] =
     payment(paymentId).fold(e => refuse(503, "payment_unavailable", e.getMessage), p =>
@@ -91,20 +92,29 @@ final class CaptureRoutes(ctx: Ctx):
           c match
             case Some(code) if Currency.from(code).isLeft => refuse(400, "INVALID_REQUEST", s"'$code' is not a currency")
             case _                                        => f(c)
+        def amount(f: Option[Long] => Respond[Bytes]) =
+          (b.has("amount"), b.long("amount")) match
+            case (true, Some(a)) if a > 0 => f(Some(a))
+            case (true, _)                => refuse(400, "INVALID_REQUEST", s"a dispute's amount is a positive number of minor units, not '${b.get("amount")}'")
+            case (false, _)               => f(None)
         b.text("outcome") match
           case Some(CaptureRoutes.DisputeOpened) =>
-            currency(b.text("currency").orElse(Some(o.currency))) { c =>
-              val cmd = RecordDisputeOpened(b.long("amount").getOrElse(o.amount), c.get, b.text("reason"), ctx.now())
-              ctx.components.forEventSourcedEntity(EntityId(paymentId)).call(Payment.disputeOpened).invoke(cmd): Unit
-              acknowledged
+            amount { a =>
+              currency(b.text("currency").orElse(Some(o.currency))) { c =>
+                val cmd = RecordDisputeOpened(a.getOrElse(o.amount), c.get, b.text("reason"), ctx.now())
+                ctx.components.forEventSourcedEntity(EntityId(paymentId)).call(Payment.disputeOpened).invoke(cmd): Unit
+                acknowledged
+              }
             }
           case Some(CaptureRoutes.DisputeClosed) =>
             b.text("disputeOutcome") match
               case Some(v) if DisputeOutcome.values(v) =>
-                currency(b.text("currency")) { c =>
-                  val cmd = RecordDisputeClosed(v, b.long("amount"), c, ctx.now())
-                  ctx.components.forEventSourcedEntity(EntityId(paymentId)).call(Payment.disputeClosed).invoke(cmd): Unit
-                  acknowledged
+                amount { a =>
+                  currency(b.text("currency")) { c =>
+                    val cmd = RecordDisputeClosed(v, a, c, ctx.now())
+                    ctx.components.forEventSourcedEntity(EntityId(paymentId)).call(Payment.disputeClosed).invoke(cmd): Unit
+                    acknowledged
+                  }
                 }
               case other => refuse(400, "invalid_outcome", s"a closed dispute's disputeOutcome is won or lost, not '${other.getOrElse("")}'")
           case other => refuse(400, "INVALID_REQUEST", s"'${other.getOrElse("")}' is not a dispute outcome")

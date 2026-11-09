@@ -276,6 +276,19 @@ class DepositWorkflowSuite extends SharedKitSuite:
     assertEquals((closed.disputeOutcome, closed.amount, closed.currency), (Some("won"), Some(2500L), Some("EUR")))
   }
 
+  test("a dispute whose amount is given and not positive is refused INVALID_REQUEST and records nothing") {
+    val r  = kit.subBrand()
+    val id = kit.payment(r)
+    assertEquals(kit.capture(id).status, 200)
+    for amount <- Seq[Any](0L, -500L, "ten") do
+      val opened = kit.dispute(id, "outcome" -> "dispute_opened", "reason" -> "chargeback", "amount" -> amount)
+      assertEquals((opened.status, opened.str("error")), (400, "INVALID_REQUEST"), s"opened with $amount")
+      val closed = kit.dispute(id, "outcome" -> "dispute_closed", "disputeOutcome" -> "lost", "amount" -> amount, "currency" -> "EUR")
+      assertEquals((closed.status, closed.str("error")), (400, "INVALID_REQUEST"), s"closed with $amount")
+    assertEquals(kit.paymentState(id).dispute, None)
+    assertEquals(kit.wallet.reportsOf(id).count(_.json.flatMap(_.text("outcome")).exists(_.startsWith("dispute"))), 0)
+  }
+
   test("a dispute for a payment that does not exist is acknowledged and ignored, as a failure is") {
     assertEquals(kit.dispute("pay-unknown", "outcome" -> "dispute_opened").status, 200)
     assertEquals(kit.paymentState("pay-unknown").exists, false)
