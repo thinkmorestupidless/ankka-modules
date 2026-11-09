@@ -118,7 +118,7 @@ criteria name suites, and the plan names them.
 
 - [X] T014 [P] `S/SupportCodecs.scala` and `S/Json.scala`: a codec for every stored type in
       data-model.md, with the manifests named there; round-trip tests in `T/CodecsSuite.scala`.
-- [ ] T015 [P] Pure, test first: `T/domain/SummariesSuite.scala`, then `S/domain/Summaries.scala`.
+- [X] T015 [P] Pure, test first: `T/domain/SummariesSuite.scala`, then `S/domain/Summaries.scala`.
   - It produces contracts/tools.md's five summaries, with major units via `contract.money`
     (0, 2 and 3 exponents) and the withdrawal forfeit suffix.
   - Port `O/tests/test_write_tools.py`'s and `test_rg_tools.py`'s summary assertions ("Withdraw
