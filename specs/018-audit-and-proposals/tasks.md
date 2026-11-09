@@ -196,10 +196,10 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Implementation for User Story 3
 
-- [X] T039 [P] [US3] `a/export/Lines.scala`: `Csv`, `JsonLines`
+- [X] T039 [P] [US3] `a/exports/Lines.scala`: `Csv`, `JsonLines`
 - [X] T040 [US3] `a/api/RecordsEndpoint.scala` and `a/api/Wire.scala`: `GET /v1/audit-records`, its
   record of itself, its refusals
-- [X] T041 [US3] `a/exports/Export.scala`, `a/exports/ExportFormat.scala`, `a/exports/Exports.scala`
+- [X] T041 [US3] `a/exports/Export.scala`, `a/exports/ExportFormat.scala` (no `Exports` view: the last export is on `ExportFormat`)
   and `a/api/ExportsEndpoint.scala` (contracts/routes.md); registered; T034–T038 pass
 
 **Checkpoint**: compliance reads and exports.

@@ -96,6 +96,8 @@ object Stored:
     val brand   = record.brand
     def digest(id: String) = if id.isEmpty then "" else Ids.digest(key, brand, id)
     // An id that is not a person's is kept as written, unless it carries the real id of a person the record names.
+    // A person's id is a UUID (players' ids are minted, staff are realm subjects), so no amount or currency
+    // can carry one by chance.
     def other(id: String) = if Ids.contains(id, realIds) then digest(id) else id
     def party(kind: String, id: String) = if Ids.isPerson(kind) && id.nonEmpty then pseudonym(kind, id) else other(id)
     val visibility = source match

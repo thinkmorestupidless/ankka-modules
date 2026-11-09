@@ -63,7 +63,7 @@ Nothing in it is a real id of a person (SC-002).
 | `Quarantined` | `<source>/<SHA-256 of bytes>` | bytes sealed under `quarantine-key` (AES-256-GCM), source, arrival, why | `hold` | idempotent (FR-012); sealed so no real id is searchable (SC-002) |
 | `Retention` | the brand | years | `raise(years, by)` | refused below the current or the installation's (FR-021) |
 | `ExportFormat` | the brand | `csv` or `jsonl` | `set(format, by)` | default `csv` |
-| `RoleGrant` | `<role>/<person>` | granted by, at; or revoked | `grant`, `revoke`, `found` | `found` records an outside holding once (R8) |
+| `RoleGrant` | `<role>/<installation pseudonym>` | granted by, at; or revoked; one role, one grant | `grant`, `revoke`, `found` | `found` records an outside holding once (R8) |
 | `SourceState` | the source | last received, counts stored and passed over, skewed | `received(at, kept, skewed)` | updated by the consumers, read by the status |
 
 ## Workflows
@@ -80,7 +80,7 @@ Nothing in it is a real id of a person (SC-002).
 | `Records` | `Record` state | `page(filters, after, limit)` keyset on `(occurredAt, key)`; `count(filters)`; `olderThan(brand, cutoff, after, 500)` |
 | `Quarantine` | `Quarantined` state | `countBySource` |
 | `Grants` | `RoleGrant` state | `byRole(role)` |
-| `Exports` | `Export` state | `latestByBrand(brand)` |
+| (none) | | a brand's last export is kept on `ExportFormat` (`lastExport`), so no view of exports is built (research, *Found during implementation*) |
 
 ## Consumers
 

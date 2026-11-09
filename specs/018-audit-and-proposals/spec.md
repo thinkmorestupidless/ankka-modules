@@ -453,7 +453,8 @@ database; verify.
 - **FR-017**: A holder of a brand's re-identification role MUST be able to learn the kind and real id
   behind a pseudonym of that brand, and the pseudonym behind a real id, giving a reason code; both
   MUST be recorded with the actor, the pseudonym and the reason, and MUST be visible to the brand's
-  compliance role.
+  compliance role. Installation staff who act on a brand are pseudonymised under that brand, so its
+  re-identifier can learn who they are (decision 0009: a brand sees who touched it).
 - **FR-018**: Any other role MUST be refused re-identification, and the refusal recorded.
 
 **Platform actions**
