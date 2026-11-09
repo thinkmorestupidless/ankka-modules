@@ -25,6 +25,9 @@ object RecordsRoute:
   val BrandNotInRoles = "brand_not_in_roles"
   val Action          = "audit.query"
 
+  /** Whether a query is recorded: every one, except one asking after the audit's own records alone (FR-020). */
+  def recorded(filters: Filters): Boolean = !filters.service.contains("audit")
+
   /** The filters a caller's roles allow, or the refusal. */
   def scoped(ctx: Ctx, p: Principal, asked: Asked): Either[String, Filters] =
     val brands: Either[String, Set[String]] = Routes.auditScope(p) match
@@ -47,7 +50,7 @@ object RecordsRoute:
         val page     = Records.page(ctx.records, filters, asked.after, asked.limit)
         val brand    = asked.brand.getOrElse(Own.Installation)
         val retained = ctx.retainedFrom(brand)
-        if !filters.service.contains("audit") then
+        if recorded(filters) then
           Own.record(ctx.calls, brand, Action, Own.staff(ctx.calls, brand, p.subject), "audit", "records", "done", None, Vector(
             Own.change("filters", describe(filters)),
             Own.change("range", s"${filters.from.fold("")(_.toString)}..${filters.to.fold("")(_.toString)}"),

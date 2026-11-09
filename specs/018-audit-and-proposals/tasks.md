@@ -44,7 +44,7 @@ the consumers' decoding and the kit are foundational.
   rule engagement's `build.sbt` explains), `service.json` (its database, secret store and
   `"buckets": [{"name": "exports", "exposure": "signed"}]`, no `personal`), `README.md` (a stub naming
   plan.md's components), `a/AuditService.scala` registering nothing yet
-- [X] T002 [P] Add `Routes.auditCompliance(slug)` (staff issuer, `brand_<slug>` and `brand_compliance`),
+- [X] T002 [P] Add `Routes.auditCompliance(slug)` (staff issuer, `brand_<slug>` and `brand_compliance`; amended at review to `audit_compliance_<slug>`, research *Review, decided*),
   `Routes.auditInstallation` (`audit_compliance`), `Routes.reidentifier(slug)` (brand compliance and
   `reidentify_<slug>`) and `Routes.installationOwner` (`platform_admin`), each refusing with a named
   code, to `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`, with cases in

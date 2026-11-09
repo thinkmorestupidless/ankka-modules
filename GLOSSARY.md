@@ -1051,7 +1051,7 @@ The instructions and hand-off wording an operator sets for the brand's support a
 Avoid: system message
 
 ### registry
-The shared audit's one store mapping a real id to its pseudonym, per brand and per kind, player, operator, affiliate or service; written when a pseudonym is first issued, read only by a recorded re-identification, and unchanged by a player's erasure.
+The shared audit's one store mapping a real id to its pseudonym, per brand and per kind, player, operator, affiliate or agent; written when a pseudonym is first issued, read only by a recorded re-identification, and unchanged by a player's erasure.
 
 ### re-identification
 A compliance officer with the re-identification role asking the registry who a pseudonym is, with a reason code, and being told the brand, the kind and the real id; recorded, as is a refusal.

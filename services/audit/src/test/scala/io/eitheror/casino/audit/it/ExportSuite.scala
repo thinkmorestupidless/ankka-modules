@@ -107,7 +107,7 @@ class ExportSuite extends munit.FunSuite:
     assert(made.forall(_.changes.exists(c => c.field == "range" && c.after.contains(s"$from..$to"))))
   }
 
-  test("a stage of an export recorded again, as a retried step or a second request under the key writes it, is the same record") {
+  test("a stage of an export recorded again, as a retried step or a second request under the key writes it, writes no second record") {
     loaded()
     val key = kit.fresh("e")
     exportAs(key, kit.asBrandCompliance("goldvibe"))

@@ -6,6 +6,14 @@ class QuerySuite extends munit.FunSuite:
 
   private val at = Instant.parse("2026-11-09T10:00:00Z")
 
+  test("a query is recorded unless it asks after the audit's own records alone") {
+    import io.eitheror.casino.audit.api.RecordsRoute
+    assert(RecordsRoute.recorded(Filters()))
+    assert(RecordsRoute.recorded(Filters(service = Some("wallet"))))
+    assert(!RecordsRoute.recorded(Filters(service = Some("audit"))))
+    assert(!RecordsRoute.recorded(Filters(brands = Some(Set("goldvibe")), service = Some("audit"))))
+  }
+
   test("every filter of contracts/routes.md is read") {
     val asked = Query.parse(Map(
       "brand" -> "goldvibe", "subject" -> "ps-1", "actor" -> "ps-2", "service" -> "wallet", "action" -> "wallet.adjust",

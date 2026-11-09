@@ -20,7 +20,7 @@ Each is read as bytes at `AUDIT_READ_GENERATION`: from the earliest at generatio
    `Quarantined(personal_value)`.
 3. **Keep or pass over** (`Keep.decide`, FR-008a). Passed over → `SourceState.received(kept = false)`.
 4. **Pseudonymise**: for each person's id (actor, subject, approver): `Pseudonym.issue` then
-   `Identity.bind`. Digest the record, correlation and causation ids, and any other id that contains a
+   `Identity.bind`. A pseudonym already bound to someone else → `Quarantined(pseudonym_conflict)`. Digest the record, correlation and causation ids, and any other id that contains a
    person's real id (research R5).
 5. **Store**: `Record.keep(stored)`. `collision` → `Quarantined(collision)` and reported.
 6. **Count**: `SourceState.received(at, kept = true, skewed)`.
