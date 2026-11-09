@@ -23,7 +23,7 @@ plan.md.
 
 | Tool | Call | `action_result.detail` (the original's) | Today |
 |---|---|---|---|
-| `request_withdrawal(amount, currency)` | payouts `POST /v1/casino/payouts-service/<slug>/players/{p}/withdrawal-requests` `{amount, currency, terminalId: "support-agent", key}` (A1) | `"{requestId} submitted"` | **amendment A1** |
+| `request_withdrawal(amount, currency)` | payouts `POST /v1/casino/payouts-service/<slug>/players/{p}/withdrawal-requests` `{amount, currency, key}` (A1: payouts picks the terminal and destination) | `"{requestId} submitted"` | **amendment A1** |
 | `close_active_session(game_session_id)` | players `POST …/players/game-sessions/{s}/end` `{approvalId}` | `"Session {id} closed"` | key: **amendment P1** |
 | `set_deposit_limit(amount, period)` | RG `PUT /v1/casino/rg-service/<slug>/{p}/limits/DEPOSIT_{PERIOD}` `{value, currency, key}` (R2) | `"Limit set. Effective from: {appliesAt or now}"` | **amendment R2** |
 | `apply_cool_off(cool_off_until)` | RG `PUT …/{p}/cooling-off` `{until, key}` (R3) | `"Cool-off in effect until {until}"` | **amendment R3** |
@@ -40,7 +40,7 @@ A refusal from the service, such as RG's `break_active` or payouts' `KEY_REUSED`
 
 | Id | Service (spec) | Change |
 |---|---|---|
-| **A1** | payouts (007) | Endpoint prefix `/v1/casino/payouts-service/<slug>`. ACL `Routes.serviceOf("support-agent")`. `POST /players/{playerId}/withdrawal-requests` runs the same `WithdrawalRequest` workflow as the player route, with the body's `key`, `KEY_REUSED` and `MISSING_KEY` as there. 007's `contracts/routes.md` gains the row; `ServiceEndpoint` stays `serviceOf("players")`. |
+| **A1** | payouts (007) | Endpoint prefix `/v1/casino/payouts-service/<slug>`. ACL `Routes.serviceOf("support-agent")`. `POST /players/{playerId}/withdrawal-requests` runs the same `WithdrawalRequest` workflow as the player route, with the body's `key`, `KEY_REUSED` and `MISSING_KEY` as there. A body with no `terminalId` is given the player's default active destination and the first eligible terminal (`Eligibility`'s order) that pays to a saved destination and is neither crypto nor Gigadat; a player with neither is 409 `NO_WITHDRAWAL_ROUTE`, which the tool tells the model so it points the player to the cashier (settled with the user, 2026-11-09). 007's `contracts/routes.md` gains the row; `ServiceEndpoint` stays `serviceOf("players")`. |
 | **R1** | responsible-gambling (010) | Endpoint prefix `/v1/casino/rg-service/<slug>`. ACL `Routes.serviceOf("support-agent")`. `GET /{player}/limits?currency=` answers what the player route answers (FR-025). |
 | **R2** | responsible-gambling (010) | Same endpoint: `PUT /{player}/limits/{type}` `{value, currency?, key}`. The same command as the player's. A repeat key answers the first outcome; the same key with another body is 409 `key_reused`. |
 | **R3** | responsible-gambling (010) | `PUT /{player}/cooling-off` `{until, key}`, keyed as R2. |

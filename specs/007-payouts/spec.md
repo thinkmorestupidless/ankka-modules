@@ -363,7 +363,9 @@ provider reference and status; the queue's needs-review set is visible at a glan
   mobile number or bank account, institution and transit numbers for Gigadat. A missing field, a
   decimal, zero or a negative amount MUST be refused naming the field. `support-agent` MAY make the
   same request for a player who approved it in the chat (spec 017 amendment A1), on its own route
-  within the project, through the same gates and workflow and under the same key.
+  within the project, through the same gates and workflow and under the same key. A request from
+  `support-agent` naming no terminal MUST be given the player's default destination and the first
+  eligible terminal paying to it, or be refused `NO_WITHDRAWAL_ROUTE`.
 - **FR-005**: Before the hold, in the original's order (research R4), a request MUST be refused when:
   the player is unknown; the player's identity is not verified, with the original's three messages for
   unverified, under review and rejected; then by the hold preview's turnover answer (FR-006), the

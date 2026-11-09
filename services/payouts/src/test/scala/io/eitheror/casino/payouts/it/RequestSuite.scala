@@ -90,6 +90,19 @@ class RequestSuite extends munit.FunSuite with LogCapturing:
       Json.obj("amount" -> 5000L, "currency" -> "EUR", "terminalId" -> "t-bank", "destinationId" -> d), kit.asService("support-agent"))
     assertEquals(unkeyed.str("error"), "MISSING_KEY", unkeyed.text)
 
+  test("spec 017 A1: with no terminal named, the default destination and the first terminal paying to it; none is NO_WITHDRAWAL_ROUTE"):
+    val p = newPlayer()
+    ready(p): Unit
+    def support(player: String, key: String = UUID.randomUUID().toString) =
+      kit.json("POST", s"/v1/casino/payouts-service/${kit.slug}/players/$player/withdrawal-requests",
+        Json.obj("amount" -> 5000L, "currency" -> "EUR", "key" -> key), kit.asService("support-agent"))
+    val r = support(p)
+    assertEquals((r.status, r.str("terminalId")), (201, "t-bank"), r.text)
+    val bare = newPlayer()
+    record(bare).call(PlayerPayouts.seeKyc).invoke(SeeKyc(Kyc.Verified, kit.now())): Unit
+    val none = support(bare)
+    assertEquals((none.status, none.str("error")), (409, "NO_WITHDRAWAL_ROUTE"), none.text)
+
   test("a request opened but not counted, as after a crash before the answer, is counted by RequestsConsumer"):
     val p  = newPlayer()
     val id = s"crash-$p"

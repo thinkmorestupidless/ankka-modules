@@ -316,6 +316,14 @@ of a blip.
 - **2026-11-09, a tool cannot see its approval id.** ankka 0.16's `FunctionTool` handler is not
   given the approval it ran under. The endpoint records `Decided(approvalId)` on the `Conversation`
   before it calls `decide`, and an approved tool reads the conversation's approved id as its key.
+- **2026-11-09, a withdrawal's terminal (settled with the user).** The contract sent
+  `terminalId: "support-agent"`, which payouts' gates refuse as `TERMINAL_NOT_ELIGIBLE`: no
+  terminal has that id. The original named none; its platform action chose. Payouts now chooses
+  (amendment A1): the player's default active destination and the first eligible terminal paying
+  to it that is neither crypto nor Gigadat, or 409 `NO_WITHDRAWAL_ROUTE`, which the tool tells
+  the model. **Rejected:** a `terminal_id` parameter the player picks in the chat (more turns,
+  terminal names shown to the model); handing every withdrawal to the cashier (drops what the
+  original did).
 - **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
   holding the session it ended (amendment P1); `approvalId` is now required on that route.
 
