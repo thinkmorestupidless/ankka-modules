@@ -136,7 +136,7 @@ criteria name suites, and the plan names them.
       `Frames` (the SSE events of contracts/routes.md, the original's names and fields), and
       `ConfigRules` (data-model.md's field rules, `safeguarding_not_configured`, `unknown_field`),
       each with its suite under `T/domain/`.
-- [ ] T018 [P] `S/clients/`: `Neighbour` (a call through `context.services` with a 5 s timeout and
+- [X] T018 [P] `S/clients/`: `Neighbour` (a call through `context.services` with a 5 s timeout and
       one retry on a timeout), then `Wallet`, `Payouts`, `Players`, `Rewards` and `Rg`.
   - Each is a trait, an HTTP implementation and a fake that records the caller, the path and the
     key.
