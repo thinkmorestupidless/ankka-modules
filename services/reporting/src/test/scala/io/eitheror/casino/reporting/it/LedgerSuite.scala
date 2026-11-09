@@ -125,6 +125,16 @@ class LedgerSuite extends munit.FunSuite with LogCapturing:
     assertEquals(rows(ledger("&playerEmail=nobody-has-this").json).size, 0)
   }
 
+  test("an export of a period with no movement is its header alone, as CSV and as JSON, not a refusal") {
+    val empty = Kit.FirstDay.minusDays(2)
+    val csv   = kit.get(s"/reports/transactions/export?from=$empty&to=$empty&format=csv", kit.asFinance)
+    assertEquals(csv.status, 200, csv.text)
+    assertEquals(csv.text.linesIterator.toVector,
+      Vector("transactionId,timestamp,playerId,truncatedEmail,transactionType,amount,currency,reference"))
+    val json = kit.get(s"/reports/transactions/export?from=$empty&to=$empty", kit.asFinance)
+    assertEquals((json.status, json.json.path("totalCount").asLong, rows(json.json).size), (200, 0L, 0))
+  }
+
   test("the type filter: an exact type, and bonus matching every bonus_ type") {
     for tpe <- Vector("deposit", "bet", "win", "bonus") do
       val want = s.ledger(from, to, tpe, of = Some(Set(ada, grace))).map(wanted(_))

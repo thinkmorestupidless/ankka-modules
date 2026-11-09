@@ -61,7 +61,7 @@ object Transactions extends KeyedView.Companion[TransactionsView, TransactionRow
       "to" -> to.toString, "type" -> tpe, "ids" -> players.fold("*")(_.mkString(",")), "offset" -> offset.toString)
 
   def page(views: ViewClient, asked: Asked, offset: Int, limit: Int): Vector[TransactionRow] =
-    if asked.players.exists(_.isEmpty) then Vector.empty
+    if asked.players.exists(_.isEmpty) || limit <= 0 then Vector.empty
     else views.forView(Transactions).ask(between, limit, asked.values(offset)*)
 
   /** How many movements `between` holds for `asked`: the page's `totalCount`. */
