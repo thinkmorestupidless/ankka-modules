@@ -75,7 +75,7 @@ registry, the consumers' decoding, the kit.
 
 **⚠️ CRITICAL**: no story starts before this phase ends.
 
-- [ ] T008 `a/Settings.scala`: data-model.md *Settings*, each parsed with a named error, a generation
+- [X] T008 `a/Settings.scala`: data-model.md *Settings*, each parsed with a named error, a generation
   above 1 refused without `AUDIT_READ_FROM`; `SettingsSuite` in `a-test/SettingsSuite.scala`
 - [ ] T009 [P] `a/keep/Keep.scala` and `a-test/keep/KeepSuite.scala`: FR-008a over every category ×
   actor kind × outcome (research R3)
