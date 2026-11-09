@@ -622,3 +622,18 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   ledger's transactionId and reference (FR-010) and a login session's rounds in its dispute report (FR-016) are answered
   where the original left them empty; `avgWithdrawalHours` is `null` with no completed withdrawal, where the original
   answered 0 (routes.md amended).
+- **The backoffice against the reporting service** (T074, 2026-11-09, kind-eitheror-dev): the original backoffice's dev
+  server with a local proxy override (no code change) sending `/dashboard`, `/reports` and the dispute report to the
+  service as spinvibe on :9015, everything else to the original. 15-dashboard-kpis 2/2; 27-dispute-report 1/4;
+  09-casino-backoffice 0/1 (against the original, and through the override with no rewrite: 7/7). Every dashboard and
+  report route answered 200 to the original's `dev-operator` token. The failures are the data's, not the shapes': the
+  service holds none of the original's players, so the dispute report is `404 player_not_found` and the dashboard's
+  tables are "No activity" where 09 waits for a table. Changes the backoffice needs beyond a base URL:
+  - its reporting paths are hard-coded (`lib/dashboard/dashboardApi.ts`, `lib/reporting/reportingApi.ts`,
+    `api/sessions.ts`): a configurable base, or the ingress's rewrite, to `/v1/casino/brands/<slug>/reporting`;
+  - Payment health shows a bare "%" for a `null` deposit success rate (no attempts); it shows "—" for null hours;
+  - Payment health's `depositVolume` is a 2-dp string (decided 2026-11-08);
+  - an operator's token is admitted by configuration alone (the staff issuer `https://auth.eitheror.local/realms/eitheror`,
+    platform_admin), but carries only the `account` audience: a deployment sets the staff audience to `account` or adds an
+    audience mapper to `casino-backoffice`;
+  - the dispute report and 09 pass only once the brand's data is the service's (spec 019, the migration).

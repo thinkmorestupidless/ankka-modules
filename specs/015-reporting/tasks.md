@@ -305,7 +305,7 @@ lifetimes and erasure.
 - [X] T072 [P] `services/reporting/README.md`: the components, the suites, how to run it locally
 - [X] T073 Run quickstart §1–§3 and §6 end to end; `just features` green; record the results in the pull
   request body
-- [ ] T074 SC-007: on kind, point the backoffice's reporting base URL at
+- [X] T074 SC-007: on kind, point the backoffice's reporting base URL at
   `/v1/casino/brands/<slug>/reporting` (a local environment override, no code change) and run the original's
   Playwright `15-dashboard-kpis`, `27-dispute-report` and `09-casino-backoffice`; record the results in the
   pull request body, and a change the backoffice would need beyond its base URL as a finding in research.md
