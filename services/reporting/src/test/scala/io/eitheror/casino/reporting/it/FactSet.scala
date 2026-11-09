@@ -143,19 +143,19 @@ final class FactSet(val zone: ZoneId):
 
   /** Restricted funds awarded: an open record of `amount` with its release requirement and no progress. */
   def award(player: String, currency: String, award: String, amount: Long, requirement: Long, at: Instant): Unit =
-    recs :+= Rec(player, currency, award, "ACTIVE", amount, 0, requirement)
+    recs :+= Rec(player, currency, award, "ACTIVE", amount, 0, requirement, Some(at))
     money(f.RestrictedFundsAwarded(player, cur(currency), tx(), award, m(amount), m(requirement), s(0), m(amount), at,
       records = Some(Vector(record(award, "ACTIVE", amount, 0, requirement)))), None, "bonus_credit", amount, award)
 
   /** A restricted stake that moves a record's progress and balance. */
   def wager(player: String, currency: String, award: String, round: String, stake: Long, at: Instant, balance: Long, progress: Long,
       requirement: Long): Unit =
-    recs :+= Rec(player, currency, award, "ACTIVE", balance, progress, requirement)
+    recs :+= Rec(player, currency, award, "ACTIVE", balance, progress, requirement, Some(at))
     bet(player, currency, round, stake, 0, at, records = Some(Vector(record(award, "ACTIVE", balance, progress, requirement))))
 
   /** A record forfeited: closed, no longer the brand's liability. */
   def forfeitAward(player: String, currency: String, award: String, amount: Long, at: Instant): Unit =
-    recs :+= Rec(player, currency, award, "FORFEITED", 0, 0, 0)
+    recs :+= Rec(player, currency, award, "FORFEITED", 0, 0, 0, Some(at))
     money(f.RestrictedFundsForfeited(player, cur(currency), tx(), award, m(amount), "expired", m(0), s(0), m(0), at,
       records = Some(Vector(record(award, "FORFEITED", 0, 0, 0)))), None, "bonus_cancel", amount, award)
 
@@ -364,7 +364,9 @@ object FactSet:
   final case class Status(player: String, family: String, to: String, at: Instant)
   final case class G(bonusId: String, player: String, offer: String, name: String, offerType: String, currency: String, amount: Long,
       at: Instant, status: String)
-  final case class Rec(player: String, currency: String, award: String, status: String, balance: Long, progress: Long, requirement: Long)
+  /** A restricted funds record as a movement at `at` left it. */
+  final case class Rec(player: String, currency: String, award: String, status: String, balance: Long, progress: Long, requirement: Long,
+      at: Option[Instant] = None)
 
   /** A day's figures in minor units: bets are stakes less rollbacks, GGR bets less wins, NGR GGR less bonus and chargebacks. */
   final case class Expected(stakes: Long = 0, wins: Long = 0, rollbacks: Long = 0, pool: Long = 0, bonus: Long = 0,
@@ -439,9 +441,12 @@ object FactSet:
       sets.flatMap(_.withdrawals).filter(w => w.currency == currency && w.requested.isBefore(at) && w.completed.forall(!_.isBefore(at)))
         .map(_.amount).sum
 
-    /** Every open restricted funds record in `currency` as its last movement left it. */
-    def openRecords(currency: String, exclude: Boolean = false): Vector[Rec] =
-      sets.flatMap(_.records).filter(_.currency == currency).foldLeft(Vector.empty[Rec]) { (acc, r) =>
+    /**
+     * Every open restricted funds record in `currency` as its last movement left it, or its last before `before`: the
+     * liability at a day's end (research R7).
+     */
+    def openRecords(currency: String, exclude: Boolean = false, before: Option[Instant] = None): Vector[Rec] =
+      sets.flatMap(_.records).filter(r => r.currency == currency && before.forall(b => r.at.forall(_.isBefore(b)))).foldLeft(Vector.empty[Rec]) { (acc, r) =>
         acc.filterNot(x => x.player == r.player && x.award == r.award) :+ r
       }.filter(r => (r.status == "ACTIVE" || r.status == "CONVERTED_PENDING_CAP") && !leaveOut(exclude)(r.player))
 

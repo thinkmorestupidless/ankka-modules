@@ -119,7 +119,7 @@ final class DayEnded(kit: Kit, val day: LocalDate, val currency: String = DayEnd
   def totals: Map[String, String] =
     val e = set.figures(day, currency)
     Map("walletGgr" -> money(e.ggr), "depositPoolGgr" -> money(e.pool), "bonusCost" -> money(e.bonus),
-      "chargebacks" -> money(e.chargebacks), "liability" -> money(kit.everything.openRecords(currency).map(_.balance).sum),
+      "chargebacks" -> money(e.chargebacks), "liability" -> money(kit.everything.openRecords(currency, before = Some(end)).map(_.balance).sum),
       "pendingHolds" -> money(kit.everything.pendingAt(end, currency)))
 
 object DayEnded:
