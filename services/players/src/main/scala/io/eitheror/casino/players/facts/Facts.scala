@@ -163,7 +163,7 @@ object Facts:
       case e: SessionLimitSet => own("session-limit", Vector(f.AuditChange("sessionMinutes", None, e.minutes.map(_.toString))), e.at)
       case e: SelfExcluded  => own("self-exclude", Vector(change("status", e.previous, Status.SelfExcluded)), e.at)
       case e: ConsentChanged if e.source == "player" =>
-        own("consent", Vector(change(e.channel, (!e.granted).toString, e.granted.toString)), e.at)
+        own("consent", Vector(change(s"consent.${e.channel}", (!e.granted).toString, e.granted.toString)), e.at)
       case e: Closed if e.actor == Actor.Player => own("close", Vector(change("status", e.previous, Status.Closed)), e.at)
       case e: Suspended  => op("suspend", e.actorId, Some(e.reason), Vector(change("status", e.previous, Status.Suspended)), e.at)
       case e: SuspensionUpdated => op("suspend", e.actorId, Some(e.reason), Vector.empty, e.at)
@@ -176,7 +176,7 @@ object Facts:
       case e: PotVipSet => op("pot-vip", e.actorId, None, Vector(change("potVip", (!e.potVip).toString, e.potVip.toString)), e.at)
       case e: DateOfBirthCorrected => op("date-of-birth", Some(e.operatorId), Some(e.reason), Vector(named("dateOfBirth")), e.at)
       case e: ConsentChanged if e.source == "operator" =>
-        op("consent", e.actorId, None, Vector(change(e.channel, (!e.granted).toString, e.granted.toString)), e.at)
+        op("consent", e.actorId, None, Vector(change(s"consent.${e.channel}", (!e.granted).toString, e.granted.toString)), e.at)
       case e: DuplicateCleared if e.actorId.nonEmpty => op("fraud-clear", e.actorId, None, Vector.empty, e.at)
       case e: NoDepositBlockCleared =>
         op("no-deposit-block-clear", Some(e.actorId), None, Vector(change("noDepositOfferBlocked", "true", "false")), e.at)
