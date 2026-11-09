@@ -100,7 +100,7 @@ registry, the consumers' decoding, the kit.
   record which in `research.md` under `## Found during implementation`
 - [X] T019 [P] `a/ingest/Quarantined.scala`, `a/ingest/Quarantine.scala`,
   `a/ingest/SourceState.scala` with kit suites
-- [ ] T020 `a/ingest/Ingest.scala`: one message in contracts/ingest.md's order (decode from bytes,
+- [X] T020 `a/ingest/Ingest.scala`: one message in contracts/ingest.md's order (decode from bytes,
   check against the brand and `PersonalFields.names`, keep or pass over, pseudonymise, store, count),
   as a function the consumers call, with `a-test/ingest/IngestUnitSuite.scala` on the kits
 - [ ] T021 `a-test/it/Kit.scala`: `AnkkaTestKit.start` over Postgres, an `InMemoryBroker` with two
