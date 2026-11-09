@@ -156,7 +156,7 @@ criteria name suites, and the plan names them.
     `localServices`.
   - Helpers: a player token, an operator token, an SSE reader over `java.net.http` (as engagement's
     `AgentStreamSuite`), and `restartService()`.
-- [ ] T022 `S/agent/Motoko.scala`, `Tools.scala` and `Context.scala`. These are the agent's
+- [X] T022 `S/agent/Motoko.scala`, `Tools.scala` and `Context.scala`. These are the agent's
       skeleton; the stories fill it in.
   - The model: the provider kind and key come from `Settings`; the model name comes from the
     conversation's `ConfigVersion.model`, set per turn with `effects.model(...)` (FR-008).
@@ -169,7 +169,7 @@ criteria name suites, and the plan names them.
     model from `Settings`.
   - Tools are built in the handler over `context.services`.
   - On the first turn the player's state and balance are loaded into `withContext` (FR-007).
-- [ ] T023 `S/api/ChatEndpoint.scala`, `Ctx.scala` and `Answers.scala`: the two `sseBody` routes
+- [X] T023 `S/api/ChatEndpoint.scala`, `Ctx.scala` and `Answers.scala`: the two `sseBody` routes
       under `Routes.player(slug)`, in contracts/routes.md's check order. The stories fill in the
       bodies. `S/SupportService.scala` and `SupportRuntime.scala` register every component.
 - [ ] T024 `T/features/SupportFeatures.scala`: bind the six `features/support-agent/` files on the
