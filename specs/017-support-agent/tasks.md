@@ -221,16 +221,16 @@ runs (red).
   - `restartService()` between decide and run → the turn ends without running the tool;
   - expiry after `approvalMinutes` on the moved clock → decided by `ankka`, and the next message is
     a new turn (FR-016).
-- [ ] T031 [US2] Add `request_withdrawal` and `close_active_session` to `Tools.scala`.
+- [X] T031 [US2] Add `request_withdrawal` and `close_active_session` to `Tools.scala`.
   - Both are `requiresApproval(approvalMinutes)`, with the key being the approval id.
   - The summary comes from `Summaries`, with the hold preview read first and `confirmForfeit` set
     (contracts/neighbours.md).
   - Currency and amount are validated before a request (FR-011): another currency, or an amount
     of zero or less, is answered to the model as a refusal, with no approval requested and no
     service called.
-- [ ] T032 [US2] `set_deposit_limit`: the period is validated, and the detail names RG's `appliesAt`
+- [X] T032 [US2] `set_deposit_limit`: the period is validated, and the detail names RG's `appliesAt`
       (actions.feature's last scenario).
-- [ ] T033 [US2] The resume route in `ChatEndpoint`.
+- [X] T033 [US2] The resume route in `ChatEndpoint`.
   - `decide` with `Decision.approved` or `Decision.refused(note = feedback)`.
   - Then stream `action_result` from the `ToolCalled` the tool recorded, and the reply's `delta`s
     and `done` (research R3).

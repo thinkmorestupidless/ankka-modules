@@ -326,6 +326,15 @@ of a blip.
   original did).
 - **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
   holding the session it ended (amendment P1); `approvalId` is now required on that route.
+- **2026-11-09, FR-011's refusal before approval.** ankka 0.16 records an approval request for every
+  call to an approval-gated tool, before any code of the tool's can look at the arguments. So the
+  chat route checks a request's arguments when its turn stops (`Actions.check`: the player's own
+  currency, an amount above zero, a known period, a break that ends later). A request that fails is
+  decided at once as refused by `support-agent`, with the reason as the note. The player is shown
+  no `confirm_action`, the model is told the reason and answers, nothing is called, and the trail
+  records `ToolCalled(refused: invalid_arguments)` rather than `ApprovalRequested`. A response that
+  asks for two writes has the second refused ("one action at a time"). The tool checks its arguments
+  again when it runs.
 - **2026-11-09, a fake cannot see the caller.** ankka 0.16's service client sends no identity on a
   call to a local service address (deployed, the identity is the workload's certificate), so the kit's
   fakes cannot record `support-agent` as the caller. They assert that no player token is forwarded,

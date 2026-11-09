@@ -11,6 +11,7 @@ import io.eitheror.casino.support.domain.{Mapping, Redaction}
 
 import java.time.Instant
 import java.util.UUID
+import scala.concurrent.duration.*
 
 /**
  * The tools one turn offers (contracts/tools.md), built in the handler for the bound player: every call names
@@ -101,10 +102,64 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
       }
   )
 
-  val writes: Vector[FunctionTool] = Vector.empty
+  /**
+   * A write, once approved: the arguments checked again (FR-011), the call keyed by the approval the conversation
+   * names (FR-015), and its outcome recorded for `action_result`. A refusal or a silence is thrown, so the model is
+   * told it as the tool's error and the turn goes on.
+   */
+  private def write(tool: String, args: JsonNode)(call: String => Called)(done: JsonNode => String): String =
+    val key = trail.approved.getOrElse(throw IllegalStateException("this action has not been approved by the player"))
+    Actions.check(tool, args, currency, now()).left.foreach(reason => throw IllegalArgumentException(reason))
+    val c       = call(key)
+    val outcome = outcomeOf(c)
+    val detail = outcome match
+      case Outcome.Ok         => done(json(c))
+      case Outcome.Refused(_) => Tools.refusal(c)
+      case _                  => Tools.NotApplied
+    record(tool, args, outcome, Some(key), Some(detail))
+    if outcome == Outcome.Ok then detail else throw IllegalStateException(detail)
+
+  private val within = body.approvalMinutes.toLong.minutes
+
+  val writes: Vector[FunctionTool] = Vector(
+    FunctionTool.named("request_withdrawal")
+      .describedAs("Request a withdrawal from the player's account. Amount in minor currency units (pence/cents). Pauses for player confirmation.")
+      .param[Long]("amount", "The amount in minor units of the player's currency (pence/cents).")
+      .param[String]("currency", "The player's currency, as an ISO 4217 code.")
+      .handle { (amount: Long, c: String) =>
+        write("request_withdrawal", Json.obj("amount" -> amount, "currency" -> c))(key =>
+          n.payouts.requestWithdrawal(playerId, amount, c, key))(a => s"${a.textOr("requestId", "")} submitted")
+      }
+      .requiresApproval(within),
+    FunctionTool.named("close_active_session")
+      .describedAs("Close the player's active game session. Pauses for player confirmation.")
+      .param[String]("game_session_id", "The id of the game session to close, as get_session_history names it.")
+      .handle { (id: String) =>
+        write("close_active_session", Json.obj("game_session_id" -> id))(key => n.players.endSession(id, key))(_ => s"Session $id closed")
+      }
+      .requiresApproval(within),
+    FunctionTool.named("set_deposit_limit")
+      .describedAs("Set a deposit limit for the player. period must be 'daily', 'weekly', or 'monthly'. Amount in minor units. Pauses for player confirmation.")
+      .param[Long]("amount", "The limit in minor units of the player's currency (pence/cents).")
+      .param[String]("period", "'daily', 'weekly', or 'monthly'.")
+      .handle { (amount: Long, period: String) =>
+        write("set_deposit_limit", Json.obj("amount" -> amount, "period" -> period))(key =>
+          n.rg.setLimit(playerId, s"DEPOSIT_${period.toUpperCase}", amount, currency.getOrElse(""), key))(a =>
+          s"Limit set. Effective from: ${a.text("appliesAt").getOrElse(now().toString)}")
+      }
+      .requiresApproval(within)
+  )
 
   def all: Vector[FunctionTool] = reads ++ writes
 
 object Tools:
   val DefaultLimit = 10
   val MaxLimit     = 50
+
+  /** What a write that did not answer is told: it may not have been applied, and the player may ask again. */
+  val NotApplied = "the service did not answer, so the action may not have been applied; the player may ask again"
+
+  /** A service's refusal as `action_result.detail`: its code and its message (contracts/neighbours.md). */
+  def refusal(c: Called): String =
+    val message = c.json.flatMap(_.text("message"))
+    (c.refusal.toVector ++ message.toVector).mkString(": ")

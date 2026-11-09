@@ -21,7 +21,11 @@ final class Conversation(@scala.annotation.unused context: EventSourcedEntityCon
     event match
       case e: Started           => s.copy(playerId = e.playerId, configVersion = e.configVersion, startedAt = Some(e.at))
       case e: TurnTaken         => s.copy(turns = s.turns + 1, tokensCounted = math.max(s.tokensCounted, e.tokensAfter))
-      case e: ToolCalled        => if e.approvalId.isDefined && e.approvalId == s.approved then s.copy(approved = None) else s
+      case e: ToolCalled =>
+        e.approvalId.fold(s) { id =>
+          val done = Some(ActionDone(id, e.tool, e.outcome == Outcome.Ok, e.detail.getOrElse("")))
+          if s.approved.contains(id) then s.copy(approved = None, lastAction = done) else s.copy(lastAction = done)
+        }
       case e: ApprovalRequested => s.copy(status = Status.Awaiting(e.approvalId, e.tool))
       case e: Decided           => s.copy(status = Status.Open, approved = Option.when(e.approved)(e.approvalId), lastDecided = Some(e.approvalId))
       case _: GuardrailRejected => s

@@ -104,8 +104,9 @@ class ResumeSuite extends munit.FunSuite:
     assertEquals((kit.conversation("resume-eur").awaiting, kit.conversation("resume-zero").awaiting), (None, None))
 
   test("a restart while the approved tool runs ends the turn without running it again, and the player may ask again"):
-    awaiting("resume-restart")
-    kit.payouts.delayMillis = 3000L
+    val id = awaiting("resume-restart")
+    // Under the kit's 1 s neighbour timeout, so the one call is not retried (FR-012 would retry it, with the same key).
+    kit.payouts.delayMillis = 800L
     val r = kit.resume("p-1", "resume-restart", "approve")
     kit.eventually("the request reached payouts")(Option(withdrawals).filter(_.nonEmpty))
     kit.restartService()
@@ -116,7 +117,7 @@ class ResumeSuite extends munit.FunSuite:
     kit.model.expectText("Hello again.")
     val next = kit.chat("p-1", "resume-restart", "is it done?")
     assertEquals((next.status, next.names().last), (200, "done"))
-    assertEquals(withdrawals.size, 1)
+    assertEquals(withdrawals.map(kit.payouts.key), Vector(Some(id)))
 
   test("an approval not decided within approvalMinutes is refused by ankka, and the next message is a new turn (FR-016)"):
     kit.configure(_.copy(approvalMinutes = 1)): Unit

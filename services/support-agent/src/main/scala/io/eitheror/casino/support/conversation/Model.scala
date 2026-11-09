@@ -46,7 +46,9 @@ final case class ConversationState(
     approved: Option[String] = None,
     startedAt: Option[Instant] = None,
     /** The last approval decided, so a second decision on it is `already_decided` (FR-015). */
-    lastDecided: Option[String] = None
+    lastDecided: Option[String] = None,
+    /** What the last approved tool came to, for the resume's `action_result` (research R3). */
+    lastAction: Option[ActionDone] = None
 ):
   def started: Boolean = playerId.nonEmpty
 
@@ -59,6 +61,9 @@ final case class ConversationState(
   def awaiting: Option[(String, String)] = status match
     case Status.Awaiting(id, tool) => Some((id, tool))
     case _                         => None
+
+/** An approved tool's call, as `action_result` reports it: its tool, whether the service applied it, and the detail. */
+final case class ActionDone(approvalId: String, tool: String, success: Boolean, detail: String)
 
 /** data-model.md's events, each named by its manifest's last part (`support.conversation.<name>`). */
 enum ConversationEvent:

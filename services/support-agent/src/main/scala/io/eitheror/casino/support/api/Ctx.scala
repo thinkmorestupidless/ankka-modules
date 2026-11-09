@@ -16,6 +16,9 @@ final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
 
   def components = clients.componentClient
 
+  /** The neighbours, called as this service (029 FR-010): what a summary reads before the player is asked. */
+  def neighbours = SupportRuntime.neighbours(clients.services)
+
   def configuration: AgentConfigState = components.forKeyValueEntity(AgentConfiguration.id(slug)).call(AgentConfiguration.get).invoke()
 
   def conversation(session: String)             = components.forEventSourcedEntity(EntityId(session))
