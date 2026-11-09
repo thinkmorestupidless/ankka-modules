@@ -463,8 +463,11 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   (T040) replaces this with the brand's wallets. The `currencies` list is every currency held, plus the configured
   default.
 - **T031, `rebuilding` in `/status`**: ankka 0.16 gives a service no read of its own consumers' lag (it is on the
-  management port and in the metrics), so `rebuilding` is always false; `completeFrom` is the latest of the view's
-  topics' first complete days in the served generation, null until each has folded a fact. A finding for ankka.
+  management port and in the metrics), so `rebuilding` is inferred (second-round review): true while any
+  `to-days` consumer of the served generation is behind the clock and has read within `CLOSE_IDLE` (R7), for
+  every view alike, since a rebuild replays them together; it is also when due days wait. `completeFrom` is the
+  latest of the view's topics' first complete days in the served generation, null until each has folded a fact.
+  A finding for ankka: a consumer's own lag would say this per view.
 - **T036, an unparseable date**: contracts/routes.md is silent and the original fails; a `from` or `to` that is not
   `YYYY-MM-DD` is `400 invalid_date` naming the field. To be confirmed in the contract.
 - **T037, the export over the synchronous limit**: until `DocumentJob` (T053), a revenue CSV over `syncRows` or

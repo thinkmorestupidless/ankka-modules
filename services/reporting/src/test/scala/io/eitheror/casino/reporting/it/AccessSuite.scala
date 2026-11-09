@@ -183,8 +183,17 @@ class AccessSuite extends munit.FunSuite with LogCapturing:
 
   test("the status names the generation and, per view, the first complete day") {
     // After a rebuild the new generation's coverage arrives as its consumers replay the topics.
-    val j = kit.eventually("the seed day's coverage")(Some(kit.get("/status", kit.asOperator).json)
-      .filter(_.path("views").get(0).path("completeFrom").asText == Kit.SeedDay.toString))
+    kit.eventually("the seed day's coverage")(Some(kit.get("/status", kit.asOperator).json)
+      .filter(_.path("views").get(0).path("completeFrom").asText == Kit.SeedDay.toString)): Unit
+    // Rebuilding while a day consumer is behind the clock and has read within CLOSE_IDLE (R7): the kit's facts are behind
+    // its clock, so the clock is moved past CLOSE_IDLE, again while a replay is still reading.
+    def status = kit.get("/status", kit.asOperator).json
+    def rebuilding(j: com.fasterxml.jackson.databind.JsonNode) = j.path("views").elements.asScala.map(_.path("rebuilding").asBoolean).toSet
+    val until = System.nanoTime() + DayEnded.Replay.toNanos
+    while rebuilding(status) != Set(false) && System.nanoTime() < until do
+      kit.moveClock(DayEnded.idleRun(kit))
+      scala.util.Try(kit.eventually("no day consumer catching up", 30.seconds)(Option.when(rebuilding(status) == Set(false))(()))): Unit
+    val j = status
     assertEquals(j.path("generation").asInt, kit.settings.generation)
     val days = j.path("views").get(0)
     assertEquals((days.path("name").asText, days.path("completeFrom").asText, days.path("rebuilding").asBoolean),

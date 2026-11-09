@@ -131,12 +131,19 @@ object StatusAnswer:
 object StatusRoute:
   /**
    * ankka 0.16 tells a service nothing of its own sources' lag (it is on the management port and in the metrics), so
-   * `rebuilding` is false; `completeFrom` is null until a topic of the view has folded a fact in this generation.
+   * `rebuilding` is inferred from the day consumers' progress, as the closer infers it (research R7): true while any
+   * `to-days` consumer of this generation is behind the clock and has read within `CLOSE_IDLE`, which a replay is, and
+   * so while due days wait. A rebuild replays every view of the generation together, so it is the same for every view.
+   * `completeFrom` is null until a topic of the view has folded a fact in this generation.
    */
   def of(ctx: Ctx): StatusAnswer =
     val s = ctx.settings
+    val progress = io.eitheror.casino.reporting.day.FoldProgress.of(ctx.components, s,
+      io.eitheror.casino.reporting.day.ToDaysConsumers.names(s))
+    val rebuilding =
+      io.eitheror.casino.reporting.day.DayClosing.catchingUp(progress, s, ReportingRuntime.startedAt.get(), ctx.now()).nonEmpty
     StatusAnswer(s.generation, Completeness.viewTopics(s).map((view, topics) =>
-      ViewStatus(view, Completeness.from(ctx.components, s, topics).map(_.toString), rebuilding = false)))
+      ViewStatus(view, Completeness.from(ctx.components, s, topics).map(_.toString), rebuilding)))
 
 /** `GET`/`PUT /settings` (FR-024): `ReportingSettings` in camelCase; a value out of its range `400 invalid_setting`. */
 final case class SettingsAnswer(reportsTab: Boolean, excludeTestAccounts: Boolean, defaultCurrency: Option[String], syncRows: Int,

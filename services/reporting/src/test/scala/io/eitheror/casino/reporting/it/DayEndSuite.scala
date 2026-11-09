@@ -152,6 +152,9 @@ class DayEndSuite extends munit.FunSuite with LogCapturing:
     assert(waiting.nonEmpty, "every consumer is behind the clock and has read within CLOSE_IDLE: the day waits")
     assertEquals(CloseDays.closing(kit.components, kit.clock).run().filter(_ == r.day.toString), Vector.empty)
     DayEnded.assertOpen(kit, r.day)
+    // The status says so: while a consumer catches up, every view of the generation is rebuilding.
+    val status = kit.get("/status", kit.asOperator).json
+    assertEquals(status.path("views").elements.asScala.map(_.path("rebuilding").asBoolean).toSet, Set(true), status.toString)
     r.settle()
     // The close reads the views as they stand (the liability is the open records' balance at the close), so it is made
     // once the replay has reached what the old generation's close read: every currency, each one's liability and pending
