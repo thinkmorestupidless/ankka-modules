@@ -3,7 +3,7 @@ package io.eitheror.casino.audit
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.sdk.TimerScheduler
-import io.eitheror.casino.audit.ingest.{Quarantine, Quarantined, SourceState}
+import io.eitheror.casino.audit.ingest.{Consumers, Quarantine, Quarantined, SourceState}
 import io.eitheror.casino.audit.registry.{Identity, Pseudonym, Seed}
 import io.eitheror.casino.audit.store.{Record, Records}
 import org.slf4j.LoggerFactory
@@ -22,7 +22,7 @@ object AuditService:
     Quarantine.descriptor,
     SourceState.descriptor,
     Seed.descriptor
-  )
+  ) ++ Consumers.of(settings).map(_.descriptor)
 
   /** What the consumers and timed actions are constructed without (see `Wiring`). */
   def wire(settings: Settings, clock: Clock): Unit =

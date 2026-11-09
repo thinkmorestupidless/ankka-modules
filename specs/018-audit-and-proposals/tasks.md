@@ -129,10 +129,10 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] `a/ingest/Consumers.scala`: `records-<slug>` per `AUDIT_BRANDS`, `records-payments`,
+- [X] T025 [US2] `a/ingest/Consumers.scala`: `records-<slug>` per `AUDIT_BRANDS`, `records-payments`,
   each over `Serializer.bytes` at version `AUDIT_READ_GENERATION`, from `Earliest` or `AUDIT_READ_FROM`
   (research R14), calling `Ingest`
-- [ ] T026 [US2] Register the store, registry, ingest components and consumers in
+- [X] T026 [US2] Register the store, registry, ingest components and consumers in
   `a/AuditService.scala`; T022–T024 pass
 
 **Checkpoint**: the MVP: the shared store fills from every source.
