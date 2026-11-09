@@ -4,7 +4,6 @@ import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.reporting.api.Disputes
 import io.eitheror.casino.reporting.documents.Document
 import io.eitheror.casino.reporting.render.Money
-import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 
 import java.time.LocalDate
@@ -128,7 +127,7 @@ class DisputeSuite extends munit.FunSuite with LogCapturing:
       assert(r.header("Content-Type").get.startsWith(tpe), r.header("Content-Type"))
       if ext == "pdf" then
         assertEquals(String(body.take(5), "US-ASCII"), "%PDF-")
-        val doc = PDDocument.load(body)
+        val doc = org.apache.pdfbox.Loader.loadPDF(body)
         try
           val text = PDFTextStripper().getText(doc)
           for want <- Vector(ref, p.email, p.games.head.name, "Period totals") do assert(text.contains(want), want)
@@ -194,7 +193,7 @@ class DisputeSuite extends munit.FunSuite with LogCapturing:
       val (status, headers, body) = kit.getBytes(s"/documents/$ref", kit.asOperator)
       assertEquals(status, 200)
       assert(Reply(status, "", headers).header("Content-Type").get.startsWith("application/pdf"))
-      val doc = PDDocument.load(body)
+      val doc = org.apache.pdfbox.Loader.loadPDF(body)
       try assert(PDFTextStripper().getText(doc).contains(ref))
       finally doc.close()
     finally kit.setReporting(_ => before)

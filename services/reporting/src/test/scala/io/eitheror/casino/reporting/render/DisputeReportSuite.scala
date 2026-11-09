@@ -1,6 +1,6 @@
 package io.eitheror.casino.reporting.render
 
-import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.Loader
 import org.apache.pdfbox.text.PDFTextStripper
 
 import java.time.Instant
@@ -113,7 +113,7 @@ class DisputeReportSuite extends munit.FunSuite:
   test("the PDF is rendered from the HTML on this JDK, its tables' text in it") {
     val pdf = DisputeReport.pdf(DisputeReport.html(meta, Vector(session.copy(userAgent = Some("Agent <&> 1")))))
     assertEquals(String(pdf.take(5), "US-ASCII"), "%PDF-")
-    val doc = PDDocument.load(pdf)
+    val doc = Loader.loadPDF(pdf)
     try
       val text = PDFTextStripper().getText(doc)
       for wanted <- Vector("ref-abc-123", "player@example.com", "Player Betting History Report", "Starburst (slots)", "Game totals",

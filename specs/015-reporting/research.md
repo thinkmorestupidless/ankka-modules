@@ -547,7 +547,7 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   `403 forbidden` otherwise; an export is `404` while the Reports tab is hidden. While generating it answers
   `202 {reference, status, progress}` (a whole percent); a failed job `500 {error: "document_failed"}`.
   `GET /documents` answers `{documents: [...]}`, the records of the kinds the caller is admitted to.
-- **T054, the PDF**: openhtmltopdf-pdfbox 1.0.10 renders the report's HTML (as XHTML: the two named entities as
+- **T054, the PDF**: openhtmltopdf-pdfbox (the maintained `io.github.openhtmltopdf` fork, 1.1.100 on PDFBox 3; first 1.0.10) renders the report's HTML (as XHTML: the two named entities as
   numbers, the meta element closed) with its tables; verified by extracting its text with PDFBox, on JDK 27 here
   (no JDK 21 on this machine; the image runs Temurin 21).
 - **T056, erasure**: the handler and the route erase the subject's prefix (a dispute report is kept under it) and

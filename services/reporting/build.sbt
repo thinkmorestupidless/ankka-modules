@@ -59,7 +59,8 @@ lazy val root = project
       "com.thinkmorestupidless" %% "ankka-auth-oidc" % ankkaVersion,
       "io.eitheror"             %% "casino-contract" % contractVersion,
       // The dispute report as PDF, rendered from its HTML (research R9): Apache-2.0, pure JVM.
-      "com.openhtmltopdf"        % "openhtmltopdf-pdfbox" % "1.0.10",
+      // The maintained fork (io.github.openhtmltopdf), on PDFBox 3.
+      "io.github.openhtmltopdf"  % "openhtmltopdf-pdfbox" % "1.1.100",
       "com.thinkmorestupidless" %% "ankka-testkit" % ankkaVersion % Test,
       "org.scalameta"           %% "munit"         % "1.3.6"      % Test,
       "org.scalameta"           %% "munit-scalacheck" % "1.2.0"   % Test,

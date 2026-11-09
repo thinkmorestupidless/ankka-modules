@@ -29,7 +29,7 @@ game names, chargebacks and wagering progress (research R11). Decisions and evid
 - ankka: `ankka-sdk`, `ankka-runtime`, `ankka-http`, `ankka-auth-oidc`, `ankka-telemetry-otlp`,
   `ankka-testkit`, all 0.16.0;
 - `io.eitheror:casino-contract`, with this branch's fields (contracts/facts.md);
-- `com.openhtmltopdf:openhtmltopdf-pdfbox` for the dispute report's PDF (research R9).
+- `io.github.openhtmltopdf:openhtmltopdf-pdfbox` (the maintained fork) for the dispute report's PDF (research R9).
 
 **Storage**: the service's own Postgres (journals, state, views, timers); the brand's bucket
 (`provisionObjectStorage`) for documents.
