@@ -297,6 +297,14 @@ T043/T044.
   `localServices`, each recording the caller and the key.
 - SSE is read over `java.net.http`, as in engagement.
 
+## R15. Tool timeouts (settled with the user, 2026-11-09, at analyze)
+
+Each neighbour call times out at 5 s and is retried once on a timeout, as the original's substrate
+client (`tools/platform/client.py:40-71`); a tool answers at most 10 s after it is called. FR-012 is
+amended. A turn with several slow tools may pass the gateway's 15 s; it completes in the session
+(R3). **Rejected:** 5 s with no retry, which keeps turns shorter but drops the original's tolerance
+of a blip.
+
 ## For ankka
 
 Nothing blocks this service, and each item below is noted for an ankka spec.
@@ -305,3 +313,7 @@ Nothing blocks this service, and each item below is noted for an ankka spec.
 - No retry of a rejected output.
 - No push of a decision to an open stream.
 - The gateway's 15 s cut.
+
+## Design finished
+
+2026-11-09: analyze reported nothing above LOW.

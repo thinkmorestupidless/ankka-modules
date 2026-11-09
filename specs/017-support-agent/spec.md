@@ -147,6 +147,8 @@ Four decisions shape it.
   them? → A: Those services gain routes admitting `support-agent` only, with the player id in the
   path and the approval id as the key; `players`' end of a game session takes the approval id as
   its key (specs 007, 008, 010 amended by this plan).
+- Q (analyze): FR-012's 5-second timeout or the original's 5 seconds with one retry? → A: 5 seconds
+  per attempt with one retry on a timeout, as the original's substrate client (FR-012).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -296,7 +298,7 @@ version "2"; the configuration change is an audit record naming the operator.
 ### Edge Cases
 
 - The player's session expires mid-conversation: the next message is refused as unauthenticated; an
-  approval request awaiting a decision expires with the player session (its time limit), is decided
+  approval request awaiting a decision expires after the brand's approval time (FR-010), is decided
   as refused by `ankka` with the note, and the player may ask again after signing in.
 - The player sends a message while a decision is awaited: refused as a conflict (029).
 - The stream is interrupted: the turn completes in the session; the player's next request reads the
@@ -377,7 +379,8 @@ version "2"; the configuration change is an audit record naming the operator.
   player, a brand or a currency other than the amount's; a tool given an amount that is not a whole
   number of minor units above zero MUST refuse before any call.
 - **FR-012**: A tool's refusal or timeout MUST be the tool's result to the model, with the owning
-  service's reason, and MUST NOT fail the turn; a tool MUST time out at 5 seconds.
+  service's reason, and MUST NOT fail the turn; a tool's call MUST time out at 5 seconds, with one
+  retry on a timeout as the original's client (at most 10 seconds).
 - **FR-013**: The approval request's player-facing summary MUST be composed by the tool from its
   arguments and the owning service's own answer where one is needed before confirmation — for a
   limit, whether it applies at once or after 24 hours (spec 010); for a withdrawal, the hold preview's

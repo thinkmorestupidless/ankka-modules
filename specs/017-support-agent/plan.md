@@ -78,7 +78,7 @@ builds and the module manifest.
 **Performance Goals**:
 
 - SC-002: the first `delta` within 5 s at p95 on the scripted provider;
-- a tool call within 5 s, with one retry on a timeout;
+- a tool call within 5 s per attempt, with one retry on a timeout (R15, FR-012);
 - SC-003: User Stories 1–3 pass with the original's tool set unchanged, and T043 and T044 pass
   unskipped against the rebuild (the widget change from R3 included, in spec 019);
 - SC-006: an audit record within one minute of each tool call and decision.

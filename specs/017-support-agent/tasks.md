@@ -124,6 +124,9 @@ criteria name suites, and the plan names them.
   - Port `O/tests/test_write_tools.py`'s and `test_rg_tools.py`'s summary assertions ("Withdraw
     50.00 GBP from your account", "regulatory" or "delay", "cannot be shortened", "permanent" and
     "cannot be reversed").
+  - Add a property test: every `apply_cool_off` summary names its end and "cannot be shortened",
+    and every `apply_self_exclusion` summary says "permanent" and "cannot be reversed", for any
+    argument (FR-022's required statement, by construction; research R8).
 - [ ] T016 [P] Pure, test first: `T/domain/MappingSuite.scala`, then `S/domain/Mapping.scala`.
   - It maps each neighbour's answer to the model's fields (contracts/neighbours.md *Reads*).
   - Rules: the wallet's 404 becomes zeros; only active grants; `reason` never; `game_id` for
@@ -137,8 +140,8 @@ criteria name suites, and the plan names them.
       one retry on a timeout), then `Wallet`, `Payouts`, `Players`, `Rewards` and `Rg`.
   - Each is a trait, an HTTP implementation and a fake that records the caller, the path and the
     key.
-  - `T/clients/NeighbourSuite.scala` covers the timeout, the retry, and a refusal carried as a
-    value.
+  - `T/clients/NeighbourSuite.scala` covers a 5 s timeout per attempt, one retry on a timeout
+    (not on a refusal), and a refusal carried as a value (FR-012, R15).
 - [ ] T019 `S/conversation/Conversation.scala` and `Model.scala`: data-model.md's state, its events
       and every command row. Add `T/conversation/ConversationSuite.scala` (unit kit) covering
       binding, the other player, decided twice, ended, and forgotten.
@@ -155,6 +158,10 @@ criteria name suites, and the plan names them.
     `AgentStreamSuite`), and `restartService()`.
 - [ ] T022 `S/agent/Motoko.scala`, `Tools.scala` and `Context.scala`. These are the agent's
       skeleton; the stories fill it in.
+  - The model: the provider kind and key come from `Settings`; the model name comes from the
+    conversation's `ConfigVersion.model`, set per turn with `effects.model(...)` (FR-008).
+  - Nothing here or in `Neighbour` logs, or puts on a span, a message's text, a reply, or a tool's
+    arguments (FR-020).
   - The agent: `Agent.Companion(ComponentId("motoko"))`, a `chat` stream, and the system message
     from the conversation's `ConfigVersion`.
   - Session memory: `forAgent(SessionId(s), subject = Some(DataSubject("player/<id>")))`.
@@ -176,7 +183,7 @@ runs (red).
 **Goal**: a player asks about their account and is answered from the owning services as
 `support-agent`.
 
-**Independent test**: `reads.feature` green on the kit; T043's recording replays.
+**Independent test**: `reads.feature` green on the kit. T043's recording replays in Phase 10 (T056).
 
 - [ ] T025 [P] [US1] `T/agent/ReadToolsSuite.scala`, written first and failing first: each of the
       six tools on the scripted provider calls its fake as `support-agent` for the bound player and
@@ -200,7 +207,7 @@ runs (red).
 
 **Goal**: an approved write is applied once by the owning service, keyed by the approval id.
 
-**Independent test**: `actions.feature` green; T044's recording replays.
+**Independent test**: `actions.feature` green. T044's recording replays in Phase 10 (T056).
 
 - [ ] T030 [P] [US2] `T/it/ResumeSuite.scala`, written first, covering these cases:
   - a confirmation followed by `done` on the chat's stream;
@@ -218,7 +225,9 @@ runs (red).
   - Both are `requiresApproval(approvalMinutes)`, with the key being the approval id.
   - The summary comes from `Summaries`, with the hold preview read first and `confirmForfeit` set
     (contracts/neighbours.md).
-  - Currency and amount are validated before a request (FR-011).
+  - Currency and amount are validated before a request (FR-011): another currency, or an amount
+    of zero or less, is answered to the model as a refusal, with no approval requested and no
+    service called.
 - [ ] T032 [US2] `set_deposit_limit`: the period is validated, and the detail names RG's `appliesAt`
       (actions.feature's last scenario).
 - [ ] T033 [US2] The resume route in `ChatEndpoint`.
@@ -255,6 +264,8 @@ responsible-gambling, and ends the conversation.
 - [ ] T039 [P] [US4] `T/it/DurabilitySuite.scala`: a restart keeps the history and an awaiting
       request; the same session id from another page continues; compaction past 100 000 bytes
       keeps the last 10 messages, using a separate scripted summariser (FR-026, FR-005).
+      It also covers a stream cut mid-turn: the turn completes in the session, and the next turn's
+      model is given that reply in its history, with the turn not run again (edge case).
 - [ ] T040 [US4] `S/timers/Forget.scala`: `forget-<session>`, set again on every turn at
       `lastActivity + retentionDays`.
   - When it fires and the conversation is untouched, it calls `forSessionMemory(id).clear` and
@@ -328,10 +339,16 @@ responsible-gambling, and ends the conversation.
   - Ask the user before starting kind or the original.
 - [ ] T056 `T/port/ParitySuite.scala`: replay `tests/port/support-agent/`, holding frame names,
       fields, summaries and details exact, with plan.md's *Divergences* marked per recording.
+- [ ] T060 [P] `T/it/TelemetrySuite.scala` (FR-020): runs a conversation with a tool call, an
+      approval and a guardrail rejection, then reads the kit's captured logs and spans. Asserts that
+      none carries the message text, the reply, the `feedback`, or a tool's argument values.
 - [ ] T057 [P] `T/agent/PromptSuite.scala`: the default prompt is the original's
       (`O/agents/motoko.py:30-47`) byte for byte, plus the two lines of contracts/tools.md.
-- [ ] T058 [P] `services/support-agent/README.md` (components, routes, env, run, suites), and the
-      spec 019 note: the proxy forwards the realm token, and the widget reads the resume's stream.
+- [ ] T058 [P] `services/support-agent/README.md` (components, routes, env, run, suites).
+  - It states that what a session sent to the model provider is beyond the installation's erasure
+    (FR-019).
+  - It carries the spec 019 note: the proxy forwards the realm token, and the widget reads the
+    resume's stream.
 - [ ] T059 Final gate: `just support-agent-test`, `just support-agent-it`, the three neighbours'
       suites, `just test` and `just features`, all green; quickstart steps 1–6 walked on
       `just support-agent-run`.
