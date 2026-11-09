@@ -28,7 +28,7 @@ criteria name suites, and the plan names them.
 
 ## Phase 1: Setup
 
-- [ ] T001 Publish the contract unchanged: `CASINO_VERSION=0.2.0-017-SNAPSHOT sbt -batch
+- [X] T001 Publish the contract unchanged: `CASINO_VERSION=0.2.0-017-SNAPSHOT sbt -batch
       contract/publishLocal`; `just test` green.
 - [ ] T002 Run `ankka init` for `services/support-agent/`, shaped like `services/engagement/`.
   - `build.sbt`:
