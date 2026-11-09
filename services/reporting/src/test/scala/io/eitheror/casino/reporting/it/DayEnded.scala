@@ -1,7 +1,7 @@
 package io.eitheror.casino.reporting.it
 
 import com.fasterxml.jackson.databind.JsonNode
-import io.eitheror.casino.reporting.day.DaysView
+import io.eitheror.casino.reporting.day.{CloseDays, DaysView}
 import io.eitheror.casino.reporting.days.Days
 import io.eitheror.casino.reporting.reads.{Rounds, Wallets, WithdrawalsView}
 
@@ -146,6 +146,10 @@ object DayEnded:
     Thread.sleep(1_000)
     assertOpen(kit, day)
     kit.moveClock(16.minutes)
+    // A run of `close-days` still catching up when the clock moved read it before the move and set its next run from
+    // after it, so the day waits for that next run: the clock is moved on to it (still past the grace) if it has to.
+    scala.util.Try(kit.eventually(s"$day closed", 20.seconds)(Option.when(read(kit, day).status == 200)(())))
+      .getOrElse(kit.moveClock(CloseDays.Every))
     closed(kit, day)
 
   def assertOpen(kit: Kit, day: LocalDate): Unit =

@@ -525,9 +525,14 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   numbers, the meta element closed) with its tables; verified by extracting its text with PDFBox, on JDK 27 here
   (no JDK 21 on this machine; the image runs Temurin 21).
 - **T056, erasure**: the handler and the route erase the subject's prefix (a dispute report is kept under it) and
-  end every kept document naming the player by subject, in its `.players`, or in a running job's pages. A document
-  readied too recently for the view is missed by the route and the handler; a job storing one checks the keyring
-  and drops it. The module manifest's route row for `erasure-targets` (R10) is outside this service and not made.
+  end every kept document naming the player by subject, in its `.players`, or in a running job's pages. A job storing
+  one checks the keyring and drops it. Updated 2026-11-09: the documents are found in the bucket, not the
+  `Documents` view (the objects under `ObjectRules.subjectPrefix` listed before they are erased, and every `.players`
+  under `reports/` that names the player, each object's name giving its reference), so one readied too recently for
+  the view is no longer missed; the view's kept records are read as well, for a job that has kept no page yet. The
+  flake in `DocumentsSuite` (2 of 3 objects) was not that gap: `testKit.erase` runs the service's handler on the
+  keyring's notice, and the suite's own second run raced it; the suite now reads the runtime's run from the notice's
+  acknowledgement. The module manifest's route row for `erasure-targets` (R10) is outside this service and not made.
 - **T057, every document audited**: `report.generated` on `Readied`, `report.served` on each `Served`, for every
   kind, synchronous or a job's; `record_id` `audit/document/<reference>/<sequence>`, the period `<from>/<to>`.
 - **T055, the documents routes** (asked 2026-11-08, answer "as built"): `500 document_failed` for a failed job,

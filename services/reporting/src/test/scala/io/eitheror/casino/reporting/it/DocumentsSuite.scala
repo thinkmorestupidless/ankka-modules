@@ -106,9 +106,12 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     for ref <- Vector(own, other, names, ggr) do Disputed.inView(kit, ref)
     val sidecar = Document.sidecar(record(names).objectName.get)
     assertEquals(Disputed.text(kit, sidecar).map(_.split('\n').toSet), Some(Set(a.player, b.player)))
-    // The installation's erasure: the keys destroyed, then the service's part.
-    kit.testKit.erase(DataSubject(s"player/${a.player}")): Unit
-    assertEquals(handler()(s"player/${a.player}").objectsErased, 3L, "the dispute report under the prefix, and two documents ended")
+    // The installation's erasure: the keys destroyed, then the service's part, which the runtime runs on the keyring's
+    // notice. Its report is read from the notice's acknowledgement: a second run here would race the runtime's.
+    val seq    = kit.testKit.erase(DataSubject(s"player/${a.player}"))
+    val report = kit.eventually("the service's part of the erasure")(
+      kit.testKit.keyring.acks.find(_.seq == seq).flatMap(_.completion.handler))
+    assertEquals((report.objectsErased, report.error), (3L, None), "the dispute report under the prefix, and two documents ended")
     for ref <- Vector(own, names) do
       val r = record(ref)
       assertEquals((r.status, r.endedBy), (Document.Expired, Some(Document.Erasure)), ref)
@@ -142,5 +145,22 @@ class DocumentsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(record(ref).endedBy, Some(Document.Erasure))
     kit.eventually("the view caught up")(Option.when(!Documents.keptNow(kit.views).exists(_.reference == ref))(()))
     assertEquals(kit.request("POST", kit.path(path), headers = kit.asService("players")).json.path("documents").asInt, 0)
+  }
+
+  test("an erasure ends the documents readied a moment before, which the Documents view has not reached") {
+    val p = Disputed(kit, d.plusDays(8)).usual().publish()
+    val registered = d.plusDays(7)
+    val report = s"/reports/players?from=$registered&to=$registered&currency=EUR"
+    kit.eventually("the player in the report")(Option.when(kit.get(report, kit.asFinance).text.contains(p.player))(()))
+    // Both erased at once, before the view can hold either: the player's own dispute report, and an export naming them.
+    val own     = referenceOf(p.bySession(format = "csv"))
+    val listing = referenceOf(kit.get(s"$report&format=csv", kit.asFinance))
+    val r = kit.request("POST", kit.path(s"/erasure/players/${p.player}"), headers = kit.asService("players"))
+    assertEquals((r.status, r.json.path("documents").asInt), (200, 2), r.text)
+    for ref <- Vector(own, listing) do
+      val s = record(ref)
+      assertEquals((s.status, s.endedBy), (Document.Expired, Some(Document.Erasure)), ref)
+      assertEquals(kit.testKit.storage.default.getBytes(s.objectName.get), None, ref)
+    assertEquals(kit.testKit.storage.default.getBytes(Document.sidecar(record(listing).objectName.get)), None)
   }
 

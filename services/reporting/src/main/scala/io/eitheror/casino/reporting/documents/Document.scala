@@ -155,7 +155,10 @@ object Document extends EventSourcedEntity.Companion[Document, DocumentState, Do
     case DocumentEvent.Failed(at, _)           => s.copy(status = Failed, endedAt = Some(at))
 
   /** Where a document naming no single player is kept (research R9): `reports/<kind>/<reference>.<ext>`. */
-  def objectName(kind: String, reference: String, extension: String): String = s"reports/$kind/$reference.$extension"
+  /** Where every document not about one player is kept, with its `.players` and a job's pages. */
+  val Root = "reports/"
+
+  def objectName(kind: String, reference: String, extension: String): String = s"$Root$kind/$reference.$extension"
 
   /**
    * Where a document about one player is kept (research R9): under the player's subject prefix, so `bucket.erase` takes

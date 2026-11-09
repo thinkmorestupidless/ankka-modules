@@ -21,21 +21,31 @@ object Erased:
  * among them), and every kept document that names them, by its own subject or in its `.players` beside it (an export
  * listing them), or in a page of a job still running, deleted and its record marked `expired` by `erasure`. The records
  * stay, naming the player by id only. Run again it ends nothing more: a record already expired is left as it is.
+ *
+ * The documents are found in the bucket, not in the `Documents` view, so one readied a moment ago is not missed: the
+ * objects under the subject's prefix, and every `.players` (a document's or a job page's) naming the player, each
+ * object's name giving its document's reference. The view's kept records are read too, for a job that has kept no page.
  */
 final class Erasing(components: ComponentClient, bucket: Bucket, kept: () => Vector[DocumentState], now: () => Instant):
   def run(player: String): Erased =
     val subject = Personals.subject(player)
+    val own     = bucket.list(ObjectRules.subjectPrefix(subject)).map(_.name).flatMap(Erasing.referenceOf).toVector
     bucket.erase(subject): Unit
-    val ended = kept().filter(names(player)).map(d => Keeping.expire(components, bucket, d, Document.Erasure, now()))
+    val listing = bucket.list(Document.Root).map(_.name).filter(n => n.endsWith(".players") && listed(player, n))
+      .flatMap(Erasing.referenceOf).toVector
+    val viewed  = kept().filter(_.subject.contains(player)).map(_.reference)
+    val ended = (own ++ listing ++ viewed).distinct.map(r => Keeping.document(components, r).call(Document.get).invoke())
+      .filter(d => d.recorded && d.kept).map(d => Keeping.expire(components, bucket, d, Document.Erasure, now()))
     Erased("reporting", subject.value, ended.count(_.endedBy.contains(Document.Erasure)))
 
-  /** Whether the document names the player: as its subject, in its `.players`, or in a running job's pages. */
-  private def names(player: String)(d: DocumentState): Boolean =
-    d.subject.contains(player) || d.objectName.exists { name =>
-      def listed(object_ : String) = bucket.getBytes(object_).exists((_, b) => String(b, UTF_8).split('\n').contains(player))
-      listed(Document.sidecar(name)) ||
-        bucket.list(name + ".parts/").map(_.name).filter(_.endsWith(".players")).exists(listed)
-    }
+  private def listed(player: String, object_ : String): Boolean =
+    bucket.getBytes(object_).exists((_, b) => String(b, UTF_8).split('\n').contains(player))
+
+object Erasing:
+  private val Named = """(?:^|/)reports/[^/]+/([^/.]+)\.""".r
+
+  /** The reference of the document an object belongs to (`[subjects/<s>/]reports/<kind>/<reference>.<…>`), if it is one. */
+  def referenceOf(objectName: String): Option[String] = Named.findFirstMatchIn(objectName).map(_.group(1))
 
 object Erasure:
   /** The route and the installation's erasure do the same; a subject that is not a player's is not this service's. */
