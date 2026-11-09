@@ -76,7 +76,7 @@ forwarded to the brand's wallet by the outcome consumer.
 |---|---|
 | `200 {"ok": true}` | delivered, a repeat and an unknown payment too; stop |
 | `400 invalid_outcome` | a close whose `disputeOutcome` is not `won` or `lost`: a client error, record as refused |
-| `400 INVALID_REQUEST` | an `outcome` that is not a dispute's, or a currency that is not one: record as refused |
+| `400 INVALID_REQUEST` | an `outcome` that is not a dispute's, a currency that is not one, or a given `amount` that is not positive (added 2026-11-09, spec 015's review): record as refused |
 | `503 payment_unavailable` | redeliver |
 
 ### What the gateway reads from `merchant`
