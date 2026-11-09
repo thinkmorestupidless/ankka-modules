@@ -681,3 +681,8 @@ From R1, R4 and R12, with the decisions of 2026-11-08:
   generation, the latest fact time it folded and when it last folded anything; `close-days` closes a due day only once every
   consumer has folded a fact dated after the day's end plus the grace, or has folded nothing for 15 minutes. ankka 0.16
   reports no consumer lag (T031), so caught-up is inferred; a consumer stuck retrying one fact looks idle.
+- **A consumer counts as read past a day only while it is live** (second-round review, decided 2026-11-09): its latest
+  fact time within `CLOSE_GRACE` of the clock. A consumer behind the clock (a rebuild, a backlog), whose slices and
+  partitions are read in no order between them, must be idle for `CLOSE_IDLE` first.
+- **A day-end's liability is as of the day's end** (second-round review, decided 2026-11-09): from the folded balance
+  movements up to the end, as pending holds are, so a rebuilt day-end equals the live one (SC-004).
