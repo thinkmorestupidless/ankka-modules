@@ -11,6 +11,12 @@ Feature: An operator turns the support agent on, changes its prompt, and reads w
     Then the answer is that the support agent is not available for the brand
     And the chat stays hidden
 
+  Scenario: a brand that takes real money cannot turn its support agent on without a safeguarding reply and helpline
+    Given the brand takes real money and has no safeguarding reply configured
+    When an operator turns its support agent on
+    Then it is refused naming the missing safeguarding reply and helpline
+    And the support agent stays off
+
   Scenario: a new prompt version governs the next conversation while conversations in progress keep theirs
     Given an operator sets a new prompt version
     When the next conversation starts

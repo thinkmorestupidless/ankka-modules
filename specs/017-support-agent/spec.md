@@ -70,9 +70,10 @@ Four decisions shape it.
 - **The model sees what the tools return and nothing else, and the tools return less than today.**
   The model provider is outside the installation; what a session sends it is beyond erasure (042
   FR-025). The original sends the player's email address and full name with every player-state
-  read. Here a tool returns to the model no `Personal` field but the player's display name; a tool
-  that needs an identifier to act uses the player id from the token, never a value the model
-  produced. That is the data-processor boundary, and it is a change from the original.
+  read. Here a tool returns to the model no `Personal` field but the player's display name, unless
+  the brand's configuration names further fields (FR-018); a tool that needs an identifier to act
+  uses the player id from the token, never a value the model produced. That is the data-processor
+  boundary, set per brand, and by default a change from the original.
 - **Scala, with the reason.** The plan lists the service as Scala; the original is Python.
   Approvals, the service client in tools, subject-tagged session memory and judged guardrails
   reach a process-hosted agent through the sidecar too, so Python would work; Scala is chosen
@@ -121,6 +122,21 @@ Four decisions shape it.
   spec 001's reader lists no longer name it; the player site's proxy change (forward the realm
   token) is carried by spec 019's runbook.
 
+### Session 2026-11-09
+
+- Q: Should the agent later sit behind Chatwoot as the brand's bot, or stay the casino's own chat? →
+  A: The casino's own chat, beside Chatwoot, as the original intends; a Chatwoot bot stays out of
+  scope, a separate integration if a brand asks for one chat.
+- Q: May a brand widen what the model sees beyond the display name? → A: Yes. A brand's
+  configuration may name further personal fields (FR-018), each applied to conversations started
+  after the change and audited; by default only the display name. This amends the 2026-10-08
+  answer, which fixed the boundary at the display name.
+- Q: Which fields may a brand add? → A: Any field spec 001 FR-023 names personal, at the brand's
+  choice.
+- Q: Is the safeguarding guardrail on by default? → A: On by default for a brand that takes real
+  money, which cannot turn the agent on without a safeguarding reply and helpline configured; a
+  brand that takes no real money may opt in (FR-023).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A player asks about their account and is answered from the services (Priority: P1)
@@ -143,6 +159,8 @@ the stream carries "£123.45" and the wallet recorded one read by `support-agent
 - added `features/support-agent/reads.feature`: limits asked about by a player on a break are answered with each limit, the break's end and whether they are excluded
 - added `features/support-agent/reads.feature`: a question the support agent has no tool for is answered that it cannot help, naming the support chat, with no invented figure
 - added `features/support-agent/reads.feature`: a balance asked for while the wallet does not answer in time is answered that it cannot be read right now, and the turn does not fail
+- added `features/support-agent/reads.feature`: by default the only personal field the model is given is the player's display name
+- added `features/support-agent/reads.feature`: a personal field the brand's configuration names is given to the model in conversations started after the change, and the change is audited
 
 ---
 
@@ -236,7 +254,8 @@ input guardrail rejects it naming itself, no tool ran, and an audit record names
 - added `features/support-agent/guardrails.feature`: a turn naming another player's id or email address is refused by the input guardrail before any model is called
 - added `features/support-agent/guardrails.feature`: a turn judged an attempt to override the instructions is refused
 - added `features/support-agent/guardrails.feature`: a judged guardrail whose judgment provider is unreachable answers unavailable rather than refusing
-- added `features/support-agent/guardrails.feature`: a turn judged to express self-harm on a brand that opted in is answered with the safeguarding reply, no tool runs, and it is audited
+- added `features/support-agent/guardrails.feature`: a turn judged to express self-harm at a brand that takes real money is answered with the safeguarding reply, no tool runs, and it is audited
+- added `features/support-agent/guardrails.feature`: a turn expressing self-harm at a brand that takes no real money and has not opted in is not judged by the safeguarding guardrail
 - added `features/support-agent/guardrails.feature`: a reply containing what looks like another player's id or an internal address is rejected by the output guardrail and the model asked again
 - added `features/support-agent/guardrails.feature`: a player sending more than the brand's turns per minute has the next turn refused as too many, with when they may send again
 - added `features/support-agent/guardrails.feature`: a brand whose daily budget for the model is spent answers the fixed unavailable reply naming the support chat
@@ -257,6 +276,7 @@ version "2"; the configuration change is an audit record naming the operator.
 **Acceptance Scenarios**:
 
 - added `features/support-agent/operators.feature`: a brand whose support agent is off answers that it is not available and the chat stays hidden
+- added `features/support-agent/operators.feature`: a brand that takes real money cannot turn its support agent on without a safeguarding reply and helpline
 - added `features/support-agent/operators.feature`: a new prompt version governs the next conversation while conversations in progress keep theirs
 - added `features/support-agent/operators.feature`: a tool call, an approval decision or a guardrail rejection is audited with the session, the tool or guardrail, the redacted arguments and the outcome
 
@@ -366,8 +386,9 @@ version "2"; the configuration change is an audit record naming the operator.
 **Personal data and the model**
 
 - **FR-018**: A tool MUST return to the model no field spec 001 FR-023 names as personal data except
-  the player's display name; the player's email address, names, addresses and documents MUST NOT be
-  read by any tool. Amounts, ids, dates, statuses, game names and reward names MAY be returned.
+  the player's display name and the fields the brand's configuration names (FR-029); a field the
+  configuration does not name MUST NOT be read by any tool. A brand MAY name any field spec 001
+  FR-023 names. Amounts, ids, dates, statuses, game names and reward names MAY be returned.
 - **FR-019**: The session's transcript, the approval requests and their decisions MUST be held under
   the player's subject (ankka 042): after the player's erasure every conversation reads as erased and
   a new turn starts with no history (042 FR-025). The documentation MUST say that what a session
@@ -384,9 +405,11 @@ version "2"; the configuration change is an audit record naming the operator.
 - **FR-022**: Output guardrails MUST reject a reply carrying another player's id or an internal
   address, and a summary of a break or an exclusion that lacks its required statement (FR-013); a
   rejected reply MUST NOT be written to memory and the model MUST be asked again, at most twice.
-- **FR-023**: A brand MAY opt into a judged safeguarding guardrail: a message judged to express
-  self-harm MUST be answered with the brand's configured safeguarding message and helpline, run no
-  tool, and write an audit record.
+- **FR-023**: A brand that takes real money MUST run a judged safeguarding guardrail; a brand that
+  takes none MAY opt into it. A message it judges to express self-harm MUST be answered with the
+  brand's configured safeguarding message and helpline, run no tool, and write an audit record. A
+  brand that takes real money MUST NOT be able to turn the agent on while its safeguarding message
+  or helpline is not configured.
 - **FR-024**: A player MUST be limited to the brand's turns per minute (default 10) and a brand to a
   daily token budget; past the budget every message MUST be answered with the fixed unavailable
   message naming the support chat, and the brand's status MUST say the budget is spent.
@@ -408,7 +431,7 @@ version "2"; the configuration change is an audit record naming the operator.
 **Configuration**
 
 - **FR-029**: The system prompt, the hand-off message, the safeguarding message and helpline, the
-  model name, the limits (FR-021, FR-024, FR-005) and the retention (FR-027) MUST be one versioned
+  personal fields the model may be given (FR-018), the model name, the limits (FR-021, FR-024, FR-005) and the retention (FR-027) MUST be one versioned
   configuration entity per brand, changed by an operator with the brand's role, recorded as an audit
   record, applied to conversations started after the change and never to one in progress.
 - **FR-030**: When ankka 036 (blueprints) is available, the prompt and tool wording MAY move to a
@@ -473,8 +496,8 @@ version "2"; the configuration change is an audit record naming the operator.
   T043 and T044 pass unskipped against the rebuild.
 - **SC-004**: An erasure makes every conversation of the player unreadable within ankka 042's bound,
   shown by a restored backup that cannot read it either.
-- **SC-005**: No field named personal by spec 001 FR-023 but the display name appears in any message
-  sent to the model provider, proven by a scripted provider that records what it was sent.
+- **SC-005**: No field named personal by spec 001 FR-023 but the display name and the fields the
+  brand's configuration names appears in any message sent to the model provider, proven by a scripted provider that records what it was sent.
 - **SC-006**: Every tool call and decision has an audit record within one minute, and the record's
   arguments carry no personal field.
 - **SC-007**: A brand turns the agent on, changes the prompt, and spends its budget without a deploy,
@@ -511,11 +534,6 @@ version "2"; the configuration change is an audit record naming the operator.
   none; a new feature with operator approvals.
 - The agent behind Chatwoot as its bot, replacing re10it's FAQ bot, with a hand-off that opens a
   Chatwoot conversation carrying the transcript: a new integration against Chatwoot's agent-bot API.
-  [NEEDS CLARIFICATION: should the agent later sit behind Chatwoot as the brand's bot, so players have
-  one chat, or stay the casino's own chat beside Chatwoot as the original intends?]
+  The agent stays the casino's own chat beside Chatwoot (Clarifications, 2026-11-09).
 - Languages other than English.
 - The frontend widget itself (constitution, scope).
-- [NEEDS CLARIFICATION: may a brand widen FR-018 — for example let the model see the player's first
-  name or email — or is the display-name-only boundary fixed for every brand?]
-- [NEEDS CLARIFICATION: is the safeguarding guardrail (FR-023) on by default for a real-money brand,
-  or opt-in as the plan says?]
