@@ -199,7 +199,7 @@ runs (red).
 - [X] T028 [US1] Stream the chat in `ChatEndpoint`: `delta` per `AgentPart.Text`, then `done`.
       `T/it/ChatSuite.scala` covers the first `delta` within 5 s at p95 on the scripted provider
       (SC-002), 400 `missing_fields`, and 403 `session_not_yours`.
-- [ ] T029 [US1] Bind `reads.feature`'s eight scenarios in `SupportFeatures`; all green.
+- [X] T029 [US1] Bind `reads.feature`'s eight scenarios in `SupportFeatures`; all green.
 
 **Checkpoint:** a player can ask and be answered.
 

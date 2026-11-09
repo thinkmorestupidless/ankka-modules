@@ -8,7 +8,7 @@ import io.eitheror.casino.support.Json
 import io.eitheror.casino.support.Json.*
 import io.eitheror.casino.support.agent.{Motoko, Turn}
 import io.eitheror.casino.support.config.{ConfigBody, ConfigVersion}
-import io.eitheror.casino.support.conversation.{Conversation, ConversationState, Start}
+import io.eitheror.casino.support.conversation.{At, Conversation, ConversationState, Start}
 import io.eitheror.casino.support.domain.{Frames, HandOff}
 import org.apache.pekko.stream.scaladsl.Source
 
@@ -83,6 +83,10 @@ object Chat:
           Vector(handOff.finish()).filter(_.nonEmpty).map(Frames.delta) ++
             requests.headOption.map(r => Frames.confirmAction(r.tool, r.tool, session))
       }
-      .concat(Source.lazySingle(() => handOff.finish()).filter(_.nonEmpty).map(Frames.delta))
+      .concat(Source.lazySingle { () =>
+        val rest = handOff.finish()
+        if handOff.handedOff then ctx.conversation(session).call(Conversation.handedOff).invoke(At(ctx.now())): Unit
+        rest
+      }.filter(_.nonEmpty).map(Frames.delta))
       .concat(Source.single(Frames.done))
       .recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }

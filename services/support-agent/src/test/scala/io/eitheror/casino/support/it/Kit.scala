@@ -63,6 +63,8 @@ final class Kit(base: Settings = Kit.Base):
     SupportService.descriptors(agents),
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, agents, server),
     serviceIdentity = ServiceIdentity.local("support-agent"),
+    // A neighbour's call waits 1 s here, not 5 s (FR-012), so a neighbour that does not answer costs a scenario 2 s.
+    settings = com.typesafe.config.ConfigFactory.parseString("ankka.service-client.timeout = 1s"),
     localServices = Map(
       base.players -> players.address,
       base.wallet  -> wallet.address,
