@@ -89,7 +89,7 @@ registry, the consumers' decoding, the kit.
 - [X] T013 [P] `a/retention/Retention.scala` and `a-test/retention/RetentionSuite.scala`: `cutoff`,
   `raise` refusing below the current or the installation's
 - [X] T014 `a/AuditCodecs.scala`: serializers for every stored type, named manifests
-- [ ] T015 [P] `a/store/Record.scala`: the key value entity of data-model.md (`keep` → `kept` |
+- [X] T015 [P] `a/store/Record.scala`: the key value entity of data-model.md (`keep` → `kept` |
   `collision`, `drop`), with its kit suite `a-test/store/RecordSuite.scala`
 - [ ] T016 [P] `a/registry/Pseudonym.scala` and `a/registry/Identity.scala` with kit suites: the first
   `issue` draws a UUIDv4, every later one returns it; `bind` written once, `conflict` otherwise
