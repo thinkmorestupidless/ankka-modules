@@ -6,9 +6,9 @@ repository's problem shape: `{"code": "...", "message": "..."}` with a 4xx statu
 
 | Role in the table | Admitted by |
 |---|---|
-| brand compliance (`b`) | `Routes.auditCompliance(brand)`: `brand_<slug>` and `brand_compliance` |
-| installation compliance (`i`) | `Routes.auditInstallation`: `audit_compliance` |
-| re-identifier (`r`) | `Routes.reidentifier(brand)`: brand compliance and `reidentify_<slug>` |
+| brand compliance (`b`) | `Routes.auditScope`: `compliance_<slug>`, one per brand (a person's `brand_<slug>` and `brand_compliance` do not bear on the audit) |
+| installation compliance (`i`) | `Routes.auditScope`: `audit_compliance` |
+| re-identifier (`r`) | `Routes.reidentifies(p, brand)`: `compliance_<slug>` and `reidentify_<slug>` |
 | installation owner (`o`) | `Routes.installationOwner`: `platform_admin` |
 
 ## `/v1/audit-records`
@@ -40,18 +40,23 @@ not when `service=audit` is the only service asked for.
 ## `/v1/audit-identities`
 
 - `POST /v1/audit-identities/who` — `r` for the pseudonym's brand. Body `{"pseudonym", "reasonCode"}`.
-  `200 {"brand", "kind", "id"}`; `404 unknown_pseudonym`. Recorded, visible to the brand.
+  `200 {"brand", "kind", "id"}`; `404 unknown_pseudonym`. Recorded, visible to the brand. A pseudonym
+  the registry does not hold is recorded as its digest, never as typed.
 - `POST /v1/audit-identities/pseudonym` — `r` for the brand. Body `{"brand", "kind", "id",
-  "reasonCode"}`. `200 {"pseudonym", "issued": bool}`. Recorded.
+  "reasonCode"}`, `kind` one of `player`, `operator`, `affiliate`, `agent`. `200 {"pseudonym",
+  "issued": bool}`. Recorded.
+- `reasonCode` is a code, `[a-z0-9_.-]{1,64}`; anything else is `400 bad_request`, unrecorded.
 - Anyone else: `403 not_reidentifier`, and the refusal is recorded (FR-018).
 
 ## `/v1/audit-roles`
 
-- `PUT /v1/audit-roles/{role}/{person}` — `o`. Grants the realm role through Keycloak's admin API.
-  `role` is `audit_compliance`, `brand_compliance` (with `{"brand"}`) or `reidentify_<slug>`. Recorded.
-- `DELETE /v1/audit-roles/{role}/{person}` — `o`. Revokes. Recorded.
-- `GET /v1/audit-roles/{role}` — `o`. The holders and how each came to hold it (`granted` or
-  `outside`).
+- `PUT /v1/audit-roles/{role}/{person}` — `o`. Grants exactly that realm role through Keycloak's admin
+  API. `role` is `audit_compliance`, `compliance_<slug>` or `reidentify_<slug>` of a brand read here;
+  anything else is `400 unknown_role`. No body. Recorded.
+- `DELETE /v1/audit-roles/{role}/{person}` — `o`. Removes exactly that realm role. Recorded.
+- `{person}` is a holder's installation pseudonym, as the listing answers, or a realm user id.
+- `GET /v1/audit-roles/{role}` — `o`. `{"role", "holders": [{"person": <installation pseudonym>,
+  "held": "granted" | "outside"}]}`; no realm id (SC-002).
 
 ## `/v1/audit-retention`
 
@@ -62,7 +67,9 @@ not when `service=audit` is the only service asked for.
 ## `/v1/audit-status`
 
 `GET /v1/audit-status` — `i`, `o`; `GET /v1/audit-status?brand=` — `b`. Per source: `stored`,
-`passedOver`, `lastReceived`, `lagSeconds`, `quarantined`, `skewed`, `retentionYears`, `lastExport`,
+`passedOver`, `lastReceived`, `lagSeconds` (how far behind its occurrence the newest record handled
+arrived), `quarantined`, `skewed`, `topicKeeps` (`not stated` until a brand's topic retention reaches
+the service), `retentionYears`, `lastExport`,
 `installationSources: {"modules": "read", "erasures": "read", "rollbacks": "not stated",
 "restores": "not stated", "grants": "not stated", "secrets": "not stated"}`.
 

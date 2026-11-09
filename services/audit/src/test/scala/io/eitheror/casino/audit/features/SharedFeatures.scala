@@ -200,7 +200,7 @@ class SharedFeatures extends AuditFeatures("shared.feature"):
       .map(_.key).toSet intersect records.map((s, r) => keyOf(s, r)).toSet
 
   Then("a compliance officer for brand {string} sees the first and not the second") { (brand: String) =>
-    assertEquals(sees(Set("brand_compliance", s"brand_$brand")), Set(keyOf(Source.Payments, records.head._2)))
+    assertEquals(sees(Set(Routes.complianceRole(brand))), Set(keyOf(Source.Payments, records.head._2)))
   }
 
   Then("the installation's compliance officer sees both") { () =>

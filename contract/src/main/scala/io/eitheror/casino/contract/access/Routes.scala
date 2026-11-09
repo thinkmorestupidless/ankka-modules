@@ -191,8 +191,14 @@ object Routes:
   /** The installation's compliance role on the shared audit (spec 018 FR-016): every brand. */
   val AuditCompliance = "audit_compliance"
 
-  /** A brand's compliance role, held beside `brand_<slug>` for each brand it covers. */
-  val BrandCompliance = "brand_compliance"
+  /**
+   * A brand's compliance role on the shared audit (spec 018 FR-016), one per brand, made by the modules
+   * tool beside `brand_<slug>`. Granted and revoked brand by brand: `brand_compliance` and `brand_<slug>`,
+   * which say what a person does in a brand's own services, do not bear on the audit.
+   */
+  def complianceRole(slug: String): String = s"compliance_$slug"
+
+  val CompliancePrefix = "compliance_"
 
   /** A brand's re-identification role (spec 018 FR-016), held beside that brand's compliance role. */
   def reidentifyRole(slug: String): String = s"reidentify_$slug"
@@ -204,34 +210,28 @@ object Routes:
     }
 
   /**
-   * A compliance officer of the shared audit (spec 018 FR-016): `audit_compliance`, or
-   * `brand_compliance` with at least one `brand_<slug>`. Which brands they read is [[auditScope]],
+   * A compliance officer of the shared audit (spec 018 FR-016): `audit_compliance`, or at least one
+   * `compliance_<slug>`. Which brands they read is [[auditScope]],
    * checked by the route, since the brand is a filter there and not a path segment.
    */
   def auditCompliance(authenticate: => Acl = Oidc.authenticate()): Acl =
     refine(authenticate) { p =>
       if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: compliance signs in at the eitheror realm")
       else if !auditScope(p).isEmpty then None
-      else Some(s"$NotAuditCompliance: audit_compliance, or brand_compliance with a brand, is required")
+      else Some(s"$NotAuditCompliance: audit_compliance, or a brand's compliance_<slug>, is required")
     }
 
-  /** The brands a principal may read in the shared audit: every brand for `audit_compliance`, else its `brand_<slug>` roles beside `brand_compliance`. */
+  /** The brands a principal may read in the shared audit: every brand for `audit_compliance`, else each `compliance_<slug>` it holds. */
   def auditScope(p: Principal): BrandSet =
     if p.roles.contains(AuditCompliance) then BrandSet.Every
-    else if p.roles.contains(BrandCompliance) then
-      BrandSet.Only(p.roles.collect { case r if r.startsWith("brand_") && !PermissionRoles(r) && r.length > 6 => r.drop(6) }.toSet)
-    else BrandSet.Only(Set.empty)
-
-  /** The realm's permissions spelled `brand_…` (`brands/_realm/eitheror-operators.json`), which name no brand. */
-  private val PermissionRoles: Set[String] = Set("brand_admin", BrandCompliance, "brand_finance")
+    else BrandSet.Only(p.roles.collect { case r if r.startsWith(CompliancePrefix) && r.length > CompliancePrefix.length => r.drop(CompliancePrefix.length) }.toSet)
 
   /**
-   * Whether a principal may re-identify at a brand (spec 018 FR-017): that brand's compliance role and
+   * Whether a principal may re-identify at a brand (spec 018 FR-017): `compliance_<slug>` and
    * `reidentify_<slug>`. The installation's compliance role alone never may.
    */
   def reidentifies(p: Principal, slug: String): Boolean =
-    p.issuer.contains(StaffIssuer) && p.roles.contains(BrandCompliance) && p.roles.contains(s"brand_$slug") &&
-      p.roles.contains(reidentifyRole(slug))
+    p.issuer.contains(StaffIssuer) && p.roles.contains(complianceRole(slug)) && p.roles.contains(reidentifyRole(slug))
 
   /** An installation owner (spec 018): `platform_admin` at the eitheror realm. */
   def installationOwner(authenticate: => Acl = Oidc.authenticate()): Acl =

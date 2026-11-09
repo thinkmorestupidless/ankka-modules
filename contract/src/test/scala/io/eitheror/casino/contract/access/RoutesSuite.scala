@@ -203,11 +203,11 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
   }
 
-  test("spec 018: audit compliance is audit_compliance, or brand_compliance with a brand, at the eitheror realm") {
+  test("spec 018: audit compliance is audit_compliance, or a brand's compliance_<slug>, at the eitheror realm") {
     val acl = Routes.auditCompliance(verified)
     assertEquals(outcome(acl, Request(token = Some(operatorWith("audit_compliance")))), Outcome.Served)
-    assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_compliance", "brand_goldvibe")))), Outcome.Served)
-    Seq(operatorWith("brand_compliance"), operatorWith("brand_goldvibe", "operator"), operatorWith("platform_admin")).foreach { token =>
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("compliance_goldvibe")))), Outcome.Served)
+    Seq(operatorWith("brand_compliance", "brand_goldvibe"), operatorWith("brand_goldvibe", "operator"), operatorWith("platform_admin")).foreach { token =>
       val refused = outcome(acl, Request(token = Some(token))).asInstanceOf[Outcome.Refused]
       assertEquals(refused.status, 403, token)
       assert(refused.toString.contains("not_audit_compliance"), refused.toString)
@@ -215,19 +215,22 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused].status, 403)
   }
 
-  test("spec 018: auditScope is every brand for audit_compliance, else the brands beside brand_compliance") {
+  test("spec 018: auditScope is every brand for audit_compliance, else exactly the brands of its compliance_<slug> roles") {
     def principal(roles: String*) = com.thinkmorestupidless.ankka.http.Principal("c", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
     assertEquals(Routes.auditScope(principal("audit_compliance")), Routes.BrandSet.Every)
-    assertEquals(Routes.auditScope(principal("brand_compliance", "brand_goldvibe", "brand_silvervibe", "brand_admin", "brand_finance")),
-      Routes.BrandSet.Only(Set("goldvibe", "silvervibe")))
-    assert(Routes.auditScope(principal("brand_goldvibe")).isEmpty, "a brand role without brand_compliance reads nothing")
+    // An operator of silvervibe given goldvibe's compliance reads goldvibe alone.
+    assertEquals(Routes.auditScope(principal("compliance_goldvibe", "brand_compliance", "brand_silvervibe", "brand_admin")),
+      Routes.BrandSet.Only(Set("goldvibe")))
+    assert(Routes.auditScope(principal("brand_compliance", "brand_goldvibe")).isEmpty, "the brand services' compliance reads nothing here")
+    assert(Routes.auditScope(principal("compliance_")).isEmpty)
   }
 
   test("spec 018: re-identification needs the brand's compliance role and reidentify_<slug>; the installation's role never suffices") {
     def principal(roles: String*) = com.thinkmorestupidless.ankka.http.Principal("c", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
-    assert(Routes.reidentifies(principal("brand_compliance", "brand_goldvibe", "reidentify_goldvibe"), "goldvibe"))
-    assert(!Routes.reidentifies(principal("brand_compliance", "brand_goldvibe", "reidentify_goldvibe"), "silvervibe"))
-    assert(!Routes.reidentifies(principal("brand_goldvibe", "reidentify_goldvibe"), "goldvibe"))
+    assert(Routes.reidentifies(principal("compliance_goldvibe", "reidentify_goldvibe"), "goldvibe"))
+    assert(!Routes.reidentifies(principal("compliance_goldvibe", "reidentify_goldvibe"), "silvervibe"))
+    assert(!Routes.reidentifies(principal("compliance_silvervibe", "reidentify_goldvibe"), "goldvibe"))
+    assert(!Routes.reidentifies(principal("brand_compliance", "brand_goldvibe", "reidentify_goldvibe"), "goldvibe"))
     assert(!Routes.reidentifies(principal("audit_compliance", "reidentify_goldvibe"), "goldvibe"))
     assert(!Routes.reidentifies(principal("audit_compliance", "platform_admin"), "goldvibe"))
   }

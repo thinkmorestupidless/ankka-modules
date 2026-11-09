@@ -59,7 +59,7 @@ object IdentitiesRoute:
 
   private def refusedFor(ctx: Ctx, p: Principal, brand: String, action: String, subject: String, reason: String): Answer =
     recorded(ctx, p, brand, action, subject, reason, outcome = "refused", reasonCode = Some(NotReidentifier))
-    refuse(403, NotReidentifier, s"re-identifying at $brand needs brand_compliance, brand_$brand and reidentify_$brand")
+    refuse(403, NotReidentifier, s"re-identifying at $brand needs compliance_$brand and reidentify_$brand")
 
   def who(ctx: Ctx, p: Principal, raw: String): Answer =
     body[WhoAsked](raw).filterOrElse(w => ReasonCode.matches(w.reasonCode), reasonProblem) match

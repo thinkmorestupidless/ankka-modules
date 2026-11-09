@@ -144,7 +144,7 @@ static permissions in `brands/_realm/eitheror-operators.json`.
 
 | Role | Held as |
 |---|---|
-| a brand's compliance role | `brand_<slug>` and `brand_compliance` (both exist) |
+| a brand's compliance role | `compliance_<slug>`, new, one per brand, added by `Realm.ensure` (amended at review: `brand_compliance` × `brand_<slug>` could not be held for one brand alone) |
 | the installation's compliance role | `audit_compliance`, new, static |
 | a brand's re-identification role | `reidentify_<slug>`, new, one per brand, added by `Realm.ensure` beside `brand_<slug>`; admitted only beside the brand's compliance role |
 | an installation owner | `platform_admin` |
@@ -352,7 +352,7 @@ outlives an erasure (FR-023).
   scenarios. The deployment outline's rollback and restore-switch rows have steps that skip with
   R7's reason (`assume`), so its deployment row still runs; the shared-part outline is ignored whole.
 - **Roles** (R8): a grant is held under the person's installation pseudonym (`<role>/<pseudonym>`),
-  never their realm id; `brand_compliance` keeps the brands it was granted for, and its realm role
+  never their realm id. *Superseded at review: one realm role per grant, `compliance_<slug>`; below as built first.* `brand_compliance` kept the brands it was granted for, and its realm role
   goes once the last brand's grant is revoked. A revoke leaves `brand_<slug>`, which is an operator's
   role too. The daily realm read is a recurring timer, `realm-read`, first a minute after start.
 - **The status's last export** is kept on `ExportFormat`, the brand's export settings, when an export
@@ -385,3 +385,13 @@ outlives an erasure (FR-023).
   Players' first full run failed `RealmSuite`'s p99 (147.9 ms of 100) and one `LeakSuite` case; both
   passed alone and on a second full run. No build here has the scalafmt plugin, so
   `scalafmtCheckAll` was not run.
+- **Review, decided 2026-11-09** (amends R8 and contracts/routes.md):
+  - A brand's compliance role is `compliance_<slug>`, made by `Realm.ensure` beside
+    `reidentify_<slug>`. `auditScope` reads only those, a grant assigns that one role, and a revoke
+    removes exactly it. Re-identifying at a brand needs `compliance_<slug>` and `reidentify_<slug>`.
+    `brand_compliance` and `brand_<slug>` no longer bear on the audit.
+  - `GET /v1/audit-roles/{role}` answers each holder's installation pseudonym; `DELETE` takes a
+    pseudonym or a realm id.
+  - `topicKeeps` is in routes.md and answers `not stated` until a brand's topic retention reaches the
+    service.
+  - A `reasonCode` is a code, `[a-z0-9_.-]{1,64}`; anything else is `400`.
