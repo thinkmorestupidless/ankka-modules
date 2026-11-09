@@ -192,7 +192,7 @@ every person by a pseudonym, the same person the same at one brand and another a
   (research R10)
 - [X] T037 [P] [US3] `a-test/features/QueriesFeatures.scala`: bind `features/audit/queries.feature`
   (6)
-- [ ] T038 [US3] `a-test/port/ParitySuite.scala` rows 2–5 of contracts/recording.md, failing first
+- [X] T038 [US3] `a-test/port/ParitySuite.scala` rows 2–5 of contracts/recording.md, failing first
 
 ### Implementation for User Story 3
 
