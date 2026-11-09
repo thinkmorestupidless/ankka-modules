@@ -9,8 +9,12 @@ val ankkaVersion = "0.16.0"
 // published from the repository root with `sbt contract/publishLocal`.
 val contractVersion = sys.env.getOrElse("CASINO_VERSION", "0.2.0-SNAPSHOT")
 
-/** The suites that need Docker: the integration kit, the parity replay, the bound features and the perf run. */
-def needsDocker(name: String): Boolean = Seq(".it.", ".port.", ".features.", ".perf.").exists(name.contains)
+/**
+ * The suites that need Docker: the integration kit, the parity replay, the bound features and the perf run. The parity
+ * replay's coverage check reads the recordings alone, so it runs with the unit suites.
+ */
+def needsDocker(name: String): Boolean =
+  Seq(".it.", ".port.", ".features.", ".perf.").exists(name.contains) && !name.endsWith(".port.CoverageSuite")
 
 // The service name is also the image name, the descriptor's name, and — once exposed — the first
 // label of the hostname, so it has to be one Kubernetes and DNS accept. Checked here so that a
