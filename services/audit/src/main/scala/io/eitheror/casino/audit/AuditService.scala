@@ -23,12 +23,15 @@ object AuditService:
     Quarantined.descriptor,
     Quarantine.descriptor,
     SourceState.descriptor,
-    Seed.descriptor
+    Seed.descriptor,
+    exports.Export.descriptor,
+    exports.ExportFormat.descriptor
   ) ++ Consumers.of(settings).map(_.descriptor)
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
-    clients => api.RecordsEndpoint(api.Ctx(authenticate, clients))
+    clients => api.RecordsEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.ExportsEndpoint(api.Ctx(authenticate, clients))
   )
 
   /** What the consumers and timed actions are constructed without (see `Wiring`). */
@@ -57,6 +60,7 @@ object AuditService:
     .withExtension(timers)
     .withExtension(HttpServer.of(AuditService.endpoints(() => Oidc.authenticate())*))
     .start(name = "audit")
+  Wiring.viewClient.set(Some(service.viewClient))
   AuditService.started(timers.timerScheduler)
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

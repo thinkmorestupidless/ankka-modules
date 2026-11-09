@@ -24,11 +24,14 @@ object Own:
     calls.bind(pseudonym, Bind(brand, "operator", subject)): Unit
     pseudonym
 
-  /** Writes one record of the audit's own; its id is new, so no two are the same record. */
-  def record(calls: IngestCalls, brand: String, action: String, staffSubject: String, subjectKind: String, subject: String,
+  /**
+   * Writes one record of the audit's own, its actor the staff member's pseudonym (from [[staff]]); its id is
+   * new, so no two are the same record.
+   */
+  def record(calls: IngestCalls, brand: String, action: String, actor: String, subjectKind: String, subject: String,
       outcome: String, reasonCode: Option[String], changes: Vector[StoredChange], now: Instant,
       visibility: String = Visibility.Installation): Stored =
-    val s = Stored.own(UUID.randomUUID().toString, brand, action, "operator", staff(calls, brand, staffSubject), subjectKind, subject,
+    val s = Stored.own(UUID.randomUUID().toString, brand, action, "operator", actor, subjectKind, subject,
       outcome, reasonCode, changes, Wiring.requiredKeys.registry, now, visibility)
     calls.keep(s): Unit
     s

@@ -51,7 +51,7 @@ object RecordsRoute:
         val brand    = asked.brand.getOrElse(Own.Installation)
         val retained = ctx.retainedFrom(brand)
         if !filters.service.contains("audit") then
-          Own.record(ctx.calls, brand, Action, p.subject, "audit", "records", "done", None, Vector(
+          Own.record(ctx.calls, brand, Action, Own.staff(ctx.calls, brand, p.subject), "audit", "records", "done", None, Vector(
             Own.change("filters", describe(filters)),
             Own.change("range", s"${filters.from.fold("")(_.toString)}..${filters.to.fold("")(_.toString)}"),
             Own.change("count", page.rows.size.toString)

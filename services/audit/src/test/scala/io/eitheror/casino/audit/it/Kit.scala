@@ -72,6 +72,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server)
   )
   probe.bind(testKit)
+  Wiring.viewClient.set(Some(testKit.service.viewClient))
   // The seed the start timer runs, run now so every suite begins with its keys.
   Seed.run(testKit.secrets)
 
@@ -84,6 +85,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
     RegistryKey.forget()
     QuarantineKey.forget()
     AuditService.wire(settings, clock)
+    Wiring.viewClient.set(Some(testKit.service.viewClient))
     Seed.run(secrets)
 
   def stop(): Unit =

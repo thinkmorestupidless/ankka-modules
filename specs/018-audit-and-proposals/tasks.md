@@ -186,7 +186,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 
 - [X] T034 [P] [US3] `a-test/it/QueryItSuite.scala`: each role's scope, every filter, the cursor,
   `retainedFrom`, the query records and the no-recursion rule (FR-013, FR-015, SC-005)
-- [ ] T035 [P] [US3] `a-test/it/ExportSuite.scala`: CSV and JSON lines, the signed URL, the same key
+- [X] T035 [P] [US3] `a-test/it/ExportSuite.scala`: CSV and JSON lines, the signed URL, the same key
   twice, a record at request and at completion (FR-014, SC-005)
 - [X] T036 [P] [US3] `a-test/export/ExportLinesSuite.scala`: `Csv.line` and `JsonLines.line`
   (research R10)
@@ -199,7 +199,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 - [X] T039 [P] [US3] `a/export/Lines.scala`: `Csv`, `JsonLines`
 - [X] T040 [US3] `a/api/RecordsEndpoint.scala` and `a/api/Wire.scala`: `GET /v1/audit-records`, its
   record of itself, its refusals
-- [ ] T041 [US3] `a/exports/Export.scala`, `a/exports/ExportFormat.scala`, `a/exports/Exports.scala`
+- [X] T041 [US3] `a/exports/Export.scala`, `a/exports/ExportFormat.scala`, `a/exports/Exports.scala`
   and `a/api/ExportsEndpoint.scala` (contracts/routes.md); registered; T034–T038 pass
 
 **Checkpoint**: compliance reads and exports.

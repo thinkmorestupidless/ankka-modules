@@ -23,3 +23,9 @@ object Wiring:
 
   def requiredKeys: IngestKeys =
     keys.get().getOrElse(throw IllegalStateException("the registry and quarantine keys are not read yet: the seed has not run"))
+
+  /** The service's views, set once it has started: a workflow's step reads the store through them. */
+  val viewClient: AtomicReference[Option[com.thinkmorestupidless.ankka.runtime.ViewClient]] = AtomicReference(None)
+
+  def views(): com.thinkmorestupidless.ankka.runtime.ViewClient =
+    viewClient.get().getOrElse(throw IllegalStateException("the views are not wired yet: the service has not started"))
