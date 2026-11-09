@@ -123,7 +123,7 @@ every person by a pseudonym, the same person the same at one brand and another a
 - [X] T022 [P] [US2] `a-test/it/IngestSuite.scala`: two brands and payments read; kept and passed
   over; each quarantine reason; a redelivery changes nothing; a revoked source stops at its last record
   and its `SourceState` holds since when (FR-007–FR-012; the status route is T045's)
-- [ ] T023 [P] [US2] `a-test/it/LeakSuite.scala`: every real id used in the run is absent from every
+- [X] T023 [P] [US2] `a-test/it/LeakSuite.scala`: every real id used in the run is absent from every
   `Records` row, every answer, every export and the captured log; only `Identity` holds them (SC-002)
 - [ ] T024 [P] [US2] `a-test/features/SharedFeatures.scala`: bind `features/audit/shared.feature` (9)
 
