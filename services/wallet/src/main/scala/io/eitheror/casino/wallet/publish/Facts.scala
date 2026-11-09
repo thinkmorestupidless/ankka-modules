@@ -222,7 +222,7 @@ object Facts:
     val a: Option[A] = event match
       // A refusal's outcome is `refused`, its code the reason, and its causation the refused command's key (spec 018 FR-001).
       case e: CommandRefused =>
-        val commandKey = e.key.split("#reused#").head
+        val commandKey = e.key.indexOf("#reused#") match { case -1 => e.key; case at => e.key.take(at) }
         Some(A(e.key, e.commandType, "refused", "service", "", commandKey, Some(e.code.toLowerCase), e.at))
       case e: TurnoverOverrideSet =>
         Some(A(s"turnover-override/${e.at.toEpochMilli}", "set-turnover-override", "accepted", "operator", e.actorId, "", None, e.at,

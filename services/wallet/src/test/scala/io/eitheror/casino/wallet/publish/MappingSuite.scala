@@ -120,6 +120,13 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
       ("refused", Some("insufficient_funds"), "place-bet", "p1", "goldvibe", "tx-9"))
   }
 
+  test("a reused key's refusal names the command's key as its causation, whatever the key") {
+    def causation(key: String) =
+      Facts.audit("goldvibe", wallet, CommandRefused(key, "d", "place-bet", "KEY_REUSED", "", None, t0, ok)).get.fact.asInstanceOf[f.AuditRecord].causationId
+    assertEquals(causation("tx-9#reused#d"), "tx-9")
+    assertEquals(causation("#reused#"), "")
+  }
+
   test("the publisher keys every fact by the wallet and sets the dedupe id as ce-id") {
     val e      = BetPlaced("tx-1", "d", bet, "pragmatic", Vector.empty, Vector.empty, 0, 1000, 0, 9000, 0, t0, ok)
     val result = ConsumerTestKit.of(MoneyTransactionsPublisher).onMessage(e, subject = wallet, sequenceNumber = 3)
