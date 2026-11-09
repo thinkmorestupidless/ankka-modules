@@ -98,7 +98,7 @@ registry, the consumers' decoding, the kit.
 - [ ] T018 `a/store/Records.scala`: the view over `Record` state with `page`, `count`, `olderThan`;
   verify that a `drop` deletes the row (research R4), else write a tombstone and delete on it, and
   record which in `research.md` under `## Found during implementation`
-- [ ] T019 [P] `a/ingest/Quarantined.scala`, `a/ingest/Quarantine.scala`,
+- [X] T019 [P] `a/ingest/Quarantined.scala`, `a/ingest/Quarantine.scala`,
   `a/ingest/SourceState.scala` with kit suites
 - [ ] T020 `a/ingest/Ingest.scala`: one message in contracts/ingest.md's order (decode from bytes,
   check against the brand and `PersonalFields.names`, keep or pass over, pseudonymise, store, count),

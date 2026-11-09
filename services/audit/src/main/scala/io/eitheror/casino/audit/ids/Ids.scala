@@ -5,8 +5,8 @@ import java.util.HexFormat
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-/** The registry key: 32 random bytes from the service's secret store (research R5). */
-final class RegistryKeyBytes(private[ids] val bytes: Array[Byte]):
+/** A key of the service's: 32 random bytes from its secret store (research R5). */
+final class RegistryKeyBytes(private[audit] val bytes: Array[Byte]):
   require(bytes.length >= 32, "the registry key is at least 32 bytes")
   override def toString: String = "RegistryKeyBytes(…)"
 

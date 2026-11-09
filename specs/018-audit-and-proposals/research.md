@@ -274,3 +274,13 @@ outlives an erasure (FR-023).
 ## Design finished
 
 2026-11-09: analyze reported nothing above LOW.
+
+## Found during implementation
+
+- **The quarantine's bytes are sealed** (asked 2026-11-09, T019). FR-012 keeps a malformed record's
+  bytes and SC-002 finds no real id outside the registry; a brand's malformed record nearly always
+  names a player. Decision: `Quarantined` holds the bytes sealed with AES-256-GCM under
+  `quarantine-key`, 32 bytes in the secret store that the seed makes beside `registry-key`. The bytes
+  are kept (FR-012) and no search of the store finds what they hold (SC-002); repairing one unseals it
+  with the key. Rejected: the bytes in clear (SC-002 would hold for well-formed records only), and a
+  digest alone (FR-012 amended, nothing to repair from).

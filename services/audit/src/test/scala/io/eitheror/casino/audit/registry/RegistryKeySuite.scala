@@ -18,7 +18,7 @@ class RegistryKeySuite extends munit.FunSuite:
 
   test("unavailable until the seed has made it; then two starts read the same key") {
     val store = MapStore()
-    assertEquals(RegistryKey.read(store), Left("the registry key is not made yet"))
+    assertEquals(RegistryKey.read(store), Left("the registry-key is not made yet"))
     val made = RegistryKey.make(store)
     val first = RegistryKey.read(store).toOption.get
     RegistryKey.forget()

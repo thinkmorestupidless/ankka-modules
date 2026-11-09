@@ -60,7 +60,7 @@ Nothing in it is a real id of a person (SC-002).
 | `Record` | `Stored.key` | `Stored` | `keep(stored) → kept | collision`; `drop(sweepId)` | create-only; the same record again changes nothing (FR-010); a different one is refused; only `Sweep` sends `drop` (FR-011) |
 | `Pseudonym` | HMAC hex of `<brand>/<kind>/<realId>` | `pseudonym` | `issue → pseudonym` | the first `issue` draws a UUIDv4; every later one returns it (FR-009) |
 | `Identity` | the pseudonym | `brand`, `kind`, `realId` | `bind(brand, kind, realId)`; `get` | written once; a second `bind` with other values is refused `conflict`; no view; read only by the re-identification route |
-| `Quarantined` | `<source>/<SHA-256 of bytes>` | bytes (base64), source, arrival, why | `hold` | idempotent (FR-012) |
+| `Quarantined` | `<source>/<SHA-256 of bytes>` | bytes sealed under `quarantine-key` (AES-256-GCM), source, arrival, why | `hold` | idempotent (FR-012); sealed so no real id is searchable (SC-002) |
 | `Retention` | the brand | years | `raise(years, by)` | refused below the current or the installation's (FR-021) |
 | `ExportFormat` | the brand | `csv` or `jsonl` | `set(format, by)` | default `csv` |
 | `RoleGrant` | `<role>/<person>` | granted by, at; or revoked | `grant`, `revoke`, `found` | `found` records an outside holding once (R8) |
@@ -103,7 +103,8 @@ Each is versioned by `AUDIT_READ_GENERATION` and starts from `Earliest` at gener
 
 | Name | Holds | Made |
 |---|---|---|
-| `registry-key` | 32 random bytes for the digests and the registry ids | at first start, if absent |
+| `registry-key` | 32 random bytes for the digests and the registry ids | at first start, if absent, by the `seed` timer |
+| `quarantine-key` | 32 random bytes the quarantine seals a message's bytes under | the same |
 | (project) `keycloak-operators-admin` | the realm admin credential | the manifest, as `programme` |
 
 ## Settings
