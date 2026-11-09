@@ -44,7 +44,9 @@ final case class ConversationState(
     turns: Int = 0,
     /** The approval the player approved and its tool has not yet answered: the write's key (research). */
     approved: Option[String] = None,
-    startedAt: Option[Instant] = None
+    startedAt: Option[Instant] = None,
+    /** The last approval decided, so a second decision on it is `already_decided` (FR-015). */
+    lastDecided: Option[String] = None
 ):
   def started: Boolean = playerId.nonEmpty
 
@@ -78,7 +80,7 @@ enum ConversationEvent:
 
 final case class Start(playerId: String, configVersion: Int, at: Instant)
 final case class Turned(at: Instant, tokensAfter: Long)
-final case class ToolCall(callId: String, tool: String, arguments: Map[String, String], outcome: Outcome,
+final case class ToolCall(callId: String, tool: String, arguments: Map[String, String], outcome: Outcome, approvalId: Option[String],
     detail: Option[String], at: Instant)
 final case class Requested(approvalId: String, tool: String, arguments: Map[String, String], summary: String,
     expiresAt: Instant, at: Instant)

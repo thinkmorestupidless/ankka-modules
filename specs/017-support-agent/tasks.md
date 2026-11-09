@@ -142,7 +142,7 @@ criteria name suites, and the plan names them.
     key.
   - `T/clients/NeighbourSuite.scala` covers a 5 s timeout per attempt, one retry on a timeout
     (not on a refusal), and a refusal carried as a value (FR-012, R15).
-- [ ] T019 `S/conversation/Conversation.scala` and `Model.scala`: data-model.md's state, its events
+- [X] T019 `S/conversation/Conversation.scala` and `Model.scala`: data-model.md's state, its events
       and every command row. Add `T/conversation/ConversationSuite.scala` (unit kit) covering
       binding, the other player, decided twice, ended, and forgotten.
 - [ ] T020 `S/config/AgentConfiguration.scala`, `ConfigVersion.scala` and `Model.scala`.
