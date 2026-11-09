@@ -29,3 +29,7 @@ object Wiring:
 
   def views(): com.thinkmorestupidless.ankka.runtime.ViewClient =
     viewClient.get().getOrElse(throw IllegalStateException("the views are not wired yet: the service has not started"))
+
+  /** The realm the roles routes and the daily realm read grant and list roles in; none in a local run. */
+  val realm: AtomicReference[io.eitheror.casino.audit.roles.KeycloakAdmin] =
+    AtomicReference(io.eitheror.casino.audit.roles.KeycloakAdmin.unconfigured)

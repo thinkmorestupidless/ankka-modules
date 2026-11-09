@@ -61,9 +61,12 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   /** Projects whose grant is revoked: what they write no longer reaches the audit (research R2). */
   @volatile var revoked: Set[String] = Set.empty
 
+  /** The realm the roles routes grant in. */
+  val realm = FakeKeycloak()
+
   RegistryKey.forget()
   QuarantineKey.forget()
-  AuditService.wire(settings, clock)
+  AuditService.wire(settings, clock, realm)
 
   private val server = HttpServer.at("127.0.0.1", 0)(AuditService.endpoints(() => Kit.authenticate)*)
 
@@ -84,7 +87,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   def rewire(): Unit =
     RegistryKey.forget()
     QuarantineKey.forget()
-    AuditService.wire(settings, clock)
+    AuditService.wire(settings, clock, realm)
     Wiring.viewClient.set(Some(testKit.service.viewClient))
     Seed.run(secrets)
 

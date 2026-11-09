@@ -235,12 +235,12 @@ brand's records.
 
 ### Tests for User Story 5
 
-- [ ] T045 [P] [US5] `a-test/it/InstallationSuite.scala`: each module change and each erasure state
+- [X] T045 [P] [US5] `a-test/it/InstallationSuite.scala`: each module change and each erasure state
   an installation record beside the brand's, in one order, within 2 minutes of the change (SC-007);
   the status route and its installation sources (FR-019, FR-020, FR-024)
-- [ ] T046 [P] [US5] `a-test/it/RolesSuite.scala`: grant, revoke, each recorded; an outside holding
+- [X] T046 [P] [US5] `a-test/it/RolesSuite.scala`: grant, revoke, each recorded; an outside holding
   found once (FR-016)
-- [ ] T047 [P] [US5] `a-test/features/InstallationFeatures.scala`: bind
+- [X] T047 [P] [US5] `a-test/features/InstallationFeatures.scala`: bind
   `features/audit/installation.feature` (13 runs); rollback, restore switch and every grant row ignored
   with "ankka publishes no project events (research R7)"
 - [X] T048 [P] [US5] `services/players/src/test/scala/.../erasure/ErasureAuditSuite.scala`: a record per
@@ -250,12 +250,12 @@ brand's records.
 
 - [X] T049 [US5] `pl/erasure/`: the erasure workflow writes a record per state (filed, held, applied,
   completed) through the service's audit path; T048 passes
-- [ ] T050 [US5] `a/ingest/Consumers.scala`: `modules-<slug>` per brand over `Ingest` with
+- [X] T050 [US5] `a/ingest/Consumers.scala`: `modules-<slug>` per brand over `Ingest` with
   `Stored.fromModule`
-- [ ] T051 [P] [US5] `a/roles/KeycloakAdmin.scala` (copied from `pg/accounts/KeycloakAdmin.scala`,
+- [X] T051 [P] [US5] `a/roles/KeycloakAdmin.scala` (copied from `pg/accounts/KeycloakAdmin.scala`,
   narrowed to role grants and listings), `a/roles/RoleGrant.scala`, `a/roles/Grants.scala`,
   `a/roles/RealmRead.scala` (the daily timed action), `a/api/RolesEndpoint.scala`
-- [ ] T052 [US5] `a/api/StatusEndpoint.scala` with the installation sources; registered; T045–T047
+- [X] T052 [US5] `a/api/StatusEndpoint.scala` with the installation sources; registered; T045–T047
   pass
 
 ---

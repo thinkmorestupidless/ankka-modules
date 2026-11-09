@@ -172,11 +172,13 @@ class SharedFeatures extends AuditFeatures("shared.feature"):
     stored(spin, records.head._2): Unit
   }
 
-  // Bound to the source's state until the status route is served (T052), which answers from it.
   Then("the brand's status in the shared audit shows the gap and since when") { () =>
-    val now = kit.components.forKeyValueEntity(SourceState.entityId(spin.name)).call(SourceState.get).invoke().lastReceived
-    assert(now.isDefined)
-    assertEquals(now, lastBefore)
+    val r = kit.request("GET", "/v1/audit-status?brand=spinvibe", headers = kit.asBrandCompliance("spinvibe"))
+    assertEquals(r.status, 200, r.text)
+    val source = r.json.get("brands").get(0).get("sources").get(0)
+    assertEquals(source.get("source").asText, spin.name)
+    assertEquals(Some(java.time.Instant.parse(source.get("lastReceived").asText)), lastBefore)
+    assert(source.get("lagSeconds").asLong >= 0)
   }
 
   Given("payments allows the shared audit to read its audit records") { () => () }

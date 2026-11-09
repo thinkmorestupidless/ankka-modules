@@ -335,3 +335,25 @@ outlives an erasure (FR-023).
   - **exchange** (spec 023): order placements and cancels refused by the gates or the book, unless
     the wallet's reservation refused them (the placement workflow is ankka-predictions' and has no
     audit publisher here).
+
+- **A brand's compliance role reads both visibilities** (T052, FR-020). The records route and the
+  export first held a brand's officer to `brand` records, so installation records about the brand
+  (deployments, erasures, the audit's own) were hidden from it, against FR-020 and the clarification
+  that a brand sees who touched it. A brand's officer is now held to its brands alone; `visibility`
+  stays a filter anyone may ask by. The audit's own records keep `installation` (R6).
+- **An erasure's records name their state `erasure`, not `state`** (T049). `state` is on the
+  contract's list of personal fields (an address's state), so a record naming it with a value is
+  quarantined (FR-003). The players mapping test now checks no erasure record names a personal field.
+- **Erasure states**: `filed` from `ErasureFiled`; `held`, `applied` and `completed` from a new event,
+  `ErasureStageReached`, which the workflow asks the player entity for at each state and the entity
+  persists once per state. Each is `erasure.<state>`, actor kind `system`, category `erasure`, under
+  the erasure's correlation id.
+- **The rows of an outline cannot be ignored one by one**: a suite's `ranOutside` names whole
+  scenarios. The deployment outline's rollback and restore-switch rows have steps that skip with
+  R7's reason (`assume`), so its deployment row still runs; the shared-part outline is ignored whole.
+- **Roles** (R8): a grant is held under the person's installation pseudonym (`<role>/<pseudonym>`),
+  never their realm id; `brand_compliance` keeps the brands it was granted for, and its realm role
+  goes once the last brand's grant is revoked. A revoke leaves `brand_<slug>`, which is an operator's
+  role too. The daily realm read is a recurring timer, `realm-read`, first a minute after start.
+- **The status's last export** is kept on `ExportFormat`, the brand's export settings, when an export
+  finishes; no `Exports` view was needed.

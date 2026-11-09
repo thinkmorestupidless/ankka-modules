@@ -77,6 +77,8 @@ final class Export(context: WorkflowContext) extends Workflow[ExportState]:
       try context.storage.bucket(Export.Bucket).put(name, in, Files.size(file), ExportFormat.contentType(s.format))
       finally in.close()
       Export.recorded(IngestCalls.of(context.componentClient), s, Own.change("count", count.toString))
+      context.componentClient.forKeyValueEntity(ExportFormat.entityId(s.brand)).call(ExportFormat.exported)
+        .invoke(Wiring.clock.get().instant()): Unit
       stepEffects.updateState(s.copy(status = Export.Done, count = Some(count), objectName = Some(name))).thenEnd
     finally Files.deleteIfExists(file): Unit
 

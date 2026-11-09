@@ -25,24 +25,40 @@ object AuditService:
     SourceState.descriptor,
     Seed.descriptor,
     exports.Export.descriptor,
-    exports.ExportFormat.descriptor
+    exports.ExportFormat.descriptor,
+    roles.RoleGrant.descriptor,
+    roles.RealmRead.descriptor
   ) ++ Consumers.of(settings).map(_.descriptor)
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => api.RecordsEndpoint(api.Ctx(authenticate, clients)),
     clients => api.ExportsEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.IdentitiesEndpoint(api.Ctx(authenticate, clients))
+    clients => api.IdentitiesEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.RolesEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.StatusEndpoint(api.Ctx(authenticate, clients))
   )
 
   /** What the consumers and timed actions are constructed without (see `Wiring`). */
-  def wire(settings: Settings, clock: Clock): Unit =
+  def wire(settings: Settings, clock: Clock, realm: roles.KeycloakAdmin = roles.KeycloakAdmin.unconfigured): Unit =
     Wiring.settings.set(settings)
     Wiring.clock.set(clock)
+    Wiring.realm.set(realm)
 
-  /** At every start: the seed, once, a moment after the service is up (setting it again replaces it). */
+  /** The realm from the settings, or none when `KEYCLOAK_URL` is not set (a local run). */
+  def realm(settings: Settings): roles.KeycloakAdmin =
+    settings.keycloakUrl.fold(roles.KeycloakAdmin.unconfigured) { url =>
+      roles.KeycloakAdmin.http(url, settings.keycloakRealm, () =>
+        settings.keycloakAdminUsername.zip(settings.keycloakAdminPassword).map(roles.KeycloakAdmin.Credentials.apply))
+    }
+
+  /**
+   * At every start: the seed, once, a moment after the service is up, and the realm read, daily (setting
+   * either again replaces it).
+   */
   def started(timers: TimerScheduler): Unit =
     timers.createSingleTimer(Seed.TimerName, 1.second, Seed.seed.deferred)
+    timers.createRecurringTimer(roles.RealmRead.TimerName, 1.minute, 1.day, roles.RealmRead.read.deferred)
 
 @main def run(): Unit =
   val log      = LoggerFactory.getLogger("audit")
@@ -54,7 +70,7 @@ object AuditService:
       log.warn("ANKKA_KAFKA_BOOTSTRAP_SERVERS is not set: the brands' records are read in memory (a local run)")
       val memory = InMemoryBroker()
       ProjectionRuntime.withBroker(memory, memory)
-  AuditService.wire(settings, Clock.systemUTC())
+  AuditService.wire(settings, Clock.systemUTC(), AuditService.realm(settings))
   val service = Ankka.service
     .registerAll(AuditService.descriptors(settings))
     .withExtension(broker)
