@@ -375,3 +375,6 @@ outlives an erasure (FR-023).
   kit's broker is one partition, serial; the limit partitioning would not lift is `SourceState`, written
   once per message for one source. Reported, not tuned away: batching the counter changes the data
   model and the ingest contract, which is a decision for the spec. SC-004 is met (0.75 s, 3.2 s).
+  Decided 2026-11-09: ship with the miss reported; a follow-up spec amends `contracts/ingest.md` and
+  `SourceState` (count in the consumer, flush once a second; pseudonyms concurrently) and measures on
+  Kafka on kind.
