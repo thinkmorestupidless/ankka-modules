@@ -145,7 +145,7 @@ criteria name suites, and the plan names them.
 - [X] T019 `S/conversation/Conversation.scala` and `Model.scala`: data-model.md's state, its events
       and every command row. Add `T/conversation/ConversationSuite.scala` (unit kit) covering
       binding, the other player, decided twice, ended, and forgotten.
-- [ ] T020 `S/config/AgentConfiguration.scala`, `ConfigVersion.scala` and `Model.scala`.
+- [X] T020 `S/config/AgentConfiguration.scala`, `ConfigVersion.scala` and `Model.scala`.
   - `put` writes `ConfigVersion` first, then moves the version.
   - A put with nothing changed only replies, and the last 16 notes are kept.
   - `T/config/ConfigurationSuite.scala`.
