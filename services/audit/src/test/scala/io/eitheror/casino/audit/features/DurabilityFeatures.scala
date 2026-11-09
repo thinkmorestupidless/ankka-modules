@@ -138,7 +138,11 @@ class DurabilityFeatures extends AuditFeatures("durability.feature"):
     k.rewire()
     try
       val (r, before) = afterRestore.get
-      val again = k.eventually(30.seconds)(k.views.forView(Records).get(keyOf(gold, r)))
+      // A message whose handler failed waits for a redelivery, which a broker makes on its own.
+      val again = k.eventually(30.seconds) {
+        topics.redeliver(s"goldvibe/${io.eitheror.casino.contract.facts.PlatformAudit.name}"): Unit
+        k.views.forView(Records).get(keyOf(gold, r))
+      }
       assertEquals((again.key, again.action, again.occurredAt), (before.key, before.action, before.occurredAt))
     finally kit.rewire()
   }

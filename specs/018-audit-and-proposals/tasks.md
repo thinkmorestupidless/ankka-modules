@@ -289,7 +289,7 @@ generation.
   then the query on port 19001) into `tests/port/audit/`, or translate it from the test's assertion when
   the original's stack cannot start; write `tests/port/audit/README.md` saying which
 - [X] T057 `a-test/port/ParitySuite.scala` rows 1 and 6; `just audit-parity` green
-- [ ] T058 `a-test/perf/IngestPerf.scala` and `just audit-perf`: quickstart §4 (SC-003, SC-004) and a
+- [X] T058 `a-test/perf/IngestPerf.scala` and `just audit-perf`: quickstart §4 (SC-003, SC-004) and a
   re-read of 24 hours of records after a raised generation (SC-006); write `services/audit/PERF.md`
   with the share kept, the lag, the first page at a year, the export time and the re-read time; a
   criterion missed is reported, not tuned away

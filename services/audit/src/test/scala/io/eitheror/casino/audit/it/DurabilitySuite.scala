@@ -102,7 +102,11 @@ class DurabilitySuite extends munit.FunSuite:
     kit.mirrors = Vector.empty
     val restored = Kit(configure = _.copy(readGeneration = 2, readFrom = Some(restorePoint)), restoring = Some(kit), broker = topics)
     try
-      val again = stored(restored, Source.Brand("goldvibe"), afterRecord)
+      // A message whose handler failed waits for a redelivery, which a broker makes on its own.
+      val again = restored.eventually(30.seconds) {
+        topics.redeliver(s"goldvibe/${io.eitheror.casino.contract.facts.PlatformAudit.name}"): Unit
+        restored.views.forView(Records).get(keyOf(Source.Brand("goldvibe"), afterRecord))
+      }
       // The stand-in database starts empty, so its registry issues its own pseudonyms; each names the same person.
       assertEquals(again.copy(arrivedAt = after.arrivedAt, actor = after.actor, subject = after.subject), after)
       def realId(k: Kit, pseudonym: String) = k.components.forKeyValueEntity(Identity.entityId(pseudonym)).call(Identity.get).invoke().realId

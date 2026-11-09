@@ -186,6 +186,12 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
     send(s"$project/${PlatformAudit.name}", record.key, PlatformAudit.serializer.toBytes(record: PlatformAuditFact),
       PlatformAudit.contractName, Some(record.recordId))
 
+  /** A record on `project`'s `platform.audit` of another broker alone: topics a restored kit will read. */
+  def publishOn(target: InMemoryBroker, project: String, record: AuditRecord): Unit =
+    val meta = Metadata.empty.set(Metadata.CeSubject, record.key).set(Metadata.CeType, PlatformAudit.contractName).set("ce-id", record.recordId)
+    Await.result(target.publish(s"$project/${PlatformAudit.name}", Some(record.key),
+      PlatformAudit.serializer.toBytes(record: PlatformAuditFact), meta), 10.seconds): Unit
+
   /** Bytes as they are, on `project`'s `platform.audit`: a malformed record. */
   def publishBytes(project: String, key: String, bytes: Array[Byte]): Unit =
     send(s"$project/${PlatformAudit.name}", key, bytes, PlatformAudit.contractName, None)

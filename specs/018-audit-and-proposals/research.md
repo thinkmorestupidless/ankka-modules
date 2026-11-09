@@ -370,3 +370,8 @@ outlives an erasure (FR-023).
   pseudonym is what FR-009 refuses. The status says what each source's topic keeps (`topicKeeps`:
   `everything` for every brand's and payments' `platform.audit`, R14), which is how a restore knows it
   reaches back.
+- **SC-003 and SC-006 are missed in the integration kit** (T058, `services/audit/PERF.md`): 209
+  messages a second handled against 1,200, and 43,934 of a day's 50,000 re-read in 10 minutes. The
+  kit's broker is one partition, serial; the limit partitioning would not lift is `SourceState`, written
+  once per message for one source. Reported, not tuned away: batching the counter changes the data
+  model and the ingest contract, which is a decision for the spec. SC-004 is met (0.75 s, 3.2 s).
