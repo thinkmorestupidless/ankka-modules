@@ -269,16 +269,16 @@ generation.
 
 ### Tests for User Story 6
 
-- [ ] T053 [P] [US6] `a-test/it/DurabilitySuite.scala`: every route and role finds no change or
+- [X] T053 [P] [US6] `a-test/it/DurabilitySuite.scala`: every route and role finds no change or
   deletion (SC-008); an erased player's records and registry rows unchanged (FR-023); ten years kept
   beside seven; lower refused; the sweep removes only what is past and records its counts; a raised
   generation re-reads with nothing changed (FR-021, FR-022)
-- [ ] T054 [P] [US6] `a-test/features/DurabilityFeatures.scala`: bind `features/audit/durability.feature`
+- [X] T054 [P] [US6] `a-test/features/DurabilityFeatures.scala`: bind `features/audit/durability.feature`
   (5)
 
 ### Implementation for User Story 6
 
-- [ ] T055 [US6] `a/sweep/RetentionEntity.scala`, `a/sweep/Sweep.scala`, `a/sweep/SweepTimer.scala`
+- [X] T055 [US6] `a/sweep/RetentionEntity.scala`, `a/sweep/Sweep.scala`, `a/sweep/SweepTimer.scala`
   (daily), `a/api/RetentionEndpoint.scala`; registered; T053–T054 pass
 
 ---

@@ -44,8 +44,12 @@ object Reply:
  * `platform.audit`; timers on a clock the test moves; the object store in memory. A stand-in for
  * Keycloak reads a bearer token `staff|<id>|<roles>` as a member of staff holding those roles.
  */
-final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), configure: Settings => Settings = identity):
-  val broker = InMemoryBroker()
+/**
+ * `restoring`: another kit whose keys this one takes, as a database restored beside the same brands'
+ * topics would (research R14); `broker`, the topics, which the other kit mirrored its records into.
+ */
+final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), configure: Settings => Settings = identity,
+    restoring: Option[Kit] = None, val broker: InMemoryBroker = InMemoryBroker()):
   val clock  = MovableClock.at(Instant.parse("2026-11-09T08:00:00Z"))
   val probe  = TimerProbe()
 
@@ -60,6 +64,9 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
 
   /** Projects whose grant is revoked: what they write no longer reaches the audit (research R2). */
   @volatile var revoked: Set[String] = Set.empty
+
+  /** Brokers that receive a copy of what this kit publishes: a restored kit's topics (research R14). */
+  @volatile var mirrors: Vector[InMemoryBroker] = Vector.empty
 
   /** The realm the roles routes grant in. */
   val realm = FakeKeycloak()
@@ -76,6 +83,8 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   )
   probe.bind(testKit)
   Wiring.viewClient.set(Some(testKit.service.viewClient))
+  // The keys a restored database holds: the other kit's.
+  restoring.foreach(other => Vector("registry-key", "quarantine-key").foreach(k => other.secrets.get(k).foreach(testKit.secrets.put(k, _))))
   // The seed the start timer runs, run now so every suite begins with its keys.
   Seed.run(testKit.secrets)
 
@@ -170,7 +179,7 @@ final class Kit(val brands: Vector[String] = Vector("goldvibe", "spinvibe"), con
   private def send(topic: String, key: String, bytes: Array[Byte], contract: String, id: Option[String]): Unit =
     if !revoked(topic.takeWhile(_ != '/')) then
       val meta = Metadata.empty.set(Metadata.CeSubject, key).set(Metadata.CeType, contract)
-      Await.result(broker.publish(topic, Some(key), bytes, id.fold(meta)(i => meta.set("ce-id", i))), 10.seconds): Unit
+      (broker +: mirrors).foreach(b => Await.result(b.publish(topic, Some(key), bytes, id.fold(meta)(i => meta.set("ce-id", i))), 10.seconds))
 
   /** A record on `project`'s `platform.audit`, as its services' audit consumers publish it. */
   def publish(project: String, record: AuditRecord): Unit =

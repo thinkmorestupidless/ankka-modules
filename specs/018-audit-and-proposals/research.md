@@ -357,3 +357,16 @@ outlives an erasure (FR-023).
   role too. The daily realm read is a recurring timer, `realm-read`, first a minute after start.
 - **The status's last export** is kept on `ExportFormat`, the brand's export settings, when an export
   finishes; no `Exports` view was needed.
+- **Retention and the sweep** (T055): a brand's retention is `RetentionEntity` (raised only); the daily
+  `sweep` timer, first ten minutes after start, starts `Sweep` `<brand>/<day>` for each brand read,
+  `payments` and `installation`, so a timer firing twice starts nothing more. The sweep's record is the
+  system's (`Own.record` takes an actor kind), with the cutoff, the total, and `removed.<yyyy-mm>` per
+  month.
+- **A re-read after a restore issues new pseudonyms only for people first seen after the restore
+  point** (T053): the registry is in the restored database, so a person it already held keeps their
+  pseudonym, but one first seen after the restore point is issued a new one on the re-read, and an
+  export made between the two names the old one. The records are otherwise as stored (same key, same
+  fields), and each pseudonym re-identifies to the same real id. Left as it is: a deterministic
+  pseudonym is what FR-009 refuses. The status says what each source's topic keeps (`topicKeeps`:
+  `everything` for every brand's and payments' `platform.audit`, R14), which is how a restore knows it
+  reaches back.

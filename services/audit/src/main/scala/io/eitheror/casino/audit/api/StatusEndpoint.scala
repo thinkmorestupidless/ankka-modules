@@ -25,6 +25,7 @@ final class StatusEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/audit-status"):
 object StatusRoute:
   val Read      = "read"
   val NotStated = "not stated"
+  val Everything = "everything"
 
   /** What the installation's actions on a brand are read from, and what is not yet stated (research R7). */
   val InstallationSources: Vector[(String, String)] = Vector(
@@ -57,7 +58,10 @@ object StatusRoute:
       "lastReceived" -> Some(c.lastReceived.fold("null")(i => text(i.toString))),
       "lagSeconds"   -> Some(lag.fold("null")(_.toString)),
       "quarantined"  -> Some(Quarantine.countBySource(ctx.clients.viewClient.forView(Quarantine), s.name).toString),
-      "skewed"       -> Some(c.skewed.toString)
+      "skewed"       -> Some(c.skewed.toString),
+      // What the source's topic keeps, so a restore knows whether it reaches back (research R14): every
+      // brand's and payments' `platform.audit` keeps everything; a topic that declared less would say since when.
+      "topicKeeps"   -> Some(text(StatusRoute.Everything))
     )
 
   private def brand(ctx: Ctx, b: String): String =

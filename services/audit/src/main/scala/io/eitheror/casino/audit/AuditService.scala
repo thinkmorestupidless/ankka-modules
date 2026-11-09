@@ -27,7 +27,10 @@ object AuditService:
     exports.Export.descriptor,
     exports.ExportFormat.descriptor,
     roles.RoleGrant.descriptor,
-    roles.RealmRead.descriptor
+    roles.RealmRead.descriptor,
+    sweep.RetentionEntity.descriptor,
+    sweep.Sweep.descriptor,
+    sweep.SweepTimer.descriptor
   ) ++ Consumers.of(settings).map(_.descriptor)
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one; each user story adds its own. */
@@ -36,7 +39,8 @@ object AuditService:
     clients => api.ExportsEndpoint(api.Ctx(authenticate, clients)),
     clients => api.IdentitiesEndpoint(api.Ctx(authenticate, clients)),
     clients => api.RolesEndpoint(api.Ctx(authenticate, clients)),
-    clients => api.StatusEndpoint(api.Ctx(authenticate, clients))
+    clients => api.StatusEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.RetentionEndpoint(api.Ctx(authenticate, clients))
   )
 
   /** What the consumers and timed actions are constructed without (see `Wiring`). */
@@ -53,12 +57,13 @@ object AuditService:
     }
 
   /**
-   * At every start: the seed, once, a moment after the service is up, and the realm read, daily (setting
-   * either again replaces it).
+   * At every start: the seed, once, a moment after the service is up; the realm read and the retention
+   * sweep, daily (setting any again replaces it).
    */
   def started(timers: TimerScheduler): Unit =
     timers.createSingleTimer(Seed.TimerName, 1.second, Seed.seed.deferred)
     timers.createRecurringTimer(roles.RealmRead.TimerName, 1.minute, 1.day, roles.RealmRead.read.deferred)
+    timers.createRecurringTimer(sweep.SweepTimer.TimerName, 10.minutes, 1.day, sweep.SweepTimer.sweep.deferred)
 
 @main def run(): Unit =
   val log      = LoggerFactory.getLogger("audit")

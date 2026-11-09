@@ -25,8 +25,9 @@ final class Ctx(val authenticate: () => Acl, val clients: EndpointClients):
   def correlations(raw: String, brands: Set[String]): Vector[String] =
     brands.toVector.sorted.map(Ids.digest(Wiring.requiredKeys.registry, _, raw))
 
-  /** The brand's retention in years. */
-  def retentionYears(brand: String): Int = settings.retentionYears
+  /** The brand's retention in years: its own when raised (FR-021), else the installation's. */
+  def retentionYears(brand: String): Int =
+    io.eitheror.casino.audit.sweep.RetentionEntity.yearsOf(clients.componentClient, brand, settings.retentionYears)
 
   /** The oldest instant the brand still holds. */
   def retainedFrom(brand: String): Instant = Retention.cutoff(now(), retentionYears(brand))

@@ -30,8 +30,8 @@ object Own:
    */
   def record(calls: IngestCalls, brand: String, action: String, actor: String, subjectKind: String, subject: String,
       outcome: String, reasonCode: Option[String], changes: Vector[StoredChange], now: Instant,
-      visibility: String = Visibility.Installation): Stored =
-    val s = Stored.own(UUID.randomUUID().toString, brand, action, "operator", actor, subjectKind, subject,
+      visibility: String = Visibility.Installation, actorKind: String = "operator"): Stored =
+    val s = Stored.own(UUID.randomUUID().toString, brand, action, actorKind, actor, subjectKind, subject,
       outcome, reasonCode, changes, Wiring.requiredKeys.registry, now, visibility)
     calls.keep(s): Unit
     s
