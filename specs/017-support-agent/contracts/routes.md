@@ -20,7 +20,7 @@ Body `{message: string, session_id: string}`.
 | a missing or empty field | 400 `missing_fields` |
 | the agent is off (`enabled` false) | 503 `agent_unavailable` `{message}` with the unavailable message (FR-001) |
 | the session is another player's | 403 `session_not_yours` (FR-004) |
-| the session awaits approval | 409 `Session already active` (the original's text) |
+| the session awaits approval | 409 `Session already active` (the original's text), with `details: {approvalId, action_name}` naming the request (FR-015) |
 | the conversation has ended | 409 `conversation_ended` `{message}` with the closing message (FR-017) |
 | the turn rate is exceeded | 429 `too_many_turns` `{retryAfter}` (FR-024) |
 | the budget is spent | 200, and the stream carries the unavailable message as one `delta`, then `done` |

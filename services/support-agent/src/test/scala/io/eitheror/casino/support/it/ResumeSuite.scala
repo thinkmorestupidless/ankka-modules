@@ -61,9 +61,12 @@ class ResumeSuite extends munit.FunSuite:
     assert(told.exists(_.contains("changed my mind")), told)
 
   test("a new message while an action awaits is 409 Session already active, and the action still awaits"):
-    awaiting("resume-busy")
+    val id = awaiting("resume-busy")
     val s = kit.chat("p-1", "resume-busy", "hello?")
     assertEquals((s.status, s.refusal), (409, "Session already active"))
+    val details = io.eitheror.casino.support.Json.parse(s.body).flatMap(n => Option(n.get("details")))
+    assertEquals((details.flatMap(_.text("approvalId")), details.flatMap(_.text("action_name"))),
+      (Some(id), Some("request_withdrawal")))
     assert(kit.conversation("resume-busy").awaiting.isDefined)
 
   test("the same decision again is 409 already_decided, and nothing runs twice"):

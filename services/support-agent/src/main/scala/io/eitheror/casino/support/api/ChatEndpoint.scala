@@ -64,7 +64,7 @@ object Chat:
     if !config.current.enabled then throw Answers.agentUnavailable(config.current.unavailableMessage)
     val before = settled(ctx, s, ctx.conversationState(s))
     if before.started && before.playerId != playerId then throw Answers.sessionNotYours
-    if before.awaiting.isDefined then throw Answers.sessionActive
+    before.awaiting.foreach((id, tool) => throw Answers.sessionActive(id, tool))
     val now = ctx.now()
     if before.endedAt(now) then throw Answers.conversationEnded(bodyOf(ctx, before).closingMessage)
 

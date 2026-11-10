@@ -326,6 +326,17 @@ of a blip.
   original did).
 - **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
   holding the session it ended (amendment P1); `approvalId` is now required on that route.
+- **2026-11-10, the deposit limit's summary reads responsible gambling first (settled with the user).**
+  FR-013 says the summary states whether a limit applies at once or after 24 hours, as responsible
+  gambling answers. contracts/tools.md carried the original's fixed text, which always warns of a
+  delay, wrong for a first or lower limit (spec 010 applies those at once). The summary now reads
+  RG's current limits (the R1 read) and says which; when they cannot be read, the original's text
+  is kept. **Rejected:** the original's text always, with FR-013 and actions.feature amended.
+- **2026-11-10, the 409 names the request (settled with the user).** FR-015 says a new message
+  while an approval awaits is refused as a conflict naming the request, and contracts/routes.md's
+  409 carried only `Session already active`. The 409 keeps that code and adds
+  `details: {approvalId, action_name}`, so a widget that checks the code still works.
+  **Rejected:** the code alone, with FR-015 and actions.feature amended to drop the naming.
 - **2026-11-09, FR-011's refusal before approval.** ankka 0.16 records an approval request for every
   call to an approval-gated tool, before any code of the tool's can look at the arguments. So the
   chat route checks a request's arguments when its turn stops (`Actions.check`: the player's own

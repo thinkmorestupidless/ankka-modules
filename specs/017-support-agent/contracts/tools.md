@@ -54,7 +54,7 @@ exponent (`contract.money`).
 |---|---|
 | `request_withdrawal` | `Withdraw {major} {currency} from your account` (+ ` — {forfeit}` when the hold preview names a forfeit: `this forfeits {bonus major} {currency} of bonus funds`) |
 | `close_active_session` | `Close your active game session (session ID: {id})` |
-| `set_deposit_limit` | `Set a {period} deposit limit of {major}. Note: this limit will not take effect immediately due to regulatory requirements — there is a mandatory cooling-off delay before it applies.` |
+| `set_deposit_limit` | `Set a {period} deposit limit of {major}.` then, from responsible gambling's current limit of the period (R1; spec 010's rule): a first or no higher limit `It applies as soon as you confirm.`; a higher one `It applies 24 hours after you confirm, under the regulatory cooling-off rule.`; limits that cannot be read, the original's `Note: this limit will not take effect immediately due to regulatory requirements — there is a mandatory cooling-off delay before it applies.` (FR-013, settled with the user) |
 | `apply_cool_off` | `Apply a cool-off period until {ts}. This cannot be shortened once it is in effect.` |
 | `apply_self_exclusion` | `Self-exclude your account permanently. This is permanent and cannot be reversed.` |
 

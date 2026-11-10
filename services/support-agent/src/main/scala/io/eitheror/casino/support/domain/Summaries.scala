@@ -20,9 +20,18 @@ object Summaries:
 
   def closeSession(gameSessionId: String): String = s"Close your active game session (session ID: $gameSessionId)"
 
-  def depositLimit(period: String, amount: Long, currency: Currency): String =
-    s"Set a $period deposit limit of ${major(amount, currency)}. Note: this limit will not take effect immediately due to " +
-      "regulatory requirements — there is a mandatory cooling-off delay before it applies."
+  /**
+   * `atOnce` is what responsible gambling's current limit of the period says (spec 010: a first or lower limit applies
+   * at once, a higher one 24 hours later); `None` when it could not be read, and then the original's cautious text.
+   */
+  def depositLimit(period: String, amount: Long, currency: Currency, atOnce: Option[Boolean]): String =
+    val base = s"Set a $period deposit limit of ${major(amount, currency)}."
+    atOnce match
+      case Some(true)  => s"$base It applies as soon as you confirm."
+      case Some(false) => s"$base It applies 24 hours after you confirm, under the regulatory cooling-off rule."
+      case None =>
+        s"$base Note: this limit will not take effect immediately due to regulatory requirements — there is a mandatory " +
+          "cooling-off delay before it applies."
 
   def coolOff(until: Instant): String = s"Apply a cool-off period until $until. This cannot be shortened once it is in effect."
 

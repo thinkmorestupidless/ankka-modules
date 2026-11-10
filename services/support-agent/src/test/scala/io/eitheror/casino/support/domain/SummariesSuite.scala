@@ -25,11 +25,16 @@ class SummariesSuite extends munit.ScalaCheckSuite:
   test("closing a session names it"):
     assertEquals(Summaries.closeSession("gs-9"), "Close your active game session (session ID: gs-9)")
 
-  test("a deposit limit explains the regulatory delay"):
-    val s = Summaries.depositLimit("weekly", 10000L, gbp)
-    assertEquals(s, "Set a weekly deposit limit of 100.00. Note: this limit will not take effect immediately due to " +
-      "regulatory requirements — there is a mandatory cooling-off delay before it applies.")
-    assert(s.toLowerCase.contains("regulatory") || s.toLowerCase.contains("delay"))
+  test("a deposit limit says whether it applies at once or after 24 hours, as responsible gambling's limits say (FR-013)"):
+    assertEquals(Summaries.depositLimit("weekly", 10000L, gbp, Some(true)),
+      "Set a weekly deposit limit of 100.00. It applies as soon as you confirm.")
+    assertEquals(Summaries.depositLimit("weekly", 10000L, gbp, Some(false)),
+      "Set a weekly deposit limit of 100.00. It applies 24 hours after you confirm, under the regulatory cooling-off rule.")
+
+  test("a deposit limit whose current limits could not be read keeps the original's delay warning"):
+    assertEquals(Summaries.depositLimit("weekly", 10000L, gbp, None),
+      "Set a weekly deposit limit of 100.00. Note: this limit will not take effect immediately due to " +
+        "regulatory requirements — there is a mandatory cooling-off delay before it applies.")
 
   test("a cool-off names its end and that it cannot be shortened"):
     val s = Summaries.coolOff(Instant.parse("2026-07-01T00:00:00Z"))

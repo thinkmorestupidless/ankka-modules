@@ -55,6 +55,10 @@ object Mapping:
 
   private val Periods = Map("DEPOSIT_DAILY" -> "daily", "DEPOSIT_WEEKLY" -> "weekly", "DEPOSIT_MONTHLY" -> "monthly")
 
+  /** Spec 010's rule on RG's status (R1): a first or lower deposit limit of the period applies at once; a higher one 24 hours later. */
+  def depositAppliesAtOnce(status: JsonNode, period: String, amount: Long): Boolean =
+    status.objects("limits").find(_.text("limitType").flatMap(Periods.get).contains(period)).flatMap(_.long("value")).forall(amount <= _)
+
   /** RG's status (R1) in the original's fields: the deposit limit, its pending change, the break, the exclusion. */
   def rgStatus(status: JsonNode): ObjectNode =
     def deposit(n: JsonNode) = n.text("limitType").exists(Periods.contains)

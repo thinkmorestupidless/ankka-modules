@@ -14,7 +14,9 @@ object Answers:
 
   def agentUnavailable(message: String): HttpProblem = refuse(503, "agent_unavailable", "message" -> message)
   val sessionNotYours: HttpProblem                   = refuse(403, "session_not_yours")
-  val sessionActive: HttpProblem                     = refuse(409, "Session already active")
+  /** The original's text, naming the request the session awaits (FR-015). */
+  def sessionActive(approvalId: String, tool: String): HttpProblem =
+    refuse(409, "Session already active", "approvalId" -> approvalId, "action_name" -> tool)
   def conversationEnded(message: String): HttpProblem = refuse(409, "conversation_ended", "message" -> message)
   def tooManyTurns(retryAfter: Long): HttpProblem    = refuse(429, "too_many_turns", "retryAfter" -> retryAfter.toString)
 

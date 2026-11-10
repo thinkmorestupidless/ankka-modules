@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.support.Json.*
 import io.eitheror.casino.support.clients.Neighbours
-import io.eitheror.casino.support.domain.Summaries
+import io.eitheror.casino.support.domain.{Mapping, Summaries}
 
 import java.time.Instant
 import scala.util.Try
@@ -45,7 +45,10 @@ object Actions:
           .filterOrElse(_.isAfter(now), "cool_off_until must be later than now").map(_ => ())
       case _ => Right(())
 
-  /** What `confirm_action` states; a withdrawal names the bonus funds the wallet's hold preview says it forfeits. */
+  /**
+   * What `confirm_action` states; a withdrawal names the bonus funds the wallet's hold preview says it forfeits, and a
+   * deposit limit whether it applies at once, from responsible gambling's current limits (FR-013).
+   */
   def summary(n: Neighbours, playerId: String, tool: String, args: JsonNode, currency: Option[String]): String =
     def money = Currency.unsafe(currency.getOrElse(throw IllegalStateException("the player's currency is not known")))
     tool match
@@ -54,7 +57,10 @@ object Actions:
         val forfeit = Some(n.wallet.holdPreview(playerId, money.code, a)).filter(_.ok).flatMap(_.json).flatMap(_.long("totalForfeit"))
         Summaries.withdrawal(a, money, forfeit)
       case "close_active_session" => Summaries.closeSession(args.text("game_session_id").getOrElse(""))
-      case "set_deposit_limit"    => Summaries.depositLimit(args.text("period").getOrElse(""), amount(args).getOrElse(0L), money)
+      case "set_deposit_limit" =>
+        val (period, a) = (args.text("period").getOrElse(""), amount(args).getOrElse(0L))
+        val atOnce = Some(n.rg.limits(playerId, money.code)).filter(_.ok).flatMap(_.json).map(Mapping.depositAppliesAtOnce(_, period, a))
+        Summaries.depositLimit(period, a, money, atOnce)
       case "apply_cool_off"       => Summaries.coolOff(Instant.parse(args.text("cool_off_until").getOrElse("")))
       case "apply_self_exclusion" => Summaries.selfExclusion
       case other                  => other

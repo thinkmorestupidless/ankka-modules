@@ -41,6 +41,13 @@ class MappingSuite extends munit.FunSuite:
     assertEquals((s.head.get("session_id").asText, s.head.get("game_id").asText, s.head.get("closed_at").isNull), ("gs-1", "starburst", true))
     assertEquals(Mapping.sessions(j("""{"sessions":[]}""")), Vector.empty)
 
+  test("a deposit limit applies at once when it is the period's first or no higher than its current one (spec 010)"):
+    val status = j("""{"limits":[{"limitType":"DEPOSIT_DAILY","value":5000},{"limitType":"DEPOSIT_WEEKLY","value":100}]}""")
+    assertEquals(Mapping.depositAppliesAtOnce(status, "daily", 4000L), true)
+    assertEquals(Mapping.depositAppliesAtOnce(status, "daily", 5000L), true)
+    assertEquals(Mapping.depositAppliesAtOnce(status, "daily", 6000L), false)
+    assertEquals(Mapping.depositAppliesAtOnce(status, "monthly", 999999L), true)
+
   test("RG's status: no limit and not excluded"):
     val o = Mapping.rgStatus(j("""{"limits":[],"pendingChanges":[],"activeRestrictions":[],"coolingOffUntil":null}"""))
     assertEquals(o.get("self_excluded").asBoolean, false)

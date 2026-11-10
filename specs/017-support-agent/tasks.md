@@ -235,7 +235,7 @@ runs (red).
   - Then stream `action_result` from the `ToolCalled` the tool recorded, and the reply's `delta`s
     and `done` (research R3).
   - Record `ApprovalRequested` and `Decided` on `Conversation`.
-- [ ] T034 [US2] Bind `actions.feature`'s eight scenarios; all green. The FR-015 and SC-001 suite
+- [X] T034 [US2] Bind `actions.feature`'s eight scenarios; all green. The FR-015 and SC-001 suite
       covers approve, reject, repeat and restart, and shows no tool running twice or unapproved.
 
 ## Phase 5: User Story 3 — break and self-exclusion (P1)
