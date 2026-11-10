@@ -25,14 +25,14 @@ Feature: A brand is created from one manifest and runs on its own
     Then it reads the wallet of its own player and not the wallet of the other brand's player
 
   Scenario Outline: a brand marked for real money is refused on an installation that is not fit for it
-    Given an installation <condition>
+    Given an installation that reports it <condition>
     When a manifest marked for real money is applied
-    Then it is refused, naming <named>
+    Then it is refused, naming <named> and the installation as where it was read
 
     Examples:
-      | condition                                     | named                   |
-      | that keeps no backup copy outside itself      | the backups             |
-      | that keeps its facts in one copy only         | the copies of its facts |
+      | condition                                | named                   |
+      | keeps no backup copy outside itself      | the backups             |
+      | keeps its facts in one copy only         | the copies of its facts |
 
   Scenario: a brand marked for real money is created on an installation meeting every condition
     Given an installation meeting every condition for real money
