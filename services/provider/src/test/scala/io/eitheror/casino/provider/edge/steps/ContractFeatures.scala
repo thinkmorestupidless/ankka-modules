@@ -179,6 +179,14 @@ class ContractFeatures extends GherkinSuite(s"${sys.props("casino.root")}/featur
     callback = played.text("callbackId").get
     assertEquals(kit.session(ticket).round(round).map(_.state), Some(Round.Pending))
     assertEquals(game.settle(ticket, round, 0).status, 409)
+    // The refused settle's callback was scheduled first and is discarded (review, second round): the
+    // run holds the check and the debit, and no credit, once the view has had time to see both events.
+    val run = kit.session(ticket).runId
+    def rows = io.eitheror.casino.provider.core.Sweep.views.get.forView(io.eitheror.casino.provider.core.RunCallbacks)
+      .ask(io.eitheror.casino.provider.core.RunCallbacks.byRun, 100, "run" -> run, "after_at" -> "-1", "after_id" -> "")
+    kit.eventually()(Option(rows).filter(_.exists(_.callbackId == callback))): Unit
+    Thread.sleep(1000)
+    assertEquals(rows.filter(_.kind == "credit"), Vector.empty)
   }
 
   Then("the house provider retries the debit under the same transaction id on the retry schedule") { () =>

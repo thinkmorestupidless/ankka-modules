@@ -1,6 +1,6 @@
 package io.eitheror.casino.provider.core
 
-import com.thinkmorestupidless.ankka.core.EntityId
+import com.thinkmorestupidless.ankka.core.{CommandError, EntityId}
 import com.thinkmorestupidless.ankka.sdk.ComponentClient
 
 import scala.concurrent.duration.FiniteDuration
@@ -59,9 +59,15 @@ final class Play(client: ComponentClient):
         .invoke(CallbackEvent.Scheduled(session.runId, session.launchToken, session.brand, call.kind, route, String(body, "UTF-8"), step, Wiring.now())): Unit
     val sessionEntity = client.forEventSourcedEntity(EntityId(session.launchToken))
     if guarded then
-      // The round's rule first, under the session's own serialisation; a refused call schedules nothing.
-      sessionEntity.call(SessionEntity.planGuarded).invoke(planned): Unit
+      // The callback first (review, second round): a failure after it leaves a scheduled call an
+      // operator sees and can abandon, never a round settled with no record of the call. The round's
+      // rule then holds under the session's own serialisation; a refused call's record is discarded.
       schedule()
+      try sessionEntity.call(SessionEntity.planGuarded).invoke(planned): Unit
+      catch
+        case refused: CommandError =>
+          client.forEventSourcedEntity(EntityId(callbackId)).call(CallbackEntity.discard).invoke(): Unit
+          throw refused
     else
       schedule()
       sessionEntity.call(SessionEntity.plan).invoke(planned): Unit
