@@ -82,6 +82,9 @@ entry: `PUT /v1/provider/brands/{slug}`. Every field is described in
 
 An entry with `keyDocument: true` and `realMoney: true` refuses every launch, naming the entry.
 
+A write applies at once at the replica that served it, and within 30 s at every other one: each
+re-reads the brand table on the `wake-deliveries` timer.
+
 ## Rotating the key
 
 There are three acts, each an operator route needing `games`, and each audited. `GET /v1/provider/keys`

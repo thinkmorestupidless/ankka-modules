@@ -61,6 +61,8 @@ object Provider:
     // An exhausted credit is unpaid winnings: kept until an operator abandons it; and sessions that sent no money call are swept by launch (review).
     Sweep.keepExhausted = true
     Sweep.alsoSweep = io.eitheror.casino.provider.edge.views.SessionsByBrand.sweep
+    // The brand table is a per-process copy: re-read on every wake, so a write at one replica reaches the others within 30 s.
+    Sweep.onWake = cache.refresh
     ring
 
   /**

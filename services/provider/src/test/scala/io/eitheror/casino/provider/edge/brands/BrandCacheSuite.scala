@@ -64,4 +64,22 @@ class BrandCacheSuite extends munit.FunSuite with LogCapturing:
     finally kit.stop()
   }
 
+  test("a write made at another replica is seen here at the next wake") {
+    val kit = AnkkaTestKit.start(Seq(BrandEntryEntity.descriptor, BrandIndex.descriptor))
+    val before = io.eitheror.casino.provider.core.Sweep.onWake
+    try
+      val client = kit.componentClient
+      val (here, _) = BrandCache.started(client, Map.empty)
+      io.eitheror.casino.provider.core.Sweep.onWake = here.refresh
+      // Another replica's write: the entities change, this process's copy does not.
+      client.forKeyValueEntity(EntityId("goldvibe")).call(BrandEntryEntity.put).invoke(entry("goldvibe")): Unit
+      client.forKeyValueEntity(EntityId(BrandIndex.Id)).call(BrandIndex.add).invoke("goldvibe"): Unit
+      assert(!here.known("goldvibe"))
+      io.eitheror.casino.provider.core.Sweep.onWake(client)
+      assert(here.known("goldvibe"))
+    finally
+      io.eitheror.casino.provider.core.Sweep.onWake = before
+      kit.stop()
+  }
+
   extension [A](a: A) private def tap(f: A => Unit): A = { f(a); a }
