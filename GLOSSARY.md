@@ -36,7 +36,7 @@ One commercial casino: its own players, operators, wallets, facts and versions, 
 Avoid: project, tenant
 
 ### installation
-One deployment of the platform: every brand on it, the shared payments, the shared audit and the programme. A brand licensed elsewhere is a second installation.
+One deployment of the platform: every brand on it, the shared payments and the shared audit. A brand licensed elsewhere is a second installation. The programme and a game provider are no part of it, even where they run beside it.
 
 ### operator
 A member of staff who runs a brand or the installation: applies manifests, adjusts balances, adds networks, sees undelivered facts, lost answers and parked sends. Not a manager, who runs the programme.
@@ -297,7 +297,7 @@ A person or company that sends players to a brand and is paid commission for wha
 An issuer of tags and reader of facts: the programme, another installation's programme, or a third party. A brand knows a network by its id, its key document, its revocation list and the pseudonym key it holds for it.
 
 ### programme
-The installation's own affiliate network, shared by every brand and by every hosted brand: it issues tags, publishes its key document, revocation list and legacy tag document, reads every brand's facts, turns them into commission and pays affiliates. It knows a player only by a pseudonym.
+eitheror's own affiliate network, a product apart from the casino and a network like any other to a brand: it issues tags, publishes its key document, revocation list and legacy tag document at public addresses, receives the facts of every brand that added it, turns them into commission and pays affiliates. It knows a player only by a pseudonym, and nothing of a brand is allowed to it.
 
 Avoid: affiliate service, affiliate-service
 
@@ -1321,3 +1321,8 @@ A credit to a player's real balance from a market's pool account when the market
 
 ### service principal
 A service, named as its project and name, that owns a non-player account or calls a granted route.
+
+### public address
+*Proposed.* An address anyone on the internet reaches, through a gateway, with no standing inside the installation: where a network publishes its documents and receives facts, and where a game provider is asked to launch a game. Never an address that answers only inside the installation.
+
+Avoid: external URL, public URL

@@ -21,13 +21,16 @@ a PSP's reference, a workflow's step id), and a repeat returns the first outcome
 ### III. A brand is a project
 Each brand is its own ankka project with its own services, databases, topics and versions. Keys
 inside a brand carry no brand; a wallet is `player/currency`. Routes keep their `{brand}` segment and
-a brand project refuses any brand but its own. Shared projects (`payments`, `programme`, `reasoner`,
-`tools`) hold no brand's player data beyond the player id, and in `payments` the fields a payment
-provider requires for a deposit, held as `Personal` values under the project's own subject;
-`programme` holds no player id at all, only a per-network pseudonym. A shared project reaches a
-brand only through a grant the brand made (ankka 040); a brand's public routes are the exception,
+a brand project refuses any brand but its own. Shared projects (`payments`, `reasoner`, `tools`)
+hold no brand's player data beyond the player id, and in `payments` the fields a payment
+provider requires for a deposit, held as `Personal` values under the project's own subject. A
+shared project reaches a brand only through a grant the brand made (ankka 040); a brand's public routes are the exception,
 reached by any caller as the internet reaches them, admitted by the route's own signature or key
-and never by a platform identity. Nothing is shared by convention.
+and never by a platform identity. An outside product (eitheror's affiliate network, eitheror's
+game provider) is no part of an installation even where it runs beside one: a brand consumes it as
+it consumes a third party's, over public addresses with credentials exchanged at onboarding, with
+no grant in either direction and no shared realm; a network holds no player id, only a per-network
+pseudonym. Nothing is shared by convention.
 
 ### IV. Commands over HTTP, facts over topics
 A command that needs an answer in the request path is an HTTP call to the owning service. A fact is
@@ -74,7 +77,7 @@ This constitution outranks any other practice in the repository. An amendment is
 that states what changes and why, and every open spec is checked against it before merge. Where a
 spec and the constitution disagree, the spec is wrong until the constitution is amended.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-10-09
+**Version**: 1.3.0 | **Ratified**: 2026-10-08 | **Last Amended**: 2026-11-10
 
 Amendment 1.1.0 (2026-10-09): principle III said shared projects hold "no brand's player data beyond
 a pseudonymous subject id". Spec 001 FR-018, settled after the cashier was read, has `payments` hold
@@ -86,3 +89,9 @@ reaches a brand only through a grant. Spec 020 adds `tools` (the game provider s
 reaches a brand's public provider routes as the real provider does: from outside, signed, with no
 platform identity and nothing to grant. The principle now names `tools` and says that a public route
 is reached as the internet reaches it; the grant rule governs every other route.
+
+Amendment 1.3.0 (2026-11-10): principle III named `programme` among the shared projects. Spec 028
+makes the affiliate network and eitheror's game provider outside products, each in its own
+repository and organisation, consumed by a brand as a third party's is. The principle now names
+three shared projects and says what an outside product is; the pseudonym rule is kept as a rule
+about a network.

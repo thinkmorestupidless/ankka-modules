@@ -26,6 +26,12 @@ Feature: Finance closes the day and reconciles with the providers
       | a settled round the wallet has no facts for                                        |
       | a round the wallet settled that the game provider's record lacks                   |
 
+  Scenario: a round still open when the day closes is listed as open with its stake and not under differences
+    Given a round the game provider opened before the close and has not settled
+    When the day-end is read
+    Then the round is counted under open rounds for its game provider and game with its stake
+    And the round is not listed under differences
+
   Scenario: a fact for a closed day arriving after the close leaves the day-end unchanged and appears as a correction carried into the next day-end
     Given a fact for a closed day arriving after the close, a late settlement or a reversal
     When it is read

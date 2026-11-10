@@ -127,3 +127,12 @@ Feature: The game provider debits a stake, credits a win or closes a round as a 
     Given the player's wallet refuses a bet for a responsible gambling limit
     When the game provider debits "1.00" under transaction id "t8" in round "r8"
     Then it is answered "spending_limit" with the current balance
+
+  Scenario: a round stays open for days until the game provider settles it, and the win settles it whether or not the player's game session has ended
+    Given an open bet "t1" of "5.00" in round "r1" placed "6" days ago and a real balance of "95.00"
+    And the player's game session has ended
+    When the game provider credits "12.00" under transaction id "t2" in round "r1"
+    Then it is answered "ok" with balance "107.00"
+    And bet "t1" is settled with the win
+    And round "r1" is closed
+    And one "round_settled" fact is published, carrying when the round was opened and when it settled

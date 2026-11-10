@@ -60,3 +60,15 @@ Feature: A network's tags are trusted, rotated and retired, and a network can re
     Given anything else a network sends to the brand
     When it arrives
     Then it is refused, because the reverse channel carries signing keys and revocations and nothing more
+
+  Scenario: the programme is added to a brand by an operator as any network is, and a brand it was not added to binds nothing to it
+    Given a brand whose operator has added no network
+    When a visitor lands with a tag from the programme
+    Then the tag is refused as from an unknown network
+    And the player who registers is organic
+
+  Scenario: a brand fetches the programme's key document, revocation list and legacy tag document from the public addresses the operator gave
+    Given the programme added to the brand as a network with the public addresses of its documents
+    When the brand refreshes the programme's key document, revocation list and legacy tag document
+    Then each is fetched from the public address the operator gave
+    And nothing is fetched from an address inside the installation
