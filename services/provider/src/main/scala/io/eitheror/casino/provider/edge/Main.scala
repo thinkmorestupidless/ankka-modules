@@ -61,9 +61,10 @@ object Provider:
     // An exhausted credit is unpaid winnings: kept until an operator abandons it; and sessions that sent no money call are swept by launch (review).
     Sweep.keepExhausted = true
     Sweep.alsoSweep = io.eitheror.casino.provider.edge.views.SessionsByBrand.sweep
-    // The brand table is a per-process copy: re-read on every wake, so a write at one replica reaches the others within 30 s.
-    Sweep.onWake = cache.refresh
     ring
+
+  /** The running brand-table refresh, replaced when `prepare` runs again (a restart in a suite). */
+  @volatile private var refreshing: Option[AutoCloseable] = None
 
   /**
    * The work done once at start: a signing key, the brand entries read, the retention sweep, and
@@ -73,6 +74,10 @@ object Provider:
       wakeEvery: FiniteDuration = 30.seconds): Unit =
     keys.ensureCurrent(): Unit
     cache.refresh(service.componentClient)
+    // The brand table is a per-process copy: each instance re-reads it every 30 s, so a write at one
+    // replica reaches the others within that (the wake timer fires on one instance only).
+    refreshing.foreach(_.close())
+    refreshing = Some(cache.refreshEvery(service.componentClient, 30.seconds))
     Sweep.wakeEvery = wakeEvery
     timers.foreach { t =>
       t.timerScheduler.createRecurringTimer(SweepAction.TimerName, 1.minute, 1.hour, SweepAction.sweep.deferred)

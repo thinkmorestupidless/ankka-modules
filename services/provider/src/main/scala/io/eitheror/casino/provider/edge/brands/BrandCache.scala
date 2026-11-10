@@ -12,8 +12,9 @@ import scala.util.Try
 
 /**
  * The brand entries as the outbound path and the core read them (spec 026 R3): a process-local copy
- * of the entities, refreshed from them at start and on every write the routes make, so a change
- * applies without a redeploy. A read never calls the entities: `known`, `answerWait` and the rest
+ * of the entities, refreshed from them at start, on every write the routes make, and every 30 s on
+ * each instance (`refreshEvery`), so a change written at one replica reaches the others without a
+ * redeploy. A read never calls the entities: `known`, `answerWait` and the rest
  * run on every callback.
  *
  * `caPem: env:<VAR>` names a setting of the service, resolved when the brand is read, as the
@@ -31,6 +32,22 @@ final class BrandCache(env: Map[String, String] = sys.env) extends Brands:
       catch case _: CommandError => None
     }
     entries.set(read.toMap)
+
+  /**
+   * Re-reads the entries every `every` on a thread of this process (review, second round): a
+   * recurring ankka timer fires on one instance only, as a cluster singleton, so each replica keeps
+   * its own. A failed read is logged and the copy kept until the next. `close` stops it.
+   */
+  def refreshEvery(client: ComponentClient, every: FiniteDuration): AutoCloseable =
+    val runner = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r =>
+      val t = Thread(r, "brand-table-refresh"); t.setDaemon(true); t
+    }
+    val log = org.slf4j.LoggerFactory.getLogger(classOf[BrandCache])
+    runner.scheduleWithFixedDelay(
+      () => try refresh(client) catch case scala.util.control.NonFatal(e) => log.warn(s"the brand table's refresh failed: ${e.getMessage}"),
+      every.toMillis, every.toMillis, java.util.concurrent.TimeUnit.MILLISECONDS
+    ): Unit
+    () => runner.shutdownNow(): Unit
 
   /** What a write through the routes changed, applied at once. */
   def put(entry: BrandEntry): Unit = entries.updateAndGet(_.updated(entry.slug, entry)): Unit

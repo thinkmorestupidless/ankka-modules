@@ -64,22 +64,23 @@ class BrandCacheSuite extends munit.FunSuite with LogCapturing:
     finally kit.stop()
   }
 
-  test("a write made at another replica is seen here at the next wake") {
+  test("a write made at another replica is seen by each instance's own refresh") {
     val kit = AnkkaTestKit.start(Seq(BrandEntryEntity.descriptor, BrandIndex.descriptor))
-    val before = io.eitheror.casino.provider.core.Sweep.onWake
     try
       val client = kit.componentClient
-      val (here, _) = BrandCache.started(client, Map.empty)
-      io.eitheror.casino.provider.core.Sweep.onWake = here.refresh
-      // Another replica's write: the entities change, this process's copy does not.
-      client.forKeyValueEntity(EntityId("goldvibe")).call(BrandEntryEntity.put).invoke(entry("goldvibe")): Unit
-      client.forKeyValueEntity(EntityId(BrandIndex.Id)).call(BrandIndex.add).invoke("goldvibe"): Unit
-      assert(!here.known("goldvibe"))
-      io.eitheror.casino.provider.core.Sweep.onWake(client)
-      assert(here.known("goldvibe"))
-    finally
-      io.eitheror.casino.provider.core.Sweep.onWake = before
-      kit.stop()
+      // Two instances' copies, each with its own refresh, as two replicas have (no singleton timer).
+      val (one, _) = BrandCache.started(client, Map.empty)
+      val (two, _) = BrandCache.started(client, Map.empty)
+      val refreshes = Seq(one.refreshEvery(client, 200.millis), two.refreshEvery(client, 200.millis))
+      try
+        // Another replica's write: the entities change, neither copy does.
+        client.forKeyValueEntity(EntityId("goldvibe")).call(BrandEntryEntity.put).invoke(entry("goldvibe")): Unit
+        client.forKeyValueEntity(EntityId(BrandIndex.Id)).call(BrandIndex.add).invoke("goldvibe"): Unit
+        val deadline = System.nanoTime() + 10.seconds.toNanos
+        while !(one.known("goldvibe") && two.known("goldvibe")) && System.nanoTime() < deadline do Thread.sleep(50)
+        assert(one.known("goldvibe") && two.known("goldvibe"))
+      finally refreshes.foreach(_.close())
+    finally kit.stop()
   }
 
   extension [A](a: A) private def tap(f: A => Unit): A = { f(a); a }

@@ -89,7 +89,7 @@ entry: `PUT /v1/provider/brands/{slug}`. Every field is described in
 An entry with `keyDocument: true` and `realMoney: true` refuses every launch, naming the entry.
 
 A write applies at once at the replica that served it, and within 30 s at every other one: each
-re-reads the brand table on the `wake-deliveries` timer.
+re-reads the brand table every 30 s on a thread of its own (a recurring ankka timer fires on one instance only).
 
 ## Rotating the key
 

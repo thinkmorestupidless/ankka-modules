@@ -32,9 +32,6 @@ object Sweep:
    */
   @volatile var keepExhausted: Boolean = false
 
-  /** Run on every wake as well (the house provider re-reads its brand table, so a write at one replica reaches the others within `wakeEvery`). */
-  @volatile var onWake: ComponentClient => Unit = _ => ()
-
   /** Further records the sweep discards at the same cutoff, answering how many (the house provider's sessions that sent no callback). */
   @volatile var alsoSweep: (ComponentClient, ViewClient, Long) => Int = (_, _, _) => 0
 
@@ -77,8 +74,6 @@ final class SweepAction(context: TimedActionContext) extends TimedAction:
 
   def wake: Effect =
     Sweep.views.foreach(v => Sweep.wake(context.componentClient, v, Wiring.now() + Sweep.wakeEvery.toMillis))
-    try Sweep.onWake(context.componentClient)
-    catch case scala.util.control.NonFatal(e) => org.slf4j.LoggerFactory.getLogger("sweep").warn(s"the wake's refresh failed: ${e.getMessage}")
     effects.done()
 
 object SweepAction extends TimedAction.Companion[SweepAction](ComponentId("sweep")):

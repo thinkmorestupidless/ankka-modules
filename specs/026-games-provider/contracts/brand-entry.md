@@ -32,7 +32,7 @@
 | `realMoney` | yes | the operator's statement of what the brand's manifest says (the provider cannot read the manifest; the quickstart compares the two); with `keyDocument: true` every launch is refused naming the entry (FR-020) |
 
 A write applies at once at the replica that served it and within 30 s at every other (each re-reads
-the table on the `wake-deliveries` timer, FR-017).
+the table every 30 s itself, not on a cluster-singleton timer, FR-017).
 
 The write is refused naming the field on a malformed value; the private key is never accepted
 (`operatorPrivateKey` in the body is a refusal).
