@@ -6,7 +6,7 @@ import io.eitheror.casino.support.Json
 import io.eitheror.casino.support.Json.*
 import io.eitheror.casino.support.clients.{Called, Neighbours}
 import io.eitheror.casino.support.config.ConfigBody
-import io.eitheror.casino.support.conversation.{Outcome, ToolCall}
+import io.eitheror.casino.support.conversation.{EndReason, Outcome, ToolCall}
 import io.eitheror.casino.support.domain.{Mapping, Redaction}
 
 import java.time.Instant
@@ -18,7 +18,7 @@ import scala.concurrent.duration.*
  * that player, never one the model gives (FR-005), and goes to the owning service as `support-agent`. Each call is
  * recorded on the conversation with its redacted arguments and its outcome (FR-028). A read that does not answer is
  * told to the model as "cannot be read right now", and the turn goes on (FR-012). A write waits for the player's
- * approval (FR-009) and is keyed by it (FR-015); the writes are added by user stories 2 and 3.
+ * approval (FR-009) and is keyed by it (FR-015); an applied break or exclusion ends the conversation (FR-017).
  */
 final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBody, now: () => Instant):
 
@@ -146,6 +146,28 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
         write("set_deposit_limit", Json.obj("amount" -> amount, "period" -> period))(key =>
           n.rg.setLimit(playerId, s"DEPOSIT_${period.toUpperCase}", amount, currency.getOrElse(""), key))(a =>
           s"Limit set. Effective from: ${a.text("appliesAt").getOrElse(now().toString)}")
+      }
+      .requiresApproval(within),
+    FunctionTool.named("apply_cool_off")
+      .describedAs("Apply a cool-off period until the given ISO timestamp. Cannot be shortened once set. Pauses for player confirmation.")
+      .param[String]("cool_off_until", "When the break ends, as an ISO 8601 instant, as 2026-12-01T00:00:00Z.")
+      .handle { (until: String) =>
+        var effective = until
+        val detail = write("apply_cool_off", Json.obj("cool_off_until" -> until))(key => n.rg.coolOff(playerId, until, key)) { a =>
+          effective = a.text("coolingOffUntil").getOrElse(until)
+          s"Cool-off in effect until $effective"
+        }
+        // Applied: the conversation takes no turn until the break ends (FR-017).
+        trail.ended(EndReason.OnBreak(Instant.parse(effective)))
+        detail
+      }
+      .requiresApproval(within),
+    FunctionTool.named("apply_self_exclusion")
+      .describedAs("Permanently self-exclude the player. This cannot be reversed. Pauses for one confirmation only.")
+      .handle { () =>
+        val detail = write("apply_self_exclusion", Json.obj())(key => n.rg.exclude(playerId, key))(_ => s"Self-exclusion applied at ${now()}")
+        trail.ended(EndReason.SelfExcluded)
+        detail
       }
       .requiresApproval(within)
   )
