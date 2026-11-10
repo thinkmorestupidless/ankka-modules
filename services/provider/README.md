@@ -62,7 +62,13 @@ table is `specs/026-games-provider/contracts/provider-routes.md`.
 | `/v1/provider` | operator | brand entries, sessions, rounds, unanswered calls, abandon, the daily export, the registry, the keys, `metrics` |
 
 Reads of one brand are under `/v1/provider/brands/{slug}/…` for that brand's operators. Writes need
-the `games` role at the eitheror realm, and each is audited.
+the `games` role at the eitheror realm, and each is audited. `platform_admin` reads the brand table
+and does nothing else here.
+
+`GET /v1/provider/metrics` sits behind a staff token holding `games`, like the other installation
+reads. Nothing scrapes it yet: the installation's Prometheus has no token for it, and the
+unanswered gauge runs one view query per brand on each read. Scraping waits for a scrape identity
+the installation can issue.
 
 ## A brand's entry
 
