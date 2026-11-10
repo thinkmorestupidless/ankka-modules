@@ -55,6 +55,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 021 | all | core and modules: module manifests in ankka-vendor's format, a brand's values, the modules tool (amends 001) | — |
 | 022 | brand | wallet primitives: reservations, settlement, payouts and non-player accounts | Scala |
 | 023 | brand | the predictions module: `markets` and `exchange` on ankka-predictions' libraries (built) | Scala |
+| 029 | all | an installation's values live with the installation: the overlay, settings, a tenant's values and its version lock are read from the installation's directory; facts stated once (amends 001, 021) | — |
 
 ## Working here
 

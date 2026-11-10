@@ -1321,3 +1321,25 @@ A credit to a player's real balance from a market's pool account when the market
 
 ### service principal
 A service, named as its project and name, that owns a non-player account or calls a granted route.
+
+### installation's directory
+*Proposed.* The place, outside the modules' own repository, where one installation keeps what is its own: the installation's settings, and for each brand and each shared project on it the values and the version lock. One per installation.
+
+Avoid: overlay directory, deployment repo
+
+### installation's settings
+*Proposed.* The casino's own settings of one installation: its name, where the casino's sign-in is, the payment providers' addresses, its edge protection and whether the vendor serves it. Never a fact the installation reports about itself.
+
+Avoid: settings.env, overlay settings
+
+### version lock
+*Proposed.* What one brand or one shared project runs on one installation the vendor does not serve: each module and the version it runs at. Changed by a person in a reviewed change; where the vendor serves the installation, the entitlement and its channel say this and there is no version lock.
+
+Avoid: lock file, pin file
+
+### example brand
+*Proposed.* The one brand whose values are kept beside the modules, for a local installation: goldvibe. It never takes real money.
+
+### dependency range
+*Proposed.* The versions of another module a module's manifest says it runs with.
+
