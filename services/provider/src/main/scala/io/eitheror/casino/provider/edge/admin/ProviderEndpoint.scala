@@ -40,15 +40,18 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
     if principal.roles.contains(ProviderEndpoint.GamesRole) then f
     else Routes.operatorRefusal(principal, slug, roles*).fold(f)(Http.error(403, _))
 
-  /** Answers `f` when the token holds the installation-wide `games` role or `platform_admin`. */
-  private def asInstallationOperator(f: => Http.Answer): Http.Answer =
-    if Set(ProviderEndpoint.GamesRole, "platform_admin").exists(principal.roles.contains) then f
+  /**
+   * Answers `f` when the token holds the installation-wide `games` role, or one of `also`
+   * (`contracts/provider-routes.md`: `platform_admin` reads the brand table and does nothing else here).
+   */
+  private def asInstallationOperator(also: String*)(f: => Http.Answer): Http.Answer =
+    if (ProviderEndpoint.GamesRole +: also).exists(principal.roles.contains) then f
     else Http.error(403, s"${Routes.Forbidden}: the ${ProviderEndpoint.GamesRole} permission is needed")
 
   // ---- the brand table (T034) -----------------------------------------------------------------
 
   get("/brands") { () =>
-    asInstallationOperator(Http.json(200, GoJson.obj("brands" -> Arr(cache.all.sortBy(_.slug).map(ProviderEndpoint.rendered)))))
+    asInstallationOperator("platform_admin")(Http.json(200, GoJson.obj("brands" -> Arr(cache.all.sortBy(_.slug).map(ProviderEndpoint.rendered)))))
   }
 
   get("/brands/{slug}") { (slug: String) =>
@@ -135,14 +138,14 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
     "previous" -> keys.previousKeyId.fold(Null)(Str(_)), "withdrawn" -> keys.withdrawnKeyId.fold(Null)(Str(_))
   )
 
-  get("/keys") { () => asInstallationOperator(Http.json(200, keyState)) }
+  get("/keys") { () => asInstallationOperator()(Http.json(200, keyState)) }
 
   private def keyAct(action: String, kid: String): Unit =
     act(action, "signing-key", kid, ProviderActs.InstallationBrand, "kid" -> kid)
 
   /** Publishes the next key; signing is unchanged. Starting again during a rotation answers it as it stands. */
   post("/keys/start") { () =>
-    asInstallationOperator {
+    asInstallationOperator() {
       val rotating = keys.nextKeyId
       val next     = keys.publishNext()
       if rotating.isEmpty then keyAct(ProviderActs.KeyRotationStarted, next)
@@ -152,7 +155,7 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
 
   /** Signs every later call with the next key; the old one stays listed until it is withdrawn. */
   post("/keys/switch") { () =>
-    asInstallationOperator {
+    asInstallationOperator() {
       if keys.nextKeyId.isEmpty then Http.error(409, "no_rotation: start a rotation before switching")
       else
         keyAct(ProviderActs.KeySwitched, keys.promote())
@@ -160,13 +163,13 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
     }
   }
 
-  /** Removes the key signing stopped with from the document. */
+  /** Removes the key signing stopped with from the document, and deletes its private half. */
   post("/keys/withdraw") { () =>
-    asInstallationOperator {
+    asInstallationOperator() {
       keys.previousKeyId match
         case None => Http.error(409, "nothing_to_withdraw: switch before withdrawing")
         case Some(old) =>
-          keys.withdrawOld()
+          keys.withdrawForGood()
           keyAct(ProviderActs.KeyWithdrawn, old)
           Http.json(200, keyState)
     }
@@ -255,7 +258,7 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
   // ---- the registry (T046) --------------------------------------------------------------------------
 
   get("/registry") { () =>
-    asInstallationOperator {
+    asInstallationOperator() {
       val codes = client.forKeyValueEntity(EntityId(GameIndex.Id)).call(GameIndex.codes).invoke()
       val games = codes.flatMap(c => Try(client.forKeyValueEntity(EntityId(c)).call(GameEntity.get).invoke()).toOption)
       Http.json(200, GoJson.obj("games" -> Arr(games.map(g => GoJson.obj(
@@ -267,7 +270,7 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
 
   /** An operator removes a game: no launch reaches it again; its open sessions keep being served. */
   delete("/registry/{code}") { (code: String) =>
-    asInstallationOperator {
+    asInstallationOperator() {
       val held = Try(client.forKeyValueEntity(EntityId(code)).call(GameEntity.get).invoke()).toOption
       held match
         case None => Http.error(404, s"no game $code")
@@ -281,7 +284,7 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
   // ---- metrics (T047, FR-025) ---------------------------------------------------------------------------
 
   get("/metrics") { () =>
-    asInstallationOperator {
+    asInstallationOperator() {
       val unanswered = cache.all.map(e => e.slug -> views.forView(RunCallbacks).ask(RunCallbacks.unanswered, 10000, "brand" -> e.slug)
         .count(_.outcome != Callback.Abandoned).toLong).toMap
       Http.raw(200, "text/plain; version=0.0.4", Metrics.render(unanswered))

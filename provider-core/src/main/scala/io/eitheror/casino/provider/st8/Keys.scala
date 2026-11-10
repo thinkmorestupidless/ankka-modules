@@ -67,6 +67,21 @@ final class Keys(store: SecretStore) extends KeyRing:
       store.delete("keys/previous")
     }
 
+  /**
+   * The house provider's withdrawal (spec 026 FR-020; review): as `withdrawOld`, and the withdrawn
+   * key's private half is deleted, so nothing can sign with it again. Its id and public half stay,
+   * for the key state and for a call it signed that is still being verified. The simulator keeps
+   * `withdrawOld`, whose rotated-key scenario signs with the withdrawn key on purpose.
+   */
+  def withdrawForGood(): Unit =
+    previousKeyId.foreach { old =>
+      withdrawOld()
+      store.delete(s"keys/$old/private")
+    }
+
+  /** Whether a key's private half is still held. */
+  def holdsPrivate(kid: String): Boolean = store.get(s"keys/$kid/private").isDefined
+
   /** The key a choice names, with its id, or `None` when there is no such key yet. */
   def signingKey(choice: String): Option[(String, PrivateKey)] = choice match
     case "current"   => Some(currentKeyId).flatMap(kid => privateOf(kid).map(kid -> _))

@@ -103,6 +103,9 @@ class KeysFeatures extends GherkinSuite(s"${sys.props("casino.root")}/features/g
     // Between the acts the old key is still listed, for a call it signed that is on its way.
     assertEquals(listed(read()).toSet, Set(publicOf(next), publicOf(old)))
     assertEquals(kit.asStaff("POST", "/v1/provider/keys/withdraw", operator).status, 200)
+    // The withdrawn key's private half is gone from the secret store (review); its public half stays.
+    assert(!kit.keys.holdsPrivate(old))
+    assert(kit.keys.publicOf(old).isDefined)
   }
 
   Then("every later provider call is signed with the next key") { () =>

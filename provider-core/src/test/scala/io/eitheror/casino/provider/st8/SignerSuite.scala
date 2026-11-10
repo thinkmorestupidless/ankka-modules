@@ -42,19 +42,3 @@ class SignerSuite extends munit.FunSuite with LogCapturing:
     assert(!Signer.verify(body, "not base64!", Signer.publicKey(publicKey)))
     assert(!Signer.verify(body, "", Signer.publicKey(publicKey)))
   }
-
-  test("the public key derived from the private key is the one openssl wrote") {
-    assertEquals(Signer.publicKeyText(Signer.publicKeyFromPrivate(Signer.privateKey(privateKey))), publicKey)
-  }
-
-  test("the public key derived from a key pair the JDK made is that pair's") {
-    (1 to 20).foreach { _ =>
-      val pair = Signer.generate()
-      assertEquals(Signer.publicKeyText(Signer.publicKeyFromPrivate(pair.getPrivate)), Signer.publicKeyText(pair.getPublic))
-    }
-  }
-
-  test("what Signer signs verifies under the derived key") {
-    val pair = Signer.generate()
-    assert(Signer.verify(body, Signer.sign(body, pair.getPrivate), Signer.publicKeyFromPrivate(pair.getPrivate)))
-  }

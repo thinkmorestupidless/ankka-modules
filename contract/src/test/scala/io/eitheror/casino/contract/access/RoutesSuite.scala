@@ -53,20 +53,6 @@ class RoutesSuite extends munit.FunSuite:
     assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_spinvibe", "markets")))).asInstanceOf[Outcome.Refused].status, 403)
   }
 
-  test("an installation operator holding the role is served whatever brands they name; without it, or as a player, refused") {
-    val acl = Routes.installationOperatorHolding("games", "platform_admin")(verified)
-    assertEquals(outcome(acl, Request(token = Some(operatorWith("games")))), Outcome.Served)
-    assertEquals(outcome(acl, Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
-    assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_spinvibe", "games")))), Outcome.Served)
-    val refused = outcome(acl, Request(token = Some(operatorWith("brand_goldvibe", "markets")))).asInstanceOf[Outcome.Refused]
-    assertEquals(refused.status, 403)
-    assert(refused.toString.contains("games permission"), refused.toString)
-    val player = outcome(acl, Request(token = Some(playerOf("goldvibe")))).asInstanceOf[Outcome.Refused]
-    assertEquals(player.status, 403)
-    assert(player.toString.contains("wrong_issuer"), player.toString)
-    assertEquals(outcome(acl, Request()).asInstanceOf[Outcome.Refused].status, 401)
-  }
-
   test("staff admits any token of the eitheror realm, and the operator refusal names the brand or the permission as operator does") {
     val acl = Routes.staff(verified)
     assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_goldvibe")))), Outcome.Served)

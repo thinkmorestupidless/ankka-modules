@@ -93,20 +93,6 @@ object Routes:
     refine(authenticate)(operatorRefusal(_, slug, roles*))
 
   /**
-   * A staff token at the `eitheror` realm holding one of `roles`, whatever brands it names: the
-   * operator of something installation-wide, such as the house provider's registry and keys (spec
-   * 026, `games`). Refused `wrong_issuer` from any other realm, and `forbidden`, naming the first
-   * role, when it holds none.
-   */
-  def installationOperatorHolding(roles: String*)(authenticate: => Acl = Oidc.authenticate()): Acl =
-    require(roles.nonEmpty, "a route names the role it needs")
-    refine(authenticate) { p =>
-      if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
-      else if roles.exists(p.roles.contains) then None
-      else Some(s"$Forbidden: the ${roles.head} permission is needed")
-    }
-
-  /**
    * The payments backoffice's privilege table (spec 004 research R10; the original's
    * `PrivilegeCheck.roleLevels`): a role and its level. An operator holds the highest of theirs.
    */
