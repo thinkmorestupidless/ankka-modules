@@ -35,6 +35,10 @@ Feature: A brand runs its core and the modules it is entitled to
     When the modules tool validates a manifest that names a service the contract does not list
     Then the manifest is refused, naming the unknown entry
 
+  Scenario: a module manifest allowing anything to the programme or to a game provider is refused naming the entry
+    When the modules tool validates a manifest that allows a route or a topic to the programme or to a game provider
+    Then the manifest is refused, naming the entry
+
   Scenario: a module manifest carrying a value where a key is expected is refused naming the key
     When the modules tool validates a manifest that carries a value for a configuration key
     Then the manifest is refused, naming the key

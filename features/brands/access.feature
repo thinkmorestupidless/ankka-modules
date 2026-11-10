@@ -62,3 +62,15 @@ Feature: The right person reaches the right brand
     Given brand "goldvibe"
     When it is asked about brand "spinvibe"
     Then it refuses, naming "goldvibe" as the brand it serves
+
+  Scenario: a brand allows nothing to the programme or to a game provider, and neither allows anything to a brand
+    Given brand "goldvibe" with the programme added as a network and a game provider configured
+    When an operator of the installation lists what brand "goldvibe" allows and is allowed
+    Then nothing is allowed to the programme or to the game provider
+    And brand "goldvibe" is allowed nothing of theirs
+
+  Scenario: an allowance the contract does not list is reported naming the brand, who was allowed and what
+    Given brand "goldvibe" allows the programme to read its attribution facts
+    When an operator of the installation checks the brand against the contract
+    Then the allowance is reported naming brand "goldvibe", the programme and the attribution facts
+    And the brand is reported as outside its contract

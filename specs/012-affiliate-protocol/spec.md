@@ -196,7 +196,7 @@ every fact and check all three readers hold the same facts with the same ids.
 
 **Acceptance Scenarios**:
 
-- added `features/attribution/carriers.feature`: the programme reads a fact it was allowed within a minute with its id, kind and protocol version in the open
+- added `features/attribution/carriers.feature`: the programme receives a brand's facts by its network webhook as any network does, signed, within a minute
 - added `features/attribution/carriers.feature`: a network registered as a machine reads the same facts with its own reader and nothing else of the brand's
 - added `features/attribution/carriers.feature`: the feed returns facts from a cursor in the order they were emitted, each page signed by the brand
 - added `features/attribution/carriers.feature`: reading the feed from the same cursor twice returns the same page

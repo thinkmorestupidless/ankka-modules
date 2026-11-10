@@ -95,3 +95,9 @@ Feature: A player launches a game and the game provider opens the session
     Given a player with eligible free rounds for a game
     When the player launches that game naming no free rounds
     Then the oldest eligible free rounds are attached to the launch ticket and echoed back
+
+  Scenario: a game provider is known to a brand only by the name, address and keys its operator configured, wherever the game provider runs
+    Given a second game provider the brand's operator configured with its name, its public address and its keys
+    When a player launches one of that game provider's games
+    Then the game provider is asked to launch it at the public address the operator configured
+    And the brand reads nothing about the game provider from the installation

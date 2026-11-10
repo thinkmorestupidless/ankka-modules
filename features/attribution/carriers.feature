@@ -1,13 +1,20 @@
 Feature: A programme reads a brand's facts
-  The programme, another installation's programme, or a third-party network reads every fact the
-  brand emits, by whichever carrier suits it, and never misses one or reads one twice without being
-  able to tell.
+  The programme, another company's network, or a third-party network reads every fact the brand
+  emits, by the network webhook or the feed, and never misses one or reads one twice without being
+  able to tell. The programme is one network among any: nothing in the installation is allowed to
+  read a brand's facts where the brand keeps them.
 
-  Scenario: the programme reads a fact it was allowed within a minute with its id, kind and protocol version in the open
-    Given the programme is allowed to read the brand's attribution facts
+  Scenario: the programme receives a brand's facts by its network webhook as any network does, signed, within a minute
+    Given the programme added to the brand as a network with a network webhook
     When the brand emits a fact
-    Then the programme reads it within a minute
-    And the fact id, the kind and the protocol version are readable without opening the fact
+    Then the brand posts the fact to the programme's network webhook within a minute
+    And the fact is signed as a fact posted to any network is
+
+  Scenario: nothing in the installation is allowed to read a brand's attribution facts where they are kept
+    Given the programme added to the brand as a network
+    When the programme asks the installation for the brand's attribution facts
+    Then it is refused
+    And the brand allows its attribution facts to nothing in the installation
 
   Scenario: a network registered as a machine reads the same facts with its own reader and nothing else of the brand's
     Given a network registered as a machine and allowed to read the brand's attribution facts

@@ -40,3 +40,9 @@ Feature: The game provider reads a balance or a player profile, or moves money o
     When the game provider credits "15.00" outside any round under transaction id "t6"
     Then a provider credit keyed "t6" is made
     And the balance is answered
+
+  Scenario: an operator lists a brand's open rounds with each round's game, stake and age, and none is closed for its age
+    Given an open round "r1" of a game with a total stake of "5.00" opened "6" days ago
+    When an operator lists the brand's open rounds
+    Then round "r1" is listed with its game provider, its game, its player, a total stake of "5.00" and when it was opened
+    And round "r1" is still open

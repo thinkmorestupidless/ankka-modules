@@ -67,6 +67,13 @@ Feature: A player sets, lowers, raises and removes a limit
     And a bet that would take the week's losses past "500" is refused as "spending_limit" naming the remaining allowance
     And a bet within it is allowed
 
+  Scenario: the stake of a bet in an open round counts towards the loss limit from the moment it is placed until the round settles
+    Given a weekly loss limit of "500"
+    And an open bet of "450" in a round the game provider has not settled
+    When the player places a bet of "100"
+    Then the bet is refused as "spending_limit" naming a remaining allowance of "50"
+    And once the round settles with a win of "450" a bet of "100" is allowed
+
   Scenario: a limit change by the player is recorded in the history and published as a limit applied fact
     Given any limit of the player
     When they change it
