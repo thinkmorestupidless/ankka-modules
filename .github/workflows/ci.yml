@@ -414,6 +414,16 @@ jobs:
       - name: The provider's suites
         working-directory: services/provider
         run: sbt test
+  # A game service in `games` (spec 027 on) copies this job and builds its browser client first
+  # (spec 026 contracts/game-client.md); its parity and feature suites need the built page:
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "22"
+  #         cache: npm
+  #         cache-dependency-path: services/<game>/client/package-lock.json
+  #     - name: The game's browser client
+  #       working-directory: services/<game>/client
+  #       run: npm ci && npm run build
 
   # responsible-gambling (spec 010): its own sbt build against the contract published from this commit;
   # its integration suites start Postgres in Docker.
