@@ -245,7 +245,7 @@ responsible-gambling, and ends the conversation.
 
 **Independent test**: `protections.feature` green.
 
-- [ ] T035 [P] [US3] `T/domain/SofteningSuite.scala`, then `S/domain/Softening.scala`: contracts/tools.md's
+- [X] T035 [P] [US3] `T/domain/SofteningSuite.scala`, then `S/domain/Softening.scala`: contracts/tools.md's
       phrase list, with whole words and any case, applied only to a turn about a break or an
       exclusion.
 - [ ] T036 [US3] `apply_cool_off` and `apply_self_exclusion` in `Tools.scala`, each with one
