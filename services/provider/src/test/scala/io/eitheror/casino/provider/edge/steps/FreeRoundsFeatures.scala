@@ -56,8 +56,9 @@ class FreeRoundsFeatures extends GherkinSuite(s"${sys.props("casino.root")}/feat
   }
 
   Given("a request from the brand to create free rounds on {string}, which no game service registered") { (code: String) =>
-    // Another suite may have registered the code in this JVM: an operator's removal first.
-    kit.testKit.componentClient.forKeyValueEntity(EntityId(code)).call(GameEntity.remove).invoke(): Unit
+    // Another suite may have registered the code in this JVM: an operator's removal first, which
+    // answers not found when none did (the suite run alone).
+    scala.util.Try(kit.testKit.componentClient.forKeyValueEntity(EntityId(code)).call(GameEntity.remove).invoke()): Unit
     request = createBody(code, 1)
   }
 

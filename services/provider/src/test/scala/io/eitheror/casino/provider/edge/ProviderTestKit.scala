@@ -183,10 +183,10 @@ object ProviderTestKit:
 
     /** A launch as the brand makes one: it issues the ticket (unless told not to), then calls launch. */
     def launch(ticket: String, player: String, code: String, funMode: Boolean = false, issue: Boolean = true, site: String = "goldvibe",
-        profile: String = """{"email":"player@example.com","first_name":"Ana"}"""): Answer =
+        profile: String = """{"email":"player@example.com","first_name":"Ana"}""", currency: String = "BRL"): Answer =
       if issue then brand.issue(ticket, player)
       signedPost("/api/operator/v1/launch",
-        s"""{"game_code":"$code","currency":"BRL","token":"$ticket","player":"$player","fun_mode":$funMode,"site":"$site","player_profile":$profile}""")
+        s"""{"game_code":"$code","currency":"$currency","token":"$ticket","player":"$player","fun_mode":$funMode,"site":"$site","player_profile":$profile}""")
 
     def games(site: String = "goldvibe"): Answer = signedGet("/api/operator/v1/games", s"site=$site")
 

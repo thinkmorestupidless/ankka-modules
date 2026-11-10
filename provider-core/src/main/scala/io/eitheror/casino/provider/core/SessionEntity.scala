@@ -22,6 +22,18 @@ final class SessionEntity(context: EventSourcedEntityContext) extends EventSourc
         request.demo, request.language, request.owner))
       .thenReply(identity)
 
+  /**
+   * `launch` once (the house provider, spec 026): a launch repeating the one that made the session
+   * answers it unchanged, so a brand's retried launch is harmless; a launch of the ticket with another
+   * player, currency, game or mode is refused, since the session may already be checked and hold rounds.
+   */
+  def launchOnce(request: SessionEntity.Launch): Effect[Session] =
+    val s = currentState
+    if !s.launched then launch(request)
+    else if (s.brand, s.playerId, s.currency, s.gameCode, s.demo) == (request.brand, request.playerId, request.currency, request.gameCode, request.demo)
+    then effects.reply(s)
+    else effects.error(s"${SessionEntity.TicketUsed}: the ticket was launched with other terms", ErrorCode.Conflict)
+
   def selectScenario(selection: SessionEntity.Selection): Effect[Done] =
     if currentState.checked then
       effects.error(s"scenario_locked: the session's game page has loaded; a scenario is chosen before launch", ErrorCode.Conflict)
@@ -96,6 +108,10 @@ object SessionEntity
   def create(context: EventSourcedEntityContext) = new SessionEntity(context)
 
   val launch         = command("launch")(_.launch)
+  val launchOnce     = command("launch-once")(_.launchOnce)
+
+  /** The refusal of a ticket launched again with other terms. */
+  val TicketUsed = "ticket_used"
   val selectScenario = command("select-scenario")(_.selectScenario)
   val check          = command("record-check")(_.check)
   val plan           = command("plan")(_.plan)

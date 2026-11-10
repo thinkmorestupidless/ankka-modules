@@ -77,12 +77,18 @@ final class OperatorApi(
             case Some(g) =>
               val token = body.string("token")
               // Nothing of `player_profile` is read or kept (data-model, Session).
-              client.forEventSourcedEntity(EntityId(token)).call(SessionEntity.launch).invoke(
-                SessionEntity.Launch(entry.slug, body.string("player"), body.string("currency"), g.code, "default", token, 0L, Wiring.now(),
-                  demo = demo, language = entry.language, owner = g.owner)
-              ): Unit
-              io.eitheror.casino.provider.edge.admin.Metrics.launch(entry.slug, g.code)
-              Http.json(200, GoJson.strings("game_url" -> s"${g.pageAddress}?token=$token"))
+              // Every stake and settle renders the session's currency by its exponent: one contract.money
+              // does not know is refused here, not at the first stake.
+              if !OperatorApi.knownCurrency(body.string("currency")) then refused(OperatorApi.InvalidCurrency)
+              else
+                try
+                  client.forEventSourcedEntity(EntityId(token)).call(SessionEntity.launchOnce).invoke(
+                    SessionEntity.Launch(entry.slug, body.string("player"), body.string("currency"), g.code, "default", token, 0L, Wiring.now(),
+                      demo = demo, language = entry.language, owner = g.owner)
+                  ): Unit
+                  io.eitheror.casino.provider.edge.admin.Metrics.launch(entry.slug, g.code)
+                  Http.json(200, GoJson.strings("game_url" -> s"${g.pageAddress}?token=$token"))
+                catch case e: CommandError if e.message.startsWith(SessionEntity.TicketUsed) => refused(SessionEntity.TicketUsed)
         }
   }
 
@@ -160,7 +166,8 @@ final class OperatorApi(
               try
                 client.forKeyValueEntity(EntityId(bonusId)).call(BonusIndex.put).invoke(BonusRoute(bonusId, entry.slug, g.code, g.owner, Wiring.now())): Unit
                 answered(bonusId, onGame(g.owner, "POST", "/v1/game/bonus", Some(ask)))
-              catch case _: CommandError => refused(OperatorApi.UnknownGame)
+              // A bonus id another brand holds: the stand-in's word for a bonus it cannot take (review nit).
+              catch case _: CommandError => Http.json(200, GoJson.strings("status" -> "error"))
             case _ => refused(OperatorApi.UnknownGame)
         }
   }
@@ -191,6 +198,15 @@ object OperatorApi:
   val AuthFailed  = "auth_failed"
   val UnknownGame = "unknown_game"
   val Unavailable = "unavailable"
+  /** A launch in a currency ISO 4217 does not list (review): refused at launch, before any stake renders it. */
+  val InvalidCurrency = "invalid_currency"
+
+  /**
+   * An ISO 4217 code: `contract.money`'s shape (three capitals) and listed by the JDK's table, whose
+   * exponent `Amounts` renders by. `XXQ` has the shape and is no currency.
+   */
+  def knownCurrency(code: String): Boolean =
+    io.eitheror.casino.contract.money.Currency.from(code).isRight && scala.util.Try(java.util.Currency.getInstance(code)).isSuccess
   /** An entry stating real money that names the key document (FR-020): every launch is refused naming it. */
   val KeyDocumentWithRealMoney = "brand_entry_refused: keyDocument with realMoney"
 

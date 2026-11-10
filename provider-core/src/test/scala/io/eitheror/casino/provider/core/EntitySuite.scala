@@ -154,6 +154,17 @@ class EntitySuite extends munit.FunSuite with LogCapturing:
     assert(guarded(kit, "3", "r1", RoundRole.Cancel).isError)
   }
 
+  test("a repeated launch answers the session unchanged, and one with other terms is refused (review)") {
+    val kit = realMoney()
+    stake(kit, "1", "r1", awaiting = false)
+    val again = kit.call(SessionEntity.launchOnce)(launch.copy(demo = false, owner = "loteca-service"))
+    assertEquals(again.events, Vector.empty)
+    assert(kit.currentState.round("r1").isDefined)
+    val other = kit.call(SessionEntity.launchOnce)(launch.copy(demo = false, currency = "EUR"))
+    assert(other.errorMessage.startsWith(SessionEntity.TicketUsed), other.errorMessage)
+    assertEquals(kit.currentState.currency, "BRL")
+  }
+
   test("the simulator's unguarded plan still sends what a broken provider would") {
     val kit = realMoney()
     stake(kit, "1", "r1", awaiting = false)
