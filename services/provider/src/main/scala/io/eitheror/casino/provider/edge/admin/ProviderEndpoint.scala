@@ -207,7 +207,10 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
         case Some(c) =>
           val abandonment = Abandonment(principal.subject, reason, Wiring.now())
           try
-            try client.forWorkflow(EntityId(callbackId)).call(Deliver.abandon).invoke(abandonment): Unit
+            // An exhausted call's delivery has ended; the record alone is closed (review).
+            if c.outcome == Callback.Exhausted then
+              client.forEventSourcedEntity(EntityId(callbackId)).call(CallbackEntity.abandon).invoke(abandonment): Unit
+            else try client.forWorkflow(EntityId(callbackId)).call(Deliver.abandon).invoke(abandonment): Unit
             catch case e: CommandError if e.code == ErrorCode.NotFound =>
               // No delivery runs for it (a stake waits on its first answer): the record is ended directly.
               client.forEventSourcedEntity(EntityId(callbackId)).call(CallbackEntity.abandon).invoke(abandonment): Unit

@@ -48,7 +48,9 @@ final class CallbackEntity(context: EventSourcedEntityContext) extends EventSour
   def abandon(a: Abandonment): Effect[Callback] =
     if !currentState.scheduled then effects.error("callback not found", ErrorCode.NotFound)
     else if currentState.abandoned.isDefined then effects.reply(currentState)
-    else if Callback.Final.contains(currentState.outcome) then
+    // An exhausted call is closed by an operator's abandonment (FR-021; review): it is the one ended
+    // call left unacknowledged, and the sweep keeps it until someone says why it may go.
+    else if Callback.Final.contains(currentState.outcome) && currentState.outcome != Callback.Exhausted then
       effects.error(s"callback_ended: the callback ended ${currentState.outcome}", ErrorCode.Conflict)
     else effects.persist(AbandonedBy(a)).thenReply(identity)
 

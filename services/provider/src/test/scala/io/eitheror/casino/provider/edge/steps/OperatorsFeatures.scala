@@ -305,6 +305,10 @@ class OperatorsFeatures extends GherkinSuite(s"${sys.props("casino.root")}/featu
   Then("the exhausted credit and its session are kept until an operator abandons it") { () =>
     assert(!gone(unpaid))
     assertEquals(kit.callback(unpaidAt).outcome, Callback.Exhausted)
+    // ... and an operator can abandon it, which records who and why (review).
+    val closed = kit.asStaff("POST", s"/v1/provider/brands/goldvibe/abandon/$unpaidAt", writer, Some("""{"reason":"paid by hand"}"""))
+    assertEquals(closed.status, 200, closed.body)
+    assertEquals(kit.callback(unpaidAt).abandoned.map(_.by), Some(operator))
   }
 
   Then("the session in fun mode is gone") { () =>

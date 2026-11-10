@@ -106,9 +106,17 @@ class EntitySuite extends munit.FunSuite with LogCapturing:
 
   test("a callback that ended cannot be abandoned") {
     val kit = scheduled("c1")
-    kit.call(CallbackEntity.end)(Callback.Exhausted): Unit
+    kit.call(CallbackEntity.end)(Callback.Acknowledged): Unit
     assert(kit.call(CallbackEntity.abandon)(Abandonment("op", "late", 1L)).isError)
-    assertEquals(kit.currentState.outcome, Callback.Exhausted)
+    assertEquals(kit.currentState.outcome, Callback.Acknowledged)
+  }
+
+  test("an exhausted callback is closed by an operator's abandonment, with who and why (review)") {
+    val kit = scheduled("c1")
+    kit.call(CallbackEntity.end)(Callback.Exhausted): Unit
+    val a = Abandonment("operator@goldvibe", "the brand paid it by hand", 9000L)
+    assertEquals(kit.call(CallbackEntity.abandon)(a).replyValue.outcome, Callback.Abandoned)
+    assertEquals(kit.currentState.abandoned, Some(a))
   }
 
   // ---- the round's rules under the entity (spec 026 FR-011; review, blocking 2) ---------------------
