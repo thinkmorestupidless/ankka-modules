@@ -267,6 +267,28 @@ class ContractFeatures extends GherkinSuite(s"${sys.props("casino.root")}/featur
     assertEquals(kit.session(ticket).round(round).map(_.state), Some(Round.Cancelled))
   }
 
+  // ---- a cancel of a pending debit (review, should fix 1) -------------------------------------------
+
+  Given("a debit asked by the game service that is answered pending") { () =>
+    // Every debit late (past the 1 s wait), so the stake stays pending and its delivery keeps retrying.
+    kit.brand.slow("debit", 10, 2500)
+    val staked = game.stake(ticket, round, 100)
+    assertEquals(staked.text("status"), Some("pending"), staked.body.toString)
+    debitTx = staked.text("callbackId").get
+  }
+
+  Then("the debit is retried no more and the cancel is sent naming its transaction id") { () =>
+    // The brand answers promptly again (the delivery was stopped by the cancel), and the scenarios after this one expect it.
+    kit.brand.slow("debit", 0, 0)
+    assertEquals(played.status, 202, played.body.toString)
+    val cancel = kit.eventually()(bodies("cancel").headOption)
+    assertEquals(cancel.get("transaction_id").asText(), debitTx)
+    assertEquals(kit.eventually()(Option(kit.callback(debitTx)).filter(_.outcome == Callback.Abandoned)).outcome, Callback.Abandoned)
+    val debits = kit.brand.requestsTo("debit").size
+    Thread.sleep(3000)
+    assertEquals(kit.brand.requestsTo("debit").size, debits, "a debit was sent after the cancel")
+  }
+
   // ---- demo, another game's session -------------------------------------------------------------
 
   Given("an open session of {string} in fun mode") { (c: String) => opened(c, funMode = true) }

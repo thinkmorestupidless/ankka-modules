@@ -185,6 +185,13 @@ final class GamesEndpoint(client: ComponentClient, clock: () => Instant = () => 
     }
   }
 
+  /** The house provider itself abandons a stake's delivery that a cancel replaces. */
+  private def stopDelivery(callbackId: String): Unit =
+    try
+      client.forWorkflow(EntityId(callbackId)).call(Deliver.abandon)
+        .invoke(Abandonment("provider", "replaced by the game's cancel", Wiring.now())): Unit
+    catch case _: CommandError => ()
+
   private def answered(s: Session, roundId: String, accepted: Boolean): Unit =
     client.forEventSourcedEntity(EntityId(s.launchToken)).call(SessionEntity.answered)
       .invoke(SessionEvent.RoundAnswered(roundId, accepted)): Unit
@@ -215,6 +222,9 @@ final class GamesEndpoint(client: ComponentClient, clock: () => Instant = () => 
           val cancelId = UUID.randomUUID().toString
           val call = Call("cancel", s.walletToken, r.debits.lastOption, Some(roundId), Some(s.currency), None, None, None, Some(cancelId), None, None)
           refusedByRound {
+            // A pending stake's delivery is stopped first, so its debit is not re-sent after the
+            // cancel; a delivery that has ended (answered, exhausted) or never ran is left as it is.
+            if r.state == Round.Pending then r.debits.lastOption.foreach(stopDelivery)
             play.plan(s, call, "stub", None, cancelId, guarded = true): Unit
             deliver(s, cancelId, made = 0, roundId = None)
             Http.json(202, GoJson.strings("status" -> "accepted", "callbackId" -> cancelId, "cancelId" -> cancelId))

@@ -57,6 +57,12 @@ Feature: A game service joins the house provider through one contract
     Then the house provider sends a cancel under a new cancel id naming the debit's transaction id
     And the round is closed as cancelled when the brand acknowledges the cancel
 
+  Scenario: a cancel asked while a debit is pending stops the debit's retries and sends the cancel naming it
+    Given an open session of "loteca" at a brand that does not answer
+    And a debit asked by the game service that is answered pending
+    When the game service asks to cancel the debit
+    Then the debit is retried no more and the cancel is sent naming its transaction id
+
   Scenario: a round asked on a demo session sends no money callback and the game is told so
     Given an open session of "loteca" in fun mode
     When the game service asks for a debit on a round
