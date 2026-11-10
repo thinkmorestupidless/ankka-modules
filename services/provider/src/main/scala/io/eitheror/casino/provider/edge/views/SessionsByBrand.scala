@@ -38,8 +38,9 @@ object SessionsByBrand
 
   /**
    * Sessions launched before the cutoff that sent the brand no money call (fun mode, a launch never
-   * checked or refused at the check): no callback names them, so the run sweep never reaches them
-   * (FR-023). The oldest first, a page at a time.
+   * checked or refused at the check): no money callback names them, so the run sweep may never reach
+   * them (FR-023). A checked session's `check` callback carries no transaction id, so it can outlive
+   * its session by one sweep, which then removes it. The oldest first, a page at a time.
    */
   val silentBefore = query("silent-before")(
     s"""SELECT payload FROM $table

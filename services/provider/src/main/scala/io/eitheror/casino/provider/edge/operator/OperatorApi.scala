@@ -206,7 +206,7 @@ object OperatorApi:
    * exponent `Amounts` renders by. `XXQ` has the shape and is no currency.
    */
   def knownCurrency(code: String): Boolean =
-    io.eitheror.casino.contract.money.Currency.from(code).isRight && scala.util.Try(java.util.Currency.getInstance(code)).isSuccess
+    io.eitheror.casino.contract.money.Currency.from(code).isRight && scala.util.Try(java.util.Currency.getInstance(code).getDefaultFractionDigits).toOption.exists(_ >= 0)
   /** An entry stating real money that names the key document (FR-020): every launch is refused naming it. */
   val KeyDocumentWithRealMoney = "brand_entry_refused: keyDocument with realMoney"
 
