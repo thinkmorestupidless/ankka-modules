@@ -287,3 +287,229 @@ Tests: not run, at the caller's instruction (sbt suites take minutes and need Do
 records the runs in research T060. Every finding above was confirmed by reading the code, except
 the brand-side half of the cancel-while-pending finding and the multi-replica finding, which need
 spec 003's cancel semantics and the deployment's instance count to settle.
+
+## Second round
+
+# Review: 026 games — the fixes for the first round (7e28f60d...HEAD)
+
+**Verdict:** Approve with comments. The two blocking findings are fixed in the entity, where they
+belong. Three of the should-fix findings below are expected before merge: the brand-table refresh
+that runs on one instance only, the window between `planGuarded` and `schedule`, and the spec's
+edge case that still contradicts the export decision. The rest are optional.
+**What it does:** It answers the first round. The session now holds a round's rules
+(`SessionEntity.planGuarded`) and its owner at launch. A pending debit's delivery is abandoned
+before the debit is cancelled. The day export carries `settlement`. The sweep keeps exhausted
+calls and sweeps sessions that never made a money call. The brand cache is re-read on the wake.
+A launch refuses an unknown currency and a reused ticket. The withdrawn key's private half is
+deleted. The P-256 derivation copy and the unused ACL are gone. Spin values and the registration
+probe are struck from the spec.
+**Should it exist:** yes. Each commit answers one finding and names it.
+**Read:** In full, the range's diff: `Play`, `Session`, `SessionEntity`, `CallbackEntity`, `Sweep`
+(whole file), `Keys`, `Signer`, `GamesEndpoint`, `OperatorApi`, `ProviderEndpoint` (the diff and
+lines 30–75 and 196–228), `SessionsByBrand`, `Main`, the `Routes` and `RoutesSuite` deletions, every
+test diff (`EntitySuite`, `LaunchSuite`, `BrandCacheSuite`, `ContractFeatures`, `OperatorsFeatures`,
+`KeysFeatures`, `FreeRoundsFeatures`, `ProviderTestKit`), both feature files, the spec, plan,
+contracts, README and research diffs. Outside the diff I opened `Session.onPlanned`/`onAnswered`,
+`CallbackEntity` whole (`schedule` is idempotent and `AbandonedBy` sets the outcome),
+`Callback.Final`, `RunCallbacks.endedBefore`, `Amounts.exponent`, `St8Protocol.check`, the check
+route (`GamesEndpoint:106-125`), `ProviderTestKit.schedule`, `St8Signature.publicKeyOf`, and
+ankka's timer documentation (`docs/build/timers.md`, `docs/reference/glossary.md` in the local
+ankka checkout, which is at 0.16).
+**Size:** 33 files, +854 −166, of which 289 lines are the first-round report. That leaves about 560
+lines of code and spec. Each commit is one finding, so no split is asked for.
+
+## Blocking
+
+None.
+
+## Should fix
+
+- `provider-core/src/main/scala/io/eitheror/casino/provider/core/Sweep.scala:78-81` with
+  `services/provider/README.md:91-92` and `contracts/brand-entry.md:34` — issue (non-blocking): the
+  brand-table refresh runs on one instance, not on every replica. `wake-deliveries` is a named,
+  database-backed recurring timer. ankka's timer page says "One instance of the service runs a
+  sweeper, as a cluster singleton", and the glossary adds "singletons such as the timer sweeper run
+  on exactly one". So `Sweep.onWake = cache.refresh` refreshes only the instance that fires the
+  timer. The other replicas keep their stale copy until they restart, which is the problem first
+  raised in round one. The README and the brand-entry contract now promise "within 30 s at every
+  other". `BrandCacheSuite`'s new test calls `onWake` by hand in one JVM, so it cannot catch this.
+  I read the current ankka docs (0.16); that the 0.13 runtime the provider is on works the same is
+  my inference, though the sweeper has always run as a singleton.
+  Suggestion: refresh in-process on every instance, outside the timer. A scheduled executor in
+  `Provider` started with the cache (and stopped on shutdown) is enough. Or read through to
+  `BrandEntryEntity` on a cache miss and on a signature failure. Or pin the provider to one
+  instance and say so in the manifest and README. Then correct the two documents.
+  Resolved: each process refreshes its own copy every 30 s on a daemon thread (`BrandCache.refreshEvery`, started by `Provider.prepare`); `Sweep.onWake` is gone from the library; the test runs two copies with their own refresh and sees another replica's write in both; the README and the brand-entry contract name the mechanism, 6487b4de.
+
+- `provider-core/src/main/scala/io/eitheror/casino/provider/core/Play.scala:57-64` — issue
+  (non-blocking): the guarded order leaves a credit planned with no record of the call when
+  `schedule` fails after `planGuarded`. `planGuarded` persists `CallbackPlanned`, so a settle has
+  already moved the round to `won`/`lost`. If `CallbackEntity.schedule` then throws (a timeout, a
+  restart mid-request), the game gets a 500. No `Callback` exists, no `Deliver` starts, and
+  `RunCallbacks` lists nothing for an operator to see. A retried settle is refused `round_not_open`.
+  The winnings are never sent, and nothing in the provider marks them as unsent. A stake fails the
+  same way, less harmfully: its round is stuck `pending` with no debit sent. The first-round
+  suggestion asked for this order, and its cost was mine to point out. `CallbackEntity.schedule` is
+  already idempotent (`if currentState.scheduled then reply(Done)`), so the safer order is
+  available. Suggestion: schedule first, then `planGuarded`. On the entity's refusal, end the
+  scheduled callback (`CallbackEntity.end(Callback.Refused)`, or discard it) before answering 409. A
+  failure between the two calls then leaves a scheduled, visible, abandonable call instead of an
+  invisible planned credit. Add an entity or kit row that refuses a guarded plan and asserts that
+  the callback did not stay pending.
+  Resolved: the suggested order. `Play.plan` schedules the callback first, then `planGuarded`; on the session's refusal the callback is discarded before the 409, so a failure between the two leaves a visible, abandonable call; the pending-debit step asserts a refused settle leaves no credit on the run, b6aadc5c.
+
+- `specs/026-games-provider/spec.md:268-271` — issue (non-blocking): the export resolution chose to
+  "keep the state as is and say so in the spec", but the spec still says the opposite. The *Edge
+  cases* line for a credit refused until the schedule is exhausted still reads "the round stays
+  open at the provider". `Session.onPlanned` moves the round to `won`/`lost` when the credit is
+  planned, and the export now relies on that. Suggestion: rewrite the line. The round reads
+  `won`/`lost` at the provider once the credit is planned. Whether the brand paid is the credit's
+  outcome (`exhausted`), shown in the round read and in the export's `settlement`, and the call is
+  kept past the retention until an operator abandons it.
+  Resolved: the edge case now says the round reads `won` or `lost` once the credit is planned, whether the brand paid is the credit's outcome (`exhausted`) in the round read and the export's `settlement`, and the call is kept past the retention until an operator abandons it, 0a394005.
+
+- `services/provider/src/main/scala/io/eitheror/casino/provider/edge/admin/ProviderEndpoint.scala:41-55`
+  — todo: nothing tests the `platform_admin` decision. No test or feature in `services/provider`
+  mentions `platform_admin`. A later edit that adds `"platform_admin"` to an `asInstallationOperator()`
+  call, or removes it from `GET /brands`, would pass every suite. Suggestion: one test with a
+  `platform_admin` staff token. `GET /brands` answers 200. `POST /keys/start`,
+  `DELETE /registry/{code}` and `PUT /brands/{slug}` answer 403.
+  Resolved: `RolesSuite`: a `platform_admin` token reads `GET /brands` (200) and is refused the key rotation, the keys, the registry, a game's removal and a brand write (403), 0f0d33ba.
+
+- `services/provider/src/main/scala/io/eitheror/casino/provider/edge/admin/ProviderEndpoint.scala:234-237`
+  — suggestion (if-minor): `settlement` makes one `CallbackEntity.get` per exported round. The day
+  export is a single request, so a brand with tens of thousands of rounds a day makes as many
+  entity calls in it. `RunCallbacks` already holds each callback's `outcome` by run. Suggestion: one
+  `RunCallbacks.byRun` read per session in `settledBetween` (a session is one run), with outcomes
+  looked up by callback id from that.
+  Resolved: `settlement` reads `RunCallbacks.byRun` once per exported session and looks each round's call up by id, 0a394005.
+
+- `services/provider/src/test/scala/io/eitheror/casino/provider/edge/steps/OperatorsFeatures.scala:204`
+  — suggestion (if-minor): the export's `settlement` is asserted as `acknowledged` or `pending`, and
+  no test exports a round whose credit was exhausted or refused. That second case is why the field
+  exists. A `settlement` stuck at `pending` for every round would pass. Suggestion: in the
+  exhausted-credit sweep scenario, or a row of its own, export the day and assert
+  `"settlement":"exhausted"` for that round, and `acknowledged` for a round whose credit the brand
+  answered.
+  Resolved: the exhausted-credit scenario exports the round's day and asserts `settlement` `exhausted` for it, 0a394005.
+
+## Nits
+
+- `services/provider/src/main/scala/io/eitheror/casino/provider/edge/admin/ProviderEndpoint.scala:232-234,334-344`
+  — nitpick (non-blocking): two stacked scaladoc blocks. `settlement` was inserted under
+  `settledBetween`'s doc ("Every session of `slug`…"), so that doc now heads the wrong method, and
+  `exportJson` carries its old doc and the new one. Move the first block back above
+  `settledBetween` and merge the two above `exportJson`.
+  Resolved: the two docs are merged above `exportJson`, and `settledBetween`'s is back above it, 0a394005.
+- `services/provider/src/test/scala/io/eitheror/casino/provider/edge/steps/ContractFeatures.scala:288`
+  — nitpick (non-blocking): `Thread.sleep(3000)` to show that no debit follows the cancel. With the
+  kit's 300 ms schedule and 1 s answer wait, three seconds covers two retries, so the assertion can
+  fail as it should. Still, it adds three seconds to every run. A wait expressed in schedule
+  periods, read from `ProviderTestKit.schedule`, would say why it is three seconds.
+  Left: nit.
+- `services/provider/src/main/scala/io/eitheror/casino/provider/edge/views/SessionsByBrand.scala:39-56`
+  — nitpick (non-blocking): the doc says no callback names a session with an empty `sent`. A
+  checked session that never staked does have one: its `check` goes through `play.send`, and since a
+  check has no transaction id `sent` stays empty. `alsoSweep` can then discard such a session
+  launched just before the cutoff while its check callback, answered after the cutoff, stays. The
+  next sweep removes the callback, and `SessionEntity.discard` on the deleted session answers
+  `Done`. So this is harmless, but "a run is swept whole" is briefly untrue. Correct the comment,
+  or add `AND NOT EXISTS` a `RunCallbacks` row for the run.
+  Resolved: the comment now says a check callback can outlive its session by one sweep, which removes it, 0f0d33ba.
+- `services/provider/src/main/scala/io/eitheror/casino/provider/edge/operator/OperatorApi.scala:208`
+  — nitpick (non-blocking): `java.util.Currency.getInstance` also lists `XAU`, `XXX`, `XTS` and the
+  other funds and metals, whose fraction digits are −1. `Amounts.exponent` falls back to 2 for those,
+  so nothing breaks, but a brand can launch in gold. `getDefaultFractionDigits >= 0` in
+  `knownCurrency` would refuse them.
+  Resolved: `knownCurrency` requires a fraction-digit count of zero or more, so the metals and funds codes are refused, 0f0d33ba.
+
+## Questions
+
+- `services/provider/src/main/scala/io/eitheror/casino/provider/edge/games/GamesEndpoint.scala:189-193,227`
+  — question: abandoning the stake's `Deliver` stops further attempts, but an attempt already in
+  flight when the cancel is planned can still reach the brand after the cancel. The new scenario
+  asserts the provider's side (no debit sent after the cancel, the stake abandoned). It does not
+  assert the brand's balance after the brand recovers, which was the round-one row's point. Does
+  spec 003's brand refuse a debit whose transaction a cancel already named (a tombstone)? An answer
+  citing the 003 requirement, or a brand-balance assertion in the scenario, settles it.
+  Answered: no. Spec 003 keeps no tombstone: a cancel naming a transaction the brand never recorded is answered `transaction_not_found` (spec 003 User Story 3, `features/game-provider/cancels.feature`), and a debit landing after it is applied. So an attempt already in flight when the cancel goes can still charge the player for a round the provider cancelled. ST8 has the same race against this brand. Closing it is the brand's (a cancel recorded as a tombstone that a later debit of the same transaction is refused against), so it is an amendment to spec 003, raised with the pull request, not a change on this branch.
+
+## Praise
+
+- `provider-core/src/main/scala/io/eitheror/casino/provider/core/Session.scala:61-71` — praise:
+  `Session.refusal` is a pure function of the state and the role. The entity applies it, and
+  `EntitySuite` proves the race sequentially (two credits, two stakes, two cancels) with no
+  concurrency in the test, which is the cheapest proof that holds.
+- `services/provider/src/test/scala/io/eitheror/casino/provider/edge/steps/ContractFeatures.scala:333-346`
+  — praise: the deregistration scenario puts the code back with its first owner before asserting.
+  A failure cannot cascade into the later scenarios, and the comment says so.
+- `provider-core/src/main/scala/io/eitheror/casino/provider/core/SessionEntity.scala:25-35` —
+  praise: `launchOnce` keeps `launch` for the simulator and adds the guard beside it. The "out of
+  scope" note from round one stays a decision for spec 020, as it should.
+
+## First-round resolutions
+
+- Blocking 1 (session held to its game's current owner): **holds**. `Session.owner` is recorded at
+  launch and `ownedBy` admits by it, falling back for older sessions. The new scenario settles after
+  deregistration and refuses the new owner with 403.
+- Blocking 2 (check-then-act on round rules): **holds**. `planGuarded` refuses under the entity's
+  serialisation, `refusedByRound` answers 409 with the word, and the simulator keeps `plan`. The
+  ordering it introduced has a failure window, raised above under Should fix.
+- Should fix, cancel of a pending debit: **holds** for the provider's half. `stopDelivery` abandons
+  the stake's `Deliver` before the cancel is planned, and the scenario shows no debit after it. The
+  brand's half is still the open question above.
+- Should fix, credit settled at plan, not at acknowledgement: **does not hold in full**. The
+  export's `settlement` is implemented and documented in the routes contract, but the spec's edge
+  case still says the round stays open (Should fix above).
+- Should fix, retention of unpaid winnings and silent sessions: **holds**. `keepExhausted` keeps
+  any run with an exhausted call. `AbandonedBy` moves the outcome to `abandoned`, so an operator's
+  close releases it, and `alsoSweep` sweeps sessions with no money call (one comment
+  inaccuracy, Nits).
+- Should fix, process-local brand cache: **does not hold**. The refresh rides a timer that fires on
+  one instance (Should fix above).
+- Should fix, `GET /callbacks/{id}` 500: **holds**.
+- Should fix, unchecked launch inputs: **holds**. `invalid_currency` comes before any session, and
+  `launchOnce` answers an identical repeat or `ticket_used`. `LaunchSuite` covers both. The metals
+  are a nit.
+- Should fix, duplicated P-256 derivation: **holds**. The library copy and its tests are deleted,
+  and `St8Signature.publicKeyOf` is the only one left.
+- Should fix, `platform_admin` and the unused ACL: **holds**. The code matches the decision
+  (`games` everywhere, `platform_admin` on `GET /brands` only), and `installationOperatorHolding`
+  and its test are gone. No test pins it (Should fix above).
+- Should fix, claims with no hunk (spin values, the retried-debit difference, the registration
+  probe): **holds**. All three are struck or reworded as the decisions record. FR-003 and FR-014 and
+  *Out of scope* agree.
+- Should fix, withdrawn private key kept: **holds**. `withdrawForGood` deletes `keys/<old>/private`,
+  and `KeysFeatures` asserts the private half is gone and the public half stays.
+- Nit, bonus id held by another brand: **holds**. It answers `{"status":"error"}`, covered by
+  `LaunchSuite`.
+- Nits left (the `@volatile` holders, the fully-qualified names, the partial accessors): left as
+  stated. That is acceptable for nits.
+- Question, durable pauses: **answered**. ankka #160 in 0.14 is a named owner and end for the
+  wake.
+- Question, abandoning an exhausted callback: **holds**. `CallbackEntity.abandon` admits
+  `Exhausted`, the route closes the record directly, and an entity row and the operators step cover
+  it.
+- Question, metrics scraping: **holds**. The README says scraping is not set up and why.
+- Question, `Caller.Local` and thought on view indexes: **answered**. Nothing to verify in this
+  range.
+
+## Checks applied
+
+General checklist groups applied: Correctness, Design and scope, Error handling, Concurrency and
+state (the guarded plan, the cancel and delivery race, the per-process cache), Security (the ACL
+narrowing, the key deletion), Data and migrations (new fields `owner` on `Launched`, `Launch` and
+`Session` default to `""`; new command wire names `launch-once` and `plan-guarded` are additive),
+Performance, Tests, Observability, API and compatibility (the export gains a field; `Routes` loses a
+public method that had no caller outside this branch), Documentation, Commit and PR hygiene
+(conventional `type(026):` headers, each naming the finding it resolves, trailers present). Skipped:
+Dependencies and build (no dependency or build change). Language skill: `pr-review-scala` (bundled;
+no repository override). Applied: concurrency and actors (entity rules under serialisation, fold
+purity of `onPlanned`), serialization and versioning, types and totality (`RoundRole.valueOf` is
+fed `role.toString` only), error handling (`NonFatal` in the wake, `CommandError` narrowed by
+prefix), collections, tests, API design, idioms. Skipped: what `-Wunused:all -deprecation -feature`
+owns. Project rules: `CLAUDE.md` (repository and brain) and the 2026-11-10 decisions in research
+*Found during implementation*, judged for conformance only. `specs/026-games-provider/REVIEW.md` is
+not a checklist file; the summary picked up this report. Tests: not run, at the caller's
+instruction (another process holds the build). The single-instance timer finding rests on ankka's
+documentation, not on a run.
