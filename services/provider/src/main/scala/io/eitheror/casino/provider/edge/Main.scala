@@ -58,6 +58,9 @@ object Provider:
     Deliver.schedule = settings.schedule
     Sweep.retention = settings.retentionDays.days
     Sweep.views = Some(service.viewClient)
+    // An exhausted credit is unpaid winnings: kept until an operator abandons it; and sessions that sent no money call are swept by launch (review).
+    Sweep.keepExhausted = true
+    Sweep.alsoSweep = io.eitheror.casino.provider.edge.views.SessionsByBrand.sweep
     ring
 
   /**

@@ -24,12 +24,24 @@ object Sweep:
   /** Told how many runs a sweep discarded, when any: the simulator counts them on its status. */
   @volatile var onSwept: (ComponentClient, Int) => Unit = (_, _) => ()
 
+  /**
+   * Whether a run holding an exhausted callback is kept past the retention (the house provider,
+   * spec 026): an exhausted credit is winnings the brand never acknowledged, and the provider's
+   * record is the only one, so it stays until an operator abandons it. The simulator's scenarios
+   * exhaust callbacks on purpose and sweep them.
+   */
+  @volatile var keepExhausted: Boolean = false
+
+  /** Further records the sweep discards at the same cutoff, answering how many (the house provider's sessions that sent no callback). */
+  @volatile var alsoSweep: (ComponentClient, ViewClient, Long) => Int = (_, _, _) => 0
+
   /** Discards every run that ended before `cutoff`; answers how many runs. */
   def run(client: ComponentClient, views: ViewClient, cutoff: Long): Int =
     val rows = views.forView(RunCallbacks).ask(RunCallbacks.endedBefore, 1000, "cutoff" -> cutoff.toString)
     // A run is swept whole: only runs none of whose callbacks is newer than the cutoff.
     val runs = rows.map(_.runId).distinct.filter { run =>
-      views.forView(RunCallbacks).ask(RunCallbacks.byRun, 1000, "run" -> run, "after_at" -> "-1", "after_id" -> "").forall(_.lastAnsweredAt < cutoff)
+      val held = views.forView(RunCallbacks).ask(RunCallbacks.byRun, 1000, "run" -> run, "after_at" -> "-1", "after_id" -> "")
+      held.forall(_.lastAnsweredAt < cutoff) && !(keepExhausted && held.exists(_.outcome == Callback.Exhausted))
     }
     runs.foreach { run =>
       val callbacks = views.forView(RunCallbacks).ask(RunCallbacks.byRun, 1000, "run" -> run, "after_at" -> "-1", "after_id" -> "")
@@ -53,7 +65,11 @@ object Sweep:
 
 final class SweepAction(context: TimedActionContext) extends TimedAction:
   def sweep: Effect =
-    Sweep.views.foreach(v => Sweep.run(context.componentClient, v, Wiring.now() - Sweep.retention.toMillis))
+    Sweep.views.foreach { v =>
+      val cutoff = Wiring.now() - Sweep.retention.toMillis
+      Sweep.run(context.componentClient, v, cutoff)
+      Sweep.alsoSweep(context.componentClient, v, cutoff): Unit
+    }
     effects.done()
 
   def wake: Effect =

@@ -38,3 +38,9 @@ Feature: Operators see what the house provider sent and what the brands answered
     When the sweep runs
     Then the round, its session and its provider calls are gone
     And a younger round is untouched
+
+  Scenario: after the retention a credit the brand never acknowledged is kept, and a session that sent the brand nothing is swept
+    Given a round whose credit was exhausted and a session in fun mode, both older than the installation's retention for the house provider
+    When the sweep runs
+    Then the exhausted credit and its session are kept until an operator abandons it
+    And the session in fun mode is gone

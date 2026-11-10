@@ -36,6 +36,24 @@ object SessionsByBrand
        |ORDER BY (payload::jsonb->>'launchedAt')::bigint, payload::jsonb->>'launchToken'""".stripMargin
   )
 
+  /**
+   * Sessions launched before the cutoff that sent the brand no money call (fun mode, a launch never
+   * checked or refused at the check): no callback names them, so the run sweep never reaches them
+   * (FR-023). The oldest first, a page at a time.
+   */
+  val silentBefore = query("silent-before")(
+    s"""SELECT payload FROM $table
+       |WHERE (payload::jsonb->>'launchedAt')::bigint < (:cutoff)::bigint
+       |  AND jsonb_array_length(payload::jsonb->'sent') = 0
+       |ORDER BY (payload::jsonb->>'launchedAt')::bigint""".stripMargin
+  )
+
+  /** Discards the sessions `silentBefore` lists; answers how many. */
+  def sweep(client: ComponentClient, views: com.thinkmorestupidless.ankka.runtime.ViewClient, cutoff: Long): Int =
+    val silent = views.forView(SessionsByBrand).ask(silentBefore, 1000, "cutoff" -> cutoff.toString)
+    silent.foreach(s => client.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId(s.launchToken)).call(SessionEntity.discard).invoke(): Unit)
+    silent.size
+
   /** The cursor after `s`, as `byBrand` reads it. */
   def cursorAfter(s: Session): String = s"${s.launchedAt}:${s.launchToken}"
 

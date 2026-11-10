@@ -265,12 +265,51 @@ class OperatorsFeatures extends GherkinSuite(s"${sys.props("casino.root")}/featu
     round(young, py, "r-young")
   }
 
-  When("the sweep runs") { () =>
-    // As the timer runs it, until the old session is gone (the run view catches up between runs).
-    kit.eventually(60.seconds) {
-      Sweep.run(kit.testKit.componentClient, Sweep.views.get, Wiring.now() - Sweep.retention.toMillis): Unit
-      Option.when(gone(old))(())
+  private var unpaid   = ""
+  private var unpaidAt = ""
+  private var demo     = ""
+
+  Given("a round whose credit was exhausted and a session in fun mode, both older than the installation's retention for the house provider") { () =>
+    val (u, pu) = fresh("unpaid")
+    unpaid = u
+    unpaidAt = round(unpaid, pu, "r-unpaid")
+    // As the schedule's end would leave it: the brand never acknowledged it (the record moves straight there).
+    kit.testKit.componentClient.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId(unpaidAt))
+      .call(io.eitheror.casino.provider.core.CallbackEntity.end).invoke(Callback.Exhausted): Unit
+    val (d, pd) = fresh("demo")
+    demo = d
+    assert(kit.launch(demo, pd, "test-slot", true).json.has("game_url"))
+    kit.eventually() {
+      Option(Sweep.views.get.forView(io.eitheror.casino.provider.core.RunCallbacks)
+        .ask(io.eitheror.casino.provider.core.RunCallbacks.byRun, 100, "run" -> unpaid, "after_at" -> "-1", "after_id" -> ""))
+        .filter(_.exists(r => r.callbackId == unpaidAt && r.outcome == Callback.Exhausted))
     }: Unit
+    kit.eventually() {
+      Option(Sweep.views.get.forView(io.eitheror.casino.provider.edge.views.SessionsByBrand)
+        .ask(io.eitheror.casino.provider.edge.views.SessionsByBrand.byBrand, 1000, "brand" -> "goldvibe", "after_at" -> "-1", "after_id" -> ""))
+        .filter(_.exists(_.launchToken == demo))
+    }: Unit
+    kit.offset += (Sweep.retention + 1.day).toMillis
+  }
+
+  When("the sweep runs") { () =>
+    // As the timer runs it (both passes), until what it may discard is gone (the views catch up between runs).
+    kit.eventually(60.seconds) {
+      val cutoff = Wiring.now() - Sweep.retention.toMillis
+      Sweep.run(kit.testKit.componentClient, Sweep.views.get, cutoff): Unit
+      Sweep.alsoSweep(kit.testKit.componentClient, Sweep.views.get, cutoff): Unit
+      Option.when((old.isEmpty || gone(old)) && (demo.isEmpty || gone(demo)))(())
+    }: Unit
+  }
+
+  Then("the exhausted credit and its session are kept until an operator abandons it") { () =>
+    assert(!gone(unpaid))
+    assertEquals(kit.callback(unpaidAt).outcome, Callback.Exhausted)
+  }
+
+  Then("the session in fun mode is gone") { () =>
+    assert(gone(demo))
+    old = ""; demo = ""
   }
 
   Then("the round, its session and its provider calls are gone") { () =>
