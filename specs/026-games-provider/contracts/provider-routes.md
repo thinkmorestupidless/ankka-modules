@@ -1,6 +1,6 @@
 # Contract: the provider's routes and their classes (FR-024, research R8)
 
-Six endpoints at six prefixes; no two share a prefix; at most two path parameters.
+Five endpoints at five prefixes; no two share a prefix; at most two path parameters.
 
 ## `/api/operator/v1` — public, brand-signed (research R5)
 

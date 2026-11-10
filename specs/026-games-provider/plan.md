@@ -45,7 +45,7 @@ the gateway; local mode on a laptop beside a brand.
 loses nothing (SC-004); the retry schedule's cap of 8 hours.
 
 **Constraints**: no key, address or scenario reachable from a game service; no personal field
-beyond the player id and currency; no grant under ankka 040; six endpoints at distinct
+beyond the player id and currency; no grant under ankka 040; five endpoints at distinct
 prefixes with at most two path parameters.
 
 **Scale/Scope**: a handful of brands on one installation; rounds that stay open for days (a pools
