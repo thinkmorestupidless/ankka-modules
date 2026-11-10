@@ -43,9 +43,6 @@ abstract class SupportFeatures(file: String) extends GherkinSuite(s"../../featur
     kit.configure(): Unit
   }
 
-/** features/support-agent/protections.feature (US3). */
-class ProtectionsFeatures extends SupportFeatures("protections.feature")
-
 /** features/support-agent/conversations.feature (US4). */
 class ConversationsFeatures extends SupportFeatures("conversations.feature")
 

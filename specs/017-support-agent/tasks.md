@@ -254,7 +254,7 @@ responsible-gambling, and ends the conversation.
       reject cases.
 - [X] T037 [US3] The ended conversation: the chat route answers 409 `conversation_ended` with the
       closing message, and the break's end lifts it. Covered in `ChatSuite`.
-- [ ] T038 [US3] Bind `protections.feature`'s five scenarios (the softening one needs T047's
+- [X] T038 [US3] Bind `protections.feature`'s five scenarios (the softening one needs T047's
       guardrail wiring; bind it there). The rest are green.
 
 ## Phase 6: User Story 4 — durable, bounded, forgotten (P2)
