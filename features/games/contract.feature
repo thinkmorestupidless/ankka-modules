@@ -69,6 +69,13 @@ Feature: A game service joins the house provider through one contract
     Then the house provider refuses it
     And nothing is sent
 
+  Scenario: a round open when its game is deregistered is still settled by that game service, and a game service that registers the freed code is refused on it
+    Given a round of "loteca" opened by a debit the brand answered "ok"
+    And "loteca" is then deregistered by its game service and registered by another game service
+    When the game service asks for a credit of "300" minor units on the round
+    Then the house provider accepts it at once and sends one signed credit of "3.00"
+    And the other game service is refused on that session
+
   Scenario: a game stays registered until its game service deregisters it or an operator removes it, and a game service that is down leaves its games listed
     Given a game service that registered "loteca" and is then down
     When the brand asks for the list of games

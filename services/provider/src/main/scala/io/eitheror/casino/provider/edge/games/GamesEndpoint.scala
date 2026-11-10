@@ -69,12 +69,28 @@ final class GamesEndpoint(client: ComponentClient, clock: () => Instant = () => 
 
   // ---- sessions (T024) ------------------------------------------------------------------------
 
-  /** The session a route names, held to its game's owner: 404 for a token no session holds, 403 for another game's. */
+  /**
+   * The session a route names, held to the game service that owned its code at launch: 404 for a
+   * token no session holds, 403 for another game's. The owner is the session's own, so a code
+   * deregistered or removed while a session is open keeps that session served by its owner, and a
+   * service that registers the freed code is not admitted to it (contracts/game-contract.md). A
+   * session launched before the owner was recorded falls back to the code's current owner.
+   */
   private def owned(token: String)(f: Session => Http.Answer): Http.Answer =
     play.session(token).filter(_.launched) match
       case None => Http.error(404, "session not found")
-      case Some(s) if !game(s.gameCode).exists(_.owner == owner) => Http.error(403, s"forbidden: the session is not a game of $owner")
+      case Some(s) if !ownedBy(s) => Http.error(403, s"forbidden: the session is not a game of $owner")
       case Some(s) => f(s)
+
+  private def ownedBy(s: Session): Boolean =
+    if s.owner.nonEmpty then s.owner == owner else game(s.gameCode).exists(_.owner == owner)
+
+  /** A guarded plan the session refused under its round's rule: the contract's 409 with the rule's word. */
+  private def refusedByRound[A](body: => Http.Answer): Http.Answer =
+    try body
+    catch
+      case e: CommandError if Session.Refusal.All.exists(w => e.message.startsWith(w + ":")) =>
+        Http.json(409, GoJson.strings("error" -> e.message.takeWhile(_ != ':')))
 
   private def sessionJson(s: Session, withRounds: Boolean): GoJson.Value =
     val base = Vector(
@@ -151,19 +167,21 @@ final class GamesEndpoint(client: ComponentClient, clock: () => Instant = () => 
           val onWire = if kind == "free_debit" then wire(0, s) else wire(amount, s)
           val tx     = UUID.randomUUID().toString
           val call   = Call("debit", s.walletToken, Some(tx), Some(roundId), Some(s.currency), Some(onWire), Some(kind), Some(s.gameCode), None, None, None)
-          val sent   = play.send(s, call, "stub", "current", Wiring.brands.answerWait(s.brand), None, callbackId = tx, awaitingAnswer = true)
-          sent.reading match
-            case Some(r) if Wiring.protocol.accepted(r) =>
-              play.end(tx, Callback.Acknowledged)
-              answered(s, roundId, accepted = true)
-              Http.json(200, Obj(Vector("status" -> Str(St8Protocol.Words.Ok), "callbackId" -> Str(tx)) ++ balanceJson(r.balance, s)))
-            case Some(r) if r.malformedBody || !r.retryable =>
-              play.end(tx, Callback.Refused)
-              answered(s, roundId, accepted = false)
-              Http.json(200, Obj(Vector("status" -> Str(r.status.getOrElse(Callback.Refused)), "callbackId" -> Str(tx)) ++ balanceJson(r.balance, s)))
-            case _ =>
-              deliver(s, tx, made = 1, roundId = Some(roundId))
-              Http.json(202, GoJson.strings("status" -> Callback.Pending, "callbackId" -> tx))
+          refusedByRound {
+            val sent = play.send(s, call, "stub", "current", Wiring.brands.answerWait(s.brand), None, callbackId = tx, awaitingAnswer = true, guarded = true)
+            sent.reading match
+              case Some(r) if Wiring.protocol.accepted(r) =>
+                play.end(tx, Callback.Acknowledged)
+                answered(s, roundId, accepted = true)
+                Http.json(200, Obj(Vector("status" -> Str(St8Protocol.Words.Ok), "callbackId" -> Str(tx)) ++ balanceJson(r.balance, s)))
+              case Some(r) if r.malformedBody || !r.retryable =>
+                play.end(tx, Callback.Refused)
+                answered(s, roundId, accepted = false)
+                Http.json(200, Obj(Vector("status" -> Str(r.status.getOrElse(Callback.Refused)), "callbackId" -> Str(tx)) ++ balanceJson(r.balance, s)))
+              case _ =>
+                deliver(s, tx, made = 1, roundId = Some(roundId))
+                Http.json(202, GoJson.strings("status" -> Callback.Pending, "callbackId" -> tx))
+          }
     }
   }
 
@@ -181,9 +199,11 @@ final class GamesEndpoint(client: ComponentClient, clock: () => Instant = () => 
             case Some(Round.Open) if !s.demo =>
               val tx   = UUID.randomUUID().toString
               val call = Call("credit", s.walletToken, Some(tx), Some(roundId), Some(s.currency), Some(wire(amount, s)), Some("credit"), Some(s.gameCode), None, None, None)
-              play.plan(s, call, "stub", None, tx): Unit
-              deliver(s, tx, made = 0, roundId = None)
-              Http.json(202, GoJson.strings("status" -> "accepted", "callbackId" -> tx))
+              refusedByRound {
+                play.plan(s, call, "stub", None, tx, guarded = true): Unit
+                deliver(s, tx, made = 0, roundId = None)
+                Http.json(202, GoJson.strings("status" -> "accepted", "callbackId" -> tx))
+              }
             case _ => Http.json(409, GoJson.strings("error" -> "round_not_open"))
     }
   }
@@ -194,18 +214,22 @@ final class GamesEndpoint(client: ComponentClient, clock: () => Instant = () => 
         case Some(r) if !s.demo =>
           val cancelId = UUID.randomUUID().toString
           val call = Call("cancel", s.walletToken, r.debits.lastOption, Some(roundId), Some(s.currency), None, None, None, Some(cancelId), None, None)
-          play.plan(s, call, "stub", None, cancelId): Unit
-          deliver(s, cancelId, made = 0, roundId = None)
-          Http.json(202, GoJson.strings("status" -> "accepted", "callbackId" -> cancelId, "cancelId" -> cancelId))
+          refusedByRound {
+            play.plan(s, call, "stub", None, cancelId, guarded = true): Unit
+            deliver(s, cancelId, made = 0, roundId = None)
+            Http.json(202, GoJson.strings("status" -> "accepted", "callbackId" -> cancelId, "cancelId" -> cancelId))
+          }
         case _ => Http.json(409, GoJson.strings("error" -> "no_open_debit"))
     }
   }
 
   get("/callbacks/{id}") { (id: String) =>
-    val c = client.forEventSourcedEntity(EntityId(id)).call(CallbackEntity.get).invoke()
-    if !c.scheduled then Http.error(404, "callback not found")
-    else
-      owned(c.sessionId) { s =>
+    val held =
+      try Some(client.forEventSourcedEntity(EntityId(id)).call(CallbackEntity.get).invoke())
+      catch case _: CommandError => None
+    held.filter(_.scheduled) match
+      case None => Http.error(404, "callback not found")
+      case Some(c) => owned(c.sessionId) { s =>
         val state =
           if c.outcome == Callback.Pending then if c.attempts.isEmpty then "planned" else "sent"
           else c.outcome

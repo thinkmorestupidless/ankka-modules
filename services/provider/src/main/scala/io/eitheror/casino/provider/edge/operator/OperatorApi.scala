@@ -79,7 +79,7 @@ final class OperatorApi(
               // Nothing of `player_profile` is read or kept (data-model, Session).
               client.forEventSourcedEntity(EntityId(token)).call(SessionEntity.launch).invoke(
                 SessionEntity.Launch(entry.slug, body.string("player"), body.string("currency"), g.code, "default", token, 0L, Wiring.now(),
-                  demo = demo, language = entry.language)
+                  demo = demo, language = entry.language, owner = g.owner)
               ): Unit
               io.eitheror.casino.provider.edge.admin.Metrics.launch(entry.slug, g.code)
               Http.json(200, GoJson.strings("game_url" -> s"${g.pageAddress}?token=$token"))

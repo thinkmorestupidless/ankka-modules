@@ -301,6 +301,28 @@ class ContractFeatures extends GherkinSuite(s"${sys.props("casino.root")}/featur
     assertEquals(kit.brand.requestsTo("debit"), Vector.empty)
   }
 
+  // ---- a game deregistered with a round open (review, blocking 1) ------------------------------------
+
+  private def otherGame(): TestGame =
+    if other == null then
+      other = TestGame(kit.base)
+      other.name = "other-game"
+      other.identity = Seq(kit.testKit.asCaller(Caller.Service("games", "other-game")))
+    other
+
+  Given("{string} is then deregistered by its game service and registered by another game service") { (c: String) =>
+    assertEquals(game.deregister(c).status, 200)
+    assertEquals(otherGame().registerGame(c, "slots").status, 200)
+  }
+
+  Then("the other game service is refused on that session") { () =>
+    val statuses = (other.settle(ticket, round, 100).status, other.cancel(ticket, round).status)
+    // The code back with its first owner before asserting, so a failure here leaves the later scenarios alone.
+    assertEquals(other.deregister(code).status, 200)
+    registered(code)
+    assertEquals(statuses, (403, 403))
+  }
+
   // ---- a game service down; a game without demo -----------------------------------------------------
 
   Given("a game service that registered {string} and is then down") { (c: String) =>
