@@ -1367,7 +1367,7 @@ Avoid: game client, game UI
 The house provider's list of the brands it serves, one brand entry each, written by an operator and applied with no redeploy.
 
 ### brand entry
-One brand in the brand table: its slug, the address of its game provider service, its site, its credential (the key its launches are signed with), its language, whether it is a test brand, the games it may run and, for a test brand only, whether it names the key document instead of holding the key.
+One brand in the brand table: its slug, the address of its game provider service, its site, its credential (the key its launches are signed with), its language, whether it is a test brand, whether it takes real money, the games it may run and, for a test brand only, whether it names the key document instead of holding the key. An entry that names the key document and takes real money refuses every launch.
 
 ### pending debit
 A debit the brand has not answered within the wait: answered to the game service as pending, retried under the same transaction id on the retry schedule; the round is not open until the brand answers.
@@ -1388,7 +1388,7 @@ A round asked on a session in fun mode: the house provider sends no provider cal
 The time until which a free rounds instance at a game service can be spent, set by the game from its own schedule and never earlier than the brand asked.
 
 ### day export
-Finance's export of one brand's rounds settled on one calendar day at the house provider, with each round's stake, win, outcome and transaction ids; what the brand's provider report is compared with.
+Finance's export of one brand's rounds settled on one calendar day in the installation's reporting zone, with each round's stake, win, outcome and transaction ids; what the brand's provider report is compared with.
 
 ### test game
 A game service that exists only in the house provider's test kit and is never deployed: it plays the rounds the recordings' instructions name so the house provider can be held to them.
