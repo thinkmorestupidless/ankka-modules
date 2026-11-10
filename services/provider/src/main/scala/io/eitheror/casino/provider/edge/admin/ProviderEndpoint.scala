@@ -235,7 +235,10 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
    */
   private def settlement(r: SettledRound, outcomes: Map[String, String]): String =
     val id = if r.outcome == Round.Cancelled then r.cancels.lastOption else r.credits.lastOption
-    id.flatMap(outcomes.get).getOrElse("")
+    // The view can lag a round settled moments ago: a call it does not hold yet is read from its entity.
+    id.flatMap(i => outcomes.get(i).orElse(
+      try Some(client.forEventSourcedEntity(EntityId(i)).call(CallbackEntity.get).invoke().outcome) catch case _: CommandError => None
+    )).getOrElse("")
 
   /** Every callback of one run with its outcome, from `RunCallbacks`: one read per session, not one entity call per round (review, second round). */
   private def outcomesOf(run: String): Map[String, String] =
