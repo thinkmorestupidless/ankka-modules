@@ -249,7 +249,8 @@ its brand; every requirement is a decision of 2026-11-10 unless it restates a sp
 - **FR-008**: The casino's realms MUST hold no affiliate, no programme manager and no operator of
   an outside product: the realm `eitheror` is for the casino's operators and partners. The roles
   `affiliate` and `affiliate_manager`, and any `games` permission, MUST NOT be in
-  `brands/_realm/eitheror-operators.json`. An outside product keeps its own sign-in. *Amends spec
+  `brands/_realm/eitheror-operators.json`. An outside product keeps its own sign-in, in an identity
+  provider instance of its own (one per product, decided 2026-11-10). *Amends spec
   001 FR-019; restates the destination of spec 013 FR-004 and spec 026 FR-024, which move.*
 - **FR-009**: No setting of an installation (`settings.env`, 001 FR-034 to FR-039) and no manifest
   of this repository MUST name an outside product's address, key or image. A brand's knowledge of
@@ -328,12 +329,10 @@ its brand; every requirement is a decision of 2026-11-10 unless it restates a sp
 - **FR-022**: The stake of every bet in an open round MUST count towards the player's loss sums
   (spec 010 FR-010, carried by the wallet in `may-bet`) from the moment the bet is placed, and
   MUST be replaced by the round's actual result when it settles or removed when it is rolled back.
-  [NEEDS CLARIFICATION: today a loss is a stake settled as a loss (spec 010, line "stakes settled
-  as losses net of nothing"), so a player may enter any number of pools in a week without nearing
-  a loss limit, and counting at entry refuses a bet for money not yet lost. Counting at entry is
-  the decision of 2026-11-10; it changes what spec 010 enforces for every game, slots included,
-  where a round is open for seconds. Does the compliance officer confirm it for the Anjouan
-  profile, and for every profile?] *Amends spec 010 FR-010 and the wallet's loss sums (spec 002).*
+  This changes what spec 010 enforces for every game, slots included, where a round is open for
+  seconds: until now a loss was a stake settled as a loss, so a player could enter any number of
+  pools in a week without nearing a loss limit. Counting at entry was decided on 2026-11-10 and
+  confirmed the same day, for every profile. *Amends spec 010 FR-010 and the wallet's loss sums (spec 002).*
 - **FR-023**: A round settled fact (`round_settled` on `casino.rounds`, 001 FR-011) MUST be
   published when the round settles and never before, carrying when the round was opened as well as
   when it settled. Wallet facts fall on the day they happen: the bet on the day of entry, the win
@@ -436,10 +435,8 @@ this spec changes is the shape specs 001, 012, 013 and 026 gave them here.
 
 ## Open Questions
 
-- The three marked above: the machine's topic carrier (FR-011), the home of the provider's core
-  library and of the simulator (FR-018), and compliance's confirmation of counting open stakes
-  (FR-022).
-- Spec 026 is on a local branch with uncommitted work. Whether it merges here first and then
-  moves, or moves before it merges, is for whoever holds that branch; FR-003 is written to hold
-  either way.
+- The two marked above: the machine's topic carrier (FR-011), and the home of the provider's core
+  library and of the simulator (FR-018).
+- Spec 026 is finished and merged here first, then moves to `ankka-games`, and further amendments
+  follow the move (decided 2026-11-10).
 - Spec 015 is in a draft pull request; FR-024 amends it there or after it merges.
