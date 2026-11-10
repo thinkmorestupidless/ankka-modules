@@ -38,7 +38,7 @@ by `site`, and a failure is `200 {"status":"error","error":"auth_failed"}` with 
 | `GET /brands/{slug}/rounds/{token}` | `operator(slug)` | one session's rounds with their callbacks (`RunCallbacks`) |
 | `GET /brands/{slug}/unanswered` | `operator(slug)` | unanswered calls with attempts and `nextRetryAt` |
 | `POST /brands/{slug}/abandon/{callbackId}` | `operatorHolding(slug, "games")` | body `{reason}`; ends `Deliver`; audited |
-| `GET /brands/{slug}/export/{day}` | `operator(slug)` | JSON lines of settled rounds for the day (research R14) |
+| `GET /brands/{slug}/export/{day}` | `operator(slug)` | JSON lines of settled rounds for the day (research R14), each with `settlement`: the outcome of the call that settled it (`acknowledged` once the brand paid) |
 | `GET /registry` | `operatorHolding("games")` | every registered game with its owner |
 | `DELETE /registry/{code}` | `operatorHolding("games")` | an operator removes a game; audited |
 | `GET /keys` | `operatorHolding("games")` | current, next, withdrawn ids |

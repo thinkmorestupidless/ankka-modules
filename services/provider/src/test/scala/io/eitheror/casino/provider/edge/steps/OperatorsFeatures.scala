@@ -200,6 +200,8 @@ class OperatorsFeatures extends GherkinSuite(s"${sys.props("casino.root")}/featu
     assertEquals((r.get("stake").asLong(), r.get("win").asLong(), r.get("outcome").asText()), (10L, 0L, "lost"))
     assertEquals(r.get("debits").size, 1)
     assertEquals(r.get("credits").size, 1)
+    // Whether the brand acknowledged the credit that settled it (review, should fix 2).
+    assert(Set("acknowledged", "pending").contains(r.get("settlement").asText()), r.toString)
     assert(!exported.exists(_.get("launchToken").asText() == dayTickets("2026-11-08")))
   }
 

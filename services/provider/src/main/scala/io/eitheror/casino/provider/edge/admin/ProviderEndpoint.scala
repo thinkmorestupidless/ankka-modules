@@ -224,6 +224,12 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
     }
 
   /** Every session of `slug` with a round settled in `[from, until)`, read page by page. */
+  /** The outcome of the call that settled a round: its last cancel when cancelled, else its last credit (a callback id is its transaction or cancel id). */
+  private def settlement(r: SettledRound): String =
+    val id = if r.outcome == Round.Cancelled then r.cancels.lastOption else r.credits.lastOption
+    id.flatMap(i => try Some(client.forEventSourcedEntity(EntityId(i)).call(CallbackEntity.get).invoke().outcome) catch case _: CommandError => None)
+      .getOrElse("")
+
   private def settledBetween(slug: String, from: Long, until: Long): Vector[DayRow] =
     Iterator.unfold(Option(("-1", ""))) {
       case None => None
@@ -240,7 +246,7 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
         case None => Http.error(400, s"'$day' is not a day: YYYY-MM-DD")
         case Some((from, until)) =>
           val lines = settledBetween(slug, from, until).flatMap { row =>
-            row.settled.filter(r => r.settledAt >= from && r.settledAt < until).map(r => GoJson.marshal(ProviderEndpoint.exportJson(row.session, r, zone)))
+            row.settled.filter(r => r.settledAt >= from && r.settledAt < until).map(r => GoJson.marshal(ProviderEndpoint.exportJson(row.session, r, zone, settlement(r))))
           }
           Http.raw(200, "application/x-ndjson", lines.map(_ + "\n").mkString)
     }
@@ -323,7 +329,13 @@ object ProviderEndpoint:
    * One settled round as the day export writes it: stake and win in minor units of the session's
    * currency (the amounts the protocol sent, summed), the outcome, and the transaction ids.
    */
-  def exportJson(s: Session, r: SettledRound, zone: java.time.ZoneId): GoJson.Value =
+  /**
+   * `settlement` is the outcome of the call that settled the round (its last credit or cancel):
+   * `acknowledged`, or `pending`, `refused`, `exhausted` or `abandoned` for a round the brand has not
+   * been seen to pay. A round counts as settled at the provider when its credit is planned, so finance
+   * reads this before comparing it with the brand's books.
+   */
+  def exportJson(s: Session, r: SettledRound, zone: java.time.ZoneId, settlement: String = ""): GoJson.Value =
     import io.eitheror.casino.contract.money.{Amounts, Currency, MinorUnits}
     val currency = Currency.from(s.currency).fold(e => throw IllegalStateException(e), identity)
     def minor(amounts: Vector[String]): Long =
@@ -333,7 +345,7 @@ object ProviderEndpoint:
       "settledAt" -> instant(r.settledAt), "launchToken" -> Str(s.launchToken), "playerId" -> Str(s.playerId), "gameCode" -> Str(s.gameCode),
       "roundId" -> Str(r.roundId), "currency" -> Str(s.currency), "stake" -> Num(minor(r.stakes).toString), "win" -> Num(minor(r.wins).toString),
       "outcome" -> Str(r.outcome), "free" -> Bool(r.free), "debits" -> GoJson.strArr(r.debits), "credits" -> GoJson.strArr(r.credits),
-      "cancels" -> GoJson.strArr(r.cancels)
+      "cancels" -> GoJson.strArr(r.cancels), "settlement" -> Str(settlement)
     )
 
   /** The realm role an installation's operator of the house provider holds (`brands/_realm`). */
