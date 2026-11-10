@@ -261,9 +261,11 @@ provider is not a Curaçao brand by default.
 - A brand's game-provider is unreachable when a game asks for a debit: the game is answered
   `pending`, the debit is retried on the schedule under the same transaction id, and the game
   treats the round as not open until the brand answers.
-- The brand answers a retried debit differently from the first attempt (the brand's workflow
-  answers from its stored outcome, spec 003 FR-011, so it should not): the first answer the edge
-  received stands, the difference is recorded on the round, and the operator sees it.
+- A retried debit and the brand's answer to it: `Deliver` sends a call again only while no
+  definitive answer came (a timeout, a refused connection, or a word the schedule retries), and ends
+  at the first definitive one. So the edge never holds two definitive answers to one call to compare;
+  the brand's workflow answers a repeat from its stored outcome (spec 003 FR-011) in any case. The
+  answer that ended the call is the one recorded on the round, and the operator sees it.
 - A brand answers `error` to every attempt of a credit until the schedule is exhausted: the credit
   is left unacknowledged for the operator, the round stays open at the provider, and the game is
   told the settlement is not acknowledged.
@@ -309,7 +311,7 @@ provider is not a Curaçao brand by default.
   ankka 040 and no platform identity; a brand MUST reach the provider's operator API at the
   provider's exposed address as it reaches ST8's.
 - **FR-003**: The provider MUST speak ST8's protocol as spec 020's ST8 adapter speaks it and
-  nothing else: the operator API (launch, games, bonus create, get and cancel, spin values), the
+  nothing else: the operator API (launch, games, bonus create, get and cancel; not spin values, see *Out of scope*), the
   game page handoff and `check`, and the callbacks `check`, `balance`, `debit`, `credit` and
   `cancel` with the bodies of 020 FR-009, the signature of 020 FR-010, the answers of 020 FR-012, a
   loss as a credit of "0.00" and a free round as a zero debit of kind `free_debit` followed by a
@@ -379,7 +381,7 @@ provider is not a Curaçao brand by default.
 - **FR-014**: The provider MUST hand a bonus (free rounds) for a registered game to that game and
   answer the game's status in the words of 020 FR-007 (`active`, `processing`, `rejected`,
   `failed`, `cancelled`, `unknown_game`); a game MUST hold its instances and decide its own claim
-  deadline, which MUST NOT be earlier than the brand asked; spin values MUST be the game's.
+  deadline, which MUST NOT be earlier than the brand asked.
 
 **Game clients**
 
@@ -571,3 +573,8 @@ the test kit's game playing the rounds the recordings' instructions name.
 - Carrying the player's language in the launch (an amendment to spec 003 and the wire).
 - RNG and RTP certification; UKGC and MGA supplier licensing.
 - Scenarios, load profiles and run exports: the simulator keeps them.
+- Spin values (ST8's `GET /api/operator/v1/bonus/offers`), struck at review (2026-11-10): no game
+  offers them yet. The brand's game-provider already treats a provider that cannot list its spin
+  values as such, and the free rounds go ahead (`features/rewards/free-rounds.feature`). Spec 027,
+  the first game, adds a game-contract route for a game's offers and the operator route that asks
+  each code's owner.

@@ -129,7 +129,6 @@ services/game-provider/                                     # AMENDED (spec 003,
 services/kyc/src/main/scala/io/eitheror/casino/kyc/policy/  # AMENDED (spec 009, R13): Profile.Anjouan, Profiles.Anjouan
 
 contract/src/main/scala/io/eitheror/casino/contract/Layout.scala       # SharedProjects += games
-contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala # installationOperatorHolding(roles*)
 contract/keys.md  modules/casino/module.json                           # casino-providers key
 specs/001-brands-and-projects/contracts/shared-manifest.schema.json    # enums += games, provider
 tools/modules/src/main/resources/shared-manifest.v1.json               # the same

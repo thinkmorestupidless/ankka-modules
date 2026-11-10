@@ -32,8 +32,10 @@ Rules:
 
 ## What the provider calls on a game service
 
-Admitted by `Routes.serviceOf("provider")`. A game service that does not serve these is refused
-registration of any game with `demo` or free rounds support.
+Admitted by `Routes.serviceOf("provider")`. Registration does not probe them (struck at review,
+2026-11-10): a probe proves a route exists, not that it works, and would tie registration to the
+game being up. A game service that does not serve them is found at use: its bonus is answered
+`failed`.
 
 | Route | Body | Answer |
 |---|---|---|

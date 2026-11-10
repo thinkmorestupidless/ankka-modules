@@ -10,7 +10,7 @@ by `site`, and a failure is `200 {"status":"error","error":"auth_failed"}` with 
 
 | Route | What |
 |---|---|
-| `POST /launch` | body `game_code, currency, token, player, fun_mode, site, player_profile`; answers `{game_url}`; `unknown_game` for a code not registered or not in the brand's games; `{"status":"error","error":"unavailable"}` when the game's health fails; `unknown_game` for `fun_mode` on a game without demo |
+| `POST /launch` | body `game_code, currency, token, player, fun_mode, site, player_profile`; answers `{game_url}`; `unknown_game` for a code not registered or not in the brand's games; `{"status":"error","error":"unavailable"}` when the game's health fails; `unknown_game` for `fun_mode` on a game without demo; `invalid_currency` for a currency `contract.money` does not know; a repeat of the launch that made a ticket's session answers it unchanged, and one with another player, currency, game or mode is `ticket_used` |
 | `GET\|POST /games` | the games list in the provider's shape, filtered to the brand's games, each with `fun_mode` per game |
 | `POST /bonus/create` | research R9 |
 | `GET /bonus/get` | by `bonus_id`, routed by the index |
@@ -45,7 +45,8 @@ by `site`, and a failure is `200 {"status":"error","error":"auth_failed"}` with 
 | `POST /keys/start` \| `/keys/switch` \| `/keys/withdraw` | `operatorHolding("games")` | the three acts (FR-020); audited |
 
 `operatorHolding("games")` with no slug: the token holds the `games` role at the eitheror realm;
-the brand roles are not required. `Routes` gains `installationOperatorHolding(roles*)` for it.
+the brand roles are not required. `platform_admin` reads the brand table (`GET /brands`) and has no
+other act here. The endpoint checks it in each handler, since one ACL covers the `/v1/provider` prefix.
 
 ## Route classes, by spec 001 FR-020
 
