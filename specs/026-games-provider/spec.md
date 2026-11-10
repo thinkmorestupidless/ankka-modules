@@ -267,8 +267,10 @@ provider is not a Curaçao brand by default.
   the brand's workflow answers a repeat from its stored outcome (spec 003 FR-011) in any case. The
   answer that ended the call is the one recorded on the round, and the operator sees it.
 - A brand answers `error` to every attempt of a credit until the schedule is exhausted: the credit
-  is left unacknowledged for the operator, the round stays open at the provider, and the game is
-  told the settlement is not acknowledged.
+  is left unacknowledged for the operator, and the game is told the settlement is not acknowledged.
+  The round reads `won` or `lost` at the provider from the moment the credit is planned. Whether the
+  brand paid is the credit's outcome (`exhausted`), shown in the round read and in the day export's
+  `settlement`. The call is kept past the retention until an operator abandons it.
 - A currency with other than two decimals (Chilean peso, none; some with three): the wire carries
   decimal strings and the brand converts by spec 001 FR-026; the edge and a game hold minor units and
   render by the currency's exponent, never assuming two.

@@ -289,6 +289,15 @@ class OperatorsFeatures extends GherkinSuite(s"${sys.props("casino.root")}/featu
         .ask(io.eitheror.casino.provider.edge.views.SessionsByBrand.byBrand, 1000, "brand" -> "goldvibe", "after_at" -> "-1", "after_id" -> ""))
         .filter(_.exists(_.launchToken == demo))
     }: Unit
+    // The day export says the brand never paid it (review, second round): `settlement` is the credit's outcome.
+    val settledAt = kit.session(unpaid).round("r-unpaid").flatMap(_.settledAt).getOrElse(fail("the round was not settled"))
+    val day       = java.time.Instant.ofEpochMilli(settledAt).atZone(kit.settings.reportingZone).toLocalDate.toString
+    val line = kit.eventually() {
+      val a = kit.asStaff("GET", s"/v1/provider/brands/goldvibe/export/$day", reader)
+      a.body.linesIterator.filter(_.nonEmpty).map(json).find(l => l.get("launchToken").asText() == unpaid)
+        .filter(_.get("settlement").asText() == Callback.Exhausted)
+    }
+    assertEquals(line.get("roundId").asText(), "r-unpaid")
     kit.offset += (Sweep.retention + 1.day).toMillis
   }
 

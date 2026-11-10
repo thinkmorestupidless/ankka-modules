@@ -229,13 +229,25 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
       (d.atStartOfDay(zone).toInstant.toEpochMilli, d.plusDays(1).atStartOfDay(zone).toInstant.toEpochMilli)
     }
 
-  /** Every session of `slug` with a round settled in `[from, until)`, read page by page. */
-  /** The outcome of the call that settled a round: its last cancel when cancelled, else its last credit (a callback id is its transaction or cancel id). */
-  private def settlement(r: SettledRound): String =
+  /**
+   * The outcome of the call that settled a round: its last cancel when cancelled, else its last credit
+   * (a callback id is its transaction or cancel id), looked up in its session's `outcomes`.
+   */
+  private def settlement(r: SettledRound, outcomes: Map[String, String]): String =
     val id = if r.outcome == Round.Cancelled then r.cancels.lastOption else r.credits.lastOption
-    id.flatMap(i => try Some(client.forEventSourcedEntity(EntityId(i)).call(CallbackEntity.get).invoke().outcome) catch case _: CommandError => None)
-      .getOrElse("")
+    id.flatMap(outcomes.get).getOrElse("")
 
+  /** Every callback of one run with its outcome, from `RunCallbacks`: one read per session, not one entity call per round (review, second round). */
+  private def outcomesOf(run: String): Map[String, String] =
+    Iterator.unfold(Option(("-1", ""))) {
+      case None => None
+      case Some((at, id)) =>
+        val rows = views.forView(RunCallbacks).ask(RunCallbacks.byRun, ProviderEndpoint.ExportPage, "run" -> run, "after_at" -> at, "after_id" -> id)
+        val more = Option.when(rows.size == ProviderEndpoint.ExportPage)(rows.last).map(r => (r.firstSentAt.toString, r.callbackId))
+        if rows.isEmpty then None else Some((rows, more))
+    }.flatten.map(r => r.callbackId -> r.outcome).toMap
+
+  /** Every session of `slug` with a round settled in `[from, until)`, read page by page. */
   private def settledBetween(slug: String, from: Long, until: Long): Vector[DayRow] =
     Iterator.unfold(Option(("-1", ""))) {
       case None => None
@@ -252,7 +264,9 @@ final class ProviderEndpoint(client: ComponentClient, views: ViewClient, cache: 
         case None => Http.error(400, s"'$day' is not a day: YYYY-MM-DD")
         case Some((from, until)) =>
           val lines = settledBetween(slug, from, until).flatMap { row =>
-            row.settled.filter(r => r.settledAt >= from && r.settledAt < until).map(r => GoJson.marshal(ProviderEndpoint.exportJson(row.session, r, zone, settlement(r))))
+            val outcomes = outcomesOf(row.session.runId)
+            row.settled.filter(r => r.settledAt >= from && r.settledAt < until)
+              .map(r => GoJson.marshal(ProviderEndpoint.exportJson(row.session, r, zone, settlement(r, outcomes))))
           }
           Http.raw(200, "application/x-ndjson", lines.map(_ + "\n").mkString)
     }
@@ -334,8 +348,6 @@ object ProviderEndpoint:
   /**
    * One settled round as the day export writes it: stake and win in minor units of the session's
    * currency (the amounts the protocol sent, summed), the outcome, and the transaction ids.
-   */
-  /**
    * `settlement` is the outcome of the call that settled the round (its last credit or cancel):
    * `acknowledged`, or `pending`, `refused`, `exhausted` or `abandoned` for a round the brand has not
    * been seen to pay. A round counts as settled at the provider when its credit is planned, so finance
