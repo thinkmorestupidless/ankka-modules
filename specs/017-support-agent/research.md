@@ -326,6 +326,12 @@ of a blip.
   original did).
 - **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
   holding the session it ended (amendment P1); `approvalId` is now required on that route.
+- **2026-11-10, what an ended conversation answers.** The brand's `closingMessage` says the account
+  is excluded, which is wrong for a break. A turn during a break answers 409 `conversation_ended`
+  with "You are on a break until {until}. This conversation is closed until then.", and the
+  exclusion keeps the closing message. The resume stream that applies an exclusion ends with the
+  closing message as its last `delta` (FR-017's closing reply). A break's own reply is the model's,
+  told the break's end by the tool.
 - **2026-11-10, the deposit limit's summary reads responsible gambling first (settled with the user).**
   FR-013 says the summary states whether a limit applies at once or after 24 hours, as responsible
   gambling answers. contracts/tools.md carried the original's fixed text, which always warns of a

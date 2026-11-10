@@ -66,7 +66,7 @@ object Chat:
     if before.started && before.playerId != playerId then throw Answers.sessionNotYours
     before.awaiting.foreach((id, tool) => throw Answers.sessionActive(id, tool))
     val now = ctx.now()
-    if before.endedAt(now) then throw Answers.conversationEnded(bodyOf(ctx, before).closingMessage)
+    if before.endedAt(now) then throw Answers.conversationEnded(closing(bodyOf(ctx, before), before))
 
     val bound = ctx.conversation(s).call(Conversation.start).invoke(Start(playerId, config.version, now))
     bound.refusal.foreach(_ => throw Answers.sessionNotYours)
@@ -108,11 +108,18 @@ object Chat:
         val result =
           if !approve then Vector.empty
           else ctx.conversationState(session).lastAction.filter(_.approvalId == id).map(a => Frames.actionResult(a.tool, a.success, a.detail)).toVector
-        result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome)
+        // An exclusion this decision applied closes the conversation with the brand's closing message (FR-017).
+        val closed = ctx.conversationState(session).status == Status.Ended(EndReason.SelfExcluded) && result.nonEmpty
+        result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome) ++
+          Option.when(closed)(Frames.delta(s"\n\n${body.closingMessage}")).toVector
       }
     }.mapConcat(identity).concat(ending(ctx, session, handOff)).recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }
 
   private def bodyOf(ctx: Ctx, s: ConversationState): ConfigBody = ConfigVersion.body(ctx.components, ctx.slug, s.configVersion)
+
+  /** What an ended conversation answers (FR-017): the brand's closing message, or, on a break, when it ends. */
+  private def closing(body: ConfigBody, s: ConversationState): String =
+    s.breakUntil.fold(body.closingMessage)(until => s"You are on a break until $until. This conversation is closed until then.")
 
   /** The turn's frames: a `delta` per text part with the hand-off marker replaced, then `confirm_action` or not, then `done`. */
   private def turn(ctx: Ctx, session: String, t: Turn, body: ConfigBody): Source[SseEvent, ?] =
