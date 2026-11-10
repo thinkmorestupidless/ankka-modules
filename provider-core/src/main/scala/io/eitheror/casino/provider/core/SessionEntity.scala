@@ -19,7 +19,7 @@ final class SessionEntity(context: EventSourcedEntityContext) extends EventSourc
   def launch(request: SessionEntity.Launch): Effect[Session] =
     effects
       .persist(Launched(request.brand, request.playerId, request.currency, request.gameCode, request.scenario, request.runId, request.seed, request.at,
-        request.demo, request.language))
+        request.demo, request.language, request.owner))
       .thenReply(identity)
 
   def selectScenario(selection: SessionEntity.Selection): Effect[Done] =
@@ -45,6 +45,17 @@ final class SessionEntity(context: EventSourcedEntityContext) extends EventSourc
   def plan(planned: CallbackPlanned): Effect[Session] =
     if !currentState.launched then effects.error("session not found", ErrorCode.NotFound)
     else effects.persist(planned).thenReply(identity)
+
+  /**
+   * `plan` under the round's rules (spec 026): the house provider's game calls. The simulator's
+   * scenarios keep `plan`, which must be able to send what a broken provider would.
+   */
+  def planGuarded(planned: CallbackPlanned): Effect[Session] =
+    if !currentState.launched then effects.error("session not found", ErrorCode.NotFound)
+    else
+      currentState.refusal(RoundRole.valueOf(planned.role), planned.roundId) match
+        case Some(word) => effects.error(s"$word: round ${planned.roundId.getOrElse("")}", ErrorCode.Conflict)
+        case None       => effects.persist(planned).thenReply(identity)
 
   def sawBalance(balance: String): Effect[Done] =
     if currentState.lastBalance.contains(balance) then effects.reply(Done)
@@ -73,7 +84,7 @@ object SessionEntity
   final case class Selection(name: String, seed: Option[Long])
 
   final case class Launch(brand: String, playerId: String, currency: String, gameCode: String, scenario: String, runId: String, seed: Long, at: Long,
-      demo: Boolean = false, language: String = "")
+      demo: Boolean = false, language: String = "", owner: String = "")
 
   given Serializer[Launch]          = Codecs.serializer[Launch]("session-launch")
   given Serializer[Selection]       = Codecs.serializer[Selection]("session-selection")
@@ -88,6 +99,7 @@ object SessionEntity
   val selectScenario = command("select-scenario")(_.selectScenario)
   val check          = command("record-check")(_.check)
   val plan           = command("plan")(_.plan)
+  val planGuarded    = command("plan-guarded")(_.planGuarded)
   val refuseCheck    = command("refuse-check")(_.refuseCheck)
   val answered       = command("round-answered")(_.answered)
   val sawBalance     = command("saw-balance")(_.sawBalance)

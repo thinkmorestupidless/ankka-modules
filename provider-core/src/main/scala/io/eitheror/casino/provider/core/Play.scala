@@ -31,9 +31,10 @@ final class Play(client: ComponentClient):
       answerWait: FiniteDuration,
       step: Option[Int],
       callbackId: String = java.util.UUID.randomUUID().toString,
-      awaitingAnswer: Boolean = false
+      awaitingAnswer: Boolean = false,
+      guarded: Boolean = false
   ): Sent =
-    val (route, body) = plan(session, call, shape, step, callbackId, awaitingAnswer)
+    val (route, body) = plan(session, call, shape, step, callbackId, awaitingAnswer, guarded)
     attempt(session, callbackId, route, body, key, answerWait, 1)
 
   /**
@@ -41,21 +42,29 @@ final class Play(client: ComponentClient):
    * `Deliver` workflow sends it (spec 026 R6). `send` is this followed by the first attempt.
    * Answers the route and the exact bytes that will be signed.
    */
-  def plan(session: Session, call: Call, shape: String, step: Option[Int], callbackId: String, awaitingAnswer: Boolean = false): (String, Array[Byte]) =
+  def plan(session: Session, call: Call, shape: String, step: Option[Int], callbackId: String, awaitingAnswer: Boolean = false,
+      guarded: Boolean = false): (String, Array[Byte]) =
     val protocol = Wiring.protocol
     val body     = protocol.body(shape, call)
     val route    = protocol.route(call.kind)
-    client.forEventSourcedEntity(EntityId(callbackId)).call(CallbackEntity.schedule)
-      .invoke(CallbackEvent.Scheduled(session.runId, session.launchToken, session.brand, call.kind, route, String(body, "UTF-8"), step, Wiring.now()))
-    val role = protocol.roleOf(call.kind, call.providerKind, call.amount)
-    client.forEventSourcedEntity(EntityId(session.launchToken)).call(SessionEntity.plan).invoke(
-      SessionEvent.CallbackPlanned(
-        callbackId, call.kind, call.round,
-        transactionId = call.transactionId.getOrElse(""), cancelId = call.cancelId, role = role.toString,
-        free = call.providerKind.exists(_.startsWith("free_")) && role == RoundRole.Stake, step = step,
-        awaitingAnswer = awaitingAnswer && role == RoundRole.Stake, amount = call.amount, at = Wiring.now()
-      )
+    val role     = protocol.roleOf(call.kind, call.providerKind, call.amount)
+    val planned: SessionEvent.CallbackPlanned = SessionEvent.CallbackPlanned(
+      callbackId, call.kind, call.round,
+      transactionId = call.transactionId.getOrElse(""), cancelId = call.cancelId, role = role.toString,
+      free = call.providerKind.exists(_.startsWith("free_")) && role == RoundRole.Stake, step = step,
+      awaitingAnswer = awaitingAnswer && role == RoundRole.Stake, amount = call.amount, at = Wiring.now()
     )
+    def schedule(): Unit =
+      client.forEventSourcedEntity(EntityId(callbackId)).call(CallbackEntity.schedule)
+        .invoke(CallbackEvent.Scheduled(session.runId, session.launchToken, session.brand, call.kind, route, String(body, "UTF-8"), step, Wiring.now())): Unit
+    val sessionEntity = client.forEventSourcedEntity(EntityId(session.launchToken))
+    if guarded then
+      // The round's rule first, under the session's own serialisation; a refused call schedules nothing.
+      sessionEntity.call(SessionEntity.planGuarded).invoke(planned): Unit
+      schedule()
+    else
+      schedule()
+      sessionEntity.call(SessionEntity.plan).invoke(planned): Unit
     route -> body
 
   /** Sends a scheduled callback again, as attempt `n`, with the body recorded the first time. */

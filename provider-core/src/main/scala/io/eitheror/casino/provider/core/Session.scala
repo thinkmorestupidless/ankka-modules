@@ -28,7 +28,9 @@ final case class Session(
     launchedAt: Long,
     state: String,
     demo: Boolean = false,
-    language: String = ""
+    language: String = "",
+    /** The game service that owned the code when the launch was admitted (spec 026): only it plays the session. */
+    owner: String = ""
 ):
   def launched: Boolean = state != Session.Empty
   def checked: Boolean  = walletToken.isDefined
@@ -46,8 +48,27 @@ final case class Session(
       brand = e.brand, playerId = e.playerId, currency = e.currency, gameCode = e.gameCode,
       scenario = if scenarioSelected then scenario else e.scenario,
       runId = e.runId, seed = if scenarioSelected && seed != 0L then seed else e.seed, launchedAt = e.at, state = Session.Launched,
-      demo = e.demo, language = e.language
+      demo = e.demo, language = e.language, owner = e.owner
     )
+
+  /**
+   * Why a callback of `role` may not be planned on round `roundId` now, or none (spec 026 FR-011,
+   * contracts/game-contract.md): a stake on a round id already used, a settle of a round not open,
+   * a cancel of a round with no debit or already ended. The entity applies it, so two concurrent
+   * calls for one round cannot both pass.
+   */
+  def refusal(role: RoundRole, roundId: Option[String]): Option[String] =
+    val r = roundId.filter(_.nonEmpty).flatMap(round)
+    role match
+      case RoundRole.Stake if r.isDefined => Some(Session.Refusal.RoundUsed)
+      case RoundRole.Win | RoundRole.Loss =>
+        r.map(_.state) match
+          case Some(Round.Open)    => None
+          case Some(Round.Pending) => Some(Session.Refusal.Pending)
+          case _                   => Some(Session.Refusal.RoundNotOpen)
+      case RoundRole.Cancel if !r.exists(x => (x.state == Round.Open || x.state == Round.Pending) && x.debits.nonEmpty) =>
+        Some(Session.Refusal.NoOpenDebit)
+      case _ => None
 
   /**
    * A stake planned as awaiting its answer leaves its round `pending`; the answer opens it, or a
@@ -83,6 +104,14 @@ object Session:
   val Launched = "launched"
   val Checked  = "checked"
   val Refused  = "refused"
+
+  /** The words a guarded plan is refused with, as the game contract answers them (409). */
+  object Refusal:
+    val RoundUsed    = "round_used"
+    val Pending      = "pending"
+    val RoundNotOpen = "round_not_open"
+    val NoOpenDebit  = "no_open_debit"
+    val All          = Set(RoundUsed, Pending, RoundNotOpen, NoOpenDebit)
 
   def empty(token: String): Session =
     Session(token, "", "", "", "", None, "default", scenarioSelected = false, token, 0L, Map.empty, Vector.empty, Vector.empty, Vector.empty, None, 0L, Empty)
@@ -134,7 +163,7 @@ final case class Verdict(
 
 enum SessionEvent:
   case Launched(brand: String, playerId: String, currency: String, gameCode: String, scenario: String, runId: String, seed: Long, at: Long,
-      demo: Boolean = false, language: String = "")
+      demo: Boolean = false, language: String = "", owner: String = "")
   case ScenarioSelected(name: String, seed: Option[Long])
   case Checked(walletToken: String)
   /** The brand refused the launch ticket at the check; the word is the brand's (spec 026 FR-009). */
