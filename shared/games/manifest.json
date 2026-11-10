@@ -15,7 +15,8 @@
       "image": "europe-west1-docker.pkg.dev/eitheror/casino/provider:0.1.0",
       "expose": true,
       "env": {
-        "PROVIDER_EXTERNAL_URL": "https://provider-games.127.0.0.1.sslip.io:8443",
+        "PROVIDER_EXTERNAL_URL": "setting:GAMES_PROVIDER_URL",
+        "CASINO_REPORTING_ZONE": "setting:GAMES_REPORTING_ZONE",
         "PROVIDER_RETENTION_DAYS": "90",
         "PROVIDER_RETRY_SCHEDULE": "{\"intervals\":[{\"every\":\"30s\",\"for\":\"10m\"},{\"every\":\"10m\"}],\"cap\":\"8h\"}",
         "PROVIDER_LOCAL_CA": "secret:games-provider/LOCAL_CA"

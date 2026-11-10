@@ -35,6 +35,12 @@ class SettingsSuite extends munit.FunSuite:
     assertEquals(s.staffIssuer.map(_.getPath), Some("/realms/eitheror"))
   }
 
+  test("the local CA is read as PEM or as base64 of PEM, as a secrets file carries it") {
+    val pem = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n"
+    val encoded = java.util.Base64.getEncoder.encodeToString(pem.getBytes("UTF-8"))
+    assertEquals(Settings.fromEnvironment(base + ("PROVIDER_LOCAL_CA" -> encoded)).map(_.localCa), Right(Some(pem)))
+  }
+
   test("a malformed setting is refused naming it") {
     val cases = Vector(
       Map.empty[String, String]                                      -> "PROVIDER_EXTERNAL_URL is required",

@@ -47,7 +47,9 @@ object Settings:
       }
       schedule <- Schedule.fromJson(value("PROVIDER_RETRY_SCHEDULE").getOrElse(DefaultSchedule), DefaultAnswerWait, St8Protocol.defaultRetryOn)
         .left.map(e => s"PROVIDER_RETRY_SCHEDULE: $e")
-      ca <- value("PROVIDER_LOCAL_CA").fold[Either[String, Option[String]]](Right(None)) { pem =>
+      // PEM, or base64 of PEM as a secrets file carries it on one line (the library's Sender reads both).
+      ca <- value("PROVIDER_LOCAL_CA").fold[Either[String, Option[String]]](Right(None)) { text =>
+        val pem = if text.contains("-----BEGIN") then text else Try(String(java.util.Base64.getMimeDecoder.decode(text), "UTF-8")).getOrElse(text)
         Either.cond(pem.contains("-----BEGIN CERTIFICATE-----"), Some(pem), "PROVIDER_LOCAL_CA is not a PEM certificate")
       }
       issuer <- value("ANKKA_AUTH_STAFF_ISSUER").fold[Either[String, Option[URI]]](Right(None))(i => address("ANKKA_AUTH_STAFF_ISSUER", i).map(Some(_)))

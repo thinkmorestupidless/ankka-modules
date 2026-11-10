@@ -87,3 +87,20 @@ project); play at both; `GET /v1/provider/brands/<slug>/rounds` shows only that 
 
 A real game client (027), real money (no `realMoney` entry on `dev-kind`), ST8's actual retry
 figures (research R10's caveat carries over).
+
+## Run on dev-kind
+
+**2026-11-10, kind-ankka (ankka platform 0.14.2, runtime 0.13.0).**
+
+- `just modules validate shared/games/manifest.json --installation dev-kind`: valid, one service and one topic. Both settings resolve (`GAMES_PROVIDER_URL`, `GAMES_REPORTING_ZONE`). FR-035 to FR-038 are reported unmet, as for `tools`: dev-kind takes no real money.
+- `just modules apply shared/games/manifest.json --installation dev-kind --secrets <file>`: project `games` created, `platform.audit` declared (6 partitions), secret `games-provider` set, `provider` applied at `provider:0.1.0` and exposed. Five changes.
+- The first start failed: `PROVIDER_LOCAL_CA is not a PEM certificate`. The secrets file carries base64 of the PEM; `Settings` now reads both (research, T055).
+- The second start failed: `consumer 'provider-audit' publishes to 'platform.audit' but no MessagePublisher was configured`. The suites supply a broker; `main` did not. It now takes the installation's broker, or one in memory for a local run, as kyc does.
+- The rollout then waited on the earlier generation's crash-looping pod, which the new pod tried as a bootstrap contact. A pause and resume (`ankka services pause|resume provider --project games`) brought it up `Ready` 1/1.
+- Through the gateway: `GET /health/` is `{"status":"ready"}`. `GET /.well-known/st8-keys` answers the current key with its `spki` and the `keys` list. `GET /v1/provider/brands` with no token is 401. `POST /api/operator/v1/launch` for a brand with no entry is `{"status":"error","error":"auth_failed"}`. Plain HTTP is 301.
+
+**Not run here:** the operator half of step 4 (items 1 to 6).
+
+- goldvibe's `game-provider` on this cluster is paused, and its image predates `casino-providers`. Running it means rebuilding the brand's services on this branch's contract.
+- The steps also need an eitheror staff token holding `games`, which a person must create (the realm role is in `brands/_realm/eitheror-operators.json`).
+- The same exchanges are covered in process by `OperatorsFeatures`, `KeysFeatures`, `ProviderIntegrationSuite` and game-provider's `LaunchFeatures` ("a second game provider of the same protocol under its own name").

@@ -80,8 +80,16 @@ object Provider:
   val cache    = BrandCache()
   val holder   = AtomicReference[Provider.Parts]()
   val timers   = TimerRuntime()
+  // The audit consumer publishes to `platform.audit`: the installation's broker, or in memory for a local run.
+  val broker =
+    if sys.env.get("ANKKA_KAFKA_BOOTSTRAP_SERVERS").exists(_.nonEmpty) then ProjectionRuntime.fromEnv()
+    else
+      org.slf4j.LoggerFactory.getLogger("provider")
+        .warn("ANKKA_KAFKA_BOOTSTRAP_SERVERS is not set: audit records are published in memory (a local run)")
+      val memory = com.thinkmorestupidless.ankka.runtime.InMemoryBroker()
+      ProjectionRuntime.withBroker(memory, memory)
   val service = Provider.descriptors.foldLeft(Ankka.service)((b, d) => b.register(d))
-    .withExtension(ProjectionRuntime())
+    .withExtension(broker)
     .withExtension(timers)
     .withExtension(Provider.server(settings, cache, holder))
     .start(name = "provider")
