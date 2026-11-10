@@ -77,8 +77,17 @@ merchant-run brands='[{"slug":"goldvibe","name":"Goldvibe"}]':
     cd services/merchant && MERCHANT_BRANDS='{{brands}}' sbt run
 
 # Run sbt in one service's own build: `just service game-provider test`. The contract and the
-# provider core (spec 026) are published first.
+# provider core (spec 026) are published first. `just service <game> client` builds a game service's
+# browser client instead (spec 026 contracts/game-client.md): `npm ci && npm run build` in
+# `services/<game>/client/`, writing `src/main/resources/client/`; a service with no client has nothing to build.
 service name +args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ '{{args}}' = 'client' ]; then
+      if [ -d services/{{name}}/client ]; then cd services/{{name}}/client && npm ci && npm run build
+      else echo "services/{{name}} has no client: nothing to build"; fi
+      exit 0
+    fi
     sbt contract/publishLocal providerCore/publishLocal
     cd services/{{name}} && sbt {{args}}
 
