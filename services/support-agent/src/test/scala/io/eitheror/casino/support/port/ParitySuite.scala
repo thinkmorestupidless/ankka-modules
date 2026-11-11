@@ -99,6 +99,11 @@ class ParitySuite extends munit.FunSuite:
         val script = Json.parse(body.textOr("message", "").stripPrefix("script:")).getOrElse(Json.obj())
         script.text("tool") match
           case Some(tool) =>
+            // A session the recording closes is one of the player's open sessions (players' list, FR-011).
+            script.path("args").text("game_session_id").foreach { id =>
+              kit.players.answer("GET", s"/players/$player/game-sessions", Answer.ok(Json.obj("sessions" ->
+                Json.arr(Json.obj("sessionId" -> id, "gameId" -> "g-1", "status" -> "OPEN")))))
+            }
             kit.model.expectToolCall(tool.stripPrefix("tool_"), arguments(script.path("args")), "call-par")
             kit.model.expectText("ok")
           case None => kit.model.expectText(script.textOr("text", ""))

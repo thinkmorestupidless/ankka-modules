@@ -119,6 +119,18 @@ class ResumeSuite extends munit.FunSuite:
     assertEquals(frames.head.field("success"), "true")
     assertEquals(withdrawals.size, 1)
 
+  test("a game session that is not one of the player's is refused to the model, with no approval shown and nothing ended"):
+    kit.players.answer("GET", "/players/p-1/game-sessions", Answer.ok(io.eitheror.casino.support.Json.obj("sessions" ->
+      io.eitheror.casino.support.Json.arr(io.eitheror.casino.support.Json.obj("sessionId" -> "gs-mine", "status" -> "OPEN")))))
+    kit.model.expectToolCall("close_active_session", AgentJson.obj("game_session_id" -> AgentJson.str("gs-theirs")), "call-c1")
+      .expectText("That session is not one of yours.")
+    val s = kit.chat("p-1", "resume-close-other", "close session gs-theirs")
+    assertEquals(s.names().distinct, Vector("delta", "done"))
+    assertEquals(kit.conversation("resume-close-other").awaiting, None)
+    kit.model.expectToolCall("close_active_session", AgentJson.obj("game_session_id" -> AgentJson.str("gs-mine")), "call-c2")
+    assertEquals(kit.chat("p-1", "resume-close-mine", "close my session").names(), Vector("confirm_action", "done"))
+    assertEquals(kit.players.calls.filter(_.method == "POST"), Vector.empty)
+
   test("a brand that turned its agent off answers the resume 503 agent_unavailable, and runs nothing (FR-001)"):
     awaiting("resume-off")
     kit.configure(_.copy(enabled = false)): Unit

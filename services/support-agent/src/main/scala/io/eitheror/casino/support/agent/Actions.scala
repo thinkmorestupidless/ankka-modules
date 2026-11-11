@@ -46,6 +46,19 @@ object Actions:
       case _ => Right(())
 
   /**
+   * Whether what the model named is the player's own (FR-011): a game session to close must be one of the player's, as
+   * players lists them, since players ends any session of the brand it is given.
+   */
+  def owned(n: Neighbours, playerId: String, tool: String, args: JsonNode): Either[String, Unit] = tool match
+    case "close_active_session" =>
+      val id       = args.text("game_session_id").getOrElse("")
+      val sessions = n.players.sessions(playerId)
+      if !sessions.ok then Left("the player's game sessions cannot be read right now")
+      else if sessions.json.toVector.flatMap(_.objects("sessions")).exists(_.text("sessionId").contains(id)) then Right(())
+      else Left("game_session_id is not one of the player's game sessions; read them with get_session_history")
+    case _ => Right(())
+
+  /**
    * What `confirm_action` states; a withdrawal names the bonus funds the wallet's hold preview says it forfeits, and a
    * deposit limit whether it applies at once, from responsible gambling's current limits (FR-013).
    */

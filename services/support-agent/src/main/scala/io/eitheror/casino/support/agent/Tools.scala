@@ -115,7 +115,8 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
    */
   private def write(tool: String, args: JsonNode)(call: String => Called)(done: JsonNode => String): String =
     val key = trail.approved.getOrElse(throw IllegalStateException("this action has not been approved by the player"))
-    Actions.check(tool, args, currency, now()).left.foreach(reason => throw IllegalArgumentException(reason))
+    Actions.check(tool, args, currency, now()).flatMap(_ => Actions.owned(n, playerId, tool, args))
+      .left.foreach(reason => throw IllegalArgumentException(reason))
     val c       = call(key)
     val outcome = outcomeOf(c)
     val detail = outcome match

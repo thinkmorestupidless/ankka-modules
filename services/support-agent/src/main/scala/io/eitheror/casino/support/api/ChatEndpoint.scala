@@ -290,7 +290,7 @@ object Chat:
     val n        = ctx.neighbours
     val currency = Context.playerState(n, playerId, body).toOption.flatMap(_.text("currency"))
     val redacted = Redaction.arguments(args)
-    held ++ (Actions.check(r.tool, args, currency, now) match
+    held ++ (Actions.check(r.tool, args, currency, now).flatMap(_ => Actions.owned(n, playerId, r.tool, args)) match
       case Left(reason) =>
         ctx.conversation(session).call(Conversation.toolCalled)
           .invoke(ToolCall(r.callId, r.tool, redacted, Outcome.Refused("invalid_arguments"), None, Some(reason), now)): Unit
