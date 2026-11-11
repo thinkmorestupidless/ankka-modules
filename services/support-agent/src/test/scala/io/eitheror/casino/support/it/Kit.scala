@@ -56,6 +56,7 @@ final class Kit(base: Settings = Kit.Base):
   rewire()
 
   private val timers = TimerRuntime(pollInterval = 200.millis, clock = clock)
+  SupportRuntime.timers = () => timers.timerScheduler
   private val server = HttpServer.at("127.0.0.1", 0)(SupportService.endpoints(() => Kit.authenticate)*)
   private val agents = SupportService.agents(settings, compactor, Some(judge))
 

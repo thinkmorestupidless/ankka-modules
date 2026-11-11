@@ -69,6 +69,23 @@ class ConversationSuite extends munit.FunSuite:
     assertEquals(kit.call(Conversation.forget)(At(at)).events, Vector.empty)
     assertEquals((kit.currentState.status, kit.currentState.playerId), (Status.Forgotten, "p-1"))
 
+  test("the next turn on a forgotten conversation starts a new one on the version now; another player is still refused"):
+    val kit = started
+    kit.call(Conversation.turned)(Turned(at, 120L)): Unit
+    kit.call(Conversation.forget)(At(at.plusSeconds(60))): Unit
+    assertEquals(kit.call(Conversation.start)(Start("p-2", 5, at.plusSeconds(90))).replyValue.refusal, Some("session_not_yours"))
+    val again = kit.call(Conversation.start)(Start("p-1", 5, at.plusSeconds(120)))
+    assertEquals(again.events, Vector(ConversationEvent.Started("p-1", 5, at.plusSeconds(120))))
+    assertEquals(kit.currentState, ConversationState(playerId = "p-1", configVersion = 5, startedAt = Some(at.plusSeconds(120)),
+      lastActivity = at.plusSeconds(120)))
+
+  test("forgetting an ended conversation keeps its end"):
+    val kit = started
+    kit.call(Conversation.end)(End(EndReason.SelfExcluded, at)): Unit
+    kit.call(Conversation.forget)(At(at.plusSeconds(60))): Unit
+    assertEquals(kit.currentState.status, Status.Ended(EndReason.SelfExcluded))
+    assertEquals(kit.call(Conversation.start)(Start("p-1", 5, at.plusSeconds(90))).events, Vector.empty)
+
   test("every event moves the last activity"):
     val kit = started
     kit.call(Conversation.rejected)(Rejected("softening", Side.Output, retried = true, at.plusSeconds(7))): Unit

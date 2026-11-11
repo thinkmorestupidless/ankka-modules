@@ -23,7 +23,8 @@ object SupportService:
     conversation.Conversation.descriptor,
     config.AgentConfiguration.descriptor,
     config.ConfigVersion.descriptor,
-    agent.Motoko.descriptor
+    agent.Motoko.descriptor,
+    timers.ForgetTimer.descriptor
   ) ++ agents.descriptors
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */
@@ -45,11 +46,13 @@ object SupportService:
       log.warn("ANKKA_KAFKA_BOOTSTRAP_SERVERS is not set: facts are published in memory (a local run)")
       val memory = InMemoryBroker()
       ProjectionRuntime.withBroker(memory, memory)
+  val timers = TimerRuntime()
+  SupportRuntime.timers = () => timers.timerScheduler
   val builder = Ankka.service
     .registerAll(SupportService.descriptors(agents))
     .withExtension(broker)
     // Approval time limits are timers (R7), and the forget timer (FR-027) is one.
-    .withExtension(TimerRuntime())
+    .withExtension(timers)
     .withExtension(agents)
     .withExtension(HttpServer.of(SupportService.endpoints(() => Oidc.authenticate())*))
   // The installation names its keyring for a service with personal data; a local run keeps its keys in its own

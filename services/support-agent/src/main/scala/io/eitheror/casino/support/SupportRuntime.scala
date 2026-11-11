@@ -22,6 +22,10 @@ object SupportRuntime:
   @volatile var judge: Option[JudgmentProvider]    = None
   @volatile var neighbours: ServiceClients => Neighbours = services => Neighbours.http(services, settings)
 
+  /** The timer scheduler, set once the service's timer runtime is built (the forget timer, FR-027). */
+  @volatile var timers: () => com.thinkmorestupidless.ankka.sdk.TimerScheduler =
+    () => throw IllegalStateException("the timers are not wired: the service sets SupportRuntime.timers at start")
+
   /** The provider that answers a turn on `model` (FR-008): one per name, built from the settings' source. */
   @volatile var model: String => ModelProvider = models(Settings().model)
 

@@ -1,7 +1,8 @@
 package io.eitheror.casino.support.api
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.agent.{AgentCalls, AgentOutcome, AgentPart, ApprovalRequest, Decision, forAgent}
+import com.thinkmorestupidless.ankka.agent.{AgentCalls, AgentOutcome, AgentPart, ApprovalRequest, Decision, SessionMemoryEntity, forAgent,
+  forSessionMemory}
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.support.Json
@@ -10,6 +11,7 @@ import io.eitheror.casino.support.agent.{Actions, Context, Motoko, Turn}
 import io.eitheror.casino.support.config.{ConfigBody, ConfigVersion}
 import io.eitheror.casino.support.conversation.*
 import io.eitheror.casino.support.domain.{Frames, HandOff, Redaction}
+import io.eitheror.casino.support.timers.Forget
 import org.apache.pekko.stream.scaladsl.Source
 
 import java.time.Instant
@@ -70,8 +72,11 @@ object Chat:
 
     val bound = ctx.conversation(s).call(Conversation.start).invoke(Start(playerId, config.version, now))
     bound.refusal.foreach(_ => throw Answers.sessionNotYours)
+    val first = !before.started || before.status == Status.Forgotten
+    // A conversation is forgotten after the retention even when its first turn's stream is cut before its end.
+    if first then Forget.schedule(ctx.components, s, bound.state)
     val body = bodyOf(ctx, bound.state)
-    turn(ctx, s, Turn(playerId, m, bound.state.configVersion, first = !before.started), body)
+    turn(ctx, s, Turn(playerId, m, bound.state.configVersion, first), body)
 
   /**
    * An awaited approval ankka has decided itself (FR-016: its time limit passed) is recorded as decided by `ankka`,
@@ -133,11 +138,17 @@ object Chat:
       .concat(ending(ctx, session, handOff))
       .recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }
 
-  /** What is held of the reply, then `done`; a reply that carried the hand-off marker is recorded as one (R12). */
+  /**
+   * What is held of the reply, then `done`; a reply that carried the hand-off marker is recorded as one (R12). The
+   * turn is recorded with the session's tokens after it, and the forget timer set from it (FR-027).
+   */
   private def ending(ctx: Ctx, session: String, handOff: HandOff): Source[SseEvent, ?] =
     Source.lazySingle { () =>
       val rest = handOff.finish()
       if handOff.handedOff then ctx.conversation(session).call(Conversation.handedOff).invoke(At(ctx.now())): Unit
+      val tokens = ctx.components.forSessionMemory(Motoko.session(session)).call(SessionMemoryEntity.history).invoke().usage.total
+      val after  = ctx.conversation(session).call(Conversation.turned).invoke(Turned(ctx.now(), tokens.toLong))
+      Forget.schedule(ctx.components, session, after.state)
       rest
     }.filter(_.nonEmpty).map(Frames.delta).concat(Source.single(Frames.done))
 

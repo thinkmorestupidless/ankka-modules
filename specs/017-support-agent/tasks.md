@@ -266,7 +266,7 @@ responsible-gambling, and ends the conversation.
       keeps the last 10 messages, using a separate scripted summariser (FR-026, FR-005).
       It also covers a stream cut mid-turn: the turn completes in the session, and the next turn's
       model is given that reply in its history, with the turn not run again (edge case).
-- [ ] T040 [US4] `S/timers/Forget.scala`: `forget-<session>`, set again on every turn at
+- [X] T040 [US4] `S/timers/Forget.scala`: `forget-<session>`, set again on every turn at
       `lastActivity + retentionDays`.
   - When it fires and the conversation is untouched, it calls `forSessionMemory(id).clear` and
     `Conversation.forget`; otherwise it sets itself again.

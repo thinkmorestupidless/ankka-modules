@@ -19,6 +19,9 @@ final class Conversation(@scala.annotation.unused context: EventSourcedEntityCon
   def applyEvent(event: ConversationEvent): ConversationState =
     val s = currentState.copy(lastActivity = event.at)
     event match
+      // A forgotten conversation's next turn starts a new one (FR-027): nothing of the old trail is kept.
+      case e: Started if s.status == Status.Forgotten =>
+        ConversationState(playerId = e.playerId, configVersion = e.configVersion, startedAt = Some(e.at), lastActivity = e.at)
       case e: Started           => s.copy(playerId = e.playerId, configVersion = e.configVersion, startedAt = Some(e.at))
       case e: TurnTaken         => s.copy(turns = s.turns + 1, tokensCounted = math.max(s.tokensCounted, e.tokensAfter))
       case e: ToolCalled =>
@@ -35,14 +38,19 @@ final class Conversation(@scala.annotation.unused context: EventSourcedEntityCon
           case EndReason.OnBreak(u) => Some(u)
           case EndReason.SelfExcluded => None
         s.copy(status = Status.Ended(e.reason), breakUntil = until)
-      case _: Forgotten => s.copy(status = Status.Forgotten, approved = None)
+      // Forgetting clears the transcript, never an end: a break or an exclusion still closes the conversation.
+      case _: Forgotten =>
+        s.copy(status = s.status match { case e: Status.Ended => e; case _ => Status.Forgotten }, approved = None)
 
   private def ok(s: ConversationState) = Answer(s)
   private def refuse(code: String)     = effects.reply(Answer(currentState, Some(code)))
 
-  /** Binds the session to its player on the first turn; again for the same player is the same; another is refused (FR-004). */
+  /**
+   * Binds the session to its player on the first turn, or on the first after it was forgotten (FR-027); again for the
+   * same player is the same; another is refused (FR-004).
+   */
   def start(c: Start): Effect[Answer] =
-    if !currentState.started then effects.persist(Started(c.playerId, c.configVersion, c.at)).thenReply(ok)
+    if !currentState.started || (currentState.status == Status.Forgotten && currentState.playerId == c.playerId) then effects.persist(Started(c.playerId, c.configVersion, c.at)).thenReply(ok)
     else if currentState.playerId == c.playerId then effects.reply(ok(currentState))
     else refuse("session_not_yours")
 

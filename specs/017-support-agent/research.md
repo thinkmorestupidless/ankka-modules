@@ -368,6 +368,16 @@ of a blip.
   call to a local service address (deployed, the identity is the workload's certificate), so the kit's
   fakes cannot record `support-agent` as the caller. They assert that no player token is forwarded,
   and the neighbours' own suites hold their `serviceOf("support-agent")` ACLs (T013).
+- **2026-11-11, what the forget timer reads and leaves (T040).** Nothing recorded a turn: `turned`
+  had no caller, so `lastActivity` stopped at a session's first turn and the timer would have
+  forgotten a conversation still in use. The chat route now records `TurnTaken` at each turn's end,
+  with the session's token total after it, and sets `forget-<session>` from it; a first turn also
+  sets it before the stream, so a first turn cut short is still forgotten. The retention is read
+  when the timer fires, so a shorter one applies at the next firing. Forgetting clears the
+  transcript but keeps an `Ended` status, so a break or an exclusion still closes the conversation.
+  The next turn on a forgotten conversation, by its own player, persists `Started` again on the
+  configuration version now, with a fresh trail. **Rejected:** forgetting an ended conversation into
+  `Forgotten`, which would reopen an excluded player's chat.
 
 ## For ankka
 
