@@ -323,7 +323,7 @@ responsible-gambling, and ends the conversation.
 
 ## Phase 9: Audit (every story; FR-028)
 
-- [ ] T053 [P] `T/facts/AuditMappingSuite.scala`, written first: each event → contracts/audit.md's
+- [X] T053 [P] `T/facts/AuditMappingSuite.scala`, written first: each event → contracts/audit.md's
       `AuditRecord`, with no message text, `feedback` or personal value in any field.
 - [ ] T054 `S/facts/AuditPublisher.scala` (`eventsOf(Conversation)`) and `ConfigAudit.scala`
       (`stateOf(AgentConfiguration)`, every note in `recentChanges`), as engagement's.
