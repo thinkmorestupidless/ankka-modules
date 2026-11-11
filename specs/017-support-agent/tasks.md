@@ -261,7 +261,7 @@ responsible-gambling, and ends the conversation.
 
 **Independent test**: `conversations.feature` green.
 
-- [ ] T039 [P] [US4] `T/it/DurabilitySuite.scala`: a restart keeps the history and an awaiting
+- [X] T039 [P] [US4] `T/it/DurabilitySuite.scala`: a restart keeps the history and an awaiting
       request; the same session id from another page continues; compaction past 100 000 bytes
       keeps the last 10 messages, using a separate scripted summariser (FR-026, FR-005).
       It also covers a stream cut mid-turn: the turn completes in the session, and the next turn's

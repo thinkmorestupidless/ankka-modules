@@ -28,6 +28,7 @@ final class SseReader(url: String, sent: String, headers: Seq[(String, String)])
   @volatile private var seen  = Vector.empty[Frame]
   @volatile private var lines = Vector.empty[String]
   @volatile private var first = Option.empty[Long]
+  @volatile private var input = Option.empty[java.io.InputStream]
 
   private val client = HttpClient.newBuilder.version(HttpClient.Version.HTTP_1_1).connectTimeout(java.time.Duration.ofSeconds(5)).build()
   Thread.ofVirtual.start(() => run()): Unit
@@ -39,6 +40,7 @@ final class SseReader(url: String, sent: String, headers: Seq[(String, String)])
       val response = client.send(b.build(), HttpResponse.BodyHandlers.ofInputStream())
       code = response.statusCode
       started.countDown()
+      input = Some(response.body)
       val in   = BufferedReader(InputStreamReader(response.body, UTF_8))
       var name = Option.empty[String]
       var data = Vector.empty[String]
@@ -59,6 +61,9 @@ final class SseReader(url: String, sent: String, headers: Seq[(String, String)])
     finally
       started.countDown()
       ended.countDown()
+
+  /** The page goes away mid-stream: the connection is closed with what was read so far. */
+  def cancel(): Unit = input.foreach(_.close())
 
   def status: Int =
     started.await(10, TimeUnit.SECONDS): Unit
