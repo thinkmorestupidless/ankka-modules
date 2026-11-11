@@ -326,6 +326,18 @@ of a blip.
   original did).
 - **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
   holding the session it ended (amendment P1); `approvalId` is now required on that route.
+- **2026-11-10, compaction never runs on a session about a person (ankka 0.16; settled with the user:
+  stop for an ankka fix).** After a session's first call names a data subject, every session memory
+  event is persisted as `SessionMemoryEvent.Sealed` (`SessionMemoryEntity.scala`, "Every event after
+  it is `Sealed`"), and `SessionCompactor.onMessage` acts only on `AiMessageAdded`
+  (`compaction.scala`), so it ignores them all. In the kit, a session of 14 messages and 100 103
+  characters drew no summariser call and no recorded failure. FR-005 needs both the data subject and
+  compaction. 017 is paused at T039 until ankka's compactor also reacts to a sealed AI message, and
+  then moves to the release that carries the fix. **Rejected:** the service compacting after each
+  turn itself, which would duplicate ankka's rule; and leaving FR-005's compaction unmet.
+  **Resolved 2026-11-11:** ankka 064 (#264) shipped in 0.16.2, and 017 moves to it (build,
+  `service.json`, the module's runtime). 0.16.2 also carries #263, whose route builders take no type
+  arguments, so `ChatEndpoint`'s two `sseEventsBody` handlers type their parameters instead.
 - **2026-11-10, what an ended conversation answers.** The brand's `closingMessage` says the account
   is excluded, which is wrong for a break. A turn during a break answers 409 `conversation_ended`
   with "You are on a break until {until}. This conversation is closed until then.", and the

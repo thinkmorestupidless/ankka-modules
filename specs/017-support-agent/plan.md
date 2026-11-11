@@ -40,8 +40,8 @@ Three neighbours are amended so the tools can reach them by identity ([contracts
 
 ## Technical Context
 
-**Language/Version**: Scala 3.9.0 on ankka 0.16.0, for sessions with a data subject (042, research
-R2). The contract, built on 0.13.0, is evicted to it as engagement's is (`VersionScheme.Always`).
+**Language/Version**: Scala 3.9.0 on ankka 0.16.2: 0.16 for sessions with a data subject (042, research
+R2), 0.16.2 for compacting them (064; research, *Found during implementation*). The contract, built on 0.13.0, is evicted to it as engagement's is (`VersionScheme.Always`).
 The amended neighbours stay on their own versions.
 
 **Primary Dependencies**:
@@ -177,7 +177,7 @@ services/support-agent/
 services/payouts/      api/SupportEndpoint.scala + suite                 (A1)
 services/responsible-gambling/ api/SupportEndpoint.scala, profile/RgKeys + suites (R1–R4)
 services/players/      game-session end keyed, status currency, agent-profile + suites (P1–P3)
-modules/support/module.json     runtime 0.16.0; image; settings env (R11)
+modules/support/module.json     runtime 0.16.2; image; settings env (R11)
 contract/keys.md                support-agent out of "Not yet built"
 Justfile                        support-agent-test / -it / -run (9020)
 .github/workflows/              the service's job and filter
@@ -236,10 +236,10 @@ field.
 
    Use `CASINO_VERSION=0.2.0-017-SNAPSHOT` throughout.
 2. **The service skeleton:**
-   - `ankka init`, `build.sbt` (0.16.0, `VersionScheme.Always` as engagement's), `service.json`,
+   - `ankka init`, `build.sbt` (0.16.2, `VersionScheme.Always` as engagement's), `service.json`,
      `docker-compose.yml` (Postgres 5444), `Settings`, `SupportCodecs`;
    - the `just` recipes (port 9020), the CI job and filter;
-   - `modules/support/module.json` on runtime 0.16.0 with the settings env (`AGENT_COMPACTION_*`,
+   - `modules/support/module.json` on runtime 0.16.2 with the settings env (`AGENT_COMPACTION_*`,
      `AGENT_MODEL_PROVIDER`), and `ModuleManifestSuite`'s built set gains `support-agent`;
    - `contract/keys.md`'s row moved.
 3. **The pure packages, test first:** `Summaries` (the original's write and RG summary tests),

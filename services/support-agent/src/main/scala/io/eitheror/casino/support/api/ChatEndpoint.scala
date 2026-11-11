@@ -26,12 +26,12 @@ import scala.util.control.NonFatal
 final class ChatEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/agent/${ctx.slug}"):
   val acl: Acl = Routes.player(ctx.slug, ctx.authenticate())
 
-  sseEventsBody[String, String]("/run/{route}") { (route, body) =>
+  sseEventsBody("/run/{route}") { (route: String, body: String) =>
     if route != Chat.Route then throw Answers.notFound
     Chat.run(ctx, player(), body)
   }
 
-  sseEventsBody[String, String]("/resume/{session}") { (session, body) =>
+  sseEventsBody("/resume/{session}") { (session: String, body: String) =>
     Chat.resume(ctx, player(), session, body)
   }
 
