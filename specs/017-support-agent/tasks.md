@@ -332,7 +332,7 @@ responsible-gambling, and ends the conversation.
 
 ## Phase 10: Parity and polish
 
-- [ ] T055 Record the original (needs the user; research R13, quickstart).
+- [X] T055 Record the original (needs the user; research R13, quickstart).
   - Run the original on kind with `casinoAgent.enabled: true` and `FunctionModel`.
   - Record T043, T044, and each write tool's approve and reject into `tests/port/support-agent/`
     with ankka-port (its `README.md` naming the run).

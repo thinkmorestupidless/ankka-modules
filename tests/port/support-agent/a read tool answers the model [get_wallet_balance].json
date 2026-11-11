@@ -1,0 +1,88 @@
+{
+ "scenario": "a read tool answers the model [get_wallet_balance]",
+ "requirement": "017/FR-010",
+ "recorded_at": "2026-11-11T11:43:46.264274Z",
+ "original": {
+  "commit": "7630feb0"
+ },
+ "runs": 2,
+ "service": "support-agent",
+ "steps": [
+  {
+   "name": "setup: register the player",
+   "request": {
+    "method": "POST",
+    "path": "/v1/casino/players/spinvibe/register",
+    "service": "casino",
+    "body": {
+     "email": "{email}",
+     "password": "<redacted>",
+     "currency": "EUR",
+     "country": "GB",
+     "language": "en",
+     "dateOfBirth": "1990-01-01"
+    }
+   },
+   "response": {
+    "status": 201,
+    "body": {
+     "playerId": "{playerId}",
+     "status": "pending_email_verification"
+    }
+   }
+  },
+  {
+   "name": "setup: deposit 50.00 to the player",
+   "request": {
+    "method": "POST",
+    "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+    "service": "wallet",
+    "body": {
+     "paymentRef": "{paymentRef}",
+     "amount": "50.00",
+     "terminalId": "support-recorder",
+     "pspId": "support-recorder-psp",
+     "scheme": "card"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "bonusBalance": "0.00",
+     "currency": "EUR",
+     "realBalance": "50.00",
+     "txnId": "transaction/f842123b-e577-423f-b292-a7d2619c8d0d"
+    }
+   },
+   "vary": {
+    "$.txnId": "differs between two runs of the original"
+   }
+  },
+  {
+   "name": "chat: {'tool': 'tool_get_wallet_balance', 'args': {}}",
+   "request": {
+    "method": "POST",
+    "path": "/run/chat_with_player",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "message": "script:{\"tool\": \"tool_get_wallet_balance\", \"args\": {}}",
+     "session_id": "{session}"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": [
+     {
+      "event": "error",
+      "data": {
+       "message": "Client error '403 Forbidden' for url 'http://localhost:19102/internal/v1/wallet/spinvibe/{playerId}/EUR/balance'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403"
+      }
+     }
+    ]
+   }
+  }
+ ]
+}
