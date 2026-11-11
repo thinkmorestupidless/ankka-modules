@@ -208,3 +208,148 @@ It also amends three neighbours so the tools can reach them by identity:
 - **Language skill:** `pr-review-scala`. Concurrency and actors, serialization, types and totality, error handling, collections, tests and build were applied. The idioms group was skimmed: `-Wunused:all` is on, and there is no scalafmt check in this build. Python (`tests/original/support-agent-recorder.py`) was skimmed only: it is a local recorder, not shipped, and `pr-review-python` was not loaded.
 - **Project rules read:** `CLAUDE.md` (repository and workspace), `.specify/memory/constitution.md` as referenced by the plan's gate, and `specs/007-payouts/REVIEW.md` (it applies to `specs/007-payouts/`, which the diff touches only in its spec and contract rows). There are no `.claude/rules`.
 - **Tests:** not run. The integration, parity and feature suites need Docker, and the instructions are not to run them. The unit suites need the contract published under a unique `CASINO_VERSION` and several minutes of sbt. Every finding above rests on reading the code and the ankka source and docs it calls. The dispatcher finding needs a load run to show its effect, not its presence.
+
+## Second round
+
+**Verdict:** Approve with comments. Every blocking finding of the first round is resolved, and each resolution holds. Three should-fix items are expected before merge, or an answer with a reason; the first two are in the new code, and both are narrow.
+
+**What it does:** Seven commits answer the first round:
+- the other-player guardrail knows the player's own ids (`OwnIds`);
+- a withdrawal confirms only the forfeit the player was shown, and only while it has not grown;
+- a real-money brand cannot run its agent without a judge;
+- the chat streams' blocking work moves to virtual threads;
+- a decision ankka was never told is reconciled;
+- a put re-reads over the newer body and adopts an abandoned slot;
+- a closed game session must be the player's own;
+- the spec, plan and contracts are amended to match.
+
+**Should it exist:** yes. It is the response to the first round, and each commit names the findings it resolves.
+
+**Read:**
+- Read in full: the whole diff under `services/support-agent/src/main` and `src/test`, the `ci.yml` hunk, and the spec, plan, research, data-model and `contracts/neighbours.md` hunks.
+- Opened outside the diff:
+  - `api/ChatEndpoint.scala` in full (`outcomeFrames`, `awaiting`, `written`, the `given ExecutionContext`);
+  - `config/AgentConfiguration.scala` (`move`'s stale rule);
+  - `agent/Motoko.scala` (the tools and guardrails are rebuilt on every handler run);
+  - `domain/Summaries.withdrawal`;
+  - players' `GameSessionRoutes.history` and `endByAgent`;
+  - `contracts/routes.md` and `features/support-agent/operators.feature`;
+  - ankka's `AgentLoop.scala` and `ToolRunner.scala`, for where guardrails run: on the loop's virtual thread, so the blocking record reads in `OwnIds` are allowed there.
+
+**Size:** 31 files, +613 −121. About 480 lines are Scala, half of them tests. The rest is docs, including the first round's review.md (210 lines). This range is reviewable in one sitting.
+
+### Blocking
+
+None.
+
+### Should fix
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:150` — issue (non-blocking): `reported.set(true)` runs as soon as `applied()` has built the `action_result` frames. Those frames are emitted only if the whole `Future` succeeds. If `outcomeFrames` then throws inside the same `Future`, the frames are lost, and the recover at `:158` skips them because `reported` is already true.
+
+  `outcomeFrames` throws when the model asks for a second write right after the first and one of `awaiting`'s calls fails: an entity call, `calls.decide` or a neighbour read. The player then sees `error` alone for a withdrawal that was requested. That is the outcome the first round's should-fix 2 set out to prevent.
+
+  **Suggestion:** set the flag as the `Future`'s last step, once the frames are certain to be emitted:
+  ```scala
+  val frames = result ++ outcomeFrames(…) ++ Option.when(closed)(…).toVector
+  reported.set(true)
+  frames
+  ```
+  A `ResumeSuite` case that fails the second request's `requested` call would pin it.
+
+  Resolved: `reported` is set only once every frame of the `Future` is built, so a failure in `outcomeFrames` is reported by the recover with the `action_result` first, d6032aa0
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:72` with `:134` — issue (non-blocking): a decision that was recorded but never told to ankka sends the player back to decide (409 `Session already active`, naming the approval). The resume then ignores what they decide now and sends ankka the recorded decision (`state.approved.contains(id)`).
+
+  So a player who approved, saw the stream fail, and now presses "reject" still has the withdrawal or the exclusion applied. ankka has run nothing yet, so honouring the latest decision costs nothing, and it is what the 409 asked the player for. `ResumeSuite`'s "untold" case approves both times, so it cannot see this.
+
+  **Suggestion:** choose one of two fixes, and add the reject-after-approve case either way.
+  - In the reconcile branch, use `action.contains("approve")`. Record it on `Conversation` as a second `Decided`, which the handler accepts while ankka still awaits the id, so `trail.approved` agrees.
+  - Or stop inviting a new decision: the resume tells ankka the recorded decision whatever the body says, and the chat does not answer 409 for this case.
+
+  Resolved: the decision the player sends now replaces the untold one (`Conversation.redecided`, a second `Decided` the audit carries), and that one is told to ankka; `ResumeSuite` case: approved, untold, then rejected, runs nothing, d6032aa0
+
+- `specs/017-support-agent/contracts/routes.md`, `features/support-agent/operators.feature` — todo: the contract and the features lag the fixes.
+  - The chat's 503 row still says only "the agent is off (`enabled` false)". It should also cover a real-money brand with no judgment provider.
+  - The resume's table has no 503 row.
+  - Neither table has a line for a recorded decision that ankka still awaits: chat answers 409, and resume sends it.
+  - The resume's stream table does not say that an applied `action_result` comes before `error`.
+  - `PUT /`'s 422 `safeguarding_not_configured` does not name the missing-judge case.
+  - The first round suggested an `operators.feature` scenario for the missing judge, and it was not added. `ConfigSuite` covers it, but `features/` is where this repository keeps what the system does (CLAUDE.md).
+
+  Resolved: `contracts/routes.md` names the 503s, the reconcile's 409 and replacement, `action_result` before `error`, and the 422's three causes; `operators.feature` gains the missing-judge scenario, bound in `OperatorsFeatures`, 628a1b74
+
+### Nits
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/domain/ConfigRules.scala:30`, `:92` — nitpick (non-blocking): `judged: Boolean = true` defaults to the permissive answer on a safety check. A future caller that forgets the argument lets a real-money brand turn the agent on with no judge. Make the parameter required. The one main caller already passes it, and the test helper can pass `true`.
+
+  Resolved: `judged` is required, 0ac90305
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:111-114` — nitpick (non-blocking): after any rejected decision, `lastDecided` names an id that `lastAction` will never match. So `unsettled` calls `agent.approvals()` on every later chat turn of that conversation: one extra ankka round trip per turn, permanently. Narrow it with `s.approved.contains(id)`, since only an approval can leave a tool unrun. A rejection ankka was never told is reached by ankka's expiry anyway.
+
+  Left: nit. Narrowing to approvals would leave an untold rejection's conversation answering `error` until ankka's expiry, which the redecide now reconciles; one `approvals()` read per turn is the cost.
+
+- The first round's nits that were left stand as they were answered: wire names for nested enums, the `get_player_state` description, the test sleeps, the view offset, and `.specify/feature.json`. The enum wire names are still cheapest now, while the journal is empty.
+
+  Left: nit
+
+### Questions
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/agent/Actions.scala:52-58` — question: `owned` reads the newest 100 sessions from players' `SessionsView`, which is eventually consistent. A session launched a moment ago may not be in it yet, so "close the session I just opened" would be refused as not the player's. Is the view's lag small enough to ignore here? If not, the players-side check the first round offered has no lag: `POST /{playerId}/game-sessions/{sessionId}/end`, read from the entity.
+
+  Answered: the refusal is told to the model as the session not being found, and the player can ask again a moment later; players' view lag is a projection's (sub-second on the kit). The entity-backed route is the cleaner close and is noted for the pull request.
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/agent/Tools.scala:175-176` — thought: the preview is read again when the approved withdrawal runs, and payouts computes its own forfeit when it takes the request. A forfeit that grows between those two reads still passes with `confirmForfeit: true`. The window is milliseconds, and payouts is where it would close (a `maxForfeit` in place of the boolean). It is worth a note for payouts, not a change here.
+
+  Answered: agreed, the remaining window is payouts' to close (a `maxForfeit`), noted for the pull request.
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ConfigEndpoint.scala:78-88` — thought: a real-money brand left `enabled` when its judge is taken away shows `enabled: true` on `/status`, while its routes answer 503. Every put to it is then refused 422 until someone sends `enabled: false`, because `safeguarded` checks the merged body. That forces the right state. An `available` field on the status would show an operator why.
+
+  Left: an `available` field on `/status` is noted for the pull request.
+
+### Resolutions of the first round
+
+- **Blocking 1 (other-player and own ids):** holds.
+  - `OwnIds` admits the player id and every id a tool answered this turn; `Tools.call` and `write` add them. It also admits the ids in the player's sessions, grants and 50 newest transactions. Those are read once, lazily, and only when an id is neither of the first two.
+  - The read runs inside a guardrail, and ankka runs guardrails on the loop's virtual thread (`AgentLoop.scala:38`).
+  - `Motoko` builds a new `Tools`, and so a new `OwnIds`, on every handler run, resume included.
+  - `OtherPlayerSuite` checks the read count. `GuardrailSuite` covers an id a tool answered, an id from the records, and a foreign id.
+  - A transaction older than the 50 newest is still refused, which is acceptable.
+- **Blocking 2 (forfeit):** holds.
+  - `confirmsForfeit(named, now)` is `named.exists(f => now.exists(_ <= f))`. A preview that is unread, a forfeit never shown, and one that has grown all send false.
+  - `prepare` drops a zero forfeit, which `Summaries.withdrawal` already did, so the summary text is unchanged.
+  - `ApprovalRequested.forfeit` and `ConversationState.namedForfeit` default to `None`, so stored events read as before.
+  - `ResumeSuite` covers all three cases.
+- **Blocking 3 (no judge on a real-money brand):** holds. The put is refused 422. Through `available`, chat and resume answer 503, including for a brand turned on before its judge was removed. FR-023 and the Assumption now agree.
+- **Blocking 4 (stream threads):** holds.
+  - These now run through `Source.lazyFuture` on the file's virtual-thread `given`: `ending`, `failed`, the output retry's `rejected`, and the resume's late `action_result`.
+  - `offThread` takes its frames by name, so nothing is evaluated on the stream's thread.
+  - `written`'s sleep poll now runs on a virtual thread. It is still the ankka gap that research records.
+- **Should-fix 1 (decision recorded before ankka is told):** holds for the restart case it tests. The reject-after-approve path above still needs a decision.
+- **Should-fix 2 (action_result when the reply fails):** holds on the tested path (the decide's reply refused). The flag placement above leaves one path open.
+- **Should-fix 3 (abandoned put):** holds.
+  - `ConfigVersion.write` keeps who made the change and when, and compares the whole `ConfigChange`.
+  - A slot holding another put's body is moved to with that put's author and base.
+  - `move`'s rule (`version == current + 1`) makes adopting an in-flight put safe. Its own move goes stale, its re-read finds nothing changed, and it answers the version.
+  - A retry of an identical body at a later instant takes the same path and also answers correctly.
+  - Puts are now tried 3 times instead of 2.
+  - `VersionState`'s new fields are additive and have defaults.
+- **Should-fix 4 (lost update):** holds. `next` runs `ConfigRules.read` and the admin check over the fresh `current` on each attempt. `ConfigSuite`'s abandoned-put case shows a put keeping another put's field.
+- **Should-fix 5 (a closed session must be the player's):** holds. The id is checked against the player's sessions twice: before the approval is put to them, and in the tool before players is called. A model-supplied id never decides on its own. See the view-lag question above.
+- **Should-fix 6 (resume while the agent is off):** holds. `contracts/routes.md` does not say so yet (see above).
+- **Todo (FR-003, the Divergences row, Project Structure):** holds. The plan names where each piece lives, and the files it names exist.
+- **Nit (`ci.yml` version):** holds.
+- **Out of scope (approval id not given to a tool):** recorded in research's *For ankka* list, as asked.
+
+### Praise
+
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/config/AgentConfiguration.scala:55-76` — praise: `put` now takes the change as a function of the current body. That fixes both the lost update and the stale admin check. The kit's whole-body `put` reduces to it through `Either[Nothing, Put].merge`, so one code path serves both callers.
+- `services/support-agent/src/test/scala/io/eitheror/casino/support/domain/OtherPlayerSuite.scala:35-46` — praise: the test counts the record reads. It shows the records are not read for an id a tool answered, and are read once a turn otherwise. That asserts the cost claim of `OwnIds` instead of assuming it.
+- `services/support-agent/src/main/scala/io/eitheror/casino/support/agent/Actions.scala:58-63` — praise: `confirmsForfeit` is a pure two-argument function, named for what it decides, with the rule in its doc comment. The money rule can be reviewed on one line.
+
+### Checks applied
+
+- **General checklist groups applied:** Correctness; Design and scope; Error handling; Concurrency and state (the `AtomicBoolean`, the `ConcurrentHashMap` and lazy `recorded`, the put race, the decide reconcile); Security (FR-011's model-supplied id, FR-023); Data and migrations (additive event and state fields only); Performance (the extra ankka and neighbour reads per turn); Tests; API and compatibility (`ConfigVersion.write`'s input type changed, before any deployment); Documentation; Commit and PR hygiene (Conventional Commits, each commit naming the findings it resolves).
+- **General checklist groups skipped:** Dependencies and build, since no dependency changed. Observability, since nothing new is logged.
+- **Language skill:** `pr-review-scala`, applied in order: concurrency, serialization, types and totality, error handling, collections, tests. `outputRefusal(e).get` at `ChatEndpoint.scala:197` is guarded by its case's `isDefined`, so it is not a finding. The idioms group was skimmed: `-Wunused:all` is on.
+- **Project rules read:** `CLAUDE.md` (repository and workspace), and this directory's review file, which the gather summary listed as its `REVIEW.md`. There are no `.claude/rules`.
+- **Tests:** not run. The `it` and parity suites need Docker, and the instructions are not to run them. The unit suites need the contract published under a unique `CASINO_VERSION` and several minutes of sbt. Every finding rests on reading the code.
