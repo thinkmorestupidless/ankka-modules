@@ -337,7 +337,7 @@ responsible-gambling, and ends the conversation.
   - Record T043, T044, and each write tool's approve and reject into `tests/port/support-agent/`
     with ankka-port (its `README.md` naming the run).
   - Ask the user before starting kind or the original.
-- [ ] T056 `T/port/ParitySuite.scala`: replay `tests/port/support-agent/`, holding frame names,
+- [X] T056 `T/port/ParitySuite.scala`: replay `tests/port/support-agent/`, holding frame names,
       fields, summaries and details exact, with plan.md's *Divergences* marked per recording.
 - [X] T060 [P] `T/it/TelemetrySuite.scala` (FR-020): runs a conversation with a tool call, an
       approval and a guardrail rejection, then reads the kit's captured logs and spans. Asserts that

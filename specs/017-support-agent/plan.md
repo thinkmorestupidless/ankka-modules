@@ -223,6 +223,11 @@ field.
 | The player id from the realm token; no hand-off token, no `/healthz`, no `/mcp/manifest` | spec, *Changes*; ankka's health | `ChatSuite` |
 | Guardrails, rate, budget, retention, audit, hand-off marker | FR-021–FR-028 | their suites; `guardrails.feature`, `protections.feature`, `conversations.feature`, `operators.feature` |
 | The prompt gains two lines (the hand-off marker; context given) | R12, FR-007 | `PromptSuite` (the original's text otherwise byte for byte) |
+| The balance and the transactions are read; on kind the original's `get_wallet_balance` and `get_transaction_history` were refused 403 by the wallet (no `X-Internal-Brand-Id`, no HMAC), and the turn ended in an `error` naming the internal URL | FR-010, FR-021 | `ParitySuite` (found recording, T055) |
+| `get_rg_status` answers RG's limits, pending changes and restrictions, not the original's player-twin fields | FR-010 | `MappingSuite`; `ParitySuite` |
+| `get_active_bonuses` and `get_session_history` answer an object naming the list, where the original answered a bare list | contracts/tools.md | `MappingSuite`; `ParitySuite` |
+| A deposit limit's summary says whether it applies at once or after 24 hours, as RG answers; the original always gave the generic delay note | FR-013 | `SummariesSuite`; `ParitySuite` |
+| `action_result.detail` names what the owning service answered; the original's reference, effective time and exclusion time were empty, as it never read the substrate's answer | FR-012 | `ParitySuite` (found recording, T055) |
 
 ## What the next command needs to know
 
