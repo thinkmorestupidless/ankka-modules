@@ -126,14 +126,15 @@ object Chat:
     val id = awaited.orElse(state.lastDecided).getOrElse(throw Answers.noPendingAction)
     val by = s"player:$playerId"
     // Recorded before ankka is told, so the approved tool reads its key from the conversation (research). A decision
-    // recorded that ankka was never told is told now, as it was recorded.
-    val refusal = ctx.conversation(session).call(Conversation.decided)
-      .invoke(Decide(id, action.contains("approve"), by, expired = false, ctx.now())).refusal
-    val approve = refusal match
-      case None                                                               => action.contains("approve")
-      case Some("already_decided") if unsettled(ctx, session, state).isDefined => state.approved.contains(id)
-      case Some("already_decided")                                            => throw Answers.alreadyDecided
-      case Some(_)                                                            => throw Answers.noPendingAction
+    // recorded that ankka was never told is replaced by the one the player makes now, and that one is told.
+    val approve = action.contains("approve")
+    val decide  = Decide(id, approve, by, expired = false, ctx.now())
+    ctx.conversation(session).call(Conversation.decided).invoke(decide).refusal match
+      case None => ()
+      case Some("already_decided") if unsettled(ctx, session, state).isDefined =>
+        ctx.conversation(session).call(Conversation.redecided).invoke(decide).refusal.foreach(_ => throw Answers.alreadyDecided)
+      case Some("already_decided") => throw Answers.alreadyDecided
+      case Some(_)                 => throw Answers.noPendingAction
     val body     = bodyOf(ctx, state)
     val decision = if approve then Decision.approved(id, by) else Decision.refused(id, by, b.flatMap(_.text("feedback")).getOrElse(""))
     val handOff  = HandOff(body.handOff)
@@ -147,11 +148,13 @@ object Chat:
       Future {
         val outcome = agent(ctx, session, playerId).decide(Motoko.chat)(decision)
         val result  = applied()
-        reported.set(true)
         // An exclusion this decision applied closes the conversation with the brand's closing message (FR-017).
         val closed = ctx.conversationState(session).status == Status.Ended(EndReason.SelfExcluded) && result.nonEmpty
-        result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome) ++
+        val frames = result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome) ++
           Option.when(closed)(Frames.delta(s"\n\n${body.closingMessage}")).toVector
+        // Only once the frames carrying it are built: a failure before then is reported by the recover.
+        reported.set(true)
+        frames
       }
     }.flatMapConcat(frames => Source(frames).concat(ending(ctx, session, handOff, was)))
       .recoverWithRetries(1, { case NonFatal(e) =>

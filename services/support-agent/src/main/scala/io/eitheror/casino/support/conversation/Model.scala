@@ -47,6 +47,8 @@ final case class ConversationState(
     startedAt: Option[Instant] = None,
     /** The last approval decided, so a second decision on it is `already_decided` (FR-015). */
     lastDecided: Option[String] = None,
+    /** The tool of the last approval decided, for a decision made again before ankka was told. */
+    decidedTool: Option[String] = None,
     /** What the last approved tool came to, for the resume's `action_result` (research R3). */
     lastAction: Option[ActionDone] = None,
     /** The bonus funds the awaited or approved withdrawal's summary named as forfeited, if it named any (FR-013). */

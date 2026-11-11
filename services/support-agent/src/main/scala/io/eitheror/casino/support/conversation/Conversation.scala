@@ -30,7 +30,8 @@ final class Conversation(@scala.annotation.unused context: EventSourcedEntityCon
           if s.approved.contains(id) then s.copy(approved = None, lastAction = done) else s.copy(lastAction = done)
         }
       case e: ApprovalRequested => s.copy(status = Status.Awaiting(e.approvalId, e.tool), namedForfeit = e.forfeit)
-      case e: Decided           => s.copy(status = Status.Open, approved = Option.when(e.approved)(e.approvalId), lastDecided = Some(e.approvalId))
+      case e: Decided           => s.copy(status = Status.Open, approved = Option.when(e.approved)(e.approvalId), lastDecided = Some(e.approvalId),
+        decidedTool = Some(e.tool))
       case _: GuardrailRejected => s
       case _: HandedOff         => s
       case e: Ended =>
@@ -72,6 +73,17 @@ final class Conversation(@scala.annotation.unused context: EventSourcedEntityCon
       case _ if currentState.lastDecided.contains(c.approvalId) => refuse("already_decided")
       case _ => refuse("no_pending_action")
 
+  /**
+   * The player's decision again on an approval decided here but never told to ankka (the endpoint checks ankka still
+   * awaits it): it replaces the one recorded, so the decision ankka is told is the player's latest. Once the approved
+   * tool has answered, or for another id, `already_decided`.
+   */
+  def redecided(c: Decide): Effect[Answer] =
+    val s = currentState
+    if s.awaiting.isEmpty && s.lastDecided.contains(c.approvalId) && !s.lastAction.exists(_.approvalId == c.approvalId) then
+      effects.persist(Decided(c.approvalId, s.decidedTool.getOrElse(""), c.approved, c.by, c.expired, c.at)).thenReply(ok)
+    else refuse("already_decided")
+
   def rejected(c: Rejected): Effect[Answer] =
     effects.persist(GuardrailRejected(c.guardrail, c.side, c.retried, c.at)).thenReply(ok)
 
@@ -111,6 +123,7 @@ object Conversation
   val toolCalled = command("tool-called")(_.toolCalled)
   val requested  = command("requested")(_.requested)
   val decided    = command("decided")(_.decided)
+  val redecided  = command("redecided")(_.redecided)
   val rejected   = command("rejected")(_.rejected)
   val handedOff  = command("handed-off")(_.handedOff)
   val end        = command("end")(_.end)

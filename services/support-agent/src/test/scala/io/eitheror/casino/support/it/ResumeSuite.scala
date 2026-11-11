@@ -111,6 +111,17 @@ class ResumeSuite extends munit.FunSuite:
     assertEquals(withdrawals.map(kit.payouts.key), Vector(Some(id)))
     assertEquals(kit.resume("p-1", "resume-untold", "approve").status, 409)
 
+  test("a decision recorded that ankka was never told is replaced by the one the player makes now"):
+    val id = awaiting("resume-untold-reject")
+    kit.components.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId("resume-untold-reject"))
+      .call(io.eitheror.casino.support.conversation.Conversation.decided)
+      .invoke(io.eitheror.casino.support.conversation.Decide(id, approved = true, "player:p-1", expired = false, kit.clock.instant())): Unit
+    kit.model.expectText("No problem, nothing was withdrawn.")
+    val frames = kit.resume("p-1", "resume-untold-reject", "reject").frames()
+    assertEquals(frames.map(_.name).distinct, Vector("delta", "done"))
+    assertEquals(withdrawals, Vector.empty)
+    assertEquals(kit.conversation("resume-untold-reject").approved, None)
+
   test("an applied action is reported even when the reply after it is refused"):
     awaiting("resume-reply-refused")
     kit.model.expectText("Player 0b6f3c1e-8a2d-4f6e-9c3b-2d1e5a7f9b04 asked too.")
