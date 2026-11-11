@@ -92,6 +92,18 @@ class PolicyFeatures extends KycFeatures("policy.feature"):
       assertEquals((p.bool("autoSuspendOnWindowExpiry"), p.text("licenceProfile")), (Some(false), Some("MGA")))
   }
 
+  // Anjouan (spec 026 US7): Curaçao's policy under its own name.
+  Then("the KYC policy is: no deposit gate, no play gate, no KYC currency, no deposit threshold, a {string} day verification window, no source of funds threshold, identity required, and suspend on expiry") {
+    (days: String) =>
+      assertEquals(last.status, 200, last.text)
+      val p = policy()
+      assertEquals((p.text("depositGate"), p.text("playGate")), (Some("NONE"), Some("NONE")))
+      assert(isNull(p, "kycCurrency") && isNull(p, "depositThresholdMinorUnits") && isNull(p, "sofThresholdMinorUnits"), p.toString)
+      assertEquals(p.long("kycWindowDays"), Some(days.toLong))
+      assertEquals(p.strings("requiredDocTypes"), Vector("identity"))
+      assertEquals((p.bool("autoSuspendOnWindowExpiry"), p.text("licenceProfile")), (Some(true), Some("ANJOUAN")))
+  }
+
   Given("a brand on the licence profile {string}") { (name: String) =>
     assertEquals(applyThroughRoute(name).status, 200, last.text)
     before = policy()
@@ -115,7 +127,7 @@ class PolicyFeatures extends KycFeatures("policy.feature"):
 
   Then("it is refused naming the known licence profiles") { () =>
     assertEquals((last.status, last.str("error")), (400, "unknown_profile"))
-    assertEquals(last.json.strings("knownProfiles"), Vector("CURACAO", "MGA", "UKGC"))
+    assertEquals(last.json.strings("knownProfiles"), Vector("ANJOUAN", "CURACAO", "MGA", "UKGC"))
   }
 
   // ── a change, audited and in force ────────────────────────────────────────────────────────────

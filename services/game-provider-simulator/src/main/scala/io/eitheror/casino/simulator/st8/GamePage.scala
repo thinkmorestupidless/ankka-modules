@@ -1,9 +1,12 @@
 package io.eitheror.casino.simulator.st8
 
+import io.eitheror.casino.provider.st8.*
+
 import com.thinkmorestupidless.ankka.core.EntityId
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.simulator.Simulator
 import io.eitheror.casino.simulator.api.Access
+import io.eitheror.casino.provider.core.*
 import io.eitheror.casino.simulator.core.*
 
 /**
@@ -37,17 +40,4 @@ final class GamePage(sim: Simulator) extends HttpEndpoint("/game"):
                 if session.scenario != "default" then
                   sim.client.forWorkflow(EntityId(launchToken)).call(ScenarioPlay.start).invoke(ScenarioPlay.Start(launchToken, session.scenario))
                 Http.html(page.replaceFirst("%s", java.util.regex.Matcher.quoteReplacement(walletToken)).replaceFirst("%s", java.util.regex.Matcher.quoteReplacement(launchToken)))
-  }
-
-/** The key document (FR-011; contracts/st8-wire.md): what a brand on a test installation names as its provider key. */
-final class KeyDocument(sim: Simulator) extends HttpEndpoint("/.well-known"):
-  val acl: Acl = Access.public
-  get("/st8-keys")(() => Http.json(200, sim.keys.document()))
-
-/** The stand-in's health (`main.go:717-727`): ready once the key is held and registered where configured. */
-final class Health(sim: Simulator) extends HttpEndpoint("/health"):
-  val acl: Acl = Access.public
-  get("/") { () =>
-    if sim.ready.get() then Http.raw(200, "application/json", """{"status":"ready"}""")
-    else Http.raw(503, "application/json", """{"status":"starting"}""")
   }

@@ -94,6 +94,27 @@ class ManifestSuite extends munit.FunSuite:
     assert(out.lines.exists(_.contains("never runs on an installation that takes real money")), out.lines.mkString("\n"))
   }
 
+  test("the games project holds the house provider and nothing else (spec 026)") {
+    val path = Fixtures.root.resolve("shared/games/manifest.json")
+    assert(Manifest.load(path).isRight, Manifest.load(path).left.toOption.mkString)
+    val text = java.nio.file.Files.readString(path).replace("\"provider\"", "\"game-provider-simulator\"")
+    assert(Manifest.parse(text).isLeft, "the simulator is refused in games")
+  }
+
+  test("the house provider's project is not refused on an installation that takes real money, where tools is") {
+    def validate(manifest: String) =
+      val out  = Output.Collected()
+      val code = Main.run(Main.parse(Seq("validate", manifest, "--installation", "dev-kind", "--real-money")), Fixtures.root, out, () => fail("no control plane is needed"))
+      (code, out.lines)
+    // dev-kind itself does not meet a real-money installation's facts; what is asserted is the
+    // refusal of the project, which tools has and games must not.
+    val refusal = "never runs on an installation that takes real money"
+    val (_, games) = validate("shared/games/manifest.json")
+    assert(!games.exists(_.contains(refusal)), games.mkString("\n"))
+    assert(!games.exists(_.contains("project 'games'")), games.mkString("\n"))
+    assert(validate("shared/tools/manifest.json")._2.exists(_.contains(refusal)))
+  }
+
   test("a slug longer than 42 characters is refused, so every service's address is one DNS label") {
     val long = "g" * 43
     val text = java.nio.file.Files.readString(Fixtures.manifest("goldvibe")).replace("\"goldvibe\"", s"\"$long\"")

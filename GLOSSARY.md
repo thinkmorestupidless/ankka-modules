@@ -24,6 +24,7 @@ arguments, budget, compaction, composed, contains, control, explains, express, f
 agreed, approver, causation, database, declined, entity, format, ingest, inside, joins, lookup, occurrence, officer, performed, principal, re-read, recursively, regulator, survives
 advertises, began, begin, begins, decremented, defect, doubled, elapsed, evidence, expected, fake, finding, instants, instructs, observed, percentile, production, projection, proposed, reconciliation, retired, runbook, scaled, schedule, shape, snapshot, snapshots, spends, step, study, sweep, th, took, verdict
 another, try
+attempt, attempts, instance, instances, abandons, deregisters, deregister, acknowledge, acknowledges, acknowledged, decremented, either, demo, exponent, loads, protocol, registered, registers, spends, sweep, younger
 
 ## Terms
 
@@ -377,7 +378,7 @@ The secret a brand holds for one network, under which it derives its players' ps
 A key under which a network signs tags, or a brand signs feed pages and network webhooks; published by id in a key document and withdrawn from it when retired.
 
 ### key document
-What a network or a brand publishes listing its current signing keys by id and how long a reader may cache it.
+What a network, a brand or the house provider publishes listing its current signing keys by id (and, during a key rotation, the next) and how long a reader may cache it.
 
 ### revocation list
 What a network publishes naming the links and affiliates whose tags bind no new player; a brand refreshes it on the stated interval.
@@ -814,7 +815,7 @@ Where a player's KYC stands: unverified, pending, additional verification requir
 The brand's KYC rules: the deposit gate, the play gate, the deposit threshold, the source of funds threshold, the verification window, the required categories, and whether the window's expiry suspends; taken from a licence profile and marked custom once a field is changed by hand.
 
 ### licence profile
-A regulator's defaults for the KYC policy, applied by name: UKGC, MGA or Curaçao; custom once any field is changed.
+A regulator's defaults for the KYC policy, applied by name: UKGC, MGA, Curaçao or Anjouan (Curaçao's values under its own name); custom once any field is changed.
 
 ### deposit gate
 The brand's rule that a player must have reached a KYC status before they may deposit; a deposit refused by it tells the player the status's own words.
@@ -1346,3 +1347,48 @@ A credit to a player's real balance from a market's pool account when the market
 
 ### service principal
 A service, named as its project and name, that owns a non-player account or calls a granted route.
+
+## The house provider
+
+### house provider
+The game provider eitheror runs itself: one deployment serving every brand on the installation, speaking the game provider's protocol so a brand configures it as any game provider, with its games behind it as game services. It signs, sends, retries and records every provider call; no game service does.
+
+Avoid: first-party provider, own provider, games project, the edge
+
+### game service
+A service of the house provider holding one or more games' rules and state and the game page of each, keyed by brand; it registers its games with the house provider and opens, settles and cancels rounds only by asking it.
+
+### game page
+The browser client of a house provider game, served by its game service at the address a launch answers; on load it asks the game service to check the launch ticket, and shows the session expired page when the brand refuses it.
+
+Avoid: game client, game UI
+
+### brand table
+The house provider's list of the brands it serves, one brand entry each, written by an operator and applied with no redeploy.
+
+### brand entry
+One brand in the brand table: its slug, the address of its game provider service, its site, its credential (the key its launches are signed with), its language, whether it is a test brand, whether it takes real money, the games it may run and, for a test brand only, whether it names the key document instead of holding the key. An entry that names the key document and takes real money refuses every launch.
+
+### pending debit
+A debit the brand has not answered within the wait: answered to the game service as pending, retried under the same transaction id on the retry schedule; the round is not open until the brand answers.
+
+### unanswered call
+A provider call of the house provider the brand has not acknowledged: retried on the retry schedule, listed for the operator with its attempts and next retry, and abandoned with a reason when the money was settled another way. The brand's own record of a call that failed to reach its wallet is an unacknowledged call.
+
+### retry schedule
+The intervals and cap on which the house provider retries a provider call the brand answered "error" or did not answer: every thirty seconds for ten minutes, then every ten minutes, capped at eight hours; one setting of the house provider.
+
+### key rotation
+The replacement of the house provider's signing key in three operator acts: start (the next key is published in the key document), switch (every later provider call is signed with it) and withdraw (the old key leaves the document). Never done by a timer.
+
+### demo round
+A round asked on a session in fun mode: the house provider sends no provider call and tells the game service so.
+
+### claim deadline
+The time until which a free rounds instance at a game service can be spent, set by the game from its own schedule and never earlier than the brand asked.
+
+### day export
+Finance's export of one brand's rounds settled on one calendar day in the installation's reporting zone, with each round's stake, win, outcome and transaction ids; what the brand's provider report is compared with.
+
+### test game
+A game service that exists only in the house provider's test kit and is never deployed: it plays the rounds the recordings' instructions name so the house provider can be held to them.

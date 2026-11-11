@@ -42,7 +42,7 @@ class PolicySuite extends munit.FunSuite:
     assertEquals(Profiles.of(Some("ukgc")).map(_.profile), Right(Profile.Ukgc))
     assertEquals(Profiles.of(None), Left(ProfileRequired))
     assertEquals(Profiles.of(Some("  ")), Left(ProfileRequired))
-    assertEquals(Profiles.of(Some("CUSTOM")), Left(UnknownProfile(Vector("CURACAO", "MGA", "UKGC"))))
+    assertEquals(Profiles.of(Some("CUSTOM")), Left(UnknownProfile(Vector("ANJOUAN", "CURACAO", "MGA", "UKGC"))))
 
   test("with no event the policy is the Curaçao default, marked as one"):
     assertEquals(Policy.Default, Profiles.Curacao.copy(isDefault = true))

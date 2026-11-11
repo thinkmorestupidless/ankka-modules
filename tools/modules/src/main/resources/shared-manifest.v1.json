@@ -24,6 +24,7 @@
       "properties": {
         "id": {
           "enum": [
+            "games",
             "payments",
             "programme",
             "reasoner",
@@ -90,7 +91,8 @@
               "ingest",
               "affiliate-programme",
               "audit",
-              "game-provider-simulator"
+              "game-provider-simulator",
+              "provider"
             ]
           },
           "image": {

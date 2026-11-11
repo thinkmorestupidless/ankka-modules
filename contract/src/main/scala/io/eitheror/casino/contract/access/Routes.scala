@@ -58,10 +58,26 @@ object Routes:
 
   /** An operator whose realm roles name this brand, or a platform administrator. */
   def operator(slug: String, authenticate: => Acl = Oidc.authenticate()): Acl =
+    refine(authenticate)(operatorRefusal(_, slug))
+
+  /**
+   * Why `p` may not act as an operator of `slug` holding one of `roles` (none: any operator of it),
+   * in the words [[operator]] and [[operatorHolding]] refuse with; `None` when it may. For a service
+   * that serves many brands and reads the brand from its path, behind [[staff]].
+   */
+  def operatorRefusal(p: Principal, slug: String, roles: String*): Option[String] =
+    if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
+    else if !(p.roles.contains(s"brand_$slug") || p.roles.contains("platform_admin")) then Some(s"${Refusal.BrandNotInRoles}: no role names brand $slug")
+    else if roles.nonEmpty && !roles.exists(p.roles.contains) then Some(s"$Forbidden: the ${roles.head} permission is needed")
+    else None
+
+  /**
+   * Any staff token at the `eitheror` realm: the ACL of an endpoint whose routes name the brand in
+   * their path and check it with [[operatorRefusal]].
+   */
+  def staff(authenticate: => Acl = Oidc.authenticate()): Acl =
     refine(authenticate) { p =>
-      if !p.issuer.contains(StaffIssuer) then Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
-      else if p.roles.contains(s"brand_$slug") || p.roles.contains("platform_admin") then None
-      else Some(s"${Refusal.BrandNotInRoles}: no role names brand $slug")
+      if p.issuer.contains(StaffIssuer) then None else Some(s"${Refusal.WrongIssuer}: operators sign in at the eitheror realm")
     }
 
   /** A brand operator without the role a route needs (spec 023 FR-004). */
@@ -74,10 +90,7 @@ object Routes:
    */
   def operatorHolding(slug: String, roles: String*)(authenticate: => Acl = Oidc.authenticate()): Acl =
     require(roles.nonEmpty, "a route names the role it needs")
-    refine(operator(slug, authenticate)) { p =>
-      if roles.exists(p.roles.contains) then None
-      else Some(s"$Forbidden: the ${roles.head} permission is needed")
-    }
+    refine(authenticate)(operatorRefusal(_, slug, roles*))
 
   /**
    * The payments backoffice's privilege table (spec 004 research R10; the original's

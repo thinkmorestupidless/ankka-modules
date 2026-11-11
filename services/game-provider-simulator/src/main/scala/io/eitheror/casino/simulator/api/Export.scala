@@ -2,7 +2,7 @@ package io.eitheror.casino.simulator.api
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.{ArrayNode, ObjectNode}
-import io.eitheror.casino.simulator.core.{Callback, RunCallbackRow}
+import io.eitheror.casino.provider.core.{Callback, RunCallbackRow}
 
 import java.time.Instant
 import scala.util.Try

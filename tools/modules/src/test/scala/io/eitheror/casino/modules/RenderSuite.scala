@@ -43,7 +43,8 @@ class RenderSuite extends munit.FunSuite:
     "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
     // spec 023 R13: the erasure targets the brand's modules add.
     "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS") ++ PlayersSecrets),
-    "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
+    // spec 026 R11: the provider names the brand runs.
+    "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE", "CASINO_PROVIDERS"),
     // spec 011 R13: the programme's code document.
     "rewards"       -> Set("REWARDS_CODE_DOCUMENT_URL"),
     // spec 014 R12: the Customer.io secrets enter through the configuration route, not the manifest.

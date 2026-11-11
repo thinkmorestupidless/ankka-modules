@@ -1,5 +1,7 @@
 package io.eitheror.casino.simulator.core
 
+import io.eitheror.casino.provider.core.*
+
 import com.thinkmorestupidless.ankka.core.*
 import com.thinkmorestupidless.ankka.core.Serializers.given
 import com.thinkmorestupidless.ankka.sdk.*

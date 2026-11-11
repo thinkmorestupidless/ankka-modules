@@ -7,6 +7,7 @@ import com.thinkmorestupidless.ankka.core.{Codecs, CommandError, EntityId, Error
 import com.thinkmorestupidless.ankka.http.*
 import com.thinkmorestupidless.ankka.runtime.SqlSyntax.{jsonText, sql}
 import io.eitheror.casino.simulator.Simulator
+import io.eitheror.casino.provider.core.*
 import io.eitheror.casino.simulator.core.*
 
 import scala.concurrent.duration.*

@@ -432,9 +432,10 @@ one of the conditions and check the refusal names it.
   `kyc`, `responsible-gambling`, `rewards`, `game-provider`, `attribution`, `partner-api`,
   `engagement`, `reporting`, `support-agent`. Each is specified by one spec in this repository
   (`attribution` by spec 012).
-- **FR-003**: The installation MUST hold four shared projects: `payments` (`merchant`, `psp-gateway`,
+- **FR-003**: The installation MUST hold five shared projects: `payments` (`merchant`, `psp-gateway`,
   `ingest`), `programme` (`affiliate-programme`), `reasoner` (`audit` only: the plan's `proposals` is
-  not carried over, spec 018), and `tools` (`game-provider-simulator`, spec 020), which is never
+  not carried over, spec 018), `games` (`provider`, eitheror's own game provider, spec 026), and
+  `tools` (`game-provider-simulator`, spec 020), which is never
   applied to an installation that takes real money.
 - **FR-004**: A key a brand service keeps state under MUST carry no brand: a wallet is
   `player/currency`, a player is the player id, a session the session id. Two brands MAY hold the same

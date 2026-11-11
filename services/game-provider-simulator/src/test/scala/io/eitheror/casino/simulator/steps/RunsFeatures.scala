@@ -5,8 +5,8 @@ import com.thinkmorestupidless.ankka.testkit.{GherkinSuite, LogCapturing}
 import io.eitheror.casino.contract.port.{Recording, Replay}
 import io.eitheror.casino.simulator.SimulatorTestKit
 import io.eitheror.casino.simulator.SimulatorTestKit.{Answer, staff}
-import io.eitheror.casino.simulator.core.*
-import io.eitheror.casino.simulator.st8.Signer
+import io.eitheror.casino.provider.core.*
+import io.eitheror.casino.provider.st8.Signer
 
 import java.net.URI
 import java.net.http.{HttpRequest, HttpResponse}
