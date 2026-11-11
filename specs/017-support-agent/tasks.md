@@ -272,7 +272,7 @@ responsible-gambling, and ends the conversation.
     `Conversation.forget`; otherwise it sets itself again.
   - The payload is the session id.
   - `T/it/ForgetSuite.scala` uses the moved clock.
-- [ ] T041 [US4] `T/it/ErasureSuite.scala`: after the subject's erasure (ankka 042's kit hook), the
+- [X] T041 [US4] `T/it/ErasureSuite.scala`: after the subject's erasure (ankka 042's kit hook), the
       memory reads empty, a new turn starts with no history and records nothing, and `Conversation`
       holds nothing to erase (SC-004 at the kit's level).
 - [ ] T042 [US4] Bind `conversations.feature`'s five scenarios; all green.
