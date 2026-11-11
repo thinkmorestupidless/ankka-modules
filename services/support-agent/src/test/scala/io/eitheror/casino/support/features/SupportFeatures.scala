@@ -46,5 +46,3 @@ abstract class SupportFeatures(file: String) extends GherkinSuite(s"../../featur
 /** features/support-agent/guardrails.feature (US5). */
 class GuardrailsFeatures extends SupportFeatures("guardrails.feature")
 
-/** features/support-agent/operators.feature (US6). */
-class OperatorsFeatures extends SupportFeatures("operators.feature")

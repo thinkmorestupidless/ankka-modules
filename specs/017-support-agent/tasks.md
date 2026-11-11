@@ -319,7 +319,7 @@ responsible-gambling, and ends the conversation.
       message. A real-money brand cannot set `enabled` without safeguarding, and gets 422.
       `T/it/ConfigSuite.scala` also checks that a new version governs only conversations started
       after it.
-- [ ] T052 [US6] Bind `operators.feature`'s three scenarios; all green.
+- [X] T052 [US6] Bind `operators.feature`'s three scenarios; all green.
 
 ## Phase 9: Audit (every story; FR-028)
 
