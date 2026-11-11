@@ -25,13 +25,16 @@ object Rate:
 
 /** A brand's tokens on one UTC day (data-model.md `Budget`; R10), each session's counted once. */
 final case class BudgetState(tokens: Long = 0L, counted: Map[String, Long] = Map.empty):
-  /** Adds only what `session` has used past what was counted for it: idempotent. */
-  def add(session: String, upTo: Long): BudgetState =
-    val already = counted.getOrElse(session, 0L)
+  /**
+   * Adds only what `session` has used past what was counted for it: idempotent. `from` is the session's usage the
+   * conversation had already counted, so a session's first turn of a day adds that turn's tokens, not its life's.
+   */
+  def add(session: String, from: Long, upTo: Long): BudgetState =
+    val already = counted.getOrElse(session, from)
     if upTo <= already then this else BudgetState(tokens + (upTo - already), counted.updated(session, upTo))
 
   def spent(limit: Long): Boolean = tokens >= limit
 
-final case class AddTokens(session: String, upTo: Long)
+final case class AddTokens(session: String, from: Long, upTo: Long)
 final case class Spend(limit: Long)
 final case class Spent(spent: Boolean, used: Long)

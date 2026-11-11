@@ -290,7 +290,7 @@ responsible-gambling, and ends the conversation.
     `judged("safeguarding")` when real money or opted in;
   - output: `other-player` and `softening`;
   - the judged guardrails are on only with `AGENT_JUDGE`.
-- [ ] T045 [US5] `S/limits/TurnWindow.scala` and `Budget.scala`, with kits.
+- [X] T045 [US5] `S/limits/TurnWindow.scala` and `Budget.scala`, with kits.
   - The chat route takes a turn first: 429 `too_many_turns` with `retryAfter`.
   - After each turn, the session's usage increase is added to `Budget`; past the limit, the
     unavailable message is sent as one `delta` (FR-024).

@@ -24,7 +24,9 @@ object SupportService:
     config.AgentConfiguration.descriptor,
     config.ConfigVersion.descriptor,
     agent.Motoko.descriptor,
-    timers.ForgetTimer.descriptor
+    timers.ForgetTimer.descriptor,
+    limits.TurnWindow.descriptor,
+    limits.Budget.descriptor
   ) ++ agents.descriptors
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */

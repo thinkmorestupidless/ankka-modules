@@ -7,13 +7,17 @@ import org.scalacheck.{Gen, Prop}
 class BudgetingSuite extends munit.ScalaCheckSuite:
 
   test("a session's usage is added as its increase since it was last counted"):
-    val b = BudgetState().add("s-1", 300L).add("s-2", 100L).add("s-1", 450L)
+    val b = BudgetState().add("s-1", 0L, 300L).add("s-2", 0L, 100L).add("s-1", 300L, 450L)
     assertEquals((b.tokens, b.counted), (550L, Map("s-1" -> 450L, "s-2" -> 100L)))
 
+  test("a session's first turn of the day adds that turn's tokens, not what it used on days before"):
+    val b = BudgetState().add("s-1", 9_000L, 9_250L)
+    assertEquals((b.tokens, b.counted), (250L, Map("s-1" -> 9_250L)))
+
   test("adding the same usage again, or less, changes nothing"):
-    val b = BudgetState().add("s-1", 300L)
-    assertEquals(b.add("s-1", 300L), b)
-    assertEquals(b.add("s-1", 120L), b)
+    val b = BudgetState().add("s-1", 0L, 300L)
+    assertEquals(b.add("s-1", 0L, 300L), b)
+    assertEquals(b.add("s-1", 0L, 120L), b)
 
   test("spent at the limit, not before"):
     assert(!BudgetState(999L).spent(1000L))
@@ -21,6 +25,6 @@ class BudgetingSuite extends munit.ScalaCheckSuite:
 
   property("the total is the sum of each session's highest usage, whatever the order of adds"):
     Prop.forAll(Gen.listOf(Gen.zip(Gen.oneOf("s-1", "s-2", "s-3"), Gen.choose(0L, 10_000L)))) { adds =>
-      val b = adds.foldLeft(BudgetState())((s, a) => s.add(a._1, a._2))
+      val b = adds.foldLeft(BudgetState())((s, a) => s.add(a._1, 0L, a._2))
       b.tokens == adds.groupBy(_._1).values.map(_.map(_._2).max).sum
     }

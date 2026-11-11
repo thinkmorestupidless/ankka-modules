@@ -1,6 +1,6 @@
 package io.eitheror.casino.support.it
 
-import com.thinkmorestupidless.ankka.agent.TestModelProvider
+import com.thinkmorestupidless.ankka.agent.{Decision, TestModelProvider, forAgent}
 import com.thinkmorestupidless.ankka.agent.judgment.TestJudgmentProvider
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, ServiceIdentity, TimerRuntime}
@@ -8,6 +8,7 @@ import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock}
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.support.{Json, Settings, SupportRuntime, SupportService}
 import io.eitheror.casino.support.Json.*
+import io.eitheror.casino.support.agent.Motoko
 import io.eitheror.casino.support.config.{AgentConfiguration, ConfigBody, ConfigChange, Put}
 import io.eitheror.casino.support.conversation.{Conversation, ConversationState}
 
@@ -82,8 +83,22 @@ final class Kit(base: Settings = Kit.Base):
     testKit.stop()
     fakes.foreach(_.stop())
 
-  /** Back to the kit's own settings, a fresh model, the judge and the fakes as they start, for the next test. */
+  /** Every session a test chatted on, so the next test's reset can settle what it left awaiting. */
+  private val chatted = scala.collection.concurrent.TrieMap.empty[String, Unit]
+
+  /**
+   * Back to the kit's own settings, a fresh model, the judge and the fakes as they start, for the next test. An approval
+   * a test left awaiting is refused first, on that test's model: otherwise a later test that moves the clock expires
+   * it, and ankka's resumed turn takes that test's scripted reply.
+   */
   def reset(s: Settings = Kit.Base): Unit =
+    chatted.keys.foreach { session =>
+      val calls = components.forAgent(Motoko.session(session))
+      scala.util.Try(calls.approvals()).getOrElse(Vector.empty).foreach { a =>
+        scala.util.Try(calls.decide(Motoko.chat)(Decision.refused(a.id, "kit", "the test ended"))): Unit
+      }
+    }
+    chatted.clear()
     settings = s
     fakes.foreach(_.reset())
     judge.reset()
@@ -96,10 +111,15 @@ final class Kit(base: Settings = Kit.Base):
 
   // ── the brand's configuration ─────────────────────────────────────────────
 
-  /** The configuration changed by `f` from what it is now, as an operator's put; the agent is on by default. */
+  /**
+   * The configuration changed by `f` from what it is now, as an operator's put; the agent is on, and the turns per
+   * minute out of the way (FR-024), by default. The clock moves only when a test moves it, so every test's turns fall
+   * in one minute: a test of the rate sets its own.
+   */
   def configure(f: ConfigBody => ConfigBody = identity): Put =
     val now = components.forKeyValueEntity(AgentConfiguration.id(slug)).call(AgentConfiguration.get).invoke()
-    AgentConfiguration.put(components, slug, ConfigChange(f(now.current.copy(enabled = true)), "kit", clock.instant()))
+    val on  = now.current.copy(enabled = true, turnsPerMinute = Kit.TurnsPerMinute)
+    AgentConfiguration.put(components, slug, ConfigChange(f(on), "kit", clock.instant()))
 
   def conversation(session: String): ConversationState =
     components.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId(session)).call(Conversation.get).invoke()
@@ -120,6 +140,7 @@ final class Kit(base: Settings = Kit.Base):
 
   /** A turn: `message` on `session` as the player. */
   def chat(player: String, session: String, message: String): SseReader =
+    chatted.update(session, ())
     SseReader(baseUrl + chatPath("/run/chat_with_player"), Json.render(Json.obj("message" -> message, "session_id" -> session)),
       asPlayer(player))
 
@@ -140,6 +161,9 @@ final class Kit(base: Settings = Kit.Base):
 
 object Kit:
   val Base: Settings = Settings(brand = FakeNeighbours.Brand, project = FakeNeighbours.Brand)
+
+  /** The turns per minute the kit configures unless a test sets its own: the most ConfigRules allows. */
+  val TurnsPerMinute = 120
 
   /** Stands in for the token verifier: what is tested is what each audience's ACL decides once a token is verified. */
   val authenticate: Acl = Acl.Authenticate { context =>

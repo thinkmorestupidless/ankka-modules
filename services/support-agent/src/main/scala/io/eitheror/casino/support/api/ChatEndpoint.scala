@@ -1,16 +1,17 @@
 package io.eitheror.casino.support.api
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.thinkmorestupidless.ankka.agent.{AgentCalls, AgentOutcome, AgentPart, ApprovalRequest, Decision, SessionMemoryEntity, forAgent,
-  forSessionMemory}
+import com.thinkmorestupidless.ankka.agent.{AgentCalls, AgentOutcome, AgentPart, ApprovalRequest, Decision, SessionHistory,
+  SessionMemoryEntity, forAgent, forSessionMemory}
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.support.Json
 import io.eitheror.casino.support.Json.*
 import io.eitheror.casino.support.agent.{Actions, Context, Motoko, Turn}
-import io.eitheror.casino.support.config.{ConfigBody, ConfigVersion}
+import io.eitheror.casino.support.config.{AgentConfigState, ConfigBody, ConfigVersion}
 import io.eitheror.casino.support.conversation.*
 import io.eitheror.casino.support.domain.{Frames, HandOff, Redaction}
+import io.eitheror.casino.support.limits.{AddTokens, Budget, Take, TakeTurn, TurnWindow}
 import io.eitheror.casino.support.timers.Forget
 import org.apache.pekko.stream.scaladsl.Source
 
@@ -69,7 +70,20 @@ object Chat:
     before.awaiting.foreach((id, tool) => throw Answers.sessionActive(id, tool))
     val now = ctx.now()
     if before.endedAt(now) then throw Answers.conversationEnded(closing(bodyOf(ctx, before), before))
+    // The limits are the brand's as they are now, whatever version the conversation reads (FR-024).
+    val limits = config.current
+    ctx.components.forKeyValueEntity(TurnWindow.id(ctx.slug, playerId)).call(TurnWindow.take)
+      .invoke(TakeTurn(now, limits.turnsPerMinute)) match
+      case Take.Refused(after) => throw Answers.tooManyTurns(after)
+      case Take.Allowed        => ()
+    if ctx.components.forKeyValueEntity(Budget.id(ctx.slug, now)).call(Budget.get).invoke().spent(limits.dailyTokens) then
+      Source(Vector(Frames.delta(limits.unavailableMessage), Frames.done))
+    else begin(ctx, playerId, s, m, before, config)
 
+  /** The session bound to the player, then the turn's frames. */
+  private def begin(ctx: Ctx, playerId: String, s: String, m: String, before: ConversationState,
+      config: AgentConfigState): Source[SseEvent, ?] =
+    val now   = ctx.now()
     val bound = ctx.conversation(s).call(Conversation.start).invoke(Start(playerId, config.version, now))
     bound.refusal.foreach(_ => throw Answers.sessionNotYours)
     val first = !before.started || before.status == Status.Forgotten
@@ -107,6 +121,7 @@ object Chat:
     val body     = bodyOf(ctx, state)
     val decision = if approve then Decision.approved(id, by) else Decision.refused(id, by, b.flatMap(_.text("feedback")).getOrElse(""))
     val handOff  = HandOff(body.handOff)
+    val was      = memory(ctx, session)
     Source.lazyFuture { () =>
       Future {
         val outcome = agent(ctx, session, playerId).decide(Motoko.chat)(decision)
@@ -118,7 +133,7 @@ object Chat:
         result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome) ++
           Option.when(closed)(Frames.delta(s"\n\n${body.closingMessage}")).toVector
       }
-    }.mapConcat(identity).concat(ending(ctx, session, handOff)).recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }
+    }.mapConcat(identity).concatLazy(ending(ctx, session, handOff, was)).recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }
 
   private def bodyOf(ctx: Ctx, s: ConversationState): ConfigBody = ConfigVersion.body(ctx.components, ctx.slug, s.configVersion)
 
@@ -129,28 +144,54 @@ object Chat:
   /** The turn's frames: a `delta` per text part with the hand-off marker replaced, then `confirm_action` or not, then `done`. */
   private def turn(ctx: Ctx, session: String, t: Turn, body: ConfigBody): Source[SseEvent, ?] =
     val handOff = HandOff(body.handOff)
+    val was     = memory(ctx, session)
     agent(ctx, session, t.playerId).streamParts(Motoko.chat)(t)
       .flatMapConcat {
         case AgentPart.Text(part) => Source(Vector(handOff.feed(part)).filter(_.nonEmpty).map(Frames.delta))
         case AgentPart.AwaitingApproval(requests) =>
           Source.lazyFuture(() => Future(awaiting(ctx, session, t.playerId, body, handOff, requests))).mapConcat(identity)
       }
-      .concat(ending(ctx, session, handOff))
+      // concatLazy: `concat` pulls the ending at once, which would record the turn before it has run.
+      .concatLazy(ending(ctx, session, handOff, was))
       .recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }
 
   /**
    * What is held of the reply, then `done`; a reply that carried the hand-off marker is recorded as one (R12). The
-   * turn is recorded with the session's tokens after it, and the forget timer set from it (FR-027).
+   * turn is recorded with the session's tokens after it, its increase added to the day's budget (FR-024), and the
+   * forget timer set from it (FR-027).
    */
-  private def ending(ctx: Ctx, session: String, handOff: HandOff): Source[SseEvent, ?] =
+  private def ending(ctx: Ctx, session: String, handOff: HandOff, was: SessionHistory): Source[SseEvent, ?] =
     Source.lazySingle { () =>
       val rest = handOff.finish()
       if handOff.handedOff then ctx.conversation(session).call(Conversation.handedOff).invoke(At(ctx.now())): Unit
-      val tokens = ctx.components.forSessionMemory(Motoko.session(session)).call(SessionMemoryEntity.history).invoke().usage.total
-      val after  = ctx.conversation(session).call(Conversation.turned).invoke(Turned(ctx.now(), tokens.toLong))
+      val now    = ctx.now()
+      val tokens = written(ctx, session, was).usage.total.toLong
+      val from   = ctx.conversationState(session).tokensCounted
+      val after  = ctx.conversation(session).call(Conversation.turned).invoke(Turned(now, tokens))
+      ctx.components.forKeyValueEntity(Budget.id(ctx.slug, now)).call(Budget.add).invoke(AddTokens(session, from, tokens)): Unit
       Forget.schedule(ctx.components, session, after.state)
       rest
     }.filter(_.nonEmpty).map(Frames.delta).concat(Source.single(Frames.done))
+
+  private def memory(ctx: Ctx, session: String): SessionHistory =
+    ctx.components.forSessionMemory(Motoko.session(session)).call(SessionMemoryEntity.history).invoke()
+
+  /**
+   * The session once ankka has written the turn: its stream can end a moment before the memory holds the turn, so the
+   * session is read again until it differs from `was`, for at most [[WriteWait]]. An erased session writes nothing.
+   */
+  private def written(ctx: Ctx, session: String, was: SessionHistory): SessionHistory =
+    val until = System.nanoTime() + WriteWait.toNanos
+    @scala.annotation.tailrec def poll(): SessionHistory =
+      val h = memory(ctx, session)
+      val moved = h.erased || h.usage != was.usage || h.messages.size != was.messages.size || h.suspended != was.suspended
+      if moved || System.nanoTime() > until then h
+      else
+        Thread.sleep(20)
+        poll()
+    poll()
+
+  private val WriteWait = scala.concurrent.duration.Duration(3, "s")
 
   /** The model's answer after a decision: its text, or what it now awaits. */
   private def outcomeFrames(ctx: Ctx, session: String, playerId: String, body: ConfigBody, handOff: HandOff,

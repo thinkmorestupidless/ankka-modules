@@ -378,10 +378,28 @@ of a blip.
   The next turn on a forgotten conversation, by its own player, persists `Started` again on the
   configuration version now, with a fresh trail. **Rejected:** forgetting an ended conversation into
   `Forgotten`, which would reopen an excluded player's chat.
+- **2026-11-11, what the limits read (T045).** The turns per minute, the daily tokens and the
+  unavailable message are the brand's configuration as it is now, not the version the
+  conversation reads: they are operating limits, not the conversation's terms. `Budget.add` takes
+  the conversation's count before the turn as well as the session's usage after it
+  (`AddTokens(session, from, upTo)`), so a session's first turn of a UTC day adds that turn's
+  tokens rather than everything it used on the days before. A turn refused for the budget binds
+  no session and records nothing.
+- **2026-11-11, a turn's end is read after ankka writes it (T045).** Two things made the chat
+  route read a turn before it had happened. Pekko's `concat` pulls its second source at once, so
+  the `ending` (the hand-off's held text, `TurnTaken`, the budget, the forget timer) ran when the
+  turn started; it is `concatLazy` now. And on 0.16.2 a streamed turn's source can complete a
+  moment before session memory holds the turn, so the ending reads the session until it differs
+  from what it held before the turn (messages, usage, a suspended turn, or erased), for at most
+  3 s. **Rejected:** counting each turn's tokens at the next turn, which leaves a session's last
+  turn uncounted.
 
 ## For ankka
 
 Nothing blocks this service, and each item below is noted for an ankka spec.
+
+- A streamed turn's source completes before session memory holds the turn, so a caller cannot
+  read the turn's usage when its stream ends.
 
 - No budget or rate primitive: R10 builds both from entities.
 - No retry of a rejected output.
