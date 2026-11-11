@@ -325,7 +325,7 @@ responsible-gambling, and ends the conversation.
 
 - [X] T053 [P] `T/facts/AuditMappingSuite.scala`, written first: each event → contracts/audit.md's
       `AuditRecord`, with no message text, `feedback` or personal value in any field.
-- [ ] T054 `S/facts/AuditPublisher.scala` (`eventsOf(Conversation)`) and `ConfigAudit.scala`
+- [X] T054 `S/facts/AuditPublisher.scala` (`eventsOf(Conversation)`) and `ConfigAudit.scala`
       (`stateOf(AgentConfiguration)`, every note in `recentChanges`), as engagement's.
       `T/it/AuditSuite.scala` checks a record within one minute of each tool call, decision and guardrail rejection on
       the in-memory broker (SC-006).

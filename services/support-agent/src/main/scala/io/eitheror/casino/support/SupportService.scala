@@ -27,7 +27,9 @@ object SupportService:
     timers.ForgetTimer.descriptor,
     limits.TurnWindow.descriptor,
     limits.Budget.descriptor,
-    reads.ConversationsByPlayer.descriptor
+    reads.ConversationsByPlayer.descriptor,
+    facts.AuditPublisher.descriptor,
+    facts.ConfigAudit.descriptor
   ) ++ agents.descriptors
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */

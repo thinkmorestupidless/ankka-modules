@@ -6,6 +6,7 @@ import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, ServiceIdentity, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock}
 import io.eitheror.casino.contract.access.Routes
+import io.eitheror.casino.contract.facts.{AuditRecord, PlatformAudit}
 import io.eitheror.casino.support.{Json, Settings, SupportRuntime, SupportService}
 import io.eitheror.casino.support.Json.*
 import io.eitheror.casino.support.agent.{Guardrails, Motoko}
@@ -120,6 +121,11 @@ final class Kit(base: Settings = Kit.Base):
   def configure(f: ConfigBody => ConfigBody = identity): Put =
     val on = ConfigBody(enabled = true, turnsPerMinute = Kit.TurnsPerMinute)
     AgentConfiguration.put(components, slug, ConfigChange(f(on), "kit", clock.instant()))
+
+  /** The audit records published so far (contracts/audit.md), in the order they were published. */
+  def audits: Vector[AuditRecord] =
+    broker.publishedTo(PlatformAudit.name).toVector.flatMap(d => scala.util.Try(PlatformAudit.serializer.fromBytes(d.message.payload)).toOption)
+      .collect { case r: AuditRecord => r }
 
   def conversation(session: String): ConversationState =
     components.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId(session)).call(Conversation.get).invoke()
