@@ -71,8 +71,8 @@ final case class ConfigChange(body: ConfigBody, by: String, at: Instant)
 /** A `put`'s answer: the version now, and the fields it changed (empty: nothing changed). */
 final case class Put(version: Int, changed: Vector[String])
 
-/** `ConfigVersion`'s state: one version's body, written once. */
-final case class VersionState(body: Option[ConfigBody] = None)
+/** `ConfigVersion`'s state: one version's body, written once, with who put it and when. */
+final case class VersionState(body: Option[ConfigBody] = None, by: Option[String] = None, at: Option[java.time.Instant] = None)
 
 /** `AgentConfiguration.move`: to `version`, written to `ConfigVersion` first, with its note. */
 final case class Move(version: Int, body: ConfigBody, note: ConfigNote)

@@ -2,7 +2,7 @@ package io.eitheror.casino.support.it
 
 import io.eitheror.casino.support.Json
 import io.eitheror.casino.support.Json.*
-import io.eitheror.casino.support.config.ConfigBody
+import io.eitheror.casino.support.config.{AgentConfiguration, ConfigBody, ConfigChange, ConfigVersion}
 
 import scala.concurrent.duration.*
 
@@ -38,6 +38,20 @@ class ConfigSuite extends munit.FunSuite:
     assertEquals((shown.get("supportHours").asText, shown.get("enabled").asBoolean), ("every day, 09:00–21:00", true))
     assertEquals(Json.parse(get(s"/versions/${before + 1}").text).get.get("supportHours").asText, "every day, 09:00–21:00")
     assertEquals(Json.parse(get(s"/versions/0").text).get.get("supportHours").asText, ConfigBody().supportHours)
+
+  test("a put that wrote its version but never moved to it is moved to, as its author put it, and the next put goes on over it"):
+    val before = version.toInt
+    val now    = kit.components.forKeyValueEntity(AgentConfiguration.id(kit.slug)).call(AgentConfiguration.get).invoke()
+    val gone   = now.current.copy(supportHours = "weekdays only")
+    kit.components.forKeyValueEntity(ConfigVersion.id(kit.slug, before + 1)).call(ConfigVersion.write)
+      .invoke(ConfigChange(gone, "op-gone", kit.clock.instant())): Unit
+    val r = put("""{"closingMessage": "This conversation is closed."}""")
+    assertEquals((r.status, Json.parse(r.text).flatMap(_.long("version"))), (200, Some(before + 2L)))
+    val shown = Json.parse(get("/").text).get
+    assertEquals((shown.get("config").get("supportHours").asText, shown.get("config").get("closingMessage").asText),
+      ("weekdays only", "This conversation is closed."))
+    val notes = shown.get("recentChanges")
+    assertEquals(notes.get(notes.size - 2).get("by").asText, "op-gone")
 
   test("a PUT that changes nothing makes no version"):
     val before = version

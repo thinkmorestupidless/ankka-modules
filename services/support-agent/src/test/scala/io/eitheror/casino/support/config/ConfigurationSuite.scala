@@ -27,6 +27,9 @@ class ConfigurationSuite extends munit.FunSuite:
 
   test("a version's body is written once and never changed"):
     val kit = KeyValueEntityTestKit.of(ConfigVersion, "goldvibe/1")
-    assertEquals(kit.call(ConfigVersion.write)(ConfigBody(model = "m-1")).replyValue.model, "m-1")
-    assertEquals(kit.call(ConfigVersion.write)(ConfigBody(model = "m-2")).replyValue.model, "m-1")
+    val at = java.time.Instant.parse("2026-11-11T10:00:00Z")
+    assertEquals(kit.call(ConfigVersion.write)(ConfigChange(ConfigBody(model = "m-1"), "op-1", at)).replyValue,
+      ConfigChange(ConfigBody(model = "m-1"), "op-1", at))
+    assertEquals(kit.call(ConfigVersion.write)(ConfigChange(ConfigBody(model = "m-2"), "op-2", at)).replyValue,
+      ConfigChange(ConfigBody(model = "m-1"), "op-1", at))
     assertEquals(kit.currentState.body.map(_.model), Some("m-1"))

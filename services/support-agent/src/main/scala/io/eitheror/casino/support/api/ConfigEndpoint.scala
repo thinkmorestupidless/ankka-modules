@@ -5,7 +5,7 @@ import com.github.plokhotnyuk.jsoniter_scala.core.{JsonValueCodec, writeToString
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.support.{Json, SupportCodecs}
-import io.eitheror.casino.support.config.{AgentConfiguration, ConfigBody, ConfigChange, ConfigNote, ConfigVersion}
+import io.eitheror.casino.support.config.{AgentConfiguration, ConfigBody, ConfigNote, ConfigVersion}
 import io.eitheror.casino.support.domain.ConfigRules
 import io.eitheror.casino.support.limits.Budget
 import io.eitheror.casino.support.reads.{ConversationRow, ConversationsByPlayer}
@@ -57,17 +57,16 @@ object Operators:
 
   /** `PUT /`: the body read over the current one and checked, the admin's fields held to the admin, then the next version. */
   def put(ctx: Ctx, text: String, operator: String, roles: Set[String]): Answer =
-    val now = ctx.configuration
     val sent = Json.parse(text).orNull
-    ConfigRules.read(sent, now.current, ctx.settings.realMoney, ctx.settings.judge.isDefined) match
-      case Left(r) => refusal(r.status, r.code, (r.field.map("field" -> _).toVector :+ ("message" -> r.message))*)
-      case Right(next) =>
-        val (changed, _) = ConfigRules.changes(now.current, next)
-        changed.find(f => AdminFields(f) && !roles.exists(AdminRoles)) match
-          case Some(f) => refusal(403, Routes.Forbidden, "field" -> f, "message" -> s"Changing $f needs the brand_admin permission")
-          case None =>
-            val put = AgentConfiguration.put(ctx.components, ctx.slug, ConfigChange(next, operator, ctx.now()))
-            ok(Json.obj("version" -> put.version))
+    // Read and checked over the current body on each attempt, so a put read again after another keeps the other's.
+    def next(current: ConfigBody): Either[Answer, ConfigBody] =
+      ConfigRules.read(sent, current, ctx.settings.realMoney, ctx.settings.judge.isDefined) match
+        case Left(r) => Left(refusal(r.status, r.code, (r.field.map("field" -> _).toVector :+ ("message" -> r.message))*))
+        case Right(body) =>
+          ConfigRules.changes(current, body)._1.find(f => AdminFields(f) && !roles.exists(AdminRoles)) match
+            case Some(f) => Left(refusal(403, Routes.Forbidden, "field" -> f, "message" -> s"Changing $f needs the brand_admin permission"))
+            case None    => Right(body)
+    AgentConfiguration.put(ctx.components, ctx.slug, operator, ctx.now())(next).fold(identity, p => ok(Json.obj("version" -> p.version)))
 
   /** `GET /versions/{version}`: that version's body; version 0 is the defaults. */
   def version(ctx: Ctx, version: String): Answer =
