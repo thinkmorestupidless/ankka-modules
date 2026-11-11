@@ -342,7 +342,7 @@ responsible-gambling, and ends the conversation.
 - [ ] T060 [P] `T/it/TelemetrySuite.scala` (FR-020): runs a conversation with a tool call, an
       approval and a guardrail rejection, then reads the kit's captured logs and spans. Asserts that
       none carries the message text, the reply, the `feedback`, or a tool's argument values.
-- [ ] T057 [P] `T/agent/PromptSuite.scala`: the default prompt is the original's
+- [X] T057 [P] `T/agent/PromptSuite.scala`: the default prompt is the original's
       (`O/agents/motoko.py:30-47`) byte for byte, plus the two lines of contracts/tools.md.
 - [ ] T058 [P] `services/support-agent/README.md` (components, routes, env, run, suites).
   - It states that what a session sent to the model provider is beyond the installation's erasure
