@@ -31,6 +31,7 @@ const (
 	Duplicate    Outcome = "duplicate"    // the provider refuses the reference as already used
 	NoRecord     Outcome = "no_record"    // the provider's status read holds nothing for the reference
 	Reversed     Outcome = "reversed"     // completed, then charged back
+	Disputed     Outcome = "disputed"     // completed, then a chargeback opened (not yet decided)
 	Underpayment Outcome = "underpayment" // less crypto arrived than quoted
 	Overpayment  Outcome = "overpayment"  // more crypto arrived than quoted
 	Unsigned     Outcome = "unsigned"     // the webhook is sent without its signature

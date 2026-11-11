@@ -118,6 +118,55 @@ class DepositSessionSuite extends munit.FunSuite with LogCapturing:
     assert(EventSourcedTestKit.of(DepositSession, "none").call(DepositSession.status).isError)
   }
 
+  // Disputes (spec 015, contracts/facts.md "Disputes, end to end").
+
+  private val eur     = Currency.unsafe("EUR")
+  private val opened  = Dispute.Opened(1500, eur)
+  private val lost    = Dispute.Closed(Disputes.Lost, Some(1500), Some(eur))
+  private def report(kit: EventSourcedTestKit[DepositSession, DepositState, DepositEvent], d: Dispute) =
+    kit.call(DepositSession.reportDispute)(ReportDispute(d, d.kind, at))
+
+  test("a dispute is recorded only on a captured deposit: an opening once, a closing once, never an opening after a closing") {
+    assert(!report(claimed, opened).persisted, "nothing was captured")
+    val failed = claimed
+    failed.call(DepositSession.settle)(Settle(Outcome.Failed(None, "declined"), "FAILED", at)): Unit
+    assert(!report(failed, opened).replyValue.reported, "a failed deposit took no money")
+
+    val kit = settled
+    assert(report(kit, opened).replyValue.reported)
+    assert(!report(kit, opened).persisted, "a repeated opening")
+    assert(report(kit, lost).replyValue.reported)
+    assert(!report(kit, lost).persisted, "a repeated closing")
+    assertEquals(kit.currentState.disputes.map(_.dispute), Vector(opened, lost))
+
+    val closedFirst = settled
+    assert(report(closedFirst, lost).replyValue.reported, "a closing the provider reports with no opening is recorded")
+    assert(!report(closedFirst, opened).persisted, "an opening after the closing is out of order")
+  }
+
+  test("the outcome is delivered first, then each dispute in turn; a delivery out of turn is ignored") {
+    val kit = settled
+    report(kit, opened): Unit
+    report(kit, lost): Unit
+    assertEquals(kit.currentState.current, Some(None -> Delivery.NotYet))
+    assert(!kit.call(DepositSession.recordDelivery)(RecordDelivery(Delivery.Delivered(at, 200), 1, at, Some(Disputes.Opened))).persisted,
+      "the capture is not delivered yet")
+    kit.call(DepositSession.recordDelivery)(RecordDelivery(Delivery.Delivered(at, 200), 1, at)): Unit
+    assertEquals(kit.currentState.current, Some(Some(Disputes.Opened) -> Delivery.NotYet))
+    assert(kit.currentState.deliverable)
+    assert(!kit.call(DepositSession.recordDelivery)(RecordDelivery(Delivery.Delivered(at, 200), 1, at, Some(Disputes.Closed))).persisted)
+    kit.call(DepositSession.recordDelivery)(RecordDelivery(Delivery.Undelivered(at, 4, "503"), 4, at, Some(Disputes.Opened))): Unit
+    assertEquals(kit.currentState.currentDelivery, Delivery.Undelivered(at, 4, "503"))
+    assert(kit.call(DepositSession.redrive)(Redrive(DepositSession.Timer, at)).replyValue.redriven, "an undelivered dispute is re-driven")
+    kit.call(DepositSession.recordDelivery)(RecordDelivery(Delivery.Delivered(at, 200), 1, at, Some(Disputes.Opened))): Unit
+    kit.call(DepositSession.recordDelivery)(RecordDelivery(Delivery.Delivered(at, 200), 1, at, Some(Disputes.Closed))): Unit
+    assertEquals(kit.currentState.current, None)
+    assert(!kit.currentState.deliverable)
+    assertEquals(kit.currentState.disputes.map(r => (r.dispute.kind, r.attempts)), Vector(Disputes.Opened -> 5, Disputes.Closed -> 1))
+    assertEquals(kit.currentState.attempts, 1, "the outcome's attempts are its own")
+    assertEquals(kit.call(DepositSession.status).replyValue.outcome, Some("captured"), "004's status read is the outcome's")
+  }
+
   test("no event holds a credential or a customer field (FR-022)") {
     val kit = settled
     kit.call(DepositSession.recordDelivery)(RecordDelivery(Delivery.Delivered(at, 200), 1, at)): Unit

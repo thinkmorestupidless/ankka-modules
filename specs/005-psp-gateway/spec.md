@@ -432,6 +432,17 @@ drives it.
   session's key, which the receiver absorbs (constitution II).
 - **FR-017**: A deposit outcome's receiver and a payout outcome's receiver MUST be derived from the
   session, never from the webhook's content.
+- **FR-017a** (spec 015, research R11 and R20 item 3): A verified deposit webhook that names a dispute
+  on a captured deposit MUST be recorded on the session and delivered to `merchant`'s dispute route
+  (`POST /v1/payments/{paymentId}/dispute`, 004's `gateway.md`), signed as the capture, under
+  FR-014 to FR-016: `dispute_opened` with the deposit's `amount` (minor units) and `currency` and the
+  provider's `reason` where it gives one; `dispute_closed` with `disputeOutcome` `won` or `lost` and
+  the amount and currency where known. Only Unity Finance documents one: its deposit state
+  `chargeback` opens a dispute and `chargebacked` closes it `lost`. The other eight report none
+  (their webhooks name no dispute or chargeback state), so they report nothing. A dispute on a deposit
+  not captured, a repeat, and an opening after a closing are acknowledged and record nothing; the
+  session delivers its outcome first and then each dispute in turn, and its status read (FR-009)
+  stays the outcome's. No money moves at a dispute.
 
 **Credentials and identity**
 
@@ -477,7 +488,7 @@ drives it.
 | Provider | Deposit | Payout | Amount sent | Verification | Status map | Notes |
 |---|---|---|---|---|---|---|
 | DreamzPay | redirect | no | `%.2f` string | MD5 checksum of member id, type, amount, reference, return URL, secure key | status + transactionStatus → captured/failed | credentials `memberId`, `totype`, `secureKey`; `terminalId.{METHOD}` per method |
-| Unity Finance | redirect (server-side invoice, JSON) | IBAN, Basic auth + account id | `%.2f` string | SHA-256 over sorted `ik_` values + sign key, base64; `ik_sign` excluded; arrays sorted | `success`→captured, `canceled`→failed with cancel code; payouts `1` transient, `8` completed, `9`/`20` failed, `11` reversed; withdrawal webhook uses state *names* | one `signKey` per sub-brand, `checkoutId.{METHOD}`; methods Apple Pay, Google Pay, Visa, Mastercard, Open Banking, MB WAY, Skrill, Neteller, paysafecard, Rapid; cards carry full identity; provider retries 13× until 200; recover by status read; refuses empty Basic auth |
+| Unity Finance | redirect (server-side invoice, JSON) | IBAN, Basic auth + account id | `%.2f` string | SHA-256 over sorted `ik_` values + sign key, base64; `ik_sign` excluded; arrays sorted | `success`→captured, `canceled`→failed with cancel code; `chargeback`→dispute opened, `chargebacked`→dispute closed `lost` (spec 015); payouts `1` transient, `8` completed, `9`/`20` failed, `11` reversed; withdrawal webhook uses state *names* | one `signKey` per sub-brand, `checkoutId.{METHOD}`; methods Apple Pay, Google Pay, Visa, Mastercard, Open Banking, MB WAY, Skrill, Neteller, paysafecard, Rapid; cards carry full identity; provider retries 13× until 200; recover by status read; refuses empty Basic auth |
 | T365 | redirect | no | `%.2f` string | SHA-256 | provider code → captured/failed | 16 method codes (bank transfer, wallets, QR, virtual account, UPI, FPX, DuitNow, TrueMoney, MomoPay, mobile money, cash, PIX, open banking, BEP20/ERC20/TRC20) |
 | Cozeni | crypto address, amount from provider's exchange rate, deadline | crypto by symbol and address | fiat `float`, coin to 8 places | SHA-256 | `COMPLETED`→captured; `FAILED`/`CANCELLED`→failed; result codes `02` overpayment (captured), `03` underpayment (captured at the received convert amount when there is one, else failed) | credentials `accountId`, `apiKey`, `merchantId` |
 | EuPaymentz | hosted flow via gateway relay | no | two-decimal string | SHA-256 | `00000`→captured; `PEND`→open; anything else→failed | |
@@ -568,7 +579,10 @@ drives it.
   family under `/v1/payments/withdrawals`.
 - **New: the outcome to `merchant` is signed with the credential's `webhookSecret` where it has one**,
   the scheme `merchant` checks; the original never signed it, so such a credential refused every capture.
-- Kept verbatim: every provider's status map, every signature scheme, the player-facing failure
+- **New (spec 015): Unity Finance's `chargeback` and `chargebacked` deposit states are disputes**
+  reported to `merchant` (FR-017a). The original held `chargeback` open and logged `chargebacked` as
+  "Phase 2 (not handled)" (`handler/webhook.go:398-401`).
+- Kept verbatim: every provider's status map (Unity Finance's chargeback states aside), every signature scheme, the player-facing failure
   reasons, the underpayment rule, the always-200 acknowledgement where providers retry until 200,
   and the refusal of initiation on missing credentials.
 

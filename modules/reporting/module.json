@@ -14,7 +14,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/reporting:0.0.0",
         "expose": true,
-        "runtime": "0.13.0",
+        "runtime": "0.16.0",
         "provisionObjectStorage": true,
         "env": [
           {
@@ -28,6 +28,22 @@
           {
             "name": "CASINO_REAL_MONEY",
             "key": "casino-real-money"
+          },
+          {
+            "name": "CASINO_REPORTING_ZONE",
+            "key": "reporting-zone"
+          },
+          {
+            "name": "CASINO_MODULES",
+            "key": "casino-modules"
+          },
+          {
+            "name": "CLOSE_GRACE",
+            "value": "15m"
+          },
+          {
+            "name": "REPORTING_GENERATION",
+            "value": "1"
           },
           {
             "name": "ANKKA_AUTH_ISSUERS",
@@ -91,6 +107,16 @@
     {
       "key": "casino-real-money",
       "type": "boolean",
+      "secret": false
+    },
+    {
+      "key": "reporting-zone",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-modules",
+      "type": "string",
       "secret": false
     },
     {

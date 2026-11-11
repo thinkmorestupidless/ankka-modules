@@ -1,6 +1,7 @@
 package io.eitheror.casino.merchant.wallet
 
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
+import io.eitheror.casino.merchant.Json.*
 import io.eitheror.casino.merchant.it.{DirectServices, FakeWallet}
 
 /** contracts/wallet.md, row for row: which answers are credited, retried or final. */
@@ -48,4 +49,14 @@ class WalletClientSuite extends munit.FunSuite with LogCapturing:
     assertEquals(client.report(r), Right(false))
     w.refuseReports = true
     assert(client.report(r).isLeft)
+  }
+
+  test("a closed dispute carries disputeOutcome with the amount and currency; an outcome that is not a dispute's carries none (spec 015)") {
+    val closed = OutcomeReport("acme", "pay-6", "dispute_closed", "p1", "UNITYFINANCE", Some("t-1"), Some(5000L), Some("EUR"), None, None, Some("lost"))
+    assertEquals(client.report(closed), Right(true))
+    assertEquals(client.report(closed.copy(paymentId = "pay-7", outcome = "failed", disputeOutcome = None)), Right(true))
+    val sent = w.reportsOf("pay-6").head.json.get
+    assertEquals((sent.text("outcome"), sent.text("disputeOutcome"), sent.long("amount"), sent.text("currency")),
+      (Some("dispute_closed"), Some("lost"), Some(5000L), Some("EUR")))
+    assert(!w.reportsOf("pay-7").head.json.get.has("disputeOutcome"))
   }

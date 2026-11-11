@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.contract.money.Currency
 import io.eitheror.casino.pspgateway.http.{Form, Raw}
 import io.eitheror.casino.pspgateway.providers.unityfinance.UnityFinance
-import io.eitheror.casino.pspgateway.sessions.Outcome
+import io.eitheror.casino.pspgateway.sessions.{Dispute, Disputes, Outcome}
 
 import java.time.Instant
 
@@ -222,15 +222,28 @@ class UnityFinanceSuite extends munit.FunSuite with LogCapturing:
     assertEquals(UnityFinance.webhook(depositWebhook(notice + ("ik_inv_st" -> "expired")), initiated, visaCreds, now).verdict,
       Verdict.Settle(Outcome.Failed(Some("expired"), "Payment session expired"), "expired"))
 
-  test("webhook: the non-final states are open; refunds and chargebacks are logged; an unknown state ignored"):
+  test("webhook: the non-final states are open; refunds are logged; an unknown state ignored"):
     UnityFinance.openStates.foreach { s =>
       assertEquals(UnityFinance.webhook(depositWebhook(notice + ("ik_inv_st" -> s)), initiated, visaCreds, now).verdict, Verdict.Open(s))
     }
-    Vector("refunded", "partial_refunded", "chargebacked", "mystery").foreach { s =>
+    Vector("refunded", "partial_refunded", "mystery").foreach { s =>
       UnityFinance.webhook(depositWebhook(notice + ("ik_inv_st" -> s)), initiated, visaCreds, now).verdict match
         case Verdict.Ignore(_) => ()
         case other             => fail(s"ignore expected for $s: $other")
     }
+
+  test("webhook: chargeback opens a dispute over the deposit's amount; chargebacked closes it lost (spec 015)"):
+    val opened = UnityFinance.webhook(depositWebhook(notice + ("ik_inv_st" -> "chargeback")), initiated, visaCreds, now)
+    assertEquals(opened, Handled(Verdict.Dispute(Dispute.Opened(initiated.amount, EUR), "chargeback"), Reply.ok))
+    val closed = UnityFinance.webhook(depositWebhook(notice + ("ik_inv_st" -> "chargebacked")), initiated, visaCreds, now)
+    assertEquals(closed,
+      Handled(Verdict.Dispute(Dispute.Closed(Disputes.Lost, Some(initiated.amount), Some(EUR)), "chargebacked"), Reply.ok))
+    assert(!UnityFinance.openStates("chargeback") && !UnityFinance.loggedStates("chargebacked"))
+
+  test("webhook: a chargeback that does not verify or names another amount is refused like any other (FR-013)"):
+    val h = UnityFinance.webhook(depositWebhook(notice ++ Map("ik_inv_st" -> "chargeback", "ik_am" -> "1.00")), initiated, visaCreds, now)
+    assertEquals(h.reply, Reply.invalidSignature)
+    assert(h.verdict.isInstanceOf[Verdict.Reject], h.verdict.toString)
 
   test("webhook: a bad signature, a missing sign key, or another checkout id, amount or currency is answered 400 (FR-013)"):
     val cases = Vector(

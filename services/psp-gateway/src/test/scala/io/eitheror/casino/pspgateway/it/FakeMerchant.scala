@@ -22,7 +22,7 @@ final case class ScriptStep(status: Int, silentMs: Long = 0)
 
 /**
  * `merchant` as the gateway sees it (contracts/merchant.md §3, §4): the credential, terminal and brand
- * listing routes from settable maps, logging every read; the capture and fail routes recording each
+ * listing routes from settable maps, logging every read; the capture, fail and dispute routes recording each
  * call under `<paymentId>/<outcome>`, verifying the signature as 004's `Hmac.verify` does when the
  * credential has a `webhookSecret`, and answering as scripted.
  */
@@ -74,7 +74,7 @@ final class FakeMerchant(bind: Int = 0) extends FakeServer(bind):
       case "internal" :: "v1" :: "brands" :: brand :: "terminals" :: Nil if r.method == "GET" =>
         val listed = Option(terminals.get(brand)).getOrElse(Vector.empty)
         Answer.ok(Json.obj("terminals" -> Json.arr(listed*)))
-      case "v1" :: "payments" :: paymentId :: (verb @ ("capture" | "fail")) :: Nil if r.method == "POST" =>
+      case "v1" :: "payments" :: paymentId :: (verb @ ("capture" | "fail" | "dispute")) :: Nil if r.method == "POST" =>
         outcome(paymentId, verb, r)
       case _ => Answer(404, """{"error":"NO_ROUTE"}""")
 

@@ -47,7 +47,9 @@ object Facts:
         Some(f.PlayerRegistered(playerId, e.at, e.registration.tag, e.registration.clickId, e.registration.bonusCode,
           e.profile.get("country"), Some(e.currency).filter(_.nonEmpty), None, e.at, personal("firstName"), personal("lastName"),
           personal("dateOfBirth"), personal("phone"), personal("addressLine1"), personal("city"), personal("postalCode"),
-          Some(e.address)))
+          Some(e.address), testAccount = Some(false)))
+      // spec 015 R11: a registration is never a test account; an operator's profile update flags one later
+      case e: TestAccountSet => Some(f.PlayerTestAccountChanged(playerId, e.testAccount, e.actorId, e.at))
       case e: Suspended =>
         Some(f.PlayerSuspended(playerId, e.previous, Status.Suspended, Actor.Operator, e.actorId, Some(e.reason), e.at))
       case e: Reinstated =>

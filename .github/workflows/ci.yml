@@ -41,6 +41,7 @@ jobs:
       rewards: ${{ steps.filter.outputs.rewards }}
       engagement: ${{ steps.filter.outputs.engagement }}
       audit: ${{ steps.filter.outputs.audit }}
+      reporting: ${{ steps.filter.outputs.reporting }}
       markets: ${{ steps.filter.outputs.markets }}
       exchange: ${{ steps.filter.outputs.exchange }}
     steps:
@@ -142,6 +143,11 @@ jobs:
               - services/audit/**
               - features/audit/**
               - tests/port/audit/**
+            reporting:
+              - *build
+              - services/reporting/**
+              - features/reporting/**
+              - tests/port/reporting/**
             markets:
               - *build
               - services/markets/**
@@ -509,6 +515,29 @@ jobs:
       - name: audit's integration, parity and feature suites
         working-directory: services/audit
         run: sbt -Dit=true "testOnly io.eitheror.casino.audit.it.* io.eitheror.casino.audit.port.* io.eitheror.casino.audit.features.*"
+
+  # reporting (spec 015): its own sbt build on ankka 0.16.0, against the contract published from this commit.
+  # `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in Docker.
+  reporting:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.reporting == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: reporting's suites
+        working-directory: services/reporting
+        run: sbt test
+      - name: reporting's integration, parity and feature suites
+        working-directory: services/reporting
+        run: sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.port.* io.eitheror.casino.reporting.features.*"
 
   # markets (spec 023): its own sbt build against the contract published from this commit, on
   # ankka-predictions from Maven Central; its integration suites run on the runner's Docker.

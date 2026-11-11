@@ -35,8 +35,20 @@ class GatewayCodecsSuite extends munit.FunSuite with LogCapturing:
         DepositEvent.Initiated(Initiation(None, Destination.Redirect("https://p"), Map.empty, at)),
         DepositEvent.InitiationFailed(Refusal(400, "player_error", Some("minimum deposit amount is 15.00")), at),
         DepositEvent.Redriven("timer", at)) ++
-        outcomes.map(DepositEvent.Settled(_, "s", at)) ++ deliveries.map(DepositEvent.DeliveryRecorded(_, 1, at))
+        outcomes.map(DepositEvent.Settled(_, "s", at)) ++ deliveries.map(DepositEvent.DeliveryRecorded(_, 1, at)) ++
+        disputes.map(d => DepositEvent.DisputeReported(DisputeReport(d, "chargeback", at))) ++
+        deliveries.map(DepositEvent.DeliveryRecorded(_, 1, at, Some(Disputes.Opened)))
     events.foreach(roundTrip(_))
+  }
+
+  private val disputes = Vector(Dispute.Opened(1500, eur), Dispute.Opened(1500, eur, Some("fraud")),
+    Dispute.Closed(Disputes.Lost, Some(1500), Some(eur)), Dispute.Closed(Disputes.Won))
+
+  test("a delivery recorded before disputes reads as the outcome's (no dispute field)") {
+    val s = summon[Serializer[DepositEvent]]
+    val bytes = s.toBytes(DepositEvent.DeliveryRecorded(Delivery.Delivered(at, 200), 1, at))
+    assert(!String(bytes, UTF_8).contains("dispute"), String(bytes, UTF_8))
+    assertEquals(s.fromBytes(bytes), DepositEvent.DeliveryRecorded(Delivery.Delivered(at, 200), 1, at, None))
   }
 
   test("every payout event round-trips") {
@@ -59,6 +71,10 @@ class GatewayCodecsSuite extends munit.FunSuite with LogCapturing:
   test("the commands and replies round-trip") {
     roundTrip(Settle(Outcome.Failed(None, "declined"), "N", at))
     roundTrip(RecordDelivery(Delivery.Undelivered(at, 4, "503"), 4, at))
+    roundTrip(RecordDelivery(Delivery.Delivered(at, 200), 1, at, Some(Disputes.Closed)))
+    roundTrip(ReportDispute(Dispute.Closed(Disputes.Lost, Some(1500), Some(eur)), "chargebacked", at))
+    roundTrip(DisputeTaken(true, DepositState("pay-1", Some(claim), outcome = Some(Outcome.Captured()),
+      disputes = Vector(DisputeReport(Dispute.Opened(1500, eur), "chargeback", at, Delivery.Delivered(at, 200), 1)))))
     roundTrip(Redriving(true, Delivery.NotYet))
     roundTrip(SessionStatus("resolved", Some("captured"), true, false, false, Some(at)))
     roundTrip(Receiver.Payouts("goldvibe", "wd-1"))(using GatewayCodecs.serializer[Receiver]("receiver"))

@@ -28,6 +28,9 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
 
   test("each published player event is one fact, keyed and subjected by the player, its ce-id the event's id") {
     val cases: Vector[(PlayerEvent, CasinoPlayersFact)] = Vector(
+      // spec 015 R11
+      TestAccountSet(true, "op-1", at) -> PlayerTestAccountChanged("p-1", true, "op-1", at),
+      TestAccountSet(false, "op-2", at) -> PlayerTestAccountChanged("p-1", false, "op-2", at),
       EmailPromoted(Personal("c@d.test"), at) -> PlayerEmailChanged("p-1", Personal("c@d.test"), at),
       EmailChanged(Personal("e@f.test"), at) -> PlayerEmailChanged("p-1", Personal("e@f.test"), at),
       Suspended(Status.Active, "review", Some("op-1"), at) -> PlayerSuspended("p-1", "active", "suspended", "operator", Some("op-1"), Some("review"), at),
@@ -63,7 +66,7 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
     assertEquals(out.payloads, Vector[CasinoPlayersFact](
       PlayerRegistered("p-1", at, Some("a_1b_2c_"), Some("click-1"), Some("WELCOME"), Some("GB"), Some("EUR"), None, at,
         givenName = Some(Personal("Ada")), familyName = Some(Personal("Lovelace")), dateOfBirth = Some(Personal("1990-01-02")),
-        email = Some(Personal("a@b.test"))),
+        email = Some(Personal("a@b.test")), testAccount = Some(false)),
       PlayerConsentChanged("p-1", "email", true, "registration", at),
       PlayerConsentChanged("p-1", "sms", false, "registration", at)))
     assertEquals(out.recordKeys, Vector.fill(3)(Some("p-1")))

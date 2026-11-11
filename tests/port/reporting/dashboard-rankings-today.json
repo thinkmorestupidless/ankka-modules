@@ -1,0 +1,136 @@
+{
+  "scenario": "dashboard-rankings-today",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:09.792895Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "rankings-today",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/rankings?range=today",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "games": [
+            {
+              "gameId": "fake-slot-002",
+              "gameName": "Fake Slots II",
+              "provider": "",
+              "sessionCount": 3
+            },
+            {
+              "gameId": "book-of-ra",
+              "gameName": "Book of Ra",
+              "provider": "",
+              "sessionCount": 3
+            }
+          ],
+          "players": [
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.90",
+              "playerId": "357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "totalWagered": "5.00",
+              "truncatedEmail": "reporting-email-e264…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.90",
+              "playerId": "02246e75-8495-3bf9-adf6-8559b48552c1",
+              "totalWagered": "5.00",
+              "truncatedEmail": "reporting-email-5be0…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.90",
+              "playerId": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "totalWagered": "5.00",
+              "truncatedEmail": "reporting-email-4519…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.00",
+              "playerId": "80f88179-a4bc-399d-99a9-9af605200350",
+              "totalWagered": "0.00",
+              "truncatedEmail": "an-inbox-item-read-o…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.00",
+              "playerId": "0b4e1f6a-a09e-3de3-ae27-0234c8e213dd",
+              "totalWagered": "0.00",
+              "truncatedEmail": "an-agent-s-stream-op…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.00",
+              "playerId": "fceea235-cc02-351f-b180-07f4dc1a597e",
+              "totalWagered": "0.00",
+              "truncatedEmail": "a-target-action-name…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.00",
+              "playerId": "7901e075-0e99-38b7-be15-5f3f99e65c45",
+              "totalWagered": "0.00",
+              "truncatedEmail": "e2e-fgfbilfm@example…"
+            },
+            {
+              "countryCode": "",
+              "currency": "EUR",
+              "ggrAmount": "0.00",
+              "playerId": "0dc5913b-b7d7-3874-b354-ad887932b2b2",
+              "totalWagered": "0.00",
+              "truncatedEmail": "bonus-e2e-bgfjehff@e…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.00",
+              "playerId": "b9a94bef-c4b7-38de-b5bb-e1babf36f28c",
+              "totalWagered": "0.00",
+              "truncatedEmail": "e2e-dldijjim@example…"
+            },
+            {
+              "countryCode": "GB",
+              "currency": "EUR",
+              "ggrAmount": "0.00",
+              "playerId": "1a22c387-dcc7-39b1-b795-8c17c9462ce9",
+              "totalWagered": "0.00",
+              "truncatedEmail": "e2e-imhcmlnl@example…"
+            }
+          ],
+          "range": "today"
+        }
+      },
+      "vary": {
+        "$.games[0].sessionCount": "differs between two runs of the original",
+        "$.games[1].sessionCount": "differs between two runs of the original",
+        "$.players[3].ggrAmount": "differs between two runs of the original",
+        "$.players[3].playerId": "differs between two runs of the original",
+        "$.players[3].totalWagered": "differs between two runs of the original",
+        "$.players[3].truncatedEmail": "differs between two runs of the original"
+      }
+    }
+  ]
+}

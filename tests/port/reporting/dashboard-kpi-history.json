@@ -1,0 +1,118 @@
+{
+  "scenario": "dashboard-kpi-history",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:09.358103Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "kpi-history",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/kpi-history",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "days": [
+            {
+              "date": "2026-11-03",
+              "depositAmount": "0.00",
+              "depositCount": 0,
+              "ggr": "0.00",
+              "label": "Tue",
+              "ngr": "0.00",
+              "registrations": 4,
+              "withdrawalAmount": "0.00",
+              "withdrawalCount": 0
+            },
+            {
+              "date": "2026-11-04",
+              "depositAmount": "0.00",
+              "depositCount": 0,
+              "ggr": "0.00",
+              "label": "Wed",
+              "ngr": "0.00",
+              "registrations": 21,
+              "withdrawalAmount": "0.00",
+              "withdrawalCount": 0
+            },
+            {
+              "date": "2026-11-05",
+              "depositAmount": "0.00",
+              "depositCount": 0,
+              "ggr": "0.00",
+              "label": "Thu",
+              "ngr": "0.00",
+              "registrations": 0,
+              "withdrawalAmount": "0.00",
+              "withdrawalCount": 0
+            },
+            {
+              "date": "2026-11-06",
+              "depositAmount": "0.00",
+              "depositCount": 0,
+              "ggr": "0.00",
+              "label": "Fri",
+              "ngr": "0.00",
+              "registrations": 18,
+              "withdrawalAmount": "0.00",
+              "withdrawalCount": 0
+            },
+            {
+              "date": "2026-11-07",
+              "depositAmount": "0.00",
+              "depositCount": 0,
+              "ggr": "0.00",
+              "label": "Sat",
+              "ngr": "0.00",
+              "registrations": 0,
+              "withdrawalAmount": "0.00",
+              "withdrawalCount": 0
+            },
+            {
+              "date": "2026-11-08",
+              "depositAmount": "100.00",
+              "depositCount": 2,
+              "ggr": "0.00",
+              "label": "Sun",
+              "ngr": "0.00",
+              "registrations": 270,
+              "withdrawalAmount": "0.00",
+              "withdrawalCount": 0
+            },
+            {
+              "date": "2026-11-09",
+              "depositAmount": "300.00",
+              "depositCount": 3,
+              "ggr": "2.70",
+              "label": "Today",
+              "ngr": "2.70",
+              "registrations": 3,
+              "withdrawalAmount": "0.00",
+              "withdrawalCount": 0
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.days[6].depositAmount": "differs between two runs of the original",
+        "$.days[6].depositCount": "differs between two runs of the original",
+        "$.days[6].ggr": "differs between two runs of the original",
+        "$.days[6].ngr": "differs between two runs of the original",
+        "$.days[6].registrations": "differs between two runs of the original"
+      }
+    }
+  ]
+}

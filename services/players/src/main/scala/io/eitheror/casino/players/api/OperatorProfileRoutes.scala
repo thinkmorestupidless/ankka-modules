@@ -55,9 +55,25 @@ final class OperatorProfileRoutes(ctx: Ctx):
         "pinnedNotes" -> Json.arr(pinned*)))
     }
 
-  /** The player's edit, made by an operator: the same locks and the allow-list left to the player's route. */
+  /**
+   * The player's edit, made by an operator: the same locks and the allow-list left to the player's route.
+   * `isTestAccount`, a boolean as the original takes it (anything else is dropped), is a field of its own
+   * (spec 015 R11): set once the profile's fields are accepted, and alone it is an edit.
+   */
   def editProfile(p: Principal, playerId: String, text: String): Reply =
-    known(playerId)(_ => ProfileRoutes(ctx).edit(playerId, edits(body(text), OperatorFields), Set.empty, Some(p.subject)))
+    known(playerId) { _ =>
+      val b     = body(text)
+      val asked = edits(b, OperatorFields)
+      val test  = Option(b.get("isTestAccount")).filter(_.isBoolean).map(_.asBoolean)
+      def flag  = test.foreach(v => player(playerId).call(PlayerEntity.setTestAccount).invoke(SetTestAccount(v, p.subject, now())): Unit)
+      if asked.isEmpty && test.nonEmpty then
+        flag
+        ok(Json.obj("updated" -> true))
+      else
+        val reply = ProfileRoutes(ctx).edit(playerId, asked, Set.empty, Some(p.subject))
+        if reply.status == 200 then flag
+        reply
+    }
 
   def dateOfBirth(p: Principal, playerId: String, text: String): Reply =
     known(playerId) { _ =>
@@ -141,6 +157,7 @@ final class OperatorProfileRoutes(ctx: Ctx):
     o.put("registrationDate", s.registeredAt.map(_.toString).orNull)
     o.put("kycStatus", if s.kycVerified then "verified" else "unverified")
     o.put("potVip", s.potVip)
+    o.put("isTestAccount", s.testAccount)
     s.fraud.foreach { f =>
       o.put("suspectedDuplicate", true)
       o.set[JsonNode]("linkedPlayerIds", Json.arr(f.linkedPlayerIds.toVector.sorted*))

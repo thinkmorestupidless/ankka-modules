@@ -1,0 +1,125 @@
+package io.eitheror.casino.reporting
+
+import com.thinkmorestupidless.ankka.auth.oidc.Oidc
+import com.thinkmorestupidless.ankka.core.ComponentDescriptor
+import com.thinkmorestupidless.ankka.http.{Acl, EndpointClients, HttpEndpoint, HttpServer}
+import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime, ViewClient}
+import com.thinkmorestupidless.ankka.sdk.TimerScheduler
+import io.eitheror.casino.reporting.intake.*
+
+import java.time.{Clock, Instant}
+
+/**
+ * Every component of the service (plan.md's structure), registered by the service and by its test kit alike. The
+ * consumers are built for the settings' generation (research R8); `clock` dates a correction's arrival.
+ */
+object ReportingService:
+  def descriptors(settings: Settings, clock: Clock = Clock.systemUTC()): Seq[ComponentDescriptor] = Seq(
+    WalletBook.descriptor,
+    MoneyFacts(settings).descriptor,
+    Payment.descriptor,
+    PaymentsFacts(settings).descriptor,
+    Withdrawal.descriptor,
+    WithdrawalsFacts(settings).descriptor,
+    Grant.descriptor,
+    PlayerLog.descriptor,
+    PlayersFacts(settings).descriptor,
+    Session.descriptor,
+    SessionsFacts(settings).descriptor,
+    RoundCheck.descriptor,
+    RoundLegs(settings).descriptor,
+    Coverage.descriptor,
+    io.eitheror.casino.reporting.settings.ReportingSettings.descriptor,
+    documents.Document.descriptor,
+    documents.Documents.descriptor,
+    documents.DocumentJob.descriptor,
+    documents.Sweep.descriptor,
+    documents.DocumentAudit.descriptor,
+    day.BrandDay.descriptor,
+    day.FoldProgress.descriptor,
+    day.TestHolds.descriptor,
+    day.OpenDays.descriptor,
+    day.DaysView.descriptor,
+    day.CloseDays.descriptor,
+    reads.Wallets.descriptor,
+    reads.Players.descriptor,
+    reads.Sessions.descriptor,
+    reads.PaymentsView.descriptor,
+    reads.WithdrawalsView.descriptor,
+    reads.Rounds.descriptor,
+    reads.PlayerDays.descriptor,
+    reads.Activity.descriptor,
+    reads.Transactions.descriptor,
+    reads.Grants.descriptor,
+    reads.Compliance.descriptor
+  ) ++ day.ToDaysConsumers.all(settings, clock) ++ casino(settings) ++ predictions(settings)
+
+  /**
+   * The one endpoint (research R13). Its prefix names the brand of the settings `wire` set, so `wire` comes first;
+   * `now` is the clock "today" and a document's times are read from.
+   */
+  def endpoints(authenticate: () => Acl, now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] = Seq(
+    clients => api.ReportingEndpoint(api.Ctx(clients, authenticate, now))
+  )
+
+  /** What the timed actions and the endpoint are constructed without (see `ReportingRuntime`), before the service starts. */
+  def wire(settings: Settings): Unit = ReportingRuntime.settings.set(settings)
+
+  /**
+   * The reads that need the running service's view client, the clock a document's times are read from, and the recurring
+   * timers; at every start.
+   */
+  def started(settings: Settings, views: ViewClient, timers: TimerScheduler, now: () => Instant = () => Instant.now()): Unit =
+    ReportingRuntime.viewClient.set(Some(views))
+    ReportingRuntime.clock.set(now)
+    ReportingRuntime.startedAt.set(now())
+    ReportingRuntime.openBefore.set(d => day.OpenDays.before(views, settings.generation, d))
+    ReportingRuntime.closeInputs.set(d => day.DayEndInputs.gather(views, settings, d))
+    day.CloseDays.schedule(timers)
+    documents.Sweep.schedule(timers)
+
+  /**
+   * `markets.events` and `exchange.trades` exist to be read only when the brand runs the predictions module (R12):
+   * their intake, the books' views, and the fee account's credits beside the trades' fees.
+   */
+  private def predictions(settings: Settings): Seq[ComponentDescriptor] =
+    import io.eitheror.casino.reporting.predictions as p
+    if !settings.predictions then Nil
+    else Seq(p.MarketBook.descriptor, p.TradesFacts(settings).descriptor, p.TradeFee.descriptor, p.FeeCredits(settings).descriptor,
+      p.TradeFees.descriptor, p.Markets.descriptor, p.MarketFigures.descriptor, p.Traders.descriptor)
+
+  /** `casino.rewards` and `casino.rounds` exist to be read only when the brand runs the casino module (R12). */
+  private def casino(settings: Settings): Seq[ComponentDescriptor] =
+    if !settings.casino then Nil
+    else Seq(RewardsFacts(settings).descriptor, RoundsFacts(settings).descriptor)
+
+@main def run(): Unit =
+  val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
+  ReportingService.wire(settings)
+  val log    = org.slf4j.LoggerFactory.getLogger("reporting")
+  val timers = TimerRuntime()
+  // A local run with no broker reads in memory, so the service starts without Kafka; an installation sets one.
+  val broker =
+    if sys.env.get("ANKKA_KAFKA_BOOTSTRAP_SERVERS").exists(_.nonEmpty) then ProjectionRuntime.fromEnv()
+    else
+      log.warn("ANKKA_KAFKA_BOOTSTRAP_SERVERS is not set: facts are read in memory (a local run)")
+      val memory = InMemoryBroker()
+      ProjectionRuntime.withBroker(memory, memory)
+  val builder = Ankka.service
+    .registerAll(ReportingService.descriptors(settings))
+    .withExtension(broker)
+    .withExtension(timers)
+    .withExtension(HttpServer.of(ReportingService.endpoints(() => Oidc.authenticate())*))
+    // An erasure filed at the installation ends the kept documents naming the player, as the route does (R10).
+    .withErasureHandler(documents.Erasure.handler)
+  // The installation names its keyring for a service with personal fields; a local run keeps its keys in its own
+  // database (feature 042).
+  val keyed =
+    if sys.env.get("ANKKA_KEYRING_ADDRESS").exists(_.trim.nonEmpty) then builder
+    else
+      log.warn("ANKKA_KEYRING_ADDRESS is not set: personal fields are sealed under keys in this service's database (a local run)")
+      builder.withLocalKeyring()
+  val service = keyed.start(name = "reporting")
+  ReportingService.started(settings, service.viewClient, timers.timerScheduler)
+  sys.addShutdownHook(service.terminate())
+  scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit

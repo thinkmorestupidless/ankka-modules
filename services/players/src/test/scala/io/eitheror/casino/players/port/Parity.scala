@@ -68,7 +68,7 @@ object Parity:
     Divergence("`GET /{playerId}` answers a built profile", Seq(".body"), "the player's read is a built profile, not the twin",
       (_, s) => s.request.method == "GET" && s.response.status == 200 && s.request.path.matches("""/v1/casino/players/[^/]+/(\{playerId\}|[0-9a-f-]{36})""")),
     Divergence("The operator's profile has no `wallet`, `rg` or `lifetimeStats`", Seq(".body.wallet", ".body.rg", ".body.lifetimeStats",
-      ".body.player.isTestAccount", ".body.player.kycRequiredDocTypes", ".body.player.kycVerificationMode"),
+      ".body.player.kycRequiredDocTypes", ".body.player.kycVerificationMode"),
       "the operator's profile leaves other services' parts to them",
       (_, s) => operatorSigned(s) && s.request.path.endsWith("/profile")),
     Divergence("The export is assembled across the brand's services", Seq(".status", ".body"), "the export is read once assembled",

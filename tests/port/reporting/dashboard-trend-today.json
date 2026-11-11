@@ -1,0 +1,89 @@
+{
+  "scenario": "dashboard-trend-today",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:06.951569Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "trend-today",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/trend?range=today",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "dataPoints": [
+            {
+              "ggr": "0.00",
+              "label": "00:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "01:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "02:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "03:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "04:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "05:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "06:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "07:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "08:00",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "2.70",
+              "label": "09:00",
+              "ngr": "2.70"
+            }
+          ],
+          "range": "today"
+        }
+      },
+      "vary": {
+        "$.dataPoints[9].ggr": "differs between two runs of the original",
+        "$.dataPoints[9].ngr": "differs between two runs of the original"
+      }
+    }
+  ]
+}

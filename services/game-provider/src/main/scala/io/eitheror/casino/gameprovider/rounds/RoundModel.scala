@@ -62,9 +62,16 @@ final case class UnacknowledgedEntry(
 ):
   def open: Boolean = cleared.isEmpty
 
-/** The round's identity and context, taken from the first callback that names it. */
+/**
+ * The round's identity and context, taken from the first callback that names it. The game's name and
+ * type (its catalogue category) are the catalogue's when the round opens, absent for a game it does not
+ * hold, so `round_settled` names the game from recorded state (spec 015 FR-019 amendment). A callback
+ * does not read the catalogue: it sets `gameLookup`, and the catalogue is read only for a round that is
+ * new (`Openings.catalogued`), so a callback on an open round makes no catalogue read.
+ */
 final case class RoundOpening(provider: String, roundId: String, playerId: String, currency: String, gameCode: Option[String],
-    sessionId: Option[String], at: Instant)
+    sessionId: Option[String], at: Instant, gameName: Option[String] = None, gameType: Option[String] = None,
+    gameLookup: Boolean = false)
 
 final case class RoundState(
     provider: String = "",
@@ -82,7 +89,9 @@ final case class RoundState(
     unacknowledged: Vector[UnacknowledgedEntry] = Vector.empty,
     status: String = RoundState.New,
     openedAt: Option[Instant] = None,
-    settledAt: Option[Instant] = None
+    settledAt: Option[Instant] = None,
+    gameName: Option[String] = None,
+    gameType: Option[String] = None
 ):
   def isNew: Boolean = status == RoundState.New
 
@@ -117,7 +126,9 @@ final case class SettlementSummary(
     providerTransactionIds: Vector[String],
     walletTransactionIds: Vector[String],
     freeRoundsGrant: Option[String],
-    at: Instant
+    at: Instant,
+    gameName: Option[String] = None,
+    gameType: Option[String] = None
 )
 
 sealed trait RoundEvent
@@ -164,8 +175,12 @@ final case class RecordUnacknowledged(opening: RoundOpening, entry: Unacknowledg
 
 final case class ClearUnacknowledged(transactionId: String, cleared: Cleared)
 
-/** The record's reply: the answer kept under the key, which is the first one when the key was answered before. */
-final case class Recorded(answer: StoredAnswer, first: Boolean)
+/**
+ * The record's reply: the answer kept under the key, which is the first one when the key was answered before.
+ * `openingWanted` is a new round refusing an opening whose game is still to be looked up: nothing was
+ * recorded, and the caller sends the command again with the catalogue's opening.
+ */
+final case class Recorded(answer: StoredAnswer, first: Boolean, openingWanted: Boolean = false)
 
 object RoundCodecs:
   given Serializer[RoundState]           = Codecs.serializer[RoundState]("round-state")

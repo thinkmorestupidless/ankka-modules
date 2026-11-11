@@ -82,11 +82,11 @@ class LocalApplySuite extends munit.FunSuite:
   test("a service contract/keys.md lists as not yet built is refused before any call, naming it and its module") {
     val cp = withSecrets()
     val before = cp.calls.size
-    val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--modules", "reporting")
+    val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--modules", "support")
     assertEquals(code, 1, out.lines.mkString("\n"))
     val keys = Keys.load(root)
-    val named = Vector("reporting").filter(keys.notYetBuilt.contains)
-    assert(named.nonEmpty, "the tree lists no reporting service as not yet built: this test has nothing left to refuse")
+    val named = Vector("support-agent").filter(keys.notYetBuilt.contains)
+    assert(named.nonEmpty, "the tree lists no support-agent service as not yet built: this test has nothing left to refuse")
     named.foreach { s =>
       assert(out.lines.exists(l => l.startsWith(s"refused service '$s' of module ")), s"$s not named\n${out.lines.mkString("\n")}")
     }

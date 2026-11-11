@@ -59,6 +59,7 @@ Outcomes, per provider (`·` = `400`):
 | `duplicate` | · | `422` msgCode 13 | · | · | · | · | · | payout error "already exists (duplicate)" | · |
 | `no_record` | · | · | · | · | · | · | · | payout not kept; status read `data: []` | · |
 | `reversed` | · | · | · | · | · | · | · | `chargebacked` / state 11 | · |
+| `disputed` | · | · | · | · | · | · | · | `chargeback` (deposit only) | · |
 | `underpayment` | · | `03`, `receivedAmount`, `convertAmount` (0 = unpriced) | · | · | · | `ac` short (`receivedAmount`, else 90%) | · | · | · |
 | `overpayment` | · | `02`, `receivedAmount`, `convertAmount` | · | · | · | `ac` over (110%) | · | · | · |
 | `unsigned` | completed, no `X-BounceMoney-Signature` | · | · | · | · | · | · | · | `COMPLETED`, no `Signature` |

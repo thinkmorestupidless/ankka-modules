@@ -22,6 +22,14 @@ object CreditState:
   val Credited = "credited"
   val Refused  = "refused"
 
+/**
+ * A dispute the provider reported on the payment (spec 015 R11): the amount, currency and reason it was
+ * opened with, and the brand's outcome (`won` or `lost`) it closed with. Recorded and reported to the
+ * brand, never a status: the payment stays as it was, and no money moves here.
+ */
+final case class Dispute(amount: Option[Long] = None, currency: Option[String] = None, reason: Option[String] = None,
+    openedAt: Option[Instant] = None, outcome: Option[String] = None, closedAt: Option[Instant] = None)
+
 /** What the initiate recorded: the payment's facts, none personal (research R12). */
 final case class Opened(
     subBrandId: String,
@@ -60,7 +68,8 @@ final case class PaymentState(
     variance: Option[Variance] = None,
     received: Option[Received] = None,
     waitingReason: Option[String] = None,
-    credit: Option[CreditState] = None
+    credit: Option[CreditState] = None,
+    dispute: Option[Dispute] = None
 ):
   def exists: Boolean   = opened.isDefined
   def terminal: Boolean = Status.isTerminal(status)
@@ -81,6 +90,8 @@ enum PaymentEvent:
   case Failed(code: Option[String], reason: String, received: Option[Received], at: Instant)
   case Expired(at: Instant)
   case Waiting(reason: String, at: Instant)
+  case DisputeOpened(amount: Long, currency: String, reason: Option[String], at: Instant)
+  case DisputeClosed(outcome: String, amount: Option[Long], currency: Option[String], at: Instant)
 
 final case class RecordCapture(variance: Option[Variance], creditedAmount: Long, at: Instant)
 final case class RecordAttempt(answer: String, at: Instant)
@@ -91,6 +102,8 @@ final case class RecordFailure(code: Option[String], reason: String, received: O
 final case class At(at: Instant)
 final case class RecordWaiting(reason: String, at: Instant)
 final case class Open(opened: Opened, status: String)
+final case class RecordDisputeOpened(amount: Long, currency: String, reason: Option[String], at: Instant)
+final case class RecordDisputeClosed(outcome: String, amount: Option[Long], currency: Option[String], at: Instant)
 
 object PaymentCodecs:
   given Serializer[PaymentState]        = MerchantCodecs.serializer[PaymentState]("payment-state")
@@ -104,6 +117,8 @@ object PaymentCodecs:
   given Serializer[RecordFailure]       = MerchantCodecs.serializer[RecordFailure]("record-failure")
   given Serializer[At]                  = MerchantCodecs.serializer[At]("at")
   given Serializer[RecordWaiting]       = MerchantCodecs.serializer[RecordWaiting]("record-waiting")
+  given Serializer[RecordDisputeOpened] = MerchantCodecs.serializer[RecordDisputeOpened]("record-dispute-opened")
+  given Serializer[RecordDisputeClosed] = MerchantCodecs.serializer[RecordDisputeClosed]("record-dispute-closed")
 
 import PaymentCodecs.given
 
@@ -147,6 +162,16 @@ final class Payment(context: EventSourcedEntityContext) extends EventSourcedEnti
   def waiting(cmd: RecordWaiting): Effect[PaymentState] =
     open(s => if s.terminal || s.waitingReason.contains(cmd.reason) then effects.reply(s) else effects.persist(PaymentEvent.Waiting(cmd.reason, cmd.at)).thenReplyState)
 
+  /** A dispute opened, whatever the payment's status; the first is recorded and a repeat records nothing (spec 015). */
+  def disputeOpened(cmd: RecordDisputeOpened): Effect[PaymentState] =
+    open(s => if s.dispute.exists(_.openedAt.isDefined) then effects.reply(s)
+      else effects.persist(PaymentEvent.DisputeOpened(cmd.amount, cmd.currency, cmd.reason, cmd.at)).thenReplyState)
+
+  /** A dispute closed `won` or `lost` (the route refuses any other); the first close is recorded, a repeat records nothing. */
+  def disputeClosed(cmd: RecordDisputeClosed): Effect[PaymentState] =
+    open(s => if s.dispute.exists(_.closedAt.isDefined) then effects.reply(s)
+      else effects.persist(PaymentEvent.DisputeClosed(cmd.outcome, cmd.amount, cmd.currency, cmd.at)).thenReplyState)
+
   def get: ReadOnlyEffect[PaymentState] = effects.reply(currentState)
 
 object Payment extends EventSourcedEntity.Companion[Payment, PaymentState, PaymentEvent](
@@ -165,6 +190,8 @@ object Payment extends EventSourcedEntity.Companion[Payment, PaymentState, Payme
   val fail            = command("fail")(_.fail)
   val expire          = command("expire")(_.expire)
   val waiting         = command("waiting")(_.waiting)
+  val disputeOpened   = command("dispute-opened")(_.disputeOpened)
+  val disputeClosed   = command("dispute-closed")(_.disputeClosed)
   val get             = query("get")(_.get)
 
   def fold(s: PaymentState, event: PaymentEvent): PaymentState = event match
@@ -188,3 +215,8 @@ object Payment extends EventSourcedEntity.Companion[Payment, PaymentState, Payme
       s.copy(status = Status.Failed, failedAt = Some(at), failureCode = code, failureReason = Some(reason), received = received, waitingReason = None)
     case PaymentEvent.Expired(at)        => s.copy(status = Status.Expired, expiredAt = Some(at), failureReason = Some(FailureReason.Abandoned), waitingReason = None)
     case PaymentEvent.Waiting(reason, _) => s.copy(waitingReason = Some(reason))
+    case PaymentEvent.DisputeOpened(amount, currency, reason, at) =>
+      s.copy(dispute = Some(s.dispute.getOrElse(Dispute()).copy(amount = Some(amount), currency = Some(currency), reason = reason, openedAt = Some(at))))
+    case PaymentEvent.DisputeClosed(outcome, amount, currency, at) =>
+      val d = s.dispute.getOrElse(Dispute())
+      s.copy(dispute = Some(d.copy(amount = amount.orElse(d.amount), currency = currency.orElse(d.currency), outcome = Some(outcome), closedAt = Some(at))))

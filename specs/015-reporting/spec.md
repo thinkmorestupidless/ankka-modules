@@ -18,20 +18,22 @@ Today the casino backoffice's Reports tab and Dashboard are served by `casino-se
 on the request by listing the brand's player twins and asking `wallet-service` for sums per player.
 That shape is the reason the figures are wrong in production and the reason this service exists:
 
-- The GGR report, the dashboard's GGR, NGR, deposits and withdrawals, the trend and the rankings
-  sample **the twenty most recently registered players** and present the sum as the brand's. For a
+- The GGR report, the dashboard's GGR, NGR, deposits and withdrawals, the seven-day history, the trend and the
+  players' rankings sample **the twenty most recently registered players** and present the sum as the brand's. For a
   brand with more than twenty players, which Spinvibe is, every money figure on the dashboard and
   the revenue report is a sample presented as a total. The code says so (`samplePids … take(20)`,
   "MVP ceiling", "TODO spec-078: replace with wallet transaction event-log query").
-- The transaction ledger reads one page of two hundred transactions per player and filters in
-  memory, so a player with more than two hundred transactions is truncated silently, and the
-  export is the same read capped at ten thousand rows.
+- The transaction ledger asks for one page of two hundred transactions per player, which the
+  wallet clamps to one hundred, and filters in memory, so a player with more than one hundred
+  transactions is truncated silently; the export is the same read capped at ten thousand rows,
+  answered as JSON and turned into CSV by the browser.
 - The payment report answers a deposit success rate of **97** and withdrawal counts of **0** as
   constants, in one row named "All PSPs"; the dashboard's payment-health card answers the same
   constants even when the brand's currency cannot be read.
 - Every day boundary is UTC, whatever the brand's reporting zone; every amount is a double formatted
-  to two places; bonus figures are parsed from strings; the sums are in the brand's default currency
-  and a player whose wallet is in another currency is counted at nothing.
+  to two places; bonus figures are parsed from strings; the reports' sums are in the brand's default
+  currency, a player whose wallet is in another currency counted at nothing, while the dashboard
+  converts every other currency to the default at a rate read on the request.
 - Nothing is a view. Nothing is rebuildable. Nothing is exact.
 
 The original's reporting *spec* (078) is nonetheless clear about what finance, compliance, marketing
@@ -89,12 +91,14 @@ activity history and export (spec 008 FR-029, FR-040), not the operator's per-pl
   activity history and the operator's export of one player's trail are spec 008's (FR-029,
   FR-040); a partner's feed is spec 016's; the analytics and lifecycle event exports of the
   original's specs 146 and 149 are spec 014's, if anything's.
-- Q: Who may read a report? → A: As the original admits today: an operator of the brand with
-  `brand_admin`, `resource_admin` or `platform_admin` (spec 001 FR-020, decision 0045) for the
-  Reports tab and the dashboard; the dispute report and the compliance exports additionally to
-  `brand_compliance` and `brand_support` as the original's 135 role model names them; the day-end
-  to `brand_finance`. The original's `backoffice-reporting-tab` feature flag is kept as a brand
-  setting that hides the tab; it never hides the dashboard.
+- Q: Who may read a report? → A: As the original admits, corrected at planning (Session 2026-11-08,
+  plan): the Reports tab's reports to an operator of the brand with `brand_admin`, `resource_admin`
+  or `platform_admin` (spec 001 FR-020, decision 0045); the dashboard and the dispute report to
+  every operator of the brand, as the original admits its whole operator role set; the compliance
+  exports also to `brand_compliance`, and the day-end also to `brand_finance`, spec 135's roles,
+  which the original's backend never admitted. The original's `backoffice-reporting-tab` feature
+  flag is kept as a brand setting: hidden, the tab is not shown and every report route answers not
+  found, as the flag does; it never hides the dashboard.
 - Q: Regulatory report definitions? → A: None exist in the original: the licence profiles (UKGC,
   MGA, Curaçao) of spec 137 configure KYC policy and nothing produces a report per profile. This
   spec adds no regulator-shaped report. It adds the minimum a regulator's request can be answered
@@ -121,6 +125,46 @@ activity history and export (spec 008 FR-029, FR-040), not the operator's per-pl
   per-player activity, bets, transaction search and export stay spec 008's, as the Context says;
   spec 018 is corrected to agree.
 
+### Session 2026-11-08
+
+- Q: How long is a generated document kept? → A: A brand setting per document kind (report
+  export, dispute report, day-end export, compliance export): 24 hours by default, at most 90
+  days. A player's erasure deletes every kept document that names them before its lifetime ends;
+  the document's record, which holds no personal field, remains (FR-021, FR-024).
+- Q: Which GGR does the brand's report show, now that an affiliate's `ggr-daily` counts the deposit
+  pool only (spec 025, spec 012 FR-016)? → A: The brand's GGR stays total stake minus total win
+  (FR-005). Every report and day-end that shows GGR also shows the deposit pool's GGR, folded from
+  the deposit parts spec 025 carries on `money.transactions`, and SC-005 compares `ggr-daily` with
+  that figure.
+- Q: Does reporting cover a brand's prediction markets (spec 023)? → A: Yes, in full: a summary per
+  period and currency, a report per market, a report per trader, and the day's prediction figures
+  in the day-end, each shown only to a brand that runs the predictions module (User Story 8,
+  FR-028–FR-032). The casino reports' folds exclude the predictions module's movements on
+  `money.transactions`, so a casino figure never holds a trade.
+- Q: (left open in the draft) NGR before or after the programme's fees, and when the day-end
+  closes? → A: Already decided: NGR is before the programme's fees (Session 2026-10-08, FR-005);
+  the day-end closes at the instant the reporting day ends in the brand's zone, the instant spec
+  012 FR-016 closes `ggr-daily` on, a later settlement being a correction (FR-019).
+
+### Session 2026-11-08 (plan)
+
+- Q: The test-account flag, a game's name and type, and a chargeback's amount and outcome are on no
+  fact. How are they had? → A: By amending their producers on this branch: spec 008 (`players`)
+  carries the flag on `player_registered` and a family for its change; spec 003 (`game-provider`)
+  carries the game's name and type on `round_settled`; spec 002 carries the amount, the currency and
+  an enumerated outcome on `payment.dispute.closed`; and spec 005 (`psp-gateway`) with spec 004
+  (`merchant`) reports a provider's dispute and its outcome to the brand, which nothing does today
+  (the original logs a provider's chargeback as not handled).
+- Q: The dashboard's average wagering progress has no exact input. What does it show? → A: The exact
+  figure: spec 002 is amended so the wallet's facts carry, for each restricted funds record a bet
+  moves, its progress and its requirement after the bet.
+- Q: Build User Story 8 before taker fees and corrections after finality exist? → A: Yes. A taker
+  fee is read from `trade_made` when spec 023 carries it, and the fee account's credits from
+  `money.transactions` when spec 022 has the account; until then both are zero. A corrected market
+  shows the outcome it was first resolved to, the corrected outcome and the payments made.
+- Q: What does a rate with no attempts answer? → A: Null under its name: distinct from 0%, and the
+  field stays in the shape the backoffice reads (FR-011, FR-015).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Finance runs the revenue report for a period (Priority: P1)
@@ -143,7 +187,8 @@ are identical.
 - added `features/reporting/revenue.feature`: the revenue report sums every player exactly in the currency asked for and names the currencies it holds
 - added `features/reporting/revenue.feature`: the revenue report has one row per reporting day in the brand's zone, with a quiet day at zero and a late bet on its own day
 - added `features/reporting/revenue.feature`: an exported revenue report holds the summary row and every daily row with every column, equal to the screen
-- added `features/reporting/revenue.feature`: the programme's daily GGR facts for a closed day sum to that day's GGR for the attributed players
+- added `features/reporting/revenue.feature`: the programme's daily GGR facts for a closed day sum to that day's deposit pool GGR for the attributed players
+- added `features/reporting/revenue.feature`: the revenue report shows the deposit pool's GGR beside GGR, a stake from restricted funds or the converted pool counting in GGR only
 - added `features/reporting/revenue.feature`: a revenue report asked for a currency the brand holds no wallet in is refused naming the currencies it holds
 - added `features/reporting/revenue.feature`: a revenue report run again after the view is rebuilt gives identical figures
 
@@ -217,7 +262,7 @@ counts and rates.
 - added `features/reporting/bonus-and-providers.feature`: the bonus report shows the summary and one row per offer with the same figures
 - added `features/reporting/bonus-and-providers.feature`: the bonus report filtered by one offer shows only that offer, and its export holds the per-offer table
 - added `features/reporting/bonus-and-providers.feature`: the provider report shows deposits and withdrawals per payment provider and marks a provider below ninety-five percent success
-- added `features/reporting/bonus-and-providers.feature`: a provider report for a period with no attempts shows every rate absent, not a constant
+- added `features/reporting/bonus-and-providers.feature`: a provider report for a period with no attempts shows no rate, not a constant
 
 ---
 
@@ -288,6 +333,38 @@ deleted.
 - added `features/reporting/compliance-exports.feature`: an export of cases holds one row per case with the player, type, opened, closed, outcome and reason
 - added `features/reporting/compliance-exports.feature`: an export of KYC decisions holds one row per decision with the player, submitted, decided, outcome and reason
 - added `features/reporting/compliance-exports.feature`: a compliance export carries a reference number, is served as an attachment, and is deleted after a day with its record kept
+- added `features/reporting/compliance-exports.feature`: a document is kept for the lifetime the brand set for its kind, 24 hours when it set none
+- added `features/reporting/compliance-exports.feature`: a document lifetime longer than 90 days is refused
+- added `features/reporting/compliance-exports.feature`: a kept document that names an erased player is deleted before its lifetime ends, its record kept
+
+---
+
+### User Story 8 - Finance and the trading desk read the brand's prediction markets (Priority: P3)
+
+A brand that runs the predictions module (spec 023) asks what its markets did: how much traded,
+what the taker fees earned, what was paid on resolution, which markets were voided or corrected,
+and who traded. Finance reads the period's summary and the day-end's prediction section beside the
+casino's; the trading desk reads the per-market report; compliance reads the traders report.
+
+**Why this priority**: The module trades real money through the brand's wallet (spec 022) and
+nothing reports it; its figures are the brand's revenue from fees and its exposure until markets
+are final. It follows the casino's reports, which the original has.
+
+**Independent Test**: For a brand running the predictions module, open, trade, resolve and void
+markets with known prices and a taker fee; every figure of the summary, the market report, the
+traders report and the day-end equals the fold of those facts, the fees equal the fee account's
+credits, and the casino's revenue report is unchanged.
+
+**Acceptance Scenarios**:
+
+- added `features/reporting/predictions.feature`: the predictions summary holds, per currency, contracts traded, notional volume, trades, traders, taker fees, resolution payments and remainders kept, and the markets opened, resolved and voided
+- added `features/reporting/predictions.feature`: the market report holds one row per market with its status and times, volume, trades, traders, open interest, fees and what was paid on resolution
+- added `features/reporting/predictions.feature`: a voided or corrected market shows what its resolution paid and what its correction changed
+- added `features/reporting/predictions.feature`: the traders report holds one row per player who traded with volume, fees paid, positions paid and net result
+- added `features/reporting/predictions.feature`: the day-end of a brand running the predictions module holds the day's taker fees, resolution payments and remainders per market, reconciled with the fee account
+- added `features/reporting/predictions.feature`: the dashboard shows today's predictions summary against yesterday's to the same hour
+- added `features/reporting/predictions.feature`: a market trading changes no figure of the revenue report or the dashboard
+- added `features/reporting/predictions.feature`: a brand that does not run the predictions module is shown no predictions summary
 
 ---
 
@@ -312,8 +389,8 @@ deleted.
   flag in the player report; a brand setting excludes test accounts from the dashboard and the
   revenue report when set.
 - A player erased: rows stay, `Personal` fields read as erased, aggregates are unchanged, a
-  document generated before erasure is gone within 24 hours anyway and its record holds no
-  personal field.
+  document generated before erasure that names the player is deleted at the erasure, and its
+  record holds no personal field.
 - The dashboard asked for while a view is rebuilding: served from the view as it stands, with the
   status saying rebuilding and the day it is complete from.
 
@@ -325,7 +402,8 @@ deleted.
 
 - **FR-001**: Every figure this service shows MUST be the fold of facts it has read from the brand's
   topics — `money.transactions`, `payments.payments`, `casino.players`, `casino.sessions`,
-  `casino.rounds`, `casino.withdrawals`, `casino.rewards` (spec 001 FR-011) — into views this
+  `casino.rounds`, `casino.withdrawals`, `casino.rewards` (spec 001 FR-011), and for a brand that
+  runs the predictions module `markets.events` and `exchange.trades` — into views this
   service keeps, and MUST NOT be computed by calling another service at request time.
   **Change from the original**, which lists players and asks the wallet per player per request.
   (Source: `ReportingRoutes`, `DashboardRoutes`; constitution IV.)
@@ -343,9 +421,14 @@ deleted.
 - **FR-005**: GGR MUST be total stake minus total win over `bet_placed`, `win_credited`,
   `bet_rolled_back`, `round_settled_as_loss` and `provider_credited` (a free-spin or promotional
   win paid outside a round, counted as a win; added with spec 002 on 2026-10-09); bonus cost MUST be the fold of `casino.rewards`
-  per spec 011 FR-028; chargebacks MUST be `payment.dispute.closed` against the brand; NGR in this
+  per spec 011 FR-028; chargebacks MUST be the amounts of `payment.dispute.closed` whose outcome is lost by the
+  brand; NGR in this
   service MUST be GGR minus bonus cost minus chargebacks, and every report that shows NGR MUST say
-  it is before the programme's fees (spec 013 FR-012). Net cash flow MUST be deposits confirmed
+  it is before the programme's fees (spec 013 FR-012). Every report and day-end that shows GGR MUST
+  also show the deposit pool's GGR: the deposit parts (spec 025's `deposit_part_cents`) of `bet_placed`, `win_credited` and
+  `bet_rolled_back`, counted as spec 012 FR-016 counts an affiliate's `ggr-daily` (a provider credit
+  and a loss settlement add nothing, and a leg counts on its round's day), so the two agree. The
+  predictions module's movements MUST NOT enter any casino figure. Net cash flow MUST be deposits confirmed
   minus withdrawals completed.
 - **FR-006**: Every daily figure, "today", "yesterday", bucket and default date range MUST be a
   calendar day in the brand's reporting zone (spec 008 FR-041), default UTC; a day MUST close when
@@ -355,36 +438,40 @@ deleted.
 **Reports**
 
 - **FR-007**: The revenue report MUST show, for a period and currency, a summary of total stakes,
-  total wins, GGR, bonus cost, NGR, total deposits, total withdrawals and net cash flow, and one row
-  per reporting day with stakes, wins, GGR, bonus cost and NGR, a day without activity showing
-  zero; the period MUST default to the first of the current month to today in the brand's zone.
+  total wins, GGR, the deposit pool's GGR, bonus cost, NGR, total deposits, total withdrawals and
+  net cash flow, and one row per reporting day with stakes, wins, GGR, the deposit pool's GGR,
+  bonus cost and NGR, a day without activity showing
+  zero; the period MUST default to the first of the current month to today in the brand's zone (the
+  backoffice sends the last thirty days).
   (Source: 078 FR-004, FR-008–FR-011; `ReportingRoutes` `ggr`.)
 - **FR-008**: The player report MUST show one row per player registered in the period with player
   id, email, country, registration date, status, KYC status, lifetime deposits, lifetime wagered,
-  lifetime GGR, last login and whether the account is a test account; MUST filter by country and
+  lifetime GGR, last login and whether the account is a test account (spec 008's flag, amended here); MUST filter by country and
   by status (`active`, `suspended`, `self_excluded`, `closed`); MUST sort by any column; and MUST
   link a row to the player. Lifetime figures MUST be exact over every transaction. (Source: 078
   FR-012–FR-016; `ReportingRoutes` `players`; the `lifetimeGgr` fix, #422.)
 - **FR-009**: The bonus report MUST show, for a period, a summary of total grants, granted value,
   converted count and rate, forfeited, cancelled and active counts, and one row per offer with
-  name, type and the same figures, from `casino.rewards` and the offers `rewards` publishes (spec
-  011); converted MUST count a grant converted whether its cap is pending or closed, as the
+  name, type and the same figures, from `casino.rewards`, an offer's name and type taken from its grants (spec 011; no topic lists
+  offers, so an offer with no grant in the period has no row); the conversion rate MUST be the
+  whole percent, truncated, as the original's; converted MUST count a grant converted whether its cap is pending or closed, as the
   original counts. MUST filter by one offer. (Source: 078 FR-017–FR-020; `ReportingRoutes`
   `bonus`; spec 196's amendment on converted statuses.)
 - **FR-010**: The transaction ledger MUST show every transaction of the brand in the period, newest
   first, paged at one hundred, each with timestamp, player id, truncated email, type, amount,
   currency and reference; MUST filter by type (`deposit`, `withdrawal`, `bet`, `win`, `rollback`,
-  `bonus`) and by part of an email; and MUST NOT truncate a player's transactions. **Change from
-  the original**, which reads one page of two hundred per player. (Source: 078 FR-021–FR-025.)
+  `bonus`, which matches every `bonus_*` type) and by part of an email, each transaction showing the original wallet's own type name (research, Found during implementation, T016); and MUST NOT truncate a player's transactions. **Change from
+  the original**, which reads one page per player that the wallet clamps to one hundred. (Source: 078 FR-021–FR-025.)
 - **FR-011**: The payment-provider report MUST show, for a period, deposit attempts, completed
   deposits, deposit value and success rate, withdrawal requests, completed withdrawals and average
   hours to completion, in a summary and one row per provider, from `payments.payments` and
   `casino.withdrawals`; a provider below 95% success MUST be marked; a rate with no attempts MUST
-  be absent. **Change from the original**, which answers 97 and 0 as constants. (Source: 078
+  be null under its name. **Change from the original**, which answers 97 and 0 as constants. (Source: 078
   FR-026–FR-028; `ReportingRoutes` `psp`.)
 - **FR-012**: Every report MUST export as CSV with every column and every matching row regardless
-  of the page shown, and the export's figures MUST equal the screen's; an export beyond the
-  synchronous limit (FR-022) MUST become a job. (Source: 078 FR-003, FR-005, FR-011, FR-016,
+  of the page shown, and the export's figures MUST equal the screen's; an export beyond the synchronous limit (FR-022) MUST become a job. **Change from the
+  original**, whose CSV the browser builds from the JSON, the revenue CSV without the summary row
+  078 FR-011 asked for; the JSON routes stay. (Source: 078 FR-003, FR-005, FR-011, FR-016,
   FR-020, FR-025, FR-028.)
 
 **Dashboard**
@@ -397,14 +484,18 @@ deleted.
 - **FR-014**: The dashboard MUST show a seven-day history (per day: registrations, deposits amount
   and count, withdrawals amount and count, GGR, NGR), a trend for today (hourly), seven and thirty
   days (daily) and ninety days (weekly) of GGR and NGR, players by country, rankings of games by
-  sessions started and of players by GGR with country and total wagered for today or seven days,
+  sessions started and of players by GGR with country and total wagered for today, seven, thirty or
+  ninety days,
   and an activity feed of today's registrations, awards, self-exclusions and suspensions, newest
   first. (Source: `DashboardRoutes` `kpi-history`, `trend`, `geo`, `rankings`, `activity`.)
 - **FR-015**: The dashboard MUST show the bonus summary — open restricted-funds records, their total
   balance as the brand's liability, the average wagering progress and today's bonus cost — and
   payment health — the day's deposit success rate and average hours to a completed withdrawal, per
-  provider — from the facts; today's bonus cost and the liability MUST be figures, not the
-  original's zeros. (Source: `DashboardRoutes` `bonus-summary`, `payment-health`.)
+  provider — from the facts; today's bonus cost and the liability MUST be figures, not the original's zeros, each answered
+  under both names the original has (`totalLiability` and `bonusCostToday` as amounts,
+  `totalLiabilityMinorUnits` and `bonusCostTodayMinorUnits`, which the backoffice reads, as minor
+  units); the average wagering progress MUST be folded from the wallet's progress on its
+  restricted funds records (spec 002, amended here); a rate with no attempts MUST be null. (Source: `DashboardRoutes` `bonus-summary`, `payment-health`.)
 
 **Dispute report**
 
@@ -414,7 +505,9 @@ deleted.
   agent, each game session's game, type, start and end, each round's number, time, stake, win, net
   result and status, the period totals, the generation time and a unique reference number; a
   session and a range together, a range over a year, or an end before a start MUST be refused
-  naming the rule. (Source: spec 117 FR-008–FR-012; `DashboardRoutes` `dispute-report`;
+  naming the rule. A game's name and type MUST come from its rounds (spec 003's `round_settled`,
+  amended here), and a round's status MUST be its settlement's outcome (`win`, `loss`,
+  `cancelled`, `credit`). (Source: spec 117 FR-008–FR-012; `DashboardRoutes` `dispute-report`;
   `ReportService`; Playwright `27-dispute-report`.)
 - **FR-017**: The dispute report's rounds MUST come from `casino.rounds` and its sessions from
   `casino.sessions`; a round the wallet settled (`money.transactions`) that the provider's record
@@ -435,31 +528,38 @@ deleted.
 - **FR-020**: A compliance officer MUST be able to export, for a period, the brand's RG cases (one
   row per case: player, type, opened, closed, outcome, reason) from `casino.players`'
   `rg_case_opened`, `rg_case_closed`, `rg_limit_applied` and `player_self_excluded`, and the
-  brand's KYC decisions (one row per decision: player, submitted, decided, outcome, reason) from
-  `player_kyc_submitted`, `player_kyc_verified` and `player_kyc_rejected`. **New** (spec 010 and
+  brand's KYC decisions (one row per document decided: player, category, submitted, decided,
+  outcome, reason) from `player_kyc_submitted` joined by document to
+  `player_kyc_document_reviewed`, with each status decision (`player_kyc_verified`,
+  `player_kyc_rejected`) as a row of its own. **New** (spec 010 and
   spec 009 name this service for them).
 - **FR-021**: Every generated document — a report export, a dispute report, a day-end export, a
   compliance export — MUST carry a unique reference number, the period, the parameters and the
   generation time; MUST be kept as an object under the brand's bucket (spec 001; ankka 034) and
-  served as an attachment under a file name carrying the reference; MUST be deleted 24 hours after
-  it is ready; and MUST leave a record of reference, who asked, what and when, holding no personal
+  served as an attachment under a file name carrying the reference; MUST be deleted when its
+  lifetime after it is ready ends (the brand's setting for its kind, FR-024: 24 hours by default,
+  at most 90 days), and before then when a player it names is erased; and MUST leave a record of reference, who asked, what and when, holding no personal
   field. (Source: spec 117 FR-011, FR-012; spec 128 US3.)
 - **FR-022**: A document whose rows exceed the synchronous limit (a brand setting, default 500 rows
   or a range over seven days for the dispute report) MUST be generated as a job with a reference,
-  a readable status and a download once ready; one under it MUST be returned in the request.
+  a readable status and a download once ready; one under it MUST be returned in the request. The dispute report's job is **new**: the
+  original's dispute report has no asynchronous path, and the seven-day and 500-row rule is its
+  activity export's (spec 128).
   (Source: spec 128 US3 scenarios 1–2; spec 117 FR-010.)
 
 **Identity, settings and data**
 
-- **FR-023**: The reports and the dashboard MUST be served to an operator of the brand holding
-  `brand_admin`, `resource_admin` or `platform_admin` (spec 001 FR-020); the dispute report and the
-  compliance exports additionally to `brand_compliance` and `brand_support`; the day-end
-  additionally to `brand_finance`; every route MUST keep its `{brand}` segment and refuse another
+- **FR-023**: The Reports tab's reports MUST be served to an operator of the brand
+  holding `brand_admin`, `resource_admin` or `platform_admin` (spec 001 FR-020); the dashboard and
+  the dispute report to every operator of the brand, as the original; the compliance exports also
+  to `brand_compliance`; the day-end also to `brand_finance`; every route MUST keep its `{brand}` segment and refuse another
   brand's (spec 001 FR-005). (Source: `AuthDirectives.requireBrandAccessWithRoles`; spec 135.)
 - **FR-024**: The brand's settings MUST carry: whether the Reports tab is shown (the original's
-  `backoffice-reporting-tab` flag; the dashboard is never hidden), whether test accounts are
-  excluded from the dashboard and the revenue report (default: included, as today), and the
-  synchronous limit of FR-022; the reporting zone is spec 008 FR-041's. (Source: `Flags`;
+  `backoffice-reporting-tab` flag: hidden, every report route answers not found; the dashboard is
+  never hidden; shown by default), whether test accounts are
+  excluded from the dashboard and the revenue report (default: included, as today), the
+  synchronous limit of FR-022, and a document lifetime per document kind (FR-021: hours, 24 by
+  default, from 1 to 2,160); the reporting zone is spec 008 FR-041's. (Source: `Flags`;
   `is_test_account`.)
 - **FR-025**: An aggregate MUST hold no personal field. A row that names a player MUST carry the
   player id and, as `Personal` under the player (spec 001 FR-023), only the fields its purpose
@@ -473,6 +573,34 @@ deleted.
 - **FR-027**: Every figure the original's routes answer MUST keep its field name and shape, so the
   casino backoffice changes only its base URL (spec 001 FR-033); fields the original answered as
   constants or zeros (FR-011, FR-015) MUST be answered as figures under the same names.
+
+**Prediction markets** (a brand that runs the predictions module, spec 023)
+
+- **FR-028**: The predictions summary MUST show, for a period and currency: contracts traded,
+  notional volume (the sum over trades of contracts times price), trades, distinct traders, taker fees (from `trade_made` when spec 023 carries the fee, zero until
+  then), resolution payments and remainders kept, and the markets opened, resolved, voided and
+  corrected in the period; the dashboard MUST show today's of these beside the casino's. Folded
+  from `exchange.trades` (`trade_made`, `position_paid`, `remainder_kept`) and `markets.events`.
+  **New**.
+- **FR-029**: The market report MUST show one row per market, filterable by status, category and
+  period: question, category, currency, status, opened, closed and resolved times, the resolution
+  (outcome, voided or corrected), contracts traded, notional volume, trades, traders, open
+  interest (the shares held at the report's time, from fills and payments), taker fees,
+  resolution payments and the remainder kept; a corrected market MUST show the outcome it was first resolved to, the corrected
+  outcome and the payments made (spec 023 pays once, at finality, on the outcome then standing). **New**.
+- **FR-030**: The traders report MUST show, for a period and currency, one row per player who
+  traded: contracts traded, notional volume, taker fees paid, positions paid and net result (what
+  the trades and payments moved to and from the player's real balance), the email as `Personal`
+  under the player (FR-025), filterable and exportable as every report (FR-012). **New**.
+- **FR-031**: The day-end of a brand running the predictions module MUST hold, per currency and
+  market, the day's taker fees, resolution payments and remainders kept, and the fee account's credits from `money.transactions` (spec 022's `fee` account, zero until it
+  exists) beside the fees, listing any trade whose fee and credit differ
+  or appear in one only (FR-018, FR-019 apply). **New**.
+- **FR-032**: A prediction report MUST be served only to a brand whose entitlement runs the
+  predictions module (spec 021), to the roles of FR-023, the trading desk's reports (FR-028,
+  FR-029) also to the module's `markets` permission holders; the casino's folds MUST exclude the
+  module's movements (the pool, reservation and fee accounts of spec 022), so no casino figure
+  holds a trade. **New**.
 
 ### Key Entities
 
@@ -492,7 +620,12 @@ deleted.
   number, kind, parameters, period, who asked, generated at, ready at, object until deleted,
   status (generating, ready, expired).
 - **Job**: a document generated out of the request: reference, progress, result.
-- **Brand reporting settings**: Reports tab shown, test accounts excluded, synchronous limit.
+- **Brand reporting settings**: Reports tab shown, test accounts excluded, synchronous limit, a
+  document lifetime per document kind.
+- **Prediction views**: folds of `markets.events` and `exchange.trades`, for a
+  brand that runs the predictions module: per market (status and its times, contracts traded,
+  notional volume, trades, traders, open interest, taker fees, resolution payments, the remainder
+  kept), per trader and market, and per currency and day.
 
 ## Success Criteria *(mandatory)*
 
@@ -508,14 +641,20 @@ deleted.
 - **SC-004**: Rebuilding every view from the topics and re-running every report for the same
   periods yields identical figures.
 - **SC-005**: The sum of a closed day's `ggr-daily` attribution facts over attributed players
-  equals that day's GGR for those players in the revenue report, in every recording that has both.
-- **SC-006**: A generated document is unreachable 24 hours after it is ready and its record is
-  still listed; no document record holds a personal field (checked by dump).
+  equals that day's deposit pool GGR for those players in the revenue report, in every recording
+  that has both.
+- **SC-006**: A generated document is unreachable once its lifetime after it is ready has passed
+  (24 hours by default, the brand's setting otherwise) or a player it names is erased, and its
+  record is still listed; no document record holds a personal field (checked by dump).
 - **SC-007**: Every route the original's backoffice calls under `/dashboard` and `/reports`
   answers the same field names, and the Playwright oracles below pass against the rebuilt brand
   with only base URLs changed.
 - **SC-008**: A day-end, once fixed, is byte-identical on every later read; a late fact appears as a
   correction and in the next day-end's opening.
+- **SC-009**: For a brand running the predictions module, every prediction figure equals the fold
+  of its markets' and trades' facts computed independently, to the minor unit; the period's taker
+  fees equal the fee account's credits on `money.transactions`; and no casino figure changes when
+  a market trades.
 
 ## Changes from the original
 
@@ -529,14 +668,31 @@ deleted.
 - **Per currency, never summed**: a brand with two currencies gets two sets of figures, not one in
   the default currency with the other's players at zero.
 - **Exact minor units**, not doubles formatted to two places.
+- **The deposit pool's GGR beside the brand's** (spec 025): the figure the brand's affiliates are
+  told, so the two can be checked.
+- **Prediction-market reports** (User Story 8): the original had no prediction markets.
+- **A document's lifetime is the brand's** per kind, 24 hours by default, at most 90 days; spec 117
+  fixed 24 hours.
+- **Admission as the original, with spec 135's roles**: the dashboard and the dispute report admit
+  every operator of the brand, as the original; `brand_compliance` and `brand_finance` are admitted
+  where FR-023 says, which the original's backend never did.
+- **CSV from the server**: every report exports from this service, the revenue CSV with its summary
+  row (078 FR-011); the original's browser-built CSV had none.
+- **Chargebacks are reported**: a provider's dispute reaches `payments.payments` with its amount and
+  an enumerated outcome (specs 002, 004, 005, amended here), so NGR's chargebacks are figures; the
+  original logged a provider's chargeback as not handled.
+- **Facts amended for reporting**: the test-account flag (spec 008), a game's name and type on its
+  rounds (spec 003), and a restricted funds record's wagering progress (spec 002).
+- **A rate with no attempts is null**, not the original's 0 (or 97 on payment health); the bonus
+  summary answers both of the original's field names.
 - **Dropped**: the substrate's `Dashboard` twins, widgets and rendering service (one Go scenario,
   skipped); `casino-read-model` is not this service's (spec 016); the per-player activity feed,
   bets tab, transaction search and player export are spec 008's; the `/reports` feature flag
   becomes a brand setting.
 - **New**: the day-end with provider reconciliation and corrections (FR-018, FR-019); the RG case
-  and KYC decision exports (FR-020); the dispute report as PDF (spec 117 FR-009, asked for and never
-  built); the document record and 24-hour lifetime applied to every export, not only the dispute
-  report; the earliest-complete-day status; the test-account exclusion setting. No regulator-shaped
+  and KYC decision exports (FR-020); the dispute report as PDF (spec 117 FR-009, asked for and never built) and as a job (117 FR-010,
+  never built); the document record and the brand's lifetime applied to every export, not only the
+  dispute report; the earliest-complete-day status; the test-account exclusion setting. No regulator-shaped
   return per licence profile is added: none exists in the original, and a per-profile return (UKGC,
   MGA, Curaçao) is a later spec once the regulator's format is in hand.
 - **Not carried over**: Neo4j's `sumTransactionAmounts`, `queryTransactions`, `queryAuditEvents`,
@@ -585,26 +741,34 @@ mode. The oracle meanwhile is the Playwright suite (spec 001 FR-033) and the ori
 - Topic retention for the fact topics is the installation's longest (spec 001 FR-015); a brand on
   a laptop with seven days' retention gets figures from the day the views were built, and the
   status says so.
-- [NEEDS CLARIFICATION: is NGR shown to the brand before the programme's fee percentages (this
-  spec) or after them, matching the affiliate ledger's NGR exactly? Finance's; the inputs are the
-  same either way.]
-- [NEEDS CLARIFICATION: the day-end's close — the instant the reporting day ends, or a settlement
-  cut-off some hours later so late provider settlements land in the day? Finance's; spec 012's
-  `ggr-daily` must close on the same instant.]
-- [NEEDS CLARIFICATION: the document lifetime — 24 hours as spec 117 fixed for dispute reports, or
-  longer for compliance exports a regulator may re-request? Compliance's.]
+- NGR is shown before the programme's fee percentages (FR-005); the affiliate ledger's NGR is the
+  programme's.
+- The day-end closes at the instant the reporting day ends in the brand's zone, as spec 012 FR-016
+  closes `ggr-daily`; a later settlement is a correction (FR-019).
+- A generated document's lifetime is the brand's setting for its kind, 24 hours by default and at
+  most 90 days (FR-021).
+- Spec 008 carries the test-account flag, spec 003 a game's name and type on `round_settled`, spec
+  002 a restricted funds record's progress and a dispute's amount and outcome, and spec 005 a
+  provider's dispute: each amended on this branch (Session 2026-11-08, plan).
+- Spec 023 will carry a taker fee on `trade_made` and spec 022 a `fee` account; until they do, every
+  fee figure is zero and the day-end's fee reconciliation compares zero with zero.
 
 ## Dependencies
 
 - Spec 001 (topic contract and retention, identity classes, `Personal` fields, the port rules),
   spec 002 (`money.transactions` families and the lifetime totals' meaning), spec 003
-  (`casino.rounds` with the provider's figures), spec 004 (`payments.payments` with the provider),
+  (`casino.rounds` with the provider's figures), spec 004 (`payments.payments` with the provider; a dispute's outcome forwarded, amended here),
+  spec 005 (a provider's dispute reported, amended here),
   spec 007 (`casino.withdrawals` with completion times), spec 008 (the reporting zone and brand
   settings; the player-level views this service does not own), spec 009 (`player_kyc_*`
   families), spec 010 (RG case families), spec 011 (`casino.rewards` and bonus cost), spec 012
-  (`ggr-daily` closing on the same day), spec 013 (NGR's definition and the fee rule).
+  (`ggr-daily` closing on the same day), spec 013 (NGR's definition and the fee rule), spec 021
+  (whether a brand runs the predictions module), spec 022 (the fee, pool and reservation accounts),
+  spec 023 (`markets.events`, `exchange.trades`), spec 025 (the deposit parts
+  on `money.transactions`).
 - ankka 024 (views and rebuild), 032 (the day-close timer per brand), 034/039 (documents in the
-  brand's bucket), 042 (`Personal` in rows and exports), 043 (retention the views need), 022
+  brand's bucket), 042 (`Personal` in rows and exports, and the erasure handler: ankka 0.16.0, as
+  spec 014), 043 (retention the views need), 022
   (operator tokens).
 - The casino backoffice (`casino/frontend`) unchanged but for base URLs.
 

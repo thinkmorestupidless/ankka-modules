@@ -1,0 +1,132 @@
+{
+  "scenario": "reports-flag-off",
+  "requirement": "015/FR-024",
+  "recorded_at": "2026-11-09T09:24:06.311892Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "a report with the Reports tab hidden",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/{flagOffBrand}/reports/ggr?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "not_found"
+        }
+      }
+    },
+    {
+      "name": "a report with the Reports tab hidden",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/{flagOffBrand}/reports/players?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "not_found"
+        }
+      }
+    },
+    {
+      "name": "a report with the Reports tab hidden",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/{flagOffBrand}/reports/bonus?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "not_found"
+        }
+      }
+    },
+    {
+      "name": "a report with the Reports tab hidden",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/{flagOffBrand}/reports/transactions?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "not_found"
+        }
+      }
+    },
+    {
+      "name": "a report with the Reports tab hidden",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/{flagOffBrand}/reports/transactions/export?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "not_found"
+        }
+      }
+    },
+    {
+      "name": "a report with the Reports tab hidden",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/{flagOffBrand}/reports/psp?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "not_found"
+        }
+      }
+    }
+  ]
+}

@@ -21,7 +21,8 @@ sealed trait CasinoPlayersFact extends Fact:
 /**
  * Carries the tag, click id and bonus code as presented, unverified, so attribution binds from facts (spec 012),
  * and the profile the player registered with, as `player_profile_updated` carries a later one, so `kyc` judges
- * completeness from registration on (spec 009 FR-016).
+ * completeness from registration on (spec 009 FR-016). `test_account` (spec 015 R11) is the operator's flag;
+ * absent means not a test account.
  */
 @named("player_registered")
 final case class PlayerRegistered(playerId: String, registeredAt: Instant, btag: Option[String], clickId: Option[String],
@@ -29,7 +30,12 @@ final case class PlayerRegistered(playerId: String, registeredAt: Instant, btag:
     givenName: Option[Personal[String]] = None, familyName: Option[Personal[String]] = None,
     dateOfBirth: Option[Personal[String]] = None, telephone: Option[Personal[String]] = None,
     addressLine: Option[Personal[String]] = None, city: Option[Personal[String]] = None, postCode: Option[Personal[String]] = None,
-    email: Option[Personal[String]] = None)
+    email: Option[Personal[String]] = None, testAccount: Option[Boolean] = None)
+    extends CasinoPlayersFact
+
+/** An operator's profile update changed the player's test-account flag (spec 015 R11), so reporting can exclude them. */
+@named("player_test_account_changed")
+final case class PlayerTestAccountChanged(playerId: String, testAccount: Boolean, actorId: String, occurredAt: Instant)
     extends CasinoPlayersFact
 
 /**
@@ -193,6 +199,7 @@ object CasinoPlayers extends Topic[CasinoPlayersFact]("casino.players", Vector("
     FamilyDef.of[PlayerNoDepositBlocked]("player_no_deposit_blocked"),
     FamilyDef.of[PlayerNoDepositBlockCleared]("player_no_deposit_block_cleared"),
     FamilyDef.of[PlayerEmailChanged]("player_email_changed"),
+    FamilyDef.of[PlayerTestAccountChanged]("player_test_account_changed"),
     FamilyDef.of[PlayerMessageCreated]("player_message_created"),
     FamilyDef.of[PlayerMessageRead]("player_message_read"),
     FamilyDef.of[PlayerMessageDeleted]("player_message_deleted"),

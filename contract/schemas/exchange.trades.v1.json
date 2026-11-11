@@ -19,6 +19,11 @@
                 "type": "integer",
                 "x-unit": "minor"
               },
+              "fee_cents": {
+                "minimum": 0,
+                "type": "integer",
+                "x-unit": "minor"
+              },
               "order_id": {
                 "type": "string"
               },

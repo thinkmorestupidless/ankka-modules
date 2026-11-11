@@ -6,7 +6,7 @@ import io.eitheror.casino.pspgateway.Json.*
 import io.eitheror.casino.pspgateway.http.{Form, Raw}
 import io.eitheror.casino.pspgateway.money.Render
 import io.eitheror.casino.pspgateway.providers.*
-import io.eitheror.casino.pspgateway.sessions.{Outcome, Provider}
+import io.eitheror.casino.pspgateway.sessions.{Dispute, Disputes, Outcome, Provider}
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.security.SecureRandom
@@ -178,23 +178,32 @@ object UnityFinance extends Deposits with Payouts:
   /** Unity Finance retries 13 times until `200`: every answer is `200`, empty (`webhook.go:258-259`). */
   def unknown(raw: Raw): Reply = Reply.ok
 
-  /** The open states and the logged ones (`webhook.go:396-401`). */
-  val openStates: Set[String]   = Set("on_review", "process", "wait_accept", "new", "chargeback", "blocked")
-  val loggedStates: Set[String] = Set("refunded", "partial_refunded", "chargebacked")
+  /** The open states and the logged ones (`webhook.go:396-401`); the chargeback states are disputes (below). */
+  val openStates: Set[String]   = Set("on_review", "process", "wait_accept", "new", "blocked")
+  val loggedStates: Set[String] = Set("refunded", "partial_refunded")
+
+  /** The deposit states that name a dispute: opened, and closed against the merchant (spec 015; the original's "Phase 2"). */
+  val ChargebackOpened = "chargeback"
+  val ChargebackClosed = "chargebacked"
 
   /**
    * `ik_inv_st` to a verdict (`webhook.go:367-403`): `success` captured; `canceled` and `expired`
    * failed, coded `ik_inv_cancel_code` or the state, with `ik_error_desc` or the original's reasons.
+   * `chargeback` opens a dispute over the deposit's amount; `chargebacked` closes it `lost` (new, spec
+   * 015: the original logged both and moved nothing). Unity Finance documents no reason for either.
    */
-  def outcome(form: Form): Verdict =
+  def outcome(form: Form, charge: Charge): Verdict =
     val state = form.get("ik_inv_st").getOrElse("")
     state match
       case "success" => Verdict.Settle(Outcome.Captured(), state)
       case "canceled" | "expired" =>
         val reason = form.text("ik_error_desc").getOrElse(if state == "expired" then "Payment session expired" else "Payment cancelled")
         Verdict.Settle(Outcome.Failed(Some(form.text("ik_inv_cancel_code").getOrElse(state)), reason), state)
+      case ChargebackOpened => Verdict.Dispute(Dispute.Opened(charge.amount, charge.currency), state)
+      case ChargebackClosed =>
+        Verdict.Dispute(Dispute.Closed(Disputes.Lost, Some(charge.amount), Some(charge.currency)), state)
       case s if openStates(s)   => Verdict.Open(s)
-      case s if loggedStates(s) => Verdict.Ignore(s"refund or chargeback status $s is not handled")
+      case s if loggedStates(s) => Verdict.Ignore(s"refund status $s is not handled")
       case s                    => Verdict.Ignore(s"unknown ik_inv_st \"$s\"")
 
   /**
@@ -216,7 +225,7 @@ object UnityFinance extends Deposits with Payouts:
           if expected.exists(id => !form.get("ik_co_id").contains(id)) then Verdict.Reject("ik_co_id is not the session's checkout id")
           else if form.text("ik_cur").exists(!_.equalsIgnoreCase(charge.currency.code)) then Verdict.Reject("ik_cur is not the session's currency")
           else if form.text("ik_am").exists(a => !sameAmount(a, charge)) then Verdict.Reject("ik_am is not the session's amount")
-          else outcome(form)
+          else outcome(form, charge)
         verdict match
           case Verdict.Reject(_) => Handled(verdict, Reply.invalidSignature)
           case _                 => Handled(verdict, Reply.ok)

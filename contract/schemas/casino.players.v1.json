@@ -64,6 +64,9 @@
           "type": "string",
           "x-personal": true
         },
+        "test_account": {
+          "type": "boolean"
+        },
         "type": {
           "const": "player_registered"
         },
@@ -549,6 +552,30 @@
       },
       "required": ["type", "player_id", "email", "occurred_at"],
       "title": "player_email_changed",
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "properties": {
+        "actor_id": {
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "player_id": {
+          "type": "string"
+        },
+        "test_account": {
+          "type": "boolean"
+        },
+        "type": {
+          "const": "player_test_account_changed"
+        }
+      },
+      "required": ["type", "player_id", "test_account", "actor_id", "occurred_at"],
+      "title": "player_test_account_changed",
       "type": "object"
     },
     {

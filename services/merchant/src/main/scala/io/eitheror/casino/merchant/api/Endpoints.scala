@@ -18,7 +18,7 @@ object Identities:
 /**
  * `/v1/payments`: one endpoint, two audiences (research R14). Operators read payments, the summary and
  * the uncredited captures, retry a credit, work the routing rules and list terminals; `psp-gateway`
- * reports a capture or a failure. Literal segments outrank `/{paymentId}`.
+ * reports a capture, a failure or a dispute. Literal segments outrank `/{paymentId}`.
  */
 final class PaymentsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/payments"):
   val acl: Acl = Acl.DenyAll
@@ -72,6 +72,7 @@ final class PaymentsEndpoint(ctx: Ctx) extends HttpEndpoint("/v1/payments"):
       captures.capture(paymentId, raw, request.header(Hmac.SignatureHeader), request.header(Hmac.TimestampHeader))
     }
     postBody("/{paymentId}/fail") { (paymentId: String, raw: String) => captures.fail(paymentId, raw) }
+    postBody("/{paymentId}/dispute") { (paymentId: String, raw: String) => captures.dispute(paymentId, raw) }
   }
 
   extension [A](a: A) private def pipe[B](f: A => B): B = f(a)

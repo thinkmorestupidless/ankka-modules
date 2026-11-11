@@ -68,7 +68,7 @@ so a retry sent before the amendment is still a repeat.
 | Method, path | Command | Body in | Reply |
 |---|---|---|---|
 | `POST W/deposits` | starts `deposit-flow` `<player>/<currency>/<paymentId>` (a `Conflict` is "already started"), polls its `status` every 1 ms for up to 2 s, renders the outcome; the workflow's steps are `deposit-sums` + `may-deposit`, then `deposit`; past the bound `503 OUTCOME_PENDING` and the retry is answered from the workflow | `paymentId` (the key), `amount`, `terminal`, `psp`, `scheme`, `paymentProvider` | balances, `txnId`, `depositOrdinal`, `turnoverRequired`, `depositSums`; or `EXCLUDED`, `COOLING_OFF` (`endsAt`), `OVER_LIMIT` (`period`, `limit`, `used`, `remaining`), `RG_UNAVAILABLE` |
-| `POST /payments/{paymentId}/outcome` | `PaymentEntity.record` | `outcome`, `playerId`, `paymentProvider`, `terminal?`, `amount?`, `currency?` (required for initiated, refunded, dispute opened), `code?`, `reason?`, `disputeOutcome?` | `recorded`, `firstRecorded` |
+| `POST /payments/{paymentId}/outcome` | `PaymentEntity.record` | `outcome`, `playerId`, `paymentProvider`, `terminal?`, `amount?`, `currency?` (required for initiated, refunded, dispute opened), `code?`, `reason?`, `disputeOutcome?` (`won` \| `lost`, required for dispute closed, else `400 invalid_outcome`; spec 015) | `recorded`, `firstRecorded` |
 
 ## Erasure (ankka 042; until it ships, a route `players` calls)
 

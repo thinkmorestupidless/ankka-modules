@@ -565,6 +565,13 @@ outbound money-adjacent calls.
   wallet transaction ids of every movement in the round; `rewards` settles a grant's winnings from
   it (spec 011), readers derive session totals from it, and `reporting` (spec 015 FR-017, FR-018)
   matches the provider's figures to the wallet's facts by the wallet transaction ids without a call.
+  The session (`session_id`) is the game session's id, the `session_id` of `casino.sessions`'
+  `game_session_started`: the one the launch opened at `players` and attached to the ticket (FR-009),
+  taken by the round from the first callback that names it; empty when no ticket named the round.
+  Added for spec 015 (its research R11; FR-014, FR-016, FR-018): `game_name` and `game_type`, the
+  game's name and category in this service's catalogue (FR-021) when the round opened, recorded on the
+  round so the fact needs no lookup, and absent when the catalogue does not hold the game (a reader
+  then names the game by its id).
 - **FR-020**: A callback the wallet did not acknowledge MUST be recorded as unacknowledged with its
   kind, amount, round and error, listable by an operator, and cleared when a retry succeeds. An
   operator MUST be able to replay one: the service re-drives the stored callback against the wallet

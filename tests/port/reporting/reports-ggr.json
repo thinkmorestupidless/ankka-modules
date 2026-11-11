@@ -1,0 +1,298 @@
+{
+  "scenario": "reports-ggr",
+  "requirement": "015/FR-007",
+  "recorded_at": "2026-11-09T09:24:02.632821Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "reports-ggr",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/reports/ggr?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "dailyBreakdown": [
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-11",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-12",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-13",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-14",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-15",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-16",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-17",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-18",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-19",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-20",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-21",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-22",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-23",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-24",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-25",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-26",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-27",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-28",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-29",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-30",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-31",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-01",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-02",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-03",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-04",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-05",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-06",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-07",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-08",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "15.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-09",
+              "ggr": "2.70",
+              "ngr": "2.70",
+              "wins": "12.30"
+            }
+          ],
+          "from": "2026-10-11",
+          "summary": {
+            "bonusCosts": "0.00",
+            "ggr": "2.70",
+            "netCashFlow": "400.00",
+            "ngr": "2.70",
+            "totalBets": "15.00",
+            "totalDeposits": "400.00",
+            "totalWins": "12.30",
+            "totalWithdrawals": "0.00"
+          },
+          "to": "2026-11-09"
+        }
+      },
+      "vary": {
+        "$.dailyBreakdown[29].bets": "differs between two runs of the original",
+        "$.dailyBreakdown[29].ggr": "differs between two runs of the original",
+        "$.dailyBreakdown[29].ngr": "differs between two runs of the original",
+        "$.dailyBreakdown[29].wins": "differs between two runs of the original",
+        "$.summary.ggr": "differs between two runs of the original",
+        "$.summary.netCashFlow": "differs between two runs of the original",
+        "$.summary.ngr": "differs between two runs of the original",
+        "$.summary.totalBets": "differs between two runs of the original",
+        "$.summary.totalDeposits": "differs between two runs of the original",
+        "$.summary.totalWins": "differs between two runs of the original"
+      }
+    }
+  ]
+}

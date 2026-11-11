@@ -1,0 +1,74 @@
+{
+  "scenario": "dashboard-trend-7d",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:07.546531Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "trend-7d",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/trend?range=7d",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "dataPoints": [
+            {
+              "ggr": "0.00",
+              "label": "2026-11-03",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-04",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-05",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-06",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-07",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-11-08",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "2.70",
+              "label": "2026-11-09",
+              "ngr": "2.70"
+            }
+          ],
+          "range": "7d"
+        }
+      },
+      "vary": {
+        "$.dataPoints[6].ggr": "differs between two runs of the original",
+        "$.dataPoints[6].ngr": "differs between two runs of the original"
+      }
+    }
+  ]
+}

@@ -290,6 +290,48 @@ attribution-it:
 attribution-run:
     cd services/attribution && ANKKA_HTTP_PORT=9007 ANKKA_DB_PORT=5437       CASINO_BRAND=goldvibe CASINO_PROJECT=goldvibe CASINO_REAL_MONEY=false CASINO_REPORTING_ZONE=Africa/Johannesburg       ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino       ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror       ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs       sbt run
 
+# reporting's unit suites (spec 015): the pure packages, the entity, workflow and consumer kits. The contract is
+# published first; CASINO_VERSION names a version of this branch's own, as other worktrees publish 0.2.0-SNAPSHOT.
+reporting-test:
+    sbt contract/publishLocal
+    cd services/reporting && sbt test
+
+# reporting's integration, parity and feature suites (Docker), as CI runs them.
+reporting-it:
+    cd services/reporting && sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.port.* io.eitheror.casino.reporting.features.*"
+
+# reporting at a brand's size, on purpose only: 10,000 players and a month of facts (SC-001, SC-002, SC-003; Docker).
+reporting-perf:
+    cd services/reporting && REPORTING_PERF=1 sbt -Dit=true "testOnly io.eitheror.casino.reporting.perf.*"
+
+# Records the original's reports, dashboard and dispute report on kind (contracts/recording.md), twice, and merges
+# the runs into tests/port/reporting/. The original runs on a local kind cluster only (`kubectl --context kind-…`);
+# the operator users and their passwords are the person's (tests/original/README.md, *Recording the reports*).
+# The environment carries EITHEROR_OPERATOR_USER/_PASSWORD, EITHEROR_SUPPORT_USER/_PASSWORD,
+# WALLET_SERVICE_INTERNAL_SECRET and EITHEROR_UNLEASH_TOKEN; wallet-service's internal API is port-forwarded to 19001.
+reporting-record casino="http://localhost:8091" keycloak="http://localhost:8180" brand="spinvibe" fakest8="http://localhost:8096" wallet="http://localhost:19001" unleash="http://localhost:4242" flagoff="reports-off" original="$HOME/Documents/projects/eitheror/eitheror-platform":
+    cd tests && for run in 1 2; do rm -rf /tmp/reporting-$run; EITHEROR_RECORD_TO=/tmp/reporting-$run EITHEROR_ORIGINAL_COMMIT=$(git -C {{original}} rev-parse --short HEAD) go test -tags e2e -count=1 -timeout 30m -json ./original/reporting-driver/... -args -casino-url {{casino}} -keycloak-url {{keycloak}} -fake-st8-url {{fakest8}} -wallet-internal-url {{wallet}} -unleash-url {{unleash}} -unleash-environment default -brand {{brand}} -flag-off-brand {{flagoff}} -operator-client casino-backoffice > /tmp/reporting-$run.json; done
+    cd tests && go run ./original/merge -run1 /tmp/reporting-1 -run2 /tmp/reporting-2 -results1 /tmp/reporting-1.json -results2 /tmp/reporting-2.json -out port
+
+# reporting's parity tests: each recording of tests/port/reporting compared by shape (Docker).
+reporting-parity:
+    cd services/reporting && sbt -Dit=true "testOnly io.eitheror.casino.reporting.port.*"
+
+# reporting, locally on 9015 as brand goldvibe (`sbt schema && docker compose up -d` first, in services/reporting).
+# With no ANKKA_KAFKA_BOOTSTRAP_SERVERS the facts are read in memory. Tokens are verified against the kind
+# installation's casino Keycloak, as rewards-run's.
+reporting-run brand="goldvibe":
+    cd services/reporting && CASINO_BRAND={{brand}} CASINO_PROJECT={{brand}} CASINO_MODULES=core,casino,reporting \
+      CASINO_REPORTING_ZONE=Africa/Johannesburg ANKKA_HTTP_PORT=9015 ANKKA_DB_PORT=5445 \
+      ANKKA_AUTH_ISSUERS=player,staff ANKKA_AUTH_REALM=casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}}/protocol/openid-connect/certs \
+      ANKKA_AUTH_PLAYER_AUDIENCE=casino-{{brand}} ANKKA_AUTH_PLAYER_CA=$HOME/.ankka/local-ca.crt \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror/protocol/openid-connect/certs \
+      ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
+      sbt run
+
 # affiliate-programme's unit suites (spec 013). The contract is published first.
 programme-test:
     sbt contract/publishLocal

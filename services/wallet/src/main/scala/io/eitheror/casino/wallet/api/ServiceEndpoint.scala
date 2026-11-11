@@ -397,6 +397,10 @@ final class ServiceEndpoint(
       if !Facts.outcomeKinds.contains(r.outcome) then Wire.refusal("INVALID_REQUEST", s"'${r.outcome}' is not a payment outcome")
       else if Facts.needsCurrency(r.outcome) && r.currency.forall(c => Currency.from(c).isLeft) then
         Wire.refusal("INVALID_REQUEST", s"a ${r.outcome} outcome names its currency")
+      else if r.outcome == PaymentOutcome.DisputeClosed && !Facts.validDisputeOutcome(r.disputeOutcome) then
+        Wire.refusal(Refusals.InvalidOutcome, s"a closed dispute's disputeOutcome is won or lost, not '${r.disputeOutcome.getOrElse("")}'")
+      else if r.outcome == PaymentOutcome.DisputeClosed && r.currency.exists(c => Currency.from(c).isLeft) then
+        Wire.refusal("INVALID_REQUEST", s"'${r.currency.getOrElse("")}' is not a currency")
       else
         val recorded = client.forEventSourcedEntity(EntityId(paymentId)).call(PaymentEntity.record).invoke(
           PaymentOutcome(r.outcome, r.playerId, r.paymentProvider, r.terminal, r.amount, r.currency, r.code, r.reason, r.disputeOutcome, clock()))
