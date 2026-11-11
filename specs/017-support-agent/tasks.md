@@ -344,7 +344,7 @@ responsible-gambling, and ends the conversation.
       none carries the message text, the reply, the `feedback`, or a tool's argument values.
 - [X] T057 [P] `T/agent/PromptSuite.scala`: the default prompt is the original's
       (`O/agents/motoko.py:30-47`) byte for byte, plus the two lines of contracts/tools.md.
-- [ ] T058 [P] `services/support-agent/README.md` (components, routes, env, run, suites).
+- [X] T058 [P] `services/support-agent/README.md` (components, routes, env, run, suites).
   - It states that what a session sent to the model provider is beyond the installation's erasure
     (FR-019).
   - It carries the spec 019 note: the proxy forwards the realm token, and the widget reads the
