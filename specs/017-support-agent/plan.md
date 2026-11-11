@@ -128,8 +128,8 @@ No violations, so Complexity Tracking is empty.
 | FR-021–FR-023 | guardrails: `maxInputLength`, `forbidding("other-player")`, `judged("override")`, `judged("safeguarding")`, output `other-player`, `softening` | ankka's guardrails, fail closed | prompt rules alone (the original; FR-021 asks for code) |
 
 Pure logic with no component: `Summaries`, `Redaction`, `Mapping` (the services' answers to the
-model's fields), `Rate`, `Budgeting`, `Handoff` (the marker, held back while streaming), `Softening`,
-`OtherPlayer`, `ConfigRules`, `Frames` (SSE events), `Settings`.
+model's fields), `Rate` and `BudgetState` (in `limits/Model.scala`), `HandOff` (the marker, held back while streaming,
+in `domain/Frames.scala`), `Softening`, `OtherPlayer` and `OwnIds`, `ConfigRules`, `Frames` (SSE events), `Settings`.
 
 ## Project Structure
 
@@ -158,16 +158,16 @@ services/support-agent/
 └── src/
     ├── main/scala/io/eitheror/casino/support/
     │   ├── SupportService.scala  SupportRuntime.scala  Settings.scala  SupportCodecs.scala  Json.scala
-    │   ├── agent/        Motoko.scala  Tools.scala  Guardrails.scala  Context.scala
-    │   ├── domain/       Summaries  Redaction  Mapping  Rate  Budgeting  Handoff  Softening  OtherPlayer  ConfigRules
+    │   ├── agent/        Motoko.scala  Tools.scala  Actions.scala  Guardrails.scala  Context.scala  Trail.scala
+    │   ├── domain/       Summaries  Redaction  Mapping  Softening  OtherPlayer (and OwnIds)  ConfigRules  Frames (and HandOff)  TurnFailure
     │   ├── conversation/ Conversation.scala  Model.scala
-    │   ├── config/       AgentConfiguration.scala  ConfigVersion.scala  Model.scala
-    │   ├── limits/       TurnWindow.scala  Budget.scala
-    │   ├── clients/      Neighbour.scala  Wallet  Payouts  Players  Rewards  Rg   (trait, HTTP, fake)
+    │   ├── config/       AgentConfiguration.scala (and ConfigVersion)  Model.scala
+    │   ├── limits/       TurnWindow.scala  Budget.scala  Model.scala (Rate, BudgetState)
+    │   ├── clients/      Neighbour.scala  Clients.scala (the five neighbours: traits and HTTP)
     │   ├── timers/       Forget.scala
     │   ├── reads/        ConversationsByPlayer.scala
     │   ├── facts/        AuditPublisher.scala  ConfigAudit.scala
-    │   └── api/          ChatEndpoint  ConfigEndpoint  ServiceEndpoint  Frames  Ctx  Answers
+    │   └── api/          ChatEndpoint  ConfigEndpoint  ServiceEndpoint  Ctx  Answers
     └── test/scala/io/eitheror/casino/support/
         ├── domain/  agent/  conversation/  config/  limits/        (unit)
         ├── it/      Kit  FakeNeighbours  ChatSuite  ResumeSuite  GuardrailSuite  ForgetSuite  ConfigSuite  AuditSuite  ErasureSuite
@@ -211,7 +211,7 @@ field.
 | Divergence | Why | Demonstrated by |
 |---|---|---|
 | The chat's stream ends at `confirm_action` + `done`; the resume answers a stream with `action_result`, `delta`, `done`, where the original answered `{ok:true}` and kept the first stream open | R3 (settled 2026-11-09) | `ResumeSuite`; T044's recording, marked |
-| `delta` streams text as produced; the original sent the whole reply as one delta | FR-003; ankka streaming | `ChatSuite`; T043's recording, marked |
+| `delta` carries the turn's text in parts once the output guardrails have passed it; the original sent the whole reply as one delta | FR-003; research, *Found during implementation* | `ChatSuite`, `GuardrailSuite`; `ParitySuite` (consecutive deltas read as one) |
 | `action_result.success` may be `false`, carrying the service's refusal | FR-012 | `ResumeSuite` |
 | `get_player_state` returns `status`, `verification`, `displayName`, `currency` and the brand's named fields; the original's `email`, `full_name`, `kyc_status`, `created_at` are withheld by default | FR-018 (clarified 2026-11-09) | `MappingSuite`; `reads.feature` |
 | `get_session_history` returns `game_id`, not `game_name` | players serves no game name | `MappingSuite`; the original's session-history test, marked |

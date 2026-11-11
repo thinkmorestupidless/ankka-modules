@@ -331,7 +331,8 @@ version "2"; the configuration change is an audit record naming the operator.
   or `reject` with an optional `feedback`. The paths, event names and decision shape are the
   original's.
 - **FR-003**: The streams MUST carry the original's events. The chat's stream carries `delta` with
-  text as it is produced, then `confirm_action` with the action name, the player-facing summary and
+  the turn's text once ankka's output guardrails have passed it (research, *Found during
+  implementation*), then `confirm_action` with the action name, the player-facing summary and
   the session id when the turn awaits approval (ankka's `AgentPart.AwaitingApproval`), then `done`.
   The resume route answers as a stream: `action_result` with the action name, success and detail
   after an approved tool ran (or that it was refused), `delta` with the reply, and `done`. Either

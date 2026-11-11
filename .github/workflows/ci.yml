@@ -516,7 +516,7 @@ jobs:
         working-directory: services/audit
         run: sbt -Dit=true "testOnly io.eitheror.casino.audit.it.* io.eitheror.casino.audit.port.* io.eitheror.casino.audit.features.*"
 
-  # support-agent (spec 017): its own sbt build, on ankka 0.16.0, against the contract published from this
+  # support-agent (spec 017): its own sbt build, on ankka 0.16.2, against the contract published from this
   # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in
   # Docker and run with -Dit=true. Every model and judge is scripted: no key is needed.
   support-agent:
