@@ -313,7 +313,7 @@ responsible-gambling, and ends the conversation.
   - Routes: `GET`/`PUT /`, `GET /versions/{version}`, `GET /status`, `GET /conversations`.
   - ACL: `Routes.operatorHolding(slug, "brand_admin", "resource_admin", "platform_admin")`.
   - Refusals as contracts/routes.md.
-- [ ] T050 [US6] `S/reads/ConversationsByPlayer.scala` (a view of `Conversation`), serving the list
+- [X] T050 [US6] `S/reads/ConversationsByPlayer.scala` (a view of `Conversation`), serving the list
       and status.
 - [ ] T051 [US6] The agent off: the chat route answers 503 `agent_unavailable` with the unavailable
       message. A real-money brand cannot set `enabled` without safeguarding, and gets 422.
