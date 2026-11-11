@@ -27,7 +27,7 @@ object ConfigRules:
 
   private def invalid(field: String, why: String) = ConfigRefusal(400, "invalid_config", Some(field), s"$field $why")
 
-  def read(body: JsonNode, current: ConfigBody, realMoney: Boolean, judged: Boolean = true): Either[ConfigRefusal, ConfigBody] =
+  def read(body: JsonNode, current: ConfigBody, realMoney: Boolean, judged: Boolean): Either[ConfigRefusal, ConfigBody] =
     if body == null || !body.isObject then Left(ConfigRefusal(400, "invalid_body", None, "The body is not a JSON object"))
     else
       val names = body.fieldNames.asScala.toVector
@@ -89,7 +89,7 @@ object ConfigRules:
    * A real-money brand cannot turn the agent on without its safeguarding message and helpline, nor without a judge to
    * run its safeguarding guardrail (`judged`: the service's `AGENT_JUDGE`) (FR-023).
    */
-  def safeguarded(b: ConfigBody, realMoney: Boolean, judged: Boolean = true): Either[ConfigRefusal, Unit] =
+  def safeguarded(b: ConfigBody, realMoney: Boolean, judged: Boolean): Either[ConfigRefusal, Unit] =
     if b.enabled && realMoney && (b.safeguardingMessage.isEmpty || b.helpline.isEmpty) then
       Left(ConfigRefusal(422, "safeguarding_not_configured", None,
         "A brand that takes real money needs a safeguarding message and a helpline before the agent is turned on"))

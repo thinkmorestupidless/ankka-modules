@@ -6,7 +6,7 @@ import io.eitheror.casino.support.config.ConfigBody
 /** data-model.md's `ConfigBody` rules (FR-023, FR-029). */
 class ConfigRulesSuite extends munit.FunSuite:
   private def read(text: String, realMoney: Boolean = false, current: ConfigBody = ConfigBody()) =
-    ConfigRules.read(Json.parse(text).get, current, realMoney)
+    ConfigRules.read(Json.parse(text).get, current, realMoney, judged = true)
 
   private def refused(text: String, realMoney: Boolean = false) = read(text, realMoney).left.getOrElse(fail("accepted"))
 
