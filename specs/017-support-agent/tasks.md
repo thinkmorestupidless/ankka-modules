@@ -349,7 +349,7 @@ responsible-gambling, and ends the conversation.
     (FR-019).
   - It carries the spec 019 note: the proxy forwards the realm token, and the widget reads the
     resume's stream.
-- [ ] T059 Final gate: `just support-agent-test`, `just support-agent-it`, the three neighbours'
+- [X] T059 Final gate: `just support-agent-test`, `just support-agent-it`, the three neighbours'
       suites, `just test` and `just features`, all green; quickstart steps 1–6 walked on
       `just support-agent-run`.
 

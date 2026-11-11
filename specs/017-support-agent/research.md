@@ -413,6 +413,13 @@ of a blip.
   ACL admits. The operator routes write every field, an absent one as `null`
   (`SupportCodecs.shown`), so a default is shown, not left out.
 
+### The quickstart walk (T059)
+
+The walk on `just support-agent-run` needs the local ankka installation's realms for a player's and a
+brand admin's tokens; on 2026-11-11 the installation was down. The user chose to close T059 on the integration
+kit, which drives quickstart steps 1–6 over the service's HTTP routes: `ConfigSuite` (1, 5),
+`ChatSuite` (2), `ResumeSuite` (3, 4), `AuditSuite` and `operators.feature` (6). No local run was walked.
+
 ## For ankka
 
 Nothing blocks this service, and each item below is noted for an ankka spec.

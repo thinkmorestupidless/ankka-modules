@@ -14,7 +14,7 @@ These steps check the service against the spec. Routes are in
   ```
 
 - No model key. Every suite runs on `TestModelProvider`, and a local run uses the scripted provider
-  named by `AGENT_MODEL=scripted:<file>`.
+  named by `AGENT_MODEL_PROVIDER=scripted:<file>`.
 
 ## The suites
 
@@ -31,8 +31,9 @@ These steps check the service against the spec. Routes are in
 just support-agent-run          # port 9020, Postgres on 5444, CASINO_BRAND=goldvibe
 ```
 
-With the five neighbours running locally (`-Dankka.local-services.<name>=…`), or with the
-`FakeNeighbours` the run recipe starts:
+The run needs the five neighbours running locally, on the ports the recipe names
+(`-Dankka.local-services.<name>=…`). It also needs the local installation's realms
+(`auth-casino.127.0.0.1.sslip.io:8443`) for the player's and the brand admin's tokens:
 
 1. `PUT /v1/casino/agent-config/goldvibe` with `{"enabled": true}` as a brand admin. That answers
    200 on a brand without real money. With `CASINO_REAL_MONEY=true` and no safeguarding message, it
