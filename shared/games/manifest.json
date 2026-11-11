@@ -37,6 +37,16 @@
     }
   ],
   "grants": {
-    "made": []
+    "made": [
+      {
+        "principal": "service:reasoner/audit",
+        "target": {
+          "topic": {
+            "name": "platform.audit",
+            "right": "consume"
+          }
+        }
+      }
+    ]
   }
 }

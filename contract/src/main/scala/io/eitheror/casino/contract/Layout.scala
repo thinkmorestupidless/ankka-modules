@@ -73,7 +73,7 @@ object Layout:
 
   /** Topics of the shared projects that are part of the contract (FR-011). */
   val SharedTopics: Map[String, Vector[String]] = Map(
-    // platform.audit: merchant's and ingest's audit records (spec 004 FR-034, research R13), granted to reasoner/audit (SharedGrantsMade);
+    // platform.audit: merchant's and ingest's audit records (spec 004 FR-034, research R13), granted to reasoner/audit (SharedGrantsMade),
     // and the house provider's operator actions (spec 026 R14).
     "games"     -> Vector("platform.audit"),
     "payments"  -> Vector("payments.merchants", "platform.audit"),
@@ -105,7 +105,9 @@ object Layout:
    * shared audit (spec 018, Clarification 2026-11-08; spec 001 FR-016 as amended).
    */
   val SharedGrantsMade: Map[String, Vector[Grant]] = Map(
-    "payments" -> Vector(Grant("service:reasoner/audit", GrantTarget.Topic("platform.audit", "consume")))
+    "payments" -> Vector(Grant("service:reasoner/audit", GrantTarget.Topic("platform.audit", "consume"))),
+    // The house provider's operator acts reach the shared audit as merchant's do (spec 026 R14, spec 018).
+    "games"    -> Vector(Grant("service:reasoner/audit", GrantTarget.Topic("platform.audit", "consume")))
   )
 
   /** The grants a brand's modules make, and no others (spec 021 FR-006; was spec 001 FR-016's fixed list). */
