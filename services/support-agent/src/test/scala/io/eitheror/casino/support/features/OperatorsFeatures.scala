@@ -52,6 +52,14 @@ class OperatorsFeatures extends SupportFeatures("operators.feature"):
     assertEquals((answer.status, answer.str("error")), (422, "safeguarding_not_configured"))
     assert(answer.str("message").contains("safeguarding message and a helpline"), answer.text)
   }
+  Given("the brand takes real money and has a safeguarding reply and helpline but no safeguarding judge") { () =>
+    kit.reset(Kit.Base.copy(realMoney = true, judge = None))
+    kit.configure(_.copy(enabled = false, safeguardingMessage = Some("Please talk to someone."), helpline = Some("0800 000 000"))): Unit
+  }
+  Then("it is refused naming the missing safeguarding judge") { () =>
+    assertEquals((answer.status, answer.str("error")), (422, "safeguarding_not_configured"))
+    assert(answer.str("message").contains("judgment provider"), answer.text)
+  }
   Then("the support agent stays off") { () => assertEquals(shown.get("config").get("enabled").asBoolean, false) }
 
   // ── versions ──────────────────────────────────────────────────────────────

@@ -17,6 +17,12 @@ Feature: An operator turns the support agent on, changes its prompt, and reads w
     Then it is refused naming the missing safeguarding reply and helpline
     And the support agent stays off
 
+  Scenario: a brand that takes real money cannot turn its support agent on without a safeguarding judge
+    Given the brand takes real money and has a safeguarding reply and helpline but no safeguarding judge
+    When an operator turns its support agent on
+    Then it is refused naming the missing safeguarding judge
+    And the support agent stays off
+
   Scenario: a new prompt version governs the next conversation while conversations in progress keep theirs
     Given an operator sets a new prompt version
     When the next conversation starts

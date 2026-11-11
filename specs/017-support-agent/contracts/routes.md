@@ -18,9 +18,9 @@ Body `{message: string, session_id: string}`.
 | Check | Answer |
 |---|---|
 | a missing or empty field | 400 `missing_fields` |
-| the agent is off (`enabled` false) | 503 `agent_unavailable` `{message}` with the unavailable message (FR-001) |
+| the agent is off (`enabled` false), or the brand takes real money and the service has no judgment provider | 503 `agent_unavailable` `{message}` with the unavailable message (FR-001, FR-023) |
 | the session is another player's | 403 `session_not_yours` (FR-004) |
-| the session awaits approval | 409 `Session already active` (the original's text), with `details: {approvalId, action_name}` naming the request (FR-015) |
+| the session awaits approval, or a decision was recorded that ankka was never told (a restart between the two) | 409 `Session already active` (the original's text), with `details: {approvalId, action_name}` naming the request (FR-015) |
 | the conversation has ended | 409 `conversation_ended` `{message}` with the closing message (FR-017) |
 | the turn rate is exceeded | 429 `too_many_turns` `{retryAfter}` (FR-024) |
 | the budget is spent | 200, and the stream carries the unavailable message as one `delta`, then `done` |
@@ -51,9 +51,13 @@ Body `{action: "approve" | "reject", feedback?: string}`.
 | Check | Answer |
 |---|---|
 | another action | 422 `invalid_action` |
+| the agent is off, or a real-money brand has no judgment provider | 503 `agent_unavailable`, as the chat answers |
 | the session is another player's | 403 `session_not_yours` |
 | nothing awaits | 404 `no_pending_action` |
 | already decided (ankka `Conflict`) | 409 `already_decided` |
+
+A decision recorded that ankka was never told is replaced by the one the player sends now, and that
+one is told to ankka.
 
 **The stream** (research R3):
 
@@ -63,6 +67,9 @@ Body `{action: "approve" | "reject", feedback?: string}`.
 | `delta` | `{token}` | the model's reply |
 | `done` | `{}` | |
 | `error` | `{message}` | as above |
+
+An approved action that was applied is reported as `action_result` even when the reply after it
+fails: `action_result`, then `error`.
 
 `decide` is called with `Decision.approved(id, by = "player:<id>")` or
 `Decision.refused(id, by, note = feedback)`. The player's `feedback` is passed to ankka, which
@@ -76,7 +83,7 @@ fields is the brand admin's.
 | Route | Answer |
 |---|---|
 | `GET /` | 200 `{version, config: ConfigBody, recentChanges}` |
-| `PUT /` | Body `ConfigBody` (all fields; missing fields keep their values). 200 `{version}`. Refusals: 400 `invalid_config` naming the field, 400 `unknown_field` naming it, 422 `safeguarding_not_configured`. |
+| `PUT /` | Body `ConfigBody` (all fields; missing fields keep their values). 200 `{version}`. Refusals: 400 `invalid_config` naming the field, 400 `unknown_field` naming it, 422 `safeguarding_not_configured` (a real-money brand turned on without a safeguarding message, a helpline, or a judgment provider). |
 | `GET /versions/{version}` | 200 `ConfigBody`, or 404 |
 | `GET /status` | 200 `{enabled, realMoney, safeguarding: on\|off, judged: on\|off, budget: {used, limit, spent}, conversations: {open, awaiting, lastDay}}` (FR-024, the judge-off assumption) |
 | `GET /conversations?player=&offset=` | 200 `{conversations: [ConversationsByPlayer row]}`, 50 per page |
