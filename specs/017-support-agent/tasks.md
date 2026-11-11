@@ -309,7 +309,7 @@ responsible-gambling, and ends the conversation.
 
 **Independent test**: `operators.feature` green.
 
-- [ ] T049 [P] [US6] `S/api/ConfigEndpoint.scala`.
+- [X] T049 [P] [US6] `S/api/ConfigEndpoint.scala`.
   - Routes: `GET`/`PUT /`, `GET /versions/{version}`, `GET /status`, `GET /conversations`.
   - ACL: `Routes.operatorHolding(slug, "brand_admin", "resource_admin", "platform_admin")`.
   - Refusals as contracts/routes.md.

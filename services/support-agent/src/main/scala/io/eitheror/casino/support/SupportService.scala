@@ -26,12 +26,14 @@ object SupportService:
     agent.Motoko.descriptor,
     timers.ForgetTimer.descriptor,
     limits.TurnWindow.descriptor,
-    limits.Budget.descriptor
+    limits.Budget.descriptor,
+    reads.ConversationsByPlayer.descriptor
   ) ++ agents.descriptors
 
   /** One endpoint per prefix (contracts/routes.md), none sharing one. */
   def endpoints(authenticate: () => Acl): Seq[EndpointClients => HttpEndpoint] = Seq(
     clients => api.ChatEndpoint(api.Ctx(authenticate, clients)),
+    clients => api.ConfigEndpoint(api.Ctx(authenticate, clients)),
     clients => api.ServiceEndpoint(api.Ctx(authenticate, clients))
   )
 

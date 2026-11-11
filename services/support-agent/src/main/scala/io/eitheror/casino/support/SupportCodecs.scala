@@ -30,6 +30,10 @@ object SupportCodecs:
     Serializer.json[A](s"support.$name")(using JsonCodecMaker.make[A](
       CodecMakerConfig.withTransientEmpty(false).withTransientNone(true).withTransientDefault(false)))
 
+  /** What a route shows: every field written, an absent one as `null`, so an operator sees the whole body. */
+  inline def shown[A]: JsonValueCodec[A] =
+    JsonCodecMaker.make[A](CodecMakerConfig.withTransientEmpty(false).withTransientNone(false).withTransientDefault(false))
+
   /**
    * An enum written as its wire name, never its Scala name, so a renamed case does not break the
    * journal. An unknown name fails the read.

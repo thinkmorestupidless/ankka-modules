@@ -404,6 +404,12 @@ of a blip.
   its tokens are not in the session's usage and not counted against the day's budget. The resume
   route's reply comes from `decide` whole and is not retried: a decision cannot be made twice.
   routes.md and `guardrails.feature` say so.
+- **2026-11-11, who changes the prompt (T049).** routes.md says changing the prompt or the fields is
+  the brand admin's, with no refusal for it. A `PUT` that changes `prompt` or `personalFields` from
+  a principal holding neither `brand_admin` nor `platform_admin` is 403 with the contract's
+  `forbidden` code (`Routes.Forbidden`) and the field; the other fields are open to every role the
+  ACL admits. The operator routes write every field, an absent one as `null`
+  (`SupportCodecs.shown`), so a default is shown, not left out.
 
 ## For ankka
 
