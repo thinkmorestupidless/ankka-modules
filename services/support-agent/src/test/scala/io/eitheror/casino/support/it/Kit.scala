@@ -1,14 +1,14 @@
 package io.eitheror.casino.support.it
 
 import com.thinkmorestupidless.ankka.agent.{Decision, TestModelProvider, forAgent}
-import com.thinkmorestupidless.ankka.agent.judgment.TestJudgmentProvider
+import com.thinkmorestupidless.ankka.agent.judgment.{Answers, TestJudgmentProvider}
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, ServiceIdentity, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock}
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.support.{Json, Settings, SupportRuntime, SupportService}
 import io.eitheror.casino.support.Json.*
-import io.eitheror.casino.support.agent.Motoko
+import io.eitheror.casino.support.agent.{Guardrails, Motoko}
 import io.eitheror.casino.support.config.{AgentConfiguration, ConfigBody, ConfigChange, Put}
 import io.eitheror.casino.support.conversation.{Conversation, ConversationState}
 
@@ -26,8 +26,8 @@ final case class Reply(status: Int, text: String):
  * [[FakeNeighbour]]s under `localServices`, the service named `support-agent`, an in-memory
  * broker, timers polled every 200 ms on a clock the kit moves, and a keyring in memory. Each turn is answered by
  * `model`, a scripted provider a suite replaces with [[newModel]]; compaction has its own (the two would race for one
- * queue). The judged guardrails ask `judge`. A token `player|<id>` is a player of the brand; `staff|<subject>|<roles>`
- * an operator.
+ * queue). The judged guardrails ask `judge`, which answers no unless a test says otherwise. A token `player|<id>` is
+ * a player of the brand; `staff|<subject>|<roles>` an operator.
  */
 final class Kit(base: Settings = Kit.Base):
   val slug     = base.brand
@@ -102,6 +102,7 @@ final class Kit(base: Settings = Kit.Base):
     settings = s
     fakes.foreach(_.reset())
     judge.reset()
+    judge.always(Answers.yesNo(Guardrails.Overrides, 0.01), Answers.yesNo(Guardrails.SelfHarm, 0.01)): Unit
     compactor.reset()
     newModel(): Unit
     rewire()
@@ -160,7 +161,8 @@ final class Kit(base: Settings = Kit.Base):
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A = testKit.eventually(what, within)(f)
 
 object Kit:
-  val Base: Settings = Settings(brand = FakeNeighbours.Brand, project = FakeNeighbours.Brand)
+  /** The judge is on, so every turn runs the judged guardrails; each reset has it answer no to both. */
+  val Base: Settings = Settings(brand = FakeNeighbours.Brand, project = FakeNeighbours.Brand, judge = Some("jev"))
 
   /** The turns per minute the kit configures unless a test sets its own: the most ConfigRules allows. */
   val TurnsPerMinute = 120

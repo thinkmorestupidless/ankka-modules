@@ -7,12 +7,13 @@ import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.contract.access.Routes
 import io.eitheror.casino.support.Json
 import io.eitheror.casino.support.Json.*
-import io.eitheror.casino.support.agent.{Actions, Context, Motoko, Turn}
+import io.eitheror.casino.support.agent.{Actions, Context, Guardrails, Motoko, Turn}
 import io.eitheror.casino.support.config.{AgentConfigState, ConfigBody, ConfigVersion}
 import io.eitheror.casino.support.conversation.*
-import io.eitheror.casino.support.domain.{Frames, HandOff, Redaction}
+import io.eitheror.casino.support.domain.{Frames, HandOff, Redaction, TurnFailure}
 import io.eitheror.casino.support.limits.{AddTokens, Budget, Take, TakeTurn, TurnWindow}
 import io.eitheror.casino.support.timers.Forget
+import org.apache.pekko.NotUsed
 import org.apache.pekko.stream.scaladsl.Source
 
 import java.time.Instant
@@ -133,7 +134,8 @@ object Chat:
         result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome) ++
           Option.when(closed)(Frames.delta(s"\n\n${body.closingMessage}")).toVector
       }
-    }.mapConcat(identity).concatLazy(ending(ctx, session, handOff, was)).recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }
+    }.mapConcat(identity).concatLazy(ending(ctx, session, handOff, was))
+      .recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
 
   private def bodyOf(ctx: Ctx, s: ConversationState): ConfigBody = ConfigVersion.body(ctx.components, ctx.slug, s.configVersion)
 
@@ -153,7 +155,25 @@ object Chat:
       }
       // concatLazy: `concat` pulls the ending at once, which would record the turn before it has run.
       .concatLazy(ending(ctx, session, handOff, was))
-      .recover { case NonFatal(_) => Frames.error(body.unavailableMessage) }
+      .recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
+
+  /**
+   * A turn that failed (contracts/routes.md, FR-021–FR-023). A safeguarding refusal is answered, not refused: the
+   * brand's safeguarding message and helpline as a `delta`, then `done`, with no model called and no tool run. Any
+   * other guardrail's refusal is `error` naming the guardrail. Each refusal is recorded as `GuardrailRejected`. A judge
+   * or model that could not answer is `error` with the unavailable message, and is not a refusal.
+   */
+  private def failed(ctx: Ctx, session: String, body: ConfigBody, e: Throwable): Source[SseEvent, NotUsed] =
+    def rejected(guardrail: String, side: Side): Unit =
+      ctx.conversation(session).call(Conversation.rejected).invoke(Rejected(guardrail, side, retried = false, ctx.now())): Unit
+    TurnFailure.of(e) match
+      case TurnFailure.Refused(Guardrails.SafeguardingName, side) =>
+        rejected(Guardrails.SafeguardingName, side)
+        Source(Vector(Frames.delta(body.safeguardingReply), Frames.done))
+      case TurnFailure.Refused(guardrail, side) =>
+        rejected(guardrail, side)
+        Source.single(Frames.error(TurnFailure.reply(guardrail)))
+      case TurnFailure.Unavailable => Source.single(Frames.error(body.unavailableMessage))
 
   /**
    * What is held of the reply, then `done`; a reply that carried the hand-off marker is recorded as one (R12). The

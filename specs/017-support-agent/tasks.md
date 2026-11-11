@@ -294,7 +294,7 @@ responsible-gambling, and ends the conversation.
   - The chat route takes a turn first: 429 `too_many_turns` with `retryAfter`.
   - After each turn, the session's usage increase is added to `Budget`; past the limit, the
     unavailable message is sent as one `delta` (FR-024).
-- [ ] T046 [US5] In the chat route:
+- [X] T046 [US5] In the chat route:
   - a safeguarding refusal becomes the safeguarding message and helpline as `delta` then `done`,
     with no tool run, recording `GuardrailRejected`;
   - an unreachable judge becomes `error` with the unavailable message;
@@ -327,7 +327,7 @@ responsible-gambling, and ends the conversation.
       `AuditRecord`, with no message text, `feedback` or personal value in any field.
 - [ ] T054 `S/facts/AuditPublisher.scala` (`eventsOf(Conversation)`) and `ConfigAudit.scala`
       (`stateOf(AgentConfiguration)`, every note in `recentChanges`), as engagement's.
-      `T/it/AuditSuite.scala` checks a record within one minute of each tool call and decision on
+      `T/it/AuditSuite.scala` checks a record within one minute of each tool call, decision and guardrail rejection on
       the in-memory broker (SC-006).
 
 ## Phase 10: Parity and polish
