@@ -387,9 +387,11 @@ of a blip.
   tokens rather than everything it used on the days before. A turn refused for the budget binds
   no session and records nothing.
 - **2026-11-11, a turn's end is read after ankka writes it (T045).** Two things made the chat
-  route read a turn before it had happened. Pekko's `concat` pulls its second source at once, so
-  the `ending` (the hand-off's held text, `TurnTaken`, the budget, the forget timer) ran when the
-  turn started; it is `concatLazy` now. And on 0.16.2 a streamed turn's source can complete a
+  route read a turn before it had happened. Pekko's `concat`, and `concatLazy` too, pulls its
+  second source when the stream starts, so the `ending` (the hand-off's held text, `TurnTaken`,
+  the budget, the forget timer) ran when the turn started. The ending is now built in a
+  `flatMapConcat` over the turn's frames, which are emitted only once the turn has passed, so a
+  refused turn records no turn (found in T050). And on 0.16.2 a streamed turn's source can complete a
   moment before session memory holds the turn, so the ending reads the session until it differs
   from what it held before the turn (messages, usage, a suspended turn, or erased), for at most
   3 s. **Rejected:** counting each turn's tokens at the next turn, which leaves a session's last

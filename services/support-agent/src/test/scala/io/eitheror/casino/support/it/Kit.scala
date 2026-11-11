@@ -113,13 +113,12 @@ final class Kit(base: Settings = Kit.Base):
   // ── the brand's configuration ─────────────────────────────────────────────
 
   /**
-   * The configuration changed by `f` from what it is now, as an operator's put; the agent is on, and the turns per
-   * minute out of the way (FR-024), by default. The clock moves only when a test moves it, so every test's turns fall
-   * in one minute: a test of the rate sets its own.
+   * The defaults changed by `f`, as an operator's put, so no test inherits what another configured; the agent is on,
+   * and the turns per minute out of the way (FR-024), by default. The clock moves only when a test moves it, so every
+   * test's turns fall in one minute: a test of the rate sets its own.
    */
   def configure(f: ConfigBody => ConfigBody = identity): Put =
-    val now = components.forKeyValueEntity(AgentConfiguration.id(slug)).call(AgentConfiguration.get).invoke()
-    val on  = now.current.copy(enabled = true, turnsPerMinute = Kit.TurnsPerMinute)
+    val on = ConfigBody(enabled = true, turnsPerMinute = Kit.TurnsPerMinute)
     AgentConfiguration.put(components, slug, ConfigChange(f(on), "kit", clock.instant()))
 
   def conversation(session: String): ConversationState =

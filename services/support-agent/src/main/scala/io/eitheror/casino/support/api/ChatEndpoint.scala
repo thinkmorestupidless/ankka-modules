@@ -134,7 +134,7 @@ object Chat:
         result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome) ++
           Option.when(closed)(Frames.delta(s"\n\n${body.closingMessage}")).toVector
       }
-    }.mapConcat(identity).concatLazy(ending(ctx, session, handOff, was))
+    }.flatMapConcat(frames => Source(frames).concat(ending(ctx, session, handOff, was)))
       .recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
 
   private def bodyOf(ctx: Ctx, s: ConversationState): ConfigBody = ConfigVersion.body(ctx.components, ctx.slug, s.configVersion)
@@ -159,9 +159,10 @@ object Chat:
           case AgentPart.AwaitingApproval(requests) =>
             Source.lazyFuture(() => Future(awaiting(ctx, session, t.playerId, body, handOff, requests))).mapConcat(identity)
         }
-        .fold(Vector.empty[SseEvent])(_ :+ _).mapConcat(identity)
-        // concatLazy: `concat` pulls the ending at once, which would record the turn before it has run.
-        .concatLazy(ending(ctx, session, handOff, was))
+        // The frames are emitted once the turn has passed; only then is the ending built, since a concatenated
+        // source is pulled when the stream starts, and a refused turn must record no turn (research).
+        .fold(Vector.empty[SseEvent])(_ :+ _)
+        .flatMapConcat(frames => Source(frames).concat(ending(ctx, session, handOff, was)))
         .recoverWithRetries(1, {
           case NonFatal(e) if n < OutputRetries && outputRefusal(e).isDefined =>
             rejected(ctx, session, outputRefusal(e).get, Side.Output, retried = true)

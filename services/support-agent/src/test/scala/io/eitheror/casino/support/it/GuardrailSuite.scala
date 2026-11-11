@@ -31,6 +31,7 @@ class GuardrailSuite extends munit.FunSuite:
     val s = kit.chat("p-g1", "guard-email", "what does someone@example.com have?")
     assertEquals(errorOf(s), Vector(("error", TurnFailure.reply(Guardrails.OtherPlayerName))))
     assertEquals(kit.model.callCount, 0)
+    assertEquals(kit.conversation("guard-email").turns, 0, "a refused turn is not a turn")
 
   test("self-harm at a real-money brand is answered with the safeguarding message and helpline, then done"):
     kit.reset(Kit.Base.copy(realMoney = true))
