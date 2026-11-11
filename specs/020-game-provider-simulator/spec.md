@@ -31,6 +31,13 @@ project, reaching a brand's public provider routes as the real provider does: fr
 platform identity, under the brand's signature verification. Its default behaviour reproduces
 `fake-st8` so the original's recordings replay unchanged; its scenarios add what `fake-st8` cannot do.
 
+> **Amended by spec 026 (FR-005).** The core (sessions, rounds, callbacks, the scheduler and retry
+> schedule, the key pair and key document, the brand table and the sender) and the ST8 protocol
+> adapter are the `provider-core` library in the root build, shared by this simulator and the `games`
+> project's `provider`. The scenarios, the instruction routes, the load profile, the run export and
+> the seeded generator stay here and are not on the provider's classpath. The key document gains a
+> `keys` field holding each key's public key (`contracts/st8-wire.md`).
+
 ## Clarifications
 
 ### Session 2026-10-08

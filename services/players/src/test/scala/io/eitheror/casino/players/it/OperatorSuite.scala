@@ -115,6 +115,30 @@ class OperatorSuite extends munit.FunSuite with LogCapturing:
     kit.eventually("the pot-vip note")(io.eitheror.casino.players.inbox.NotesView.ofPlayer(kit.views, id).headOption)
   }
 
+  test("isTestAccount on the profile update: registered false, a change is player_test_account_changed with the operator, a repeat no fact (spec 015 R11)") {
+    val (_, id) = kit.activePlayer("country" -> None)
+    val reg = fact("player_registered") { case f: PlayerRegistered if f.playerId == id => f }
+    assertEquals(reg.testAccount, Some(false))
+    assertEquals(profileOf(id).get("isTestAccount").asBoolean, false)
+    val r = op("PATCH", s"/players/$id/profile", "isTestAccount" -> true)
+    assertEquals((r.status, r.json.get("updated").asBoolean), (200, true), r.text)
+    assert(player(id).testAccount)
+    assertEquals(profileOf(id).get("isTestAccount").asBoolean, true)
+    val f = fact("player_test_account_changed") { case f: PlayerTestAccountChanged if f.playerId == id => f }
+    assertEquals((f.testAccount, f.actorId), (true, "op-7"))
+    // a repeat and a non-boolean change nothing; a refused profile edit leaves the flag as it was
+    assertEquals(op("PATCH", s"/players/$id/profile", "isTestAccount" -> true).status, 200)
+    assertEquals(op("PATCH", s"/players/$id/profile", "isTestAccount" -> "false").str("error"), "no_fields_provided")
+    assertEquals(op("PATCH", s"/players/$id/profile", "country" -> "XX", "isTestAccount" -> false).str("error"), "invalid_country")
+    assert(player(id).testAccount)
+    // with a profile field, both apply
+    assertEquals(op("PATCH", s"/players/$id/profile", "firstName" -> "Tess", "isTestAccount" -> false).status, 200)
+    assertEquals((player(id).testAccount, player(id).profile.get("firstName")), (false, Some("Tess")))
+    kit.eventually("the flag cleared")(kit.facts(CasinoPlayers).collectFirst {
+      case f: PlayerTestAccountChanged if f.playerId == id && !f.testAccount => f })
+    assertEquals(kit.facts(CasinoPlayers).count { case f: PlayerTestAccountChanged => f.playerId == id; case _ => false }, 2)
+  }
+
   test("close: closed, every session ended, the realm user disabled, player_closed; sign-in refused as closed; the wallet asked nothing") {
     val (email, id, sid, _) = playing()
     kit.wallet.clearReceived()

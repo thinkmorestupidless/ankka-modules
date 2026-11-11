@@ -569,6 +569,12 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   id as subject and the payment provider on every family (as `merchant` names it on the capture and
   on each outcome, spec 004 FR-022), so the brand's readers never depend on the shared project's
   topics and `reporting` groups payments by provider (spec 001 FR-011, spec 015 FR-011).
+  `payment.dispute.closed` MUST carry the dispute's amount and currency (spec 015 FR-005, research
+  R11): those the close states, and where it states none, those of the payment's dispute as opened;
+  a close with neither (no dispute opened before it) carries none, and a reader takes the amount of
+  the dispute's `payment.dispute.opened`. Its `disputeOutcome` MUST be `won` or `lost`, the brand's
+  view, `lost` a chargeback; any other, or none, MUST be refused `400 invalid_outcome` with nothing
+  recorded (spec 015).
 - **FR-023**: A hold MUST be refused, in this order, as `WITHDRAWAL_REQUEST_ALREADY_PENDING` while a
   request is pending, `INSUFFICIENT_FUNDS` ("Insufficient real balance for withdrawal") when real
   is below the amount, and `WITHDRAWAL_BLOCKED_TURNOVER` ("Deposit turnover requirements not yet
@@ -630,6 +636,15 @@ in `TestScenario7_CasinoGate3_FullPlayerJourney`, and the reporting routes' sums
   view from facts and never read the wallet; `deposit_confirmed` MUST carry the wallet's deposit
   ordinal (1 for the wallet's first confirmed deposit, counted per player and currency), which
   `rewards` reads as the deposit number (spec 011 FR-012);
+  `bet_placed`, `win_credited`, `bet_rolled_back`, `restricted_funds_awarded`,
+  `restricted_funds_converted`, `restricted_funds_forfeited`, `restricted_funds_closed`,
+  `admin_adjusted`, `provider_credited` and `hold_placed` (the last three where an adjustment of
+  restricted money, a credit landing on restricted money or a hold's forfeit or cap draw changes a
+  record) MUST carry `records`, each restricted funds record the movement changed as it stands after it — `award_id`,
+  `status` (the record's own: `ACTIVE`, `CONVERTED_PENDING_CAP`, `FORFEITED`, `CLOSED`),
+  `balance_cents`, `progress_cents` (wagering progressed) and `requirement_cents` (wagering
+  required) — on every fact of that movement, and none (absent, not empty) when it changed no
+  record, so `reporting` keeps each wallet's open records from facts (spec 015 FR-015, research R11);
   and `platform.audit` records for every money command and refusal.
 - **FR-032**: Every money command MUST be admitted by caller identity (spec 001 FR-020, the service
   class): the callers inside the brand project — `game-provider`, `rewards`, `payouts`,

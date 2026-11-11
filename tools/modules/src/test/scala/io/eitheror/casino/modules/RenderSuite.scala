@@ -43,7 +43,8 @@ class RenderSuite extends munit.FunSuite:
     "kyc"           -> Set("KYC_MAX_UPLOAD_BYTES"),
     // spec 023 R13: the erasure targets the brand's modules add.
     "players"       -> (Set("KEYCLOAK_URL", "INGEST_URL", "ERASURE_TARGETS") ++ PlayersSecrets),
-    "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE"),
+    // spec 026 R11: the provider names the brand runs.
+    "game-provider" -> Set("ST8_OPERATOR_ID", "ST8_API_KEY", "GAME_PROVIDER_MODE", "CASINO_PROVIDERS"),
     // spec 011 R13: the programme's code document.
     "rewards"       -> Set("REWARDS_CODE_DOCUMENT_URL"),
     // spec 014 R12: the Customer.io secrets enter through the configuration route, not the manifest.
@@ -51,8 +52,13 @@ class RenderSuite extends munit.FunSuite:
     // spec 017 R11, R8: the model provider, compaction and the judge are the service's settings.
     "support-agent" -> Set("MODEL_PROVIDER_KEY", "AGENT_MODEL_PROVIDER", "AGENT_COMPACTION_BYTES", "AGENT_COMPACTION_RECENT", "AGENT_JUDGE"),
     // spec 012 plan research R12, R7, R5, R3, R10, R15: attribution's own settings.
-    "attribution"   -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "COUNTRY_HEADER", "DOCUMENT_TIMEOUT", "CLOSE_GRACE", "WEBHOOK_TIMEOUT")
+    "attribution"   -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "COUNTRY_HEADER", "DOCUMENT_TIMEOUT", "CLOSE_GRACE", "WEBHOOK_TIMEOUT"),
+    // spec 015 research R14: reporting's zone, modules, grace and generation.
+    "reporting"     -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "CLOSE_GRACE", "REPORTING_GENERATION")
   )
+
+  /** Services that run on a later ankka than spec 001's 0.13.0, for the `Personal` they store. */
+  private val NewRuntimes = Map("engagement" -> "0.16.0", "reporting" -> "0.16.0", "support-agent" -> "0.16.2")
 
   /**
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
@@ -77,9 +83,12 @@ class RenderSuite extends munit.FunSuite:
         assertEquals(d.service.resources.instanceType, size, d.name)
         d.copy(service = d.service.copy(resources = before.service.resources))
       }
-      // engagement runs on ankka 0.16.0 for its `Personal` (spec 014, research), and support-agent for its sessions'
-      // data subject (spec 017 R2); spec 001 on 0.13.0.
-      val runtime = if Set("engagement", "support-agent")(d.name) then resized.copy(service = resized.service.copy(runtime = before.service.runtime)) else resized
+      // engagement (spec 014) and reporting (spec 015 R2) run on ankka 0.16.0 for their `Personal`, and support-agent on
+      // 0.16.2 for its sessions' data subject (spec 017 R2); spec 001 on 0.13.0.
+      val runtime = NewRuntimes.get(d.name).fold(resized) { v =>
+        assertEquals(resized.service.runtime, Some(v), d.name)
+        resized.copy(service = resized.service.copy(runtime = before.service.runtime))
+      }
       val now = comparable(runtime, NewIdentity ++ NewOwnKeys.getOrElse(d.name, Set.empty))
       assertEquals(now, comparable(before, Set("SUPPORT_AGENT_ENABLED")), d.name)
       assertEquals(d.service.env.map(_.name).filter(NewIdentity), Vector("PLAYER_SITE_BASE", "KEYCLOAK_ISSUER_BASE", "KEYCLOAK_JWKS_BASE"), d.name)
@@ -188,6 +197,27 @@ class RenderSuite extends munit.FunSuite:
       plan(named).services.find(_.name == "players").get.service.env.find(_.name == "ERASURE_TARGETS").flatMap(_.value)
     assertEquals(targets(Vector("predictions")), Some("exchange=/v1/casino/brands/goldvibe/exchange"))
     assertEquals(targets(Vector("casino")), Some("none"))
+  }
+
+  test("reporting renders its zone, the brand's modules, attribution's grace and its generation, and erases at players' ask (spec 015 R10, R14)") {
+    val p         = plan(Vector("casino", "reporting"))
+    val reporting = p.services.find(_.name == "reporting").get.service.env.map(e => e.name -> e.value).toMap
+    val attribution = p.services.find(_.name == "attribution").get.service.env.map(e => e.name -> e.value).toMap
+    assertEquals(reporting.get("CASINO_REPORTING_ZONE"), attribution.get("CASINO_REPORTING_ZONE"))
+    assert(reporting.get("CASINO_REPORTING_ZONE").flatten.isDefined)
+    assertEquals(reporting.get("CASINO_MODULES"), Some(Some("core,casino,reporting")))
+    assertEquals(reporting.get("CLOSE_GRACE"), Some(Some("15m")))
+    assertEquals(reporting.get("REPORTING_GENERATION"), Some(Some("1")))
+    val targets = p.services.find(_.name == "players").get.service.env.find(_.name == "ERASURE_TARGETS").flatMap(_.value)
+    assertEquals(targets, Some("reporting=/v1/casino/brands/goldvibe/reporting"))
+  }
+
+  test("reporting's grace is attribution's, so both close a day at the same instant (spec 015 R7)") {
+    def grace(module: String, service: String) =
+      modules.find(_.name == module).get.services.find(_.name == service).get.descriptor.path("env").elements().asScala
+        .find(_.path("name").asText() == "CLOSE_GRACE").map(_.path("value").asText())
+    assertEquals(grace("reporting", "reporting"), grace("core", "attribution"))
+    assert(grace("reporting", "reporting").isDefined)
   }
 
   test("core comes first and a module after its dependencies; a module that does not exist is named") {

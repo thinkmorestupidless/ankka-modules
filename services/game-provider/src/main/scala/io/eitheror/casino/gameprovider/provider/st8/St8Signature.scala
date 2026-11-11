@@ -47,6 +47,43 @@ object St8Signature:
   def privateKey(text: String): Either[String, PrivateKey] =
     der(text).flatMap(bytes => Try(KeyFactory.getInstance("EC").generatePrivate(PKCS8EncodedKeySpec(bytes))).toEither.left.map(_ => "not an EC private key in PKCS#8"))
 
+  /**
+   * The public key of an EC private key, as base64 of its DER SubjectPublicKeyInfo (spec 026
+   * `contracts/brand-amendments.md`: the operator copies it into the provider's brand entry). The
+   * JDK derives no public key from a private one, so it is made with the JDK's own primitives:
+   * ECDH between the private key and the curve's generator is the public point's x; y is one of the
+   * two square roots of x³ + ax + b (a prime p ≡ 3 mod 4, as P-256's is, gives them directly); the
+   * root is the one under which a signature by the private key verifies.
+   */
+  def publicKeyOf(privateText: String): Either[String, String] =
+    privateKey(privateText).flatMap {
+      case k: java.security.interfaces.ECPrivateKey =>
+        Try {
+          import java.math.BigInteger
+          import java.security.spec.{ECFieldFp, ECPoint, ECPublicKeySpec}
+          val params = k.getParams
+          val p      = params.getCurve.getField.asInstanceOf[ECFieldFp].getP
+          require(p.testBit(0) && p.testBit(1), "the curve's prime is not 3 mod 4")
+          val factory   = KeyFactory.getInstance("EC")
+          val generator = factory.generatePublic(ECPublicKeySpec(params.getGenerator, params))
+          val agreement = javax.crypto.KeyAgreement.getInstance("ECDH")
+          agreement.init(k)
+          agreement.doPhase(generator, true)
+          val x   = BigInteger(1, agreement.generateSecret())
+          val rhs = x.pow(3).add(params.getCurve.getA.multiply(x)).add(params.getCurve.getB).mod(p)
+          val y   = rhs.modPow(p.add(BigInteger.ONE).shiftRight(2), p)
+          val probe = "eitheror operator key".getBytes(UTF_8)
+          val signed = Base64.getDecoder.decode(sign(probe, k))
+          Vector(y, p.subtract(y)).map(r => factory.generatePublic(ECPublicKeySpec(ECPoint(x, r), params))).find { candidate =>
+            val v = Signature.getInstance("SHA256withECDSA")
+            v.initVerify(candidate)
+            v.update(probe)
+            v.verify(signed)
+          }.map(pub => Base64.getEncoder.encodeToString(pub.getEncoded)).getOrElse(throw IllegalStateException("no root verifies"))
+        }.toEither.left.map(e => s"the public key could not be derived: ${e.getMessage}")
+      case _ => Left("not an EC private key")
+    }
+
   /** Base64 of a PEM document's DER, which is what the configuration stores. */
   def base64Der(text: String): Either[String, String] = der(text).map(Base64.getEncoder.encodeToString)
 

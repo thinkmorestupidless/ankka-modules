@@ -1,0 +1,34 @@
+{
+  "scenario": "dispute-session-csv",
+  "requirement": "015/FR-016",
+  "recorded_at": "2026-11-09T09:24:10.176572Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "the dispute report",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/dispute-report?sessionId={playerSessionId}\u0026format=csv",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Disposition": "attachment; filename=\"dispute-report-fa6e3eab-345f-4986-a18d-28b6b7ecd775.csv\"",
+          "Content-Type": "text/csv; charset=UTF-8"
+        },
+        "body": "Reference,Generated,Player,Brand,Period From,Period To\r\nfa6e3eab-345f-4986-a18d-28b6b7ecd775,2026-11-09T09:24:10.179231525Z,reporting-email-4519563b@example.test,spinvibe,2026-11-09T09:23:44.233104791Z,2026-11-09T09:24:10.179231525Z\r\n\r\nLogin Session,Game,Game Type,Round Time,Staked,Win,Net,Status\r\nTOTAL,,,,0.00,0.00,0.00,"
+      },
+      "vary": {
+        "$": "differs between two runs of the original"
+      }
+    }
+  ]
+}

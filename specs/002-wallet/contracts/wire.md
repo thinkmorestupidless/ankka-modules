@@ -71,6 +71,7 @@ the Go guest or the route carries. Status and code are the original's.
 |---|---|---|---|
 | `INVALID_REQUEST` | 400 | `the amount '<amount>' is not a whole number of minor units` | spec 001 FR-026 (new boundary) |
 | `MISSING_KEY` | 400 | `a money command must carry the key its caller chose` | spec 001 FR-027 (new) |
+| `invalid_outcome` | 400 | `a closed dispute's disputeOutcome is won or lost, not '<outcome>'` | spec 015 (new): the payment-outcome route, FR-022a |
 | `WALLET_NOT_FOUND` | 404 | `Wallet not found` | route |
 | `WALLET_ALREADY_OPEN` | 409 | `Wallet already open` | new: `open-migrated` on a created wallet (FR-001) |
 | `ROUND_NOT_FOUND` | 404 | `No open bet found for round <round>` | route (code only) |

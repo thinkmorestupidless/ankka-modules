@@ -1,11 +1,12 @@
 package io.eitheror.casino.gameprovider.it
 
-import com.thinkmorestupidless.ankka.core.{CommandError, ErrorCode}
+import com.thinkmorestupidless.ankka.core.{CommandError, EntityId, ErrorCode}
 import io.eitheror.casino.gameprovider.Json
+import io.eitheror.casino.gameprovider.catalogue.{Game, GameFields, UpsertGame}
 import io.eitheror.casino.gameprovider.Json.*
 import io.eitheror.casino.gameprovider.rounds.*
 
-import java.util.concurrent.{Callable, Executors}
+import java.util.concurrent.{Callable, ConcurrentLinkedQueue, Executors}
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
@@ -24,6 +25,26 @@ class BetWorkflowSuite extends SharedKitSuite:
 
   private def credit(token: String, tx: String, round: String, amount: String) =
     kit.callback("credit", Json.obj("token" -> token, "transaction_id" -> tx, "round" -> round, "amount" -> amount, "currency" -> "EUR"))
+
+  test("the catalogue is read once, when the debit opens the round; the credit on the open round reads none; the fact names the game") {
+    val player = s"$run-catalogue"
+    val game   = s"$run-game"
+    kit.testKit.componentClient.forKeyValueEntity(EntityId(Game.entityId("st8", game))).call(Game.upsert)
+      .invoke(UpsertGame("st8", game, GameFields("Starburst", "netent", "NetEnt", "slots"), kit.clock)): Unit
+    val reads = new ConcurrentLinkedQueue[String]()
+    Openings.onLookup = (provider, code) => if code == game then reads.add(provider): Unit
+    try
+      kit.wallet.set(player, "EUR", 1000)
+      val token = kit.sessionTicket(player, game = game)
+      assertEquals(debit(token, s"$run-t1", s"$run-r1").word, "ok")
+      assertEquals(reads.size, 1, "the debit opening the round reads the catalogue")
+      assertEquals(debit(token, s"$run-t2", s"$run-r1").word, "ok")
+      assertEquals(credit(token, s"$run-c1", s"$run-r1", "2.00").word, "ok")
+      assertEquals(reads.size, 1, "a debit and a credit on the open round read no catalogue")
+    finally Openings.onLookup = (_, _) => ()
+    val fact = kit.eventually("round_settled")(kit.roundsPublished.find(_.providerRoundId == s"$run-r1"))
+    assertEquals((fact.gameName, fact.gameType), (Some("Starburst"), Some("slots")))
+  }
 
   test("a debit's start is the claim: the workflow holds the transaction, and a second start is refused Conflict") {
     val player = s"$run-claim"

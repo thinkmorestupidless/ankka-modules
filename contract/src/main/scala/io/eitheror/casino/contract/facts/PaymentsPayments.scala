@@ -45,9 +45,20 @@ final case class PaymentRefunded(paymentId: String, playerId: String, paymentPro
 final case class PaymentDisputeOpened(paymentId: String, playerId: String, paymentProvider: String, amountCents: MinorUnits,
     currency: Currency, reason: String, occurredAt: Instant) extends PaymentsPaymentsFact
 
+/**
+ * `outcome` is the brand's: `won` or `lost` (`DisputeOutcome`). `amount_cents` and `currency` are the dispute's
+ * (spec 015 R11); absent on an older fact, where the dispute's `payment.dispute.opened` carries them.
+ */
 @named("payment.dispute.closed")
 final case class PaymentDisputeClosed(paymentId: String, playerId: String, paymentProvider: String, outcome: String,
-    occurredAt: Instant) extends PaymentsPaymentsFact
+    occurredAt: Instant, amountCents: Option[MinorUnits] = None, currency: Option[Currency] = None)
+    extends PaymentsPaymentsFact
+
+/** The outcomes a dispute closes with, as the brand sees it: `lost` is a chargeback. */
+object DisputeOutcome:
+  val Won    = "won"
+  val Lost   = "lost"
+  val values = Set(Won, Lost)
 
 object PaymentsPaymentsFact:
   given JsonValueCodec[PaymentsPaymentsFact] = FactCodecs.make

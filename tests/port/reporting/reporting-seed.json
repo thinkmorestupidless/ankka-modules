@@ -1,0 +1,1318 @@
+{
+  "scenario": "reporting-seed",
+  "requirement": "015/FR-027",
+  "recorded_at": "2026-11-09T09:23:36.349924Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "setup: read the Reports flag",
+      "request": {
+        "method": "GET",
+        "path": "/api/admin/projects/default/features/backoffice-reporting-tab",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "archived": false,
+          "children": [],
+          "createdAt": "2026-11-09T09:20:11.014Z",
+          "dependencies": [],
+          "description": null,
+          "environments": [
+            {
+              "enabled": false,
+              "lastSeenAt": "2026-11-09T09:23:08.372Z",
+              "name": "default",
+              "sortOrder": 1,
+              "strategies": [],
+              "type": "production"
+            },
+            {
+              "enabled": false,
+              "lastSeenAt": null,
+              "name": "development",
+              "sortOrder": 2,
+              "strategies": [],
+              "type": "development"
+            },
+            {
+              "enabled": false,
+              "lastSeenAt": null,
+              "name": "production",
+              "sortOrder": 3,
+              "strategies": [],
+              "type": "production"
+            }
+          ],
+          "impressionData": false,
+          "lastSeenAt": "2026-11-09T09:23:08.372Z",
+          "name": "backoffice-reporting-tab",
+          "project": "default",
+          "stale": false,
+          "type": "release",
+          "variants": []
+        }
+      },
+      "vary": {
+        "$.environments[0].lastSeenAt": "differs between two runs of the original",
+        "$.lastSeenAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: read the brand's context field",
+      "request": {
+        "method": "GET",
+        "path": "/api/admin/context/brandId",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 404,
+        "body": {
+          "details": [
+            {
+              "description": "Could not find context field",
+              "message": "Could not find context field"
+            }
+          ],
+          "id": "a4734072-a93b-4d09-bf6c-b92b70233f24",
+          "message": "Could not find context field",
+          "name": "NotFoundError"
+        }
+      },
+      "vary": {
+        "$.id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: define the brand's context field",
+      "request": {
+        "method": "POST",
+        "path": "/api/admin/context",
+        "service": "unleash",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "name": "brandId"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "createdAt": "2026-11-09T09:23:36.365Z",
+          "description": null,
+          "legalValues": [],
+          "name": "brandId",
+          "sortOrder": 10,
+          "stickiness": false
+        }
+      },
+      "vary": {
+        "$.createdAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: show the Reports tab for the brand",
+      "request": {
+        "method": "POST",
+        "path": "/api/admin/projects/default/features/backoffice-reporting-tab/environments/default/strategies",
+        "service": "unleash",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "constraints": [
+            {
+              "contextName": "brandId",
+              "operator": "IN",
+              "values": [
+                "spinvibe"
+              ]
+            }
+          ],
+          "name": "flexibleRollout",
+          "parameters": {
+            "groupId": "backoffice-reporting-tab",
+            "rollout": "100",
+            "stickiness": "default"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "constraints": [
+            {
+              "contextName": "brandId",
+              "operator": "IN",
+              "values": [
+                "spinvibe"
+              ]
+            }
+          ],
+          "disabled": false,
+          "id": "a9139667-3e96-49bd-9914-2002b4f7e87e",
+          "name": "flexibleRollout",
+          "parameters": {
+            "groupId": "backoffice-reporting-tab",
+            "rollout": "100",
+            "stickiness": "default"
+          },
+          "segments": [],
+          "sortOrder": 0,
+          "title": null,
+          "variants": []
+        }
+      },
+      "vary": {
+        "$.id": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: enable the Reports flag",
+      "request": {
+        "method": "POST",
+        "path": "/api/admin/projects/default/features/backoffice-reporting-tab/environments/default/on",
+        "service": "unleash"
+      },
+      "response": {
+        "status": 200
+      }
+    },
+    {
+      "name": "observe: the Reports tab shown for the brand",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/reports/ggr?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "currency": "EUR",
+          "dailyBreakdown": [
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-11",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-12",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-13",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-14",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-15",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-16",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-17",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-18",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-19",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-20",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-21",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-22",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-23",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-24",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-25",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-26",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-27",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-28",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-29",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-30",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-10-31",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-01",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-02",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-03",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-04",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-05",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-06",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-07",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "0.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-08",
+              "ggr": "0.00",
+              "ngr": "0.00",
+              "wins": "0.00"
+            },
+            {
+              "bets": "10.00",
+              "bonusCosts": "0.00",
+              "date": "2026-11-09",
+              "ggr": "1.80",
+              "ngr": "1.80",
+              "wins": "8.20"
+            }
+          ],
+          "from": "2026-10-11",
+          "summary": {
+            "bonusCosts": "0.00",
+            "ggr": "1.80",
+            "netCashFlow": "300.00",
+            "ngr": "1.80",
+            "totalBets": "10.00",
+            "totalDeposits": "300.00",
+            "totalWins": "8.20",
+            "totalWithdrawals": "0.00"
+          },
+          "to": "2026-11-09"
+        }
+      },
+      "capture": {
+        "c0": "$.dailyBreakdown[29].bets"
+      },
+      "vary": {
+        "$.dailyBreakdown[29].bets": "differs between two runs of the original",
+        "$.dailyBreakdown[29].ggr": "differs between two runs of the original",
+        "$.dailyBreakdown[29].ngr": "differs between two runs of the original",
+        "$.dailyBreakdown[29].wins": "differs between two runs of the original",
+        "$.summary.ggr": "differs between two runs of the original",
+        "$.summary.netCashFlow": "differs between two runs of the original",
+        "$.summary.ngr": "differs between two runs of the original",
+        "$.summary.totalBets": "differs between two runs of the original",
+        "$.summary.totalDeposits": "differs between two runs of the original",
+        "$.summary.totalWins": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: register the player",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/register",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "country": "GB",
+          "currency": "EUR",
+          "dateOfBirth": "1990-01-01",
+          "email": "{email}",
+          "language": "en",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 201,
+        "body": {
+          "playerId": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+          "status": "pending_email_verification"
+        }
+      },
+      "capture": {
+        "playerId": "$.playerId"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: follow the verification link",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/verify-email",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "token": "{link}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "verified"
+        }
+      }
+    },
+    {
+      "name": "setup: sign the player in",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/players/spinvibe/login",
+        "service": "casino",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "email": "{email}",
+          "password": "\u003credacted\u003e"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "brandId": "spinvibe",
+          "country": "GB",
+          "currency": "EUR",
+          "pendingBonusCode": "",
+          "playerId": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+          "refreshToken": "\u003credacted\u003e",
+          "token": "\u003credacted\u003e"
+        }
+      },
+      "capture": {
+        "token": "$.token"
+      },
+      "vary": {
+        "$.playerId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: the login session",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/sessions?type=player\u0026playerEmail={playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "page": 1,
+          "pageSize": 20,
+          "sessions": [
+            {
+              "brandId": "spinvibe",
+              "closeReason": null,
+              "endedAt": null,
+              "ipAddress": null,
+              "keycloakSessionId": "967d662e-eb7b-4d59-82c8-310cfb2b3234",
+              "playerRef": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "sessionId": "014c94cc-abb5-3064-a645-d50050475e22",
+              "startedAt": "2026-11-09T09:23:44.233104791Z",
+              "status": "active",
+              "userAgent": "Go-http-client/1.1"
+            }
+          ],
+          "total": 1
+        }
+      },
+      "capture": {
+        "playerSessionId": "$.sessions[0].sessionId"
+      },
+      "vary": {
+        "$.sessions[0].keycloakSessionId": "differs between two runs of the original",
+        "$.sessions[0].playerRef": "differs between two runs of the original",
+        "$.sessions[0].sessionId": "differs between two runs of the original",
+        "$.sessions[0].startedAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: deposit to the player",
+      "request": {
+        "method": "POST",
+        "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+        "service": "wallet",
+        "headers": {
+          "Content-Type": "application/json",
+          "X-Internal-Brand-Id": "spinvibe"
+        },
+        "body": {
+          "amount": "100.00",
+          "paymentRef": "{depositRef}",
+          "pspId": "reporting-driver-psp",
+          "scheme": "card",
+          "terminalId": "reporting-driver"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusBalance": "0.00",
+          "currency": "EUR",
+          "realBalance": "100.00",
+          "txnId": "transaction/36d6edb6-fb09-4d6a-b7dc-dac33a66dfa3"
+        }
+      },
+      "vary": {
+        "$.txnId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: launch book-of-ra",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/sessions/spinvibe/launch",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "gameId": "book-of-ra",
+          "playerId": "{playerId}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "gameUrl": "http://localhost:30096/game?token=712b1e53-5587-4342-a0eb-104e0578ecac",
+          "launchToken": "712b1e53-5587-4342-a0eb-104e0578ecac",
+          "sessionId": "e8544564-c88d-4134-b56b-c9b9a827fdfb"
+        }
+      },
+      "capture": {
+        "gameSessionId": "$.sessionId",
+        "launchToken": "$.launchToken"
+      },
+      "vary": {
+        "$.gameUrl": "differs between two runs of the original",
+        "$.launchToken": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: load book-of-ra's page",
+      "request": {
+        "method": "GET",
+        "path": "/game?token={launchToken}",
+        "service": "fake-st8"
+      },
+      "response": {
+        "status": 200,
+        "body": "\u003c!DOCTYPE html\u003e\n\u003chtml\u003e\n\u003chead\u003e\u003ctitle\u003eFake Casino Game\u003c/title\u003e\n\u003cstyle\u003ebody{font-family:monospace;background:#1a1a2e;color:#eee;display:flex;flex-direction:column;align-items:center;padding:40px;gap:16px}\u003c/style\u003e\n\u003c/head\u003e\n\u003cbody data-wallet-token=\"712b1e53-5587-4342-a0eb-104e0578ecac\" data-launch-token=\"712b1e53-5587-4342-a0eb-104e0578ecac\"\u003e\n\u003ch2\u003e\u0026#127920; Fake Casino Game\u003c/h2\u003e\n\u003cp id=\"info\"\u003eLoading session\u0026#8230;\u003c/p\u003e\n\u003cp style=\"font-size:11px;opacity:0.5\"\u003ewallet token: \u003cspan id=\"wt\"\u003e\u003c/span\u003e\u003c/p\u003e\n\u003cscript\u003e\nconst wt = document.body.dataset.walletToken;\nconst lt = document.body.dataset.launchToken;\ndocument.getElementById('wt').textContent = wt || '(none)';\ndocument.getElementById('info').textContent = wt ? 'Session active. Control via /test/* API.' : 'Session initialising…';\n\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e"
+      },
+      "vary": {
+        "$": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: launch fake-slot-002",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/sessions/spinvibe/launch",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "gameId": "fake-slot-002",
+          "playerId": "{playerId}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "gameUrl": "http://localhost:30096/game?token=762855c5-29f1-4c35-8b74-b5ba55d8eb76",
+          "launchToken": "762855c5-29f1-4c35-8b74-b5ba55d8eb76",
+          "sessionId": "2cbaef95-e8ce-45af-87a3-60bc2024f523"
+        }
+      },
+      "capture": {
+        "otherGameSessionId": "$.sessionId",
+        "otherLaunchToken": "$.launchToken"
+      },
+      "vary": {
+        "$.gameUrl": "differs between two runs of the original",
+        "$.launchToken": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: load fake-slot-002's page",
+      "request": {
+        "method": "GET",
+        "path": "/game?token={otherLaunchToken}",
+        "service": "fake-st8"
+      },
+      "response": {
+        "status": 200,
+        "body": "\u003c!DOCTYPE html\u003e\n\u003chtml\u003e\n\u003chead\u003e\u003ctitle\u003eFake Casino Game\u003c/title\u003e\n\u003cstyle\u003ebody{font-family:monospace;background:#1a1a2e;color:#eee;display:flex;flex-direction:column;align-items:center;padding:40px;gap:16px}\u003c/style\u003e\n\u003c/head\u003e\n\u003cbody data-wallet-token=\"762855c5-29f1-4c35-8b74-b5ba55d8eb76\" data-launch-token=\"762855c5-29f1-4c35-8b74-b5ba55d8eb76\"\u003e\n\u003ch2\u003e\u0026#127920; Fake Casino Game\u003c/h2\u003e\n\u003cp id=\"info\"\u003eLoading session\u0026#8230;\u003c/p\u003e\n\u003cp style=\"font-size:11px;opacity:0.5\"\u003ewallet token: \u003cspan id=\"wt\"\u003e\u003c/span\u003e\u003c/p\u003e\n\u003cscript\u003e\nconst wt = document.body.dataset.walletToken;\nconst lt = document.body.dataset.launchToken;\ndocument.getElementById('wt').textContent = wt || '(none)';\ndocument.getElementById('info').textContent = wt ? 'Session active. Control via /test/* API.' : 'Session initialising…';\n\u003c/script\u003e\n\u003c/body\u003e\n\u003c/html\u003e"
+      },
+      "vary": {
+        "$": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: stake round A",
+      "request": {
+        "method": "POST",
+        "path": "/test/bet",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "1.00",
+          "currency": "EUR",
+          "launchToken": "{launchToken}",
+          "roundId": "{roundA}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "99.00",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: win round A",
+      "request": {
+        "method": "POST",
+        "path": "/test/win",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "2.50",
+          "currency": "EUR",
+          "launchToken": "{launchToken}",
+          "roundId": "{roundA}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "101.50",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: stake round B",
+      "request": {
+        "method": "POST",
+        "path": "/test/bet",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "1.00",
+          "currency": "EUR",
+          "launchToken": "{launchToken}",
+          "roundId": "{roundB}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "100.50",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: lose round B",
+      "request": {
+        "method": "POST",
+        "path": "/test/lose",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "launchToken": "{launchToken}",
+          "roundId": "{roundB}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "100.50",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: stake round C",
+      "request": {
+        "method": "POST",
+        "path": "/test/bet",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "1.00",
+          "currency": "EUR",
+          "launchToken": "{launchToken}",
+          "roundId": "{roundC}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "99.50",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: win round C",
+      "request": {
+        "method": "POST",
+        "path": "/test/win",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "0.40",
+          "currency": "EUR",
+          "launchToken": "{launchToken}",
+          "roundId": "{roundC}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "99.90",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: stake round D",
+      "request": {
+        "method": "POST",
+        "path": "/test/bet",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "1.00",
+          "currency": "EUR",
+          "launchToken": "{otherLaunchToken}",
+          "roundId": "{roundD}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "98.90",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: lose round D",
+      "request": {
+        "method": "POST",
+        "path": "/test/lose",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "launchToken": "{otherLaunchToken}",
+          "roundId": "{roundD}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "98.90",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: stake round E",
+      "request": {
+        "method": "POST",
+        "path": "/test/bet",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "1.00",
+          "currency": "EUR",
+          "launchToken": "{otherLaunchToken}",
+          "roundId": "{roundE}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "97.90",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "setup: win round E",
+      "request": {
+        "method": "POST",
+        "path": "/test/win",
+        "service": "fake-st8",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "amount": "1.20",
+          "currency": "EUR",
+          "launchToken": "{otherLaunchToken}",
+          "roundId": "{roundE}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "balance": "99.10",
+          "currency": "EUR",
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "observe: game session one's rounds",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/sessions/game/{gameSessionId}/rounds",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "closeReason": null,
+          "currency": "EUR",
+          "endedAt": null,
+          "gameId": "book-of-ra",
+          "gameName": "Book of Ra",
+          "gameType": "slots",
+          "hasDataGap": false,
+          "roundStakeSum": 3,
+          "rounds": [
+            {
+              "bets": [
+                {
+                  "amount": 1,
+                  "betId": "5784fd48-34a6-4d20-a4a8-edbc031fada9",
+                  "betTxId": "5784fd48-34a6-4d20-a4a8-edbc031fada9",
+                  "createdAt": "2026-11-09T09:23:44.699754072Z",
+                  "currency": "EUR",
+                  "fundedFrom": "real",
+                  "providerKind": "debit",
+                  "st8TransactionId": "5784fd48-34a6-4d20-a4a8-edbc031fada9",
+                  "status": "settled"
+                }
+              ],
+              "createdAt": "2026-11-09T09:23:44.684456318Z",
+              "netResult": 1.5,
+              "roundId": "c2335dca-fe6b-3d38-8f2c-b3f91c58a50c",
+              "settledAt": "2026-11-09T09:23:44.820324810Z",
+              "st8RoundId": "61a14d98-27bf-499f-911a-b9ab0b9c9b42",
+              "status": "settled",
+              "totalStake": 1,
+              "winAmount": 2.5
+            },
+            {
+              "bets": [
+                {
+                  "amount": 1,
+                  "betId": "0085e627-02af-4c84-a2c1-08b9304b882e",
+                  "betTxId": "0085e627-02af-4c84-a2c1-08b9304b882e",
+                  "createdAt": "2026-11-09T09:23:44.951664664Z",
+                  "currency": "EUR",
+                  "fundedFrom": "real",
+                  "providerKind": "debit",
+                  "st8TransactionId": "0085e627-02af-4c84-a2c1-08b9304b882e",
+                  "status": "settled"
+                }
+              ],
+              "createdAt": "2026-11-09T09:23:44.933659902Z",
+              "netResult": -1,
+              "roundId": "ecfcaa23-d36d-38d4-88c9-9b9340c2179a",
+              "settledAt": "2026-11-09T09:23:44.966263833Z",
+              "st8RoundId": "dfd44756-a07f-4333-9a42-fa9a205fc76d",
+              "status": "settled",
+              "totalStake": 1,
+              "winAmount": 0
+            },
+            {
+              "bets": [
+                {
+                  "amount": 1,
+                  "betId": "eb8fd8b7-8158-4ad1-8264-28f8800611a2",
+                  "betTxId": "eb8fd8b7-8158-4ad1-8264-28f8800611a2",
+                  "createdAt": "2026-11-09T09:23:45.155249402Z",
+                  "currency": "EUR",
+                  "fundedFrom": "real",
+                  "providerKind": "debit",
+                  "st8TransactionId": "eb8fd8b7-8158-4ad1-8264-28f8800611a2",
+                  "status": "settled"
+                }
+              ],
+              "createdAt": "2026-11-09T09:23:45.117440455Z",
+              "netResult": -0.6,
+              "roundId": "e2769484-7e8e-3c2d-948b-eb087a2549f0",
+              "settledAt": "2026-11-09T09:23:45.226245616Z",
+              "st8RoundId": "a37393f1-02a5-48ae-8afc-2d9fac4e28dd",
+              "status": "settled",
+              "totalStake": 1,
+              "winAmount": 0.4
+            }
+          ],
+          "sessionId": "e8544564-c88d-4134-b56b-c9b9a827fdfb",
+          "startedAt": "2026-11-09T09:23:44.462724900Z",
+          "status": "active",
+          "totalWagered": 3
+        }
+      },
+      "vary": {
+        "$.rounds[0].bets[0].betId": "differs between two runs of the original",
+        "$.rounds[0].bets[0].betTxId": "differs between two runs of the original",
+        "$.rounds[0].bets[0].createdAt": "differs between two runs of the original",
+        "$.rounds[0].bets[0].st8TransactionId": "differs between two runs of the original",
+        "$.rounds[0].createdAt": "differs between two runs of the original",
+        "$.rounds[0].roundId": "differs between two runs of the original",
+        "$.rounds[0].settledAt": "differs between two runs of the original",
+        "$.rounds[0].st8RoundId": "differs between two runs of the original",
+        "$.rounds[1].bets[0].betId": "differs between two runs of the original",
+        "$.rounds[1].bets[0].betTxId": "differs between two runs of the original",
+        "$.rounds[1].bets[0].createdAt": "differs between two runs of the original",
+        "$.rounds[1].bets[0].st8TransactionId": "differs between two runs of the original",
+        "$.rounds[1].createdAt": "differs between two runs of the original",
+        "$.rounds[1].roundId": "differs between two runs of the original",
+        "$.rounds[1].settledAt": "differs between two runs of the original",
+        "$.rounds[1].st8RoundId": "differs between two runs of the original",
+        "$.rounds[2].bets[0].betId": "differs between two runs of the original",
+        "$.rounds[2].bets[0].betTxId": "differs between two runs of the original",
+        "$.rounds[2].bets[0].createdAt": "differs between two runs of the original",
+        "$.rounds[2].bets[0].st8TransactionId": "differs between two runs of the original",
+        "$.rounds[2].createdAt": "differs between two runs of the original",
+        "$.rounds[2].roundId": "differs between two runs of the original",
+        "$.rounds[2].settledAt": "differs between two runs of the original",
+        "$.rounds[2].st8RoundId": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original",
+        "$.startedAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "observe: game session two's rounds",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/sessions/game/{otherGameSessionId}/rounds",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "closeReason": null,
+          "currency": "EUR",
+          "endedAt": null,
+          "gameId": "fake-slot-002",
+          "gameName": "Fake Slots II",
+          "gameType": "slots",
+          "hasDataGap": false,
+          "roundStakeSum": 2,
+          "rounds": [
+            {
+              "bets": [
+                {
+                  "amount": 1,
+                  "betId": "4bc4d0aa-6124-47c6-bea6-403aea27bd9d",
+                  "betTxId": "4bc4d0aa-6124-47c6-bea6-403aea27bd9d",
+                  "createdAt": "2026-11-09T09:23:45.385175137Z",
+                  "currency": "EUR",
+                  "fundedFrom": "real",
+                  "providerKind": "debit",
+                  "st8TransactionId": "4bc4d0aa-6124-47c6-bea6-403aea27bd9d",
+                  "status": "settled"
+                }
+              ],
+              "createdAt": "2026-11-09T09:23:45.356884135Z",
+              "netResult": -1,
+              "roundId": "af2d56bf-46d6-35e3-a78a-2903cfec17e5",
+              "settledAt": "2026-11-09T09:23:45.395136625Z",
+              "st8RoundId": "093b6c38-982a-419e-8167-6ba0c08df2b7",
+              "status": "settled",
+              "totalStake": 1,
+              "winAmount": 0
+            },
+            {
+              "bets": [
+                {
+                  "amount": 1,
+                  "betId": "267c2062-ae76-4ad8-b06a-e7d9d19c68a1",
+                  "betTxId": "267c2062-ae76-4ad8-b06a-e7d9d19c68a1",
+                  "createdAt": "2026-11-09T09:23:45.570093568Z",
+                  "currency": "EUR",
+                  "fundedFrom": "real",
+                  "providerKind": "debit",
+                  "st8TransactionId": "267c2062-ae76-4ad8-b06a-e7d9d19c68a1",
+                  "status": "settled"
+                }
+              ],
+              "createdAt": "2026-11-09T09:23:45.549485048Z",
+              "netResult": 0.2,
+              "roundId": "4a01c0ae-8f8a-3189-ab99-829eb518e865",
+              "settledAt": "2026-11-09T09:23:45.639449694Z",
+              "st8RoundId": "f2da84ba-850a-4b57-b8d7-0a86ddf6d39a",
+              "status": "settled",
+              "totalStake": 1,
+              "winAmount": 1.2
+            }
+          ],
+          "sessionId": "2cbaef95-e8ce-45af-87a3-60bc2024f523",
+          "startedAt": "2026-11-09T09:23:44.537825918Z",
+          "status": "active",
+          "totalWagered": 2
+        }
+      },
+      "vary": {
+        "$.rounds[0].bets[0].betId": "differs between two runs of the original",
+        "$.rounds[0].bets[0].betTxId": "differs between two runs of the original",
+        "$.rounds[0].bets[0].createdAt": "differs between two runs of the original",
+        "$.rounds[0].bets[0].st8TransactionId": "differs between two runs of the original",
+        "$.rounds[0].createdAt": "differs between two runs of the original",
+        "$.rounds[0].roundId": "differs between two runs of the original",
+        "$.rounds[0].settledAt": "differs between two runs of the original",
+        "$.rounds[0].st8RoundId": "differs between two runs of the original",
+        "$.rounds[1].bets[0].betId": "differs between two runs of the original",
+        "$.rounds[1].bets[0].betTxId": "differs between two runs of the original",
+        "$.rounds[1].bets[0].createdAt": "differs between two runs of the original",
+        "$.rounds[1].bets[0].st8TransactionId": "differs between two runs of the original",
+        "$.rounds[1].createdAt": "differs between two runs of the original",
+        "$.rounds[1].roundId": "differs between two runs of the original",
+        "$.rounds[1].settledAt": "differs between two runs of the original",
+        "$.rounds[1].st8RoundId": "differs between two runs of the original",
+        "$.sessionId": "differs between two runs of the original",
+        "$.startedAt": "differs between two runs of the original"
+      }
+    },
+    {
+      "name": "setup: the operator's bonus",
+      "request": {
+        "method": "POST",
+        "path": "/v1/casino/bonus/grant/spinvibe/{playerId}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "bonusAmount": "{c0}",
+          "currency": "EUR",
+          "wager": "30"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "bonusAmount": "10.00",
+          "status": "granted",
+          "wageringRequired": "300.00"
+        }
+      }
+    },
+    {
+      "name": "setup: the player excludes themselves",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/casino/rg/spinvibe/{playerId}/permanent-exclusion",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {token}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "status": "self_excluded"
+        }
+      }
+    },
+    {
+      "name": "observe: the seed in the activity feed",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/activity",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "body": {
+          "events": [
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "selfex-4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "eventType": "self_exclusion",
+              "occurredAt": "2026-11-09T09:23:45.929684943Z",
+              "playerId": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "truncatedEmail": "reporting-email-4519…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "reg-4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "eventType": "registration",
+              "occurredAt": "2026-11-09T09:23:43.837692059Z",
+              "playerId": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "truncatedEmail": "reporting-email-4519…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "selfex-02246e75-8495-3bf9-adf6-8559b48552c1",
+              "eventType": "self_exclusion",
+              "occurredAt": "2026-11-09T09:21:39.965756225Z",
+              "playerId": "02246e75-8495-3bf9-adf6-8559b48552c1",
+              "truncatedEmail": "reporting-email-5be0…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "reg-02246e75-8495-3bf9-adf6-8559b48552c1",
+              "eventType": "registration",
+              "occurredAt": "2026-11-09T09:21:38.050215563Z",
+              "playerId": "02246e75-8495-3bf9-adf6-8559b48552c1",
+              "truncatedEmail": "reporting-email-5be0…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "selfex-357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "eventType": "self_exclusion",
+              "occurredAt": "2026-11-09T09:20:28.845347958Z",
+              "playerId": "357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "truncatedEmail": "reporting-email-e264…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "reg-357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "eventType": "registration",
+              "occurredAt": "2026-11-09T09:20:22.722089545Z",
+              "playerId": "357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "truncatedEmail": "reporting-email-e264…"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.events": "differs between two runs of the original"
+      }
+    }
+  ]
+}

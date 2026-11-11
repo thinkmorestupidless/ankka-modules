@@ -56,6 +56,10 @@ final class Webhooks(components: ComponentClient, merchant: MerchantClient):
                 val s = entity.call(DepositSession.settle).invoke(Settle(outcome, status, GatewayRuntime.now()))
                 if s.settled then log.info(s"webhook ${provider.wire} $paymentId: settled ${outcome.word} ($status)")
                 else log.info(s"webhook ${provider.wire} $paymentId: already settled; acknowledged")
+              case Verdict.Dispute(dispute, status) =>
+                val d = entity.call(DepositSession.reportDispute).invoke(ReportDispute(dispute, status, GatewayRuntime.now()))
+                if d.reported then log.info(s"webhook ${provider.wire} $paymentId: ${dispute.kind} reported ($status)")
+                else log.info(s"webhook ${provider.wire} $paymentId: ${dispute.kind} not recorded: not captured, a repeat, or out of order; acknowledged")
               case Verdict.Open(status)   => log.info(s"webhook ${provider.wire} $paymentId: open ($status)")
               case Verdict.Ignore(reason) => log.info(s"webhook ${provider.wire} $paymentId: ignored: $reason")
               case Verdict.Reject(reason) => log.warn(s"webhook ${provider.wire} $paymentId: refused: $reason")
@@ -94,6 +98,7 @@ final class Webhooks(components: ComponentClient, merchant: MerchantClient):
                 val s = entity.call(PayoutSession.settle).invoke(SettlePayout(outcome, state.providerReference, status, GatewayRuntime.now()))
                 if s.settled then log.info(s"payout webhook ${provider.wire} $requestId: settled ${outcome.word} ($status)")
                 else log.info(s"payout webhook ${provider.wire} $requestId: not admitted after ${state.outcome.map(_.word).getOrElse("none")}")
+              case Verdict.Dispute(d, _)  => log.info(s"payout webhook ${provider.wire} $requestId: ignored: a ${d.kind} names a deposit")
               case Verdict.Open(status)   => log.info(s"payout webhook ${provider.wire} $requestId: open ($status)")
               case Verdict.Ignore(reason) => log.info(s"payout webhook ${provider.wire} $requestId: ignored: $reason")
               case Verdict.Reject(reason) => log.warn(s"payout webhook ${provider.wire} $requestId: refused: $reason")

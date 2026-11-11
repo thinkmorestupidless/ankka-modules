@@ -171,7 +171,12 @@ final class BetWorkflow(context: WorkflowContext) extends Workflow[BetFlow]:
   def recordRoundStep: StepEffect =
     val cmd    = currentState.pending.get
     if BetRuntime.recordDelay > Duration.Zero then Thread.sleep(BetRuntime.recordDelay.toMillis)
-    val answer =components.forEventSourcedEntity(EntityId(job.roundEntity)).call(Round.record).invoke(cmd).answer
+    val round  = components.forEventSourcedEntity(EntityId(job.roundEntity))
+    val first  = round.call(Round.record).invoke(cmd)
+    // Only a new round wants the catalogue's opening: a transaction on an open round reads no catalogue.
+    val answer =
+      if first.openingWanted then round.call(Round.record).invoke(cmd.copy(opening = Openings.catalogued(components, cmd.opening))).answer
+      else first.answer
     if currentState.countsBet then Metrics.betPlaced(brand)
     stepEffects.updateState(currentState.copy(status = BetFlow.Done, outcome = Some(answer))).thenEnd
 
@@ -179,7 +184,7 @@ final class BetWorkflow(context: WorkflowContext) extends Workflow[BetFlow]:
     val j     = job
     val error = currentState.error.getOrElse("the wallet step failed")
     components.forEventSourcedEntity(EntityId(j.roundEntity)).call(Round.recordUnacknowledged)
-      .invoke(RecordUnacknowledged(j.opening, UnacknowledgedEntry(j.key, j.callback, j.kind, j.amount, error, j.raw, now()))): Unit
+      .invoke(RecordUnacknowledged(Openings.catalogued(components, j.opening), UnacknowledgedEntry(j.key, j.callback, j.kind, j.amount, error, j.raw, now()))): Unit
     BetWorkflow.log.warn(s"${j.callback} ${j.key} unacknowledged: $error")
     stepEffects.updateState(currentState.copy(status = BetFlow.Unacknowledged, error = Some(error))).thenPause()
 

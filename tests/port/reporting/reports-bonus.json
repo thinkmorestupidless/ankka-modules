@@ -1,0 +1,44 @@
+{
+  "scenario": "reports-bonus",
+  "requirement": "015/FR-009",
+  "recorded_at": "2026-11-09T09:24:04.942538Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "reports-bonus",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/reports/bonus?from={from}\u0026to={to}\u0026offerId=all",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "from": "2026-10-11",
+          "offers": [],
+          "summary": {
+            "activeCount": 0,
+            "cancelledCount": 0,
+            "conversionRatePct": 0,
+            "convertedCount": 0,
+            "currency": "EUR",
+            "forfeitedCount": 0,
+            "totalGrantedValue": "0.00",
+            "totalGrantsCount": 0
+          },
+          "to": "2026-11-09"
+        }
+      }
+    }
+  ]
+}

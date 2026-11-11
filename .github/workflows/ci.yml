@@ -35,12 +35,14 @@ jobs:
       affiliate-programme: ${{ steps.filter.outputs.affiliate-programme }}
       game-provider: ${{ steps.filter.outputs.game-provider }}
       simulator: ${{ steps.filter.outputs.simulator }}
+      provider: ${{ steps.filter.outputs.provider }}
       responsible-gambling: ${{ steps.filter.outputs.responsible-gambling }}
       kyc: ${{ steps.filter.outputs.kyc }}
       payouts: ${{ steps.filter.outputs.payouts }}
       rewards: ${{ steps.filter.outputs.rewards }}
       engagement: ${{ steps.filter.outputs.engagement }}
       audit: ${{ steps.filter.outputs.audit }}
+      reporting: ${{ steps.filter.outputs.reporting }}
       support-agent: ${{ steps.filter.outputs.support-agent }}
       markets: ${{ steps.filter.outputs.markets }}
       exchange: ${{ steps.filter.outputs.exchange }}
@@ -104,13 +106,21 @@ jobs:
               - tests/original/programme-driver/**
             game-provider:
               - *build
+              - provider-core/**
               - services/game-provider/**
               - features/game-provider/**
               - tests/port/game-provider/**
             simulator:
               - *build
+              - provider-core/**
               - services/game-provider-simulator/**
               - features/simulator/**
+              - tests/port/simulator/**
+            provider:
+              - *build
+              - provider-core/**
+              - services/provider/**
+              - features/games/**
               - tests/port/simulator/**
             responsible-gambling:
               - *build
@@ -143,6 +153,11 @@ jobs:
               - services/audit/**
               - features/audit/**
               - tests/port/audit/**
+            reporting:
+              - *build
+              - services/reporting/**
+              - features/reporting/**
+              - tests/port/reporting/**
             support-agent:
               - *build
               - services/support-agent/**
@@ -205,8 +220,8 @@ jobs:
           java-version: "21"
           cache: sbt
       - uses: sbt/setup-sbt@v1
-      - name: Publish the contract locally
-        run: sbt contract/publishLocal
+      - name: Publish the contract and the provider core locally
+        run: sbt contract/publishLocal providerCore/publishLocal
       - name: game-provider's suites
         working-directory: services/game-provider
         run: sbt test
@@ -379,11 +394,42 @@ jobs:
           java-version: "21"
           cache: sbt
       - uses: sbt/setup-sbt@v1
-      - name: Publish the contract locally
-        run: sbt contract/publishLocal
+      - name: Publish the contract and the provider core locally
+        run: sbt contract/publishLocal providerCore/publishLocal
       - name: The simulator's suites
         working-directory: services/game-provider-simulator
         run: sbt test
+
+  # The house provider (spec 026): its own sbt build against the contract and the provider core
+  # published from this commit; its suites start Postgres in Docker and run the features of
+  # features/games.
+  provider:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.provider == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract and the provider core locally
+        run: sbt contract/publishLocal providerCore/publishLocal
+      - name: The provider's suites
+        working-directory: services/provider
+        run: sbt test
+  # A game service in `games` (spec 027 on) copies this job and builds its browser client first
+  # (spec 026 contracts/game-client.md); its parity and feature suites need the built page:
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "22"
+  #         cache: npm
+  #         cache-dependency-path: services/<game>/client/package-lock.json
+  #     - name: The game's browser client
+  #       working-directory: services/<game>/client
+  #       run: npm ci && npm run build
 
   # responsible-gambling (spec 010): its own sbt build against the contract published from this commit;
   # its integration suites start Postgres in Docker.
@@ -515,6 +561,29 @@ jobs:
       - name: audit's integration, parity and feature suites
         working-directory: services/audit
         run: sbt -Dit=true "testOnly io.eitheror.casino.audit.it.* io.eitheror.casino.audit.port.* io.eitheror.casino.audit.features.*"
+
+  # reporting (spec 015): its own sbt build on ankka 0.16.0, against the contract published from this commit.
+  # `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in Docker.
+  reporting:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.reporting == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: reporting's suites
+        working-directory: services/reporting
+        run: sbt test
+      - name: reporting's integration, parity and feature suites
+        working-directory: services/reporting
+        run: sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.port.* io.eitheror.casino.reporting.features.*"
 
   # support-agent (spec 017): its own sbt build, on ankka 0.16.2, against the contract published from this
   # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in

@@ -42,7 +42,9 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
   val broker     = InMemoryBroker()
   @volatile var clock: Instant = Instant.parse("2026-10-09T10:00:00Z")
 
-  val settings = Settings(brand, realMoney, Vector(St8Adapter(), St8Adapter("acme"), St8Adapter("nova")), () => Kit.authenticate(brand),
+  // `eitheror` is the house provider's name (spec 026): a fourth of the same protocol, read as `casino-providers` is.
+  val settings = Settings(brand, realMoney, Settings.providers("st8:st8,acme:st8,nova:st8,eitheror:st8").fold(p => throw IllegalStateException(p), identity),
+    () => Kit.authenticate(brand),
     keyDocuments = KeyDocuments.http(), now = () => clock)
 
   private val timers = TimerRuntime(200.millis)
@@ -121,12 +123,12 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
 
   /** A session ticket for a player and game, issued and checked, as `/st8/test/register-token` did. */
   def sessionTicket(player: String, game: String = "book-of-ra", currency: String = "EUR", grant: Option[String] = None,
-      token: String = java.util.UUID.randomUUID().toString): String =
+      token: String = java.util.UUID.randomUUID().toString, provider: String = "st8"): String =
     val t = testKit.componentClient.forKeyValueEntity(EntityId(token))
-    t.call(Ticket.issue).invoke(io.eitheror.casino.gameprovider.tickets.IssueTicket("st8", player, game, Some("slots"), s"gs-$token", currency, grant, false, clock)): Unit
+    t.call(Ticket.issue).invoke(io.eitheror.casino.gameprovider.tickets.IssueTicket(provider, player, game, Some("slots"), s"gs-$token", currency, grant, false, clock)): Unit
     t.call(Ticket.check).invoke(io.eitheror.casino.gameprovider.tickets.CheckTicket(None, clock)): Unit
     testKit.componentClient.forKeyValueEntity(EntityId(player)).call(players.KnownPlayer.makeKnown)
-      .invoke(players.MakeKnown("st8", Some(currency), clock)): Unit
+      .invoke(players.MakeKnown(provider, Some(currency), clock)): Unit
     token
 
   def ticket(token: String): TicketState = testKit.componentClient.forKeyValueEntity(EntityId(token)).call(Ticket.get).invoke()

@@ -222,6 +222,15 @@
     {
       "additionalProperties": true,
       "properties": {
+        "amount_cents": {
+          "minimum": 0,
+          "type": "integer",
+          "x-unit": "minor"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"

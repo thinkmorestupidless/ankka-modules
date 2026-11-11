@@ -163,6 +163,9 @@ final class Kit(baseSettings: Settings = Settings(), val backoff: Backoff = Back
   def fail(paymentId: String, body: (String, Any)*): Reply =
     request("POST", s"/v1/payments/$paymentId/fail", Some(Json.render(Json.obj(body*))), asGateway)
 
+  def dispute(paymentId: String, body: (String, Any)*): Reply =
+    request("POST", s"/v1/payments/$paymentId/dispute", Some(Json.render(Json.obj(body*))), asGateway)
+
   def read(paymentId: String): Reply = request("GET", s"/v1/cashier/payments/$paymentId", None, asIngest)
 
   def paymentState(paymentId: String): PaymentState = components.forEventSourcedEntity(EntityId(paymentId)).call(Payment.get).invoke()

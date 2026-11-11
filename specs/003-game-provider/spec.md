@@ -565,6 +565,13 @@ outbound money-adjacent calls.
   wallet transaction ids of every movement in the round; `rewards` settles a grant's winnings from
   it (spec 011), readers derive session totals from it, and `reporting` (spec 015 FR-017, FR-018)
   matches the provider's figures to the wallet's facts by the wallet transaction ids without a call.
+  The session (`session_id`) is the game session's id, the `session_id` of `casino.sessions`'
+  `game_session_started`: the one the launch opened at `players` and attached to the ticket (FR-009),
+  taken by the round from the first callback that names it; empty when no ticket named the round.
+  Added for spec 015 (its research R11; FR-014, FR-016, FR-018): `game_name` and `game_type`, the
+  game's name and category in this service's catalogue (FR-021) when the round opened, recorded on the
+  round so the fact needs no lookup, and absent when the catalogue does not hold the game (a reader
+  then names the game by its id).
 - **FR-020**: A callback the wallet did not acknowledge MUST be recorded as unacknowledged with its
   kind, amount, round and error, listable by an operator, and cleared when a retry succeeds. An
   operator MUST be able to replay one: the service re-drives the stored callback against the wallet
@@ -616,7 +623,11 @@ outbound money-adjacent calls.
   real money, the provider public key MAY instead be the address of a key document the service
   fetches and refreshes within 60 seconds, so that spec 020's simulator registers its current and
   next keys by publishing them (020 FR-011); a real-money brand MUST hold the key itself. These
-  settings move here from `merchant-service`'s `CredentialRoutes` (spec 004).
+  settings move here from `merchant-service`'s `CredentialRoutes` (spec 004). A provider's protocol
+  is `st8` for every provider a brand runs; the names a brand runs are its `casino-providers` value
+  (spec 026: `st8:st8,eitheror:st8` by default, each name served under its own prefix, `st8` alone at
+  the root); a configuration written for a name not in it is refused naming the value, and the read
+  answers the operator public key, derived from the private key, for the provider's brand entry.
 - **FR-027**: Every route MUST be of one class (spec 001 FR-020): launch, catalogue and session
   routes are player routes; the catalogue configuration, the operator catalogue (FR-024), the
   provider configuration (FR-026), the refresh now and its status (FR-021), the rounds by player or

@@ -19,6 +19,11 @@ Feature: The brand's KYC policy comes from its licence
     When an operator applies the licence profile "mga"
     Then the KYC policy is: no deposit gate, no play gate, the KYC currency "EUR", a deposit threshold of "200000", no verification window, a source of funds threshold of "1000000", identity and proof of address required, and no suspension on expiry
 
+  Scenario: applying the Anjouan profile sets its gates, window, thresholds and categories
+    Given a brand
+    When an operator applies the licence profile "anjouan"
+    Then the KYC policy is: no deposit gate, no play gate, no KYC currency, no deposit threshold, a "30" day verification window, no source of funds threshold, identity required, and suspend on expiry
+
   Scenario: changing one field of a profile's policy changes only that field and marks the profile custom
     Given a brand on the licence profile "mga"
     When an operator sets the verification window to "60" days

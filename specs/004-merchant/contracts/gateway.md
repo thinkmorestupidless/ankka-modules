@@ -64,6 +64,21 @@ Answers `200 {"ok": true}`, an unknown or terminal payment too; `503` as above. 
 `psp-gateway` is refused `403` by the route's ACL, where the original answered `401 UNAUTHORIZED` for
 a missing internal secret (plan.md Divergences).
 
+### `POST /v1/payments/{paymentId}/dispute` (FR-022; spec 015 R11)
+
+Headers as the fail. Body: `outcome` (`dispute_opened` \| `dispute_closed`), `psp_transaction_id?`
+(not read), `amount?` (minor units), `currency?`, and for an opening `reason?`, for a close
+`disputeOutcome` (`won` \| `lost`, the brand's: `lost` is a chargeback). An opening without an amount
+or currency is the deposit's. Recorded on the payment whatever its status, each of the two once, and
+forwarded to the brand's wallet by the outcome consumer.
+
+| Answer | Meaning for the gateway |
+|---|---|
+| `200 {"ok": true}` | delivered, a repeat and an unknown payment too; stop |
+| `400 invalid_outcome` | a close whose `disputeOutcome` is not `won` or `lost`: a client error, record as refused |
+| `400 INVALID_REQUEST` | an `outcome` that is not a dispute's, a currency that is not one, or a given `amount` that is not positive (added 2026-11-09, spec 015's review): record as refused |
+| `503 payment_unavailable` | redeliver |
+
 ### What the gateway reads from `merchant`
 
 `GET /internal/v1/sub-brands/{subBrandId}/psp-credentials/{provider}` and

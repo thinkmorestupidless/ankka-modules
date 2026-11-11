@@ -8,7 +8,9 @@ import io.eitheror.casino.merchant.wallet.OutcomeReport
 /**
  * Every outcome of a payment but the capture reaches the brand (FR-022, spec correction 3): the
  * brand's wallet's outcome route is called for `initiated`, `failed`, `expired` and `abandoned` (a
- * failure coded `player_abandoned`), keyed by the payment and the outcome, carrying the provider. A
+ * failure coded `player_abandoned`), and for the gateway's `dispute_opened` (the amount, currency and
+ * reason) and `dispute_closed` (`disputeOutcome`, and the amount and currency where the provider gave
+ * them; spec 015 R11), keyed by the payment and the outcome, carrying the provider. A
  * call that is not acknowledged throws, so the event is delivered again; the wallet answers a repeat
  * as recorded. A payment of a sub-brand that names no brand reports nothing.
  */
@@ -25,6 +27,12 @@ final class OutcomeReporter(context: ConsumerContext) extends Consumer[PaymentEv
         report(read.opened.flatMap(o => OutcomeReporter.of(id, o, kind, code, Some(reason))))
       case PaymentEvent.Expired(_) =>
         report(read.opened.flatMap(o => OutcomeReporter.of(id, o, "expired", None, Some(FailureReason.Abandoned))))
+      case PaymentEvent.DisputeOpened(amount, currency, reason, _) =>
+        report(read.opened.flatMap(o => OutcomeReporter.of(id, o, "dispute_opened", None, reason))
+          .map(_.copy(amount = Some(amount), currency = Some(currency))))
+      case PaymentEvent.DisputeClosed(outcome, amount, currency, _) =>
+        report(read.opened.flatMap(o => OutcomeReporter.of(id, o, "dispute_closed", None, None))
+          .map(_.copy(amount = amount, currency = currency, disputeOutcome = Some(outcome))))
       case _ => effects.ignore()
 
   private def report(r: Option[OutcomeReport]): Effect =

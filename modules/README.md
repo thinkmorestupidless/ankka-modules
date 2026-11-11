@@ -15,6 +15,10 @@ manifest format (vendor spec 004 `contracts/manifest.md`; the schema is vendored
 
 `partner` (partner-api, on `casino`), `predictions` and `pool` are written by specs 016, 023 and 024.
 
+The shared projects are not modules: `payments`, `programme`, `reasoner`, `games` (eitheror's own game
+provider, spec 026) and `tools` (the simulator, spec 020) are each one `shared/<project>/manifest.json`, applied
+with `just modules apply shared/<project>/manifest.json --installation <name>` (`shared/README.md`).
+
 ## What a manifest carries
 
 Services with their descriptors, topics, the grants the module makes and receives, its dependencies

@@ -27,7 +27,7 @@ Feature: Marketing reads bonus performance and operations the provider report
     And one row per payment provider shows the same
     And a provider below "95" percent success is marked
 
-  Scenario: a provider report for a period with no attempts shows every rate absent, not a constant
+  Scenario: a provider report for a period with no attempts shows no rate, not a constant
     Given no deposit attempts in the period
     When operations runs the provider report for it
-    Then every rate is absent, not "97"
+    Then every rate reads as no rate, not "97"

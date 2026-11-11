@@ -27,6 +27,32 @@ class PaymentEntitySuite extends munit.FunSuite with LogCapturing:
     assertEquals(kit.currentState.outcomes, Vector.empty)
   }
 
+  private def closed(result: String, amount: Option[Long] = None, currency: Option[String] = None) =
+    PaymentOutcome("dispute_closed", "p1", "unityfinance", amount = amount, currency = currency, disputeOutcome = Some(result), at = t0)
+
+  test("spec 015: a closed dispute with no amount of its own carries the amount and currency of the dispute as opened") {
+    val kit = EventSourcedTestKit.of(PaymentEntity, "pay-4")
+    kit.call(PaymentEntity.record)(outcome("dispute_opened").copy(amount = Some(2500), currency = Some("EUR"), reason = Some("chargeback"))): Unit
+    val reply = kit.call(PaymentEntity.record)(closed("lost")).replyValue
+    assertEquals((reply.first.amount, reply.first.currency, reply.first.disputeOutcome), (Some(2500L), Some("EUR"), Some("lost")))
+    assertEquals(kit.currentState.outcomes.last.amount, Some(2500L))
+  }
+
+  test("spec 015: a closed dispute that states its amount keeps it; one with no dispute opened and no amount carries none") {
+    val kit = EventSourcedTestKit.of(PaymentEntity, "pay-5")
+    kit.call(PaymentEntity.record)(outcome("dispute_opened").copy(amount = Some(2500), currency = Some("EUR"))): Unit
+    assertEquals(kit.call(PaymentEntity.record)(closed("lost", Some(1000), Some("EUR"))).replyValue.first.amount, Some(1000L))
+    val bare = EventSourcedTestKit.of(PaymentEntity, "pay-6").call(PaymentEntity.record)(closed("won")).replyValue.first
+    assertEquals((bare.amount, bare.currency), (None, None))
+  }
+
+  test("spec 015: a closed dispute's outcome outside won and lost is refused and nothing is recorded") {
+    val kit = EventSourcedTestKit.of(PaymentEntity, "pay-7")
+    assert(kit.call(PaymentEntity.record)(closed("reversed")).isError)
+    assert(kit.call(PaymentEntity.record)(closed("lost").copy(disputeOutcome = None)).isError)
+    assertEquals(kit.currentState.outcomes, Vector.empty)
+  }
+
   test("an outcome without the player or the provider is refused") {
     val kit = EventSourcedTestKit.of(PaymentEntity, "pay-3")
     assert(kit.call(PaymentEntity.record)(outcome("failed").copy(paymentProvider = "")).isError)

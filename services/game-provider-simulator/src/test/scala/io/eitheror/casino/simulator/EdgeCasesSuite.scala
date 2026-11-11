@@ -3,7 +3,8 @@ package io.eitheror.casino.simulator
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.thinkmorestupidless.ankka.testkit.LogCapturing
 import io.eitheror.casino.simulator.SimulatorTestKit.staff
-import io.eitheror.casino.simulator.brands.{BrandTable, Sender}
+import io.eitheror.casino.provider.brands.Sender
+import io.eitheror.casino.simulator.brands.BrandTable
 import io.eitheror.casino.simulator.core.Scenario
 
 import scala.concurrent.duration.*
@@ -164,7 +165,7 @@ class EdgeCasesSuite extends munit.FunSuite with LogCapturing:
     val port    = closed.getLocalPort
     closed.close()
     val table   = BrandTable.parse(s"""[{"slug":"gone","baseAddress":"http://127.0.0.1:$port","testBrand":true}]""", "http://x", None, None, Map.empty).toOption.get
-    val attempt = Sender(table, kit.keys).send("gone", "/st8/balance", "{}".getBytes, "current", 1.second, 1)
+    val attempt = Sender(table.apply, kit.keys).send("gone", "/st8/balance", "{}".getBytes, "current", 1.second, 1)
     assert(attempt.httpStatus.isEmpty)
     assert(attempt.error.exists(_.startsWith("brand unreachable")), attempt.toString)
   }

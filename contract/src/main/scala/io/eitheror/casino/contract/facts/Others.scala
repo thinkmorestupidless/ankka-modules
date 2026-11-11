@@ -51,14 +51,16 @@ sealed trait CasinoRoundsFact extends Fact
  * Spec 003 FR-019 adds, additively: the provider's transaction ids and the wallet's, in the same order
  * (one per movement, empty for a free round), so reporting matches the two without a call; and the
  * free-rounds grant a tagged round belongs to, which `rewards` settles the win from (spec 011).
- * `transaction_ids` stays the wallet's ids for readers written against it.
+ * `transaction_ids` stays the wallet's ids for readers written against it. `session_id` is the game session's id,
+ * `casino.sessions`' `game_session_started.session_id`; spec 015 adds the catalogue's `game_name` and `game_type`
+ * (its category), absent when the game is not in the catalogue.
  */
 @named("round_settled")
 final case class RoundSettled(playerId: String, currency: Currency, roundId: String, provider: String,
     providerRoundId: String, gameId: String, sessionId: String, stakeCents: MinorUnits, winCents: MinorUnits,
     netResultCents: SignedMinorUnits, outcome: String, transactionIds: Vector[String],
     providerTransactionIds: Vector[String], walletTransactionIds: Vector[String], freeRoundsGrant: Option[String],
-    occurredAt: Instant)
+    occurredAt: Instant, gameName: Option[String] = None, gameType: Option[String] = None)
     extends CasinoRoundsFact:
   def key: String = s"$playerId/${currency.code}"
 

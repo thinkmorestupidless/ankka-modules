@@ -231,6 +231,15 @@ func TestDepositFailuresPendingAndReversal(t *testing.T) {
 	if d := await(t, got); d.form.Get("ik_pm_no") != "txn-p" || d.form.Get("ik_inv_st") != "chargebacked" || !verify(d.form, signKey) {
 		t.Fatalf("settled %v", d.form)
 	}
+
+	// A dispute opened on a deposit already captured: /__webhook with the control's override.
+	resp, _ = http.Post(srv.URL+"/__webhook", "application/json", strings.NewReader(`{"reference":"txn-p","outcome":"disputed"}`))
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("disputed webhook %d", resp.StatusCode)
+	}
+	if d := await(t, got); d.form.Get("ik_inv_st") != "chargeback" || !verify(d.form, signKey) {
+		t.Fatalf("disputed %v", d.form)
+	}
 }
 
 func TestWithdrawAnswersTheLiveShapeAndSendsTheStateByName(t *testing.T) {

@@ -4,7 +4,7 @@ The words this project's features use, each in exactly one sense.
 
 ## Everyday words
 
-validates, declares, fit, backoffice, force,
+distinct, validates, declares, fit, backoffice, force,
 a, an, the, and, or, of, to, in, on, for, with, is, are, was, has, have, had, does, not, no, one, two, any, every, each, same, other, its, their, this, that, when, then, after, before, within, again, still, only, also, than, more, less, new, first, last, next, named, called, shown, listed, given, asked, told, sent, kept, left, made, put, set, seen, found, open, closed, known, unknown, yes, number, amount, time, day, days, hour, hours, minute, minutes, second, seconds, year, years, month, months,
 above, accepted, across, act, action, active, actor, add, added, address, addresses, admitted, against, ago, allowed, allowing, allows, already, ancestor, answer, anything, applicant, applied, applies, apply, applying, approval, approve, approved, approves, arrive, arrives, awaiting, awaits, back, backoff, backup, backups, bad, base, becomes, belonged, below, beside, between, bind, binds, birth, blocks, bound, browser, cache, caches, cancellation, cancelled, capture, captured, carried, carries, carry, category, chain, change, changed, changes, charged, checked, claimed, closure, comes, completed, computation, computed, concurrent, condition, conditions, configuration, confirm, confirmation, confirmed, confirms, consumed, content, continue, convert, converted, converts, copies, copy, correction, corrupted, counter, country, covers, create, created, creates, cross, cumulative, currencies, currency, cycle, daily, dashboard, date, dated, dates, debit, debited, debits, decision, default, deficit, delivered, delta, descendant, details, device, differ, difference, different, digest, discard, dismissed, dismisses, display, draw, drawn, duplicate, duplicated, during, earlier, earnings, earns, else, email, emit, emits, emitted, end, ended, ends, enforced, enter, entirely, entry, equals, erase, erased, erases, established, everything, exactly, exclude, excludes, exhausted, exists, export, exports, failed, fails, failure, falls, fetches, field, fields, figure, figures, file, files, filter, finance, floors, forgets, forms, forward, fresh, frontend, full, gains, gave, half, headline, held, however, identifies, identity, ignored, import, imported, inherits, inspects, interruption, invite, invited, issued, itself, keep, keeps, kind, knows, landed, landing, lands, lapses, late, learn, lets, life, lifetime, like, limit, local, locally, longer, major, maps, mark, marked, meaning, meeting, meets, minimum, minor, minus, mirrors, moved, need, never, nothing, occur, occurred, occurs, old, older, once, onward, optionally, organically, otherwise, outcome, outside, own, paid, part, partly, passed, passes, password, pay, pays, per, percent, percentages, permanently, persists, person, pins, placed, places, play, played, pointed, position, positive, postal, posts, previous, produced, provisioned, published, publishes, raised, ran, range, rate, reactivate, reactivates, read, readable, reader, readers, reading, reads, reason, rebuilds, rebuilt, received, receives, recomputed, reduced, refreshed, refreshes, refused, refuses, register, registered, registers, rejected, removed, replays, repository, request, requested, required, requires, resend, reset, restored, retried, retries, returned, returns, reverse, reverts, review, reviewed, revoke, revoked, right, rises, role, roles, rolled, row, rules, run, running, runs, say, says, scenario, see, sees, self, send, sender, sends, separately, served, serves, session, settled, settles, shows, sign, signature, signed, sorts, source, stale, stamped, stands, started, starts, states, stats, status, stay, stays, stores, strings, substituted, succeeds, suite, sum, summed, superseded, suspend, suspended, swept, telephone, tell, text, threshold, thresholds, total, totals, traffic, transactional, treated, turned, twice, unaffected, unchanged, unclaimed, unit, units, unless, untouched, usage, valid, verifies, verify, version, visible, visited, visitor, voided, what, where, which, who, whole, whose, withdrawn, without, won, writes, written, zero
 afresh, among, attached, attaches, band, browse, browses, built, cleared, clears, configured, current, decimals, deprecation, disable, disabled, disables, echoed, eligible, enable, enabled, enables, included, jurisdiction, labels, layer, layers, long, nightly, oldest, plus, popular, processing, prohibited, prohibits, ranked, ranking, reach, refunded, resolved, site, stop, stops, success, take, territories, territory, whatever, winnings, yet
@@ -24,6 +24,7 @@ arguments, budget, compaction, composed, contains, control, explains, express, f
 agreed, approver, causation, database, declined, entity, format, ingest, inside, joins, lookup, occurrence, officer, performed, principal, re-read, recursively, regulator, survives
 advertises, began, begin, begins, decremented, defect, doubled, elapsed, evidence, expected, fake, finding, instants, instructs, observed, percentile, production, projection, proposed, reconciliation, retired, runbook, scaled, schedule, shape, snapshot, snapshots, spends, step, study, sweep, th, took, verdict
 another, try
+attempt, attempts, instance, instances, abandons, deregisters, deregister, acknowledge, acknowledges, acknowledged, decremented, either, demo, exponent, loads, protocol, registered, registers, spends, sweep, younger
 
 ## Terms
 
@@ -377,7 +378,7 @@ The secret a brand holds for one network, under which it derives its players' ps
 A key under which a network signs tags, or a brand signs feed pages and network webhooks; published by id in a key document and withdrawn from it when retired.
 
 ### key document
-What a network or a brand publishes listing its current signing keys by id and how long a reader may cache it.
+What a network, a brand or the house provider publishes listing its current signing keys by id (and, during a key rotation, the next) and how long a reader may cache it.
 
 ### revocation list
 What a network publishes naming the links and affiliates whose tags bind no new player; a brand refreshes it on the stated interval.
@@ -814,7 +815,7 @@ Where a player's KYC stands: unverified, pending, additional verification requir
 The brand's KYC rules: the deposit gate, the play gate, the deposit threshold, the source of funds threshold, the verification window, the required categories, and whether the window's expiry suspends; taken from a licence profile and marked custom once a field is changed by hand.
 
 ### licence profile
-A regulator's defaults for the KYC policy, applied by name: UKGC, MGA or Curaçao; custom once any field is changed.
+A regulator's defaults for the KYC policy, applied by name: UKGC, MGA, Curaçao or Anjouan (Curaçao's values under its own name); custom once any field is changed.
 
 ### deposit gate
 The brand's rule that a player must have reached a KYC status before they may deposit; a deposit refused by it tells the player the status's own words.
@@ -1163,6 +1164,31 @@ A route the casino module serves.
 
 ## Predictions
 
+### predictions module
+The module (spec 023) that runs a brand's prediction markets: the markets and exchange services, entitled per brand at ankka-vendor.
+
+### predictions summary
+Reporting's figures of a brand's prediction markets for a period and currency: contracts traded, notional volume, trades, traders, taker fees, resolution payments and remainders kept, and the markets opened, resolved, voided and corrected.
+
+### market report
+Reporting's one row per market: its status and times, its resolution, volume, trades, traders, open interest, taker fees, resolution payments and the remainder kept.
+
+### traders report
+Reporting's one row per player who traded in a period: contracts traded, notional volume, taker fees paid, positions paid and net result.
+
+### trader
+A player who was a party to at least one trade in the period.
+
+### notional volume
+The sum over trades of contracts times price, in the market's currency.
+
+### open interest
+The shares of a market's outcomes players hold at a moment, from fills and resolution payments.
+
+### remainder
+Of a market that is final: what its pool account keeps after every resolution payment, from rounding; the brand's.
+Avoid: dust
+
 ### market
 A question with two or more outcomes, one of which will be resolved true; drafted, approved, opened, closed, resolved or voided, then final. The rules are the markets library's (ankka-predictions).
 
@@ -1321,3 +1347,48 @@ A credit to a player's real balance from a market's pool account when the market
 
 ### service principal
 A service, named as its project and name, that owns a non-player account or calls a granted route.
+
+## The house provider
+
+### house provider
+The game provider eitheror runs itself: one deployment serving every brand on the installation, speaking the game provider's protocol so a brand configures it as any game provider, with its games behind it as game services. It signs, sends, retries and records every provider call; no game service does.
+
+Avoid: first-party provider, own provider, games project, the edge
+
+### game service
+A service of the house provider holding one or more games' rules and state and the game page of each, keyed by brand; it registers its games with the house provider and opens, settles and cancels rounds only by asking it.
+
+### game page
+The browser client of a house provider game, served by its game service at the address a launch answers; on load it asks the game service to check the launch ticket, and shows the session expired page when the brand refuses it.
+
+Avoid: game client, game UI
+
+### brand table
+The house provider's list of the brands it serves, one brand entry each, written by an operator and applied with no redeploy.
+
+### brand entry
+One brand in the brand table: its slug, the address of its game provider service, its site, its credential (the key its launches are signed with), its language, whether it is a test brand, whether it takes real money, the games it may run and, for a test brand only, whether it names the key document instead of holding the key. An entry that names the key document and takes real money refuses every launch.
+
+### pending debit
+A debit the brand has not answered within the wait: answered to the game service as pending, retried under the same transaction id on the retry schedule; the round is not open until the brand answers.
+
+### unanswered call
+A provider call of the house provider the brand has not acknowledged: retried on the retry schedule, listed for the operator with its attempts and next retry, and abandoned with a reason when the money was settled another way. The brand's own record of a call that failed to reach its wallet is an unacknowledged call.
+
+### retry schedule
+The intervals and cap on which the house provider retries a provider call the brand answered "error" or did not answer: every thirty seconds for ten minutes, then every ten minutes, capped at eight hours; one setting of the house provider.
+
+### key rotation
+The replacement of the house provider's signing key in three operator acts: start (the next key is published in the key document), switch (every later provider call is signed with it) and withdraw (the old key leaves the document). Never done by a timer.
+
+### demo round
+A round asked on a session in fun mode: the house provider sends no provider call and tells the game service so.
+
+### claim deadline
+The time until which a free rounds instance at a game service can be spent, set by the game from its own schedule and never earlier than the brand asked.
+
+### day export
+Finance's export of one brand's rounds settled on one calendar day in the installation's reporting zone, with each round's stake, win, outcome and transaction ids; what the brand's provider report is compared with.
+
+### test game
+A game service that exists only in the house provider's test kit and is never deployed: it plays the rounds the recordings' instructions name so the house provider can be held to them.

@@ -20,6 +20,16 @@ import java.time.Instant
  */
 sealed trait MoneyTransactionsMessage extends Fact
 
+/**
+ * A restricted funds record a movement changed, as it stands after it (spec 015 R11): its status, balance, the
+ * wagering progressed and the wagering required. Carried as `records` on the movements that change a record.
+ */
+final case class RecordProgress(awardId: String, status: String, balanceCents: MinorUnits, progressCents: MinorUnits,
+    requirementCents: MinorUnits)
+
+object RecordProgress:
+  given FieldType[RecordProgress] = FieldType.nested[RecordProgress]
+
 /** A message about a player's wallet, keyed `<player>/<currency>`: every family but `account_adjusted`. */
 sealed trait MoneyTransactionsFact extends MoneyTransactionsMessage:
   def playerId: String
@@ -43,16 +53,19 @@ final case class DepositConfirmed(playerId: String, currency: Currency, transact
 @named("bet_placed")
 final case class BetPlaced(playerId: String, currency: Currency, transactionId: String, roundId: String, gameId: String,
     amountCents: MinorUnits, walletType: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
-    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 @named("win_credited")
 final case class WinCredited(playerId: String, currency: Currency, transactionId: String, roundId: String, gameId: String,
     amountCents: MinorUnits, walletType: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
-    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 @named("bet_rolled_back")
 final case class BetRolledBack(playerId: String, currency: Currency, transactionId: String, roundId: String,
-    amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None)
+    amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None)
     extends MoneyTransactionsFact
 
 @named("round_settled_as_loss")
@@ -62,33 +75,39 @@ final case class RoundSettledAsLoss(playerId: String, currency: Currency, transa
 @named("restricted_funds_awarded")
 final case class RestrictedFundsAwarded(playerId: String, currency: Currency, transactionId: String, awardId: String,
     amountCents: MinorUnits, wageringRequirement: MinorUnits, realBalanceAfter: SignedMinorUnits,
-    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None) extends MoneyTransactionsFact
+    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 @named("restricted_funds_converted")
 final case class RestrictedFundsConverted(playerId: String, currency: Currency, transactionId: String, awardId: String,
-    amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None)
+    amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None)
     extends MoneyTransactionsFact
 
 @named("restricted_funds_forfeited")
 final case class RestrictedFundsForfeited(playerId: String, currency: Currency, transactionId: String, awardId: String,
     amountCents: MinorUnits, reason: String, clawbackCents: MinorUnits, realBalanceAfter: SignedMinorUnits,
-    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 /** A pending cap the wallet closed: `reason` is `cap_expired`, `cap_exhausted` or `real_balance_zero` (spec 011 R6). */
 @named("restricted_funds_closed")
 final case class RestrictedFundsClosed(playerId: String, currency: Currency, transactionId: String, awardId: String,
     reason: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant,
-    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None)
+    depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None)
     extends MoneyTransactionsFact
 
 @named("admin_adjusted")
 final case class AdminAdjusted(playerId: String, currency: Currency, transactionId: String, amount: SignedMinorUnits,
     target: String, reason: String, actorId: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
-    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 @named("hold_placed")
 final case class HoldPlaced(playerId: String, currency: Currency, transactionId: String, withdrawalRequestId: String,
-    amountCents: MinorUnits, voidedCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None, voidedDepositCents: Option[MinorUnits] = None, voidedConvertedCents: Option[MinorUnits] = None)
+    amountCents: MinorUnits, voidedCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None, voidedDepositCents: Option[MinorUnits] = None, voidedConvertedCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None)
     extends MoneyTransactionsFact
 
 @named("hold_released")
@@ -110,7 +129,8 @@ final case class WalletWithdrawalReversed(playerId: String, currency: Currency, 
 @named("provider_credited")
 final case class ProviderCredited(playerId: String, currency: Currency, transactionId: String, providerRef: String,
     amountCents: MinorUnits, landedOn: String, awardId: Option[String], realBalanceAfter: SignedMinorUnits,
-    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None) extends MoneyTransactionsFact
+    restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
+    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
 
 // ── spec 022: reservations, settlement, resolution payments, non-player accounts ──
 // The seven wallet-keyed families name what happened to the wallet and carry its reserved balance

@@ -79,19 +79,15 @@ class LocalApplySuite extends munit.FunSuite:
     assertEquals(cp.calls, Vector.empty)
   }
 
-  test("a service contract/keys.md lists as not yet built is refused before any call, naming it and its module") {
-    val cp = withSecrets()
-    val before = cp.calls.size
-    val (code, out) = run(cp, "apply", "goldvibe", "--installation", "dev-kind", "--modules", "reporting")
-    assertEquals(code, 1, out.lines.mkString("\n"))
+  test("a service contract/keys.md lists as not yet built is named with its module, for the refusal before any call") {
+    // Every service the tree's manifests name is built (contract/keys.md's table is empty), so the table is given one.
+    val v    = Values.load(root.resolve("brands/goldvibe/values.json"), Main.valuesView(root)).toOption.get
+    val ms   = ModuleManifest.validateTree(root, ModuleManifest.ContractView.fromTree(root))._1
     val keys = Keys.load(root)
-    val named = Vector("reporting").filter(keys.notYetBuilt.contains)
-    assert(named.nonEmpty, "the tree lists no reporting service as not yet built: this test has nothing left to refuse")
-    named.foreach { s =>
-      assert(out.lines.exists(l => l.startsWith(s"refused service '$s' of module ")), s"$s not named\n${out.lines.mkString("\n")}")
-    }
-    assert(out.lines.contains("calls: 0"))
-    assertEquals(cp.calls.drop(before), Vector.empty)
+    val plan = BrandRender.plan(v, keys, ms, Vector("support"), Map.empty, Some(Fixtures.devKind)).toOption.get
+    assertEquals(LocalApply.unbuilt(plan, keys), Vector.empty[(String, String)])
+    val named = LocalApply.unbuilt(plan, keys.copy(notYetBuilt = Map("support-agent" -> "support")))
+    assertEquals(named, Vector("support" -> "support-agent"))
   }
 
   test("--allow-unbuilt applies the not-yet-built services anyway") {

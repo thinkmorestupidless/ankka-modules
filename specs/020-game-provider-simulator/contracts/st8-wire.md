@@ -29,10 +29,10 @@ signature has a random nonce: a recording lists `x-st8-sign` under `vary`.
 `GET /.well-known/st8-keys` (public):
 
 ```json
-{"current":{"kid":"k-2026-10-09a","spki":"MFkw..."},"next":{"kid":"k-2026-10-09b","spki":"MFkw..."},"cacheSeconds":60}
+{"current":{"kid":"k-2026-10-09a","spki":"MFkw..."},"next":{"kid":"k-2026-10-09b","spki":"MFkw..."},"keys":[{"kid":"k-2026-10-09a","publicKey":"MFkw..."},{"kid":"k-2026-10-09b","publicKey":"MFkw..."}],"cacheSeconds":60}
 ```
 
-`next` is absent outside a rotation. A brand on a non-real-money installation names this address as
+`next` is absent outside a rotation. `keys` lists, as `{kid, publicKey}`, every key a call may be signed with now: the current, the next during a rotation, and (house provider, spec 026 FR-020) the key a switch stopped signing with until it is withdrawn; it is the shape spec 003's brand reads. A brand on a non-real-money installation names this address as
 its provider public key (spec 003 FR-026) and refreshes within 60 s.
 
 ## Callbacks sent (FR-009), by shape

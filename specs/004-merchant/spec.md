@@ -483,9 +483,15 @@ original refuses a capture it cannot trust rather than credit it.
   outcome, carrying the payment provider and the failure code and reason where there is one, retried
   until acknowledged; the capture hand-off (`credit`) MUST carry
   the provider likewise, so every `payments.payments` family the wallet produces names it (spec 002
-  FR-022a, spec 015 FR-011); the `refunded` and dispute outcomes are spec 005's to report, with the
-  provider, when a provider reports them. A sub-brand that names no brand MUST skip `credit` and the
-  outcome consumer.
+  FR-022a, spec 015 FR-011). The same consumer MUST forward the disputes `psp-gateway` reports on
+  `POST /v1/payments/{id}/dispute` (spec 015 R11, `contracts/gateway.md`): `dispute_opened` with the
+  amount and currency (the deposit's where the gateway names none) and the reason, and `dispute_closed`
+  with `disputeOutcome` `won` or `lost` and the amount and currency where the provider gave them. A
+  dispute is recorded on the payment whatever its status, each of the two once, and changes no status;
+  one for a payment that does not exist is acknowledged and ignored (FR-019); a close with any other
+  outcome is refused `400 invalid_outcome`, as the wallet refuses it (spec 002). The `refunded` outcome
+  is spec 005's to report, with the provider, when a provider reports it. A sub-brand that names no
+  brand MUST skip `credit` and the outcome consumer.
 - **FR-023**: A view MUST list captured payments not yet credited, each with the time captured, the
   attempts made and the wallet's last answer; an operator MUST be able to retry one from it; and the
   project's status MUST count those older than the installation's bound (default 15 minutes).

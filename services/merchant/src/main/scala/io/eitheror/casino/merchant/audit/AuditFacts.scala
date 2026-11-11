@@ -89,6 +89,12 @@ object AuditFacts:
       case PaymentEvent.Failed(code, _, _, at)          => money("payment failed", at, reason = code)
       case PaymentEvent.Expired(at)                     => money("payment expired", at)
       case PaymentEvent.Waiting(_, _) | PaymentEvent.CreditAttempted(_, _) => None
+      // A dispute is the provider's, reported by the gateway (spec 015 R11).
+      case PaymentEvent.DisputeOpened(amount, currency, _, at) =>
+        Some(Audited("payment dispute opened", Actor.service("psp-gateway"), at, change("amount", amount.toString) ++ change("currency", currency),
+          "accepted", None, brand, "money"))
+      case PaymentEvent.DisputeClosed(outcome, _, _, at) =>
+        Some(Audited("payment dispute closed", Actor.service("psp-gateway"), at, change("outcome", outcome), "accepted", None, brand, "money"))
 
 /**
  * The shared shape of the seven: the entity's events in, its audit records out, over the contract's

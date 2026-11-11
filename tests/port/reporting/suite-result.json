@@ -1,0 +1,130 @@
+{
+  "dashboard-activity": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-bonus-summary": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-geo": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-kpi-history": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-kpis": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-payment-health": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-rankings-90d": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-rankings-today": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-trend-30d": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-trend-7d": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-trend-90d": [
+    "pass",
+    "pass"
+  ],
+  "dashboard-trend-today": [
+    "pass",
+    "pass"
+  ],
+  "dispute-range-html": [
+    "pass",
+    "pass"
+  ],
+  "dispute-refusals-end-before-start": [
+    "pass",
+    "pass"
+  ],
+  "dispute-refusals-neither": [
+    "pass",
+    "pass"
+  ],
+  "dispute-refusals-not-a-date": [
+    "pass",
+    "pass"
+  ],
+  "dispute-refusals-range-over-a-year": [
+    "pass",
+    "pass"
+  ],
+  "dispute-refusals-session-and-range": [
+    "pass",
+    "pass"
+  ],
+  "dispute-refusals-unknown-player": [
+    "pass",
+    "pass"
+  ],
+  "dispute-refusals-unknown-session": [
+    "pass",
+    "pass"
+  ],
+  "dispute-session-csv": [
+    "pass",
+    "pass"
+  ],
+  "dispute-session-html": [
+    "pass",
+    "pass"
+  ],
+  "reporting-seed": [
+    "pass",
+    "pass"
+  ],
+  "reports-bonus": [
+    "pass",
+    "pass"
+  ],
+  "reports-flag-off": [
+    "pass",
+    "pass"
+  ],
+  "reports-ggr": [
+    "pass",
+    "pass"
+  ],
+  "reports-ggr-default": [
+    "pass",
+    "pass"
+  ],
+  "reports-players": [
+    "pass",
+    "pass"
+  ],
+  "reports-psp": [
+    "pass",
+    "pass"
+  ],
+  "reports-refused-role": [
+    "pass",
+    "pass"
+  ],
+  "reports-transactions": [
+    "pass",
+    "pass"
+  ],
+  "reports-transactions-export": [
+    "pass",
+    "pass"
+  ]
+}

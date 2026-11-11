@@ -30,6 +30,24 @@ class PaymentSuite extends munit.FunSuite with LogCapturing:
     assert(!kit.call(Payment.expire)(At(at)).persisted)
   }
 
+  test("a dispute is recorded on a captured payment, opened and closed once each, and leaves its status as it was (spec 015)") {
+    val kit = initiated
+    kit.call(Payment.capture)(RecordCapture(None, 10000, at)): Unit
+    assert(kit.call(Payment.disputeOpened)(RecordDisputeOpened(10000, "EUR", Some("fraud"), at)).persisted)
+    assert(!kit.call(Payment.disputeOpened)(RecordDisputeOpened(10000, "EUR", Some("fraud"), at)).persisted)
+    assert(kit.call(Payment.disputeClosed)(RecordDisputeClosed("lost", None, None, at.plusSeconds(60))).persisted)
+    assert(!kit.call(Payment.disputeClosed)(RecordDisputeClosed("won", None, None, at.plusSeconds(90))).persisted)
+    assertEquals(kit.currentState.status, Status.Captured)
+    assertEquals(kit.currentState.dispute,
+      Some(Dispute(Some(10000L), Some("EUR"), Some("fraud"), Some(at), Some("lost"), Some(at.plusSeconds(60)))))
+  }
+
+  test("a dispute closed with no opening on record keeps the amount and currency the close names") {
+    val kit = initiated
+    kit.call(Payment.disputeClosed)(RecordDisputeClosed("won", Some(2500), Some("EUR"), at)): Unit
+    assertEquals(kit.currentState.dispute.map(d => (d.amount, d.currency, d.outcome, d.openedAt)), Some((Some(2500L), Some("EUR"), Some("won"), None)))
+  }
+
   test("an underpayment keeps the invoiced amount on record and reads the valuation as the amount (FR-026)") {
     val kit = initiated
     val v   = Some(Variance(Variance.Underpayment, Some("0.0012"), Some("80.00"), Some("EUR")))

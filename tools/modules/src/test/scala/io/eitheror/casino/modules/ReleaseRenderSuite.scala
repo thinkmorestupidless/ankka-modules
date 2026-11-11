@@ -80,9 +80,12 @@ class ReleaseRenderSuite extends munit.FunSuite:
 
   test("the release job refuses before any publish while a manifest names a service with no build, naming it") {
     val (dir, _) = rendered("9.9.9")
+    // Every service a manifest names is built, so one manifest is made to name a service that is not.
+    val support = dir.resolve("support.json")
+    Files.writeString(support, Files.readString(support).replace("/support-agent:9.9.9", "/not-built-yet:9.9.9")): Unit
     val (code, output, calls) = publish(dir, "9.9.9", Map("CASINO_RELEASE_REQUIRE_BUILDS" -> "1"))
     assertEquals(code, 1)
-    assert(output.contains("refused: service 'reporting' of module reporting has no build"), output)
+    assert(output.contains("refused: service 'not-built-yet' of module support has no build"), output)
     assertEquals(calls, Vector.empty)
   }
 

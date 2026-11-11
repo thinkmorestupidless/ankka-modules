@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * What the service is told at start: its brand (`CASINO_BRAND`, rendered by the brands tool), whether
- * the brand takes real money (`CASINO_REAL_MONEY`), the provider adapters it has (ST8 only today), how a
+ * the brand takes real money (`CASINO_REAL_MONEY`), the providers it runs (`CASINO_PROVIDERS`, each an ST8 adapter under its name), how a
  * signed-in caller is authenticated (ankka-auth-oidc in a deployment, a stand-in in tests), and the clock.
  */
 final case class Settings(
@@ -38,11 +38,38 @@ final case class Settings(
     caches.computeIfAbsent(secrets, s => ProviderConfigurations(s, keyDocuments, now = now))
 
 object Settings:
+  /** The brand value `casino-providers` when it is not rendered (`contract/keys.md`). */
+  val DefaultProviders = "st8:st8,eitheror:st8"
+
+  /** The protocols an adapter exists for; a provider's protocol is configuration (spec 026 R11). */
+  val Protocols: Set[String] = Set("st8")
+
+  /**
+   * The provider names a brand runs, from `casino-providers` (`name:protocol`, comma-separated), or
+   * the first problem, naming the value. Each name is a path prefix (`/<name>/{callback}`), so it is
+   * lower-case letters, digits and hyphens.
+   */
+  def providers(value: String): Either[String, Vector[ProviderAdapter]] =
+    val entries = value.split(',').map(_.trim).filter(_.nonEmpty).toVector
+    val parsed = entries.map { e =>
+      e.split(':') match
+        case Array(name, protocol) if name.matches("[a-z0-9][a-z0-9-]*") && Protocols.contains(protocol) => Right(name)
+        case Array(name, protocol) if Protocols.contains(protocol) => Left(s"casino-providers: '$name' is not a provider name (lower-case letters, digits and hyphens)")
+        case Array(_, protocol) => Left(s"casino-providers: '$protocol' is not a protocol; ${Protocols.toVector.sorted.mkString(", ")} is")
+        case _ => Left(s"casino-providers: '$e' is not name:protocol")
+    }
+    parsed.collectFirst { case Left(p) => p }.toLeft(parsed.collect { case Right(n) => n }) match
+      case Left(p) => Left(p)
+      case Right(names) if names.isEmpty => Left("casino-providers names no provider")
+      case Right(names) if names.distinct.size != names.size => Left(s"casino-providers names a provider twice: '$value'")
+      case Right(names) => Right(names.map(St8Adapter(_)))
+
   def fromEnvironment(authenticate: () => Acl): Settings =
+    val value = sys.env.get("CASINO_PROVIDERS").map(_.trim).filter(_.nonEmpty).getOrElse(DefaultProviders)
     Settings(
       brand = Routes.brandFromEnvironment,
       realMoney = sys.env.get("CASINO_REAL_MONEY").exists(_.equalsIgnoreCase("true")),
-      adapters = Vector(St8Adapter()),
+      adapters = providers(value).fold(p => throw IllegalStateException(p), identity),
       authenticate = authenticate,
       publicBaseUrl = sys.env.get("CASINO_PUBLIC_URL")
     )

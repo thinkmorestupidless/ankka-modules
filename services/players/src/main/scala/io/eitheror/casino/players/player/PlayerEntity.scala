@@ -85,6 +85,7 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
         s.copy(vipTier = Some(e.tier), trail = s.trail :+ AccountEvent("vip_tier", e.previous.getOrElse(""), e.tier,
           Actor.Operator, e.actorId, None, e.at))
       case e: PotVipSet => s.copy(potVip = e.potVip)
+      case e: TestAccountSet => s.copy(testAccount = e.testAccount)
       case e: DuplicateFlagged =>
         val f = s.fraud.getOrElse(FraudFlag(flaggedAt = e.at))
         s.copy(fraud = Some(f.copy(caseIds = f.caseIds :+ e.caseId, linkedPlayerIds = f.linkedPlayerIds ++ e.linked,
@@ -339,6 +340,13 @@ final class PlayerEntity(context: EventSourcedEntityContext) extends EventSource
     if currentState.potVip == c.potVip then effects.reply(Done.unchanged)
     else effects.persist(PotVipSet(c.potVip, c.actorId, c.at)).thenReply(_ => Done.changed)
 
+  /** The operator's test-account flag (spec 015 R11); the value already held is no event. */
+  def setTestAccount(c: SetTestAccount): Effect[Done] =
+    val s = currentState
+    if !s.exists then effects.reply(Done.refused("player_not_found"))
+    else if s.testAccount == c.testAccount then effects.reply(Done.unchanged)
+    else effects.persist(TestAccountSet(c.testAccount, c.actorId, c.at)).thenReply(_ => Done.changed)
+
   // ── what other services and the duplicates find ───────────────────────────
 
   def flagDuplicate(c: FlagDuplicate): Effect[Done] =
@@ -451,6 +459,7 @@ object PlayerEntity
   given Serializer[SetVipTier]            = PlayersCodecs.serializer[SetVipTier]("set-vip-tier")
   given Serializer[VipAnswer]             = PlayersCodecs.serializer[VipAnswer]("vip-answer")
   given Serializer[SetPotVip]             = PlayersCodecs.serializer[SetPotVip]("set-pot-vip")
+  given Serializer[SetTestAccount]        = PlayersCodecs.serializer[SetTestAccount]("set-test-account")
   given Serializer[FlagDuplicate]         = PlayersCodecs.serializer[FlagDuplicate]("flag-duplicate")
   given Serializer[ClearDuplicate]        = PlayersCodecs.serializer[ClearDuplicate]("clear-duplicate")
   given Serializer[EndDuplicateCheck]     = PlayersCodecs.serializer[EndDuplicateCheck]("end-duplicate-check")
@@ -499,6 +508,7 @@ object PlayerEntity
   val reopen                = command("reopen")(_.reopen)
   val setVipTier            = command("set-vip-tier")(_.setVipTier)
   val setPotVip             = command("set-pot-vip")(_.setPotVip)
+  val setTestAccount        = command("set-test-account")(_.setTestAccount)
   val flagDuplicate         = command("flag-duplicate")(_.flagDuplicate)
   val clearDuplicate        = command("clear-duplicate")(_.clearDuplicate)
   val startDuplicateCheck   = command("start-duplicate-check")(_.startDuplicateCheck)

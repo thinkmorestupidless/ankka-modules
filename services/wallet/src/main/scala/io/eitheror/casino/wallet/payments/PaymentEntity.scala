@@ -2,6 +2,7 @@ package io.eitheror.casino.wallet.payments
 
 import com.thinkmorestupidless.ankka.core.*
 import com.thinkmorestupidless.ankka.sdk.*
+import io.eitheror.casino.contract.facts.DisputeOutcome
 
 import java.time.Instant
 
@@ -27,6 +28,8 @@ final case class PaymentOutcome(
 object PaymentOutcome:
   /** The outcomes `merchant` reports; `captured` is not among them (research R8). */
   val Kinds: Set[String] = Set("initiated", "failed", "expired", "abandoned", "refunded", "dispute_opened", "dispute_closed")
+  val DisputeOpened = "dispute_opened"
+  val DisputeClosed = "dispute_closed"
 
 final case class Payment(paymentId: String, outcomes: Vector[PaymentOutcome] = Vector.empty)
 
@@ -47,10 +50,24 @@ final class PaymentEntity(context: EventSourcedEntityContext) extends EventSourc
       effects.error(s"'${o.outcome}' is not an outcome merchant reports here; one of ${PaymentOutcome.Kinds.toVector.sorted.mkString(", ")}")
     else if o.playerId.trim.isEmpty || o.paymentProvider.trim.isEmpty then
       effects.error("an outcome names the player and the payment provider (FR-022a)")
+    else if o.outcome == PaymentOutcome.DisputeClosed && !o.disputeOutcome.exists(DisputeOutcome.values) then
+      effects.error(s"a closed dispute's outcome is one of ${DisputeOutcome.values.toVector.sorted.mkString(", ")} (spec 015)")
     else
       currentState.outcomes.find(_.outcome == o.outcome) match
         case Some(first) => effects.reply(Recorded(recorded = false, first))
-        case None        => effects.persist(PaymentEvent.PaymentOutcomeRecorded(context.entityId, o)).thenReply(_ => Recorded(recorded = true, o))
+        case None =>
+          val recorded = withDisputeAmount(o)
+          effects.persist(PaymentEvent.PaymentOutcomeRecorded(context.entityId, recorded)).thenReply(_ => Recorded(recorded = true, recorded))
+
+  /**
+   * A closed dispute carries the dispute's amount and currency (spec 015 R11): those the close states, and
+   * where it states none, those of the dispute as opened on this payment. A close with neither carries none.
+   */
+  private def withDisputeAmount(o: PaymentOutcome): PaymentOutcome =
+    if o.outcome != PaymentOutcome.DisputeClosed then o
+    else
+      val opened = currentState.outcomes.find(_.outcome == PaymentOutcome.DisputeOpened)
+      o.copy(amount = o.amount.orElse(opened.flatMap(_.amount)), currency = o.currency.orElse(opened.flatMap(_.currency)))
 
   def get: ReadOnlyEffect[Payment] = effects.reply(currentState)
 

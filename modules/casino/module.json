@@ -86,6 +86,10 @@
           {
             "name": "GAME_PROVIDER_MODE",
             "key": "game-provider-mode"
+          },
+          {
+            "name": "CASINO_PROVIDERS",
+            "key": "casino-providers"
           }
         ]
       }
@@ -236,6 +240,11 @@
     },
     {
       "key": "game-provider-mode",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-providers",
       "type": "string",
       "secret": false
     },

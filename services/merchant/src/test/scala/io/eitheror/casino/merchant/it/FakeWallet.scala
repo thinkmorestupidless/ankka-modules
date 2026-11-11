@@ -15,7 +15,7 @@ import scala.collection.mutable
 final class FakeWallet(bind: Int = 0) extends FakeServer(bind):
 
   final case class Reported(brand: String, paymentId: String, outcome: String, playerId: String, paymentProvider: String,
-      code: Option[String], reason: Option[String], amount: Option[Long], currency: Option[String])
+      code: Option[String], reason: Option[String], amount: Option[Long], currency: Option[String], disputeOutcome: Option[String] = None)
 
   private val balances  = mutable.Map.empty[(String, String, String), Long]
   private val counts    = mutable.Map.empty[(String, String, String), Int]
@@ -75,7 +75,7 @@ final class FakeWallet(bind: Int = 0) extends FakeServer(bind):
               val first = !outcomes.contains(key)
               if first then
                 outcomes.update(key, Reported(brand, paymentId, b.textOr("outcome", ""), b.textOr("playerId", ""), b.textOr("paymentProvider", ""),
-                  b.text("code"), b.text("reason"), b.long("amount"), b.text("currency")))
+                  b.text("code"), b.text("reason"), b.long("amount"), b.text("currency"), b.text("disputeOutcome")))
               Answer.ok(Json.obj("recorded" -> true, "firstRecorded" -> first))
           case _ => Answer(404, """{"error":"NO_ROUTE"}""")
     }

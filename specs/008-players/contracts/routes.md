@@ -78,7 +78,7 @@ logged (001 FR-023).
 | Route | Does | Answers |
 |---|---|---|
 | `GET /players?status&tier&flagged&q&page` | `PlayersView` | 200 |
-| `GET /players/{playerId}/profile`, `PATCH /players/{playerId}/profile` | `get`; `EditProfile` (the same locks) | 200; 400 `no_fields_provided` |
+| `GET /players/{playerId}/profile`, `PATCH /players/{playerId}/profile` | `get`; `EditProfile` (the same locks); the optional boolean `isTestAccount` is `SetTestAccount` with the operator, after the profile's fields are accepted, and alone is an edit (spec 015 R11, FR-033a) | 200 (the profile's `player` carries `isTestAccount`); 400 `no_fields_provided` |
 | `PATCH /players/{playerId}/date-of-birth` | body `dateOfBirth`, `reason` | 200; 400 `reason_required`, `date_of_birth_required`, `invalid_date_of_birth`, `underage`; 409 `kyc_locked` |
 | `GET /players/{playerId}/wallet` | `WalletSummaryView` | 200 |
 | `GET /players/{playerId}/activity`, `GET /players/{playerId}/bets?from&to`, `GET /players/{playerId}/sessions/{sessionId}/bets` | the views | 200; 400 `invalid_date_range` |

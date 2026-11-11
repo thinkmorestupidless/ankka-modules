@@ -1,6 +1,6 @@
 package io.eitheror.casino.contract.access
 
-import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller}
+import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, Principal}
 import com.thinkmorestupidless.ankka.runtime.RotatingTls
 import io.eitheror.casino.contract.Layout.GrantTarget
 import Requests.*
@@ -51,6 +51,19 @@ class RoutesSuite extends munit.FunSuite:
     assert(refused.toString.contains("markets permission"), refused.toString)
     // the role without the brand is still the operator class's refusal
     assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_spinvibe", "markets")))).asInstanceOf[Outcome.Refused].status, 403)
+  }
+
+  test("staff admits any token of the eitheror realm, and the operator refusal names the brand or the permission as operator does") {
+    val acl = Routes.staff(verified)
+    assertEquals(outcome(acl, Request(token = Some(operatorWith("brand_goldvibe")))), Outcome.Served)
+    assert(outcome(acl, Request(token = Some(playerOf("goldvibe")))).toString.contains("wrong_issuer"))
+    def p(roles: String*) = Principal("u", roles = roles.toSet, issuer = Some(Routes.StaffIssuer))
+    assertEquals(Routes.operatorRefusal(p("brand_goldvibe"), "goldvibe"), None)
+    assertEquals(Routes.operatorRefusal(p("platform_admin"), "spinvibe"), None)
+    assertEquals(Routes.operatorRefusal(p("brand_goldvibe"), "spinvibe"), Some("brand_not_in_roles: no role names brand spinvibe"))
+    assertEquals(Routes.operatorRefusal(p("brand_goldvibe"), "goldvibe", "games"), Some("forbidden: the games permission is needed"))
+    assertEquals(Routes.operatorRefusal(p("brand_goldvibe", "games"), "goldvibe", "games"), None)
+    assert(Routes.operatorRefusal(Principal("u", roles = Set("brand_goldvibe")), "goldvibe").exists(_.startsWith("wrong_issuer")))
   }
 
   test("a payments operator is served with a role of the table and a level from the scope claims") {

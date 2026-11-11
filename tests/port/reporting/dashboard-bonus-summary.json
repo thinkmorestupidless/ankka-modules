@@ -1,0 +1,40 @@
+{
+  "scenario": "dashboard-bonus-summary",
+  "requirement": "015/FR-015",
+  "recorded_at": "2026-11-09T09:24:10.004848Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "bonus-summary",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/bonus-summary",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "activeBonusCount": 118,
+          "avgWageringCompletionPct": 0,
+          "bonusCostToday": "0.00",
+          "currency": "EUR",
+          "totalLiability": "7463.75"
+        }
+      },
+      "vary": {
+        "$.activeBonusCount": "differs between two runs of the original",
+        "$.totalLiability": "differs between two runs of the original"
+      }
+    }
+  ]
+}

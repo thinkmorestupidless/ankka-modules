@@ -1,0 +1,61 @@
+{
+  "scenario": "reports-psp",
+  "requirement": "015/FR-011",
+  "recorded_at": "2026-11-09T09:24:05.880239Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "reports-psp",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/reports/psp?from={from}\u0026to={to}",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "from": "2026-10-11",
+          "pspBreakdown": [
+            {
+              "avgWithdrawalHours": 0,
+              "depositAttempts": 88,
+              "depositSuccessRatePct": 97,
+              "depositValue": "4690.00",
+              "pspName": "All PSPs",
+              "withdrawalCount": 0
+            }
+          ],
+          "summary": {
+            "avgWithdrawalHours": 0,
+            "completedDeposits": 88,
+            "completedWithdrawals": 0,
+            "currency": "EUR",
+            "depositAttempts": 88,
+            "depositSuccessRatePct": 97,
+            "depositValue": "4690.00",
+            "withdrawalRequests": 0
+          },
+          "to": "2026-11-09"
+        }
+      },
+      "vary": {
+        "$.pspBreakdown[0].depositAttempts": "differs between two runs of the original",
+        "$.pspBreakdown[0].depositValue": "differs between two runs of the original",
+        "$.summary.completedDeposits": "differs between two runs of the original",
+        "$.summary.depositAttempts": "differs between two runs of the original",
+        "$.summary.depositValue": "differs between two runs of the original"
+      }
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "scenario": "dispute-refusals-end-before-start",
+  "requirement": "015/FR-016",
+  "recorded_at": "2026-11-09T09:24:10.410767Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "the dispute report",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/players/{playerId}/dispute-report?fromDate=2026-02-01\u0026toDate=2026-01-01\u0026format=html",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "fromDate must be before toDate"
+        }
+      }
+    }
+  ]
+}

@@ -16,6 +16,12 @@
         "game_id": {
           "type": "string"
         },
+        "game_name": {
+          "type": "string"
+        },
+        "game_type": {
+          "type": "string"
+        },
         "net_result_cents": {
           "type": "integer",
           "x-unit": "minor"

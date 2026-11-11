@@ -1,11 +1,14 @@
 package io.eitheror.casino.simulator.st8
 
+import io.eitheror.casino.provider.st8.*
+
 import com.thinkmorestupidless.ankka.core.{CommandError, EntityId}
 import com.thinkmorestupidless.ankka.http.*
 import io.eitheror.casino.simulator.Simulator
 import io.eitheror.casino.simulator.api.Access
+import io.eitheror.casino.provider.core.*
 import io.eitheror.casino.simulator.core.*
-import io.eitheror.casino.simulator.st8.GoJson.Value.*
+import io.eitheror.casino.provider.st8.GoJson.Value.*
 
 import java.util.UUID
 

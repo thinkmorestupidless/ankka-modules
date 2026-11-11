@@ -25,7 +25,7 @@ class PolicyEntitySuite extends munit.FunSuite with LogCapturing:
     val kit = fresh
     assertEquals(kit.call(PolicyEntity.applyProfile)(ApplyProfile(None, "op-1", at)).replyValue.refusal, Some("profile_required"))
     val unknown = kit.call(PolicyEntity.applyProfile)(ApplyProfile(Some("GRA"), "op-1", at))
-    assertEquals(unknown.replyValue, PolicyAnswer(Policy.Default, Some("unknown_profile"), known = Vector("CURACAO", "MGA", "UKGC")))
+    assertEquals(unknown.replyValue, PolicyAnswer(Policy.Default, Some("unknown_profile"), known = Vector("ANJOUAN", "CURACAO", "MGA", "UKGC")))
     assertEquals(unknown.events, Seq.empty)
 
   test("Change sets the profile CUSTOM and clears the default mark"):

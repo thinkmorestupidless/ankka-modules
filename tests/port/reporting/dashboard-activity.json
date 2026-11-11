@@ -1,0 +1,90 @@
+{
+  "scenario": "dashboard-activity",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:09.944667Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "activity",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/activity",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "events": [
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "selfex-4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "eventType": "self_exclusion",
+              "occurredAt": "2026-11-09T09:23:45.929684943Z",
+              "playerId": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "truncatedEmail": "reporting-email-4519…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "reg-4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "eventType": "registration",
+              "occurredAt": "2026-11-09T09:23:43.837692059Z",
+              "playerId": "4ed9977c-c168-37e1-a8eb-bc1dc771f58d",
+              "truncatedEmail": "reporting-email-4519…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "selfex-02246e75-8495-3bf9-adf6-8559b48552c1",
+              "eventType": "self_exclusion",
+              "occurredAt": "2026-11-09T09:21:39.965756225Z",
+              "playerId": "02246e75-8495-3bf9-adf6-8559b48552c1",
+              "truncatedEmail": "reporting-email-5be0…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "reg-02246e75-8495-3bf9-adf6-8559b48552c1",
+              "eventType": "registration",
+              "occurredAt": "2026-11-09T09:21:38.050215563Z",
+              "playerId": "02246e75-8495-3bf9-adf6-8559b48552c1",
+              "truncatedEmail": "reporting-email-5be0…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "selfex-357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "eventType": "self_exclusion",
+              "occurredAt": "2026-11-09T09:20:28.845347958Z",
+              "playerId": "357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "truncatedEmail": "reporting-email-e264…"
+            },
+            {
+              "amountMinorUnits": null,
+              "currency": null,
+              "eventId": "reg-357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "eventType": "registration",
+              "occurredAt": "2026-11-09T09:20:22.722089545Z",
+              "playerId": "357a0c2c-4af6-3a99-96cd-5386361f61ed",
+              "truncatedEmail": "reporting-email-e264…"
+            }
+          ]
+        }
+      },
+      "vary": {
+        "$.events": "differs between two runs of the original"
+      }
+    }
+  ]
+}

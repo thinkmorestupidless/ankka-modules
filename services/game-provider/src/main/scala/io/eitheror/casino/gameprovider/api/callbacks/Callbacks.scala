@@ -107,8 +107,14 @@ final class Callbacks(
 
   private def round(entityId: String) = components.forEventSourcedEntity(EntityId(entityId))
 
+  /**
+   * The round's opening. The game's name and category are the catalogue's, so the round records them
+   * (spec 015); they are looked up only when the round is new (`Openings.catalogued`), not here, so a
+   * callback on an open round makes no catalogue read on the provider's money path.
+   */
   private def opening(roundId: String, player: String, currency: String, t: Option[TicketState], gameCode: Option[String]) =
-    RoundOpening(provider, roundId, player, currency, gameCode.orElse(t.map(_.gameCode)).filter(_.nonEmpty), t.map(_.sessionId).filter(_.nonEmpty), now())
+    val code = gameCode.orElse(t.map(_.gameCode)).filter(_.nonEmpty)
+    RoundOpening(provider, roundId, player, currency, code, t.map(_.sessionId).filter(_.nonEmpty), now(), gameLookup = code.isDefined)
 
   private def txKey(body: CallbackBody): String =
     body.transactionId.filter(_.length <= 200).getOrElse(stop(Status.Error))
@@ -243,7 +249,7 @@ final class Callbacks(
       wallet.balance(player, currency).toOption.map(b => render(b.total, currency)), Some(currency)))
     // The referenced transaction is found by its own workflow, which names its round (the index it replaces).
     val referenced = workflow(refId).call(BetWorkflow.status).invoke().job.filter(_.player == player).getOrElse(stop(notFound))
-    val open = RoundOpening(provider, referenced.roundId, player, currency, referenced.opening.gameCode, referenced.opening.sessionId, now())
+    val open = referenced.opening.copy(provider = provider, playerId = player, currency = currency, at = now())
     run(BetJob(provider, Callback.Cancel.wire, "cancel", cancelId, referenced.roundId, referenced.roundEntity, player, currency, 0,
       referenced.gameId, referenced.sessionId, None, None, Some(refId), accountLocked = false, raw, open))
 

@@ -21,3 +21,24 @@ Feature: Compliance exports cases and decisions for a regulator
     Then it carries a reference number, the period and the generation time
     And it is served as an attachment
     And it is deleted after "24" hours with its record kept
+
+  Scenario Outline: a document is kept for the lifetime the brand set for its kind, 24 hours when it set none
+    Given the brand's lifetime for <kind> is <setting>
+    When a <kind> is generated
+    Then it is served until <hours> hours after it is ready and deleted then, with its record kept
+
+    Examples:
+      | kind              | setting       | hours |
+      | compliance export | not set       | 24    |
+      | compliance export | "720" hours   | 720   |
+      | day-end export    | "2160" hours  | 2160  |
+
+  Scenario: a document lifetime longer than 90 days is refused
+    When an operator sets the brand's lifetime for compliance exports to "2161" hours
+    Then the setting is refused naming its range, "1" to "2160" hours
+
+  Scenario: a kept document that names an erased player is deleted before its lifetime ends, its record kept
+    Given a compliance export kept for "720" hours that names a player
+    When the player is erased
+    Then the document is deleted
+    And its record, holding no personal field, remains

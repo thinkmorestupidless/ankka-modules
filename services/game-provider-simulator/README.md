@@ -10,11 +10,17 @@ Design: `specs/020-game-provider-simulator/` (plan, research, data model, contra
 
 ## Layout
 
+The core is a library since spec 026: `provider-core/` in the root build (`io.eitheror:casino-provider-core`),
+shared with the house provider (`services/provider`). It holds sessions, rounds, callbacks, the
+protocol seam, the schedule, the run view, retention, the key rotation, the ST8 adapter (bodies,
+signing, keys, the catalogue, the bonus book, the key document) and the outbound sender. What only a
+test double needs stays here:
+
 | Package | What |
 |---|---|
-| `core` | sessions, rounds, callbacks, scenarios, the run view, the scenario workflow, the load profile, retention. Names no protocol word (`SeamSuite` holds it to that, FR-006). |
-| `st8` | the ST8 adapter: bodies, signing, keys, the operator API, the game page, the instruction routes, free rounds. |
-| `brands` | the brand table and the outbound sender (the JDK client, never ankka's service client). |
+| `core` | scenarios, the scenario library and workflow, the load profile, the seeded generator. Names no protocol word (`SeamSuite` holds it to that, FR-006). |
+| `st8` | the stand-in's operator API, its game page and the instruction routes. |
+| `brands` | the brand table (`SIMULATOR_BRANDS`). |
 | `api` | the operator routes, their ACLs (only `contract.access.Routes` recipes) and the run export. |
 
 Scenarios are data: `src/main/resources/scenarios/*.json`, listed in `index.txt`, validated against
@@ -26,13 +32,14 @@ change the script, not the JSON, so the files stay uniform.
 ## Test
 
 ```bash
-sbt contract/publishLocal          # at the repository root
+sbt contract/publishLocal providerCore/publishLocal   # at the repository root
 cd services/game-provider-simulator
 sbt test                           # needs Docker: the test kit starts a throwaway Postgres
 ```
 
-The suites run the living features `features/simulator/*.feature` against the simulator and a fake
-brand (`FakeBrand`), and replay `tests/port/simulator/*.json`, recorded from `fake-st8`.
+`just service game-provider-simulator test` does both. The suites run the living features
+`features/simulator/*.feature` against the simulator and a fake brand (`FakeBrand`, from the
+library's test kit), and replay `tests/port/simulator/*.json`, recorded from `fake-st8`.
 
 ## Run locally beside a brand (FR-026)
 
@@ -57,3 +64,7 @@ is in `contracts/brand-config.md`.
 
 `shared/tools/manifest.json` at the repository root, applied with `just brands apply`; the image is
 `sbt Docker/publishLocal`. Never on an installation that takes real money.
+
+**Upgrading past spec 026.** The stored types moved package when the core became a library. A
+simulator keeps test runs only, so a dev installation drops its simulator data at that upgrade
+rather than reading old journals back: `ankka services delete game-provider-simulator`, then apply.

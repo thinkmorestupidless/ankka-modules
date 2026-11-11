@@ -5,7 +5,11 @@ eitheror's casino, payments and prediction markets, as modules of services on
 `ankka-casino`; the brain's decision 0055 says why it was renamed and laid out as a core and
 product modules, which spec 021 builds.
 
-Each brand is an ankka project of its own; payments, the affiliate programme and the reasoner are
-shared projects. A brand runs the `core` and the modules ankka-vendor entitles it to, each described
+Each brand is an ankka project of its own; payments, the affiliate programme, the reasoner and the
+house provider's games (spec 026) are shared projects. A brand runs the `core` and the modules ankka-vendor entitles it to, each described
 by one manifest under `modules/` and applied by the vendor's agent (spec 021). The specs under `specs/` describe each service; `features/` holds what the system
 does, in the words `GLOSSARY.md` defines. `CLAUDE.md` says how to work here.
+
+Services build on two libraries published from the root build: the contract and the provider core
+(`provider-core/`, shared by the game provider simulator and the house provider). `just service
+<name> <sbt task>` publishes both, then runs the task in that service's build.

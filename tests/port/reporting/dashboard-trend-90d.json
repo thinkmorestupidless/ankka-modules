@@ -1,0 +1,104 @@
+{
+  "scenario": "dashboard-trend-90d",
+  "requirement": "015/FR-014",
+  "recorded_at": "2026-11-09T09:24:08.773474Z",
+  "original": {
+    "commit": "838c7113"
+  },
+  "runs": 2,
+  "service": "reporting",
+  "steps": [
+    {
+      "name": "trend-90d",
+      "request": {
+        "method": "GET",
+        "path": "/v1/casino/backoffice/spinvibe/dashboard/trend?range=90d",
+        "service": "casino",
+        "headers": {
+          "Authorization": "Bearer {operatorToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "currency": "EUR",
+          "dataPoints": [
+            {
+              "ggr": "0.00",
+              "label": "2026-W33",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W34",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W35",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W36",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W37",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W38",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W39",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W40",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W41",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W42",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W43",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "0.00",
+              "label": "2026-W44",
+              "ngr": "0.00"
+            },
+            {
+              "ggr": "2.70",
+              "label": "2026-W45",
+              "ngr": "2.70"
+            }
+          ],
+          "range": "90d"
+        }
+      },
+      "vary": {
+        "$.dataPoints[12].ggr": "differs between two runs of the original",
+        "$.dataPoints[12].ngr": "differs between two runs of the original"
+      }
+    }
+  ]
+}

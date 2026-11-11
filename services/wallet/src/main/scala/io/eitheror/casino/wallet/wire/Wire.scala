@@ -136,7 +136,7 @@ object Wire:
     case "INVALID_REQUEST" | "MISSING_KEY" | "REASON_REQUIRED" | "MISSING_BONUS_REF" | "DEBIT_EXCEEDS_BALANCE" => 400
     case "WALLET_NOT_FOUND" | "ROUND_NOT_FOUND" | "GRANT_NOT_FOUND"                                           => 404
     case "RESERVATION_NOT_FOUND" | "ACCOUNT_NOT_FOUND"                                                        => 404
-    case "NOT_CLEARING" | "CREDIT_LINE_BELOW_BALANCE"                                                         => 400
+    case "NOT_CLEARING" | "CREDIT_LINE_BELOW_BALANCE" | "invalid_outcome"                                     => 400
     case "PLAYER_LOCKED" | "EXCLUDED" | "COOLING_OFF" | "player_id_mismatch" | "NOT_OWNER"                     => 403
     case "RG_UNAVAILABLE" | "OUTCOME_PENDING"                                                                   => 503
     case "MISSING_BASELINE"                                                                                     => 409
