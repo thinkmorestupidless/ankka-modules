@@ -30,13 +30,17 @@ original's:
 
 | Event | Data | When |
 |---|---|---|
-| `delta` | `{token}` | each text part, with the hand-off marker replaced (R12) |
+| `delta` | `{token}` | each text part, with the hand-off marker replaced (R12), sent once the output guardrails pass |
 | `confirm_action` | `{action_name, summary, session_id}` | `AgentPart.AwaitingApproval`; `summary` from `Summaries` |
 | `done` | `{}` | the turn answered, or awaits approval |
 | `error` | `{message}` | a guardrail refused (`message` the refusal reply), the judge or model was unavailable (the unavailable message), or the turn failed |
 
 A safeguarding refusal is `delta` with the safeguarding message and helpline, then `done`, not
 `error` (FR-023).
+
+A turn's text is held until the output guardrails have passed it (research, "Found during
+implementation"). A rejected reply sends nothing and the model is asked again, at most twice
+(FR-022); the third rejection is `error`. No part of a rejected reply is sent.
 
 ### `POST /resume/{session}`: `sseBody`
 

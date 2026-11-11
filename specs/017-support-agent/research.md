@@ -199,8 +199,9 @@ needs `TimerRuntime` registered, which R10 registers anyway.
 - **A judge that is unreachable** is `Unavailable`, answered with the unavailable reply and never as
   a refusal (029, `build/judgments.md`).
 - **No retry in the runtime** ("the agent loop does not retry", `concepts/designing-agents.md`). A
-  rejected turn writes nothing. The chat endpoint asks again, at most twice (FR-022). On a stream,
-  the rejection follows text already sent, as the scenario says.
+  rejected turn writes nothing. The chat endpoint asks again, at most twice (FR-022). The text is
+  held until the output guardrails pass ("Found during implementation"), so a rejected reply is not
+  sent.
 
 ## R9. Personal fields a brand names (FR-018)
 
@@ -393,6 +394,16 @@ of a blip.
   from what it held before the turn (messages, usage, a suspended turn, or erased), for at most
   3 s. **Rejected:** counting each turn's tokens at the next turn, which leaves a session's last
   turn uncounted.
+- **2026-11-11, a turn's text is held until it is checked (T047; settled with the user).** ankka runs
+  output guardrails on a stream after the text is sent, and the original client stops reading at the
+  first `error`, so the contract had no way to show FR-022's retry. The chat route now holds each
+  turn's text and sends it only once the output guardrails pass: a rejected reply reaches no one,
+  is recorded as `GuardrailRejected` with `retried`, and the model is asked again, at most twice;
+  the third rejection is `error` naming the guardrail. Token-by-token streaming is given up for the
+  turn; SC-002 still holds with a scripted model. A rejected attempt writes nothing to memory, so
+  its tokens are not in the session's usage and not counted against the day's budget. The resume
+  route's reply comes from `decide` whole and is not retried: a decision cannot be made twice.
+  routes.md and `guardrails.feature` say so.
 
 ## For ankka
 

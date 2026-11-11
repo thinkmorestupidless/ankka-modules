@@ -299,8 +299,8 @@ responsible-gambling, and ends the conversation.
     with no tool run, recording `GuardrailRejected`;
   - an unreachable judge becomes `error` with the unavailable message;
   - the hand-off marker is replaced by the configured message, recording `HandedOff`.
-- [ ] T047 [US5] Retry an output rejection at most twice, then answer the refusal (FR-022; research
-      R8). On a stream, the rejection follows the text already sent.
+- [X] T047 [US5] Retry an output rejection at most twice, then answer the refusal (FR-022; research
+      R8). The text is held until checked, so a rejected reply is never sent (research).
       `T/it/GuardrailSuite.scala` covers each guardrail and the retry.
 - [ ] T048 [US5] Bind `guardrails.feature`'s nine scenarios and the softening scenario of
       `protections.feature`; all green.

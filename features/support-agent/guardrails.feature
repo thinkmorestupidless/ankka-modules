@@ -42,7 +42,7 @@ Feature: Guardrails, limits and hand-off keep the support agent inside its remit
     When the output guardrail runs
     Then the reply is rejected
     And the model is asked again
-    And on a streamed reply the rejection follows the text
+    And no part of the rejected reply reaches the player
 
   Scenario: a player sending more than the brand's turns per minute has the next turn refused as too many, with when they may send again
     Given the player sent more than the brand's turns per minute

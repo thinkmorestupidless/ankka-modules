@@ -143,19 +143,39 @@ object Chat:
   private def closing(body: ConfigBody, s: ConversationState): String =
     s.breakUntil.fold(body.closingMessage)(until => s"You are on a break until $until. This conversation is closed until then.")
 
-  /** The turn's frames: a `delta` per text part with the hand-off marker replaced, then `confirm_action` or not, then `done`. */
+  /**
+   * The turn's frames: a `delta` per text part with the hand-off marker replaced, then `confirm_action` or not, then
+   * `done`. A turn's text is held until ankka's output guardrails have passed it (research, "Found during
+   * implementation"), so a rejected reply reaches no one and the model is asked again, at most [[OutputRetries]] times
+   * (FR-022); a rejected turn writes nothing to memory, so the retry is the same turn.
+   */
   private def turn(ctx: Ctx, session: String, t: Turn, body: ConfigBody): Source[SseEvent, ?] =
-    val handOff = HandOff(body.handOff)
-    val was     = memory(ctx, session)
-    agent(ctx, session, t.playerId).streamParts(Motoko.chat)(t)
-      .flatMapConcat {
-        case AgentPart.Text(part) => Source(Vector(handOff.feed(part)).filter(_.nonEmpty).map(Frames.delta))
-        case AgentPart.AwaitingApproval(requests) =>
-          Source.lazyFuture(() => Future(awaiting(ctx, session, t.playerId, body, handOff, requests))).mapConcat(identity)
-      }
-      // concatLazy: `concat` pulls the ending at once, which would record the turn before it has run.
-      .concatLazy(ending(ctx, session, handOff, was))
-      .recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
+    val was = memory(ctx, session)
+    def attempt(n: Int): Source[SseEvent, NotUsed] =
+      val handOff = HandOff(body.handOff)
+      agent(ctx, session, t.playerId).streamParts(Motoko.chat)(t)
+        .flatMapConcat {
+          case AgentPart.Text(part) => Source(Vector(handOff.feed(part)).filter(_.nonEmpty).map(Frames.delta))
+          case AgentPart.AwaitingApproval(requests) =>
+            Source.lazyFuture(() => Future(awaiting(ctx, session, t.playerId, body, handOff, requests))).mapConcat(identity)
+        }
+        .fold(Vector.empty[SseEvent])(_ :+ _).mapConcat(identity)
+        // concatLazy: `concat` pulls the ending at once, which would record the turn before it has run.
+        .concatLazy(ending(ctx, session, handOff, was))
+        .recoverWithRetries(1, {
+          case NonFatal(e) if n < OutputRetries && outputRefusal(e).isDefined =>
+            rejected(ctx, session, outputRefusal(e).get, Side.Output, retried = true)
+            attempt(n + 1)
+        })
+        .mapMaterializedValue(_ => NotUsed)
+    attempt(0).recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
+
+  private def outputRefusal(e: Throwable): Option[String] = TurnFailure.of(e) match
+    case TurnFailure.Refused(guardrail, Side.Output) => Some(guardrail)
+    case _                                          => None
+
+  private def rejected(ctx: Ctx, session: String, guardrail: String, side: Side, retried: Boolean): Unit =
+    ctx.conversation(session).call(Conversation.rejected).invoke(Rejected(guardrail, side, retried, ctx.now())): Unit
 
   /**
    * A turn that failed (contracts/routes.md, FR-021–FR-023). A safeguarding refusal is answered, not refused: the
@@ -164,14 +184,12 @@ object Chat:
    * or model that could not answer is `error` with the unavailable message, and is not a refusal.
    */
   private def failed(ctx: Ctx, session: String, body: ConfigBody, e: Throwable): Source[SseEvent, NotUsed] =
-    def rejected(guardrail: String, side: Side): Unit =
-      ctx.conversation(session).call(Conversation.rejected).invoke(Rejected(guardrail, side, retried = false, ctx.now())): Unit
     TurnFailure.of(e) match
       case TurnFailure.Refused(Guardrails.SafeguardingName, side) =>
-        rejected(Guardrails.SafeguardingName, side)
+        rejected(ctx, session, Guardrails.SafeguardingName, side, retried = false)
         Source(Vector(Frames.delta(body.safeguardingReply), Frames.done))
       case TurnFailure.Refused(guardrail, side) =>
-        rejected(guardrail, side)
+        rejected(ctx, session, guardrail, side, retried = false)
         Source.single(Frames.error(TurnFailure.reply(guardrail)))
       case TurnFailure.Unavailable => Source.single(Frames.error(body.unavailableMessage))
 
@@ -212,6 +230,9 @@ object Chat:
     poll()
 
   private val WriteWait = scala.concurrent.duration.Duration(3, "s")
+
+  /** How many times a reply the output guardrails rejected is asked for again (FR-022). */
+  private[api] val OutputRetries = 2
 
   /** The model's answer after a decision: its text, or what it now awaits. */
   private def outcomeFrames(ctx: Ctx, session: String, playerId: String, body: ConfigBody, handOff: HandOff,
