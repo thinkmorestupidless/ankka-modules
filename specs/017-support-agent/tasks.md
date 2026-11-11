@@ -281,7 +281,7 @@ responsible-gambling, and ends the conversation.
 
 **Independent test**: `guardrails.feature` green, plus the softening scenario.
 
-- [ ] T043 [P] [US5] Pure, test first: `OtherPlayer` (a UUID other than the player's, an email
+- [X] T043 [P] [US5] Pure, test first: `OtherPlayer` (a UUID other than the player's, an email
       address, `*.svc`, `*.cluster.local`, `*.internal`), `Rate`, `Budgeting` and `Handoff` (the
       marker replaced, and a trailing partial marker held back across `delta`s). Each has its
       suite under `T/domain/`.
