@@ -48,7 +48,10 @@ class ReconcileItSuite extends munit.FunSuite with LogCapturing:
       Option.when(key(m, "split", s"$trade/bob").wallet == 399 && key(m, "reservation", s"$m/$m-a").sources.size == 2)(())
     }
     assertEquals(key(m, "reservation", s"$m/$m-a").wallet, 600L, "a fact published twice counts once")
-    val differences = kit.eventually("the keys' view caught up")(Option(Reconcile.differences(m)).filter(_.size == 1))
+    // The unbalanced keys' view lags the key's own: one difference may be ada's split matched and bob's still at 0.
+    val differences = kit.eventually("the keys' view caught up") {
+      Option(Reconcile.differences(m)).filter(_.map(d => (d.family, d.key, d.wallet)) == Vector(("split", s"$trade/bob", 399L)))
+    }
 
     kit.components.forKeyValueEntity(EntityId(m)).call(TallyEntity.checkNow).invoke(CheckNow(kit.now(), last = true, differences)): Unit
     val records = kit.eventually("the difference recorded") {
