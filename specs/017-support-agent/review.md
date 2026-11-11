@@ -65,6 +65,8 @@ It also amends three neighbours so the tools can reach them by identity:
   - On input, allow the ids of the player's own sessions, read once when a UUID is present.
   - Add an `it` case: a reply quoting a `get_session_history` session id passes, and a foreign UUID is still refused.
 
+  Resolved: the other-player check takes `OwnIds`, the player's id plus every id the turn's tools answered and the player's own sessions, grants and transactions on input; an `it` case shows an own session id passing and a foreign UUID refused, dc533029
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/clients/Clients.scala:68` with `agent/Actions.scala:57` — issue (blocking): `confirmForfeit` is always `true`, but the summary names a forfeit only when the hold preview answered. `Actions.summary` drops the forfeit whenever the preview call times out, is unavailable or answers non-2xx (`.filter(_.ok)`). The player then approves "Withdraw 50.00 GBP from your account". The request still carries `confirmForfeit: true`, so payouts' gate (`Gates.scala:105`) passes, and the hold forfeits bonus funds the player was never shown. The preview is also read up to `approvalMinutes` before the request runs, so the forfeit can grow in between.
 
   This breaks `contracts/neighbours.md:34`, which justifies `true` with "since the player confirmed a summary naming it", and FR-013. It is the player's money.
@@ -75,6 +77,8 @@ It also amends three neighbours so the tools can reach them by identity:
   - Alternatively, refuse to put the withdrawal to the player when the preview cannot be read ("the withdrawal cannot be prepared right now").
   - Add a `ResumeSuite` case: the preview is unavailable, the player approves, and the request carries `confirmForfeit: false`.
 
+  Resolved: the conversation keeps the forfeit the summary named (`ApprovalRequested.forfeit`); the preview is read again at write time and `confirmForfeit` is true only when the summary named a forfeit no smaller than it now is (settled with the user: named and not grown); `ResumeSuite` covers named, unread and grown, 092c5806
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/domain/ConfigRules.scala:89-93`, `agent/Guardrails.scala:53-56`, `tools/modules/src/main/scala/io/eitheror/casino/modules/Values.scala:95` — issue (blocking): FR-023 says a brand that takes real money MUST run the judged safeguarding guardrail. The code runs it only when `AGENT_JUDGE` is set, and the module's default for `judgment-provider` is `none`. `safeguarded` checks only the message and the helpline. So a real-money brand rendered with the defaults can set `enabled: true` and serve players, and a self-harm message goes straight to the model. The status then shows `safeguarding: off`, and only someone reading it would notice. The spec's Assumption ("a brand without one gets the pattern guardrails only") contradicts FR-023 and the 2026-11-09 clarification. The code took the less safe reading for the case that matters, a regulated real-money brand.
 
   **Suggestion:** make `ConfigRules.safeguarded` take the settings, and refuse `enabled` for a real-money brand with no judge:
@@ -82,6 +86,8 @@ It also amends three neighbours so the tools can reach them by identity:
   if b.enabled && realMoney && (b.safeguardingMessage.isEmpty || b.helpline.isEmpty || !judged) then Left(…"safeguarding_not_configured"…)
   ```
   Use the same 422 code or a sibling `safeguarding_unavailable`. Add the case to `operators.feature`/`ConfigSuite`. If we decide the agent may run on a real-money brand without a judge, amend FR-023 to say so explicitly, so the decision is recorded and not inferred from an Assumption.
+
+  Resolved: `enabled` on a real-money brand with no judgment provider is refused 422 `safeguarding_not_configured`, and the chat and resume routes answer 503 on such a brand; FR-023 and the Assumption amended; `ConfigRulesSuite` and `ConfigSuite` cases, 2df8122e
 
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:202-231` (also `:166-172`, `:178-195`) — issue (blocking): the stream's own threads block, which this file says must not happen (line 50: "they run here, never on the stream's own threads").
   - `ending` is a `Source.lazySingle`, so its body runs on the materializer's thread when the stream pulls it. The body makes four or five blocking `invoke()` calls (`handedOff`, `memory` in a loop, `get`, `turned`, `Budget.add`) plus `Forget.schedule`. It also runs `written`'s `Thread.sleep(20)` poll for up to 3 s.
@@ -94,6 +100,8 @@ It also amends three neighbours so the tools can reach them by identity:
   Source.lazyFuture(() => Future { …ending's body… })
   ```
   Do the same for `rejected`/`failed` inside the recover. Better, replace the sleep poll with an ankka hook when one exists; research's *For ankka* already notes the gap. Confirming the starvation needs a load run. The pattern itself is confirmed by reading.
+
+  Resolved: `ending`, `rejected` and `failed` run through `Source.lazyFuture` on the virtual-thread context, and the output retry defers its persistence the same way, 37757513
 
 ## Should fix
 
@@ -108,17 +116,25 @@ It also amends three neighbours so the tools can reach them by identity:
   - In `resume`, when `Decide` answers `already_decided` but `agent.approvals()` still holds that id, send ankka the decision again instead of 409. In `settled`, treat "conversation Open, ankka pending on `lastDecided`" the same way.
   - Add a kit case that records `Decided` and restarts before `decide`.
 
+  Resolved: a decision the conversation recorded and ankka still awaits is reconciled: resume sends it again, chat answers 409 while it is unsettled; `ResumeSuite` case, 37757513
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:126-138` — issue (non-blocking): on resume, `action_result` is built inside the same `Future` as `decide`, after it. When the model's reply after an applied tool fails (an output guardrail, the model unavailable), the stream becomes `error` alone, and the player is never told that the withdrawal was requested or the break applied. The trail already holds the result.
 
   **Suggestion:** in the `recoverWithRetries`, prepend `lastAction.filter(_.approvalId == id)` as `action_result` before the failure frames, so an applied action is always reported (FR-003).
+
+  Resolved: resume's recover reports the applied `action_result` before the failure frames unless it was already sent; `ResumeSuite` case, 37757513
 
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/config/AgentConfiguration.scala:44-58` — issue (non-blocking): a `put` that wrote `ConfigVersion n+1` and then failed to `move` leaves an orphan body in that slot. Failures include a crash, or an ask timeout on `move`. Every later `put` with a different body computes `n+1` again, gets the orphan back from `write`, goes stale, retries, goes stale again, and throws. Configuration changes are then refused (500) until someone happens to resend the orphaned body.
 
   **Suggestion:** when `write` answers a body other than ours and `now.version` has not moved, the slot is an abandoned put. Move to it first, with a note marking it recovered, then retry at `n+2`. Alternatively, key the slot by a put id and let `move` name it.
 
+  Resolved: a slot holding another put's body is adopted (moved to, with that put's author), then the put retries at the next version; `ConfigSuite` abandoned-put case, a4938aa5
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ConfigEndpoint.scala:59-70` with `AgentConfiguration.scala:46-57` — issue (non-blocking) (if-minor): a lost update. `ConfigRules.read` merges the sent fields over `now.current` once. On a stale retry, `put` writes that same merged body over the newer version. So two operators who each change one field at the same time lose one change, and the brand-admin check ran against the old base.
 
   **Suggestion:** pass the sent JSON (or the sent field set) into `put`, and re-run `ConfigRules.read` and the admin-field check over the fresh `current` on each attempt.
+
+  Resolved: `put` takes the change as a function of the current body, so `ConfigRules.read` and the admin check run again over the fresh body on each attempt, a4938aa5
 
 - `services/players/src/main/scala/io/eitheror/casino/players/api/GameSessionRoutes.scala:107` with `services/support-agent/src/main/scala/io/eitheror/casino/support/agent/Tools.scala:138` — issue (non-blocking): `close_active_session` passes a game session id the model produced, and `endByAgent` ends any session in the brand, whoever's it is. That breaks the spec's boundary: "a tool that needs an identifier to act uses the player id from the token, never a value the model produced" (Context, FR-011). Today the input guardrail and the player's confirmation are the only things in the way.
 
@@ -126,23 +142,51 @@ It also amends three neighbours so the tools can reach them by identity:
   - Scope the route to the player: `POST /{playerId}/game-sessions/{sessionId}/end`, which is within the two-parameter limit. Refuse 404 `session_not_found` when the session is not the player's.
   - Alternatively, have the tool check the id against `n.players.sessions(playerId)` before the approval is put.
 
+  Resolved: the tool checks the id against the player's own sessions before the approval is put and again before it runs; `ResumeSuite` case, fa767d1c
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:107` — issue (non-blocking) (if-minor): `resume` does not check `enabled`, so a brand that turned its agent off still runs approved tools and model turns through `/resume`. FR-001 says that while the agent is off, "its routes MUST answer that the agent is not available". If letting a pending decision finish is intended, say so in `contracts/routes.md`. Otherwise add the same 503 check that `run` makes.
 
+  Resolved: resume answers 503 when the agent is off (or a real-money brand has no judge), as chat does, 37757513
+
 - `specs/017-support-agent/spec.md:333` and `specs/017-support-agent/plan.md:214` — todo: FR-003 still says "`delta` with text as it is produced", and the plan's Divergences row says "`delta` streams text as produced … demonstrated by `ChatSuite`". The code holds the whole turn until the output guardrails pass (research, 2026-11-11, settled with the user), and `contracts/routes.md` says so. Amend FR-003 and the Divergences row to match. The plan's *Project Structure* also names files that do not exist (`domain/Rate`, `Budgeting`, `Handoff`, `config/ConfigVersion.scala`, per-neighbour client files, `api/Frames`); point it at where they live.
+
+  Resolved: FR-003 and the Divergences row say the turn's text is sent once the output guardrails pass; the Project Structure names where each piece lives, 6c33e1a3
 
 ## Nits
 
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/SupportCodecs.scala:57-78` — nitpick (non-blocking): the events' case names are mapped to wire names, but the enums nested in stored state and events (`Outcome`, `Side`, `Status`, `EndReason`) are encoded by their Scala case names. The same file's `wire` helper exists for exactly that. Renaming `TimedOut` would break the journal. Give them wire names now, while the journal is empty.
+
+  Left: nit
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/agent/Tools.scala:56` — nitpick (non-blocking): `get_player_state` is described as returning "KYC, email, and profile information", which by default it does not (FR-018). If the parity description is to stay byte for byte, that is a reason to keep it, but the model will then claim to see an email it was not given. Consider the original's text plus "only the fields the brand allows".
+
+  Left: nit (the description is kept byte for byte for parity; FR-018 governs what the tool returns)
+
 - `.github/workflows/ci.yml:519` — nitpick (non-blocking): the comment says "on ankka 0.16.0", and the build is 0.16.2. T002 and T003 in tasks.md say the same.
+
+  Resolved: the support-agent job's comment says 0.16.2 (tasks.md keeps the version the tasks were written against), 6c33e1a3
+
 - `services/support-agent/src/test/scala/io/eitheror/casino/support/it/ResumeSuite.scala:118` (also `features/ActionsFeatures.scala:133`, `it/ForgetSuite.scala:33`, `it/DurabilitySuite.scala:86`) — nitpick (non-blocking): wall-clock `Thread.sleep` waits to show that something did not happen. They are slow and can pass early on a slow runner. Where a positive signal exists (the turn ended, the timer fired), wait on it with `kit.eventually`.
+
+  Left: nit
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/reads/ConversationsByPlayer.scala:79` — nitpick (non-blocking): a page reads `offset + 50` rows and drops `offset`. Use the view's offset if `ViewQueries` has one.
+
+  Left: nit
+
 - `.specify/feature.json` — nitpick (non-blocking): the active-feature pointer moves from 018 to 017. It will flip whichever branch merges last; consider leaving it out of feature branches.
+
+  Left: nit
 
 ## Questions
 
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:254-255` — question: `requests.head` assumes ankka never answers `AwaitingApproval(Vector.empty)`. Is that guaranteed by its type or its docs? Then, deciding `requests.tail` as refused before the head is put to the player: does ankka resume the turn (call the model) as soon as some of a response's approvals are decided, or only when all are? If the former, the head's request may be overtaken. A doc reference, or a kit case with two writes in one response, would settle it.
+
+  Answered: ankka answers `AwaitingApproval` only when a call needed approval, so `requests` is never empty (its own samples take `requests.head`), and `build/agents.md` (*Tools that wait for a person*) says the turn goes on only when the turn's last awaited decision is made, so refusing the tail first cannot overtake the head.
+
 - `services/support-agent/src/main/scala/io/eitheror/casino/support/api/ChatEndpoint.scala:80` — thought: the budget is checked before the turn and added after it, so concurrent turns can overshoot `dailyTokens` by up to one turn each. That seems acceptable for a soft budget. `resume` neither checks nor bypasses it, and its tokens are counted. Say so in R10 if intended.
+
+  Answered: intended. The budget is soft: a turn is admitted while the day's total is under the limit, so concurrent turns may overshoot by one turn each; resume is not refused by the budget (a decision the player made finishes) and its tokens are counted.
 
 ## Praise
 
@@ -154,6 +198,8 @@ It also amends three neighbours so the tools can reach them by identity:
 ## Out of scope
 
 - note: research's *For ankka* list should gain one more item: a `FunctionTool` handler is not given the approval id it runs under. The pre-recorded `Decided` that the should-fix above works around exists only because of that. File it beside "a streamed turn's source completes before session memory holds the turn".
+
+  Left: noted for the pull request.
 
 ## Checks applied
 

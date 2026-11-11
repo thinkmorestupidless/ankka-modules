@@ -431,6 +431,8 @@ Nothing blocks this service, and each item below is noted for an ankka spec.
 - No retry of a rejected output.
 - No push of a decision to an open stream.
 - The gateway's 15 s cut.
+- A `FunctionTool` handler is not given the approval id it runs under, so the decision is recorded
+  on `Conversation` before ankka is told, and the two are reconciled by hand.
 
 ## Design finished
 
