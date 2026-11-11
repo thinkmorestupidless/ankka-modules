@@ -125,10 +125,14 @@ class ResumeSuite extends munit.FunSuite:
   test("an approval not decided within approvalMinutes is refused by ankka, and the next message is a new turn (FR-016)"):
     kit.configure(_.copy(approvalMinutes = 1)): Unit
     awaiting("resume-expiry")
+    // ankka's expiry resumes the turn, and the model answers the refusal: scripted here, so it never takes the next
+    // turn's reply.
+    kit.model.expectText("That request has expired.")
+    val calls = kit.model.callCount
     kit.clock.moveBy(2.minutes)
-    kit.eventually("ankka refused the approval") {
+    kit.eventually("ankka refused the approval and the model answered it") {
       Option(io.eitheror.casino.support.agent.Motoko.session("resume-expiry")).filter(s =>
-        kit.components.forAgent(s).approvals().isEmpty)
+        kit.components.forAgent(s).approvals().isEmpty && kit.model.callCount > calls)
     }
     kit.model.expectText("Fresh turn.")
     val next = kit.chat("p-1", "resume-expiry", "still there?")

@@ -285,7 +285,7 @@ responsible-gambling, and ends the conversation.
       address, `*.svc`, `*.cluster.local`, `*.internal`), `Rate`, `Budgeting` and `Handoff` (the
       marker replaced, and a trailing partial marker held back across `delta`s). Each has its
       suite under `T/domain/`.
-- [ ] T044 [US5] `S/agent/Guardrails.scala`, in FR-021's order:
+- [X] T044 [US5] `S/agent/Guardrails.scala`, in FR-021's order:
   - input: `maxInputLength`, `forbidding("other-player")`, `judged("override")`, and
     `judged("safeguarding")` when real money or opted in;
   - output: `other-player` and `softening`;
