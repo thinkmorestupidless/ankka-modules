@@ -97,6 +97,35 @@ class ResumeSuite extends munit.FunSuite:
     assert(frames.head.field("detail").contains("INSUFFICIENT_FUNDS"), frames.head.data)
     assertEquals(withdrawals.size, 1)
 
+  test("a decision recorded that ankka was never told sends the player back to decide, and the resume tells ankka"):
+    val id = awaiting("resume-untold")
+    // As a restart between recording the decision and telling ankka leaves it.
+    kit.components.forEventSourcedEntity(com.thinkmorestupidless.ankka.core.EntityId("resume-untold"))
+      .call(io.eitheror.casino.support.conversation.Conversation.decided)
+      .invoke(io.eitheror.casino.support.conversation.Decide(id, approved = true, "player:p-1", expired = false, kit.clock.instant())): Unit
+    val chat = kit.chat("p-1", "resume-untold", "hello?")
+    assertEquals((chat.status, chat.refusal), (409, "Session already active"))
+    kit.model.expectText("Submitted.")
+    val frames = kit.resume("p-1", "resume-untold", "approve").frames()
+    assertEquals(frames.map(_.name).distinct, Vector("action_result", "delta", "done"))
+    assertEquals(withdrawals.map(kit.payouts.key), Vector(Some(id)))
+    assertEquals(kit.resume("p-1", "resume-untold", "approve").status, 409)
+
+  test("an applied action is reported even when the reply after it is refused"):
+    awaiting("resume-reply-refused")
+    kit.model.expectText("Player 0b6f3c1e-8a2d-4f6e-9c3b-2d1e5a7f9b04 asked too.")
+    val frames = kit.resume("p-1", "resume-reply-refused", "approve").frames()
+    assertEquals(frames.map(_.name), Vector("action_result", "error"))
+    assertEquals(frames.head.field("success"), "true")
+    assertEquals(withdrawals.size, 1)
+
+  test("a brand that turned its agent off answers the resume 503 agent_unavailable, and runs nothing (FR-001)"):
+    awaiting("resume-off")
+    kit.configure(_.copy(enabled = false)): Unit
+    val r = kit.resume("p-1", "resume-off", "approve")
+    assertEquals((r.status, r.refusal), (503, "agent_unavailable"))
+    assertEquals(withdrawals, Vector.empty)
+
   private def preview(forfeit: Long) =
     kit.wallet.answer("GET", "/wallets/p-1/GBP/holds/preview", Answer.ok(io.eitheror.casino.support.Json.obj("totalForfeit" -> forfeit,
       "forfeits" -> io.eitheror.casino.support.Json.arr())))

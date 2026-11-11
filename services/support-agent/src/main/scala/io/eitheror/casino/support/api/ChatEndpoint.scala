@@ -18,6 +18,7 @@ import org.apache.pekko.stream.scaladsl.Source
 
 import java.time.Instant
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -68,7 +69,7 @@ object Chat:
     if !available(ctx, config.current) then throw Answers.agentUnavailable(config.current.unavailableMessage)
     val before = settled(ctx, s, ctx.conversationState(s))
     if before.started && before.playerId != playerId then throw Answers.sessionNotYours
-    before.awaiting.foreach((id, tool) => throw Answers.sessionActive(id, tool))
+    before.awaiting.orElse(unsettled(ctx, s, before)).foreach((id, tool) => throw Answers.sessionActive(id, tool))
     val now = ctx.now()
     if before.endedAt(now) then throw Answers.conversationEnded(closing(bodyOf(ctx, before), before))
     // The limits are the brand's as they are now, whatever version the conversation reads (FR-024).
@@ -103,39 +104,59 @@ object Chat:
         ctx.conversation(session).call(Conversation.decided).invoke(Decide(id, approved = false, "ankka", expired = true, ctx.now())).state
       case _ => s
 
+  /**
+   * A decision recorded on the conversation that ankka was never told (a restart, or a failed `decide`, between the
+   * two): ankka still awaits it, so the player is sent back to decide, and the resume tells ankka.
+   */
+  private def unsettled(ctx: Ctx, session: String, s: ConversationState): Option[(String, String)] =
+    s.lastDecided.filter(id => s.awaiting.isEmpty && !s.lastAction.exists(_.approvalId == id)).flatMap { id =>
+      agent(ctx, session, s.playerId).approvals().find(_.id == id).map(a => (id, a.tool))
+    }
+
   /** `POST /resume/{session}`: the checks, the decision recorded, then ankka's decision and the turn's frames. */
   def resume(ctx: Ctx, playerId: String, session: String, text: String): Source[SseEvent, ?] =
     val b      = Json.parseObject(text)
     val action = b.flatMap(_.text("action")).filter(Set("approve", "reject"))
     if action.isEmpty then throw Answers.invalidAction
-    val approve = action.contains("approve")
-    val state   = ctx.conversationState(session)
+    val config = ctx.configuration.current
+    if !available(ctx, config) then throw Answers.agentUnavailable(config.unavailableMessage)
+    val state = ctx.conversationState(session)
     if !state.started || state.playerId != playerId then throw Answers.sessionNotYours
     val awaited = settled(ctx, session, state).awaiting.map(_._1)
     val id = awaited.orElse(state.lastDecided).getOrElse(throw Answers.noPendingAction)
     val by = s"player:$playerId"
-    // Recorded before ankka is told, so the approved tool reads its key from the conversation (research).
-    ctx.conversation(session).call(Conversation.decided).invoke(Decide(id, approve, by, expired = false, ctx.now())).refusal.foreach {
-      case "already_decided" => throw Answers.alreadyDecided
-      case _                 => throw Answers.noPendingAction
-    }
+    // Recorded before ankka is told, so the approved tool reads its key from the conversation (research). A decision
+    // recorded that ankka was never told is told now, as it was recorded.
+    val refusal = ctx.conversation(session).call(Conversation.decided)
+      .invoke(Decide(id, action.contains("approve"), by, expired = false, ctx.now())).refusal
+    val approve = refusal match
+      case None                                                               => action.contains("approve")
+      case Some("already_decided") if unsettled(ctx, session, state).isDefined => state.approved.contains(id)
+      case Some("already_decided")                                            => throw Answers.alreadyDecided
+      case Some(_)                                                            => throw Answers.noPendingAction
     val body     = bodyOf(ctx, state)
     val decision = if approve then Decision.approved(id, by) else Decision.refused(id, by, b.flatMap(_.text("feedback")).getOrElse(""))
     val handOff  = HandOff(body.handOff)
     val was      = memory(ctx, session)
+    // An applied action is reported even when the reply after it fails (FR-003).
+    val reported = AtomicBoolean(false)
+    def applied(): Vector[SseEvent] =
+      if !approve then Vector.empty
+      else ctx.conversationState(session).lastAction.filter(_.approvalId == id).map(a => Frames.actionResult(a.tool, a.success, a.detail)).toVector
     Source.lazyFuture { () =>
       Future {
         val outcome = agent(ctx, session, playerId).decide(Motoko.chat)(decision)
-        val result =
-          if !approve then Vector.empty
-          else ctx.conversationState(session).lastAction.filter(_.approvalId == id).map(a => Frames.actionResult(a.tool, a.success, a.detail)).toVector
+        val result  = applied()
+        reported.set(true)
         // An exclusion this decision applied closes the conversation with the brand's closing message (FR-017).
         val closed = ctx.conversationState(session).status == Status.Ended(EndReason.SelfExcluded) && result.nonEmpty
         result ++ outcomeFrames(ctx, session, playerId, body, handOff, outcome) ++
           Option.when(closed)(Frames.delta(s"\n\n${body.closingMessage}")).toVector
       }
     }.flatMapConcat(frames => Source(frames).concat(ending(ctx, session, handOff, was)))
-      .recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
+      .recoverWithRetries(1, { case NonFatal(e) =>
+        offThread(if reported.get then Vector.empty else applied()).concat(failed(ctx, session, body, e))
+      })
 
   /**
    * Whether the brand's agent may answer: it is on, and a real-money brand has a judge for its safeguarding guardrail,
@@ -172,8 +193,9 @@ object Chat:
         .flatMapConcat(frames => Source(frames).concat(ending(ctx, session, handOff, was)))
         .recoverWithRetries(1, {
           case NonFatal(e) if n < OutputRetries && outputRefusal(e).isDefined =>
-            rejected(ctx, session, outputRefusal(e).get, Side.Output, retried = true)
-            attempt(n + 1)
+            // The retry starts once the rejection is recorded, off the stream's thread.
+            Source.lazyFuture(() => Future(rejected(ctx, session, outputRefusal(e).get, Side.Output, retried = true)))
+              .flatMapConcat(_ => attempt(n + 1)).mapMaterializedValue(_ => NotUsed)
         })
         .mapMaterializedValue(_ => NotUsed)
     attempt(0).recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
@@ -192,14 +214,18 @@ object Chat:
    * or model that could not answer is `error` with the unavailable message, and is not a refusal.
    */
   private def failed(ctx: Ctx, session: String, body: ConfigBody, e: Throwable): Source[SseEvent, NotUsed] =
-    TurnFailure.of(e) match
+    offThread(TurnFailure.of(e) match
       case TurnFailure.Refused(Guardrails.SafeguardingName, side) =>
         rejected(ctx, session, Guardrails.SafeguardingName, side, retried = false)
-        Source(Vector(Frames.delta(body.safeguardingReply), Frames.done))
+        Vector(Frames.delta(body.safeguardingReply), Frames.done)
       case TurnFailure.Refused(guardrail, side) =>
         rejected(ctx, session, guardrail, side, retried = false)
-        Source.single(Frames.error(TurnFailure.reply(guardrail)))
-      case TurnFailure.Unavailable => Source.single(Frames.error(body.unavailableMessage))
+        Vector(Frames.error(TurnFailure.reply(guardrail)))
+      case TurnFailure.Unavailable => Vector(Frames.error(body.unavailableMessage)))
+
+  /** Frames whose making blocks (entity calls), made on a virtual thread when the stream reaches them, never on its own. */
+  private def offThread(frames: => Vector[SseEvent]): Source[SseEvent, NotUsed] =
+    Source.lazyFuture(() => Future(frames)).mapConcat(identity).mapMaterializedValue(_ => NotUsed)
 
   /**
    * What is held of the reply, then `done`; a reply that carried the hand-off marker is recorded as one (R12). The
@@ -207,7 +233,7 @@ object Chat:
    * forget timer set from it (FR-027).
    */
   private def ending(ctx: Ctx, session: String, handOff: HandOff, was: SessionHistory): Source[SseEvent, ?] =
-    Source.lazySingle { () =>
+    offThread {
       val rest = handOff.finish()
       if handOff.handedOff then ctx.conversation(session).call(Conversation.handedOff).invoke(At(ctx.now())): Unit
       val now    = ctx.now()
@@ -216,8 +242,8 @@ object Chat:
       val after  = ctx.conversation(session).call(Conversation.turned).invoke(Turned(now, tokens))
       ctx.components.forKeyValueEntity(Budget.id(ctx.slug, now)).call(Budget.add).invoke(AddTokens(session, from, tokens)): Unit
       Forget.schedule(ctx.components, session, after.state)
-      rest
-    }.filter(_.nonEmpty).map(Frames.delta).concat(Source.single(Frames.done))
+      Vector(rest).filter(_.nonEmpty).map(Frames.delta) :+ Frames.done
+    }
 
   private def memory(ctx: Ctx, session: String): SessionHistory =
     ctx.components.forSessionMemory(Motoko.session(session)).call(SessionMemoryEntity.history).invoke()
