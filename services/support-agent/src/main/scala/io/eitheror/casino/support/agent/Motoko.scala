@@ -27,7 +27,7 @@ final class Motoko(context: AgentContext) extends Agent:
     val tools  = Tools(reads, trail, turn.playerId, body, SupportRuntime.now)
     val loaded = if turn.first then Context.first(reads, turn.playerId, body) else None
     val asked  = effects.systemMessage(body.prompt).model(SupportRuntime.model(body.model)).userMessage(turn.message)
-    loaded.fold(asked)(asked.withContext).tools(tools.all*).guardrails(Guardrails.of(body, s, turn.playerId)*).thenStream()
+    loaded.fold(asked)(asked.withContext).tools(tools.all*).guardrails(Guardrails.of(body, s, tools.own)*).thenStream()
 
 object Motoko extends Agent.Companion[Motoko](ComponentId("motoko")):
   given Serializer[Turn] = SupportCodecs.serializer[Turn]("turn")

@@ -4,7 +4,7 @@ import com.thinkmorestupidless.ankka.agent.Guardrail
 import com.thinkmorestupidless.ankka.agent.judgment.{Question, Refuse, YesNoQuestion}
 import io.eitheror.casino.support.Settings
 import io.eitheror.casino.support.config.ConfigBody
-import io.eitheror.casino.support.domain.{OtherPlayer, Softening}
+import io.eitheror.casino.support.domain.{OtherPlayer, OwnIds, Softening}
 
 /**
  * A turn's guardrails (FR-021–FR-023; research R8), in one list in FR-021's order, since ankka runs each direction's
@@ -30,7 +30,7 @@ object Guardrails:
     "Does this message express thoughts or an intention of self-harm or suicide?")
 
   /** A player id other than the player's own, an email or an internal hostname in; the id or the hostname out. */
-  def otherPlayer(own: String): Guardrail = new Guardrail:
+  def otherPlayer(own: OwnIds): Guardrail = new Guardrail:
     val name = OtherPlayerName
     override def checkInput(text: String): Either[String, Unit] =
       OtherPlayer.inInput(text, own).map(found => s"the message names $found").toLeft(())
@@ -49,9 +49,9 @@ object Guardrails:
   val overrides: Guardrail    = Guardrail.judged(OverrideName).onInput(Refuse.ifYes(Overrides, atLeast = Threshold))
   val safeguarding: Guardrail = Guardrail.judged(SafeguardingName).onInput(Refuse.ifYes(SelfHarm, atLeast = Threshold))
 
-  def of(body: ConfigBody, settings: Settings, playerId: String): Vector[Guardrail] =
+  def of(body: ConfigBody, settings: Settings, own: OwnIds): Vector[Guardrail] =
     val judged = settings.judge.isDefined
-    Vector(Guardrail.maxInputLength(body.maxInputChars), otherPlayer(playerId)) ++
+    Vector(Guardrail.maxInputLength(body.maxInputChars), otherPlayer(own)) ++
       Option.when(judged)(overrides) ++
       Option.when(judged && body.safeguarding(settings.realMoney))(safeguarding) :+
       softening

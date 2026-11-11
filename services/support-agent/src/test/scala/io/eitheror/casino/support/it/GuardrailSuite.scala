@@ -1,6 +1,8 @@
 package io.eitheror.casino.support.it
 
+import com.thinkmorestupidless.ankka.agent.Json as AgentJson
 import com.thinkmorestupidless.ankka.agent.judgment.Answers
+import io.eitheror.casino.support.Json
 import io.eitheror.casino.support.agent.Guardrails
 import io.eitheror.casino.support.config.ConfigBody
 import io.eitheror.casino.support.domain.TurnFailure
@@ -50,6 +52,18 @@ class GuardrailSuite extends munit.FunSuite:
 
   private val Other    = "0b6f3c1e-8a2d-4f6e-9c3b-2d1e5a7f9b04"
   private val Leaky    = s"Player $Other has 40.00 in their account."
+
+  test("the player's own game session ids pass both ways: one a tool answered, and one from their records"):
+    val mine = "5d2c9a10-3b4e-4f7a-8c1d-2e3f4a5b6c7d"
+    kit.players.answer("GET", "/players/p-g6/game-sessions", Answer.ok(Json.obj("sessions" ->
+      Json.arr(Json.obj("sessionId" -> mine, "gameId" -> "g-1", "status" -> "OPEN")))))
+    kit.model.expectToolCall("get_session_history", AgentJson.obj(), "call-s").expectText(s"Your open session is $mine.")
+    assertEquals(kit.chat("p-g6", "guard-own-1", "my sessions?").text(), s"Your open session is $mine.")
+    // A later conversation, with no tool called: the id is read from the player's own records.
+    kit.model.expectText(s"Session $mine is still open.")
+    assertEquals(kit.chat("p-g6", "guard-own-2", s"is $mine still open?").text(), s"Session $mine is still open.")
+    kit.model.expectText(s"Session $Other is open.").expectText("I can only talk about your own sessions.")
+    assertEquals(kit.chat("p-g6", "guard-own-3", "and the other one?").text(), "I can only talk about your own sessions.")
 
   test("a reply naming another player's id is never sent, and the model is asked again"):
     kit.model.expectText(Leaky)

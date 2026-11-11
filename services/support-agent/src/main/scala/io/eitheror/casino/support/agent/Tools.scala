@@ -7,7 +7,7 @@ import io.eitheror.casino.support.Json.*
 import io.eitheror.casino.support.clients.{Called, Neighbours}
 import io.eitheror.casino.support.config.ConfigBody
 import io.eitheror.casino.support.conversation.{EndReason, Outcome, ToolCall}
-import io.eitheror.casino.support.domain.{Mapping, Redaction}
+import io.eitheror.casino.support.domain.{Mapping, OwnIds, Redaction}
 
 import java.time.Instant
 import java.util.UUID
@@ -24,6 +24,9 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
 
   /** The player's currency, from players' status (P2), read once per turn when a tool first needs it. */
   lazy val currency: Option[String] = Context.playerState(n, playerId, body).toOption.flatMap(_.text("currency"))
+
+  /** The ids the turn may name as the player's (FR-021): every answer a tool gives is added. */
+  val own: OwnIds = OwnIds(playerId, () => Tools.records(n, playerId, currency))
 
   private def outcomeOf(c: Called): Outcome = c match
     case Called.TimedOut    => Outcome.TimedOut
@@ -46,7 +49,10 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
         val outcome = outcomeOf(c)
         record(tool, args, outcome)
         outcome match
-          case Outcome.Ok => Json.render(map(c))
+          case Outcome.Ok =>
+            val answer = Json.render(map(c))
+            own.add(answer)
+            answer
           case _          => Context.failure(c)
 
   private def json(c: Called): JsonNode = c.json.getOrElse(Json.obj())
@@ -117,6 +123,7 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
       case Outcome.Refused(_) => Tools.refusal(c)
       case _                  => Tools.NotApplied
     record(tool, args, outcome, Some(key), Some(detail))
+    own.add(detail)
     if outcome == Outcome.Ok then detail else throw IllegalStateException(detail)
 
   private val within = body.approvalMinutes.toLong.minutes
@@ -177,6 +184,11 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
 object Tools:
   val DefaultLimit = 10
   val MaxLimit     = 50
+
+  /** The answers of the player's own records that carry ids: their game sessions, rewards and transactions. */
+  def records(n: Neighbours, playerId: String, currency: Option[String]): Vector[String] =
+    (Vector(n.players.sessions(playerId), n.rewards.grants(playerId)) ++
+      currency.map(c => n.wallet.transactions(playerId, c, MaxLimit))).collect { case c @ Called.Answered(_, text) if c.ok => text }
 
   /** What a write that did not answer is told: it may not have been applied, and the player may ask again. */
   val NotApplied = "the service did not answer, so the action may not have been applied; the player may ask again"
