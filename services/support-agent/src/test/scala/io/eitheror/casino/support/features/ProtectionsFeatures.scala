@@ -2,18 +2,20 @@ package io.eitheror.casino.support.features
 
 import com.thinkmorestupidless.ankka.agent.{ChatMessage, Json as AgentJson, forAgent}
 import io.eitheror.casino.support.Json.*
-import io.eitheror.casino.support.agent.Motoko
+import io.eitheror.casino.support.agent.{Guardrails, Motoko}
 import io.eitheror.casino.support.config.ConfigBody
 import io.eitheror.casino.support.conversation.{EndReason, Status}
 import io.eitheror.casino.support.domain.Softening
 import io.eitheror.casino.support.it.SseReader
+
+import scala.concurrent.duration.*
 
 /**
  * features/support-agent/protections.feature (US3; T038). The break and the exclusion are responsible gambling's:
  * the service is asserted to ask it once under the approval's key, to end the conversation, and to put the
  * statements the summary must carry. Ending the player's game sessions is responsible gambling's own work (spec
  * 010 FR-016, FR-018), so "the player's sessions end" is asserted as the call that does it having been made. The
- * softening scenario is bound with the output guardrails (T048).
+ * softening scenario's rejection is read from the audit (T048).
  */
 class ProtectionsFeatures extends SupportFeatures("protections.feature"):
 
@@ -98,3 +100,27 @@ class ProtectionsFeatures extends SupportFeatures("protections.feature"):
     assertEquals((next.status, next.refusal), (409, "conversation_ended"))
     assertEquals(rgPut("/permanent-exclusion").flatMap(_.json).flatMap(_.text("key")), Vector(approval))
   }
+
+  // ── softening ─────────────────────────────────────────────────────────────
+
+  private val Clean = "Your break has started and lasts 24 hours. It cannot be shortened."
+
+  Given("the model's summary softens an irreversible control") { () =>
+    kit.model.expectText("Your break has started, but don't worry, you can lift it early.")
+    kit.model.expectText(Clean)
+  }
+  When("the output guardrail checks it") { () =>
+    stream = kit.chat(player, session, "I need a break")
+    stream.frames(): Unit
+  }
+  Then("the reply is rejected naming the guardrail") { () =>
+    val r = kit.eventually("the softening rejection's record", within = 1.minute)(kit.audits.find(r =>
+      r.correlationId == session && r.action == "support.guardrail.rejected" && r.reasonCode.contains(Guardrails.SofteningName)))
+    assertEquals(r.changes.find(_.field == "side").flatMap(_.after), Some("output"))
+  }
+  Then("the model is asked again") { () =>
+    assertEquals(kit.model.callCount, 2)
+    assertEquals(stream.text(), Clean)
+    assert(!stream.body.contains("don't worry"), "the rejected reply reached the player")
+  }
+

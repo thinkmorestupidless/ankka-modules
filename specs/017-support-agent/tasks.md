@@ -302,7 +302,7 @@ responsible-gambling, and ends the conversation.
 - [X] T047 [US5] Retry an output rejection at most twice, then answer the refusal (FR-022; research
       R8). The text is held until checked, so a rejected reply is never sent (research).
       `T/it/GuardrailSuite.scala` covers each guardrail and the retry.
-- [ ] T048 [US5] Bind `guardrails.feature`'s nine scenarios and the softening scenario of
+- [X] T048 [US5] Bind `guardrails.feature`'s nine scenarios and the softening scenario of
       `protections.feature`; all green.
 
 ## Phase 8: User Story 6 — operators (P3)
