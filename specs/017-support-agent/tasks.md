@@ -339,7 +339,7 @@ responsible-gambling, and ends the conversation.
   - Ask the user before starting kind or the original.
 - [ ] T056 `T/port/ParitySuite.scala`: replay `tests/port/support-agent/`, holding frame names,
       fields, summaries and details exact, with plan.md's *Divergences* marked per recording.
-- [ ] T060 [P] `T/it/TelemetrySuite.scala` (FR-020): runs a conversation with a tool call, an
+- [X] T060 [P] `T/it/TelemetrySuite.scala` (FR-020): runs a conversation with a tool call, an
       approval and a guardrail rejection, then reads the kit's captured logs and spans. Asserts that
       none carries the message text, the reply, the `feedback`, or a tool's argument values.
 - [X] T057 [P] `T/agent/PromptSuite.scala`: the default prompt is the original's
