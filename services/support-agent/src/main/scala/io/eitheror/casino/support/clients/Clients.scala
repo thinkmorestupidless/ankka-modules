@@ -22,7 +22,7 @@ trait Wallet:
   def holdPreview(playerId: String, currency: String, amount: Long): Called
 
 trait Payouts:
-  def requestWithdrawal(playerId: String, amount: Long, currency: String, key: String): Called
+  def requestWithdrawal(playerId: String, amount: Long, currency: String, key: String, confirmForfeit: Boolean): Called
 
 trait Rewards:
   def grants(playerId: String): Called
@@ -63,9 +63,9 @@ final class HttpWallet(n: Neighbour, brand: String) extends Wallet:
   def holdPreview(p: String, c: String, amount: Long): Called = n.get(path(p, c, s"/holds/preview?amount=$amount"))
 
 final class HttpPayouts(n: Neighbour, brand: String) extends Payouts:
-  def requestWithdrawal(p: String, amount: Long, c: String, key: String): Called =
+  def requestWithdrawal(p: String, amount: Long, c: String, key: String, confirmForfeit: Boolean): Called =
     n.post(s"/v1/casino/payouts-service/$brand/players/${segment(p)}/withdrawal-requests",
-      Json.obj("amount" -> amount, "currency" -> c, "key" -> key, "confirmForfeit" -> true))
+      Json.obj("amount" -> amount, "currency" -> c, "key" -> key, "confirmForfeit" -> confirmForfeit))
 
 final class HttpRewards(n: Neighbour, brand: String) extends Rewards:
   def grants(p: String): Called = n.get(s"/v1/casino/brands/$brand/rewards/${segment(p)}/grants")

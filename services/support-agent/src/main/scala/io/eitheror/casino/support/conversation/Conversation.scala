@@ -29,7 +29,7 @@ final class Conversation(@scala.annotation.unused context: EventSourcedEntityCon
           val done = Some(ActionDone(id, e.tool, e.outcome == Outcome.Ok, e.detail.getOrElse("")))
           if s.approved.contains(id) then s.copy(approved = None, lastAction = done) else s.copy(lastAction = done)
         }
-      case e: ApprovalRequested => s.copy(status = Status.Awaiting(e.approvalId, e.tool))
+      case e: ApprovalRequested => s.copy(status = Status.Awaiting(e.approvalId, e.tool), namedForfeit = e.forfeit)
       case e: Decided           => s.copy(status = Status.Open, approved = Option.when(e.approved)(e.approvalId), lastDecided = Some(e.approvalId))
       case _: GuardrailRejected => s
       case _: HandedOff         => s
@@ -61,7 +61,7 @@ final class Conversation(@scala.annotation.unused context: EventSourcedEntityCon
     effects.persist(ToolCalled(c.callId, c.tool, c.arguments, c.outcome, c.detail, c.approvalId, c.at)).thenReply(ok)
 
   def requested(c: Requested): Effect[Answer] =
-    effects.persist(ApprovalRequested(c.approvalId, c.tool, c.arguments, c.summary, c.expiresAt, c.at)).thenReply(ok)
+    effects.persist(ApprovalRequested(c.approvalId, c.tool, c.arguments, c.summary, c.expiresAt, c.at, c.forfeit)).thenReply(ok)
 
   /** The decision on the approval awaited; another id is `no_pending_action`, a second decision `already_decided`. */
   def decided(c: Decide): Effect[Answer] =

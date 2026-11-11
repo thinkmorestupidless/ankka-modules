@@ -14,6 +14,8 @@ trait Trail:
   def called(c: ToolCall): Unit
   /** The approval the player approved that its tool has not yet answered: the write's key. */
   def approved: Option[String]
+  /** The bonus funds the approved withdrawal's summary named as forfeited, if any. */
+  def namedForfeit: Option[Long]
   def ended(reason: EndReason): Unit
 
 object Trail:
@@ -21,4 +23,5 @@ object Trail:
     private def conversation = components.forEventSourcedEntity(EntityId(session))
     def called(c: ToolCall): Unit    = conversation.call(Conversation.toolCalled).invoke(c): Unit
     def approved: Option[String]     = conversation.call(Conversation.get).invoke().approved
+    def namedForfeit: Option[Long]   = conversation.call(Conversation.get).invoke().namedForfeit
     def ended(reason: EndReason): Unit = conversation.call(Conversation.end).invoke(End(reason, now())): Unit

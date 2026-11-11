@@ -135,7 +135,8 @@ final class Tools(n: Neighbours, trail: Trail, playerId: String, body: ConfigBod
       .param[String]("currency", "The player's currency, as an ISO 4217 code.")
       .handle { (amount: Long, c: String) =>
         write("request_withdrawal", Json.obj("amount" -> amount, "currency" -> c))(key =>
-          n.payouts.requestWithdrawal(playerId, amount, c, key))(a => s"${a.textOr("requestId", "")} submitted")
+          n.payouts.requestWithdrawal(playerId, amount, c, key,
+            Actions.confirmsForfeit(trail.namedForfeit, Actions.forfeit(n, playerId, c, amount))))(a => s"${a.textOr("requestId", "")} submitted")
       }
       .requiresApproval(within),
     FunctionTool.named("close_active_session")

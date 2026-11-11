@@ -263,7 +263,7 @@ object Chat:
           .invoke(ToolCall(r.callId, r.tool, redacted, Outcome.Refused("invalid_arguments"), None, Some(reason), now)): Unit
         outcomeFrames(ctx, session, playerId, body, handOff, calls.decide(Motoko.chat)(Decision.refused(r.id, Service, reason)))
       case Right(()) =>
-        val summary = Actions.summary(n, playerId, r.tool, args, currency)
+        val (summary, forfeit) = Actions.prepare(n, playerId, r.tool, args, currency)
         val expires = r.expiresAt.map(Instant.ofEpochMilli).getOrElse(now.plusSeconds(body.approvalMinutes * 60L))
-        ctx.conversation(session).call(Conversation.requested).invoke(Requested(r.id, r.tool, redacted, summary, expires, now)): Unit
+        ctx.conversation(session).call(Conversation.requested).invoke(Requested(r.id, r.tool, redacted, summary, expires, now, forfeit)): Unit
         Vector(Frames.confirmAction(r.tool, summary, session)))

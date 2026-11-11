@@ -35,7 +35,7 @@ personal value.
 | `Started` (`support.conversation.started`) | playerId, configVersion, at | first turn |
 | `TurnTaken` (`support.conversation.turn`) | at, tokensBefore, tokensAfter | a turn answered or awaiting |
 | `ToolCalled` (`support.conversation.tool`) | callId, tool, arguments (redacted, see below), outcome `Ok \| Refused(code) \| Unavailable \| TimedOut`, detail?, at | after each tool runs |
-| `ApprovalRequested` (`support.conversation.requested`) | approvalId, tool, arguments (redacted), summary, expiresAt, at | the turn ends awaiting |
+| `ApprovalRequested` (`support.conversation.requested`) | approvalId, tool, arguments (redacted), summary, expiresAt, at, forfeit (the bonus funds a withdrawal summary named, or none) | the turn ends awaiting; the forfeit is kept for `confirmForfeit` |
 | `Decided` (`support.conversation.decided`) | approvalId, approved, by `player \| ankka`, expired, at | resume, or expiry seen on the next call |
 | `GuardrailRejected` (`support.conversation.rejected`) | guardrail, side `Input \| Output`, retried, at | a guardrail refused |
 | `HandedOff` (`support.conversation.handed-off`) | at | the reply carried the hand-off marker (R12) |

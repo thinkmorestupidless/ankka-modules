@@ -32,7 +32,7 @@ final class Recorded:
       def holdPreview(p: String, c: String, a: Long) = answer("wallet", "holdPreview", p, c, a)
     ,
     new Payouts:
-      def requestWithdrawal(p: String, a: Long, c: String, k: String) = answer("payouts", "requestWithdrawal", p, a, c, k)
+      def requestWithdrawal(p: String, a: Long, c: String, k: String, f: Boolean) = answer("payouts", "requestWithdrawal", p, a, c, k, f)
     ,
     new Rewards:
       def grants(p: String) = answer("rewards", "grants", p)
@@ -47,8 +47,10 @@ final class Recorded:
   val toolCalls = mutable.ArrayBuffer.empty[ToolCall]
   val ends      = mutable.ArrayBuffer.empty[EndReason]
   @volatile var approvedId: Option[String] = None
+  @volatile var forfeitNamed: Option[Long]  = None
 
   val trail: Trail = new Trail:
     def called(c: ToolCall): Unit     = toolCalls += c
     def approved: Option[String]      = approvedId
+    def namedForfeit: Option[Long]    = forfeitNamed
     def ended(r: EndReason): Unit     = ends += r

@@ -31,7 +31,11 @@ plan.md.
 
 The summary before a withdrawal reads the wallet's hold preview
 (`GET …/wallets/{p}/{currency}/holds/preview?amount=`, admitted) and names any forfeit.
-`confirmForfeit` is then sent true, since the player confirmed a summary naming it.
+The conversation keeps the forfeit the summary named (`ApprovalRequested.forfeit`). When the
+approved withdrawal runs, the preview is read again. `confirmForfeit` is sent true only when the
+summary named a forfeit and the preview now reads no larger. Otherwise it is sent false, so payouts
+answers its confirm-forfeit refusal when one is due, and `action_result` carries that refusal
+(settled with the user, 2026-11-11, at review).
 
 A refusal from the service, such as RG's `break_active` or payouts' `KEY_REUSED`, is
 `action_result` `{success: false, detail: <code and message>}`, and the model is told the refusal.

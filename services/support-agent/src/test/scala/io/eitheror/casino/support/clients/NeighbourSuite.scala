@@ -61,7 +61,7 @@ class NeighbourSuite extends munit.FunSuite:
     n.wallet.balance("p-1", "GBP"): Unit
     n.wallet.transactions("p-1", "GBP", 10): Unit
     n.wallet.holdPreview("p-1", "GBP", 5000L): Unit
-    n.payouts.requestWithdrawal("p-1", 5000L, "GBP", "ap-2"): Unit
+    n.payouts.requestWithdrawal("p-1", 5000L, "GBP", "ap-2", confirmForfeit = true): Unit
     n.rewards.grants("p-1"): Unit
     n.rg.limits("p-1", "GBP"): Unit
     n.rg.setLimit("p-1", "DEPOSIT_WEEKLY", 10000L, "GBP", "ap-3"): Unit

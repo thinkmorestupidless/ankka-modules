@@ -50,12 +50,31 @@ object Actions:
    * deposit limit whether it applies at once, from responsible gambling's current limits (FR-013).
    */
   def summary(n: Neighbours, playerId: String, tool: String, args: JsonNode, currency: Option[String]): String =
+    prepare(n, playerId, tool, args, currency)._1
+
+  /** The summary, and for a withdrawal the forfeit it names: none when the preview names none or cannot be read. */
+  def prepare(n: Neighbours, playerId: String, tool: String, args: JsonNode, currency: Option[String]): (String, Option[Long]) =
     def money = Currency.unsafe(currency.getOrElse(throw IllegalStateException("the player's currency is not known")))
     tool match
       case "request_withdrawal" =>
         val a       = amount(args).getOrElse(0L)
-        val forfeit = Some(n.wallet.holdPreview(playerId, money.code, a)).filter(_.ok).flatMap(_.json).flatMap(_.long("totalForfeit"))
-        Summaries.withdrawal(a, money, forfeit)
+        val named   = forfeit(n, playerId, money.code, a).filter(_ > 0)
+        (Summaries.withdrawal(a, money, named), named)
+      case other => (describe(n, playerId, other, args, money), None)
+
+  /** The bonus funds the wallet's hold preview says a withdrawal of `amount` forfeits, when it can be read. */
+  def forfeit(n: Neighbours, playerId: String, currency: String, amount: Long): Option[Long] =
+    Some(n.wallet.holdPreview(playerId, currency, amount)).filter(_.ok).flatMap(_.json).flatMap(_.long("totalForfeit"))
+
+  /**
+   * Whether the withdrawal may confirm the forfeit (FR-013): only one its summary named, and only while the preview
+   * still reads no larger; otherwise payouts is asked without it, and answers its confirm-forfeit refusal if one is due.
+   */
+  def confirmsForfeit(named: Option[Long], now: Option[Long]): Boolean =
+    named.exists(f => now.exists(_ <= f))
+
+  private def describe(n: Neighbours, playerId: String, tool: String, args: JsonNode, money: => Currency): String =
+    tool match
       case "close_active_session" => Summaries.closeSession(args.text("game_session_id").getOrElse(""))
       case "set_deposit_limit" =>
         val (period, a) = (args.text("period").getOrElse(""), amount(args).getOrElse(0L))

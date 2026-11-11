@@ -97,6 +97,33 @@ class ResumeSuite extends munit.FunSuite:
     assert(frames.head.field("detail").contains("INSUFFICIENT_FUNDS"), frames.head.data)
     assertEquals(withdrawals.size, 1)
 
+  private def preview(forfeit: Long) =
+    kit.wallet.answer("GET", "/wallets/p-1/GBP/holds/preview", Answer.ok(io.eitheror.casino.support.Json.obj("totalForfeit" -> forfeit,
+      "forfeits" -> io.eitheror.casino.support.Json.arr())))
+  private def confirmed = withdrawals.flatMap(_.json).flatMap(_.bool("confirmForfeit"))
+
+  test("a forfeit the summary named, and still no larger, is confirmed; one never shown, or grown since, is not (FR-013)"):
+    def approved(session: String) =
+      kit.model.expectText("Submitted.")
+      assertEquals(kit.resume("p-1", session, "approve").names().last, "done")
+    preview(1500L)
+    kit.model.expectToolCall("request_withdrawal", withdrawal(), "call-f1")
+    val named = kit.chat("p-1", "resume-forfeit-named", "withdraw £50").frames()
+    assert(named.head.field("summary").contains("forfeits 15.00 GBP"), named.head.data)
+    approved("resume-forfeit-named")
+    // The preview could not be read for the summary, and names a forfeit by the time the player approves.
+    kit.wallet.answer("GET", "/wallets/p-1/GBP/holds/preview", Answer(503, """{"error":"unavailable"}"""))
+    kit.model.expectToolCall("request_withdrawal", withdrawal(), "call-f2")
+    assertEquals(kit.chat("p-1", "resume-forfeit-unread", "withdraw £50").frames().head.field("summary"), "Withdraw 50.00 GBP from your account")
+    preview(1500L)
+    approved("resume-forfeit-unread")
+    // Named at 15.00, grown to 20.00 since.
+    kit.model.expectToolCall("request_withdrawal", withdrawal(), "call-f3")
+    kit.chat("p-1", "resume-forfeit-grown", "withdraw £50").frames(): Unit
+    preview(2000L)
+    approved("resume-forfeit-grown")
+    assertEquals(confirmed, Vector(true, false, false))
+
   test("another currency or an amount of zero is refused to the model with no approval shown and nothing called (FR-011)"):
     kit.model.expectToolCall("request_withdrawal", withdrawal(currency = "EUR"), "call-eur").expectText("I can only withdraw in GBP.")
     val eur = kit.chat("p-1", "resume-eur", "withdraw €50")

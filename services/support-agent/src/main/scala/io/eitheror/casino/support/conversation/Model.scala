@@ -48,7 +48,9 @@ final case class ConversationState(
     /** The last approval decided, so a second decision on it is `already_decided` (FR-015). */
     lastDecided: Option[String] = None,
     /** What the last approved tool came to, for the resume's `action_result` (research R3). */
-    lastAction: Option[ActionDone] = None
+    lastAction: Option[ActionDone] = None,
+    /** The bonus funds the awaited or approved withdrawal's summary named as forfeited, if it named any (FR-013). */
+    namedForfeit: Option[Long] = None
 ):
   def started: Boolean = playerId.nonEmpty
 
@@ -72,7 +74,7 @@ enum ConversationEvent:
   case ToolCalled(callId: String, tool: String, arguments: Map[String, String], outcome: Outcome, detail: Option[String],
       approvalId: Option[String], at: Instant)
   case ApprovalRequested(approvalId: String, tool: String, arguments: Map[String, String], summary: String,
-      expiresAt: Instant, at: Instant)
+      expiresAt: Instant, at: Instant, forfeit: Option[Long] = None)
   case Decided(approvalId: String, tool: String, approved: Boolean, by: String, expired: Boolean, at: Instant)
   case GuardrailRejected(guardrail: String, side: Side, retried: Boolean, at: Instant)
   case HandedOff(at: Instant)
@@ -88,7 +90,7 @@ final case class Turned(at: Instant, tokensAfter: Long)
 final case class ToolCall(callId: String, tool: String, arguments: Map[String, String], outcome: Outcome, approvalId: Option[String],
     detail: Option[String], at: Instant)
 final case class Requested(approvalId: String, tool: String, arguments: Map[String, String], summary: String,
-    expiresAt: Instant, at: Instant)
+    expiresAt: Instant, at: Instant, forfeit: Option[Long] = None)
 final case class Decide(approvalId: String, approved: Boolean, by: String, expired: Boolean, at: Instant)
 final case class Rejected(guardrail: String, side: Side, retried: Boolean, at: Instant)
 final case class At(at: Instant)
