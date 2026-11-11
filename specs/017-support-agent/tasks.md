@@ -315,7 +315,7 @@ responsible-gambling, and ends the conversation.
   - Refusals as contracts/routes.md.
 - [X] T050 [US6] `S/reads/ConversationsByPlayer.scala` (a view of `Conversation`), serving the list
       and status.
-- [ ] T051 [US6] The agent off: the chat route answers 503 `agent_unavailable` with the unavailable
+- [X] T051 [US6] The agent off: the chat route answers 503 `agent_unavailable` with the unavailable
       message. A real-money brand cannot set `enabled` without safeguarding, and gets 422.
       `T/it/ConfigSuite.scala` also checks that a new version governs only conversations started
       after it.

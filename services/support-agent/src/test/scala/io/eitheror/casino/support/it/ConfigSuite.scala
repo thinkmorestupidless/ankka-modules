@@ -67,3 +67,33 @@ class ConfigSuite extends munit.FunSuite:
     assertEquals(other.status, 403)
     assertEquals(get("/", roles = "support_agent").status, 403)
     assertEquals(kit.request("GET", path("/"), headers = kit.asPlayer("p-cfg")).status, 403)
+
+  // ── T051 ──────────────────────────────────────────────────────────────────
+
+  test("a brand whose agent is off answers 503 agent_unavailable with the unavailable message, and no model is called"):
+    assertEquals(put("""{"enabled": false}""").status, 200)
+    val s = kit.chat("p-off", "off-1", "hello")
+    assertEquals((s.status, s.refusal), (503, "agent_unavailable"))
+    assertEquals(Json.parse(s.body).map(_.get("details").get("message").asText), Some(ConfigBody().unavailableMessage))
+    assertEquals(kit.model.callCount, 0)
+
+  test("a real-money brand cannot turn the agent on without a safeguarding message and helpline: 422"):
+    kit.reset(Kit.Base.copy(realMoney = true))
+    kit.configure(_.copy(enabled = false)): Unit
+    val refused = put("""{"enabled": true}""")
+    assertEquals((refused.status, refused.str("error")), (422, "safeguarding_not_configured"))
+    assertEquals(put("""{"enabled": true, "safeguardingMessage": "You are not alone.", "helpline": "0800 000 000"}""").status, 200)
+    assertEquals(Json.parse(get("/status").text).map(_.get("safeguarding").asText), Some("on"))
+
+  test("a new prompt version governs conversations started after it; one in progress keeps its own"):
+    def prompt = kit.model.lastRequest.systemMessage.getOrElse("")
+    kit.model.expectText("one")
+    assertEquals(kit.chat("p-ver", "ver-old", "hello").names().last, "done")
+    assert(prompt.startsWith("You are Motoko"), prompt)
+    assertEquals(put("""{"prompt": "You are Motoko, version two."}""").status, 200)
+    kit.model.expectText("two")
+    assertEquals(kit.chat("p-ver", "ver-new", "hello").names().last, "done")
+    assert(prompt.startsWith("You are Motoko, version two."), prompt)
+    kit.model.expectText("three")
+    assertEquals(kit.chat("p-ver", "ver-old", "again").names().last, "done")
+    assert(!prompt.contains("version two"), prompt)
