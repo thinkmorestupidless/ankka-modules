@@ -275,7 +275,7 @@ responsible-gambling, and ends the conversation.
 - [X] T041 [US4] `T/it/ErasureSuite.scala`: after the subject's erasure (ankka 042's kit hook), the
       memory reads empty, a new turn starts with no history and records nothing, and `Conversation`
       holds nothing to erase (SC-004 at the kit's level).
-- [ ] T042 [US4] Bind `conversations.feature`'s five scenarios; all green.
+- [X] T042 [US4] Bind `conversations.feature`'s five scenarios; all green.
 
 ## Phase 7: User Story 5 — guardrails, limits, hand-off (P2)
 
