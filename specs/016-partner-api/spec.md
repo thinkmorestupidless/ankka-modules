@@ -101,25 +101,32 @@ could erase).
   message reports the gap in the view's status (ankka 043) and `readModelStatus` says degraded until
   an operator accepts it. Whether a brand with a partner raises the topic's retention is the brand
   manifest's decision; see the marker in *Assumptions*.
-- Q: Language? → A: TypeScript, hosted beside the sidecar, with the reason: the contract tool
-  derives cursor paging, filters, ordering and batching from the views and the CI drift check
-  depends on introspecting it; a Scala rewrite would hand-roll all of that to produce the same
-  bytes. Nothing in this service is atomic or moves money (constitution VI).
+- Q: Language? → A: Scala (amended 2026-11-11; the 2026-10-08 answer was TypeScript). ankka's
+  TypeScript SDK cannot shape a response: a refusal is always `text/plain`, with no status of the
+  service's choosing and no headers (spec 005 research R1), so FR-025's retry signal and the
+  original's error shapes could not be served. The contract is still served byte for byte and the
+  drift check still fails the build (FR-001, FR-003); the plan says how in Scala. Nothing in this
+  service is atomic or moves money (constitution VI).
 
 ### Session 2026-10-08 (reconciliation 3)
 
-- Q: When is this service built, and is it in the pilot? → A: Last, and no. No partner exists today;
+- Q: When is this service built, and is it in the pilot? → A: (Superseded 2026-11-11, below.) Last, and no. No partner exists today;
   the pilot brand's manifest excludes `partner-api` (spec 001 FR-007), and the marker on whether any
   partner is contracted decides whether it is built at all. Spec 001 FR-020's partner class is
   corrected to say the token is the `eitheror` realm's and this service issues nothing (FR-015).
 
+### Session 2026-11-11
+
+- Q: Is a partner contracted? → A: Yes, contracted or close (Trevor). The service is built now, not
+  last, and is not held back for a partner to sign. It stays its own module, `partner`, depending
+  on `casino` (spec 021), so a brand runs it only when entitled; the pilot brand's entitlement is
+  the vendor's decision, not this spec's. The surface is built wide, as the original's was, and
+  narrowed per partner by grant.
+
 ### Note from spec 005 (2026-10-18), for the plan
 
-- ankka 0.11's TypeScript SDK cannot shape a response: a success is `200` (or `204`) with the reply
-  codec's content type and no headers, and any other status is `HttpProblem`, always `text/plain`
-  (spec 005 research R1). Spec 005 moved to Scala for it. This service's refusals (a missing or
-  expired token, a disabled grant) are therefore plain text unless the plan settles on Scala or an
-  ankka change; the plan should decide which before the contract is written.
+- ankka 0.11's TypeScript SDK cannot shape a response (spec 005 research R1). Settled 2026-11-11:
+  this service is Scala, as spec 005 is (see the Language clarification).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -504,12 +511,9 @@ into this repository unchanged and is the parity test for FR-001.
 
 ## Assumptions
 
-- The first partner has not been named; the surface is built wide, as the original's spec decided,
-  and narrowed per partner by grant. This service is built last of the brand's (its number in the
-  order says so), is excluded from the pilot brand's manifest (spec 001 FR-007), and is built at all
-  only when a partner is contracted — the first marker below is the decision. [NEEDS CLARIFICATION: is any partner contracted or in
-  discussion for Spinvibe today? If none, this service is built last in the brand (it is 016 in the
-  order) and the pilot brand ships without it enabled, as the original ships.]
+- A partner is contracted or close (2026-11-11); the surface is built wide, as the original's
+  spec decided, and narrowed per partner by grant. The service is the `partner` module (spec 021),
+  run at a brand only when the brand is entitled to it.
 - A partner reads one brand per grant. [NEEDS CLARIFICATION: does any planned partner need to read
   across several brands under one token, which the dropped `company`/`holding` scope levels would
   have served? If so, the answer is a grant per brand under one client id, and the partner queries
