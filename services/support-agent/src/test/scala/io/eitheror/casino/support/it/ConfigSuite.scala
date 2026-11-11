@@ -85,6 +85,16 @@ class ConfigSuite extends munit.FunSuite:
     assertEquals(put("""{"enabled": true, "safeguardingMessage": "You are not alone.", "helpline": "0800 000 000"}""").status, 200)
     assertEquals(Json.parse(get("/status").text).map(_.get("safeguarding").asText), Some("on"))
 
+  test("a real-money brand with no judge cannot turn the agent on, and one turned on before answers 503 (FR-023)"):
+    kit.reset(Kit.Base.copy(realMoney = true, judge = None))
+    kit.configure(_.copy(enabled = false)): Unit
+    val refused = put("""{"enabled": true, "safeguardingMessage": "You are not alone.", "helpline": "0800 000 000"}""")
+    assertEquals((refused.status, refused.str("error")), (422, "safeguarding_not_configured"))
+    kit.configure(_.copy(safeguardingMessage = Some("You are not alone."), helpline = Some("0800 000 000"))): Unit
+    val chat = kit.chat("p-c9", "config-nojudge", "hello")
+    assertEquals((chat.status, chat.refusal), (503, "agent_unavailable"))
+    assertEquals(kit.model.callCount, 0)
+
   test("a new prompt version governs conversations started after it; one in progress keeps its own"):
     def prompt = kit.model.lastRequest.systemMessage.getOrElse("")
     kit.model.expectText("one")

@@ -427,7 +427,9 @@ version "2"; the configuration change is an audit record naming the operator.
   takes none MAY opt into it. A message it judges to express self-harm MUST be answered with the
   brand's configured safeguarding message and helpline, run no tool, and write an audit record. A
   brand that takes real money MUST NOT be able to turn the agent on while its safeguarding message
-  or helpline is not configured.
+  or helpline is not configured, or while the service has no judgment provider to run the
+  safeguarding guardrail; such a brand's agent turned on before the provider was removed answers
+  that it is unavailable.
 - **FR-024**: A player MUST be limited to the brand's turns per minute (default 10) and a brand to a
   daily token budget; past the budget every message MUST be answered with the fixed unavailable
   message naming the support chat, and the brand's status MUST say the budget is spent.
@@ -537,8 +539,9 @@ version "2"; the configuration change is an audit record naming the operator.
   widget reads an approved action's result from the resume's answer.
 - ankka 029 (approvals, the service client in tools), 032 (timers), 038 (secrets) and 042 (subject-
   tagged sessions) are as specified; 036 (blueprints) is not relied on.
-- The judgment provider for judged guardrails is the installation's; a brand without one gets the
-  pattern guardrails only, and its status says the judged guardrails are off.
+- The judgment provider for judged guardrails is the installation's. A brand that takes no real money
+  and has none gets the pattern guardrails only, and its status says the judged guardrails are off;
+  a brand that takes real money cannot run its agent without one (FR-023).
 - The services the tools call expose the routes the service specs name (checked at reconciliation
   3), and admit `support-agent` by identity once this plan's amendments to specs 007, 008 and 010
   are built:

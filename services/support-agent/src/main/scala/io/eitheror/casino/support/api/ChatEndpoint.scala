@@ -65,7 +65,7 @@ object Chat:
     val (m, s) = (message.get, session.get)
 
     val config = ctx.configuration
-    if !config.current.enabled then throw Answers.agentUnavailable(config.current.unavailableMessage)
+    if !available(ctx, config.current) then throw Answers.agentUnavailable(config.current.unavailableMessage)
     val before = settled(ctx, s, ctx.conversationState(s))
     if before.started && before.playerId != playerId then throw Answers.sessionNotYours
     before.awaiting.foreach((id, tool) => throw Answers.sessionActive(id, tool))
@@ -136,6 +136,13 @@ object Chat:
       }
     }.flatMapConcat(frames => Source(frames).concat(ending(ctx, session, handOff, was)))
       .recoverWithRetries(1, { case NonFatal(e) => failed(ctx, session, body, e) })
+
+  /**
+   * Whether the brand's agent may answer: it is on, and a real-money brand has a judge for its safeguarding guardrail,
+   * even when it was turned on before the judge was taken away (FR-001, FR-023).
+   */
+  private def available(ctx: Ctx, current: ConfigBody): Boolean =
+    current.enabled && (!ctx.settings.realMoney || ctx.settings.judge.isDefined)
 
   private def bodyOf(ctx: Ctx, s: ConversationState): ConfigBody = ConfigVersion.body(ctx.components, ctx.slug, s.configVersion)
 

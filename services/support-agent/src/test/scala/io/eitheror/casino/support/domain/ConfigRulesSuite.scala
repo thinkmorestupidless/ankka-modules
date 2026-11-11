@@ -37,6 +37,13 @@ class ConfigRulesSuite extends munit.FunSuite:
     assertEquals((r.status, r.code), (422, "safeguarding_not_configured"))
     assertEquals(refused("""{"enabled":true,"safeguardingMessage":"Please talk to someone."}""", realMoney = true).code, "safeguarding_not_configured")
     assert(read("""{"enabled":true,"safeguardingMessage":"Please talk to someone.","helpline":"0808 8020 133"}""", realMoney = true).isRight)
+
+  test("a real-money brand cannot turn the agent on without a judge for its safeguarding guardrail (FR-023)"):
+    val full = Json.parse("""{"enabled":true,"safeguardingMessage":"Please talk to someone.","helpline":"0808 8020 133"}""").get
+    val r = ConfigRules.read(full, ConfigBody(), realMoney = true, judged = false).left.getOrElse(fail("accepted"))
+    assertEquals((r.status, r.code), (422, "safeguarding_not_configured"))
+    assert(r.message.contains("judgment provider"), r.message)
+    assert(ConfigRules.read(full, ConfigBody(), realMoney = false, judged = false).isRight)
     assert(read("""{"enabled":true}""").isRight, "a brand with no real money needs neither")
 
   test("changes name the fields, and carry values only for those the audit may record"):

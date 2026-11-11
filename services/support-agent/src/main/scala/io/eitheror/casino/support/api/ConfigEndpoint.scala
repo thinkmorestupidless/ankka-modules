@@ -59,7 +59,7 @@ object Operators:
   def put(ctx: Ctx, text: String, operator: String, roles: Set[String]): Answer =
     val now = ctx.configuration
     val sent = Json.parse(text).orNull
-    ConfigRules.read(sent, now.current, ctx.settings.realMoney) match
+    ConfigRules.read(sent, now.current, ctx.settings.realMoney, ctx.settings.judge.isDefined) match
       case Left(r) => refusal(r.status, r.code, (r.field.map("field" -> _).toVector :+ ("message" -> r.message))*)
       case Right(next) =>
         val (changed, _) = ConfigRules.changes(now.current, next)
