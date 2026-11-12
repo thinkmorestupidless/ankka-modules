@@ -116,5 +116,4 @@ any publish while a manifest it publishes names one of these (contracts/release.
 
 | Service | Module | Spec |
 |---|---|---|
-
-None: every service a manifest names has its build.
+| public-api | public-api | 016 |

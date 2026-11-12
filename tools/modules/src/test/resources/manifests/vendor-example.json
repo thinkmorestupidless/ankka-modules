@@ -1,7 +1,7 @@
 {
   "name": "casino",
   "kind": "product",
-  "description": "Games, rewards and the partner API on the core",
+  "description": "Games, rewards and the public API on the core",
   "dependencies": [ { "module": "core", "range": ">=1.4.0 <2.0.0" } ],
   "services": [
     {

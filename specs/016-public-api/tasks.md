@@ -55,7 +55,7 @@ recipes.
   `brand_not_in_roles`)
 - [X] T004 [P] Add the realm role `api_keys` to `brands/_realm/eitheror-operators.json` beside
   `markets` (the file holds role names only, as `markets` has)
-- [ ] T005 [P] Rename spec 021's module `partner` to `public-api`: create `modules/public-api/module.json`
+- [X] T005 [P] Rename spec 021's module `partner` to `public-api`: create `modules/public-api/module.json`
   (kind `product`, depends on `core` and `casino`, service `public-api`, runtime `0.16.0`,
   `"expose": true`, `"personal": true`, env `CASINO_PROJECT`, `CASINO_BRAND`, `ANKKA_AUTH_ISSUERS=staff`
   and the staff issuer keys as `modules/reporting/module.json` has them, the hostname key
@@ -307,9 +307,10 @@ end; an empty collection.
 
 - [ ] T059 [US4] Write `p/wire/Fields.scala`: copy into the player's answer only the fields the
   admitted key allows whose value is `Personal.Present`; use it in `Records`
-- [ ] T060 [US4] Write `p/api/ErasureEndpoint.scala` on `/erasure` (`POST
-  /erasure/players/{playerId}` under `Routes.playersOnly`) with ankka 042's erasure handler for the
-  `Players` view's subject, as `services/reporting` does; register it
+- [ ] T060 [US4] Write `p/api/Erasure.scala` and serve it from the `/v1` endpoint (`POST
+  /casino/brands/{brand}/public-api/erasure/players/{player}` under its own
+  `withAcl(Routes.playersOnly)`; research *Found during implementation*) with ankka 042's erasure
+  handler for the `Players` view's subject, as `services/reporting` does
 
 **Checkpoint**: US1–US4 pass: the P1 surface is complete.
 

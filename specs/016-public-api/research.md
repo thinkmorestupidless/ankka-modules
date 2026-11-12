@@ -61,7 +61,7 @@ Decisions for [plan.md](plan.md), each with what was read. Paths under `original
   | `/health` | liveness, as the original's | `Acl.AllowAll` |
   | `/access-keys` | `/access-keys/{brand}`, `/access-keys/{brand}/{keyId}` and its actions (contracts/routes.md) | `Routes.operatorHolding(slug, "api_keys")` with `Routes.brandSegment` |
   | `/public-api` | `/public-api/{brand}/status` | `Routes.operator(slug)` |
-  | `/erasure` | `/erasure/players/{playerId}` | `Routes.playersOnly`, as every brand service (spec 015's route) |
+  | `/v1` (its own `withAcl`) | `/casino/brands/{brand}/public-api/erasure/players/{player}` | `Routes.playersOnly`, as every brand service (spec 015's route; see *Found during implementation*) |
 
 - **Rationale**:
   - The contract's paths carry no brand (FR-001). The brand is the project's, and a key exists only
@@ -315,6 +315,22 @@ Applied on this branch:
   statement time and alerting are absent (the original had neither either).
 - **spec 018**: actor kind `access_key` is new; the audit accepts any kind (its FR-001 lists kinds,
   and its line 149 allows more).
+
+## Found during implementation
+
+- **The erasure route's path** (T005, 2026-11-12, Trevor). `POST /erasure/players/{playerId}`
+  could not be reached: `players` reads `ERASURE_TARGETS` as `service=/prefix` and refuses an empty
+  prefix. The route is `POST /v1/casino/brands/{brand}/public-api/erasure/players/{player}`, as
+  engagement's, exchange's and reporting's are, served by the `/v1` endpoint under its own
+  `withAcl(Routes.playersOnly)`, so no endpoint is added and `players` is unchanged. It is not in the
+  public contract's file, which holds only the API's own paths, and no key reaches it: it admits
+  `players` only. The modules tool renders `erasure-targets` with `public-api=/v1/casino/brands/<slug>/public-api`
+  from its row in `contract/access/routes.md`.
+- **What the module manifest cannot carry** (T005). ankka-vendor's manifest schema allows neither
+  `"personal"` in a descriptor nor a list of topics read: `"personal": true` is in
+  `services/public-api/service.json` (T007), as in every brand service, and a brand project's
+  services read its topics without a grant, as `reporting`'s do. No hostname key is added: the
+  service is exposed by `"expose": true`, as `reporting` is.
 
 ## Declined remediations
 

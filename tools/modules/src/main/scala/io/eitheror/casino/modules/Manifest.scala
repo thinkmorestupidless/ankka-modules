@@ -147,9 +147,9 @@ object Manifest:
   object Spec001:
     val BrandServices: Vector[String] = Vector(
       "wallet", "payouts", "players", "kyc", "responsible-gambling", "rewards", "game-provider",
-      "attribution", "partner-api", "engagement", "reporting", "support-agent"
+      "attribution", "public-api", "engagement", "reporting", "support-agent"
     )
-    val OptionalBrandServices: Set[String] = Set("partner-api", "support-agent")
+    val OptionalBrandServices: Set[String] = Set("public-api", "support-agent")
     // Spec 001's topics and grants: none of a module written after it (spec 023's predictions), and not
     // spec 021's platform.modules.
     private val later = Layout.Modules.filter(_.name == "predictions")

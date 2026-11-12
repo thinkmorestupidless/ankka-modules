@@ -17,7 +17,7 @@ class ModuleManifestSuite extends munit.FunSuite:
     topics = Set("casino.rounds", "casino.rewards", "platform.audit"),
     routes = Set(("game-provider", "POST", "/v1/casino/brands/{brand}/rounds")),
     keys = Set("casino-brand", "game-provider-mode", "st8-api-key"),
-    productModules = Set("casino", "engagement", "reporting", "support", "partner", "predictions"),
+    productModules = Set("casino", "engagement", "reporting", "support", "public-api", "predictions"),
     sharedModules = Set("pool")
   )
 
@@ -58,9 +58,9 @@ class ModuleManifestSuite extends munit.FunSuite:
     refusedNaming("secret-literal", "services[0].descriptor.env[3].value", "looks like a secret")
   }
 
-  test("a product module depending on another product module is refused (FR-002); partner on casino is the exception") {
+  test("a product module depending on another product module is refused (FR-002); public-api on casino is the exception") {
     refusedNaming("product-on-product", "dependencies[1].module", "a product module depends on product module 'engagement'")
-    assert(ModuleManifest.ProductOnProduct.contains("partner" -> "casino"))
+    assert(ModuleManifest.ProductOnProduct.contains("public-api" -> "casino"))
   }
 
   test("a grant to a module of the same project is refused: it is not a grant (FR-007)") {
@@ -88,10 +88,10 @@ class ModuleManifestSuite extends munit.FunSuite:
 
   private lazy val tree = ContractView.fromTree(Fixtures.root)
 
-  test("the six manifests under modules/ validate against the tree's contract, and one service is in one module") {
+  test("the seven manifests under modules/ validate against the tree's contract, and one service is in one module") {
     val (valid, refused) = ModuleManifest.validateTree(Fixtures.root, tree)
     assertEquals(refused.map((p, rs) => s"$p: ${rs.mkString("; ")}"), Vector.empty)
-    assertEquals(valid.map(_.name), Vector("core", "casino", "engagement", "predictions", "reporting", "support"))
+    assertEquals(valid.map(_.name), Vector("core", "casino", "engagement", "predictions", "public-api", "reporting", "support"))
   }
 
   test("every service a manifest names has a build under services/ or is listed as not yet built in contract/keys.md") {
