@@ -9,7 +9,7 @@
 **Input**: User description: "The foundation every casino and payments service spec builds on: how a
 brand becomes an ankka project, how projects and services are named, how a brand is created from one
 manifest and pins its own versions, the topic contract every fact crosses, the realms that identify a
-player, an operator, an affiliate and a partner, which fields are personal data, how money is counted,
+player, an operator, an affiliate and the holder of an access key, which fields are personal data, how money is counted,
 how the running original is recorded and held to, and what the installation must have before a brand
 takes real money."
 
@@ -196,10 +196,12 @@ Settled with specs 014–019 once they existed.
   012 FR-016) so the brand's day and the affiliates' `ggr-daily` close on the same instant.
 - Q: Whose token does a partner carry? → A: The `eitheror` realm's, for a confidential client per
   partner scoped to the brand (spec 016 FR-015); the partner API verifies it and issues nothing.
-  FR-020's partner class is corrected.
+  FR-020's partner class is corrected. *Superseded 2026-11-12 by spec 016: there is no partner;
+  the public API admits an access key a brand's operator creates (FR-020's public class).*
 - Q: Is `partner-api` in the pilot? → A: No. It has no partner today (spec 016); it is built last and
   only when one is contracted, and the pilot brand's manifest excludes it (FR-007). `support-agent`
-  ships off (spec 017 FR-001).
+  ships off (spec 017 FR-001). *Superseded 2026-11-12 by spec 016: the service is `public-api`, built
+  now, in the module of that name (spec 021); a brand runs it when entitled to the module.*
 
 ### Session 2026-10-08 (clarify)
 
@@ -285,7 +287,7 @@ consumer, and check the key, the family, the version and the fields the contract
 
 A player signs in to their brand's realm and reaches only their own wallet and account. An operator
 signs in to the operator realm and reaches the brands their roles name. An affiliate reaches the
-programme's portal. A partner reaches the partner API with a partner token. One service calls another
+programme's portal. Whoever a brand gives an access key reaches the brand's public API with that key. One service calls another
 with no token at all; the platform's identity for the caller is enough.
 
 **Why this priority**: Decision 0045 in the eitheror brain records an outage caused by brand access
@@ -429,7 +431,7 @@ one of the conditions and check the refusal names it.
   letters, digits and `-`, starting with a letter. The slugs `payments`, `programme`, `reasoner`,
   `platform`, `local` and `machine` MUST be refused.
 - **FR-002**: A brand project MUST hold these services and no others: `wallet`, `payouts`, `players`,
-  `kyc`, `responsible-gambling`, `rewards`, `game-provider`, `attribution`, `partner-api`,
+  `kyc`, `responsible-gambling`, `rewards`, `game-provider`, `attribution`, `public-api`,
   `engagement`, `reporting`, `support-agent`. Each is specified by one spec in this repository
   (`attribution` by spec 012).
 - **FR-003**: The installation MUST hold five shared projects: `payments` (`merchant`, `psp-gateway`,
@@ -451,9 +453,9 @@ one of the conditions and check the refusal names it.
 - **FR-007**: A brand MUST be created from one manifest kept in this repository under
   `brands/<slug>/`: the project, every brand service with its image version, every topic of the
   contract with its settings, every grant the brand makes and receives, the brand's realm, and whether
-  the brand takes real money. The pilot brand's manifest MUST exclude `partner-api` (spec 016 is
-  built last, and only when a partner is contracted) and MUST leave `support-agent` off (spec 017
-  FR-001); both are added to a brand's manifest when the brand needs them.
+  the brand takes real money. The pilot brand's manifest MUST leave `support-agent` off (spec 017 FR-001); it is added to a
+  brand's manifest when the brand needs it. `public-api` runs where the brand is entitled to the
+  `public-api` module (spec 021; amended by spec 016, 2026-11-12).
 - **FR-008**: Each brand MUST pin its own version of each service. A release MUST reach one brand
   first; any other brand moves when its manifest is changed, never because another brand's was.
 - **FR-009**: A shared service MUST accept every API version and every message version any brand still
@@ -471,13 +473,13 @@ one of the conditions and check the refusal names it.
 
   | Topic | Producer | Families | Readers in the brand | Granted to |
   |---|---|---|---|---|
-  | `money.transactions` | `wallet` | deposit_confirmed (carrying the wallet's deposit ordinal), bet_placed, win_credited, bet_rolled_back, round_settled_as_loss, restricted_funds_awarded, restricted_funds_converted, restricted_funds_forfeited (carrying the clawback applied), admin_adjusted, hold_placed (carrying the amount voided against a cap), hold_released, withdrawal_reversed, provider_credited (the last two added by spec 002 on 2026-10-09) — every family carrying the real and restricted balance after the movement | responsible-gambling, rewards, payouts, kyc, attribution, partner-api, engagement, reporting | — |
+  | `money.transactions` | `wallet` | deposit_confirmed (carrying the wallet's deposit ordinal), bet_placed, win_credited, bet_rolled_back, round_settled_as_loss, restricted_funds_awarded, restricted_funds_converted, restricted_funds_forfeited (carrying the clawback applied), admin_adjusted, hold_placed (carrying the amount voided against a cap), hold_released, withdrawal_reversed, provider_credited (the last two added by spec 002 on 2026-10-09) — every family carrying the real and restricted balance after the movement | responsible-gambling, rewards, payouts, kyc, attribution, public-api, engagement, reporting | — |
   | `payments.payments` | `wallet` | payment.initiated, payment.captured, payment.failed, payment.expired, payment.abandoned, payment.refunded, payment.dispute.opened, payment.dispute.closed — every family carrying the payment provider | attribution, engagement, reporting | — |
-  | `casino.players` | `players`, `responsible-gambling`, `kyc` | from `players`: player_registered, player_logged_in, player_logged_out, player_suspended, player_reinstated, player_self_excluded, player_closed, vip_tier_changed, player_profile_updated, player_consent_changed, player_fraud_flagged, player_fraud_cleared, player_message_created, player_message_read, player_message_deleted; from `kyc`: player_kyc_submitted, player_kyc_document_reviewed, player_kyc_verified, player_kyc_rejected, player_kyc_pending, player_kyc_review_required, player_sof_cleared; from `responsible-gambling`: rg_case_opened, rg_case_closed, rg_limit_applied | players, kyc, rewards, payouts, attribution, partner-api, engagement, reporting | — |
-  | `casino.sessions` | `players` | game_session_started, game_session_ended, player_session_started, player_session_ended | responsible-gambling, partner-api, engagement, reporting | — |
-  | `casino.rounds` | `game-provider` | round_settled, carrying the provider, the provider's round id, the game, the session, the currency, the total stake, the win, the outcome and the wallet transaction ids (spec 003 FR-019) | rewards, attribution, partner-api, reporting | — |
-  | `casino.withdrawals` | `payouts` | withdrawal_requested, withdrawal_approved, withdrawal_completed, withdrawal_cancelled, withdrawal_failed, withdrawal_reversed | attribution, partner-api, engagement, reporting | — |
-  | `casino.rewards` | `rewards` | bonus_granted, bonus_cancelled, bonus_forfeited, bonus_completed, grant_expired, free_spins_granted, free_spins_settled, bonus_code_entered — each grant family carrying the offer's id, name and type (spec 011 FR-027) | attribution, partner-api, engagement, reporting | — |
+  | `casino.players` | `players`, `responsible-gambling`, `kyc` | from `players`: player_registered, player_logged_in, player_logged_out, player_suspended, player_reinstated, player_self_excluded, player_closed, vip_tier_changed, player_profile_updated, player_consent_changed, player_fraud_flagged, player_fraud_cleared, player_message_created, player_message_read, player_message_deleted; from `kyc`: player_kyc_submitted, player_kyc_document_reviewed, player_kyc_verified, player_kyc_rejected, player_kyc_pending, player_kyc_review_required, player_sof_cleared; from `responsible-gambling`: rg_case_opened, rg_case_closed, rg_limit_applied | players, kyc, rewards, payouts, attribution, public-api, engagement, reporting | — |
+  | `casino.sessions` | `players` | game_session_started, game_session_ended, player_session_started, player_session_ended | responsible-gambling, public-api, engagement, reporting | — |
+  | `casino.rounds` | `game-provider` | round_settled, carrying the provider, the provider's round id, the game, the session, the currency, the total stake, the win, the outcome and the wallet transaction ids (spec 003 FR-019) | rewards, attribution, public-api, reporting | — |
+  | `casino.withdrawals` | `payouts` | withdrawal_requested, withdrawal_approved, withdrawal_completed, withdrawal_cancelled, withdrawal_failed, withdrawal_reversed | attribution, public-api, engagement, reporting | — |
+  | `casino.rewards` | `rewards` | bonus_granted, bonus_cancelled, bonus_forfeited, bonus_completed, grant_expired, free_spins_granted, free_spins_settled, bonus_code_entered — each grant family carrying the offer's id, name and type (spec 011 FR-027) | attribution, public-api, engagement, reporting | — |
   | `affiliates.attribution` | `attribution` | the fourteen fact kinds spec 012 FR-011 lists, keyed by the player's per-network pseudonym (by the link for `click`) | — | `programme`/`affiliate-programme` |
   | `casino.push` | `engagement` | push_delivered, presence_changed (ephemeral, spec 014) | players, reporting | — |
   | `platform.audit` | every service | audit_record (the shape spec 018 FR-001 owns) | players, reporting | `reasoner`/`audit` |
@@ -556,7 +558,7 @@ one of the conditions and check the refusal names it.
 **Identity**
 
 - **FR-019**: The casino MUST keep its own Keycloak with one realm `casino-<slug>` per brand for its
-  players and one realm `eitheror` for operators, affiliates and partners. The platform's own
+  players and one realm `eitheror` for operators and affiliates. The platform's own
   Keycloak authenticates ankka's operators and no one else.
 - **FR-020**: Every route MUST be of one class: **public** (served with no token: registration, login
   flows, a tracking click, a join link, a provider's webhook, which is served only when its signature
@@ -564,9 +566,8 @@ one of the conditions and check the refusal names it.
   `ingest` — spec 006); **player** (a `casino-<slug>` token, served for that brand only); **operator** (an
   `eitheror` token whose realm roles name the brand, checked on the roles and never on the client
   that issued the token, per decision 0045); **affiliate** (an `eitheror` token with the affiliate
-  role, served by the programme); **partner** (an `eitheror` token of a partner's confidential
-  client, scoped to the brand, verified by the partner API — spec 016 FR-015; the partner API issues
-  nothing); **service**
+  role, served by the programme); the public API's `/v1` routes are of the public class, admitted by an access key a brand's
+  operator creates, never a token (spec 016, 2026-11-12, replacing the partner class); **service**
   (admitted by the caller's platform identity, with no token, within the project or by a 040 grant).
 - **FR-021**: A service MUST verify a player's or an operator's token through ankka 022 against the
   casino's realms, and MUST NOT hold a realm's administrative credential except `players`, which
@@ -649,8 +650,8 @@ one of the conditions and check the refusal names it.
 - **Message family**: a named kind of fact with a version; changes only by addition, else a new
   version.
 - **Grant**: a route or topic a project opened to a named principal in another project (ankka 040).
-- **Realm**: `casino-<slug>` for a brand's players; `eitheror` for operators, affiliates and partners.
-- **Route class**: public, player, operator, affiliate, partner or service.
+- **Realm**: `casino-<slug>` for a brand's players; `eitheror` for operators and affiliates.
+- **Route class**: public, player, operator, affiliate or service (the partner class removed by spec 016).
 - **Personal field**: a field held under a player's id and erasable (ankka 042).
 - **Recording**: one scenario's requests and the original's answers, kept in this repository and
   replayed by a parity test.
@@ -665,7 +666,7 @@ one of the conditions and check the refusal names it.
 - **SC-002**: Every message observed on any topic in a running brand belongs to a family and version
   FR-011 lists, is keyed as FR-012 says, and carries no personal field in the clear; one deviation
   fails the contract's test.
-- **SC-003**: With a player, an operator, an affiliate, a partner and a service identity, every route
+- **SC-003**: With a player, an operator, an affiliate and a service identity, every route
   of every service answers as its class in FR-020 says; a route with no class is a failure of the
   service's spec.
 - **SC-004**: An erased player's personal fields read as erased in every brand service, every shared

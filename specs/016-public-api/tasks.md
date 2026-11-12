@@ -62,7 +62,7 @@ recipes.
   `public-api-host`, the erasure route row, the topics read in contracts/facts.md); update
   `modules/README.md` and `tools/modules/src/test/scala/.../RenderSuite.scala` (goldvibe entitled to
   `public-api` renders it; unentitled, not); `just modules validate --all` green
-- [ ] T006 [P] Amend spec 001 (`specs/001-brands-and-projects/spec.md`: FR-020's partner class becomes
+- [X] T006 [P] Amend spec 001 (`specs/001-brands-and-projects/spec.md`: FR-020's partner class becomes
   the public class admitted by an access key, the pilot exclusion of `partner-api` removed, the topic
   table's reader `partner-api` → `public-api`), spec 021 (`specs/021-core-and-modules/spec.md`: the
   module list), `CLAUDE.md`'s spec table (016 → `public-api`), and add a dated line to the brain's

@@ -47,7 +47,7 @@ packs under `tl/`, the Go handlers, and `specs/` (its own spec-kit history, numb
 | 013 | shared `programme` | affiliate-programme (accounts, plans, ledger, payouts, portal) | Scala |
 | 014 | brand | engagement (CRM, suppression, transactional sends, push, presence) | Scala |
 | 015 | brand | reporting (views, dashboard, day-end, compliance exports) | Scala |
-| 016 | brand | partner-api (built last, not in the pilot; only when a partner is contracted) | TypeScript |
+| 016 | brand | public-api (the brand's read-only REST API, admitted by access keys its operators create; the `public-api` module) | Scala |
 | 017 | brand | support-agent (Motoko on ankka's agent model; off per brand by default) | Scala |
 | 018 | shared `reasoner` | audit (proposals are not carried over) | Scala |
 | 019 | all | the Spinvibe migration | — |
