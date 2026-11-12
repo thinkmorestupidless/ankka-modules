@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casino public API</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a reference manual. A fixed index rail on the left, one long reading column of
+   endpoints on the right; under 900px the rail folds into a collapsible index above the column.
+   Palette and faces are eitheror's own (website/brand/tokens.css): dark-first, red only on the mark. */
+:root {
+  --bg: #0C0B0A; --raised: #161412; --elev: #232120;
+  --line: rgba(245, 242, 238, 0.08); --line-strong: rgba(245, 242, 238, 0.16);
+  --fg: #F5F2EE; --muted: #A8A29A; --faint: #8A837A;
+  --mark: #C41C1C; --link: #E8E4DF;
+  --ok: #6FB283; --warn: #D2A35A; --err: #EE6A6A;
+  --display: 'DM Serif Display', Georgia, serif;
+  --body: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+  --rail: 264px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F5F2EE; --raised: #FFFFFF; --elev: #ECE8E2;
+    --line: rgba(30, 26, 22, 0.10); --line-strong: rgba(30, 26, 22, 0.20);
+    --fg: #1E1A16; --muted: #605C58; --faint: #7A7672;
+    --mark: #A01414; --link: #1E1A16;
+    --ok: #2A6B3A; --warn: #8A6020; --err: #A01414;
+    color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #F5F2EE; --raised: #FFFFFF; --elev: #ECE8E2;
+  --line: rgba(30, 26, 22, 0.10); --line-strong: rgba(30, 26, 22, 0.20);
+  --fg: #1E1A16; --muted: #605C58; --faint: #7A7672;
+  --mark: #A01414; --link: #1E1A16;
+  --ok: #2A6B3A; --warn: #8A6020; --err: #A01414;
+  color-scheme: light;
+}
+
+body { background: var(--bg); color: var(--fg); font: 400 15px/1.6 var(--body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+a { color: var(--link); text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 3px; }
+code, pre, .mono { font-family: var(--mono); font-size: 0.86em; }
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
+
+.shell { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }
+
+/* Rail */
+.rail {
+  position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; overflow-y: auto;
+  border-right: 1px solid var(--line); background: var(--raised);
+  padding-block: 28px 40px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: 16px;
+}
+.wordmark { font: 400 22px/1 var(--display); letter-spacing: -0.01em; display: block; color: var(--fg); text-decoration: none; }
+.wordmark span { color: var(--mark); }
+.rail summary { list-style: none; }
+.rail summary::-webkit-details-marker { display: none; }
+.rail .index-toggle { display: none; }
+.rail nav { display: grid; gap: 22px; margin-top: 28px; }
+.rail h5 { margin: 0 0 6px; font: 600 11px/1.4 var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); }
+.rail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.rail li a { display: flex; gap: 8px; align-items: baseline; padding: 3px 8px; margin-left: -8px; border-radius: 5px; text-decoration: none; color: var(--muted); font-size: 13.5px; min-width: 0; }
+.rail li a:hover { background: var(--elev); color: var(--fg); }
+.rail li a .p { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Main column */
+.main { min-width: 0; padding-block: 56px 120px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.col { max-width: 860px; margin: 0 auto; display: grid; gap: 64px; }
+
+.masthead { display: grid; gap: 18px; padding-bottom: 40px; border-bottom: 1px solid var(--line); }
+.eyebrow { font: 600 11px/1.4 var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+.masthead h1 { font: 400 clamp(36px, 6vw, 56px)/1.04 var(--display); letter-spacing: -0.02em; }
+.masthead .lede { font-size: 17px; color: var(--muted); max-width: 62ch; margin: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 6px 0 0; padding: 0; }
+.facts div { display: grid; gap: 2px; min-width: 0; }
+.facts dt { font: 600 11px/1.4 var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); }
+.facts dd { margin: 0; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+button.btn, a.btn {
+  font: 500 13px/1 var(--body); color: var(--fg); background: var(--elev); border: 1px solid var(--line-strong);
+  border-radius: 6px; padding: 9px 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+}
+button.btn:hover, a.btn:hover { border-color: var(--fg); }
+
+/* Prose sections from the contract's own description */
+.prose { display: grid; gap: 14px; max-width: 70ch; }
+.prose h2 { font: 400 28px/1.15 var(--display); letter-spacing: -0.01em; scroll-margin-top: 24px; margin-top: 18px; }
+.prose p, .prose ul { margin: 0; }
+.prose ul { padding-left: 20px; display: grid; gap: 6px; }
+.prose code { background: var(--elev); padding: 1px 5px; border-radius: 4px; }
+.prose pre { margin: 0; }
+.section-title { font: 400 34px/1.1 var(--display); letter-spacing: -0.015em; scroll-margin-top: 24px; }
+.section-intro { color: var(--muted); margin: 6px 0 0; max-width: 66ch; }
+
+.scroll { overflow-x: auto; max-width: 100%; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th { text-align: left; font: 600 11px/1.4 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line-strong); }
+td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:first-child { white-space: nowrap; }
+td code { background: none; padding: 0; }
+
+pre.block, .snippet pre {
+  background: var(--raised); border: 1px solid var(--line); border-radius: 8px;
+  padding: 14px 16px; overflow-x: auto; font-size: 12.5px; line-height: 1.65; margin: 0;
+}
+.snippet { position: relative; min-width: 0; }
+.snippet .copy { position: absolute; top: 8px; right: 8px; padding: 6px 9px; font-size: 12px; }
+
+/* Endpoint groups */
+.group { display: grid; gap: 28px; }
+.op { display: grid; gap: 16px; padding-top: 28px; border-top: 1px solid var(--line); scroll-margin-top: 16px; min-width: 0; }
+.op-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; min-width: 0; }
+.verb { font: 500 11.5px/1 var(--mono); letter-spacing: 0.06em; padding: 5px 7px 4px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--fg); }
+.path { font: 500 16px/1.4 var(--mono); overflow-wrap: anywhere; min-width: 0; }
+.path .pp { color: var(--muted); }
+.op h3 { font: 500 17px/1.4 var(--body); color: var(--fg); }
+.op h4 { font: 600 11px/1.4 var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin-bottom: -6px; }
+.op p { margin: 0; color: var(--muted); max-width: 70ch; }
+.req { font: 600 10px/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--warn); margin-left: 6px; }
+.type { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.type a { color: var(--fg); }
+.enum { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.enum code { font-size: 11.5px; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; color: var(--muted); }
+.note { color: var(--muted); font-size: 13px; }
+
+.responses { display: grid; gap: 8px; }
+.resp { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
+.status { font: 500 13px/1.5 var(--mono); }
+.s2 { color: var(--ok); } .s4 { color: var(--warn); } .s5 { color: var(--err); }
+.errs { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 13px/1.5 var(--mono); }
+.errs a { text-decoration: none; }
+
+/* Object reference */
+.obj { display: grid; gap: 10px; padding-top: 24px; border-top: 1px solid var(--line); scroll-margin-top: 16px; min-width: 0; }
+.obj h3 { font: 500 16px/1.3 var(--mono); }
+.scalars td:first-child code { font-weight: 500; }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .rail .index-toggle { display: inline-flex; margin-top: 14px; }
+  .rail details:not([open]) nav { display: none; }
+  .main { padding-block: 32px 80px; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="shell">
+  <aside class="rail">
+    <a class="wordmark" href="#top">either<span>or</span></a>
+    <details id="index" open>
+      <summary class="btn index-toggle">Index</summary>
+      <nav id="nav" aria-label="Index"></nav>
+    </details>
+  </aside>
+
+  <main class="main" id="top">
+    <div class="col" id="col">
+      <header class="masthead">
+        <div class="eyebrow">API reference · <span id="ver"></span></div>
+        <h1 id="title"></h1>
+        <p class="lede" id="lede"></p>
+        <dl class="facts" id="facts"></dl>
+        <div class="actions">
+          <a class="btn" href="openapi.json" target="_blank" rel="noopener">openapi.json</a>
+          <button class="btn" type="button" id="copy-spec">Copy OpenAPI JSON</button>
+        </div>
+      </header>
+      <section class="prose" id="intro"></section>
+      <section class="group" id="recipes"></section>
+      <div id="groups" class="col" style="gap:64px"></div>
+      <section class="group" id="objects"></section>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+const SPEC = /*__SPEC__*/null;
+
+const $ = (sel) => document.querySelector(sel);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const md = (s) => (window.marked ? marked.parse(s || '') : '<p>' + esc(s) + '</p>');
+const mdInline = (s) => (window.marked ? marked.parseInline(s || '') : esc(s));
+const refName = (ref) => ref.split('/').pop();
+const deref = (o) => {
+  let cur = o;
+  while (cur && cur.$ref) cur = cur.$ref.split('/').slice(1).reduce((a, k) => a[k], SPEC);
+  return cur;
+};
+const BASE = SPEC.servers[0].url;
+
+function copyText(text, btn) {
+  const done = () => { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => (btn.textContent = t), 1400); };
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (_) { /* text stays selected for a manual copy */ }
+    ta.remove();
+  };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (_) { fallback(); }
+}
+function snippet(code) {
+  return `<div class="snippet"><pre><code>${esc(code)}</code></pre><button class="btn copy" type="button" data-copy="${esc(code)}">Copy</button></div>`;
+}
+
+// One-line type for a schema: a link for named schemas, an inline description otherwise.
+function typeOf(s) {
+  if (!s) return '';
+  if (s.$ref) { const n = refName(s.$ref); return `<a href="#schema-${n}">${n}</a>`; }
+  if (s.const !== undefined) return `${esc(s.type || '')} = <code>${esc(JSON.stringify(s.const))}</code>`;
+  if (s.type === 'array') return typeOf(s.items) + '[]';
+  const t = Array.isArray(s.type) ? s.type.filter((x) => x !== 'null').join(' | ') + (s.type.includes('null') ? ' | null' : '') : (s.type || 'object');
+  const bits = [];
+  if (s.format) bits.push(s.format);
+  if (s.minimum !== undefined && s.maximum !== undefined) bits.push(`${s.minimum}–${s.maximum}`);
+  else if (s.minimum !== undefined) bits.push(`≥ ${s.minimum}`);
+  if (s.default !== undefined) bits.push(`default ${s.default}`);
+  if (s.pattern) bits.push(`<span title="${esc(s.pattern)}">pattern</span>`);
+  return esc(t) + (bits.length ? ` <span class="note">· ${bits.join(' · ')}</span>` : '');
+}
+function enumOf(s) {
+  const e = (s && s.enum) ? s.enum.filter((v) => v !== null) : null;
+  return e && e.length ? `<div class="enum">${e.map((v) => `<code>${esc(v)}</code>`).join('')}</div>` : '';
+}
+function propsTable(obj) {
+  const req = new Set(obj.required || []);
+  const rows = Object.entries(obj.properties || {}).map(([name, p]) => {
+    const r = p.$ref ? deref(p) : p;
+    const desc = p.description || (p.$ref ? '' : r.description) || '';
+    return `<tr><td><code>${esc(name)}</code>${req.has(name) ? '<span class="req">always</span>' : ''}</td>
+      <td class="type">${typeOf(p)}${p.$ref ? '' : enumOf(p)}</td>
+      <td class="note">${mdInline(desc)}</td></tr>`;
+  }).join('');
+  return `<div class="scroll"><table><thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function bodyOf(resp) {
+  const r = deref(resp);
+  const s = r.content && r.content['application/json'] && r.content['application/json'].schema;
+  if (!s) return '';
+  if (s.$ref) return `<span class="type">${typeOf(s)}</span>`;
+  if (s.allOf) {
+    const items = s.allOf.map(deref).find((x) => x.properties && x.properties.data && x.properties.data.items);
+    return `<span class="type"><a href="#paging">Page</a> of ${typeOf(items.properties.data.items)}</span>`;
+  }
+  if (s.properties) return propsTable(s);
+  return `<span class="type">${typeOf(s)}</span>`;
+}
+function curlFor(path, op) {
+  const params = (op.parameters || []).map(deref);
+  const q = params.filter((p) => p.in === 'query' && p.required)
+    .map((p) => `${p.name}=${p.schema.enum ? p.schema.enum[p.name === 'period' ? 1 : 0] : '<' + p.name + '>'}`);
+  if (params.some((p) => p.name === 'currency')) q.push('currency=EUR');
+  const url = BASE + path.replace(/\{(\w+)\}/g, '<$1>') + (q.length ? '?' + q.join('&') : '');
+  return op.security && op.security.length === 0
+    ? `curl -s "${url}"`
+    : `curl -s "${url}" \\\n  -H "Authorization: Bearer $TOKEN"`;
+}
+
+// Masthead
+$('#title').textContent = 'Casino public API';
+$('#ver').textContent = `v${SPEC.info.version} · OpenAPI ${SPEC.openapi}`;
+const [lede, ...rest] = SPEC.info.description.split(/\n(?=## )/);
+$('#lede').innerHTML = mdInline(lede.trim().replace(/\n/g, ' '));
+$('#facts').innerHTML = [
+  ['Base URL', BASE],
+  ['Environment', SPEC.servers[0].description],
+  ['Method', 'GET only'],
+  ['Live contract', BASE + '/openapi.json'],
+].map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('');
+
+// Intro sections from the contract description; give each h2 an anchor for the index
+$('#intro').innerHTML = md(rest.join('\n'));
+const introLinks = [];
+document.querySelectorAll('#intro h2').forEach((h) => { h.id = slug(h.textContent); introLinks.push([h.id, h.textContent]); });
+document.querySelectorAll('#intro pre').forEach((pre) => {
+  const code = pre.textContent.replace(/\n$/, '');
+  pre.outerHTML = snippet(code);
+});
+
+// Common reads: the questions an analytics consumer asks first
+const recipes = [
+  ['Top 20 games by GGR, last 7 days', `curl -s "${BASE}/game-stats?period=7d&sort=ggr&currency=EUR&limit=20" \\\n  -H "Authorization: Bearer $TOKEN"`,
+   'Use your brand\'s currency. Swap <code>sort</code> for <code>rounds</code>, <code>sessions</code>, <code>players</code> or <code>stake</code>, and <code>period</code> for <code>1d</code> or <code>30d</code>. <code>computedAt</code> says how fresh the figures are.'],
+  ['Every window for one game', `curl -s "${BASE}/games/<gameId>/stats" \\\n  -H "Authorization: Bearer $TOKEN"`,
+   'Returns the 1, 7 and 30-day windows together. A game with no activity reports zeros.'],
+  ['All players, page by page', `for offset in 0 100 200; do   # continue while page.hasMore is true\n  curl -s "${BASE}/players?limit=100&offset=$offset" \\\n    -H "Authorization: Bearer $TOKEN"\ndone`,
+   'Oldest registration first. Stay inside your per-minute quota when walking large collections.'],
+  ['A player\'s most recent rounds', `curl -s "${BASE}/players/<playerId>/rounds?limit=1" -H "Authorization: Bearer $TOKEN"   # read page.total\ncurl -s "${BASE}/players/<playerId>/rounds?limit=100&offset=<total - 100>" \\\n  -H "Authorization: Bearer $TOKEN"`,
+   'Collections are oldest first, so the newest records are on the last page.'],
+];
+$('#recipes').innerHTML = `<div><h2 class="section-title" id="common-reads">Common reads</h2>
+  <p class="section-intro">Requests worth starting from. Each assumes <code>$TOKEN</code> holds a current access token.</p></div>` +
+  recipes.map(([t, code, note]) => `<div class="op" style="gap:12px"><h3>${t}</h3>${snippet(code)}<p class="note">${note}</p></div>`).join('');
+
+// Endpoints, grouped by tag in the contract's tag order
+const ops = [];
+for (const [path, item] of Object.entries(SPEC.paths)) for (const [verb, op] of Object.entries(item)) ops.push({ path, verb, op });
+const groupsHtml = SPEC.tags.map((tag) => {
+  const mine = ops.filter((o) => (o.op.tags || []).includes(tag.name));
+  const body = mine.map(({ path, verb, op }) => {
+    const params = (op.parameters || []).map(deref);
+    const paramRows = params.map((p) => `<tr><td><code>${esc(p.name)}</code>${p.required ? '<span class="req">required</span>' : ''}</td>
+      <td class="note">${p.in}</td><td class="type">${typeOf(p.schema)}${enumOf(p.schema)}</td><td class="note">${mdInline(p.description || '')}</td></tr>`).join('');
+    const codes = Object.keys(op.responses);
+    const ok = codes.filter((c) => c.startsWith('2'));
+    const errs = codes.filter((c) => !c.startsWith('2'));
+    return `<article class="op" id="op-${op.operationId}">
+      <div class="op-line"><span class="verb">${verb.toUpperCase()}</span><code class="path">${esc(path).replace(/\{(\w+)\}/g, '<span class="pp">{$1}</span>')}</code></div>
+      ${op.summary ? `<h3>${esc(op.summary)}</h3>` : ''}
+      ${op.description ? `<p>${mdInline(op.description)}</p>` : ''}
+      ${snippet(curlFor(path, op))}
+      ${params.length ? `<h4>Parameters</h4><div class="scroll"><table><thead><tr><th>Name</th><th>In</th><th>Type</th><th>Notes</th></tr></thead><tbody>${paramRows}</tbody></table></div>` : ''}
+      <h4>Response</h4>
+      <div class="responses">
+        ${ok.map((c) => { const r = deref(op.responses[c]); return `<div class="resp"><span class="status s2">${c}</span><div style="min-width:0;display:grid;gap:8px"><span class="note">${mdInline(r.description || '')}</span>${bodyOf(op.responses[c])}</div></div>`; }).join('')}
+        ${errs.length ? `<div class="resp"><span class="status note">errors</span><div class="errs">${errs.map((c) => `<a href="#errors" class="s${c[0]}" title="${esc(deref(op.responses[c]).description || '')}">${c}</a>`).join('')}</div></div>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+  return `<section class="group" id="tag-${slug(tag.name)}"><div><h2 class="section-title">${esc(tag.name)}</h2><p class="section-intro">${esc(tag.description || '')}</p></div>${body}</section>`;
+}).join('');
+$('#groups').innerHTML = groupsHtml;
+
+// Object reference: objects as field tables, scalars and enums in one table
+const schemas = SPEC.components.schemas;
+const isObj = (s) => s.type === 'object' && s.properties;
+const hidden = new Set(['PageEnvelope']);
+const objHtml = Object.entries(schemas).filter(([n, s]) => isObj(s) && !hidden.has(n)).map(([n, s]) =>
+  `<div class="obj" id="schema-${n}"><h3>${n}</h3>${s.description ? `<p class="note">${mdInline(s.description)}</p>` : ''}${propsTable(s)}</div>`).join('');
+const scalarRows = Object.entries(schemas).filter(([n, s]) => !isObj(s) && !hidden.has(n)).map(([n, s]) =>
+  `<tr id="schema-${n}"><td><code>${n}</code></td><td class="type">${typeOf(s)}${enumOf(s)}</td><td class="note">${mdInline(s.description || '')}</td></tr>`).join('');
+$('#objects').innerHTML = `<div><h2 class="section-title" id="objects-ref">Objects</h2>
+  <p class="section-intro">Fields marked <span class="req" style="margin:0">always</span> are present on every record; the rest are omitted when unknown or not covered by your agreement.</p></div>
+  <div class="obj" id="schema-PageEnvelope"><h3>Page</h3>${propsTable({ properties: { data: { type: 'array', description: 'The records on this page.' }, page: { $ref: '#/components/schemas/PageInfo' } }, required: ['data', 'page'] })}</div>
+  ${objHtml}
+  <div class="obj" id="types"><h3>Types and enumerations</h3><div class="scroll scalars"><table><thead><tr><th>Name</th><th>Definition</th><th>Notes</th></tr></thead><tbody>${scalarRows}</tbody></table></div></div>`;
+// Paging links point at the intro's Paging section
+document.querySelectorAll('a[href="#paging"]').forEach((a) => { if (!document.getElementById('paging')) a.href = '#schema-PageEnvelope'; });
+
+// Index rail
+const navGroups = [
+  ['Guide', introLinks.map(([id, t]) => `<li><a href="#${id}">${esc(t)}</a></li>`).join('') + '<li><a href="#common-reads">Common reads</a></li>'],
+  ...SPEC.tags.map((tag) => [tag.name, ops.filter((o) => (o.op.tags || []).includes(tag.name))
+    .map((o) => `<li><a href="#op-${o.op.operationId}"><span class="p">${esc(o.path)}</span></a></li>`).join('')]),
+  ['Reference', '<li><a href="#objects-ref">Objects</a></li><li><a href="#types">Types and enumerations</a></li>'],
+];
+$('#nav').innerHTML = navGroups.map(([h, items]) => `<div><h5>${esc(h)}</h5><ul>${items}</ul></div>`).join('');
+if (window.matchMedia('(max-width: 900px)').matches) $('#index').open = false;
+$('#nav').addEventListener('click', (e) => { if (e.target.closest('a') && window.matchMedia('(max-width: 900px)').matches) $('#index').open = false; });
+
+// Copy buttons
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-copy]');
+  if (b) copyText(b.getAttribute('data-copy'), b);
+});
+$('#copy-spec').addEventListener('click', (e) => copyText(JSON.stringify(SPEC, null, 2), e.currentTarget));
+</script>
+</html>

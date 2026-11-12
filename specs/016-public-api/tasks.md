@@ -115,13 +115,13 @@ codecs, the test kit. Every story needs them.
 
 ### The service's foundation
 
-- [ ] T016 Copy `specs/016-public-api/contracts/original/public-api-v1.openapi.yaml` to
+- [X] T016 Copy `specs/016-public-api/contracts/original/public-api-v1.openapi.yaml` to
   `services/public-api/src/main/resources/public-api-v1.openapi.yaml` and apply exactly the changes of
   contracts/amendments.md (title, version `1.1.0`, the description's Authentication, Scope and Errors
   sections, `servers`, `bearerAuth`, the `Error` enum, the four response descriptions, the
   "partner's brand" and "grant entitles" wording); copy `O/src/contract/reference.html` to
   `services/public-api/src/main/resources/reference.html`
-- [ ] T017 Write `p/contract/Contract.scala`: load the YAML with `jackson-dataformat-yaml`, render
+- [X] T017 Write `p/contract/Contract.scala`: load the YAML with `jackson-dataformat-yaml`, render
   the JSON once, read `components.parameters.limit.schema.maximum` and refuse to start unless it is
   100 (`O/src/contract/load.ts:7-32`); the operations list (method, template, operationId) read from
   `paths`; with `p-test/contract/ContractLoadSuite.scala`
