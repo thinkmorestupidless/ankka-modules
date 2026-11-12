@@ -51,8 +51,7 @@ Second, the records come from the brand's topics, not a shared store (constituti
 builds its own views and computes its own statistics from them.
 
 The contract keeps every operation, parameter, response and format the original publishes. Only
-the parts that describe the credential change: the authentication guide, the security scheme and
-the authentication error codes.
+the parts that describe the credential change (FR-002).
 
 ## Clarifications
 
@@ -323,7 +322,8 @@ past its rate while another reads.
 - **Two keys with the same name**: allowed; keys are told apart by id and by the start of the key
   shown in the list.
 - **An expiry in the past at creation**: refused.
-- **A brand retired while it holds keys**: every key is refused with the brand.
+- **A brand retired while it holds keys**: every key is refused with the brand, by construction: the
+  keys live in the brand's project, which retirement removes with its services.
 - **A key of another brand** presented at this brand's hostname: unknown here, refused as an
   untrusted key.
 - **A player record the original held with session-shaped data** (its known defect, dropped from its
@@ -346,12 +346,15 @@ past its rate while another reads.
   path, parameter, schema, enum member, default and status, at the original's paths under `/v1`, at
   a hostname of the brand's own (001 FR-006), over encrypted transport. Only the parts FR-002 names
   may differ. *Established by the original's contract and its `contract/snapshot` suite.*
-- **FR-002**: The contract's authentication guide, its security scheme (a bearer access key in place
-  of a client-credentials JWT) and the authentication codes of its error enum (`key_missing`,
-  `key_invalid`, `key_expired`, `key_disabled` in place of `jwt_*`, `actor_type_invalid`,
-  `scope_*` and `grant_*`) MUST be the only differences. The version path stays `/v1`, because no
-  caller outside eitheror is on it and every caller must take a new credential at the cutover anyway
-  (spec 019). *Decision here, Clarifications 2026-11-12; recorded under* Changes.
+- **FR-002**: The only differences MUST be those that describe the credential: the contract's title
+  and version number (`1.1.0`), its `servers` (the brand's hostname), its authentication guide, its
+  security scheme (a bearer access key in place of a client-credentials JWT), the authentication codes
+  of its error enum (`key_missing`, `key_invalid`, `key_expired`, `key_disabled` in place of `jwt_*`,
+  `actor_type_invalid`, `scope_*` and `grant_*`), and the wording of descriptions and summaries that
+  name a partner, a grant or a token. The version path stays `/v1`, because no caller outside
+  eitheror is on it and every caller must take a new credential at the cutover anyway (spec 019).
+  *Decision here, Clarifications 2026-11-12, recorded under* Changes; *the paths are in the plan's
+  `contracts/amendments.md`.*
 - **FR-003**: `GET /v1/openapi.json` MUST return the committed contract, and `GET /v1/docs` the
   reference page, both without a key; `GET /v1/contract` MUST return the version and the maximum page
   size, with a key. *Original routes, `serve.ts`.*

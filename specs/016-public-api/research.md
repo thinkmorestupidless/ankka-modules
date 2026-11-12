@@ -317,3 +317,8 @@ Applied on this branch:
   and its line 149 allows more).
 
 ## Declined remediations
+
+## Design finished
+
+2026-11-12: analyze reported nothing above LOW (round 1: four MEDIUM, two LOW, all applied; round 2:
+none above LOW).
