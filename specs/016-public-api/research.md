@@ -346,3 +346,10 @@ none above LOW).
   credit's answer says by `landedOn` whether it went to real balance. game-provider reads those and
   nets them as it nets `stakeCents` and `winCents`; a figure is left out when any movement it counts
   was recorded before the wallet's answer carried its real part.
+
+- **Unknown paths four or more segments deep.** `/v1` catches unknown paths one and two segments
+  deep, and three deep under each of the contract's first segments, answering `401` without a key
+  and `404 not_found` with one, as the original does. A route takes at most two path parameters
+  (ankka 0.16.0), so a path four or more segments deep that the contract does not hold reaches
+  ankka's own `404` with or without a key. It serves nothing and reveals nothing; the difference is
+  only the status without a key.

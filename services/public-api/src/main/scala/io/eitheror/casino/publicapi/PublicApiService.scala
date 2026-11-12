@@ -2,7 +2,7 @@ package io.eitheror.casino.publicapi
 
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
-import io.eitheror.casino.publicapi.api.{HealthEndpoint, KeysEndpoint, Serve, V1Endpoint}
+import io.eitheror.casino.publicapi.api.{HealthEndpoint, KeysEndpoint, Pipeline, V1Endpoint}
 import com.thinkmorestupidless.ankka.auth.oidc.Oidc
 import com.thinkmorestupidless.ankka.http.Acl
 
@@ -23,7 +23,7 @@ object PublicApiService:
       now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] =
     Seq(
       clients => KeysEndpoint(settings.brand, clients, authenticate, now),
-      clients => V1Endpoint(contract, Serve(settings, contract, clients, now, Map.empty)(_, _),
+      clients => V1Endpoint(contract, Pipeline(settings, contract, clients, now, Map.empty)(_, _),
         c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond),
       _ => HealthEndpoint()
     )

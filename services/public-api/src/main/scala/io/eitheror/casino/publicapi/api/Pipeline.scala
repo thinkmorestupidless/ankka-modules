@@ -1,0 +1,69 @@
+package io.eitheror.casino.publicapi.api
+
+import com.thinkmorestupidless.ankka.http.{Bytes, EndpointClients, Respond}
+import io.eitheror.casino.publicapi.Settings
+import io.eitheror.casino.publicapi.contract.{Contract, Operation, Refusal, Refusals}
+
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets.UTF_8
+import java.time.Instant
+import scala.util.Try
+
+/** A keyed request that passed the pipeline: its call, its key, and its path ids checked (UUIDs lower-cased). */
+final case class Served(call: Call, key: Admitted, ids: Map[String, String]):
+  def id(name: String): String = ids(name)
+
+/**
+ * contracts/routes.md's pipeline, steps 2 to 5, for every keyed `/v1` operation, all under the request budget
+ * (`Deadline`): the key presented and admitted, its rate (`rate`, step 4), the path ids, then the handler by operation
+ * id. After an answer from step 3 on, `served` is told of it (step 6, the key's log). A refusal never carries what a
+ * handler held.
+ */
+final class Pipeline(
+    settings: Settings,
+    contract: Contract,
+    clients: EndpointClients,
+    now: () => Instant,
+    handlers: Map[String, Served => Respond[Bytes]],
+    rate: (Admitted, Instant) => Option[Refusal] = (_, _) => None,
+    served: (Call, Admitted, Respond[Bytes], Long) => Unit = (_, _, _, _) => ()
+):
+  private val deadline = Deadline(settings.budget)
+  private val all      = Pipeline.builtIn(contract) ++ handlers
+
+  def apply(op: Operation, call: Call): Respond[Bytes] =
+    val started = System.nanoTime()
+    val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](None)
+    val answer = deadline.run {
+      Admission.admit(clients.componentClient, call.authorization, now()) match
+        case Left(refusal) => refusal.respond
+        case Right(key) =>
+          admitted.set(Some(key))
+          rate(key, now()).map(_.respond).getOrElse {
+            Pipeline.checkIds(call).fold(_.respond, ids => all.get(op.operationId).fold(V1Endpoint.notYet)(_(Served(call, key, ids))))
+          }
+    }
+    admitted.get.foreach(k => Try(served(call, k, answer, (System.nanoTime() - started) / 1000000)))
+    answer
+
+object Pipeline:
+  /** The contract's identifier formats: `Uuid` and `GameCode` (original `rest/router.ts` VALIDATORS). */
+  private val Uuid     = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".r
+  private val GameCode = "^[A-Za-z0-9._-]{1,64}$".r
+
+  /** Each path id decoded and checked by its kind; a UUID is lower-cased (original `router.ts:148-151`). */
+  def checkIds(call: Call): Either[Refusal, Map[String, String]] =
+    call.ids.foldLeft[Either[Refusal, Map[String, String]]](Right(Map.empty)) { case (acc, (name, raw)) =>
+      acc.flatMap { m =>
+        val decoded = Try(URLDecoder.decode(raw.replace("+", "%2B"), UTF_8)).toOption
+        val ok =
+          if name == "gameId" then decoded.filter(v => GameCode.matches(v))
+          else decoded.filter(v => Uuid.matches(v)).map(_.toLowerCase)
+        ok.map(v => m + (name -> v)).toRight(Refusals.notAnIdentifier(name))
+      }
+    }
+
+  /** `GET /v1/contract`: the version and the page cap (original `contract/serve.ts`). */
+  def builtIn(contract: Contract): Map[String, Served => Respond[Bytes]] = Map(
+    "getContractInfo" -> (_ => Refusals.json(200, s"""{"version":"v1","maxPageSize":${contract.maxPageSize}}"""))
+  )

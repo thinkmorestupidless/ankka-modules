@@ -222,10 +222,10 @@ send each untrusted key; send a write.
 
 ### Implementation for User Story 2
 
-- [ ] T039 [US2] Write `p/api/Pipeline.scala`: contracts/routes.md's steps 1–5 as one function the
+- [X] T039 [US2] Write `p/api/Pipeline.scala`: contracts/routes.md's steps 1–5 as one function the
   `V1Endpoint` routes run through, with the path id checks (`Uuid`, `GameCode`; lower-casing UUIDs,
   `O/src/rest/router.ts:148-151`) and `400 invalid_request` "`<name>` is not a valid identifier"
-- [ ] T040 [US2] Write `p/wire/Paging.scala`: `limit` 1–100, default 100, `limit_exceeded` above;
+- [X] T040 [US2] Write `p/wire/Paging.scala`: `limit` 1–100, default 100, `limit_exceeded` above;
   `offset ≥ 0`; the envelope `{data, page: {limit, offset, total, hasMore}}` with `hasMore = offset +
   limit < total` (`O/src/rest/paging.ts:31-46`); with `p-test/wire/PagingSuite.scala`
 
@@ -341,12 +341,12 @@ rate while another reads.
 - [ ] T064 [P] [US8] `p-test/it/BudgetSuite.scala`: a request whose view read is held past five
   seconds answers `503 unavailable`
 - [ ] T065 [US8] Bind `features/public-api/audit.feature` (the subject access scenario reads the
-  published records by `player/<id>`, as spec 018's query would)
+  published records by `player/<id>`, as spec 018's query would), and keys.feature's audit scenario
 
 ### Implementation for User Story 8
 
 - [ ] T066 [P] [US8] Write `p/keys/KeyWindow.scala` and the view `KeyUse`; add `lastUsedAt` to the
-  key routes' answers
+  key routes' answers, and bind keys.feature's listing scenario
 - [ ] T067 [P] [US8] Write `p/keys/KeyLog.scala` (event sourced, snapshots every 500 events)
 - [ ] T068 [US8] Write `p/audit/PublicApiAudit.scala`: an `AuditConsumer` over `AccessKey` and
   `KeyLog` events publishing contracts/facts.md's records on `platform.audit`
