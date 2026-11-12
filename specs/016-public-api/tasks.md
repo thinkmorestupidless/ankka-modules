@@ -48,13 +48,13 @@ recipes.
   `contract/src/test/scala/io/eitheror/casino/contract/facts/` (round trip; a fact of the old shape
   decodes; `Compatibility` passes)
 - [X] T002 Regenerate `contract/schemas/` with `just schemas`; `just test` green
-- [ ] T003 [P] In `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`, remove
+- [X] T003 [P] In `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`, remove
   `partner` and `Refusal.NotPartner`, and add `AccessKeysRole = "api_keys"`; update
   `contract/src/test/scala/.../access/` suites (an operator of the brand holding `api_keys` is
   admitted by `operatorHolding(slug, AccessKeysRole)`; without it, `forbidden`; another brand's,
   `brand_not_in_roles`)
-- [ ] T004 [P] Add the realm role `api_keys` to `brands/_realm/eitheror-operators.json` beside
-  `markets`, with its description
+- [X] T004 [P] Add the realm role `api_keys` to `brands/_realm/eitheror-operators.json` beside
+  `markets` (the file holds role names only, as `markets` has)
 - [ ] T005 [P] Rename spec 021's module `partner` to `public-api`: create `modules/public-api/module.json`
   (kind `product`, depends on `core` and `casino`, service `public-api`, runtime `0.16.0`,
   `"expose": true`, `"personal": true`, env `CASINO_PROJECT`, `CASINO_BRAND`, `ANKKA_AUTH_ISSUERS=staff`
