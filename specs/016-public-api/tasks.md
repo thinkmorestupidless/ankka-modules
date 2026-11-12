@@ -211,14 +211,14 @@ send each untrusted key; send a write.
 
 ### Tests for User Story 2
 
-- [ ] T036 [P] [US2] `p-test/it/IsolationSuite.scala` (port of `O/test/isolation.test.ts`): two
+- [X] T036 [P] [US2] `p-test/it/IsolationSuite.scala` (port of `O/test/isolation.test.ts`): two
   instances on two databases, the same shapes of facts, every route walked with the other brand's ids
   answering `404 not_found` identical to an absent id
-- [ ] T037 [P] [US2] `p-test/it/PipelineSuite.scala` (port of `O/test/requestPipeline.test.ts`):
+- [X] T037 [P] [US2] `p-test/it/PipelineSuite.scala` (port of `O/test/requestPipeline.test.ts`):
   the order of refusals (public route, key, admission, rate, path id, parameters, handler); nothing
   from a handler leaks into a refusal; `/health` and `/v1/docs` need no key; an unknown path is 401
   without a key and 404 with one
-- [ ] T038 [US2] Bind `features/public-api/access.feature`
+- [X] T038 [US2] Bind `features/public-api/access.feature`
 
 ### Implementation for User Story 2
 
@@ -244,40 +244,40 @@ end; an empty collection.
 
 ### Tests for User Story 3
 
-- [ ] T041 [P] [US3] `p-test/records/IntakeSuite.scala` (consumer and entity kits): each fact family
+- [X] T041 [P] [US3] `p-test/records/IntakeSuite.scala` (consumer and entity kits): each fact family
   of contracts/facts.md's *Read* table changes its record as data-model.md says; a replayed fact
   changes nothing; a bet's later facts find it by the wallet round key; a bet's `roundId` equals its round's id
   (G4); `withdrawal_completed`
   completes its WITHDRAWAL row
-- [ ] T042 [P] [US3] `p-test/wire/MappersSuite.scala`: each record → the contract's shape per
+- [X] T042 [P] [US3] `p-test/wire/MappersSuite.scala`: each record → the contract's shape per
   contracts/fields.md (ids by §6, money, enums, parents' ids, optional fields omitted, never null)
-- [ ] T043 [P] [US3] `p-test/it/PlayersSuite.scala`, `CollectionsSuite.scala`, `ByIdSuite.scala`,
+- [X] T043 [P] [US3] `p-test/it/PlayersSuite.scala`, `CollectionsSuite.scala`, `ByIdSuite.scala`,
   `BoundariesSuite.scala`, `PagingSuite.scala` (ports of `O/test/routes/players.test.ts`,
   `playersClosed.test.ts`, `playerCollections.test.ts`, `byId.test.ts`, `O/test/boundaries.test.ts`,
   `O/test/paging.test.ts`), plus the tie-break by id and paging while facts arrive
-- [ ] T044 [P] [US3] `p-test/it/ProjectionRefusalSuite.scala` (port of `droppedRecords.test.ts`): a
+- [X] T044 [P] [US3] `p-test/it/ProjectionRefusalSuite.scala` (port of `droppedRecords.test.ts`): a
   fact whose currency exponent is not 2, or whose record lacks a required field, is refused at
   projection, logged once without personal data, and its record is 404 by id
-- [ ] T045 [US3] Bind `features/public-api/activity.feature`
+- [X] T045 [US3] Bind `features/public-api/activity.feature`
 
 ### Implementation for User Story 3
 
-- [ ] T046 [P] [US3] Write `p/records/PlayerRecord.scala` and its view `Players` (data-model.md;
+- [X] T046 [P] [US3] Write `p/records/PlayerRecord.scala` and its view `Players` (data-model.md;
   identifying fields as `Personal`)
-- [ ] T047 [P] [US3] Write `p/records/SessionRecord.scala` and `Sessions`
-- [ ] T048 [P] [US3] Write `p/records/RoundRecord.scala` and `Rounds` (id `uuid3("round/" +
+- [X] T047 [P] [US3] Write `p/records/SessionRecord.scala` and `Sessions`
+- [X] T048 [P] [US3] Write `p/records/RoundRecord.scala` and `Rounds` (id `uuid3("round/" +
   roundId)`; `round_opened` then `round_settled`; `startedAt`'s fallbacks)
-- [ ] T049 [P] [US3] Write `p/records/BetRecord.scala`, `BetsByRoundKey.scala` and `Bets`
-- [ ] T050 [P] [US3] Write `p/records/TransactionRecord.scala`, `WithdrawalsByRequest.scala` and
+- [X] T049 [P] [US3] Write `p/records/BetRecord.scala`, `BetsByRoundKey.scala` and `Bets`
+- [X] T050 [P] [US3] Write `p/records/TransactionRecord.scala`, `WithdrawalsByRequest.scala` and
   `Transactions` (§2's family table; secondary rows' ids by §6; the four unserved families skipped)
-- [ ] T051 [P] [US3] Write `p/records/BonusAwardRecord.scala` and `BonusAwards` (grant and end
+- [X] T051 [P] [US3] Write `p/records/BonusAwardRecord.scala` and `BonusAwards` (grant and end
   families; requirement and progress from `money.transactions`)
-- [ ] T052 [US3] Write the six intake consumers in `p/records/Intake.scala` (`StartFrom.Earliest`,
+- [X] T052 [US3] Write the six intake consumers in `p/records/Intake.scala` (`StartFrom.Earliest`,
   `Lenient`, `FactId` dedup) and register them
-- [ ] T053 [US3] Create the views' expression indexes at start in `p/records/Indexes.scala`
+- [X] T053 [US3] Create the views' expression indexes at start in `p/records/Indexes.scala`
   (data-model.md's paging table); verify research R16.1 and, if the service cannot create them, use
   declared queries with `ORDER BY` and `OFFSET` instead, recording which in research.md
-- [ ] T054 [US3] Write `p/wire/Records.scala` (the mappers of T042) and serve the 13 record routes in
+- [X] T054 [US3] Write `p/wire/Records.scala` (the mappers of T042) and serve the 13 record routes in
   `V1Endpoint` through `Pipeline`, reading the parent first
 
 **Checkpoint**: US2's and US3's suites and scenarios pass.

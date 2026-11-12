@@ -117,3 +117,9 @@ object SharedKit:
     val k = Kit()
     sys.addShutdownHook(k.stop())
     k
+
+  /** A second brand in a second instance on its own database (isolation, US2). */
+  lazy val other: Kit =
+    val k = Kit("spinvibe")
+    sys.addShutdownHook(k.stop())
+    k

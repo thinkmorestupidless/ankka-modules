@@ -353,3 +353,16 @@ none above LOW).
   (ankka 0.16.0), so a path four or more segments deep that the contract does not hold reaches
   ankka's own `404` with or without a key. It serves nothing and reveals nothing; the difference is
   only the status without a key.
+
+- **R16.1 settled: declared queries, no expression indexes.** ankka 0.16.0's `ViewQueries.ordered`
+  takes no offset, and a service has no hook to create an index on a view's table at start. Each
+  collection is therefore a declared query in data-model.md's order with `LIMIT (:limit)::bigint
+  OFFSET (:offset)::bigint`, and its total is `count` over the same condition (reporting's R5).
+  `Players` names its query `listed`: `all` is one of a view's fixed reads and is refused.
+- **Records a fact reaches before the fact that makes them servable.** A player before
+  `player_registered`, and a bonus award the wallet's progress reaches before its grant, are kept
+  and not served; that is not a refusal and logs nothing. A record the contract cannot serve (a
+  currency without two minor digits, a round without a game code) is refused at projection and
+  logged with its kind and id only.
+- **A `round_settled_as_loss` row's wallet type is MAIN**, the original mapper's default for an
+  absent `wallet_type` (`transaction.ts:24`), not null.

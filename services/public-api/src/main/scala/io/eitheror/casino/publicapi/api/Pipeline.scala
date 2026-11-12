@@ -13,6 +13,9 @@ import scala.util.Try
 final case class Served(call: Call, key: Admitted, ids: Map[String, String]):
   def id(name: String): String = ids(name)
 
+  /** The players this answer served and the identifying fields served of each, for the audit (FR-021, step 6). */
+  val disclosed: scala.collection.mutable.ArrayBuffer[(String, Vector[String])] = scala.collection.mutable.ArrayBuffer.empty
+
 /**
  * contracts/routes.md's pipeline, steps 2 to 5, for every keyed `/v1` operation, all under the request budget
  * (`Deadline`): the key presented and admitted, its rate (`rate`, step 4), the path ids, then the handler by operation
@@ -26,7 +29,7 @@ final class Pipeline(
     now: () => Instant,
     handlers: Map[String, Served => Respond[Bytes]],
     rate: (Admitted, Instant) => Option[Refusal] = (_, _) => None,
-    served: (Call, Admitted, Respond[Bytes], Long) => Unit = (_, _, _, _) => ()
+    served: (Call, Admitted, Respond[Bytes], Long, Vector[(String, Vector[String])]) => Unit = (_, _, _, _, _) => ()
 ):
   private val deadline = Deadline(settings.budget)
   private val all      = Pipeline.builtIn(contract) ++ handlers
@@ -34,16 +37,20 @@ final class Pipeline(
   def apply(op: Operation, call: Call): Respond[Bytes] =
     val started = System.nanoTime()
     val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](None)
+    val request  = java.util.concurrent.atomic.AtomicReference[Option[Served]](None)
     val answer = deadline.run {
       Admission.admit(clients.componentClient, call.authorization, now()) match
         case Left(refusal) => refusal.respond
         case Right(key) =>
           admitted.set(Some(key))
           rate(key, now()).map(_.respond).getOrElse {
-            Pipeline.checkIds(call).fold(_.respond, ids => all.get(op.operationId).fold(V1Endpoint.notYet)(_(Served(call, key, ids))))
+            Pipeline.checkIds(call).fold(_.respond, ids => all.get(op.operationId).fold(V1Endpoint.notYet) { h =>
+              val r = Served(call, key, ids); request.set(Some(r)); h(r)
+            })
           }
     }
-    admitted.get.foreach(k => Try(served(call, k, answer, (System.nanoTime() - started) / 1000000)))
+    admitted.get.foreach(k =>
+      Try(served(call, k, answer, (System.nanoTime() - started) / 1000000, request.get.fold(Vector.empty)(_.disclosed.toVector))))
     answer
 
 object Pipeline:
