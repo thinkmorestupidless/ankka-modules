@@ -32,7 +32,7 @@ final class KeysEndpoint(slug: String, clients: EndpointClients, authenticate: (
       val deleted = query.raw("deleted").contains("true")
       val rows    = clients.viewClient.forView(AccessKeys).ask(AccessKeys.listed, 1000, "deleted" -> deleted.toString)
       val keys    = mapper.createArrayNode()
-      rows.foreach(r => keys.add(keyOfRow(r)))
+      rows.foreach(r => keys.add(used(keyOfRow(r), r.keyId)))
       ok(200, mapper.createObjectNode().set("keys", keys))
     }
   }
@@ -49,7 +49,7 @@ final class KeysEndpoint(slug: String, clients: EndpointClients, authenticate: (
   }
 
   get("/{brand}/{keyId}") { (brand: String, keyId: String) =>
-    own(brand)(guarded(ok(200, keyOf(entity(keyId).call(AccessKey.get).invoke()))))
+    own(brand)(guarded(ok(200, used(keyOf(entity(keyId).call(AccessKey.get).invoke()), keyId))))
   }
 
   patchBody("/{brand}/{keyId}") { (brand: String, keyId: String, body: String) =>
@@ -71,6 +71,11 @@ final class KeysEndpoint(slug: String, clients: EndpointClients, authenticate: (
   delete("/{brand}/{keyId}") { (brand: String, keyId: String) =>
     own(brand)(guarded { entity(keyId).call(AccessKey.delete).invoke(By(by, now())): Unit; Respond(Bytes("application/json", Array.emptyByteArray), 204) })
   }
+
+  /** `lastUsedAt` from the key's window, as of the `KeyUse` view (eventually consistent, FR-005). */
+  private def used(n: ObjectNode, keyId: String): ObjectNode =
+    clients.viewClient.forView(KeyUse).get(keyId).flatMap(_.lastUsedAt).foreach(x => n.put("lastUsedAt", Times.of(x)))
+    n
 
   private def own(brand: String)(answer: => Respond[Bytes]): Respond[Bytes] =
     Routes.brandSegment(slug, brand).fold(p => throw p, _ => answer)

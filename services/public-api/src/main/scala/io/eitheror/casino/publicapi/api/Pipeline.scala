@@ -19,7 +19,7 @@ final case class Served(call: Call, key: Admitted, ids: Map[String, String]):
 /**
  * contracts/routes.md's pipeline, steps 2 to 5, for every keyed `/v1` operation, all under the request budget
  * (`Deadline`): the key presented and admitted, its rate (`rate`, step 4), the path ids, then the handler by operation
- * id. After an answer from step 3 on, `served` is told of it (step 6, the key's log). A refusal never carries what a
+ * id. After every answer to a request that named a key, `served` is told of it (step 6, the key's log). A refusal never carries what a
  * handler held.
  */
 final class Pipeline(
@@ -36,7 +36,9 @@ final class Pipeline(
 
   def apply(op: Operation, call: Call): Respond[Bytes] =
     val started = System.nanoTime()
-    val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](None)
+    // FR-036: a request that named a key is recorded, refused or not; one refused before a key is named is not.
+    val named   = Admission.presented(call.authorization).toOption.map((keyId, _) => Admitted(keyId, Set.empty, 0))
+    val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](named)
     val request  = java.util.concurrent.atomic.AtomicReference[Option[Served]](None)
     val answer = deadline.run {
       Admission.admit(clients.componentClient, call.authorization, now()) match

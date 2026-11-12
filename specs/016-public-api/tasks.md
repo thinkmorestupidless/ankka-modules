@@ -328,29 +328,29 @@ rate while another reads.
 
 ### Tests for User Story 8
 
-- [ ] T061 [P] [US8] `p-test/keys/KeyWindowSuite.scala` (entity kit with `MovableClock`; port of
+- [X] T061 [P] [US8] `p-test/keys/KeyWindowSuite.scala` (entity kit with `MovableClock`; port of
   `O/test/quota.test.ts`): windows, `Retry-After`, `lastUsedAt`
-- [ ] T062 [P] [US8] `p-test/it/QuotaSuite.scala`: two service instances on one database share a
+- [X] T062 [P] [US8] `p-test/it/QuotaSuite.scala`: two service instances on one database share a
   key's count; a second key's p95 latency with the first at its full rate is within 10% of its p95
   without it (SC-006)
-- [ ] T063 [P] [US8] `p-test/audit/AuditSuite.scala` and `KeyAuditSuite.scala` (port of
+- [X] T063 [P] [US8] `p-test/audit/AuditSuite.scala` and `KeyAuditSuite.scala` (port of
   `O/test/audit.test.ts`): contracts/facts.md's *Published* table record by record; no value, key or
   digest in any record; a refusal with a key named is recorded; one without is not; each request
   record carries status, outcome and duration, so a key's volume, error rate and latency are
   answered by spec 018's query by actor (FR-038)
-- [ ] T064 [P] [US8] `p-test/it/BudgetSuite.scala`: a request whose view read is held past five
+- [X] T064 [P] [US8] `p-test/it/BudgetSuite.scala`: a request whose view read is held past five
   seconds answers `503 unavailable`
-- [ ] T065 [US8] Bind `features/public-api/audit.feature` (the subject access scenario reads the
+- [X] T065 [US8] Bind `features/public-api/audit.feature` (the subject access scenario reads the
   published records by `player/<id>`, as spec 018's query would), and keys.feature's audit scenario
 
 ### Implementation for User Story 8
 
-- [ ] T066 [P] [US8] Write `p/keys/KeyWindow.scala` and the view `KeyUse`; add `lastUsedAt` to the
+- [X] T066 [P] [US8] Write `p/keys/KeyWindow.scala` and the view `KeyUse`; add `lastUsedAt` to the
   key routes' answers, and bind keys.feature's listing scenario
-- [ ] T067 [P] [US8] Write `p/keys/KeyLog.scala` (event sourced, snapshots every 500 events)
-- [ ] T068 [US8] Write `p/audit/PublicApiAudit.scala`: an `AuditConsumer` over `AccessKey` and
+- [X] T067 [P] [US8] Write `p/keys/KeyLog.scala` (event sourced, snapshots every 500 events)
+- [X] T068 [US8] Write `p/audit/PublicApiAudit.scala`: an `AuditConsumer` over `AccessKey` and
   `KeyLog` events publishing contracts/facts.md's records on `platform.audit`
-- [ ] T069 [US8] Wire step 4 (`KeyWindow.take`) and step 6 (`KeyLog.served` after the answer, with
+- [X] T069 [US8] Wire step 4 (`KeyWindow.take`) and step 6 (`KeyLog.served` after the answer, with
   the players and field names `Fields` served) into `Pipeline`
 
 **Checkpoint**: every route so far is rate-limited and audited.

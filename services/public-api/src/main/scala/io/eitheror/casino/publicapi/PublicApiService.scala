@@ -13,9 +13,9 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionR
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
 object PublicApiService:
   def descriptors(settings: Settings): Seq[ComponentDescriptor] =
-    val _ = settings
     import records.*
-    Seq(keys.AccessKey.descriptor, keys.AccessKeys.descriptor,
+    Seq(keys.AccessKey.descriptor, keys.AccessKeys.descriptor, keys.KeyWindow.descriptor, keys.KeyUse.descriptor, keys.KeyLog.descriptor,
+      audit.KeyAudit(settings.brand).descriptor, audit.ReadAudit(settings.brand).descriptor,
       PlayerRecord.descriptor, SessionRecord.descriptor, RoundRecord.descriptor, BetRecord.descriptor, BetsByRoundKey.descriptor,
       TransactionRecord.descriptor, WithdrawalsByRequest.descriptor, BonusAwardRecord.descriptor,
       Players.descriptor, Sessions.descriptor, Rounds.descriptor, Bets.descriptor, Transactions.descriptor, BonusAwards.descriptor) ++
@@ -28,11 +28,14 @@ object PublicApiService:
       now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] =
     Seq(
       clients => KeysEndpoint(settings.brand, clients, authenticate, now),
-      clients => V1Endpoint(contract, Pipeline(settings, contract, clients, now, api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers)(_, _),
-        c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond,
-        (brand, player) =>
-          if brand != settings.brand then Refusals.notFound.respond
-          else Refusals.json(200, api.Erasure.erase(clients.componentClient, player.toLowerCase))),
+      clients =>
+        val usage = api.Usage(clients.componentClient)
+        V1Endpoint(contract, Pipeline(settings, contract, clients, now, api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers,
+          usage.rate, usage.served(now))(_, _),
+          c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond,
+          (brand, player) =>
+            if brand != settings.brand then Refusals.notFound.respond
+            else Refusals.json(200, api.Erasure.erase(clients.componentClient, player.toLowerCase))),
       _ => HealthEndpoint()
     )
 
