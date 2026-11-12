@@ -163,7 +163,7 @@ services/public-api/
 │   ├── games/         # Catalogue, the cache
 │   ├── stats/         # StatsRun (pure fold), StatsPointer, PlayerFigures, GameFigures, ComputeStats
 │   ├── audit/         # PublicApiAudit
-│   ├── api/           # V1Endpoint, Admission, Pipeline, KeysEndpoint, StatusEndpoint, ErasureEndpoint, HealthEndpoint
+│   ├── api/           # V1Endpoint, Admission, Pipeline, KeysEndpoint, StatusEndpoint, Erasure, HealthEndpoint
 │   └── PublicApiCodecs.scala, Settings.scala, PublicApiService.scala
 └── src/test/scala/io/eitheror/casino/publicapi/
     ├── (pure and kit suites per package), it/ (Kit, FactSet, contracts/recording.md's suites), perf/, port/, features/

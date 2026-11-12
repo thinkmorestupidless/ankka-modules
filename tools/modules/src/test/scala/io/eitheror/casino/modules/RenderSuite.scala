@@ -2,7 +2,7 @@ package io.eitheror.casino.modules
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.plokhotnyuk.jsoniter_scala.core.readFromString
-import com.thinkmorestupidless.ankka.controlplane.api.{EnvVar, SecretKeyRef, ServiceDescriptor}
+import com.thinkmorestupidless.ankka.controlplane.api.{EnvVar, SecretKeyRef, ServiceDescriptor, ServiceSpec}
 import com.thinkmorestupidless.ankka.controlplane.api.Wire.descriptorCodec
 
 import scala.jdk.CollectionConverters.*
@@ -32,7 +32,7 @@ class RenderSuite extends munit.FunSuite:
   private val values  = Values.load(Fixtures.root.resolve("brands/goldvibe/values.json"), Main.valuesView(Fixtures.root)).toOption.get
   private val modules = ModuleManifest.validateTree(Fixtures.root, ModuleManifest.ContractView.fromTree(Fixtures.root))._1
   private val at      = Map("core" -> "0.1.0", "casino" -> "0.1.0", "engagement" -> "0.1.0", "reporting" -> "0.1.0", "support" -> "0.1.0",
-    "predictions" -> "0.1.0")
+    "predictions" -> "0.1.0", "public-api" -> "0.1.0")
 
   private val spec001: Vector[ServiceDescriptor] =
     fixture.path("descriptors").elements().asScala.toVector.map(n => readFromString[ServiceDescriptor](n.toString))
@@ -207,6 +207,28 @@ class RenderSuite extends munit.FunSuite:
     assertEquals(reporting.get("REPORTING_GENERATION"), Some(Some("1")))
     val targets = p.services.find(_.name == "players").get.service.env.find(_.name == "ERASURE_TARGETS").flatMap(_.value)
     assertEquals(targets, Some("reporting=/v1/casino/brands/goldvibe/reporting"))
+  }
+
+  test("public-api renders only for a brand entitled to it, embedded and exposed, with the staff issuer only, and players erases at it (spec 016)") {
+    val without = plan(Vector("casino"))
+    assert(!without.services.exists(_.name == "public-api"))
+    val p = plan(Vector("casino", "public-api"))
+    assertEquals(p.held, Vector.empty)
+    assertEquals(p.modules.map(_.name), Vector("core", "casino", "public-api"))
+    val d   = p.services.find(_.name == "public-api").get.service
+    val env = d.env.map(e => e.name -> e.value).toMap
+    assertEquals(d.hosting, ServiceSpec.Embedded)
+    assertEquals(d.runtime, Some("0.16.0"))
+    assertEquals(env.get("ANKKA_AUTH_ISSUERS"), Some(Some("staff")))
+    assertEquals(env.get("CASINO_BRAND"), Some(Some("goldvibe")))
+    assert(!env.keySet.exists(_.startsWith("ANKKA_AUTH_PLAYER_")), env.keySet.toString)
+    assert(p.modules.flatMap(_.exposed).contains("public-api"))
+    val targets = p.services.find(_.name == "players").get.service.env.find(_.name == "ERASURE_TARGETS").flatMap(_.value)
+    assertEquals(targets, Some("public-api=/v1/casino/brands/goldvibe/public-api"))
+  }
+
+  test("public-api brings casino with it: its games are game-provider's (spec 016 R13)") {
+    assertEquals(BrandRender.ordered(Vector("public-api"), modules).map(_.map(_.name)), Right(Vector("core", "casino", "public-api")))
   }
 
   test("reporting's grace is attribution's, so both close a day at the same instant (spec 015 R7)") {

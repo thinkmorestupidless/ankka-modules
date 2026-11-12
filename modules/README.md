@@ -12,8 +12,10 @@ manifest format (vendor spec 004 `contracts/manifest.md`; the schema is vendored
 | `engagement` | product | engagement | `core` |
 | `reporting` | product | reporting | `core` |
 | `support` | product | support-agent | `core` |
+| `predictions` | product | markets, exchange | `core` |
+| `public-api` | product | public-api | `core`, `casino` |
 
-`partner` (partner-api, on `casino`), `predictions` and `pool` are written by specs 016, 023 and 024.
+`pool` is written by spec 024.
 
 ## What a manifest carries
 
@@ -28,7 +30,7 @@ the tag's version.
 1. Add its keys to `contract/keys.md`, its services to that file's "Not yet built" table until their
    builds exist, and any topic to the contract's families.
 2. Write `modules/<module>/module.json`; a product module depends on `core` and on no other product
-   module (`partner` on `casino` is the one exception).
+   module (`public-api` on `casino`, whose games it serves, is the one exception).
 3. `just modules validate --all`.
 
 ## What the tag does

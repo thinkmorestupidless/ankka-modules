@@ -22,10 +22,10 @@ final case class Plan(
 
 object Render:
 
-  /** Services written in TypeScript, hosted as a process beside ankka's sidecar (spec 016). psp-gateway
-    * was here while spec 005 planned it in TypeScript; it is Scala (005 R1), embedded like the rest.
+  /** Services hosted as a process beside ankka's sidecar: none. psp-gateway (005 R1) and public-api (016)
+    * were here while planned in TypeScript; both are Scala, embedded like the rest.
     */
-  val ProcessHosted: Set[String] = Set("partner-api")
+  val ProcessHosted: Set[String] = Set.empty
 
   /** `secret:<name>/<key>` in a manifest's env is a reference to a project secret, never a value. */
   private val SecretReference = "secret:([a-z][a-z0-9-]*)/([A-Z][A-Z0-9_]*)".r

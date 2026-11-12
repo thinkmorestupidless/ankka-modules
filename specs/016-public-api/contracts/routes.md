@@ -74,12 +74,12 @@ names: `email`, `firstName`, `lastName`, `dateOfBirth`, `phone`, `addressLine1`,
 `postalCode`. Validation (`400 invalid_request` with `field`): a name of 1 to 100 characters;
 `expiresAt` in the future; known field names; `requestsPerMinute` from 1 to 6,000.
 
-## `/public-api`: status; `/erasure`: the player's erasure
+## `/public-api`: status; the player's erasure
 
 | Method | Path | Admission | Answer |
 |---|---|---|---|
 | GET | `/public-api/{brand}/status` | `Routes.operator(slug)` | `{statsComputedAt?, statsStale, snapshot?, views: {name: {lastAppliedAt?}}}` |
-| POST | `/erasure/players/{playerId}` | `Routes.playersOnly` | `{service:"public-api", subject}`: ankka 042's erasure of the player's `Personal` fields, as every brand service (spec 015's route) |
+| POST | `/v1/casino/brands/{brand}/public-api/erasure/players/{player}` (on the `/v1` endpoint, its own `withAcl`) | `Routes.playersOnly` | `{service:"public-api", subject}`: ankka 042's erasure of the player's `Personal` fields, as every brand service (spec 015's route) |
 
 ## `/health`
 

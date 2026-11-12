@@ -36,3 +36,4 @@ target only a route listed here; the modules tool refuses any other.
 | engagement | POST | /v1/casino/brands/{brand}/engagement/erasure/players/{player} | service | 014 R15 (an erasure target: players reads it from `erasure-targets`) |
 | exchange | POST | /v1/casino/brands/{brand}/exchange/erasure/players/{player} | service | 023 R13 (an erasure target: players reads it from `erasure-targets`) |
 | reporting | POST | /v1/casino/brands/{brand}/reporting/erasure/players/{player} | service | 015 R10 (an erasure target: players reads it from `erasure-targets`) |
+| public-api | POST | /v1/casino/brands/{brand}/public-api/erasure/players/{player} | service | 016 (an erasure target: players reads it from `erasure-targets`) |
