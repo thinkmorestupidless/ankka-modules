@@ -147,7 +147,7 @@ codecs, the test kit. Every story needs them.
   supported" for POST, PUT, PATCH and DELETE; `/v1/openapi.json` and `/v1/docs` served from
   `Contract`; every other path answering `501` until its story; and `p/api/HealthEndpoint.scala` on
   `/health`. Register both in `p/PublicApiService.scala`
-- [ ] T024 Write the test kit: `p-test/it/Kit.scala` (`AnkkaTestKit` over Postgres,
+- [X] T024 Write the test kit: `p-test/it/Kit.scala` (`AnkkaTestKit` over Postgres,
   `InMemoryBroker`, `MovableClock`, the service with a fake `game-provider` catalogue route),
   `p-test/it/FactSet.scala` (two brands' players, sessions, rounds, bets, transactions, withdrawals,
   rewards with known figures; FR-039), and `p-test/it/Keys.scala` (keys of every kind: no fields,
@@ -366,27 +366,27 @@ run; rankings and one game's figures against a hand count.
 
 ### Tests for User Story 5
 
-- [ ] T070 [P] [US5] `p-test/games/CatalogueSuite.scala` and `CatalogueCacheSuite.scala` (ports of
+- [X] T070 [P] [US5] `p-test/games/CatalogueSuite.scala` and `CatalogueCacheSuite.scala` (ports of
   `O/test/games/catalogue.test.ts`, `ttlCache.test.ts`): availability with the release gate; one load
   at a time; a failed load not cached; stale while revalidating
-- [ ] T071 [P] [US5] `p-test/stats/StatsRunSuite.scala` (pure): data-model.md's run over a fixed set
+- [X] T071 [P] [US5] `p-test/stats/StatsRunSuite.scala` (pure): data-model.md's run over a fixed set
   of rows against a hand count: cancelled rounds nowhere, free spins without money, bonus-funded money
   excluded through `realStakeCents`, per currency, ranks with ties by id, zeros for a quiet game
-- [ ] T072 [P] [US5] `p-test/it/GamesSuite.scala` and `GameStatsSuite.scala` (ports of
+- [X] T072 [P] [US5] `p-test/it/GamesSuite.scala` and `GameStatsSuite.scala` (ports of
   `O/test/routes/games.test.ts`, `gameStats.test.ts`, `gameStatsEmpty.test.ts`): the routes, a money
   sort without a currency, before the first run (empty, no `computedAt`)
-- [ ] T073 [US5] Bind `features/public-api/games.feature`
+- [X] T073 [US5] Bind `features/public-api/games.feature`
 
 ### Implementation for User Story 5
 
-- [ ] T074 [P] [US5] Write `p/games/Catalogue.scala`: the client of T015's route, the release gate,
+- [X] T074 [P] [US5] Write `p/games/Catalogue.scala`: the client of T015's route, the release gate,
   the five-minute cache (research R9), the mapper to the contract's `Game` with the original's tag
   union (`O/src/mappers/game.ts:58-103`)
-- [ ] T075 [P] [US5] Write `p/stats/StatsRun.scala`: the pure fold and ranking of data-model.md
-- [ ] T076 [US5] Write `p/stats/StatsPointer.scala`, `GameFigures.scala` with `GameFiguresView`, and
+- [X] T075 [P] [US5] Write `p/stats/StatsRun.scala`: the pure fold and ranking of data-model.md
+- [X] T076 [US5] Write `p/stats/StatsPointer.scala`, `GameFigures.scala` with `GameFiguresView`, and
   `p/stats/ComputeStats.scala` (the hourly timer: stream the views, fold, write the non-current slot,
   mark it ready, make it current; the stale warning) with game figures only
-- [ ] T077 [US5] Serve `/v1/games`, `/v1/games/{gameId}`, `/v1/games/{gameId}/stats` and
+- [X] T077 [US5] Serve `/v1/games`, `/v1/games/{gameId}`, `/v1/games/{gameId}/stats` and
   `/v1/game-stats` in `V1Endpoint`
 
 **Checkpoint**: US5's suites and scenarios pass.

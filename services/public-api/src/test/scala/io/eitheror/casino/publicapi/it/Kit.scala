@@ -39,13 +39,19 @@ final class Kit(val brand: String = "goldvibe"):
   val timers = TimerRuntime(200.millis, probe, clock)
   private val server = HttpServer.at("127.0.0.1", 0)(PublicApiService.endpoints(settings, contract, () => Kit.authenticate, () => clock.instant())*)
 
+  /** `game-provider`'s games route for this brand (T015), as the service calls it. */
+  val provider = FakeGameProvider(brand)
+
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     PublicApiService.descriptors(settings),
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server),
     configure = _.withErasureHandler(api.Erasure.handler),
-    keyring = Kit.keyring
+    keyring = Kit.keyring,
+    localServices = Map("game-provider" -> provider.address)
   )
   probe.bind(testKit)
+  // The hourly run is not scheduled here: the suites run it when they choose (`Games.compute`), and several kits share
+  // the JVM-wide `StatsRuntime` the timer reads.
 
   def base: String = s"http://127.0.0.1:${server.boundPort.get}"
   def components   = testKit.componentClient

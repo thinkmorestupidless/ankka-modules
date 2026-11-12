@@ -23,6 +23,11 @@ object Views:
     s"SELECT payload FROM $table WHERE $where ORDER BY (payload::jsonb->>'$time')::timestamptz, payload::jsonb->>'id' " +
       "LIMIT (:limit)::bigint OFFSET (:offset)::bigint"
 
+  /** A statistics run's rows since a time (data-model.md *The run*, step 2), a page at a time in key order. */
+  def since(table: String, time: String, more: String = "TRUE"): String =
+    s"SELECT payload FROM $table WHERE (payload::jsonb->>'$time')::timestamptz > (:since)::timestamptz AND $more " +
+      "ORDER BY row_key LIMIT (:limit)::bigint OFFSET (:offset)::bigint"
+
   def by(field: String, value: String): SqlFragment = jsonText(field) ++ sql" = $value"
 
   def page[R](q: ViewQueries[R], query: DeclaredQuery, page: Page, values: (String, String)*): Vector[R] =
@@ -63,6 +68,7 @@ object Sessions extends View.Companion[SessionsUpdater, SessionState, SessionSta
     ):
   def create(ctx: ViewComponentContext) = new SessionsUpdater
   val ofPlayer = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "startedAt"))
+  val since    = query("since")(Views.since(table, "startedAt"))
 
 final class RoundsUpdater extends View[RoundState, RoundState]:
   def onChange(s: RoundState): Effect =
@@ -82,6 +88,7 @@ object Rounds extends View.Companion[RoundsUpdater, RoundState, RoundState](
   def create(ctx: ViewComponentContext) = new RoundsUpdater
   val ofPlayer  = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "startedAt"))
   val ofSession = query("of-session")(ordered(table, "payload::jsonb->>'sessionId' = :session", "startedAt"))
+  val since     = query("since")(Views.since(table, "startedAt"))
 
 final class BetsUpdater extends View[BetState, BetState]:
   def onChange(s: BetState): Effect =
@@ -112,6 +119,7 @@ object Transactions extends View.Companion[TransactionsUpdater, TransactionState
     ):
   def create(ctx: ViewComponentContext) = new TransactionsUpdater
   val ofPlayer = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "createdAt"))
+  val since    = query("since")(Views.since(table, "createdAt", "payload::jsonb->>'typeWord' IN ('deposit', 'withdrawal')"))
 
 final class BonusAwardsUpdater extends View[BonusAwardState, BonusAwardState]:
   def onChange(s: BonusAwardState): Effect =
