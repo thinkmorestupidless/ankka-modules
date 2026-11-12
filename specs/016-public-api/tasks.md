@@ -152,7 +152,7 @@ codecs, the test kit. Every story needs them.
   `p-test/it/FactSet.scala` (two brands' players, sessions, rounds, bets, transactions, withdrawals,
   rewards with known figures; FR-039), and `p-test/it/Keys.scala` (keys of every kind: no fields,
   email only, all fields, disabled, expired, deleted)
-- [ ] T025 Write `p-test/features/GherkinSuite.scala` binding `features/public-api/` over the kit,
+- [X] T025 Write `p-test/features/GherkinSuite.scala` binding `features/public-api/` over the kit,
   every scenario pending until its story binds it
 
 **Checkpoint**: `just public-api-test` runs; `/v1/openapi.json` answers; every scenario is pending.
