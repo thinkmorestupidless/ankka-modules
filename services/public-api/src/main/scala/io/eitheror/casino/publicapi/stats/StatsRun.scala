@@ -94,3 +94,29 @@ object StatsRun:
     byGame.toVector.flatMap((g, w) => score(w, sort, currency).map(s => (g, w, s)))
       .sortBy((g, _, s) => (-s, g)).take(limit)
       .map((g, w, _) => g -> (if sort == "stake" || sort == "ggr" then w.copy(amounts = w.amounts.filter(a => currency.contains(a.currency))) else w))
+
+  val PlayerSorts: Vector[String] = Vector("rounds", "sessions", "stake", "ggr", "deposits")
+  val MoneySorts: Set[String]     = Set("stake", "ggr", "deposits")
+
+  /** A rank's name: `<period>_<sort>`, and `_<currency>` for a money sort (data-model.md `PlayerFigures`). */
+  def rankKey(period: String, sort: String, currency: Option[String]): String =
+    if MoneySorts(sort) then s"${period}_${sort}_${currency.getOrElse("")}" else s"${period}_$sort"
+
+  /**
+   * Every player's ranks in every ranking: descending, ties by player id, a rank only where the player has the figure
+   * (a count above zero; for money, an entry in that currency).
+   */
+  def rankPlayers(players: Map[String, Map[String, PlayerWindow]]): Map[String, Map[String, Int]] =
+    val scored = for
+      (pl, windows) <- players.toVector
+      (period, w)   <- windows.toVector
+      (key, score)  <- Vector(rankKey(period, "rounds", None) -> Option(w.rounds).filter(_ > 0),
+        rankKey(period, "sessions", None) -> Option(w.sessions).filter(_ > 0)) ++
+        w.amounts.flatMap(a => Vector(rankKey(period, "stake", Some(a.currency)) -> Some(a.stakeCents),
+          rankKey(period, "ggr", Some(a.currency)) -> Some(a.ggrCents), rankKey(period, "deposits", Some(a.currency)) -> Some(a.depositCents)))
+      value <- score
+    yield (key, pl, value)
+    scored.groupBy(_._1).toVector.flatMap { (key, xs) =>
+      xs.sortBy((_, pl, v) => (-v, pl)).zipWithIndex.map { case ((_, pl, _), i) => (pl, key, i + 1) }
+    }.groupBy(_._1).view.mapValues(_.map((_, k, r) => k -> r).toMap).toMap
+
