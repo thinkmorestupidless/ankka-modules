@@ -136,7 +136,7 @@ codecs, the test kit. Every story needs them.
   transaction type and wallet type per family, session status, round status, bonus status; an
   unmapped word → `None`, served as null); port `O/test/enums.test.ts` as `p-test/wire/EnumsSuite.scala`
   over the fact words here
-- [ ] T021 [P] Write `p/records/FactId.scala` (copied from `services/reporting/.../intake/FactId.scala`
+- [X] T021 [P] Write `p/records/FactId.scala` (copied from `services/reporting/.../intake/FactId.scala`
   with a test that both give the same id) and `p/PublicApiCodecs.scala` (serializers for every stored
   type, as `services/wallet`'s `WalletCodecs`)
 - [ ] T022 Write `p/api/Deadline.scala`: run a handler under the settings' budget and answer
