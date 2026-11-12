@@ -6,7 +6,7 @@ import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, HttpServer, Princi
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
 import com.thinkmorestupidless.ankka.testkit.AnkkaTestKit
 import io.eitheror.casino.contract.access.Routes
-import io.eitheror.casino.contract.facts.{CasinoPlayers, CasinoPlayersFact, CasinoRounds, RoundSettled}
+import io.eitheror.casino.contract.facts.{CasinoPlayers, CasinoPlayersFact, CasinoRounds, RoundOpened, RoundSettled}
 import io.eitheror.casino.gameprovider.{GameProviderService, Json, TestKeys, api, players}
 import io.eitheror.casino.gameprovider.Json.*
 import io.eitheror.casino.gameprovider.api.Settings
@@ -143,6 +143,10 @@ final class Kit(val brand: String = "goldvibe", realMoney: Boolean = false, befo
   /** What `round-facts` published on `casino.rounds`. */
   def roundsPublished: Vector[RoundSettled] =
     broker.publishedTo(CasinoRounds.name).toVector.map(d => CasinoRounds.serializer.fromBytes(d.message.payload)).collect { case r: RoundSettled => r }
+
+  /** The `round_opened` messages `round-facts` published (spec 016 G3). */
+  def roundsOpened: Vector[RoundOpened] =
+    broker.publishedTo(CasinoRounds.name).toVector.map(d => CasinoRounds.serializer.fromBytes(d.message.payload)).collect { case r: RoundOpened => r }
 
   def roundsMessages = broker.publishedTo(CasinoRounds.name).toVector
 

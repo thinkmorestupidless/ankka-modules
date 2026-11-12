@@ -159,3 +159,30 @@ class BetWorkflowSuite extends SharedKitSuite:
       assertEquals(kit.neighbours.mayBetAsked.size, 50)
     finally pool.shutdown()
   }
+
+  test("each money move names the round and the game session to the wallet; the round's facts carry its opening and real parts (spec 016 G3, G4, G7)") {
+    val player = s"$run-ids"
+    kit.wallet.set(player, "EUR", 1000)
+    val token   = kit.sessionTicket(player)
+    val session = s"gs-$token"
+    assertEquals(debit(token, s"$run-t1", s"$run-r1", "3.00").word, "ok")
+    assertEquals(credit(token, s"$run-c1", s"$run-r1", "5.00").word, "ok")
+    // The wallet's round key is the debit's id, on the bet and the win that settles it.
+    def sent(route: String) = kit.wallet.calls(route).map(_.json.get).find(_.text("roundId").contains(s"$run-t1")).get
+    for route <- Seq("bets", "wins") do
+      val body = sent(route)
+      assertEquals((body.text("gameRoundId"), body.text("sessionId")), (Some(s"st8/$run-r1"), Some(session)), route)
+    val settled = kit.eventually("round_settled")(kit.roundsPublished.find(_.providerRoundId == s"$run-r1"))
+    assertEquals((settled.realStakeCents.map(_.value), settled.realWinCents.map(_.value)), (Some(300L), Some(500L)))
+    assertEquals(settled.openedAt, Some(kit.round(s"$run-r1").openedAt.get))
+    val opened = kit.eventually("round_opened")(kit.roundsOpened.find(_.providerRoundId == s"$run-r1"))
+    assertEquals((opened.roundId, opened.sessionId, opened.playerId), (s"st8/$run-r1", session, player))
+    assertEquals(kit.roundsOpened.count(_.providerRoundId == s"$run-r1"), 1, "one round_opened per round")
+
+    assertEquals(debit(token, s"$run-t2", s"$run-r2").word, "ok")
+    val cancel = kit.callback("cancel", Json.obj("token" -> token, "player" -> player, "cancel_id" -> s"$run-x2",
+      "transaction_id" -> s"$run-t2", "currency" -> "EUR"))
+    assertEquals(cancel.word, "ok", cancel.text)
+    val rollback = kit.wallet.calls("rollbacks").map(_.json.get).find(_.text("roundId").contains(s"$run-t2")).get
+    assertEquals((rollback.text("gameRoundId"), rollback.text("sessionId")), (Some(s"st8/$run-r2"), Some(session)))
+  }

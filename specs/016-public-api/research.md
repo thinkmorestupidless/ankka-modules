@@ -339,3 +339,10 @@ Applied on this branch:
 
 2026-11-12: analyze reported nothing above LOW (round 1: four MEDIUM, two LOW, all applied; round 2:
 none above LOW).
+
+- **G7's real parts come from `realLeg`.** The wallet's HTTP answers carry no `depositPartCents` or
+  `convertedPartCents`; those are on its facts only. Its answers' `realLeg` is exactly their sum
+  (bets split it with `Pools.bet`, wins with `Pools.winSplit`, rollbacks restore it), and a provider
+  credit's answer says by `landedOn` whether it went to real balance. game-provider reads those and
+  nets them as it nets `stakeCents` and `winCents`; a figure is left out when any movement it counts
+  was recorded before the wallet's answer carried its real part.

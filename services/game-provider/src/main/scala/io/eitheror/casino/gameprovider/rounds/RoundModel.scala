@@ -7,8 +7,13 @@ import java.time.Instant
 /** The answer a callback was given; its bet workflow keeps it so a repeat is answered the same (FR-011). Balance in minor units, signed. */
 final case class StoredAnswer(status: String, balance: Option[Long] = None, currency: Option[String] = None)
 
-/** One movement this service made in the wallet for a provider transaction. */
-final case class Movement(action: String, walletKey: String, walletRoundId: Option[String], amount: Long, walletTransactionId: String)
+/**
+ * One movement this service made in the wallet for a provider transaction. `real` is the part of it the
+ * wallet attributed to real money, its deposit and converted parts (`WalletAnswer.Moved.real`, spec 016 G7);
+ * absent for a movement recorded before spec 016 or answered without it.
+ */
+final case class Movement(action: String, walletKey: String, walletRoundId: Option[String], amount: Long, walletTransactionId: String,
+    real: Option[Long] = None)
 
 object Movement:
   val Bet            = "bet"
@@ -67,11 +72,12 @@ final case class UnacknowledgedEntry(
  * type (its catalogue category) are the catalogue's when the round opens, absent for a game it does not
  * hold, so `round_settled` names the game from recorded state (spec 015 FR-019 amendment). A callback
  * does not read the catalogue: it sets `gameLookup`, and the catalogue is read only for a round that is
- * new (`Openings.catalogued`), so a callback on an open round makes no catalogue read.
+ * new (`Openings.catalogued`), so a callback on an open round makes no catalogue read. `freeRoundsGrant` is
+ * set on the opening a free debit's tag records, so `round_opened` names the grant (spec 016 G3).
  */
 final case class RoundOpening(provider: String, roundId: String, playerId: String, currency: String, gameCode: Option[String],
     sessionId: Option[String], at: Instant, gameName: Option[String] = None, gameType: Option[String] = None,
-    gameLookup: Boolean = false)
+    gameLookup: Boolean = false, freeRoundsGrant: Option[String] = None)
 
 final case class RoundState(
     provider: String = "",
@@ -106,6 +112,30 @@ final case class RoundState(
 
   def walletTransactionIds: Vector[String] = transactions.flatMap(_.walletTransactionIds)
 
+  /**
+   * The real-money parts of the stake and the win (spec 016 G7), from the wallet's answers kept on each
+   * movement, netted as `totalStake` and `win` are: a bet adds to the stake and a rollback, or a refund of a
+   * bet the wallet no longer held, takes from it; a win or provider credit adds to the win and a cancelled
+   * credit's debit takes from it. Absent when a movement that counts carries no real part.
+   */
+  def realStakeAndWin: (Option[Long], Option[Long]) =
+    val counted = transactions.filter(_.answer.status == "ok").flatMap { tx =>
+      val cancel = tx.kind == "cancel"
+      tx.movements.flatMap { m =>
+        m.action match
+          case Movement.Bet if cancel            => Some(("win", -1, m.real))
+          case Movement.Bet                      => Some(("stake", 1, m.real))
+          case Movement.Rollback                 => Some(("stake", -1, m.real))
+          case Movement.ProviderCredit if cancel => Some(("stake", -1, m.real))
+          case Movement.Win | Movement.ProviderCredit => Some(("win", 1, m.real))
+          case _                                 => None
+      }
+    }
+    def sum(of: String): Option[Long] =
+      val parts = counted.filter(_._1 == of)
+      Option.when(parts.forall(_._3.isDefined))(math.max(0L, parts.map((_, sign, real) => sign * real.get).sum))
+    (sum("stake"), sum("win"))
+
 object RoundState:
   val New       = "new"
   val Open      = "open"
@@ -128,7 +158,10 @@ final case class SettlementSummary(
     freeRoundsGrant: Option[String],
     at: Instant,
     gameName: Option[String] = None,
-    gameType: Option[String] = None
+    gameType: Option[String] = None,
+    openedAt: Option[Instant] = None,
+    realStake: Option[Long] = None,
+    realWin: Option[Long] = None
 )
 
 sealed trait RoundEvent

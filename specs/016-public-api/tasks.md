@@ -93,11 +93,11 @@ codecs, the test kit. Every story needs them.
   `player/<id>`) on `player_registered` and `player_profile_updated` from the profile
   (`services/players/src/main/scala/.../facts/Facts.scala:47-50, 88-92`); one test per field in its
   facts suite
-- [ ] T011 [P] `services/game-provider/`: publish `round_opened` from the round entity's
-  `RoundOpened` event (`facts/RoundFacts.scala:16-19`), and `openedAt`, `realStakeCents` (the sum of
-  the wallet answers' `depositPartCents + convertedPartCents` for the round's debits) and
+- [X] T011 [P] `services/game-provider/`: publish `round_opened` from the round entity's
+  `RoundOpened` event (`facts/RoundFacts.scala:16-19`), and `openedAt`, `realStakeCents` (the wallet
+  answers' `realLeg` for the round's debits, contracts/facts.md G7) and
   `realWinCents` (likewise for its credits) on `round_settled`; tests in its facts and rounds suites
-- [ ] T012 [P] `services/game-provider/`: pass the round's id and the game session's id with each
+- [X] T012 [P] `services/game-provider/`: pass the round's id and the game session's id with each
   money move (`rounds/MoneyMoves.scala:60`), so the wallet can put them on its facts; test in its
   rounds suite
 - [X] T013 `services/wallet/`: carry `gameRoundId` and `sessionId` from the command onto
@@ -108,7 +108,7 @@ codecs, the test kit. Every story needs them.
 - [X] T014 [P] `services/rewards/`: `expiresAt` on `bonus_granted` and `free_spins_granted`; on
   `free_spins_granted`, `amountCents` and `currency` as research R16.5 settles (spin value × rounds,
   else `0` in the reward's currency); tests in its facts suite
-- [ ] T015 [P] `services/game-provider/`: add `GET /v1/casino/brands/{brand}/game-provider/games` to
+- [X] T015 [P] `services/game-provider/`: add `GET /v1/casino/brands/{brand}/game-provider/games` to
   `BrandsEndpoint` under `Routes.serviceOf("rewards", "public-api")`, answering
   `CatalogueReads.toJson` for `Enablement.listed` games with `removedFromFeed` and `releaseDate`
   (contracts/facts.md G8); tests: `public-api` admitted, `engagement` refused, a disabled game absent

@@ -13,7 +13,8 @@ import scala.collection.mutable
  */
 final class FakeWallet extends FakeServer:
 
-  final case class Bet(key: String, roundId: String, amount: Long, gameId: String, gameCategory: Option[String], provider: Option[String])
+  final case class Bet(key: String, roundId: String, amount: Long, gameId: String, gameCategory: Option[String], provider: Option[String],
+      real: Long = 0)
   final class Account(var real: Long, var restricted: Long):
     val open = mutable.LinkedHashMap.empty[String, Bet] // by the wallet's round id
 
@@ -84,10 +85,11 @@ final class FakeWallet extends FakeServer:
     val a = account(player, currency)
     Answer.ok(Json.obj("realBalance" -> a.real, "restrictedBalance" -> a.restricted, "currency" -> currency))
 
-  private def moved(player: String, currency: String): Answer =
+  /** `extra`: the real part as the wallet answers it, `realLeg` on a bet, win and rollback, `landedOn` on a provider credit (spec 016 G7). */
+  private def moved(player: String, currency: String, extra: (String, Any)*): Answer =
     nextId += 1
     val a = account(player, currency)
-    Answer.ok(Json.obj("txnId" -> s"wtx-$nextId", "realBalance" -> a.real, "bonusBalance" -> a.restricted, "currency" -> currency))
+    Answer.ok(Json.obj((Seq("txnId" -> s"wtx-$nextId", "realBalance" -> a.real, "bonusBalance" -> a.restricted, "currency" -> currency) ++ extra)*))
 
   private def roundNotFound = Answer.json(404, Json.obj("error" -> "ROUND_NOT_FOUND", "message" -> "no open bet for the round"))
 
@@ -104,12 +106,13 @@ final class FakeWallet extends FakeServer:
           val fromRestricted = if allowNegative then 0L else math.max(0L, amount - math.max(a.real, 0L))
           a.real -= amount - fromRestricted
           a.restricted -= fromRestricted
-          a.open.update(roundId, Bet(body.text("key").get, roundId, amount, body.textOr("gameId", ""), body.text("category").filter(_.nonEmpty), body.text("provider")))
-          moved(player, currency)
+          a.open.update(roundId, Bet(body.text("key").get, roundId, amount, body.textOr("gameId", ""), body.text("category").filter(_.nonEmpty),
+            body.text("provider"), amount - fromRestricted))
+          moved(player, currency, "realLeg" -> (amount - fromRestricted))
       case "wins" =>
         a.open.remove(roundId) match
           case None    => roundNotFound
-          case Some(_) => a.real += amount; moved(player, currency)
+          case Some(_) => a.real += amount; moved(player, currency, "realLeg" -> amount)
       case "losses" =>
         a.open.remove(roundId) match
           case None    => roundNotFound
@@ -117,8 +120,8 @@ final class FakeWallet extends FakeServer:
       case "rollbacks" =>
         a.open.remove(roundId) match
           case None      => roundNotFound
-          case Some(bet) => a.real += bet.amount; moved(player, currency)
+          case Some(bet) => a.real += bet.amount; moved(player, currency, "realLeg" -> bet.real)
       case "provider-credits" =>
         a.real += amount
-        moved(player, currency)
+        moved(player, currency, "landedOn" -> "real")
       case other => Answer(404, s"""{"error":"NO_COMMAND","message":"$other"}""")

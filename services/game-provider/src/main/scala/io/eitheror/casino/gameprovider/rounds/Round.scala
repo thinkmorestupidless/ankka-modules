@@ -48,7 +48,7 @@ final class Round(context: EventSourcedEntityContext) extends EventSourcedEntity
   /** Tags the round with the free-rounds grant a free debit belongs to, before the debit is answered (FR-013). */
   def tagFreeRounds(cmd: TagFreeRounds): Effect[String] =
     val s       = currentState
-    val opening = if s.isNew then Vector(RoundOpened(cmd.opening)) else Vector.empty
+    val opening = if s.isNew then Vector(RoundOpened(cmd.opening.copy(freeRoundsGrant = Some(cmd.grant)))) else Vector.empty
     if s.freeRoundsGrant.contains(cmd.grant) then effects.reply(cmd.grant)
     else effects.persistAll(opening :+ FreeRoundsTagged(cmd.grant)).thenReply(_ => cmd.grant)
 
@@ -101,9 +101,11 @@ object Round extends EventSourcedEntity.Companion[Round, RoundState, RoundEvent]
   /** Whether the transaction settles or cancels the round (FR-014, FR-015, FR-019), from the state after it. */
   def closing(cmd: RecordTransaction, before: RoundState, after: RoundState): Option[RoundEvent] =
     val tx = cmd.tx
-    def summary(outcome: String) = SettlementSummary(after.provider, after.roundId, after.playerId, after.currency, after.gameCode,
-      after.sessionId, after.totalStake, after.win, outcome, after.providerTransactionIds, after.walletTransactionIds,
-      after.freeRoundsGrant, tx.receivedAt, after.gameName, after.gameType)
+    def summary(outcome: String) =
+      val (realStake, realWin) = after.realStakeAndWin
+      SettlementSummary(after.provider, after.roundId, after.playerId, after.currency, after.gameCode,
+        after.sessionId, after.totalStake, after.win, outcome, after.providerTransactionIds, after.walletTransactionIds,
+        after.freeRoundsGrant, tx.receivedAt, after.gameName, after.gameType, after.openedAt, realStake, realWin)
     if tx.answer.status != "ok" then None
     else if CreditKinds(tx.kind) then
       val actions = tx.movements.map(_.action).toSet
