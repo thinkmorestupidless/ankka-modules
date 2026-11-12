@@ -2,6 +2,8 @@ package io.eitheror.casino.publicapi
 
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
+import io.eitheror.casino.publicapi.api.{HealthEndpoint, V1Endpoint}
+import io.eitheror.casino.publicapi.contract.{Contract, Refusals}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 
 /** Every component of the service (plan.md's structure), registered by the service and by its test kit alike. */
@@ -10,9 +12,16 @@ object PublicApiService:
     val _ = settings
     Seq.empty
 
-  def endpoints(settings: Settings): Seq[EndpointClients => HttpEndpoint] =
+  /** The contract the settings' address is served in, or why the service cannot start. */
+  def contract(settings: Settings): Contract = Contract.load(settings.serverUrl).fold(e => throw IllegalStateException(e), identity)
+
+  def endpoints(settings: Settings, contract: Contract): Seq[EndpointClients => HttpEndpoint] =
     val _ = settings
-    Seq.empty
+    Seq(
+      _ => V1Endpoint(contract, (_, _) => V1Endpoint.notYet,
+        c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond),
+      _ => HealthEndpoint()
+    )
 
 @main def run(): Unit =
   val settings = Settings.fromEnvironment().fold(e => throw IllegalStateException(e), identity)
@@ -29,7 +38,7 @@ object PublicApiService:
     .registerAll(PublicApiService.descriptors(settings))
     .withExtension(broker)
     .withExtension(timers)
-    .withExtension(HttpServer.of(PublicApiService.endpoints(settings)*))
+    .withExtension(HttpServer.of(PublicApiService.endpoints(settings, PublicApiService.contract(settings))*))
   // The installation names its keyring for a service with personal fields; a local run keeps its keys in its own
   // database (feature 042).
   val keyed =
