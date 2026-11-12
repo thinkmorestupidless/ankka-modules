@@ -100,7 +100,7 @@ codecs, the test kit. Every story needs them.
 - [ ] T012 [P] `services/game-provider/`: pass the round's id and the game session's id with each
   money move (`rounds/MoneyMoves.scala:60`), so the wallet can put them on its facts; test in its
   rounds suite
-- [ ] T013 `services/wallet/`: carry `gameRoundId` and `sessionId` from the command onto
+- [X] T013 `services/wallet/`: carry `gameRoundId` and `sessionId` from the command onto
   `bet_placed`, `win_credited`, `bet_rolled_back` and `round_settled_as_loss` (the command already
   holds `sessionId`, `entity/Commands.scala:61`); `gameRoundId` is the round's `roundId` exactly
   (contracts/facts.md G4); tests in its facts suite (depends on T012 for the

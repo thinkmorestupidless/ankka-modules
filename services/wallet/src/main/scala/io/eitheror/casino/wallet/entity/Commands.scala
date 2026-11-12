@@ -16,9 +16,11 @@ object MoneyCommand:
   /**
    * Fields that are context the endpoint resolved, not what the caller sent: configuration read at
    * the time (switches, terms, the award limit) and the clock. A retry after a configuration change
-   * is the same command, so these never enter the digest.
+   * is the same command, so these never enter the digest. Nor do the labels a money move carries for
+   * the facts alone (spec 016 G4: the game round's and the session's ids), so a retry from a caller
+   * that did not send them yet is the same command.
    */
-  private val NotPayload = Set("key", "at", "switches", "brandTerms", "maxConcurrentAwards")
+  private val NotPayload = Set("key", "at", "switches", "brandTerms", "maxConcurrentAwards", "gameRoundId", "gameSessionId")
 
   /** The digest that tells a repeat from a reuse (FR-002): the wire name and every payload field. */
   def digest(wireName: String, command: MoneyCommand): String = digestOf(wireName, command)
@@ -58,20 +60,30 @@ final case class OpenMigrated(key: String, realBalance: Long, depositTurnoverPen
 final case class Deposit(key: String, amount: Long, paymentProvider: String, terminal: String, psp: String, scheme: String,
     brandTerms: TurnoverTerms, at: Instant) extends MoneyCommand
 
+/**
+ * `roundId` is the wallet's round key (the bet's key, as `game-provider` sends it); `gameRoundId` is
+ * the game round's own id, `game-provider`'s round entity id, which the facts carry as it is (spec 016
+ * G4). Neither it nor, on the settling commands, `gameSessionId` enters the digest.
+ */
 final case class PlaceBet(key: String, roundId: String, gameId: String, sessionId: String, provider: String,
-    category: String, amount: Long, allowNegative: Boolean, switches: BetSwitches, at: Instant) extends MoneyCommand
+    category: String, amount: Long, allowNegative: Boolean, switches: BetSwitches, at: Instant,
+    gameRoundId: Option[String] = None) extends MoneyCommand
 
 /**
  * `betKey` names the bet a win settles, as the original's `bet_tx_id` does in a round with several
- * bets; without it every open bet of the round is settled.
+ * bets; without it every open bet of the round is settled. `gameSessionId`, when absent, is the
+ * settled bet's session.
  */
-final case class CreditWin(key: String, roundId: String, amount: Long, at: Instant, betKey: Option[String] = None) extends MoneyCommand
+final case class CreditWin(key: String, roundId: String, amount: Long, at: Instant, betKey: Option[String] = None,
+    gameRoundId: Option[String] = None, gameSessionId: Option[String] = None) extends MoneyCommand
 
 /** `betKey` names the bet a provider cancels; without it every open bet of the round is rolled back. */
-final case class RollbackBet(key: String, roundId: String, betKey: Option[String], at: Instant) extends MoneyCommand
+final case class RollbackBet(key: String, roundId: String, betKey: Option[String], at: Instant,
+    gameRoundId: Option[String] = None, gameSessionId: Option[String] = None) extends MoneyCommand
 
 /** `betKey` as for a win. */
-final case class SettleLoss(key: String, roundId: String, at: Instant, betKey: Option[String] = None) extends MoneyCommand
+final case class SettleLoss(key: String, roundId: String, at: Instant, betKey: Option[String] = None,
+    gameRoundId: Option[String] = None, gameSessionId: Option[String] = None) extends MoneyCommand
 
 final case class ProviderCredit(key: String, amount: Long, providerRef: String, reason: String, actorId: String,
     at: Instant) extends MoneyCommand
