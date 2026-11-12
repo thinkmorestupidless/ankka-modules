@@ -14,7 +14,8 @@ import java.nio.charset.StandardCharsets.UTF_8
  *
  * `serve` answers an operation; until a story binds one it is `501`.
  */
-final class V1Endpoint(contract: Contract, serve: (Operation, Call) => Respond[Bytes], unknown: Call => Respond[Bytes])
+final class V1Endpoint(contract: Contract, serve: (Operation, Call) => Respond[Bytes], unknown: Call => Respond[Bytes],
+    erase: (String, String) => Respond[Bytes] = (_, _) => Refusals.notFound.respond)
     extends HttpEndpoint("/v1"):
   val acl: Acl = Acl.AllowAll
 
@@ -47,6 +48,11 @@ final class V1Endpoint(contract: Contract, serve: (Operation, Call) => Respond[B
     case _ =>
       post(template) { (_: String, _: String) => Refusals.onlyGet.respond }; put(template) { (_: String, _: String) => Refusals.onlyGet.respond }
       patch(template) { (_: String, _: String) => Refusals.onlyGet.respond }; delete(template) { (_: String, _: String) => Refusals.onlyGet.respond }
+
+  // The player's erasure, a call of `players` alone (contracts/routes.md, research *Found during implementation*).
+  withAcl(io.eitheror.casino.contract.access.Routes.playersOnly) {
+    post("/casino/brands/{brand}/public-api/erasure/players/{player}") { (brand: String, player: String) => erase(brand, player) }
+  }
 
   // Paths the contract does not hold (literal segments outrank these in dispatch, so a contract path is never caught).
   get("/{a}") { (_: String) => unknown(call(None, Vector.empty, Vector.empty)) }

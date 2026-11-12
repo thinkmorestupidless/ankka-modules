@@ -1,5 +1,7 @@
 package io.eitheror.casino.publicapi.it
 
+import io.eitheror.casino.publicapi.api
+
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.thinkmorestupidless.ankka.core.Metadata
 import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, LocalCallers, Principal}
@@ -39,7 +41,8 @@ final class Kit(val brand: String = "goldvibe"):
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     PublicApiService.descriptors(settings),
-    Seq(ProjectionRuntime.withBroker(broker, broker), timers, server)
+    Seq(ProjectionRuntime.withBroker(broker, broker), timers, server),
+    configure = _.withErasureHandler(api.Erasure.handler)
   )
   probe.bind(testKit)
 

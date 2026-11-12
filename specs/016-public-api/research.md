@@ -366,3 +366,10 @@ none above LOW).
   logged with its kind and id only.
 - **A `round_settled_as_loss` row's wallet type is MAIN**, the original mapper's default for an
   absent `wallet_type` (`transaction.ts:24`), not null.
+
+- **What the erasure route erases.** public-api keeps no objects, so its part of an erasure is the
+  player's record: the route (called by `players` as a target) and the installation's erasure
+  handler both mark every identifying field of the player's record erased, and a fact read again
+  afterwards keeps them erased. The installation's erasure also destroys the subject's key, so every
+  stored copy reads erased and each view's rows are rewritten. The answer is
+  `{"service":"public-api","subject":"player/<id>"}`.

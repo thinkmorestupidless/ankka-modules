@@ -29,7 +29,10 @@ object PublicApiService:
     Seq(
       clients => KeysEndpoint(settings.brand, clients, authenticate, now),
       clients => V1Endpoint(contract, Pipeline(settings, contract, clients, now, api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers)(_, _),
-        c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond),
+        c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond,
+        (brand, player) =>
+          if brand != settings.brand then Refusals.notFound.respond
+          else Refusals.json(200, api.Erasure.erase(clients.componentClient, player.toLowerCase))),
       _ => HealthEndpoint()
     )
 
@@ -48,6 +51,7 @@ object PublicApiService:
     .registerAll(PublicApiService.descriptors(settings))
     .withExtension(broker)
     .withExtension(timers)
+    .withErasureHandler(api.Erasure.handler)
     .withExtension(HttpServer.of(PublicApiService.endpoints(settings, PublicApiService.contract(settings))*))
   // The installation names its keyring for a service with personal fields; a local run keeps its keys in its own
   // database (feature 042).

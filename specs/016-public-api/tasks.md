@@ -292,22 +292,22 @@ end; an empty collection.
 
 ### Tests for User Story 4
 
-- [ ] T055 [P] [US4] `p-test/it/IdentifyingFieldsSuite.scala` (port of
+- [X] T055 [P] [US4] `p-test/it/IdentifyingFieldsSuite.scala` (port of
   `O/test/entitlements.test.ts`, without the snake_case fallbacks): none, some, all; withdrawn from
   the next request; absent, not null
-- [ ] T056 [P] [US4] `p-test/it/ErasureSuite.scala`: after the erasure route, every identifying field
+- [X] T056 [P] [US4] `p-test/it/ErasureSuite.scala`: after the erasure route, every identifying field
   is absent with every key, within ankka 042's bound; id, status and amounts remain; a page across the
   player stays whole
-- [ ] T057 [P] [US4] `p-test/it/DiagnosticsSuite.scala` (ports of `O/test/no-pii-leak.test.ts` and
+- [X] T057 [P] [US4] `p-test/it/DiagnosticsSuite.scala` (ports of `O/test/no-pii-leak.test.ts` and
   `logger.test.ts`): a full walk and a ranking walk with an all-fields key, then a scan of the
   captured logs and spans for every seeded identifying value, every key and every digest
-- [ ] T058 [US4] Bind `features/public-api/identifying-fields.feature`
+- [X] T058 [US4] Bind `features/public-api/identifying-fields.feature`
 
 ### Implementation for User Story 4
 
-- [ ] T059 [US4] Write `p/wire/Fields.scala`: copy into the player's answer only the fields the
+- [X] T059 [US4] Write `p/wire/Fields.scala`: copy into the player's answer only the fields the
   admitted key allows whose value is `Personal.Present`; use it in `Records`
-- [ ] T060 [US4] Write `p/api/Erasure.scala` and serve it from the `/v1` endpoint (`POST
+- [X] T060 [US4] Write `p/api/Erasure.scala` and serve it from the `/v1` endpoint (`POST
   /casino/brands/{brand}/public-api/erasure/players/{player}` under its own
   `withAcl(Routes.playersOnly)`; research *Found during implementation*) with ankka 042's erasure
   handler for the `Players` view's subject, as `services/reporting` does
