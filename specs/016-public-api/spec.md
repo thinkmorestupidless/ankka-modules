@@ -100,6 +100,11 @@ sessions below; the rest are superseded by the rewrite.
 - Q: Ids? → A: The brand's own record ids, as the original serves its platform record ids (its spec
   255 FR-007). Opaque ids were dropped by the original and are not brought back. The Spinvibe
   migration (spec 019) keeps record ids, so an id stored before the cutover still resolves.
+- Q: Seven contract fields (a round's start and the open status, a bet's round and session, a
+  player's language and state, a bonus award's expiry, a free-spins award's value and currency, a
+  round's real-money stake and win) and the games catalogue have no fact or route today. How far does
+  this spec go? → A: It amends every producer, additively: `players`, `game-provider`, `wallet` and
+  `rewards` (Trevor). The amendments are listed in the plan's `contracts/facts.md`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -436,7 +441,8 @@ past its rate while another reads.
   provider's feed, released, and not disabled by the brand's curation (by developer, category or
   game), each with the catalogue details the contract names, in game-code order. A change to the
   brand's catalogue MUST reach callers within five minutes. *Original 255 FR-017–FR-019.* The
-  catalogue is `game-provider`'s (spec 003).
+  catalogue is `game-provider`'s (spec 003), read through a route it serves to this service, added on
+  this branch.
 - **FR-028**: Game statistics MUST be computed at least hourly for the last 1, 7 and 30 days per game:
   rounds, sessions started, unique players and, per currency, real-money stake, win and GGR.
   Cancelled rounds MUST count nowhere; free-spins rounds MUST count as rounds, sessions and players
@@ -455,7 +461,8 @@ past its rate while another reads.
   FR-015–FR-018, FR-023–FR-024.*
 - **FR-032**: Every statistics answer MUST say when its figures were computed. A failed run MUST
   leave the previous figures served. Figures more than three hours old MUST be reported to the
-  operator, naming the brand. *Original 255 FR-022, FR-022a; 256 FR-019.*
+  operator, naming the brand: on the service's status route and as a warning the installation's
+  alerting reads (001 FR-034), ankka having no alerting of its own. *Original 255 FR-022, FR-022a; 256 FR-019.*
 - **FR-033**: No ranking or statistics answer MUST carry an identifying field. *Original 256 FR-013.*
 
 **Protection and audit**
@@ -467,13 +474,15 @@ past its rate while another reads.
 - **FR-035**: A request the service cannot answer within five seconds MUST be refused with
   `unavailable`, distinguishable from `not_found` and `invalid_request`. *Original 255 edge case,
   `REQUEST_TIMEOUT_MS`.*
-- **FR-036**: Every request that presented a key MUST produce one audit record on the brand's
+- **FR-036**: Every request that named a key MUST produce one audit record on the brand's
   `platform.audit` topic naming the key, the operation, the ids of players whose identifying fields
-  were served with the field names, the duration, the time and the outcome, and never a value.
-  *Original `audit.ts`, `audit` suite; the Loki line replaced.*
-- **FR-037**: A subject access request MUST be answerable from the shared audit: every key served an
-  identifying field of a given player, with the fields and the times (spec 018). *Original 211
-  SC-011.*
+  were served with the field names, the duration, the time and the outcome, and never a value. A
+  request refused before a key is named (no key, a malformed key) names none and is not recorded.
+  *Original `audit.ts`, `server.ts:181-193`, `audit` suite; the Loki line replaced.*
+- **FR-037**: Each player whose identifying fields a request served MUST also be the subject of an
+  audit record naming the key, the field names and the time, so a subject access request answers from
+  the shared audit by the player (spec 018): every key served an identifying field of theirs, with the
+  fields and the times. *Original 211 SC-011.*
 - **FR-038**: Each key's request volume, error rate and latency MUST be answerable for the operator
   from the key's audit records. *Original 211 FR-030.*
 
@@ -548,6 +557,10 @@ past its rate while another reads.
   player listing, so its pages can be short; here no such record exists.
 - **The grant's `cost` and `maxConcurrentQueries`/`monthlyQueryBudget` fields are not carried
   over**: parsed by the original and read by nothing.
+- **A bet and its BET transaction share one id.** The original held them as two twins with two ids.
+- **A bonus award is ACTIVE where the original could say WAGERING**: no fact carries the word.
+- **Four transaction families are not served**: `restricted_funds_closed` (no amount), and the
+  account and prediction families, which the original did not have.
 
 ## Recordings
 
@@ -591,7 +604,8 @@ into this repository, amended only as FR-002 says, and is the parity test for FR
   gateway (FR-034), the port method (FR-029–FR-033). Its partner route class and partner wording are
   amended by this spec.
 - Spec 003: the catalogue and the brand's curation.
-- Specs 002, 007, 008, 009, 011: the facts and status words the views map.
+- Specs 002, 007, 008, 009, 011: the facts and status words the views map. `players`, `game-provider`,
+  `wallet` and `rewards` are amended on this branch, additively (Clarifications 2026-11-12).
 - Spec 018: the shared audit and its subject access query.
 - Spec 019: record ids kept at the migration.
 - Spec 021: the module this service is (renamed from `partner`).
