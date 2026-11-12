@@ -2,7 +2,11 @@ package io.eitheror.casino.publicapi
 
 import com.thinkmorestupidless.ankka.core.ComponentDescriptor
 import com.thinkmorestupidless.ankka.http.{EndpointClients, HttpEndpoint, HttpServer}
-import io.eitheror.casino.publicapi.api.{HealthEndpoint, V1Endpoint}
+import io.eitheror.casino.publicapi.api.{HealthEndpoint, KeysEndpoint, Serve, V1Endpoint}
+import com.thinkmorestupidless.ankka.auth.oidc.Oidc
+import com.thinkmorestupidless.ankka.http.Acl
+
+import java.time.Instant
 import io.eitheror.casino.publicapi.contract.{Contract, Refusals}
 import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionRuntime, TimerRuntime}
 
@@ -10,15 +14,16 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionR
 object PublicApiService:
   def descriptors(settings: Settings): Seq[ComponentDescriptor] =
     val _ = settings
-    Seq.empty
+    Seq(keys.AccessKey.descriptor, keys.AccessKeys.descriptor)
 
   /** The contract the settings' address is served in, or why the service cannot start. */
   def contract(settings: Settings): Contract = Contract.load(settings.serverUrl).fold(e => throw IllegalStateException(e), identity)
 
-  def endpoints(settings: Settings, contract: Contract): Seq[EndpointClients => HttpEndpoint] =
-    val _ = settings
+  def endpoints(settings: Settings, contract: Contract, authenticate: () => Acl = () => Oidc.authenticate(),
+      now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] =
     Seq(
-      _ => V1Endpoint(contract, (_, _) => V1Endpoint.notYet,
+      clients => KeysEndpoint(settings.brand, clients, authenticate, now),
+      clients => V1Endpoint(contract, Serve(settings, contract, clients, now, Map.empty)(_, _),
         c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond),
       _ => HealthEndpoint()
     )
