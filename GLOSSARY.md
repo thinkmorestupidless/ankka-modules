@@ -407,7 +407,7 @@ The brand's facts for one network served in the order they were emitted, from a 
 An opaque position in a brand's feed; reading from the same cursor twice returns the same page.
 
 ### page cursor
-An opaque position in a partner's paging of a collection; one that is malformed, expired or another partner's is refused and leaks nothing.
+An opaque position in a caller's paging of a collection; one that is malformed, expired or another caller's is refused and leaks nothing.
 
 ### webhook
 A payment provider's post of a payment's outcome to the gateway, verified by its signature or, for a provider that does not sign, by the secret in its address; acknowledged even when it moves nothing.
@@ -1023,7 +1023,7 @@ A player's ask of what was read about them: every access key that was served an 
 Avoid: SAR
 
 ### freshness
-What a partner reads to tell how far a brand's views lag its facts: the time between the newest fact published and the newest applied, and whether the views are degraded, rebuilding, catching up or missing history; a degraded answer is provisional.
+What a caller reads to tell how far a brand's views lag its facts: the time between the newest fact published and the newest applied, and whether the views are degraded, rebuilding, catching up or missing history; a degraded answer is provisional.
 
 Avoid: read model status, readModelStatus
 

@@ -30,7 +30,7 @@ What becomes a module, and what stays core, follows one question: does every bra
 whatever it sells? Wallet, players, kyc, responsible-gambling, payouts and attribution do.
 Engagement and reporting know nothing of a game or a market either, but a brand may be billed for
 CRM and for reporting separately, so each is a product module of its own, `engagement` and
-`reporting` (clarified 2026-10-22). Game-provider, rewards and partner-api are the casino's. The support agent is a module of its own because spec
+`reporting` (clarified 2026-10-22). Game-provider and rewards are the casino's; `public-api` serves the casino's records (spec 016). The support agent is a module of its own because spec
 017 already makes it off by default. The prediction market is spec 023; the liquidity pool, a
 shared module, is spec 024. Rewards' home is the one placement argued below.
 
@@ -57,7 +57,7 @@ agent applies the core: `wallet`, `players`, `kyc`, `responsible-gambling`, `pay
 receives from the shared `payments`, `programme` and `reasoner` projects. Players can register,
 deposit and withdraw; nothing can be played or traded, and no one is messaged or reported on
 until `engagement` or `reporting` is enabled beside the core. When eitheror
-enables `casino`, the agent adds `game-provider`, `rewards` and, if named, `partner-api`, and the
+enables `casino`, the agent adds `game-provider` and `rewards`, and the
 grants between them and the core; now the brand is a casino. A brand entitled to `predictions` and
 not `casino` has markets and no games.
 
@@ -156,9 +156,9 @@ operator's page changes and no player data was readable from the console.
 
 - A module whose dependency is disabled: disabling `core` is refused while any module is enabled;
   disabling a product module another module depends on is refused naming the dependent.
-- `partner-api` and `support-agent`: the manifest format has no optional service, so `partner-api`
-  is its own module, `partner`, depending on `casino` (the one product module allowed to depend on
-  a product module, FR-002), entitled when a partner is contracted (spec 016); `support-agent` is
+- `public-api` and `support-agent`: the manifest format has no optional service, so `public-api`
+  is its own module, `public-api` (`partner` until spec 016, 2026-11-12), depending on `casino` (the
+  one product module allowed to depend on a product module, FR-002), entitled per brand; `support-agent` is
   its own module, `support`, so that spec 017 FR-001's off-by-default is an entitlement, not a
   switch.
 - A brand migrated from the original (spec 019): its values are written from the original's
@@ -181,8 +181,8 @@ operator's page changes and no player data was readable from the console.
 
 - **FR-001**: A brand project MUST hold the services of `core` and of the modules the brand's
   entitlements name, and no others. `core` is `wallet`, `players`, `kyc`, `responsible-gambling`,
-  `payouts`, `attribution`, and the vendor's agent. `casino` is `game-provider` and `rewards`; `partner` is
-  `partner-api`, a product module depending on `casino`, entitled when a partner is contracted
+  `payouts`, `attribution`, and the vendor's agent. `casino` is `game-provider` and `rewards`; `public-api` is
+  `public-api`, a product module depending on `casino`, entitled per brand
   (spec 016). `engagement` is `engagement`; `reporting` is `reporting`; each depends
   on `core` alone. `support` is `support-agent`. `predictions` is spec 023's; `pool` is spec
   024's and shared.
@@ -190,7 +190,7 @@ operator's page changes and no player data was readable from the console.
   ankka-vendor's manifest format: services with descriptors, grants and topics declared by route
   class and topic name, dependencies with version ranges, configuration keys by name and type,
   retention after disable, and any condition on ending; a product module MUST depend on `core`
-  and on no other product module, except `partner` on `casino`.
+  and on no other product module, except `public-api` on `casino`.
 - **FR-003**: A brand MUST supply its values at `brands/<slug>/values.json`: realm settings, real
   money, secret names, hostnames, and a value for every key its enabled modules name; a value
   file MUST hold no version, service, grant or secret value.
@@ -253,7 +253,7 @@ operator's page changes and no player data was readable from the console.
 ### Key Entities
 
 - **Module**: a named set of services, grants, topics, dependencies, keys and retention, described
-  by one manifest; `core`, `casino`, `engagement`, `reporting`, `support`, `partner`, `predictions`, `pool`.
+  by one manifest; `core`, `casino`, `engagement`, `reporting`, `support`, `public-api`, `predictions`, `pool`.
 - **Values**: what one brand supplies: realm, real money, secret names, hostnames, configured
   values; `brands/<slug>/values.json`.
 - **Entitlement**: ankka-vendor's record that a brand may run a module on a channel or pin; read,
