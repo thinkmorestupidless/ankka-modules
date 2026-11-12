@@ -14,7 +14,12 @@ import com.thinkmorestupidless.ankka.runtime.{Ankka, InMemoryBroker, ProjectionR
 object PublicApiService:
   def descriptors(settings: Settings): Seq[ComponentDescriptor] =
     val _ = settings
-    Seq(keys.AccessKey.descriptor, keys.AccessKeys.descriptor)
+    import records.*
+    Seq(keys.AccessKey.descriptor, keys.AccessKeys.descriptor,
+      PlayerRecord.descriptor, SessionRecord.descriptor, RoundRecord.descriptor, BetRecord.descriptor, BetsByRoundKey.descriptor,
+      TransactionRecord.descriptor, WithdrawalsByRequest.descriptor, BonusAwardRecord.descriptor,
+      Players.descriptor, Sessions.descriptor, Rounds.descriptor, Bets.descriptor, Transactions.descriptor, BonusAwards.descriptor) ++
+      Intake.descriptors
 
   /** The contract the settings' address is served in, or why the service cannot start. */
   def contract(settings: Settings): Contract = Contract.load(settings.serverUrl).fold(e => throw IllegalStateException(e), identity)
@@ -23,7 +28,7 @@ object PublicApiService:
       now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] =
     Seq(
       clients => KeysEndpoint(settings.brand, clients, authenticate, now),
-      clients => V1Endpoint(contract, Pipeline(settings, contract, clients, now, Map.empty)(_, _),
+      clients => V1Endpoint(contract, Pipeline(settings, contract, clients, now, api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers)(_, _),
         c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond),
       _ => HealthEndpoint()
     )

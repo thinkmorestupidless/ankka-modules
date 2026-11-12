@@ -26,6 +26,8 @@ object PublicApiCodecs:
   inline def serializer[A](name: String): Serializer[A] = Serializer.json[A](s"public-api.$name")(using stored[A])
 
   /** A view's row: every field written, defaults and empties too, so a query can match a column at its default. */
+  given Serializer[Boolean] = serializer[Boolean]("boolean")
+
   inline def row[A](name: String): Serializer[A] =
     Serializer.json[A](s"public-api.$name")(using JsonCodecMaker.make[A](
       CodecMakerConfig.withTransientEmpty(false).withTransientNone(true).withTransientDefault(false)
