@@ -129,10 +129,10 @@ codecs, the test kit. Every story needs them.
   enum with the original's status (contracts/amendments.md's table, contracts/routes.md), each a
   `Respond(Bytes("application/json", {"error", "message"?}), status, headers)`, `Retry-After` for
   `quota_exceeded`; with `p-test/contract/RefusalsSuite.scala`
-- [ ] T019 [P] Write `p/wire/Money.scala` (minor units → two-decimal string by the currency's
+- [X] T019 [P] Write `p/wire/Money.scala` (minor units → two-decimal string by the currency's
   exponent from `contract.money`; an exponent other than 2 is a projection error) and
   `p/wire/Times.scala` (ISO 8601 with `Z`); port `O/test/money.test.ts` as `p-test/wire/MoneySuite.scala`
-- [ ] T020 [P] Write `p/wire/Enums.scala` from contracts/fields.md §2 (player status, KYC,
+- [X] T020 [P] Write `p/wire/Enums.scala` from contracts/fields.md §2 (player status, KYC,
   transaction type and wallet type per family, session status, round status, bonus status; an
   unmapped word → `None`, served as null); port `O/test/enums.test.ts` as `p-test/wire/EnumsSuite.scala`
   over the fact words here
