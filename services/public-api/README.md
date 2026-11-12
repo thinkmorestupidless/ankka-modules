@@ -16,3 +16,21 @@ just public-api-run                         # on :9000 against docker-compose.ym
 ```
 
 The components and the suites are listed here as they are built (spec 016 tasks).
+
+## The contract
+
+`src/main/resources/public-api-v1.openapi.yaml` is the contract, served as it is at
+`GET /v1/openapi.json` and embedded in `GET /v1/docs`. It changes only by a reviewed commit to that
+file together with `specs/016-public-api/contracts/amendments.md`, which lists every JSON path where
+it may differ from the original's copy (`contracts/original/`). Four suites fail the build on any
+other change, and CI runs all four:
+
+| Suite | Holds |
+|---|---|
+| `contract.ContractSnapshotSuite` | the served document is the file; `/v1` answers exactly its 22 operations; the page cap is the file's |
+| `contract.ContractAmendmentSuite` | the file differs from the original only at the amendments' paths |
+| `contract.ContractValiditySuite` | the document parses as OpenAPI 3.1 with every `$ref` resolved |
+| `it.ContractResponsesSuite` | every route at every status it documents, each body valid against its schema (Docker) |
+
+A breaking change is a new version at a new prefix, with `/v1` served beside it for at least six
+months (FR-006).
