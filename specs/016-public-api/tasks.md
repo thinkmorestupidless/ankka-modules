@@ -89,7 +89,7 @@ codecs, the test kit. Every story needs them.
 
 ### The producers (contracts/facts.md)
 
-- [ ] T010 [P] `services/players/`: send `language` and `stateProvince` (as `Personal` under
+- [X] T010 [P] `services/players/`: send `language` and `stateProvince` (as `Personal` under
   `player/<id>`) on `player_registered` and `player_profile_updated` from the profile
   (`services/players/src/main/scala/.../facts/Facts.scala:47-50, 88-92`); one test per field in its
   facts suite
