@@ -41,8 +41,8 @@ object CallbackRoute:
 
 /**
  * `/v1/casino/brands/...`: the brand-segmented callbacks (public, signed), the brand's catalogue
- * configuration and operator catalogue (operator), the free-rounds routes `rewards` calls (service), and
- * a game's bonus types (`rewards` alone).
+ * configuration and operator catalogue (operator), the free-rounds routes `rewards` calls (service),
+ * a game's bonus types (`rewards` alone), and the brand's listed games (`rewards` and `public-api`, spec 016 G8).
  * One endpoint per prefix, since two may not share one; each route's audience is its own ACL (FR-027).
  */
 final class BrandsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/brands"):
@@ -162,6 +162,22 @@ final class BrandsEndpoint(ctx: Context) extends HttpEndpoint("/v1/casino/brands
           case Right(Some(g)) => ok(Json.obj("gameCode" -> g.code, "bonusTypes" -> g.fields.get.bonusTypes))
           case _              => refuse(404, "game_not_found")
       }
+    }
+  }
+
+  // The brand's available games with their details, for a sibling service (spec 016 G8, research R9):
+  // the games the brand lists, as the player catalogue answers each, with `removedFromFeed` and
+  // `releaseDate` so the caller applies the original's release gate itself.
+  withAcl(Routes.serviceOf("rewards", "public-api")) {
+    get("/{brand}/game-provider/games") { (segment: String) =>
+      ctx.ownBrand(segment)
+      val config = ctx.catalogue.configuration()
+      val games  = ctx.catalogue.games().filter(g => Enablement.listed(g, config)).map { g =>
+        val row = CatalogueReads.toJson(g)
+        Json.set(row, "removedFromFeed", g.removedFromFeed)
+        row
+      }
+      ok(Json.obj("games" -> Json.arr(games*)))
     }
   }
 
