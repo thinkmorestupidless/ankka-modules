@@ -333,13 +333,6 @@ Applied on this branch:
   `"expose": true`, as `reporting` is; the platform gives it no hostname, so the key `public-api-host`
   (`PUBLIC_API_HOST`) names the address the contract's `servers` shows, written in the brand's values.
 
-## Declined remediations
-
-## Design finished
-
-2026-11-12: analyze reported nothing above LOW (round 1: four MEDIUM, two LOW, all applied; round 2:
-none above LOW).
-
 - **G7's real parts come from `realLeg`.** The wallet's HTTP answers carry no `depositPartCents` or
   `convertedPartCents`; those are on its facts only. Its answers' `realLeg` is exactly their sum
   (bets split it with `Pools.bet`, wins with `Pools.winSplit`, rollbacks restore it), and a provider
@@ -396,3 +389,10 @@ none above LOW).
 - **The suites' keys poll at the highest rate.** One kit serves every suite and their polling for
   views spent the default 600 a minute; the helper keys take 6000, and the default and the limit
   are tested with keys of their own.
+
+## Declined remediations
+
+## Design finished
+
+2026-11-12: analyze reported nothing above LOW (round 1: four MEDIUM, two LOW, all applied; round 2:
+none above LOW).
