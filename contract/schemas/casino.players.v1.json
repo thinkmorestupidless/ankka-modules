@@ -45,6 +45,9 @@
           "type": "string",
           "x-personal": true
         },
+        "language": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -59,6 +62,10 @@
         "registered_at": {
           "format": "date-time",
           "type": "string"
+        },
+        "state_province": {
+          "type": "string",
+          "x-personal": true
         },
         "telephone": {
           "type": "string",
@@ -355,6 +362,9 @@
           "type": "string",
           "x-personal": true
         },
+        "language": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -363,6 +373,10 @@
           "type": "string"
         },
         "post_code": {
+          "type": "string",
+          "x-personal": true
+        },
+        "state_province": {
           "type": "string",
           "x-personal": true
         },

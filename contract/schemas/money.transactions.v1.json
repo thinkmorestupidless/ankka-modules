@@ -105,6 +105,9 @@
         "game_id": {
           "type": "string"
         },
+        "game_round_id": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -153,6 +156,9 @@
           "x-unit": "minor"
         },
         "round_id": {
+          "type": "string"
+        },
+        "session_id": {
           "type": "string"
         },
         "transaction_id": {
@@ -202,6 +208,9 @@
         "game_id": {
           "type": "string"
         },
+        "game_round_id": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -250,6 +259,9 @@
           "x-unit": "minor"
         },
         "round_id": {
+          "type": "string"
+        },
+        "session_id": {
           "type": "string"
         },
         "transaction_id": {
@@ -296,6 +308,9 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "game_round_id": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -346,6 +361,9 @@
         "round_id": {
           "type": "string"
         },
+        "session_id": {
+          "type": "string"
+        },
         "transaction_id": {
           "type": "string"
         },
@@ -372,6 +390,9 @@
           "type": "integer",
           "x-unit": "minor"
         },
+        "game_round_id": {
+          "type": "string"
+        },
         "occurred_at": {
           "format": "date-time",
           "type": "string"
@@ -389,6 +410,9 @@
           "x-unit": "minor"
         },
         "round_id": {
+          "type": "string"
+        },
+        "session_id": {
           "type": "string"
         },
         "transaction_id": {

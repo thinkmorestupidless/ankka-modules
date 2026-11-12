@@ -321,6 +321,48 @@ class FactsSuite extends munit.FunSuite:
       case other        => fail(s"not a bet: $other")
   }
 
+  test("spec 016: the public API's fields are optional and round_opened is a new family, so every topic keeps its version") {
+    val added = Set("language", "state_province", "opened_at", "real_stake_cents", "real_win_cents", "game_round_id",
+      "session_id", "expires_at", "amount_cents", "currency")
+    val families = Map(
+      CasinoPlayers      -> Set("player_registered", "player_profile_updated"),
+      CasinoRounds       -> Set("round_settled"),
+      MoneyTransactions  -> Set("bet_placed", "win_credited", "bet_rolled_back", "round_settled_as_loss"),
+      CasinoRewards      -> Set("bonus_granted", "free_spins_granted")
+    )
+    for (topic, amended) <- families do
+      val before = topic.families.filterNot(_.name == "round_opened").map { f =>
+        val fields = if amended(f.name) then f.fields.filterNot((n, t) => added(n) && t.optional) else f.fields
+        f.copy(fields = fields): FamilyDef[?]
+      }
+      assertEquals(Compatibility.compare(before, topic.families.map(f => f: FamilyDef[?])), Compatibility.Verdict.SameVersion, topic.name)
+      for f <- topic.families if amended(f.name); (n, t) <- f.fields if added(n) && !before.find(_.name == f.name).get.fields.exists(_._1 == n) do
+        assert(t.optional, s"${f.name}.$n")
+  }
+
+  test("spec 016: round_opened carries the round as round_settled names it, keyed by the wallet") {
+    val opened = CasinoRounds.families.find(_.name == "round_opened").get
+    assertEquals(opened.fields.map(_._1), Vector("player_id", "currency", "round_id", "provider", "provider_round_id",
+      "game_id", "session_id", "free_rounds_grant", "occurred_at"))
+    val r = opened.sample.asInstanceOf[RoundOpened]
+    assertEquals(r.key, s"${r.playerId}/${r.currency.code}")
+  }
+
+  test("spec 016: old facts decode with the new fields absent") {
+    val bet = """{"type":"bet_placed","player_id":"p1","currency":"EUR","transaction_id":"t1","round_id":"r1","game_id":"g1","amount_cents":1500,"wallet_type":"real","real_balance_after":500,"restricted_balance_after":0,"occurred_at":"2026-10-28T00:00:00Z"}"""
+    readFromString[MoneyTransactionsMessage](bet)(using MoneyTransactions.codec) match
+      case b: BetPlaced => assertEquals((b.gameRoundId, b.sessionId), (None, None))
+      case other        => fail(s"not a bet: $other")
+    val spins = """{"type":"free_spins_granted","player_id":"p1","bonus_id":"b1","bonus_name":"n","offer_id":"o1","offer_type":"free_spins","rounds":10,"game_ids":["g1"],"occurred_at":"2026-10-28T00:00:00Z"}"""
+    readFromString[CasinoRewardsFact](spins)(using CasinoRewards.codec) match
+      case f: FreeSpinsGranted => assertEquals((f.expiresAt, f.amountCents, f.currency), (None, None, None))
+      case other               => fail(s"not a free spins grant: $other")
+    val registered = """{"type":"player_registered","player_id":"p1","registered_at":"2026-10-28T00:00:00Z","occurred_at":"2026-10-28T00:00:00Z"}"""
+    readFromString[CasinoPlayersFact](registered)(using CasinoPlayers.codec) match
+      case r: PlayerRegistered => assertEquals((r.language, r.stateProvince), (None, None))
+      case other               => fail(s"not a registration: $other")
+  }
+
   test("spec 015: a dispute closes won or lost") {
     assertEquals(DisputeOutcome.values, Set("won", "lost"))
   }
