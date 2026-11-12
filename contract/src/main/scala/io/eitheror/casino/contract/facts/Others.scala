@@ -60,7 +60,20 @@ final case class RoundSettled(playerId: String, currency: Currency, roundId: Str
     providerRoundId: String, gameId: String, sessionId: String, stakeCents: MinorUnits, winCents: MinorUnits,
     netResultCents: SignedMinorUnits, outcome: String, transactionIds: Vector[String],
     providerTransactionIds: Vector[String], walletTransactionIds: Vector[String], freeRoundsGrant: Option[String],
-    occurredAt: Instant, gameName: Option[String] = None, gameType: Option[String] = None)
+    occurredAt: Instant, gameName: Option[String] = None, gameType: Option[String] = None,
+    openedAt: Option[Instant] = None, realStakeCents: Option[MinorUnits] = None, realWinCents: Option[MinorUnits] = None)
+    extends CasinoRoundsFact:
+  def key: String = s"$playerId/${currency.code}"
+
+/**
+ * A round's first movement opened it (spec 016 G3): the public API serves open rounds and counts rounds by their
+ * start. Keyed as `round_settled`; `round_id` is the same `<provider>/<provider round id>`. `round_settled` gained,
+ * additively, `opened_at` and the real-money parts of its stake and win (`real_stake_cents`, `real_win_cents`: the
+ * deposit and converted parts the wallet answered, so a bonus-funded part is excluded; spec 016 G7).
+ */
+@named("round_opened")
+final case class RoundOpened(playerId: String, currency: Currency, roundId: String, provider: String,
+    providerRoundId: String, gameId: String, sessionId: String, freeRoundsGrant: Option[String], occurredAt: Instant)
     extends CasinoRoundsFact:
   def key: String = s"$playerId/${currency.code}"
 
@@ -77,7 +90,7 @@ object CasinoRoundsFact:
   given JsonValueCodec[CasinoRoundsFact] = FactCodecs.make
 
 object CasinoRounds extends Topic[CasinoRoundsFact]("casino.rounds", Vector("game-provider")):
-  val families = Vector(FamilyDef.of[RoundSettled]("round_settled"))
+  val families = Vector(FamilyDef.of[RoundSettled]("round_settled"), FamilyDef.of[RoundOpened]("round_opened"))
 
 // ── casino.withdrawals (payouts) ──────────────────────────────────────────
 
@@ -145,7 +158,8 @@ sealed trait CasinoRewardsFact extends Fact:
 @named("bonus_granted")
 final case class BonusGranted(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
     amountCents: MinorUnits, currency: Currency, bonusCode: Option[String],
-    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None)
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None,
+    expiresAt: Option[Instant] = None)
     extends CasinoRewardsFact
 
 @named("bonus_cancelled")
@@ -172,7 +186,8 @@ final case class GrantExpired(playerId: String, bonusId: String, bonusName: Stri
 @named("free_spins_granted")
 final case class FreeSpinsGranted(playerId: String, bonusId: String, bonusName: String, offerId: String, offerType: String,
     rounds: Int, gameIds: Vector[String],
-    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None)
+    occurredAt: Instant, source: Option[String] = None, code: Option[String] = None, tag: Option[String] = None,
+    expiresAt: Option[Instant] = None, amountCents: Option[MinorUnits] = None, currency: Option[Currency] = None)
     extends CasinoRewardsFact
 
 @named("free_spins_settled")

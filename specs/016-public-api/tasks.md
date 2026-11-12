@@ -38,7 +38,7 @@ because the intake reads their new fields.
 **Purpose**: the contract library's additions, the realm role, the module, the service's build, the
 recipes.
 
-- [ ] T001 Add contracts/facts.md G1–G7 to the fact families: `language: Option[String] = None` and
+- [X] T001 Add contracts/facts.md G1–G7 to the fact families: `language: Option[String] = None` and
   `stateProvince: Option[Personal[String]] = None` on `PlayerRegistered` and `PlayerProfileUpdated` in
   `f/CasinoPlayers.scala`; the family `RoundOpened` (`round_opened`, keyed `playerId/currency`), and
   `openedAt`, `realStakeCents`, `realWinCents` on `RoundSettled` in `f/Others.scala`; `gameRoundId`
@@ -47,7 +47,7 @@ recipes.
   `amountCents`, `currency` on `FreeSpinsGranted` in `f/Others.scala`. Add cases in
   `contract/src/test/scala/io/eitheror/casino/contract/facts/` (round trip; a fact of the old shape
   decodes; `Compatibility` passes)
-- [ ] T002 Regenerate `contract/schemas/` with `just schemas`; `just test` green
+- [X] T002 Regenerate `contract/schemas/` with `just schemas`; `just test` green
 - [ ] T003 [P] In `contract/src/main/scala/io/eitheror/casino/contract/access/Routes.scala`, remove
   `partner` and `Refusal.NotPartner`, and add `AccessKeysRole = "api_keys"`; update
   `contract/src/test/scala/.../access/` suites (an operator of the brand holding `api_keys` is
