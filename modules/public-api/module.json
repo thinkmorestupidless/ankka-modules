@@ -29,6 +29,10 @@
             "key": "casino-brand"
           },
           {
+            "name": "PUBLIC_API_HOST",
+            "key": "public-api-host"
+          },
+          {
             "name": "ANKKA_AUTH_ISSUERS",
             "value": "staff"
           },
@@ -61,6 +65,11 @@
     {
       "key": "casino-brand",
       "type": "string",
+      "secret": false
+    },
+    {
+      "key": "public-api-host",
+      "type": "url",
       "secret": false
     },
     {

@@ -329,8 +329,9 @@ Applied on this branch:
 - **What the module manifest cannot carry** (T005). ankka-vendor's manifest schema allows neither
   `"personal"` in a descriptor nor a list of topics read: `"personal": true` is in
   `services/public-api/service.json` (T007), as in every brand service, and a brand project's
-  services read its topics without a grant, as `reporting`'s do. No hostname key is added: the
-  service is exposed by `"expose": true`, as `reporting` is.
+  services read its topics without a grant, as `reporting`'s do. The service is exposed by
+  `"expose": true`, as `reporting` is; the platform gives it no hostname, so the key `public-api-host`
+  (`PUBLIC_API_HOST`) names the address the contract's `servers` shows, written in the brand's values.
 
 ## Declined remediations
 
