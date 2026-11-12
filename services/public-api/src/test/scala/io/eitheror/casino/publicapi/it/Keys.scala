@@ -15,10 +15,16 @@ object Keys:
     assert(r.status == 201, r.text)
     MadeKey(r.json.path("key").path("id").asText(), r.json.path("secret").asText())
 
-  def noFields(kit: Kit): MadeKey  = create(kit, "none")
-  def emailOnly(kit: Kit): MadeKey = create(kit, "email", Seq("email"))
+  /**
+   * The suites' keys take the highest rate a key may have: one kit serves every suite, and their polling for views
+   * would spend 600 a minute. The default and the limit are tested with keys of their own (KeysSuite, QuotaSuite).
+   */
+  private val Polling = Some(io.eitheror.casino.publicapi.keys.IdentifyingFields.MaxRate)
+
+  def noFields(kit: Kit): MadeKey  = create(kit, "none", rate = Polling)
+  def emailOnly(kit: Kit): MadeKey = create(kit, "email", Seq("email"), rate = Polling)
   def allFields(kit: Kit): MadeKey =
-    create(kit, "all", io.eitheror.casino.publicapi.keys.IdentifyingFields.Names)
+    create(kit, "all", io.eitheror.casino.publicapi.keys.IdentifyingFields.Names, rate = Polling)
 
   def disabled(kit: Kit): MadeKey = { val k = noFields(kit); act(kit, k, "disable"); k }
   def deleted(kit: Kit): MadeKey  = { val k = noFields(kit); kit.request("DELETE", s"/access-keys/${kit.brand}/${k.id}", headers = kit.asKeyManager): Unit; k }

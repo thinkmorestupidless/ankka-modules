@@ -373,3 +373,26 @@ none above LOW).
   afterwards keeps them erased. The installation's erasure also destroys the subject's key, so every
   stored copy reads erased and each view's rows are rewritten. The answer is
   `{"service":"public-api","subject":"player/<id>"}`.
+
+- **Which refusals are recorded.** FR-036 as written: a request whose `Authorization` parses as a
+  key (`ak_<id>_<secret>`) is recorded whatever its outcome, so a disabled, expired or unknown key
+  and a wrong secret each leave a `public_api.read` record and a `KeyLog` event under the id it
+  named; no header, or one that does not parse, is not recorded. A caller can therefore grow
+  `KeyLog` journals under ids that name no key, at the gateway's rate, since the per-key rate only
+  applies once a key is admitted. For the review: recording only ids `AccessKey` knows would need
+  `admit` to tell an unknown key from a wrong secret.
+- **SC-006 in the test kit.** "Within 10%" of a p95 of a few milliseconds is under the scheduler's
+  noise on one JVM, so `QuotaSuite` allows the 10% plus 2 ms; the perf suites (T093) run at volume.
+- **The second instance.** `QuotaSuite` and the budget's tests start a peer node in the kit's
+  cluster (`AnkkaTestKit.startPeer`) with its own HTTP port; the count is shared because
+  `KeyWindow(keyId)` is one entity across the cluster.
+- **One keyring per test JVM (a finding for ankka).** ankka 0.16 installs a service's keyring
+  process-wide (`Keyring.install`: the last service started wins, a stopped one clears it), and a
+  view's projection decodes under that default rather than its own system's
+  (`ServiceKeyring.of(system)`). Kits with keyrings of their own (the second brand's, the peers')
+  then read each other's personal fields as unavailable and the players view stops. The test kit
+  gives every kit one `InMemoryKeyring` and installs the shared kit's again after a peer stops. A
+  production process runs one service, so this is the test kit's alone.
+- **The suites' keys poll at the highest rate.** One kit serves every suite and their polling for
+  views spent the default 600 a minute; the helper keys take 6000, and the default and the limit
+  are tested with keys of their own.

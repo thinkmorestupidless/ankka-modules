@@ -32,7 +32,7 @@ enum KeyEvent:
   case KeyCreated(keyId: String, name: String, digest: String, expiresAt: Option[Instant], identifyingFields: Set[String],
       requestsPerMinute: Int, by: String, at: Instant)
   case KeyChanged(name: Option[String], expiresAt: Option[Instant], clearExpiry: Boolean, identifyingFields: Option[Set[String]],
-      requestsPerMinute: Option[Int], by: String, at: Instant)
+      requestsPerMinute: Option[Int], by: String, at: Instant, was: Map[String, String] = Map.empty)
   case KeyDisabled(by: String, at: Instant)
   case KeyEnabled(by: String, at: Instant)
   case KeyDeleted(by: String, at: Instant)
@@ -66,7 +66,8 @@ final class AccessKey(context: EventSourcedEntityContext) extends EventSourcedEn
   def change(c: Change): Effect[KeyState] =
     if !currentState.exists then absent
     else if currentState.deleted then deleted
-    else effects.persist(KeyChanged(c.name, c.expiresAt, c.clearExpiry, c.identifyingFields, c.requestsPerMinute, c.by, c.at)).thenReplyState
+    else effects.persist(KeyChanged(c.name, c.expiresAt, c.clearExpiry, c.identifyingFields, c.requestsPerMinute, c.by, c.at,
+      AccessKey.was(currentState, c))).thenReplyState
 
   /** Idempotent, on a deleted key too. */
   def disable(b: By): Effect[KeyState] =
@@ -115,10 +116,18 @@ object AccessKey extends EventSourcedEntity.Companion[AccessKey, KeyState, KeyEv
   val get     = query("get")(_.get)
   val admit   = query("admit")(_.admit)
 
+  /** What a change replaces, for the audit's `before` (FR-021): each changed field's value before it, as text. */
+  def was(s: KeyState, c: Change): Map[String, String] =
+    Map.empty[String, String] ++
+      c.name.map(_ => "name" -> s.name) ++
+      Option.when(c.expiresAt.isDefined || c.clearExpiry)("expiresAt" -> s.expiresAt.fold("")(_.toString)) ++
+      c.identifyingFields.map(_ => "identifyingFields" -> IdentifyingFields.Names.filter(s.identifyingFields).mkString(",")) ++
+      c.requestsPerMinute.map(_ => "requestsPerMinute" -> s.requestsPerMinute.toString)
+
   def applied(s: KeyState, e: KeyEvent): KeyState = e match
     case KeyEvent.KeyCreated(id, name, digest, expires, fields, rate, by, at) =>
       KeyState(id, name, Some(digest), enabled = true, deleted = false, expires, fields, rate, by, Some(at))
-    case KeyEvent.KeyChanged(name, expires, clear, fields, rate, _, _) =>
+    case KeyEvent.KeyChanged(name, expires, clear, fields, rate, _, _, _) =>
       s.copy(
         name = name.getOrElse(s.name),
         expiresAt = if clear then None else expires.orElse(s.expiresAt),

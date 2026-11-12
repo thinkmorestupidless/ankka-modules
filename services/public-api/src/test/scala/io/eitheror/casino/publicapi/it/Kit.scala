@@ -4,9 +4,9 @@ import io.eitheror.casino.publicapi.api
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.thinkmorestupidless.ankka.core.Metadata
-import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, HttpServer, LocalCallers, Principal}
+import com.thinkmorestupidless.ankka.http.{Acl, AuthDecision, Caller, EndpointClients, HttpEndpoint, HttpServer, LocalCallers, Principal}
 import com.thinkmorestupidless.ankka.runtime.{InMemoryBroker, ProjectionRuntime, TimerRuntime}
-import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, MovableClock, TimerProbe}
+import com.thinkmorestupidless.ankka.testkit.{AnkkaTestKit, InMemoryKeyring, MovableClock, TimerProbe}
 import io.eitheror.casino.contract.facts.{Fact, Topic}
 import io.eitheror.casino.publicapi.{PublicApiService, Settings}
 
@@ -42,7 +42,8 @@ final class Kit(val brand: String = "goldvibe"):
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     PublicApiService.descriptors(settings),
     Seq(ProjectionRuntime.withBroker(broker, broker), timers, server),
-    configure = _.withErasureHandler(api.Erasure.handler)
+    configure = _.withErasureHandler(api.Erasure.handler),
+    keyring = Kit.keyring
   )
   probe.bind(testKit)
 
@@ -59,8 +60,8 @@ final class Kit(val brand: String = "goldvibe"):
 
   private val http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
 
-  def request(method: String, path: String, body: Option[String] = None, headers: Seq[(String, String)] = Nil): Reply =
-    val b = HttpRequest.newBuilder(URI.create(base + path)).timeout(java.time.Duration.ofSeconds(30))
+  def request(method: String, path: String, body: Option[String] = None, headers: Seq[(String, String)] = Nil, at: String = ""): Reply =
+    val b = HttpRequest.newBuilder(URI.create((if at.isEmpty then base else at) + path)).timeout(java.time.Duration.ofSeconds(30))
       .method(method, body.fold(HttpRequest.BodyPublishers.noBody())(t => HttpRequest.BodyPublishers.ofString(t)))
     if body.isDefined then b.header("Content-Type", "application/json")
     headers.foreach((k, v) => b.header(k, v))
@@ -68,8 +69,8 @@ final class Kit(val brand: String = "goldvibe"):
     Reply(r.statusCode, r.body, r.headers.map.asScala.view.mapValues(_.asScala.toVector).toMap)
 
   /** A `/v1` GET from the internet, with the access key when one is given. */
-  def v1(path: String, key: Option[String] = None, method: String = "GET"): Reply =
-    request(method, s"/v1$path", headers = fromInternet ++ key.map(k => "Authorization" -> s"Bearer $k"))
+  def v1(path: String, key: Option[String] = None, method: String = "GET", at: String = ""): Reply =
+    request(method, s"/v1$path", headers = fromInternet ++ key.map(k => "Authorization" -> s"Bearer $k"), at = at)
 
   // ── who is calling ──────────────────────────────────────────────────────────────────────────────
 
@@ -95,11 +96,38 @@ final class Kit(val brand: String = "goldvibe"):
     Await.result(broker.publish(topic.name, Some(fact.key), topic.serializer.toBytes(fact),
       Metadata.empty.set(Metadata.CeSubject, fact.key).set(Metadata.CeType, topic.contractName)), 10.seconds): Unit
 
+  /** The facts published on a topic so far, as its consumers would read them. */
+  def facts[F <: Fact](topic: Topic[F]): Vector[F] =
+    broker.publishedTo(topic.name).toVector.flatMap(d => Try(topic.serializer.fromBytes(d.message.payload)).toOption)
+
+  /** The bytes of each fact on a topic, as text: what a reader of the topic could see. */
+  def factTexts(topic: Topic[?]): Vector[String] =
+    broker.publishedTo(topic.name).toVector.map(d => String(d.message.payload, java.nio.charset.StandardCharsets.UTF_8))
+
+  /** A second instance of the service, joined to this one's cluster and database, answering on its own port. */
+  def peer(endpoints: Seq[EndpointClients => HttpEndpoint] = PublicApiService.endpoints(settings, contract, () => Kit.authenticate,
+      () => clock.instant())): (AnkkaTestKit.Peer, String) =
+    val http = HttpServer.at("127.0.0.1", 0)(endpoints*)
+    val p    = testKit.startPeer(Seq(ProjectionRuntime.withBroker(broker, broker), TimerRuntime(200.millis, TimerProbe(), clock), http))
+    (p, s"http://127.0.0.1:${http.boundPort.get}")
+
   /** Polls until `f` answers, as a view's or consumer's effect must be waited for. */
   def eventually[A](what: String, within: FiniteDuration = 30.seconds)(f: => Option[A]): A =
     testKit.eventually(what, within)(f)
 
 object Kit:
+  /**
+   * One keyring for every kit and peer in the test JVM: ankka installs a keyring process-wide (`Keyring.install`, the
+   * last service started wins), so kits with keyrings of their own would read each other's sealed fields as
+   * unavailable. A stopped peer uninstalls it, so `stopPeer` installs the shared kit's again.
+   */
+  val keyring: InMemoryKeyring = InMemoryKeyring()
+
+  def stopPeer(peer: AnkkaTestKit.Peer): Unit =
+    peer.stop()
+    com.thinkmorestupidless.ankka.core.Keyring.install(
+      com.thinkmorestupidless.ankka.runtime.keyring.ServiceKeyring.of(SharedKit.kit.testKit.service.system))
+
   val mapper: ObjectMapper = ObjectMapper()
 
   /** Stands in for Keycloak: what is tested is what the route classes decide once a token is verified. */
@@ -124,5 +152,14 @@ object SharedKit:
   /** A second brand in a second instance on its own database (isolation, US2). */
   lazy val other: Kit =
     val k = Kit("spinvibe")
+    sys.addShutdownHook(k.stop())
+    k
+
+  /**
+   * The kit the suites that start a second instance use (`Kit.peer`): a stopped peer leaves its cluster's shards to
+   * move, which would stall the other suites' views and consumers on the shared kit.
+   */
+  lazy val peered: Kit =
+    val k = Kit()
     sys.addShutdownHook(k.stop())
     k
