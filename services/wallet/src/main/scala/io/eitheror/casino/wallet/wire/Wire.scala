@@ -34,11 +34,20 @@ object AmountText:
 
 // ── requests ────────────────────────────────────────────────────────────────
 
+/**
+ * `gameRoundId` (and `sessionId` on a win, a rollback and a loss) label the move for the facts only
+ * (spec 016 G4): the game round's id, `game-provider`'s round entity id, and the game session's id.
+ * Both are optional, so a caller that sends neither still moves money.
+ */
 final case class BetRequest(key: Option[String], roundId: String, gameId: String, sessionId: String = "", provider: String = "",
-    gameType: String = "", category: String = "", amount: AmountText, allowNegative: Option[Boolean] = None)
-final case class WinRequest(key: Option[String], roundId: String, amount: AmountText, betKey: Option[String] = None)
-final case class RollbackRequest(key: Option[String], roundId: String, betKey: Option[String] = None)
-final case class LossRequest(key: Option[String], roundId: String, betKey: Option[String] = None)
+    gameType: String = "", category: String = "", amount: AmountText, allowNegative: Option[Boolean] = None,
+    gameRoundId: Option[String] = None)
+final case class WinRequest(key: Option[String], roundId: String, amount: AmountText, betKey: Option[String] = None,
+    gameRoundId: Option[String] = None, sessionId: Option[String] = None)
+final case class RollbackRequest(key: Option[String], roundId: String, betKey: Option[String] = None,
+    gameRoundId: Option[String] = None, sessionId: Option[String] = None)
+final case class LossRequest(key: Option[String], roundId: String, betKey: Option[String] = None,
+    gameRoundId: Option[String] = None, sessionId: Option[String] = None)
 final case class ProviderCreditRequest(key: Option[String], amount: AmountText, providerRef: String = "", reason: String = "", actor: String = "")
 final case class AwardRequest(key: Option[String], bonusRef: Option[String] = None, amount: AmountText, wageringMultiplier: Long = 0L,
     maxWin: Long = 0L, priority: Option[Long] = None, expiresAt: Option[java.time.Instant] = None, maxStake: Option[Long] = None,

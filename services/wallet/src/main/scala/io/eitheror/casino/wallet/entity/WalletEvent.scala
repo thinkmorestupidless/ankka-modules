@@ -35,23 +35,24 @@ enum WalletEvent:
   case BetPlaced(key: String, digest: String, bet: Bet, provider: String, conversions: Vector[Leg],
       recordUpdates: Vector[RecordUpdate], turnoverReduced: Long, balanceBefore: Long, balanceAfter: Long,
       realAfter: Long, restrictedAfter: Long, at: Instant, outcome: Outcome, depositAfter: Long = 0L,
-      convertedAfter: Long = 0L)
+      convertedAfter: Long = 0L, gameRoundId: Option[String] = None)
 
   case WinCredited(key: String, digest: String, transactionId: String, roundKey: String, gameId: String, amount: Long,
       realShare: Long, recordShares: Vector[Leg], walletType: String, settledBets: Vector[String],
       recordUpdates: Vector[RecordUpdate], realAfter: Long, restrictedAfter: Long, at: Instant, outcome: Outcome,
       parts: Parts = Parts.zero, depositAfter: Long = 0L, convertedAfter: Long = 0L,
-      turnoverClosed: Boolean = false)
+      turnoverClosed: Boolean = false, gameRoundId: Option[String] = None, sessionId: Option[String] = None)
 
   case BetRolledBack(key: String, digest: String, transactionId: String, roundKey: String, amount: Long,
       realRestored: Long, recordRestored: Vector[Leg], voidedBets: Vector[String], recordUpdates: Vector[RecordUpdate],
       realAfter: Long, restrictedAfter: Long, at: Instant, outcome: Outcome, parts: Parts = Parts.zero,
-      depositAfter: Long = 0L, convertedAfter: Long = 0L)
+      depositAfter: Long = 0L, convertedAfter: Long = 0L, gameRoundId: Option[String] = None,
+      sessionId: Option[String] = None)
 
   case RoundSettledAsLoss(key: String, digest: String, transactionId: String, roundKey: String,
       lostBets: Vector[String], forfeited: Vector[Forfeit], recordUpdates: Vector[RecordUpdate], realAfter: Long,
       restrictedAfter: Long, at: Instant, outcome: Outcome, depositAfter: Long = 0L, convertedAfter: Long = 0L,
-      turnoverClosed: Boolean = false)
+      turnoverClosed: Boolean = false, gameRoundId: Option[String] = None, sessionId: Option[String] = None)
 
   case RestrictedFundsAwarded(key: String, digest: String, transactionId: String, awarded: AwardedRecord,
       realAfter: Long, restrictedAfter: Long, at: Instant, outcome: Outcome, depositAfter: Long = 0L,
