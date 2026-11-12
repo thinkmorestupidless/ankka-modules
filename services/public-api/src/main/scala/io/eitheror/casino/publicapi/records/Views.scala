@@ -23,10 +23,14 @@ object Views:
     s"SELECT payload FROM $table WHERE $where ORDER BY (payload::jsonb->>'$time')::timestamptz, payload::jsonb->>'id' " +
       "LIMIT (:limit)::bigint OFFSET (:offset)::bigint"
 
-  /** A statistics run's rows since a time (data-model.md *The run*, step 2), a page at a time in key order. */
+  /**
+   * A statistics run's rows since a time (data-model.md *The run*, step 2), a page at a time in key order after the
+   * last key read (`:after`, empty for the first page): keyset paging, so a million rows cost no deeper offset scans.
+   * A record view's row key is its record's id.
+   */
   def since(table: String, time: String, more: String = "TRUE"): String =
     s"SELECT payload FROM $table WHERE (payload::jsonb->>'$time')::timestamptz > (:since)::timestamptz AND $more " +
-      "ORDER BY row_key LIMIT (:limit)::bigint OFFSET (:offset)::bigint"
+      "AND row_key > :after ORDER BY row_key LIMIT (:limit)::bigint"
 
   /** The row latest by its time: what `/public-api/{brand}/status` reports as the view's last applied record. */
   def latest(table: String, time: String): String =

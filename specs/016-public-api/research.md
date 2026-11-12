@@ -452,6 +452,27 @@ Applied on this branch:
     `mappers/props.ts:9`). And new cash grants store integer cents (`BonusGrantService.scala:702`),
     which `decimalMoney` reads as major units, so a 50.00 award would read "5000.00". The parity
     suites compare by the recording and name either one where the port differs on purpose.
+- **The brand at its size (T093, `StatsPerfSuite`).** This machine ran one kit with Postgres in
+  Docker, holding 1,000,000 settled rounds over 30 days, 10,000 players, 200 games, and one player
+  with 10,000 deposits:
+  - **SC-008 is met.** The hourly run took 25.5 s against a 5-minute limit. Two changes got it
+    there. The fold groups its rows once by game and by player; it had filtered every row for each
+    key, which is quadratic. And the run reads the three views by keyset (`row_key > :after`; a
+    record view's row key is its record's id), not by deep `OFFSET`.
+  - **SC-003 is met.** Facts published one at a time were served within 3.1 s p95.
+  - **SC-002 is met for by-id reads** (7 ms p95) and **missed for full pages** (2.66 s p95 against
+    1 s). A player's rounds page filters the million-row rounds view on `payload->>'playerId'`, and
+    ankka 0.16 views declare no index, so Postgres scans the table (spec 015 R17 met the same
+    limit). The other pages read tables of about 10,000 rows. The suite prints p95 per page type
+    and keeps the 1 s limit, so it fails until the index can be declared.
+  - **The person decided (2026-11-12)** to record the miss with a finding for ankka, rather than
+    rework the collections through per-player index entities. **A finding for ankka:** indexes
+    declared on a view, on the terms its declared queries filter and order by.
+  - Publishing the million facts took about two hours through the in-memory broker; a brand's live
+    rate is far below that.
+- **The order of the last tasks.** The dev-kind deploy (T095) needs ankka's control plane, and the
+  original's kind stack (T091) needs it stopped. The person chose (2026-11-12) to deploy first, then
+  record, with the parity suites (T092) written against the real recordings.
 
 ## Declined remediations
 

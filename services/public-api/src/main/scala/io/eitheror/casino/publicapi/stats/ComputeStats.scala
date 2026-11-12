@@ -33,11 +33,16 @@ final class StatsRunner(components: ComponentClient, views: ViewClient, brand: S
     val slot     = before.next
     val snapshot = UUID.randomUUID().toString
     pointer.call(StatsPointer.building).invoke(Building(slot, snapshot)): Unit
-    def page[R](q: com.thinkmorestupidless.ankka.runtime.ViewQueries[R], query: DeclaredQuery)(p: Page) =
-      q.ask(query, p.limit, "since" -> since, "limit" -> p.limit.toString, "offset" -> p.offset.toString)
-    val rounds   = all(page(views.forView(Rounds), Rounds.since))
-    val sessions = all(page(views.forView(Sessions), Sessions.since))
-    val money    = all(page(views.forView(Transactions), Transactions.since))
+    def keyed[R](q: com.thinkmorestupidless.ankka.runtime.ViewQueries[R], query: DeclaredQuery)(id: R => String): Vector[R] =
+      Iterator.unfold(Option("")) {
+        case None => None
+        case Some(after) =>
+          val rows = q.ask(query, Batch, "since" -> since, "after" -> after, "limit" -> Batch.toString)
+          Option.when(rows.nonEmpty)(rows -> Option.when(rows.size == Batch)(id(rows.last)))
+      }.flatten.toVector
+    val rounds   = keyed(views.forView(Rounds), Rounds.since)(_.id)
+    val sessions = keyed(views.forView(Sessions), Sessions.since)(_.id)
+    val money    = keyed(views.forView(Transactions), Transactions.since)(_.id)
     val figures  = StatsRun.run(at, rounds, sessions, money)
     figures.games.foreach { (game, windows) =>
       components.forKeyValueEntity(EntityId(GameFigures.key(slot, game))).call(GameFigures.put)
