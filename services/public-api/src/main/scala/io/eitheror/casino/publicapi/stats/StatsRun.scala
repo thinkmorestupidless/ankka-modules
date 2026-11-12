@@ -53,15 +53,21 @@ object StatsRun:
         Amounts(ccy, xs.map(_.realStakeCents.getOrElse(0L)).sum, xs.map(_.realWinCents.getOrElse(0L)).sum)
       }
 
+    // Grouped once by key, so the fold is linear in the rows (SC-008: a million rounds), not rows times keys.
+    val roundsOf   = rs.groupBy(_.gameId)
+    val sessionsOf = ss.filter(_.gameId.isDefined).groupBy(_.gameId.get)
     val games = (rs.map(_.gameId) ++ ss.flatMap(_.gameId)).distinct.map { g =>
+      val (gr, gs) = (roundsOf.getOrElse(g, Vector.empty), sessionsOf.getOrElse(g, Vector.empty))
       g -> Periods.map { (p, w) =>
         val in = within(at, w)
-        p -> gameWindow(rs.filter(r => r.gameId == g && in(r.startedAt.get)), ss.filter(s => s.gameId.contains(g) && in(s.startedAt.get)))
+        p -> gameWindow(gr.filter(r => in(r.startedAt.get)), gs.filter(s => in(s.startedAt.get)))
       }.toMap
     }.toMap
 
+    val (byPlayer, sessionsBy, moneyBy) = (rs.groupBy(_.playerId), ss.groupBy(_.playerId), ts.groupBy(_.playerId))
     val players = (rs.map(_.playerId) ++ ss.map(_.playerId) ++ ts.map(_.playerId)).distinct.map { pl =>
-      val mine = rs.filter(_.playerId == pl); val sess = ss.filter(_.playerId == pl); val money = ts.filter(_.playerId == pl)
+      val mine = byPlayer.getOrElse(pl, Vector.empty); val sess = sessionsBy.getOrElse(pl, Vector.empty)
+      val money = moneyBy.getOrElse(pl, Vector.empty)
       pl -> Periods.map { (p, w) =>
         val in = within(at, w)
         val r  = mine.filter(x => in(x.startedAt.get)); val s = sess.filter(x => in(x.startedAt.get)); val m = money.filter(x => in(x.createdAt.get))

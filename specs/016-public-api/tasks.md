@@ -459,7 +459,7 @@ snapshot.
 
 ## Phase 11: Recordings, parity, deploy, polish
 
-- [ ] T090 Write the Go driver `tests/original/public-api-driver/` (modelled on the original's
+- [X] T090 Write the Go driver `tests/original/public-api-driver/` (modelled on the original's
   `tests/e2e/scenario252_partner_api_e2e_test.go`): seed two brands, two partner clients and grants
   (all fields with an agreement; none), activity with known figures, a grant at 5 per minute; make
   contracts/recording.md's 11 recordings into `tests/port/public-api/` with `contract.port.Recording`.
@@ -470,11 +470,11 @@ snapshot.
 - [ ] T092 Write the parity suites of contracts/recording.md in `p-test/port/` with its comparison
   rules (ids by role, the authentication code classes, `computedAt` by shape), each skipping and
   naming its recording when absent; `just public-api-parity` green
-- [ ] T093 [P] Write `p-test/perf/StatsPerfSuite.scala`: a run over one million rounds within five
+- [X] T093 [P] Write `p-test/perf/StatsPerfSuite.scala`: a run over one million rounds within five
   minutes (SC-008), and 95% of by-id reads within 500 ms and full pages within one second (SC-002) on
   the perf data set; and 95% of facts visible through the API within 30 seconds of being published
   (SC-003); if the run is too slow, fold one day at a time in parallel (research R16.3)
-- [ ] T094 [P] Finish `services/public-api/README.md`: components, routes, suites, how to create a key
+- [X] T094 [P] Finish `services/public-api/README.md`: components, routes, suites, how to create a key
   locally, the recipes
 - [ ] T095 Deploy to the dev-kind installation (`just modules apply goldvibe --installation dev-kind`
   with goldvibe entitled to `public-api`); create a key through the operator route; run `ankka-inspect`
