@@ -125,7 +125,7 @@ codecs, the test kit. Every story needs them.
   the JSON once, read `components.parameters.limit.schema.maximum` and refuse to start unless it is
   100 (`O/src/contract/load.ts:7-32`); the operations list (method, template, operationId) read from
   `paths`; with `p-test/contract/ContractLoadSuite.scala`
-- [ ] T018 [P] Write `p/contract/Refusals.scala`: one constructor per code of the served `Error`
+- [X] T018 [P] Write `p/contract/Refusals.scala`: one constructor per code of the served `Error`
   enum with the original's status (contracts/amendments.md's table, contracts/routes.md), each a
   `Respond(Bytes("application/json", {"error", "message"?}), status, headers)`, `Retry-After` for
   `quota_exceeded`; with `p-test/contract/RefusalsSuite.scala`
