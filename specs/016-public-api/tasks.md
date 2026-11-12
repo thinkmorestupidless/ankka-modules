@@ -403,25 +403,25 @@ snapshot.
 
 ### Tests for User Story 6
 
-- [ ] T078 [P] [US6] `p-test/stats/PlayerFiguresSuite.scala` (port of
+- [X] T078 [P] [US6] `p-test/stats/PlayerFiguresSuite.scala` (port of
   `O/test/playerStatsMapper.test.ts`): per player per window; deposits and completed withdrawals; a
   reversed withdrawal not counted; `lastActiveAt`
-- [ ] T079 [P] [US6] `p-test/it/PlayerRankingSuite.scala` and `PlayerStatsSuite.scala` (ports of
+- [X] T079 [P] [US6] `p-test/it/PlayerRankingSuite.scala` and `PlayerStatsSuite.scala` (ports of
   `O/test/routes/playerRanking.test.ts`, `playerStats.test.ts`): snapshots, slot flips, 410, the
   status filter, validation, zeros, another brand's player 404, no identifying field
-- [ ] T080 [P] [US6] `p-test/it/RankingCrawlSuite.scala` (port of `playerRankingCrawl.test.ts`;
+- [X] T080 [P] [US6] `p-test/it/RankingCrawlSuite.scala` (port of `playerRankingCrawl.test.ts`;
   SC-007): 1,000 randomised crawls spanning runs, each complete or ended by `410`, never a duplicate
   or a gap
-- [ ] T081 [US6] Bind `features/public-api/player-stats.feature`
+- [X] T081 [US6] Bind `features/public-api/player-stats.feature`
 
 ### Implementation for User Story 6
 
-- [ ] T082 [US6] Add player figures to `StatsRun` and write `p/stats/PlayerFigures.scala` with
+- [X] T082 [US6] Add player figures to `StatsRun` and write `p/stats/PlayerFigures.scala` with
   `PlayerFiguresView`; extend `ComputeStats` to write them, and to delete the slot's rows of an older
   snapshot once the new ones are written
-- [ ] T083 [US6] Serve `/v1/player-stats` (snapshot resolution of research R8, `status` filter,
+- [X] T083 [US6] Serve `/v1/player-stats` (snapshot resolution of research R8, `status` filter,
   paging) and `/v1/players/{playerId}/stats` in `V1Endpoint`
-- [ ] T084 [P] [US6] Write `p/api/StatusEndpoint.scala` on `/public-api` (`GET
+- [X] T084 [P] [US6] Write `p/api/StatusEndpoint.scala` on `/public-api` (`GET
   /public-api/{brand}/status` under `Routes.operator`): `statsComputedAt`, `statsStale`, the snapshot,
   each view's last applied time; with a kit case for `stale` past three hours
 
@@ -435,21 +435,21 @@ snapshot.
 
 **Independent test**: fetch the contract; validate every route's answers; change a field and build.
 
-- [ ] T085 [P] [US7] `p-test/contract/ContractSnapshotSuite.scala` (port of
+- [X] T085 [P] [US7] `p-test/contract/ContractSnapshotSuite.scala` (port of
   `O/test/contract/snapshot.test.ts`): `/v1/openapi.json` deep-equals the resource YAML; the
   endpoint's routes equal the contract's 22 operations; the limit's maximum equals the paging cap
-- [ ] T086 [P] [US7] `p-test/contract/ContractAmendmentSuite.scala`: the served YAML and
+- [X] T086 [P] [US7] `p-test/contract/ContractAmendmentSuite.scala`: the served YAML and
   `specs/016-public-api/contracts/original/public-api-v1.openapi.yaml` differ only at
   contracts/amendments.md's paths (descriptions and summaries matched by key name); any other
   difference fails, naming the path
-- [ ] T087 [P] [US7] `p-test/contract/ContractResponsesSuite.scala` (ports of
+- [X] T087 [P] [US7] `p-test/contract/ContractResponsesSuite.scala` (ports of
   `O/test/contract/responses.test.ts` and `validator.test.ts`): every route at every status the
   contract documents for it, each body validated with `json-schema-validator` against its schema;
   the validator itself rejects an extra property, a bad money string, a bad time and an unmapped enum
-- [ ] T088 [P] [US7] `p-test/contract/ContractValiditySuite.scala`: the served document parses as
+- [X] T088 [P] [US7] `p-test/contract/ContractValiditySuite.scala`: the served document parses as
   OpenAPI 3.1 with `swagger-parser` with no unresolved `$ref` (research R2's stand-in for
   `clientGeneration.test.ts`)
-- [ ] T089 [US7] Bind `features/public-api/contract.feature`; make the CI job fail when any of
+- [X] T089 [US7] Bind `features/public-api/contract.feature`; make the CI job fail when any of
   T085–T088 fails, and add a note to `services/public-api/README.md` that the contract changes only by
   a reviewed commit to the resource file and contracts/amendments.md
 

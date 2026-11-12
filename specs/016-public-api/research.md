@@ -401,6 +401,32 @@ Applied on this branch:
   undo.
 - **The test kit runs the figures itself.** The hourly timer reads `StatsRuntime`, which is
   process-wide, so the kits (two brands, peers) do not schedule it; the suites call the runner.
+- **A view's `lastAppliedAt` is its latest record's own time.** ankka (0.16) reports no applied
+  offset or update time for a view, so `GET /public-api/{brand}/status` reports, per record view, the
+  time of the latest record it holds (`latest`, one row by its time descending). An idle brand
+  therefore looks behind; the figure is for spotting a stalled view, not an exact lag. A finding for
+  ankka: a view's progress, as reporting's consumers tell theirs.
+- **ankka's query parser misreads `->>(:name)`.** It did not see `:rank` in
+  `payload::jsonb->'ranks'->>(:rank)` and refused the service at start ("values were read two
+  ways"). The ranking reads the rank with `jsonb_extract_path_text(payload::jsonb->'ranks', :rank)`
+  instead. A finding for ankka.
+- **The ranking suites have a kit of their own** (`SharedKit.ranked`), so a ranking holds only the
+  players they made and totals are exact; each test ranks in a currency of its own.
+- **The crawl (SC-007) runs over real runs, with 120 players.** 1,000 crawls at page sizes 20 to
+  100, a real run mid-crawl in one crawl of each hundred (it completes) and two in another (it is
+  refused with `410`); each run moves the order. The original seeded slots directly with 250
+  players; with real runs, 120 keep the suite near three minutes and still give each crawl two to
+  six pages.
+- **`ContractResponsesSuite` lives with the kit suites (`it/`), not `contract/`.** It drives the
+  running service, which needs Docker, and `sbt test` runs only the suites that do not; CI runs it in
+  the integration step. Its `503` cases run on a peer whose handlers are held past a 300 ms budget.
+- **The endpoint's routes are read through a test-only accessor.** ankka keeps `HttpEndpoint.routes`
+  package-private, so `ContractSnapshotSuite` reads them through `RoutesOf` in ankka's package
+  (test sources only). A finding for ankka: a public, read-only view of an endpoint's routes.
+- **One scenario of `contract.feature` is reported as run elsewhere.** "a breaking change ships as a
+  new version…" is FR-006's release rule, and there is one version so far. The drift check fails any
+  change to `/v1` that the amendments do not list, which is what forces a new prefix. Serving the
+  prior version for six months belongs to the release, not to a test.
 
 ## Declined remediations
 
