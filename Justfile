@@ -347,8 +347,10 @@ public-api-perf:
 
 # Records the original's REST API on kind (specs/016-public-api/contracts/recording.md) into tests/port/public-api/.
 # The original runs on a local kind cluster only (`kubectl --context kind-…`); its partner client's secret is the person's.
+# The driver writes <EITHEROR_RECORD_TO>/public-api/<name>.json; the original's figures are cut at the hour, so a run
+# can wait up to an hour for its statistics (doc.go: -stats-wait, -retention-wait, -write-grants).
 public-api-record casino="http://localhost:8091" keycloak="http://localhost:8180" api="http://localhost:8097" original="$HOME/Documents/projects/eitheror/eitheror-platform":
-    cd tests && EITHEROR_RECORD_TO=port/public-api EITHEROR_ORIGINAL_COMMIT=$(git -C {{original}} rev-parse --short HEAD) go test -tags e2e -count=1 -timeout 30m ./original/public-api-driver/... -args -casino-url {{casino}} -keycloak-url {{keycloak}} -api-url {{api}}
+    cd tests && EITHEROR_RECORD_TO=port EITHEROR_ORIGINAL_COMMIT=$(git -C {{original}} rev-parse --short HEAD) go test -tags e2e -count=1 -timeout 90m ./original/public-api-driver/... -args -casino-url {{casino}} -keycloak-url {{keycloak}} -api-url {{api}}
 
 # public-api's parity tests: each recording of tests/port/public-api replayed (Docker).
 public-api-parity:

@@ -427,6 +427,31 @@ Applied on this branch:
   new version…" is FR-006's release rule, and there is one version so far. The drift check fails any
   change to `/v1` that the amendments do not list, which is what forces a new prefix. Serving the
   prior version for six months belongs to the release, not to a test.
+- **The driver (T090) and what the original holds (R16.5).**
+  - **What the original seeds with a route, and what it cannot.** It seeds every record through its own
+    routes: register, verify and log in; the signed wallet deposit; launch; fake-st8's bet, win and
+    lose; offers and grants; the catalogue switch; and the internal statistics recompute. Two things
+    have no route. Grants are Helm values (`casinoPublicApi.partners`), so `-write-grants` writes the
+    overlay for the person's `helm upgrade`. The empty-grant and five-a-minute partner clients are
+    created through Keycloak's admin API. Ids are written by role in each recording's `roles` map,
+    brand A spinvibe and brand B goldvibe; `original/merge` does not keep `roles` yet, so a single
+    run is committed as it is.
+  - **The original's statistics are cut at the hour.** `GameStatsRecompute` and
+    `PlayerStatsRecompute` truncate `now`, so the seed waits for the next hour. A second
+    player-statistics run within 30 minutes of the last is skipped (`-retention-wait`).
+  - **G6, the free-spins value.** A free-spins claim's `face_value` is always `0`
+    (`BonusRoutes.scala:741`, `CustomerIOWebhookRoutes.scala:707`, noted at
+    `BonusRoutes.scala:4224-4226`), rendered `"0.00"`. The spins' value lives only on the
+    free-spins grant.
+  - **fields.md §6, unactivated rewards.** The original's `bonus-claims` namespace holds AVAILABLE
+    and PENDING claims (`BonusTargetingService.scala:117,185-187`), but its API does not serve them:
+    their `face_value` and `granted_at` are null and the mapper drops them (`mappers/bonusAward.ts:12-15`).
+    The port serves awards only, so the two agree.
+  - **Two of the original's own defects, to confirm from the recording.** An award with no offer
+    stores `offer_id = ""`, which the original's API drops (`BonusRoutes.scala:736`,
+    `mappers/props.ts:9`). And new cash grants store integer cents (`BonusGrantService.scala:702`),
+    which `decimalMoney` reads as major units, so a 50.00 award would read "5000.00". The parity
+    suites compare by the recording and name either one where the port differs on purpose.
 
 ## Declined remediations
 
