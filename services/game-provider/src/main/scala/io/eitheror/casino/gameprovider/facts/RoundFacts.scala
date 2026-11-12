@@ -2,27 +2,28 @@ package io.eitheror.casino.gameprovider.facts
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, Metadata, Serializer}
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.contract.facts.{CasinoRounds, CasinoRoundsFact, RoundSettled}
+import io.eitheror.casino.contract.facts.{CasinoRounds, CasinoRoundsFact, RoundOpened, RoundSettled}
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
-import io.eitheror.casino.gameprovider.rounds.{Round, RoundEvent, SettlementSummary}
+import io.eitheror.casino.gameprovider.rounds.{Round, RoundEvent, RoundOpening, SettlementSummary}
 
 /**
  * `round_settled` on `casino.rounds` (FR-019, contracts/round-settled.md): one message per settlement or
- * cancellation of a round, in the contract's shape, keyed by the wallet. Its `ce-id` is the round and the
- * event's sequence, so a redelivered settlement carries the same id and a reader can drop it.
+ * cancellation of a round, in the contract's shape, keyed by the wallet; and `round_opened` (spec 016 G3),
+ * one per round, when its first movement opens it. Each `ce-id` is the round and the event's sequence, so a
+ * redelivered message carries the same id and a reader can drop it.
  */
 final class RoundFacts extends Consumer[RoundEvent, CasinoRoundsFact]:
 
   def onMessage(event: RoundEvent): Effect = event match
-    case RoundEvent.RoundSettled(summary)   => publish(summary)
-    case RoundEvent.RoundCancelled(summary) => publish(summary)
+    case RoundEvent.RoundOpened(opening)    => val f = RoundFacts.opened(opening); publish(f, f.key)
+    case RoundEvent.RoundSettled(summary)   => val f = RoundFacts.fact(summary); publish(f, f.key)
+    case RoundEvent.RoundCancelled(summary) => val f = RoundFacts.fact(summary); publish(f, f.key)
     case _                                  => effects.ignore()
 
-  private def publish(s: SettlementSummary): Effect =
-    val fact = RoundFacts.fact(s)
+  private def publish(fact: CasinoRoundsFact, key: String): Effect =
     effects.produceAll(Seq(
-      effects.message(fact: CasinoRoundsFact)
-        .withKey(fact.key)
+      effects.message(fact)
+        .withKey(key)
         .withMetadata(Metadata.empty.set("ce-id", s"${messageContext.subject}/${messageContext.sequenceNumber}"))
     ))
 
@@ -47,6 +48,24 @@ object RoundFacts extends Consumer.Companion[RoundFacts, RoundEvent, CasinoRound
    * catalogue's category) are the catalogue's when the round opened, absent for a game it did not hold
    * (spec 015 research R11).
    */
+  def opened(o: RoundOpening): RoundOpened =
+    RoundOpened(
+      playerId = o.playerId,
+      currency = Currency.unsafe(o.currency),
+      roundId = Round.entityId(o.provider, o.roundId),
+      provider = o.provider,
+      providerRoundId = o.roundId,
+      gameId = o.gameCode.getOrElse(""),
+      sessionId = o.sessionId.getOrElse(""),
+      freeRoundsGrant = o.freeRoundsGrant,
+      occurredAt = o.at
+    )
+
+  /**
+   * `openedAt` is the round's opening, so a reader that started after `round_opened` still has the start;
+   * `realStakeCents` and `realWinCents` are the real-money parts of the stake and win, from the wallet's
+   * answers (`RoundState.realStakeAndWin`), absent for a round with a movement recorded before spec 016.
+   */
   def fact(s: SettlementSummary): RoundSettled =
     RoundSettled(
       playerId = s.playerId,
@@ -66,5 +85,8 @@ object RoundFacts extends Consumer.Companion[RoundFacts, RoundEvent, CasinoRound
       freeRoundsGrant = s.freeRoundsGrant,
       occurredAt = s.at,
       gameName = s.gameName,
-      gameType = s.gameType
+      gameType = s.gameType,
+      openedAt = s.openedAt,
+      realStakeCents = s.realStake.map(MinorUnits.unsafe),
+      realWinCents = s.realWin.map(MinorUnits.unsafe)
     )

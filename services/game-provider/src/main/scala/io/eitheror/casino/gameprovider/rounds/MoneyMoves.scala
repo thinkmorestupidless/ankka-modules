@@ -30,6 +30,9 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
 
   private def round(entity: String) = components.forEventSourcedEntity(EntityId(entity))
 
+  /** The round and game session a move belongs to, for the wallet's facts (spec 016 G4). */
+  private def ref(job: BetJob, sessionId: String): RoundRef = RoundRef(job.roundEntity, sessionId)
+
   private def balance(job: BetJob): Either[String, Long] = wallet.balance(job.player, job.currency).map(_.total)
 
   private def after(moved: Option[Balances], job: BetJob): Either[String, Long] =
@@ -58,10 +61,10 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
 
   private def bet(job: BetJob, buyin: Boolean): Either[String, Moved] =
     wallet.placeBet(job.player, job.currency, job.key, job.key, job.gameId, job.sessionId, job.amount,
-      job.kind == Kind.CorrectionDebit, job.gameCategory, provider) match
-      case WalletAnswer.Moved(id, balances) =>
+      job.kind == Kind.CorrectionDebit, job.gameCategory, provider, Some(job.roundEntity)) match
+      case WalletAnswer.Moved(id, balances, real) =>
         after(balances, job).map { b =>
-          Moved(RecordTransaction(job.opening, tx(job, job.amount, Vector(Movement(Movement.Bet, job.key, Some(job.key), job.amount, id)), ok(job, b)),
+          Moved(RecordTransaction(job.opening, tx(job, job.amount, Vector(Movement(Movement.Bet, job.key, Some(job.key), job.amount, id, real)), ok(job, b)),
             opened = Some(OpenBet(job.key, job.key, job.amount, job.key))), countsBet = !buyin)
         }
       case WalletAnswer.Refused(_, refusal, _) if refusal.word.isDefined =>
@@ -76,7 +79,7 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
     // The round's open bets: every debit answered before this credit was recorded before its answer (R18).
     val state = round(job.roundEntity).call(Round.get).invoke()
     val plan  = Settlement.credit(state.openBets, job.key, job.amount, state.freeRoundsGrant.isDefined)
-    settle(plan, job).flatMap { settled =>
+    settle(plan, job, ref(job, state.sessionId.getOrElse(job.sessionId))).flatMap { settled =>
       after(settled.lastBalances, job).map(b =>
         Moved(RecordTransaction(job.opening, tx(job, job.amount, settled.movements, ok(job, b)), closed = settled.closed)))
     }
@@ -84,28 +87,28 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
   private final case class Settled(movements: Vector[Movement], closed: Vector[String], lastBalances: Option[Balances])
 
   /** Runs a credit's wallet calls in order; one that is not acknowledged leaves the credit unacknowledged. */
-  private def settle(plan: Vector[WalletCall], job: BetJob): Either[String, Settled] =
+  private def settle(plan: Vector[WalletCall], job: BetJob, round: RoundRef): Either[String, Settled] =
     val (player, currency, creditId) = (job.player, job.currency, job.key)
     plan.foldLeft[Either[String, Settled]](Right(Settled(Vector.empty, Vector.empty, None))) { (acc, call) =>
       acc.flatMap { done =>
         call match
           case WalletCall.Win(key, walletRound, win, bet) =>
-            wallet.creditWin(player, currency, key, walletRound, win) match
-              case WalletAnswer.Moved(id, b) => Right(Settled(done.movements :+ Movement(Movement.Win, key, Some(walletRound), win, id), done.closed :+ bet, b))
+            wallet.creditWin(player, currency, key, walletRound, win, Some(round)) match
+              case WalletAnswer.Moved(id, b, real) => Right(Settled(done.movements :+ Movement(Movement.Win, key, Some(walletRound), win, id, real), done.closed :+ bet, b))
               case WalletAnswer.Refused(_, WalletRefusal.RoundNotFound, _) =>
                 // The wallet no longer holds the bet: the win is paid as a provider credit under the credit's own id.
                 wallet.providerCredit(player, currency, creditId, win, creditId, "credit for a bet the wallet no longer holds") match
-                  case WalletAnswer.Moved(id, b) => Right(Settled(done.movements :+ Movement(Movement.ProviderCredit, creditId, None, win, id), done.closed :+ bet, b))
+                  case WalletAnswer.Moved(id, b, real) => Right(Settled(done.movements :+ Movement(Movement.ProviderCredit, creditId, None, win, id, real), done.closed :+ bet, b))
                   case other                     => Left(other.toString)
               case other => Left(other.toString)
           case WalletCall.Loss(key, walletRound, bet) =>
-            wallet.settleLoss(player, currency, key, walletRound) match
-              case WalletAnswer.Moved(id, b) => Right(Settled(done.movements :+ Movement(Movement.Loss, key, Some(walletRound), 0, id), done.closed :+ bet, b))
+            wallet.settleLoss(player, currency, key, walletRound, Some(round)) match
+              case WalletAnswer.Moved(id, b, real) => Right(Settled(done.movements :+ Movement(Movement.Loss, key, Some(walletRound), 0, id, real), done.closed :+ bet, b))
               case WalletAnswer.Refused(_, WalletRefusal.RoundNotFound, _) => Right(done.copy(closed = done.closed :+ bet))
               case other => Left(other.toString)
           case WalletCall.ProviderCredit(key, credit) =>
             wallet.providerCredit(player, currency, key, credit, key, "credit with no open bet") match
-              case WalletAnswer.Moved(id, b) => Right(Settled(done.movements :+ Movement(Movement.ProviderCredit, key, None, credit, id), done.closed, b))
+              case WalletAnswer.Moved(id, b, real) => Right(Settled(done.movements :+ Movement(Movement.ProviderCredit, key, None, credit, id, real), done.closed, b))
               case other                     => Left(other.toString)
       }
     }
@@ -129,9 +132,9 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
         else if Kind.isCredit(referenced.kind) || referenced.kind == Kind.Payout then
           // A cancelled credit is debited back as a bet under the cancel id, allowed below zero.
           wallet.placeBet(job.player, job.currency, cancelId, cancelId, state.gameCode.getOrElse(""), state.sessionId.getOrElse(""),
-            referenced.amount, allowNegative = true, None, provider) match
-            case WalletAnswer.Moved(id, b) =>
-              done(Vector(Movement(Movement.Bet, cancelId, Some(cancelId), referenced.amount, id)), Vector.empty, 0, referenced.amount, b)
+            referenced.amount, allowNegative = true, None, provider, Some(job.roundEntity)) match
+            case WalletAnswer.Moved(id, b, real) =>
+              done(Vector(Movement(Movement.Bet, cancelId, Some(cancelId), referenced.amount, id, real)), Vector.empty, 0, referenced.amount, b)
             case other => Left(other.toString)
         else
           val bet = state.openBets.find(_.walletKey == refId)
@@ -139,8 +142,8 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
           else
             val refunded: Either[String, Option[(Movement, Option[Balances])]] = bet match
               case Some(b) =>
-                wallet.rollbackBet(job.player, job.currency, cancelId, b.walletRoundId) match
-                  case WalletAnswer.Moved(id, bs) => Right(Some(Movement(Movement.Rollback, cancelId, Some(b.walletRoundId), referenced.amount, id) -> bs))
+                wallet.rollbackBet(job.player, job.currency, cancelId, b.walletRoundId, Some(ref(job, state.sessionId.getOrElse(job.sessionId)))) match
+                  case WalletAnswer.Moved(id, bs, real) => Right(Some(Movement(Movement.Rollback, cancelId, Some(b.walletRoundId), referenced.amount, id, real) -> bs))
                   case WalletAnswer.Refused(_, WalletRefusal.RoundNotFound, _) => Right(None)
                   case other => Left(other.toString)
               case None => Right(None)
@@ -149,8 +152,8 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
               case None =>
                 // The wallet no longer holds the bet: its amount is refunded as a provider credit under the cancel id.
                 wallet.providerCredit(job.player, job.currency, cancelId, referenced.amount, refId, "cancel of a debit the wallet no longer holds") match
-                  case WalletAnswer.Moved(id, bs) =>
-                    done(Vector(Movement(Movement.ProviderCredit, cancelId, None, referenced.amount, id)), Vector(refId), referenced.amount, 0, bs)
+                  case WalletAnswer.Moved(id, bs, real) =>
+                    done(Vector(Movement(Movement.ProviderCredit, cancelId, None, referenced.amount, id, real)), Vector(refId), referenced.amount, 0, bs)
                   case other => Left(other.toString)
             }
 
@@ -158,9 +161,9 @@ final class MoneyMoves(provider: String, components: ComponentClient, wallet: Wa
 
   private def payout(job: BetJob): Either[String, Moved] =
     wallet.providerCredit(job.player, job.currency, job.key, job.amount, job.key, "payout") match
-      case WalletAnswer.Moved(id, balances) =>
+      case WalletAnswer.Moved(id, balances, real) =>
         after(balances, job).map(b =>
-          Moved(RecordTransaction(job.opening, tx(job, job.amount, Vector(Movement(Movement.ProviderCredit, job.key, None, job.amount, id)), ok(job, b)))))
+          Moved(RecordTransaction(job.opening, tx(job, job.amount, Vector(Movement(Movement.ProviderCredit, job.key, None, job.amount, id, real)), ok(job, b)))))
       case WalletAnswer.Refused(code, _, message) => Left(s"$code $message")
       case WalletAnswer.Unacknowledged(error)     => Left(error)
 

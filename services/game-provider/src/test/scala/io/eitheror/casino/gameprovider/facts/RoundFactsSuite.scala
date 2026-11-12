@@ -1,7 +1,7 @@
 package io.eitheror.casino.gameprovider.facts
 
 import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
-import io.eitheror.casino.contract.facts.{CasinoRounds, RoundSettled}
+import io.eitheror.casino.contract.facts.{CasinoRounds, RoundOpened, RoundSettled}
 import io.eitheror.casino.gameprovider.rounds.*
 
 import java.time.Instant
@@ -53,10 +53,41 @@ class RoundFactsSuite extends munit.FunSuite with LogCapturing:
     assertEquals((unnamed.gameName, unnamed.gameType, unnamed.gameId), (None, None, "book-of-ra"), "the game id stands for the name")
   }
 
+  test("a round's opening publishes one round_opened, keyed and identified as round_settled is (spec 016 G3)") {
+    val opening = RoundOpening("st8", "r-1", "p-1", "EUR", Some("book-of-ra"), Some("gs-1"), at)
+    val result  = ConsumerTestKit.of(RoundFacts).onMessage(RoundEvent.RoundOpened(opening), subject = "st8/r-1", sequenceNumber = 1)
+    val fact    = result.payloads.loneElement.asInstanceOf[RoundOpened]
+    assertEquals(fact, RoundOpened("p-1", fact.currency, "st8/r-1", "st8", "r-1", "book-of-ra", "gs-1", None, at))
+    assertEquals(fact.currency.code, "EUR")
+    assertEquals(result.recordKeys, Vector(Some("p-1/EUR")))
+    assertEquals(result.messages.head.metadata.get("ce-id"), Some("st8/r-1/1"))
+  }
+
+  test("round_opened names a free round's grant, and is empty-named for a round no ticket named (spec 016 G3)") {
+    val kit  = ConsumerTestKit.of(RoundFacts)
+    val free = kit.onMessage(RoundEvent.RoundOpened(RoundOpening("st8", "r-2", "p-1", "EUR", Some("g"), Some("gs-1"), at, freeRoundsGrant = Some("g-1"))), "st8/r-2", 1)
+    assertEquals(free.payloads.loneElement.asInstanceOf[RoundOpened].freeRoundsGrant, Some("g-1"))
+    val bare = kit.onMessage(RoundEvent.RoundOpened(RoundOpening("st8", "r-3", "p-1", "EUR", None, None, at)), "st8/r-3", 1)
+    val fact = bare.payloads.loneElement.asInstanceOf[RoundOpened]
+    assertEquals((fact.gameId, fact.sessionId, fact.freeRoundsGrant), ("", "", None))
+  }
+
+  test("round_settled carries the round's opening and the real-money parts of its stake and win (spec 016 G3, G7)") {
+    val opened = Instant.parse("2026-10-09T09:59:00Z")
+    val kit    = ConsumerTestKit.of(RoundFacts)
+    val fact = kit.onMessage(RoundEvent.RoundSettled(summary.copy(openedAt = Some(opened), realStake = Some(200), realWin = Some(500))), "st8/r-1", 7)
+      .payloads.loneElement.asInstanceOf[RoundSettled]
+    assertEquals((fact.openedAt, fact.realStakeCents.map(_.value), fact.realWinCents.map(_.value)), (Some(opened), Some(200L), Some(500L)))
+    val older = kit.onMessage(RoundEvent.RoundSettled(summary), "st8/r-2", 4).payloads.loneElement.asInstanceOf[RoundSettled]
+    assertEquals((older.openedAt, older.realStakeCents, older.realWinCents), (None, None, None), "a summary without them leaves them out")
+  }
+
   test("every other event of a round publishes nothing") {
     val kit = ConsumerTestKit.of(RoundFacts)
-    val opened = kit.onMessage(RoundEvent.RoundOpened(RoundOpening("st8", "r-1", "p-1", "EUR", None, None, at)), "st8/r-1", 1)
-    assertEquals(opened.payloads, Vector.empty)
+    val debit = kit.onMessage(RoundEvent.FreeRoundsTagged("g-1"), "st8/r-1", 2)
+    assertEquals(debit.payloads, Vector.empty)
+    val tx = ProviderTransaction("t-1", "debit", 100, None, Vector.empty, StoredAnswer("ok", Some(900), Some("EUR")), at)
+    assertEquals(kit.onMessage(RoundEvent.DebitRecorded(tx, None), "st8/r-1", 3).payloads, Vector.empty)
   }
 
   test("the fact is the contract's family on the contract's topic") {
