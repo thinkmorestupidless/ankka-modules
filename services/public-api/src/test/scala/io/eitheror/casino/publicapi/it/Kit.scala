@@ -35,7 +35,7 @@ final class Kit(val brand: String = "goldvibe"):
   val contract = PublicApiService.contract(settings)
 
   val timers = TimerRuntime(200.millis, probe, clock)
-  private val server = HttpServer.at("127.0.0.1", 0)(PublicApiService.endpoints(settings, contract)*)
+  private val server = HttpServer.at("127.0.0.1", 0)(PublicApiService.endpoints(settings, contract, () => Kit.authenticate, () => clock.instant())*)
 
   val testKit: AnkkaTestKit = AnkkaTestKit.start(
     PublicApiService.descriptors(settings),

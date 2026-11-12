@@ -175,13 +175,13 @@ read, enable, delete, read; list the audit records.
   disabled); no event carries the key; only `KeyCreated` carries the digest
 - [X] T027 [P] [US1] `p-test/keys/RawKeysSuite.scala`: the format `ak_<16 base32>_<43 base64url>`;
   parsing rejects every other shape without a lookup; 1,000 keys are distinct
-- [ ] T028 [P] [US1] `p-test/it/KeysSuite.scala`: every route of contracts/routes.md's
+- [X] T028 [P] [US1] `p-test/it/KeysSuite.scala`: every route of contracts/routes.md's
   `/access-keys` table, its validation (`400 invalid_request` with `field`) and admission (an operator
   without `api_keys`, or of another brand, refused); the secret only in the `201`
-- [ ] T029 [P] [US1] `p-test/it/AdmissionSuite.scala`: every refusal of contracts/routes.md's
+- [X] T029 [P] [US1] `p-test/it/AdmissionSuite.scala`: every refusal of contracts/routes.md's
   pipeline steps 2–3 with its status and code; `KeyChangeSuite` in the same file's package: a
   disable, a delete, a field change and a rate change each apply from the next request
-- [ ] T030 [US1] Bind `features/public-api/keys.feature` in `GherkinSuite`
+- [X] T030 [US1] Bind `features/public-api/keys.feature` in `GherkinSuite`
 
 ### Implementation for User Story 1
 
@@ -189,12 +189,12 @@ read, enable, delete, read; list the audit records.
   constant-time compare), as `services/merchant/.../keys/Keys.scala`
 - [X] T032 [US1] Write `p/keys/AccessKey.scala`: the event sourced entity of data-model.md with its
   commands (`create`, `change`, `disable`, `enable`, `delete`) and the query `admit(digest, now)`
-- [ ] T033 [P] [US1] Write `p/keys/AccessKeys.scala`: the view over `AccessKey` (the `Key` shape,
+- [X] T033 [P] [US1] Write `p/keys/AccessKeys.scala`: the view over `AccessKey` (the `Key` shape,
   deleted keys flagged)
-- [ ] T034 [US1] Write `p/api/KeysEndpoint.scala` on `/access-keys`:
+- [X] T034 [US1] Write `p/api/KeysEndpoint.scala` on `/access-keys`:
   `Routes.operatorHolding(slug, AccessKeysRole)`, `Routes.brandSegment`, the seven routes of
   contracts/routes.md, the operator's subject as `by`
-- [ ] T035 [US1] Write `p/api/Admission.scala`: parse the header, call `AccessKey.admit`, answer the
+- [X] T035 [US1] Write `p/api/Admission.scala`: parse the header, call `AccessKey.admit`, answer the
   refusal or the key's fields and rate; wire it into `V1Endpoint` before every keyed route; serve
   `/v1/contract` (`{version: "v1", maxPageSize: 100}`) as the first keyed route
 

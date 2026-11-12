@@ -1,6 +1,6 @@
 # Routes
 
-Five endpoints, one prefix each (research R3). ankka 0.16.0: at most two path parameters, no shared
+Four endpoints, one prefix each (research R3; the erasure route is on `/v1`). ankka 0.16.0: at most two path parameters, no shared
 prefix.
 
 ## `/v1`: the public contract (Acl.AllowAll; the access key checked in the handler)
