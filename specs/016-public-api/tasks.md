@@ -142,7 +142,7 @@ codecs, the test kit. Every story needs them.
 - [X] T022 Write `p/api/Deadline.scala`: run a handler under the settings' budget and answer
   `unavailable` on expiry or on a view read's failure (research R11); with
   `p-test/api/DeadlineSuite.scala` (a handler that sleeps past the budget is `503 unavailable`)
-- [ ] T023 Write `p/api/V1Endpoint.scala` skeleton: one endpoint on `/v1` with `Acl.AllowAll`, each
+- [X] T023 Write `p/api/V1Endpoint.scala` skeleton: one endpoint on `/v1` with `Acl.AllowAll`, each
   of contracts/routes.md's paths declared for GET and answering `405 invalid_request` "Only GET is
   supported" for POST, PUT, PATCH and DELETE; `/v1/openapi.json` and `/v1/docs` served from
   `Contract`; every other path answering `501` until its story; and `p/api/HealthEndpoint.scala` on
