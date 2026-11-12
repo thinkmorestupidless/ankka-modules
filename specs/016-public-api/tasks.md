@@ -169,11 +169,11 @@ read, enable, delete, read; list the audit records.
 
 ### Tests for User Story 1
 
-- [ ] T026 [P] [US1] `p-test/keys/AccessKeySuite.scala` (entity kit): create, change, disable,
+- [X] T026 [P] [US1] `p-test/keys/AccessKeySuite.scala` (entity kit): create, change, disable,
   enable, delete; a command on a deleted key is `key_deleted` except `delete` and `disable`; `admit`'s
   order of data-model.md (wrong digest `key_invalid` even when disabled or expired; expired before
   disabled); no event carries the key; only `KeyCreated` carries the digest
-- [ ] T027 [P] [US1] `p-test/keys/RawKeysSuite.scala`: the format `ak_<16 base32>_<43 base64url>`;
+- [X] T027 [P] [US1] `p-test/keys/RawKeysSuite.scala`: the format `ak_<16 base32>_<43 base64url>`;
   parsing rejects every other shape without a lookup; 1,000 keys are distinct
 - [ ] T028 [P] [US1] `p-test/it/KeysSuite.scala`: every route of contracts/routes.md's
   `/access-keys` table, its validation (`400 invalid_request` with `field`) and admission (an operator
@@ -185,9 +185,9 @@ read, enable, delete, read; list the audit records.
 
 ### Implementation for User Story 1
 
-- [ ] T031 [P] [US1] Write `p/keys/RawKeys.scala` (mint with `SecureRandom`, parse, SHA-256 digest,
+- [X] T031 [P] [US1] Write `p/keys/RawKeys.scala` (mint with `SecureRandom`, parse, SHA-256 digest,
   constant-time compare), as `services/merchant/.../keys/Keys.scala`
-- [ ] T032 [US1] Write `p/keys/AccessKey.scala`: the event sourced entity of data-model.md with its
+- [X] T032 [US1] Write `p/keys/AccessKey.scala`: the event sourced entity of data-model.md with its
   commands (`create`, `change`, `disable`, `enable`, `delete`) and the query `admit(digest, now)`
 - [ ] T033 [P] [US1] Write `p/keys/AccessKeys.scala`: the view over `AccessKey` (the `Key` shape,
   deleted keys flagged)
