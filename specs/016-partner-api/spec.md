@@ -99,8 +99,8 @@ could erase).
   months of history. → A: The service's session view keeps every row it ever projected; retention
   limits only what a *rebuild* can recover. A rebuild that starts after the topic's earliest retained
   message reports the gap in the view's status (ankka 043) and `readModelStatus` says degraded until
-  an operator accepts it. Whether a brand with a partner raises the topic's retention is the brand
-  manifest's decision; see the marker in *Assumptions*.
+  an operator accepts it. A brand with a partner does not raise the topic's retention
+  (2026-11-12, below).
 - Q: Language? → A: Scala (amended 2026-11-11; the 2026-10-08 answer was TypeScript). ankka's
   TypeScript SDK cannot shape a response: a refusal is always `text/plain`, with no status of the
   service's choosing and no headers (spec 005 research R1), so FR-025's retry signal and the
@@ -122,6 +122,17 @@ could erase).
   on `casino` (spec 021), so a brand runs it only when entitled; the pilot brand's entitlement is
   the vendor's decision, not this spec's. The surface is built wide, as the original's was, and
   narrowed per partner by grant.
+
+### Session 2026-11-12
+
+- Q: Does a partner read several brands under one token? → A: No. A partner holds one grant per
+  brand under the same client id and queries each brand's hostname; it merges across brands itself.
+  The dropped `company` and `holding` levels stay dropped, and no cross-project read exists.
+- Q: Should a brand with a partner raise `casino.sessions` retention to twelve months? → A: No; it
+  stays 90 days (001 FR-015). The session view keeps every row it projected; a rebuild recovers 90
+  days of sessions, reports the gap in the view's status, and `readModelStatus` is degraded until an
+  operator records the gap as accepted (FR-013). Sessions older than the topic's retention are lost
+  to a rebuilt view, and the contract's twelve months then holds only for an unrebuilt one.
 
 ### Note from spec 005 (2026-10-18), for the plan
 
@@ -514,14 +525,11 @@ into this repository unchanged and is the parity test for FR-001.
 - A partner is contracted or close (2026-11-11); the surface is built wide, as the original's
   spec decided, and narrowed per partner by grant. The service is the `partner` module (spec 021),
   run at a brand only when the brand is entitled to it.
-- A partner reads one brand per grant. [NEEDS CLARIFICATION: does any planned partner need to read
-  across several brands under one token, which the dropped `company`/`holding` scope levels would
-  have served? If so, the answer is a grant per brand under one client id, and the partner queries
-  each brand's hostname — confirm that is acceptable.]
-- `casino.sessions` is kept 90 days (001 FR-015) while the contract promises twelve months of
-  history; the view keeps its rows and a rebuild reports its gap. [NEEDS CLARIFICATION: should a
-  brand with a partner raise `casino.sessions` retention to twelve months in its manifest, or accept
-  that a rebuild recovers 90 days of sessions and `readModelStatus` says so?]
+- A partner reads one brand per grant; a partner of several brands holds a grant at each under
+  one client id and queries each brand's hostname (Clarifications, 2026-11-12).
+- `casino.sessions` stays at 90 days (001 FR-015) while the contract promises twelve months of
+  history: the session view keeps every row it projected, and a rebuild recovers 90 days and reports
+  the gap until an operator accepts it (FR-013, FR-014; Clarifications, 2026-11-12).
 - Identifying fields are offered under a recorded agreement because the original offers them; the
   default is closed, so a brand that prefers pseudonymous partners entitles nothing.
 - The contract's amounts are major-unit decimals at the edge; constitution II governs everything
