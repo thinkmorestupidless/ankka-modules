@@ -102,7 +102,8 @@ codecs, the test kit. Every story needs them.
   rounds suite
 - [ ] T013 `services/wallet/`: carry `gameRoundId` and `sessionId` from the command onto
   `bet_placed`, `win_credited`, `bet_rolled_back` and `round_settled_as_loss` (the command already
-  holds `sessionId`, `entity/Commands.scala:61`); tests in its facts suite (depends on T012 for the
+  holds `sessionId`, `entity/Commands.scala:61`); `gameRoundId` is the round's `roundId` exactly
+  (contracts/facts.md G4); tests in its facts suite (depends on T012 for the
   values; the fields are optional, so the order does not block)
 - [ ] T014 [P] `services/rewards/`: `expiresAt` on `bonus_granted` and `free_spins_granted`; on
   `free_spins_granted`, `amountCents` and `currency` as research R16.5 settles (spin value × rounds,
@@ -245,7 +246,8 @@ end; an empty collection.
 
 - [ ] T041 [P] [US3] `p-test/records/IntakeSuite.scala` (consumer and entity kits): each fact family
   of contracts/facts.md's *Read* table changes its record as data-model.md says; a replayed fact
-  changes nothing; a bet's later facts find it by the wallet round key; `withdrawal_completed`
+  changes nothing; a bet's later facts find it by the wallet round key; a bet's `roundId` equals its round's id
+  (G4); `withdrawal_completed`
   completes its WITHDRAWAL row
 - [ ] T042 [P] [US3] `p-test/wire/MappersSuite.scala`: each record → the contract's shape per
   contracts/fields.md (ids by §6, money, enums, parents' ids, optional fields omitted, never null)
@@ -328,10 +330,13 @@ rate while another reads.
 - [ ] T061 [P] [US8] `p-test/keys/KeyWindowSuite.scala` (entity kit with `MovableClock`; port of
   `O/test/quota.test.ts`): windows, `Retry-After`, `lastUsedAt`
 - [ ] T062 [P] [US8] `p-test/it/QuotaSuite.scala`: two service instances on one database share a
-  key's count; a second key is unaffected
+  key's count; a second key's p95 latency with the first at its full rate is within 10% of its p95
+  without it (SC-006)
 - [ ] T063 [P] [US8] `p-test/audit/AuditSuite.scala` and `KeyAuditSuite.scala` (port of
   `O/test/audit.test.ts`): contracts/facts.md's *Published* table record by record; no value, key or
-  digest in any record; a refusal with a key named is recorded; one without is not
+  digest in any record; a refusal with a key named is recorded; one without is not; each request
+  record carries status, outcome and duration, so a key's volume, error rate and latency are
+  answered by spec 018's query by actor (FR-038)
 - [ ] T064 [P] [US8] `p-test/it/BudgetSuite.scala`: a request whose view read is held past five
   seconds answers `503 unavailable`
 - [ ] T065 [US8] Bind `features/public-api/audit.feature` (the subject access scenario reads the
@@ -466,7 +471,8 @@ snapshot.
   naming its recording when absent; `just public-api-parity` green
 - [ ] T093 [P] Write `p-test/perf/StatsPerfSuite.scala`: a run over one million rounds within five
   minutes (SC-008), and 95% of by-id reads within 500 ms and full pages within one second (SC-002) on
-  the perf data set; if the run is too slow, fold one day at a time in parallel (research R16.3)
+  the perf data set; and 95% of facts visible through the API within 30 seconds of being published
+  (SC-003); if the run is too slow, fold one day at a time in parallel (research R16.3)
 - [ ] T094 [P] Finish `services/public-api/README.md`: components, routes, suites, how to create a key
   locally, the recipes
 - [ ] T095 Deploy to the dev-kind installation (`just modules apply goldvibe --installation dev-kind`
