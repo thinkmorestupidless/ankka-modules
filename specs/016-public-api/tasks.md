@@ -105,7 +105,7 @@ codecs, the test kit. Every story needs them.
   holds `sessionId`, `entity/Commands.scala:61`); `gameRoundId` is the round's `roundId` exactly
   (contracts/facts.md G4); tests in its facts suite (depends on T012 for the
   values; the fields are optional, so the order does not block)
-- [ ] T014 [P] `services/rewards/`: `expiresAt` on `bonus_granted` and `free_spins_granted`; on
+- [X] T014 [P] `services/rewards/`: `expiresAt` on `bonus_granted` and `free_spins_granted`; on
   `free_spins_granted`, `amountCents` and `currency` as research R16.5 settles (spin value × rounds,
   else `0` in the reward's currency); tests in its facts suite
 - [ ] T015 [P] `services/game-provider/`: add `GET /v1/casino/brands/{brand}/game-provider/games` to
