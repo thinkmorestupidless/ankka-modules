@@ -18,7 +18,6 @@ object Routes:
     val WrongBrand      = "wrong_brand"
     val BrandNotInRoles = "brand_not_in_roles"
     val NotAffiliate    = "not_affiliate"
-    val NotPartner      = "not_partner"
     val WrongIssuer     = "wrong_issuer"
     /** An operator of the payments backoffice reading or changing outside their level (spec 004 FR-002). */
     val ScopeViolation  = "scope_violation"
@@ -254,12 +253,16 @@ object Routes:
       else Some(s"$NotInstallationOwner: platform_admin is required")
     }
 
-  /** A partner's confidential client for this brand: role `partner_<slug>` (spec 016 FR-015). */
-  def partner(slug: String, authenticate: => Acl = Oidc.authenticate()): Acl =
-    refine(authenticate) { p =>
-      if p.issuer.contains(StaffIssuer) && p.roles.contains(s"partner_$slug") then None
-      else Some(s"${Refusal.NotPartner}: no partner entitlement for brand $slug")
-    }
+  /** The realm role that lets an operator of a brand manage its public API's access keys (spec 016 FR-015). */
+  val AccessKeysRole = "api_keys"
+
+  /**
+   * An operator of this brand holding the access keys permission, or a platform administrator (spec 016 FR-015). A
+   * public API caller is admitted by its access key in the public API's own handler, never by an ACL (spec 016
+   * research R3), so there is no route class for it here.
+   */
+  def accessKeys(slug: String, authenticate: => Acl = Oidc.authenticate()): Acl =
+    operatorHolding(slug, AccessKeysRole, "platform_admin")(authenticate)
 
   /**
    * Another service of this project, by its identity and with no token. For a route a brand grants
