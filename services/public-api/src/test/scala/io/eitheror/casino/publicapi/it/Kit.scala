@@ -169,3 +169,9 @@ object SharedKit:
     val k = Kit()
     sys.addShutdownHook(k.stop())
     k
+
+  /** The kit the player-ranking suites share (US6): its rankings hold only the players they made. */
+  lazy val ranked: Kit =
+    val k = Kit()
+    sys.addShutdownHook(k.stop())
+    k

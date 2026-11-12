@@ -28,6 +28,10 @@ object Views:
     s"SELECT payload FROM $table WHERE (payload::jsonb->>'$time')::timestamptz > (:since)::timestamptz AND $more " +
       "ORDER BY row_key LIMIT (:limit)::bigint OFFSET (:offset)::bigint"
 
+  /** The row latest by its time: what `/public-api/{brand}/status` reports as the view's last applied record. */
+  def latest(table: String, time: String): String =
+    s"SELECT payload FROM $table ORDER BY (payload::jsonb->>'$time')::timestamptz DESC NULLS LAST LIMIT 1"
+
   def by(field: String, value: String): SqlFragment = jsonText(field) ++ sql" = $value"
 
   def page[R](q: ViewQueries[R], query: DeclaredQuery, page: Page, values: (String, String)*): Vector[R] =
@@ -54,6 +58,7 @@ object Players extends View.Companion[PlayersUpdater, PlayerState, PlayerState](
     ):
   def create(ctx: ViewComponentContext) = new PlayersUpdater
   val listed = query("listed")(ordered(table, "TRUE", "registeredAt"))
+  val latest = query("latest")(Views.latest(table, "registeredAt"))
 
 final class SessionsUpdater extends View[SessionState, SessionState]:
   def onChange(s: SessionState): Effect =
@@ -68,6 +73,7 @@ object Sessions extends View.Companion[SessionsUpdater, SessionState, SessionSta
     ):
   def create(ctx: ViewComponentContext) = new SessionsUpdater
   val ofPlayer = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "startedAt"))
+  val latest = query("latest")(Views.latest(table, "startedAt"))
   val since    = query("since")(Views.since(table, "startedAt"))
 
 final class RoundsUpdater extends View[RoundState, RoundState]:
@@ -87,6 +93,7 @@ object Rounds extends View.Companion[RoundsUpdater, RoundState, RoundState](
     ):
   def create(ctx: ViewComponentContext) = new RoundsUpdater
   val ofPlayer  = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "startedAt"))
+  val latest = query("latest")(Views.latest(table, "startedAt"))
   val ofSession = query("of-session")(ordered(table, "payload::jsonb->>'sessionId' = :session", "startedAt"))
   val since     = query("since")(Views.since(table, "startedAt"))
 
@@ -103,6 +110,7 @@ object Bets extends View.Companion[BetsUpdater, BetState, BetState](
     ):
   def create(ctx: ViewComponentContext) = new BetsUpdater
   val ofPlayer = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "placedAt"))
+  val latest = query("latest")(Views.latest(table, "placedAt"))
   val ofRound  = query("of-round")(ordered(table, "payload::jsonb->>'roundId' = :round", "placedAt"))
 
 final class TransactionsUpdater extends View[TransactionState, TransactionState]:
@@ -119,6 +127,7 @@ object Transactions extends View.Companion[TransactionsUpdater, TransactionState
     ):
   def create(ctx: ViewComponentContext) = new TransactionsUpdater
   val ofPlayer = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "createdAt"))
+  val latest = query("latest")(Views.latest(table, "createdAt"))
   val since    = query("since")(Views.since(table, "createdAt", "payload::jsonb->>'typeWord' IN ('deposit', 'withdrawal')"))
 
 final class BonusAwardsUpdater extends View[BonusAwardState, BonusAwardState]:
@@ -141,3 +150,4 @@ object BonusAwards extends View.Companion[BonusAwardsUpdater, BonusAwardState, B
     ):
   def create(ctx: ViewComponentContext) = new BonusAwardsUpdater
   val ofPlayer = query("of-player")(ordered(table, "payload::jsonb->>'playerId' = :player", "grantedAt"))
+  val latest = query("latest")(Views.latest(table, "grantedAt"))

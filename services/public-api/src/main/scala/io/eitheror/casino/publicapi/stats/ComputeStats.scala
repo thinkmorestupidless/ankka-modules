@@ -3,8 +3,8 @@ package io.eitheror.casino.publicapi.stats
 import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId}
 import com.thinkmorestupidless.ankka.runtime.ViewClient
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.publicapi.records.{RoundState, Rounds, SessionState, Sessions, TransactionState, Transactions}
-import io.eitheror.casino.publicapi.wire.Page
+import io.eitheror.casino.publicapi.records.{Players, Rounds, Sessions, Transactions}
+import io.eitheror.casino.publicapi.wire.{Enums, Page}
 
 import java.time.{Duration, Instant, ZoneOffset}
 import java.util.UUID
@@ -43,19 +43,31 @@ final class StatsRunner(components: ComponentClient, views: ViewClient, brand: S
       components.forKeyValueEntity(EntityId(GameFigures.key(slot, game))).call(GameFigures.put)
         .invoke(GameFiguresState(slot, snapshot, game, windows)): Unit
     }
-    StatsRunner.extra.get()(components, views, slot, snapshot, figures)
-    // `ready` means whole: the view the reads use holds every row of the snapshot before it is made current.
-    StatsRunner.until(s"the snapshot's ${figures.games.size} game rows in the view", StatsRunner.Settle)(
-      all(p => views.forView(GameFiguresView).ask(GameFiguresView.ofSnapshot, p.limit, "snapshot" -> snapshot, "limit" -> p.limit.toString,
-        "offset" -> p.offset.toString)).size == figures.games.size)
-    StatsRunner.settled.get()(views, snapshot, figures)
-    // The slot's rows of its previous run, now that the view holds this run's: each entity keeps a row rewritten since.
-    val stale = all(p => views.forView(GameFiguresView).ask(GameFiguresView.staleInSlot, p.limit, "slot" -> slot, "snapshot" -> snapshot,
-      "limit" -> p.limit.toString, "offset" -> p.offset.toString))
-    stale.foreach(r => components.forKeyValueEntity(EntityId(GameFigures.key(slot, r.gameId))).call(GameFigures.remove).invoke(Gone(snapshot)): Unit)
+    // Players the brand's records serve, with their status as the contract names it at the run (FR-030).
+    val statuses = all(p => views.forView(Players).ask(Players.listed, p.limit, "limit" -> p.limit.toString, "offset" -> p.offset.toString))
+      .flatMap(pl => Enums.playerStatus(pl.status).map(pl.id -> _)).toMap
+    val ranked  = figures.players.filter((pl, _) => statuses.contains(pl))
+    val ranks   = StatsRun.rankPlayers(ranked)
+    ranked.foreach { (pl, windows) =>
+      components.forKeyValueEntity(EntityId(PlayerFigures.key(slot, pl))).call(PlayerFigures.put)
+        .invoke(PlayerFiguresState(slot, snapshot, pl, statuses(pl), figures.lastActive.get(pl), windows, ranks.getOrElse(pl, Map.empty))): Unit
+    }
+    // `ready` means whole: the views the reads use hold every row of the snapshot before it is made current.
+    def held[R](q: com.thinkmorestupidless.ankka.runtime.ViewQueries[R], query: DeclaredQuery): Int =
+      all(p => q.ask(query, p.limit, "snapshot" -> snapshot, "limit" -> p.limit.toString, "offset" -> p.offset.toString)).size
+    StatsRunner.until(s"the snapshot's ${figures.games.size} game and ${ranked.size} player rows in the views", StatsRunner.Settle)(
+      held(views.forView(GameFiguresView), GameFiguresView.ofSnapshot) == figures.games.size &&
+        held(views.forView(PlayerFiguresView), PlayerFiguresView.ofSnapshot) == ranked.size)
+    // The slot's rows of its previous run, now that the views hold this run's: each entity keeps a row rewritten since.
+    def stale[R](q: com.thinkmorestupidless.ankka.runtime.ViewQueries[R], query: DeclaredQuery): Vector[R] =
+      all(p => q.ask(query, p.limit, "slot" -> slot, "snapshot" -> snapshot, "limit" -> p.limit.toString, "offset" -> p.offset.toString))
+    stale(views.forView(GameFiguresView), GameFiguresView.staleInSlot).foreach(r =>
+      components.forKeyValueEntity(EntityId(GameFigures.key(slot, r.gameId))).call(GameFigures.remove).invoke(Gone(snapshot)): Unit)
+    stale(views.forView(PlayerFiguresView), PlayerFiguresView.staleInSlot).foreach(r =>
+      components.forKeyValueEntity(EntityId(PlayerFigures.key(slot, r.playerId))).call(PlayerFigures.remove).invoke(Gone(snapshot)): Unit)
     val after = pointer.call(StatsPointer.publish).invoke(Publish(slot, snapshot, at))
     log.info("public_api_stats_computed brand={} snapshot={} games={} players={} rounds={}", brand, snapshot, figures.games.size,
-      figures.players.size, rounds.size)
+      ranked.size, rounds.size)
     after
 
   /** FR-033's alert line, logged at WARN by every run while the current figures are more than three hours old. */
@@ -73,14 +85,10 @@ object StatsRunner:
       if System.nanoTime() > deadline then throw IllegalStateException(s"not settled within $within: $what")
       Thread.sleep(100)
 
-  /** What the players' figures wait for before the snapshot is published (US6); nothing until it is set. */
-  val settled: AtomicReference[(ViewClient, String, Figures) => Unit] = AtomicReference((_, _, _) => ())
 
   def stale(p: PointerState, at: Instant): Boolean =
     p.currentSlot.flatMap(_._2.computedAt).forall(c => c.plus(StaleAfter).isBefore(at))
 
-  /** What a run writes beside the game figures (the players', US6); nothing until it is set. */
-  val extra: AtomicReference[(ComponentClient, ViewClient, String, String, Figures) => Unit] = AtomicReference((_, _, _, _, _) => ())
 
 /** What the timed action is built without, set at start (as reporting's `ReportingRuntime`). */
 object StatsRuntime:

@@ -19,7 +19,8 @@ object PublicApiService:
       PlayerRecord.descriptor, SessionRecord.descriptor, RoundRecord.descriptor, BetRecord.descriptor, BetsByRoundKey.descriptor,
       TransactionRecord.descriptor, WithdrawalsByRequest.descriptor, BonusAwardRecord.descriptor,
       Players.descriptor, Sessions.descriptor, Rounds.descriptor, Bets.descriptor, Transactions.descriptor, BonusAwards.descriptor,
-      stats.StatsPointer.descriptor, stats.GameFigures.descriptor, stats.GameFiguresView.descriptor, stats.ComputeStats.descriptor) ++
+      stats.StatsPointer.descriptor, stats.GameFigures.descriptor, stats.GameFiguresView.descriptor, stats.PlayerFigures.descriptor,
+      stats.PlayerFiguresView.descriptor, stats.ComputeStats.descriptor) ++
       Intake.descriptors
 
   /** At every start: what the hourly run is built without, and its timer (setting it again replaces it). */
@@ -44,12 +45,14 @@ object PublicApiService:
         val catalogue = io.eitheror.casino.publicapi.games.Catalogue(load(clients), settings.catalogueFor, now,
           scala.concurrent.duration.FiniteDuration(settings.budget.toMillis, "ms"))
         val handlers = api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers ++
-          api.GameRoutes(settings.brand, contract, catalogue, clients.componentClient, clients.viewClient).handlers
+          api.GameRoutes(settings.brand, contract, catalogue, clients.componentClient, clients.viewClient).handlers ++
+          api.PlayerStatsRoutes(contract, clients.componentClient, clients.viewClient).handlers
         V1Endpoint(contract, Pipeline(settings, contract, clients, now, handlers, usage.rate, usage.served(now))(_, _),
           c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond,
           (brand, player) =>
             if brand != settings.brand then Refusals.notFound.respond
             else Refusals.json(200, api.Erasure.erase(clients.componentClient, player.toLowerCase))),
+      clients => api.StatusEndpoint(settings.brand, clients, authenticate, now),
       _ => HealthEndpoint()
     )
 
