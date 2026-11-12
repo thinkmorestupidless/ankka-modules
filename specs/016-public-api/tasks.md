@@ -139,7 +139,7 @@ codecs, the test kit. Every story needs them.
 - [X] T021 [P] Write `p/records/FactId.scala` (copied from `services/reporting/.../intake/FactId.scala`
   with a test that both give the same id) and `p/PublicApiCodecs.scala` (serializers for every stored
   type, as `services/wallet`'s `WalletCodecs`)
-- [ ] T022 Write `p/api/Deadline.scala`: run a handler under the settings' budget and answer
+- [X] T022 Write `p/api/Deadline.scala`: run a handler under the settings' budget and answer
   `unavailable` on expiry or on a view read's failure (research R11); with
   `p-test/api/DeadlineSuite.scala` (a handler that sleeps past the budget is `503 unavailable`)
 - [ ] T023 Write `p/api/V1Endpoint.scala` skeleton: one endpoint on `/v1` with `Acl.AllowAll`, each
