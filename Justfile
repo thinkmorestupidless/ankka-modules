@@ -332,6 +332,38 @@ reporting-run brand="goldvibe":
       ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
       sbt run
 
+# public-api's unit suites (spec 016): the pure packages, the contract and the kit suites. The contract is published first.
+public-api-test:
+    sbt contract/publishLocal
+    cd services/public-api && sbt test
+
+# public-api's integration, parity and feature suites (Docker), as CI runs them.
+public-api-it:
+    cd services/public-api && sbt -Dit=true "testOnly io.eitheror.casino.publicapi.it.* io.eitheror.casino.publicapi.port.* io.eitheror.casino.publicapi.features.*"
+
+# public-api's hourly statistics run at a brand's size, on purpose only (SC-008; Docker).
+public-api-perf:
+    cd services/public-api && PUBLIC_API_PERF=1 sbt -Dit=true "testOnly io.eitheror.casino.publicapi.perf.*"
+
+# Records the original's REST API on kind (specs/016-public-api/contracts/recording.md) into tests/port/public-api/.
+# The original runs on a local kind cluster only (`kubectl --context kind-…`); its partner client's secret is the person's.
+public-api-record casino="http://localhost:8091" keycloak="http://localhost:8180" api="http://localhost:8097" original="$HOME/Documents/projects/eitheror/eitheror-platform":
+    cd tests && EITHEROR_RECORD_TO=port/public-api EITHEROR_ORIGINAL_COMMIT=$(git -C {{original}} rev-parse --short HEAD) go test -tags e2e -count=1 -timeout 30m ./original/public-api-driver/... -args -casino-url {{casino}} -keycloak-url {{keycloak}} -api-url {{api}}
+
+# public-api's parity tests: each recording of tests/port/public-api replayed (Docker).
+public-api-parity:
+    cd services/public-api && sbt -Dit=true "testOnly io.eitheror.casino.publicapi.port.*"
+
+# public-api, locally on 9016 as brand goldvibe (`sbt schema && docker compose up -d` first, in services/public-api).
+# With no ANKKA_KAFKA_BOOTSTRAP_SERVERS the facts are read in memory. Operator tokens are verified against the kind
+# installation's casino Keycloak, as reporting-run's.
+public-api-run brand="goldvibe":
+    cd services/public-api && CASINO_BRAND={{brand}} CASINO_PROJECT={{brand}} ANKKA_HTTP_PORT=9016 ANKKA_DB_PORT=5446 \
+      PUBLIC_API_HOST=http://localhost:9016 ANKKA_AUTH_ISSUERS=staff ANKKA_AUTH_REALM=eitheror ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=http://localhost:18180/realms/eitheror/protocol/openid-connect/certs \
+      sbt run
+
 # affiliate-programme's unit suites (spec 013). The contract is published first.
 programme-test:
     sbt contract/publishLocal

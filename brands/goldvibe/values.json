@@ -19,6 +19,7 @@
     "predictions-categories": "politics,sports,economics",
     "predictions-currencies": "EUR",
     "predictions-max-order-cost": "100000",
-    "predictions-max-position": "10000"
+    "predictions-max-position": "10000",
+    "public-api-host": "https://public-api-goldvibe.127.0.0.1.sslip.io:8443"
   }
 }

@@ -65,6 +65,7 @@ same for every brand and are literals in the descriptors, not keys.
 | predictions-max-position | predictions | string | no | | | `PREDICTIONS_MAX_POSITION` |
 | predictions-taker-fee-bps | predictions | string | no | | | `PREDICTIONS_TAKER_FEE_BPS` |
 | predictions-gates | predictions | string | no | | | `PREDICTIONS_GATES` |
+| public-api-host | public-api | url | no | | | `PUBLIC_API_HOST` |
 
 `reporting-zone`, `casino-modules` and `kyc-max-upload-bytes` have a value when a brand writes none (spec
 012 research R7, R12; spec 009 R18; `Values.defaults`): the largest KYC upload is 5,242,880 bytes, the reporting zone is `UTC`, and the modules are those the brand runs, `core`
@@ -88,6 +89,10 @@ minor units and shares. `predictions-taker-fee-bps` is `0` and `predictions-gate
 ankka-predictions 0.2.0 charges one (R8). The reasoning mirror's key is added with the mirror,
 when ankka-reasoning 0.2.0 is cut (R14).
 
+`public-api-host` (spec 016) is the brand's public API address, without `/v1`, as callers reach it: the
+served contract's `servers[0].url` is it with `/v1` appended. The platform gives a service no hostname
+of its own, so a brand entitled to `public-api` writes it.
+
 `rewards-code-document-url` (spec 011 R13) is where `rewards` fetches the programme's bonus code
 document for the brand. It is `none` when a brand writes none, and `rewards` then matches brand codes
 only, until spec 013 publishes a document.
@@ -102,4 +107,3 @@ any publish while a manifest it publishes names one of these (contracts/release.
 | Service | Module | Spec |
 |---|---|---|
 | support-agent | support | 017 |
-| public-api | public-api | 016 |

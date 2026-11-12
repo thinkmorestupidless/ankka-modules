@@ -42,6 +42,7 @@ jobs:
       engagement: ${{ steps.filter.outputs.engagement }}
       audit: ${{ steps.filter.outputs.audit }}
       reporting: ${{ steps.filter.outputs.reporting }}
+      public-api: ${{ steps.filter.outputs.public-api }}
       markets: ${{ steps.filter.outputs.markets }}
       exchange: ${{ steps.filter.outputs.exchange }}
     steps:
@@ -148,6 +149,11 @@ jobs:
               - services/reporting/**
               - features/reporting/**
               - tests/port/reporting/**
+            public-api:
+              - *build
+              - services/public-api/**
+              - features/public-api/**
+              - tests/port/public-api/**
             markets:
               - *build
               - services/markets/**
@@ -538,6 +544,29 @@ jobs:
       - name: reporting's integration, parity and feature suites
         working-directory: services/reporting
         run: sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.port.* io.eitheror.casino.reporting.features.*"
+
+  # public-api (spec 016): its own sbt build on ankka 0.16.0, against the contract published from this commit.
+  # `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in Docker.
+  public-api:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.public-api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: public-api's suites
+        working-directory: services/public-api
+        run: sbt test
+      - name: public-api's integration, parity and feature suites
+        working-directory: services/public-api
+        run: sbt -Dit=true "testOnly io.eitheror.casino.publicapi.it.* io.eitheror.casino.publicapi.port.* io.eitheror.casino.publicapi.features.*"
 
   # markets (spec 023): its own sbt build against the contract published from this commit, on
   # ankka-predictions from Maven Central; its integration suites run on the runner's Docker.

@@ -67,14 +67,14 @@ recipes.
   table's reader `partner-api` → `public-api`), spec 021 (`specs/021-core-and-modules/spec.md`: the
   module list), `CLAUDE.md`'s spec table (016 → `public-api`), and add a dated line to the brain's
   `../brain/projects/ankka-modules.md`
-- [ ] T007 Create `services/public-api/` from `services/reporting/`'s template with ankka **0.16.0**
+- [X] T007 Create `services/public-api/` from `services/reporting/`'s template with ankka **0.16.0**
   and its eviction lines (research R1): `build.sbt` (adding `jackson-dataformat-yaml` at ankka's
   Jackson version and `com.networknt:json-schema-validator`; `io.swagger.parser.v3:swagger-parser` in
   `Test`), `project/`, `service.json` (runtime `0.16.0`, `"personal": true`), `docker-compose.yml`
   (postgres:17-alpine on 5446), `README.md` stub, `p/PublicApiService.scala` registering nothing yet
-- [ ] T008 [P] Write `p/Settings.scala` (`CASINO_BRAND`, `CASINO_PROJECT`, `PUBLIC_API_HOST`, the
+- [X] T008 [P] Write `p/Settings.scala` (`CASINO_BRAND`, `CASINO_PROJECT`, `PUBLIC_API_HOST`, the
   request budget `5s`, the catalogue cache `5m`) with `p-test/SettingsSuite.scala`
-- [ ] T009 [P] Add the recipes `public-api-test`, `public-api-it`, `public-api-perf`,
+- [X] T009 [P] Add the recipes `public-api-test`, `public-api-it`, `public-api-perf`,
   `public-api-run`, `public-api-record`, `public-api-parity` to `justfile`, and the service to
   `.github/workflows/ci.yml` as `services/reporting` is
 
