@@ -390,6 +390,18 @@ Applied on this branch:
   views spent the default 600 a minute; the helper keys take 6000, and the default and the limit
   are tested with keys of their own.
 
+- **Game rankings are ranked at read.** A game ranking ranks the snapshot's `GameFigures` rows of
+  the games available now, in memory (at most a few hundred games), as the original does: ranks
+  stored at the run could not drop a game the catalogue withdrew since, and the limit applies after
+  that filter. Player rankings keep their stored ranks (paging over many rows).
+- **A snapshot is published once the view holds it.** The run writes its rows, waits (at most two
+  minutes) until `GameFiguresView` holds every row under the new snapshot id, and only then empties
+  the slot's older rows and makes the slot current, so no read sees half a snapshot. A row is emptied
+  only if its entity still holds an older snapshot: the view can lag the write it would otherwise
+  undo.
+- **The test kit runs the figures itself.** The hourly timer reads `StatsRuntime`, which is
+  process-wide, so the kits (two brands, peers) do not schedule it; the suites call the runner.
+
 ## Declined remediations
 
 ## Design finished

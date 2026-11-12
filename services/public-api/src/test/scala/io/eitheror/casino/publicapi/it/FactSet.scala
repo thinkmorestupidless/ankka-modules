@@ -32,8 +32,8 @@ object FactSet:
   def opened(player: String, round: String, session: String, at: Instant, game: String = "st8-book", grant: Option[String] = None): f.RoundOpened =
     f.RoundOpened(player, eur, round, "st8", round.split('/').last, game, session, grant, at)
   def settled(player: String, round: String, session: String, at: Instant, stake: Long, win: Long, outcome: String = "win",
-      game: String = "st8-book", real: Option[(Long, Long)] = None, grant: Option[String] = None): f.RoundSettled =
-    f.RoundSettled(player, eur, round, "st8", round.split('/').last, game, session, m(stake), m(win), s(win - stake), outcome, Vector.empty,
+      game: String = "st8-book", real: Option[(Long, Long)] = None, grant: Option[String] = None, currency: Currency = eur): f.RoundSettled =
+    f.RoundSettled(player, currency, round, "st8", round.split('/').last, game, session, m(stake), m(win), s(win - stake), outcome, Vector.empty,
       Vector.empty, Vector.empty, grant, at, openedAt = None, realStakeCents = real.map(r => m(r._1)), realWinCents = real.map(r => m(r._2)))
 
   def bet(player: String, tx: String, key: String, round: String, session: String, amount: Long, at: Instant, walletType: String = "real"): f.BetPlaced =

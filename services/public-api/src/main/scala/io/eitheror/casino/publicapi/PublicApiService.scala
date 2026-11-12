@@ -18,20 +18,34 @@ object PublicApiService:
       audit.KeyAudit(settings.brand).descriptor, audit.ReadAudit(settings.brand).descriptor,
       PlayerRecord.descriptor, SessionRecord.descriptor, RoundRecord.descriptor, BetRecord.descriptor, BetsByRoundKey.descriptor,
       TransactionRecord.descriptor, WithdrawalsByRequest.descriptor, BonusAwardRecord.descriptor,
-      Players.descriptor, Sessions.descriptor, Rounds.descriptor, Bets.descriptor, Transactions.descriptor, BonusAwards.descriptor) ++
+      Players.descriptor, Sessions.descriptor, Rounds.descriptor, Bets.descriptor, Transactions.descriptor, BonusAwards.descriptor,
+      stats.StatsPointer.descriptor, stats.GameFigures.descriptor, stats.GameFiguresView.descriptor, stats.ComputeStats.descriptor) ++
       Intake.descriptors
+
+  /** At every start: what the hourly run is built without, and its timer (setting it again replaces it). */
+  def started(settings: Settings, views: com.thinkmorestupidless.ankka.runtime.ViewClient,
+      timers: com.thinkmorestupidless.ankka.sdk.TimerScheduler, now: Instant): Unit =
+    stats.StatsRuntime.views.set(Some(views))
+    stats.StatsRuntime.brand.set(settings.brand)
+    stats.ComputeStats.schedule(timers, now)
 
   /** The contract the settings' address is served in, or why the service cannot start. */
   def contract(settings: Settings): Contract = Contract.load(settings.serverUrl).fold(e => throw IllegalStateException(e), identity)
 
   def endpoints(settings: Settings, contract: Contract, authenticate: () => Acl = () => Oidc.authenticate(),
-      now: () => Instant = () => Instant.now()): Seq[EndpointClients => HttpEndpoint] =
+      now: () => Instant = () => Instant.now(),
+      catalogueOf: EndpointClients => () => Vector[io.eitheror.casino.publicapi.games.CatalogueGame] = null): Seq[EndpointClients => HttpEndpoint] =
+    given scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+    val load = Option(catalogueOf).getOrElse((c: EndpointClients) => io.eitheror.casino.publicapi.games.Catalogue.fromProvider(c.services, settings.brand))
     Seq(
       clients => KeysEndpoint(settings.brand, clients, authenticate, now),
       clients =>
-        val usage = api.Usage(clients.componentClient)
-        V1Endpoint(contract, Pipeline(settings, contract, clients, now, api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers,
-          usage.rate, usage.served(now))(_, _),
+        val usage     = api.Usage(clients.componentClient)
+        val catalogue = io.eitheror.casino.publicapi.games.Catalogue(load(clients), settings.catalogueFor, now,
+          scala.concurrent.duration.FiniteDuration(settings.budget.toMillis, "ms"))
+        val handlers = api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers ++
+          api.GameRoutes(settings.brand, contract, catalogue, clients.componentClient, clients.viewClient).handlers
+        V1Endpoint(contract, Pipeline(settings, contract, clients, now, handlers, usage.rate, usage.served(now))(_, _),
           c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond,
           (brand, player) =>
             if brand != settings.brand then Refusals.notFound.respond
@@ -64,5 +78,6 @@ object PublicApiService:
       log.warn("ANKKA_KEYRING_ADDRESS is not set: personal fields are sealed under keys in this service's database (a local run)")
       builder.withLocalKeyring()
   val service = keyed.start(name = "public-api")
+  PublicApiService.started(settings, service.viewClient, timers.timerScheduler, Instant.now())
   sys.addShutdownHook(service.terminate())
   scala.concurrent.Await.result(service.whenTerminated, scala.concurrent.duration.Duration.Inf): Unit
