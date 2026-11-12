@@ -32,14 +32,25 @@ final case class PlayerState(
     city: Option[Personal[String]] = None,
     stateProv: Option[Personal[String]] = None,
     postalCode: Option[Personal[String]] = None,
+    erased: Boolean = false,
     applied: Vector[String] = Vector.empty
-)
+):
+  /** Every identifying field read as erased: the erasure route's, and what a fact read again after it keeps. */
+  def withErased: PlayerState =
+    val e = Personal.Erased(Records.subject(id)): Personal[String]
+    def x(f: Option[Personal[String]]) = f.map(_ => e)
+    copy(erased = true, email = x(email), firstName = x(firstName), lastName = x(lastName), dateOfBirth = x(dateOfBirth), phone = x(phone),
+      addressLine1 = x(addressLine1), city = x(city), stateProv = x(stateProv), postalCode = x(postalCode))
 
 object PlayerFold:
   import Records.personal as p
 
   /** The record after `fact`; a family that changes no served field leaves it as it was. */
   def apply(s0: PlayerState, fact: f.CasinoPlayersFact): PlayerState =
+    val next = folded(s0, fact)
+    if s0.erased then next.withErased else next
+
+  private def folded(s0: PlayerState, fact: f.CasinoPlayersFact): PlayerState =
     val s = s0.copy(id = fact.playerId)
     def pid = fact.playerId
     fact match
@@ -74,6 +85,7 @@ object PlayerFold:
     case _ => false
 
 final case class PlayerFact(factId: String, fact: f.CasinoPlayersFact)
+final case class ErasePlayer(playerId: String)
 
 final class PlayerRecord(@scala.annotation.unused context: KeyValueEntityContext) extends RecordEntity[PlayerState]:
   def emptyState: PlayerState                                   = PlayerState()
@@ -81,6 +93,11 @@ final class PlayerRecord(@scala.annotation.unused context: KeyValueEntityContext
   protected def remembered(s: PlayerState, ids: Vector[String]) = s.copy(applied = ids)
 
   def record(c: PlayerFact): Effect[Boolean] = once(c.factId)(PlayerFold(_, c.fact))
+
+  /** The player's identifying fields erased here (FR-025): absent with every key from now on, facts read again included. */
+  def erase(c: ErasePlayer): Effect[Boolean] =
+    val next = currentState.copy(id = c.playerId).withErased
+    if next == currentState then effects.reply(false) else effects.updateState(next).thenReply(_ => true)
   def get: ReadOnlyEffect[PlayerState]       = effects.reply(currentState)
 
 object PlayerRecord extends KeyValueEntity.Companion[PlayerRecord, PlayerState](
@@ -89,8 +106,10 @@ object PlayerRecord extends KeyValueEntity.Companion[PlayerRecord, PlayerState](
     ):
   given Serializer[PlayerFact]  = Serializer.json[PlayerFact]("public-api.player-fact")(using JsonCodecMaker.make[PlayerFact])
   given Serializer[PlayerState] = PublicApiCodecs.serializer[PlayerState]("player-reply")
+  given Serializer[ErasePlayer] = PublicApiCodecs.serializer[ErasePlayer]("erase-player")
 
   def create(context: KeyValueEntityContext) = new PlayerRecord(context)
 
   val record = command("record")(_.record)
+  val erase  = command("erase")(_.erase)
   val get    = query("get")(_.get)
