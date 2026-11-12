@@ -1,0 +1,807 @@
+# Published contract (FR-026). The service serves this file verbatim at GET /v1/openapi.json, and
+# CI fails the build if the served document differs from this file or if any route's response fails
+# to validate against it (FR-027). Changing it is a deliberate, reviewed commit. Everything in
+# `description` fields is read by partners: keep internal references (FRs, CI, services) in comments.
+openapi: 3.1.0
+info:
+  title: eitheror casino partner API
+  version: "1.0.0"
+  description: |
+    Read-only access to one casino brand's players, their play and money movements, the games
+    catalogue, and precomputed game statistics. Every endpoint is a `GET`.
+
+    ## Authentication
+
+    Request an access token with the OAuth 2.0 client-credentials grant, using the client id and
+    secret you were issued, then send it on every call as `Authorization: Bearer <token>`.
+
+    ```
+    curl -s https://auth.pre.eitheror.io/realms/eitheror/protocol/openid-connect/token \
+      -d grant_type=client_credentials -d client_id=<id> -d client_secret=<secret>
+    ```
+
+    Tokens last 5 minutes. Fetch a new one when it expires or when a call answers `401` with
+    `jwt_expired`; there is no refresh token. `/v1/openapi.json` needs no token.
+
+    ## Scope
+
+    A credential belongs to exactly one brand, and every response is limited to that brand. A
+    record of another brand answers `404`, exactly as a record that does not exist. To read
+    several brands, use one credential per brand.
+
+    Identifying player fields (name, email, date of birth, phone, address) are returned only where
+    your agreement covers them. A field you are not entitled to is absent from the response, never
+    `null`.
+
+    ## Formats
+
+    - Money is an exact decimal string in major units with two decimal places (`"12.50"`), always
+      alongside a `currency` (ISO 4217). Never parse it as a float.
+    - Timestamps are ISO 8601 with an explicit offset.
+    - Objects carry only the fields documented here. Optional fields are omitted when unknown.
+
+    ## Paging
+
+    Collections return `{ "data": [...], "page": { "limit", "offset", "total", "hasMore" } }`,
+    ordered oldest first. Page with `limit` (1–100, default 100) and `offset`; keep going while
+    `hasMore` is true. The newest records are on the last page, at `offset = total - limit`.
+
+    ## Quotas
+
+    Each credential has an agreed number of requests per minute (600 unless agreed otherwise).
+    Over it, calls answer `429` with a `Retry-After` header in seconds; wait that long and retry.
+
+    ## Errors
+
+    Every error is JSON, `{ "error": "<code>", "message": "..." }`. Branch on `error`, not on
+    `message`.
+
+    | Status | Codes | Meaning |
+    |---|---|---|
+    | 400 | `invalid_request`, `limit_exceeded`, `scope_invalid` | A parameter or identifier is malformed or out of range |
+    | 401 | `jwt_missing`, `jwt_invalid`, `jwt_expired`, `jwt_issuer_mismatch`, `jwt_verification_failed` | No usable token: fetch a new one |
+    | 401 | `actor_type_invalid`, `scope_missing`, `scope_invalid` | The credential itself is misconfigured: contact us, a new token will not help |
+    | 403 | `grant_absent`, `grant_disabled`, `scope_mismatch` | The credential is valid but has no access to this brand: contact us |
+    | 404 | `not_found` | No such record in your brand |
+    | 410 | `snapshot_expired` | The ranking snapshot you named has been retired: start again from page 1 without `snapshot` |
+    | 429 | `quota_exceeded` | Over your per-minute quota: wait `Retry-After` seconds |
+    | 503 | `unavailable` | Temporary: retry with backoff |
+
+    ## Game statistics
+
+    Statistics are recomputed every hour, a few minutes past the hour, over rolling windows of the
+    last 1, 7 and 30 days ending at `computedAt`. They are not live: expect figures up to an hour
+    old. Cancelled rounds are excluded. Rounds, sessions and unique players include free-spins
+    play; stake, win and GGR (stake minus win) are real money only, one entry per currency. Each
+    window is a total, not a time series: to chart a trend, store each day's figures yourself.
+servers:
+  - url: https://partners.pre.eitheror.io/v1
+    description: Pre-production. Test data only.
+tags:
+  - name: Players
+    description: Players of your brand and everything that belongs to one player.
+  - name: Activity
+    description: Sessions, rounds, bets, transactions and bonus awards, read by identifier.
+  - name: Games
+    description: The games catalogue as enabled on your brand.
+  - name: Statistics
+    description: Hourly precomputed figures per game and per player, and rankings of both.
+  - name: Contract
+    description: Version information and this document.
+security:
+  - bearerAuth: []
+
+paths:
+  /players:
+    get:
+      operationId: listPlayers
+      tags: [Players]
+      summary: Players of the partner's brand, oldest registration first
+      parameters: [ { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/PlayerPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /players/{playerId}:
+    get:
+      operationId: getPlayer
+      summary: One player
+      tags: [Players]
+      parameters: [ { $ref: '#/components/parameters/playerId' } ]
+      responses:
+        '200': { description: The player, content: { application/json: { schema: { $ref: '#/components/schemas/Player' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /players/{playerId}/sessions:
+    get:
+      operationId: listPlayerSessions
+      tags: [Players]
+      summary: Game sessions of a player, oldest first
+      parameters: [ { $ref: '#/components/parameters/playerId' }, { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/SessionPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /players/{playerId}/rounds:
+    get:
+      operationId: listPlayerRounds
+      summary: Rounds a player has played, oldest first
+      tags: [Players]
+      parameters: [ { $ref: '#/components/parameters/playerId' }, { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/RoundPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /players/{playerId}/bets:
+    get:
+      operationId: listPlayerBets
+      summary: Bets a player has placed, oldest first
+      tags: [Players]
+      parameters: [ { $ref: '#/components/parameters/playerId' }, { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/BetPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /players/{playerId}/transactions:
+    get:
+      operationId: listPlayerTransactions
+      summary: Wallet transactions of a player, oldest first
+      tags: [Players]
+      parameters: [ { $ref: '#/components/parameters/playerId' }, { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/TransactionPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /players/{playerId}/bonus-awards:
+    get:
+      operationId: listPlayerBonusAwards
+      summary: Bonuses awarded to a player, oldest first
+      tags: [Players]
+      parameters: [ { $ref: '#/components/parameters/playerId' }, { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/BonusAwardPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /sessions/{sessionId}:
+    get:
+      operationId: getSession
+      summary: One game session
+      tags: [Activity]
+      parameters: [ { $ref: '#/components/parameters/sessionId' } ]
+      responses:
+        '200': { description: The session, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /sessions/{sessionId}/rounds:
+    get:
+      operationId: listSessionRounds
+      summary: Rounds played in a session, oldest first
+      tags: [Activity]
+      parameters: [ { $ref: '#/components/parameters/sessionId' }, { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/RoundPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /rounds/{roundId}:
+    get:
+      operationId: getRound
+      summary: One round
+      tags: [Activity]
+      parameters: [ { $ref: '#/components/parameters/roundId' } ]
+      responses:
+        '200': { description: The round, content: { application/json: { schema: { $ref: '#/components/schemas/Round' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /rounds/{roundId}/bets:
+    get:
+      operationId: listRoundBets
+      summary: Bets placed in a round, oldest first
+      tags: [Activity]
+      parameters: [ { $ref: '#/components/parameters/roundId' }, { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/BetPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /bets/{betId}:
+    get:
+      operationId: getBet
+      summary: One bet
+      tags: [Activity]
+      parameters: [ { $ref: '#/components/parameters/betId' } ]
+      responses:
+        '200': { description: The bet, content: { application/json: { schema: { $ref: '#/components/schemas/Bet' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /transactions/{transactionId}:
+    get:
+      operationId: getTransaction
+      summary: One wallet transaction
+      tags: [Activity]
+      parameters: [ { $ref: '#/components/parameters/transactionId' } ]
+      responses:
+        '200': { description: The transaction, content: { application/json: { schema: { $ref: '#/components/schemas/Transaction' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /bonus-awards/{bonusAwardId}:
+    get:
+      operationId: getBonusAward
+      summary: One bonus award
+      tags: [Activity]
+      parameters: [ { $ref: '#/components/parameters/bonusAwardId' } ]
+      responses:
+        '200': { description: The bonus award, content: { application/json: { schema: { $ref: '#/components/schemas/BonusAward' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /games:
+    get:
+      operationId: listGames
+      tags: [Games]
+      summary: Games available on the partner's brand, by game code
+      parameters: [ { $ref: '#/components/parameters/limit' }, { $ref: '#/components/parameters/offset' } ]
+      responses:
+        '200': { $ref: '#/components/responses/GamePage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /games/{gameId}:
+    get:
+      operationId: getGame
+      summary: One game from the catalogue
+      tags: [Games]
+      parameters: [ { $ref: '#/components/parameters/gameId' } ]
+      responses:
+        '200': { description: The game, content: { application/json: { schema: { $ref: '#/components/schemas/Game' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /games/{gameId}/stats:
+    get:
+      operationId: getGameStats
+      tags: [Statistics]
+      summary: Precomputed statistics for one game, every window
+      parameters: [ { $ref: '#/components/parameters/gameId' } ]
+      responses:
+        '200': { description: The game's statistics, content: { application/json: { schema: { $ref: '#/components/schemas/GameStats' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /game-stats:
+    get:
+      operationId: rankGames
+      tags: [Statistics]
+      summary: Games of the brand ranked by one statistic in one window
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema: { type: string, enum: [1d, 7d, 30d] }
+        - name: sort
+          in: query
+          required: true
+          schema: { type: string, enum: [rounds, sessions, players, stake, ggr] }
+        - name: currency
+          in: query
+          required: false
+          description: ISO 4217 code. Required when `sort` is `stake` or `ggr`; ignored otherwise.
+          schema: { type: string, pattern: '^[A-Z]{3}$' }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
+      responses:
+        '200':
+          description: Games in descending order of the chosen statistic. Games with no activity in the window are absent.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                additionalProperties: false
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/GameStatsRow' } }
+                  computedAt:
+                    description: When the figures were computed. Absent when never computed for this brand.
+                    type: string
+                    format: date-time
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /players/{playerId}/stats:
+    get:
+      operationId: getPlayerStats
+      tags: [Statistics]
+      summary: One player's figures for the last 1, 7 and 30 days
+      description: >
+        From the current snapshot. A player of your brand with no activity reports zeros. Status is not
+        repeated here; read it from the player record.
+      parameters:
+        - $ref: '#/components/parameters/playerId'
+      responses:
+        '200':
+          description: The player's figures
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlayerStats' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+
+  /player-stats:
+    get:
+      operationId: rankPlayers
+      tags: [Statistics]
+      summary: Players of the brand ranked by one figure in one window
+      description: >
+        Rankings are recomputed every hour and published as snapshots. The first page names its
+        snapshot; pass `snapshot` on every later page to read one fixed ranking start to finish.
+        A snapshot stays readable for at least 30 minutes after a newer one replaces it; after that
+        the request is refused with 410 `snapshot_expired` and you start again from page 1 without
+        `snapshot`. `status` is the player's status when the snapshot was computed. The `status`
+        filter is for reporting: a player who self-excludes after the snapshot keeps their old status
+        until the next one, so check the player record before contacting anyone.
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema: { type: string, enum: [1d, 7d, 30d] }
+        - name: sort
+          in: query
+          required: true
+          description: Ranked descending. `deposits` ranks by deposited amount.
+          schema: { type: string, enum: [rounds, sessions, stake, ggr, deposits] }
+        - name: currency
+          in: query
+          required: false
+          description: Required when `sort` is `stake`, `ggr` or `deposits`; ignored otherwise. Only players with figures in this currency are ranked.
+          schema: { $ref: '#/components/schemas/Currency' }
+        - name: status
+          in: query
+          required: false
+          description: Comma-separated statuses to include, e.g. `ACTIVE,SUSPENDED`. Omit for every status. Ranks are unchanged by the filter, so they can have gaps.
+          style: form
+          explode: false
+          schema: { type: array, minItems: 1, uniqueItems: true, items: { type: string, enum: [ACTIVE, SUSPENDED, CLOSED, SELF_EXCLUDED] } }
+        - name: snapshot
+          in: query
+          required: false
+          description: The snapshot id from the first page. Omit for the current snapshot.
+          schema: { $ref: '#/components/schemas/Uuid' }
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+      responses:
+        '200':
+          description: >
+            A page of the ranking. Before the first computation for the brand, an empty page with no
+            `snapshot`.
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlayerRankingPage' } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '410': { $ref: '#/components/responses/SnapshotExpired' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /contract:
+    get:
+      operationId: getContractInfo
+      summary: Contract version and page-size cap
+      tags: [Contract]
+      responses:
+        '200':
+          description: Contract version and page-size cap
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, maxPageSize]
+                properties:
+                  version: { type: string, const: v1 }
+                  maxPageSize: { type: integer, const: 100 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /openapi.json:
+    get:
+      operationId: getOpenApi
+      summary: This document, as JSON. No credential needed
+      tags: [Contract]
+      security: []
+      responses:
+        '200': { description: This document as JSON, content: { application/json: { schema: { type: object } } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT, description: "Access token from the client-credentials grant; see Authentication above." }
+
+  parameters:
+    limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
+    offset:
+      name: offset
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    playerId:      { name: playerId,      in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    sessionId:     { name: sessionId,     in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    roundId:       { name: roundId,       in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    betId:         { name: betId,         in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    transactionId: { name: transactionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    bonusAwardId:  { name: bonusAwardId,  in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    gameId:        { name: gameId,        in: path, required: true, schema: { $ref: '#/components/schemas/GameCode' } }
+
+  responses:
+    PlayerPage:      { description: A page of players,      content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/PageEnvelope' }, { properties: { data: { type: array, items: { $ref: '#/components/schemas/Player' } } } } ] } } } }
+    SessionPage:     { description: A page of sessions,     content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/PageEnvelope' }, { properties: { data: { type: array, items: { $ref: '#/components/schemas/Session' } } } } ] } } } }
+    RoundPage:       { description: A page of rounds,       content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/PageEnvelope' }, { properties: { data: { type: array, items: { $ref: '#/components/schemas/Round' } } } } ] } } } }
+    BetPage:         { description: A page of bets,         content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/PageEnvelope' }, { properties: { data: { type: array, items: { $ref: '#/components/schemas/Bet' } } } } ] } } } }
+    TransactionPage: { description: A page of transactions, content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/PageEnvelope' }, { properties: { data: { type: array, items: { $ref: '#/components/schemas/Transaction' } } } } ] } } } }
+    BonusAwardPage:  { description: A page of bonus awards, content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/PageEnvelope' }, { properties: { data: { type: array, items: { $ref: '#/components/schemas/BonusAward' } } } } ] } } } }
+    GamePage:        { description: A page of games,        content: { application/json: { schema: { allOf: [ { $ref: '#/components/schemas/PageEnvelope' }, { properties: { data: { type: array, items: { $ref: '#/components/schemas/Game' } } } } ] } } } }
+    BadRequest:      { description: Invalid parameter or identifier, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized:    { description: "Missing, malformed, expired or untrusted credential", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden:       { description: "Grant absent or disabled, or credential scope does not match the grant's brand", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound:        { description: No such record in the partner's brand, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    TooManyRequests:
+      description: Partner quota exceeded
+      headers: { Retry-After: { schema: { type: integer }, description: Seconds to wait } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unavailable:     { description: The platform store is unreachable or exceeded the request budget, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    SnapshotExpired: { description: The named snapshot has been retired; restart from page 1 without `snapshot`, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  schemas:
+    Uuid: { type: string, format: uuid }
+    GameCode: { type: string, pattern: '^[A-Za-z0-9._-]{1,64}$' }
+    Money:
+      type: string
+      pattern: '^-?[0-9]+\.[0-9]{2}$'
+      description: Exact decimal in major units, two decimal places, as a string.
+    Currency: { type: string, pattern: '^[A-Z]{3}$' }
+    DateTime: { type: string, format: date-time }
+    Date: { type: string, format: date }
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: string
+          enum: [invalid_request, limit_exceeded, jwt_missing, jwt_invalid, jwt_expired, jwt_issuer_mismatch, jwt_verification_failed, actor_type_invalid, scope_missing, scope_invalid, scope_mismatch, grant_absent, grant_disabled, not_found, snapshot_expired, quota_exceeded, unavailable]
+        message: { type: string }
+    PageInfo:
+      type: object
+      additionalProperties: false
+      required: [limit, offset, total, hasMore]
+      properties:
+        limit:   { type: integer }
+        offset:  { type: integer }
+        total:   { type: integer }
+        hasMore: { type: boolean }
+    PageEnvelope:
+      type: object
+      required: [data, page]
+      properties:
+        data: { type: array }
+        page: { $ref: '#/components/schemas/PageInfo' }
+
+    PlayerStatus:    { type: [string, 'null'], enum: [ACTIVE, SUSPENDED, CLOSED, SELF_EXCLUDED, null] }
+    KycStatus:       { type: [string, 'null'], enum: [UNVERIFIED, PENDING, VERIFIED, REJECTED, null] }
+    TransactionType: { type: [string, 'null'], enum: [DEPOSIT, WITHDRAWAL, BET, WIN, BONUS, ROLLBACK, LOSS, ADMIN_ADJUSTMENT, GAME_PROVIDER_CREDIT, null] }
+    WalletType:      { type: [string, 'null'], enum: [MAIN, BONUS, SPLIT, null] }
+    SessionStatus:   { type: [string, 'null'], enum: [OPEN, CLOSED, null] }
+    BonusStatus:     { type: [string, 'null'], enum: [ACTIVE, WAGERING, COMPLETED, EXPIRED, CANCELLED, FORFEITED, CONVERTED_PENDING_CAP, CLOSED, null] }
+
+    Player:
+      type: object
+      additionalProperties: false
+      required: [id, brandId, status, kycStatus, registeredAt]
+      properties:
+        id:           { $ref: '#/components/schemas/Uuid' }
+        brandId:      { type: string }
+        status:       { $ref: '#/components/schemas/PlayerStatus' }
+        kycStatus:    { $ref: '#/components/schemas/KycStatus' }
+        registeredAt: { $ref: '#/components/schemas/DateTime' }
+        country:      { type: string }
+        currency:     { $ref: '#/components/schemas/Currency' }
+        language:     { type: string }
+        email:        { type: string, description: Identifying. Present only where the grant entitles it. }
+        firstName:    { type: string, description: Identifying. }
+        lastName:     { type: string, description: Identifying. }
+        dateOfBirth:  { $ref: '#/components/schemas/Date' }
+        phone:        { type: string, description: Identifying. }
+        addressLine1: { type: string, description: Identifying. }
+        city:         { type: string, description: Identifying. }
+        stateProv:    { type: string, description: Identifying. }
+        postalCode:   { type: string, description: Identifying. }
+    Session:
+      type: object
+      additionalProperties: false
+      required: [id, brandId, playerId, startedAt, status]
+      properties:
+        id:          { $ref: '#/components/schemas/Uuid' }
+        brandId:     { type: string }
+        playerId:    { $ref: '#/components/schemas/Uuid' }
+        gameId:      { $ref: '#/components/schemas/GameCode' }
+        startedAt:   { $ref: '#/components/schemas/DateTime' }
+        endedAt:     { $ref: '#/components/schemas/DateTime' }
+        status:      { $ref: '#/components/schemas/SessionStatus' }
+        closeReason: { type: string }
+    Round:
+      type: object
+      additionalProperties: false
+      required: [id, brandId, playerId, gameId, startedAt, stakeTotal, winTotal, currency]
+      properties:
+        id:         { $ref: '#/components/schemas/Uuid' }
+        brandId:    { type: string }
+        playerId:   { $ref: '#/components/schemas/Uuid' }
+        sessionId:  { $ref: '#/components/schemas/Uuid' }
+        gameId:     { $ref: '#/components/schemas/GameCode' }
+        startedAt:  { $ref: '#/components/schemas/DateTime' }
+        settledAt:  { $ref: '#/components/schemas/DateTime' }
+        stakeTotal: { $ref: '#/components/schemas/Money' }
+        winTotal:   { $ref: '#/components/schemas/Money' }
+        currency:   { $ref: '#/components/schemas/Currency' }
+        status:     { type: string, enum: [open, settled, cancelled] }
+    Bet:
+      type: object
+      additionalProperties: false
+      required: [id, brandId, playerId, amount, currency, fundedFrom, placedAt]
+      properties:
+        id:         { $ref: '#/components/schemas/Uuid' }
+        brandId:    { type: string }
+        playerId:   { $ref: '#/components/schemas/Uuid' }
+        roundId:    { $ref: '#/components/schemas/Uuid' }
+        sessionId:  { $ref: '#/components/schemas/Uuid' }
+        amount:     { $ref: '#/components/schemas/Money' }
+        currency:   { $ref: '#/components/schemas/Currency' }
+        fundedFrom: { $ref: '#/components/schemas/WalletType' }
+        status:     { type: string }
+        placedAt:   { $ref: '#/components/schemas/DateTime' }
+    Transaction:
+      type: object
+      additionalProperties: false
+      required: [id, brandId, playerId, type, amount, currency, createdAt]
+      properties:
+        id:         { $ref: '#/components/schemas/Uuid' }
+        brandId:    { type: string }
+        playerId:   { $ref: '#/components/schemas/Uuid' }
+        type:       { $ref: '#/components/schemas/TransactionType' }
+        amount:     { $ref: '#/components/schemas/Money' }
+        currency:   { $ref: '#/components/schemas/Currency' }
+        walletType: { $ref: '#/components/schemas/WalletType' }
+        status:     { type: string }
+        createdAt:  { $ref: '#/components/schemas/DateTime' }
+        roundId:    { $ref: '#/components/schemas/Uuid' }
+        gameId:     { $ref: '#/components/schemas/GameCode' }
+        paymentRef: { type: string, description: Originating cashier payment id. Deposits only. }
+    BonusAward:
+      type: object
+      additionalProperties: false
+      required: [id, brandId, playerId, offerId, value, currency, status, grantedAt]
+      properties:
+        id:                  { $ref: '#/components/schemas/Uuid' }
+        brandId:             { type: string }
+        playerId:            { $ref: '#/components/schemas/Uuid' }
+        offerId:             { type: string }
+        name:                { type: string }
+        type:                { type: string }
+        value:               { $ref: '#/components/schemas/Money' }
+        currency:            { $ref: '#/components/schemas/Currency' }
+        wageringRequirement: { $ref: '#/components/schemas/Money' }
+        wageredAmount:       { $ref: '#/components/schemas/Money' }
+        status:              { $ref: '#/components/schemas/BonusStatus' }
+        grantedAt:           { $ref: '#/components/schemas/DateTime' }
+        expiresAt:           { $ref: '#/components/schemas/DateTime' }
+    Game:
+      type: object
+      additionalProperties: false
+      required: [id, name, category, developerId, developerName, funMode, bonusTypes, features, themes, tags, restrictedTerritories, prohibitedTerritories]
+      properties:
+        id:                    { $ref: '#/components/schemas/GameCode' }
+        name:                  { type: string }
+        category:              { type: string }
+        developerId:           { type: string }
+        developerName:         { type: string }
+        funMode:               { type: boolean }
+        bonusTypes:            { type: array, items: { type: string } }
+        features:              { type: array, items: { type: string } }
+        themes:                { type: array, items: { type: string } }
+        tags:                  { type: array, items: { type: string }, description: "Lower-cased union of bonusTypes, features and themes." }
+        restrictedTerritories: { type: array, items: { type: string } }
+        prohibitedTerritories: { type: array, items: { type: string } }
+        thumbnailUrl:          { type: string, format: uri }
+        rtp:                   { type: string }
+        volatility:            { type: integer }
+        hitRatio:              { type: string }
+        maxPayoutCoeff:        { type: string }
+        releaseDate:           { $ref: '#/components/schemas/Date' }
+        deprecationDate:       { $ref: '#/components/schemas/Date' }
+    CurrencyAmounts:
+      type: object
+      additionalProperties: false
+      required: [currency, stake, win, ggr]
+      properties:
+        currency: { $ref: '#/components/schemas/Currency' }
+        stake:    { $ref: '#/components/schemas/Money' }
+        win:      { $ref: '#/components/schemas/Money' }
+        ggr:      { $ref: '#/components/schemas/Money', description: stake minus win }
+    StatsWindow:
+      type: object
+      additionalProperties: false
+      required: [rounds, sessions, uniquePlayers, amounts]
+      properties:
+        rounds:        { type: integer, description: "Non-cancelled rounds created in the window, free-spins rounds included." }
+        sessions:      { type: integer }
+        uniquePlayers: { type: integer }
+        amounts:       { type: array, items: { $ref: '#/components/schemas/CurrencyAmounts' }, description: Real-money figures only; free-spins rounds and bonus-wallet play excluded. One entry per currency. }
+    GameStats:
+      type: object
+      additionalProperties: false
+      required: [gameId, brandId, windows]
+      properties:
+        gameId:     { $ref: '#/components/schemas/GameCode' }
+        brandId:    { type: string }
+        computedAt: { $ref: '#/components/schemas/DateTime', description: Absent when statistics have never been computed for this game. }
+        windows:
+          type: object
+          additionalProperties: false
+          required: ['1d', '7d', '30d']
+          properties:
+            '1d':  { $ref: '#/components/schemas/StatsWindow' }
+            '7d':  { $ref: '#/components/schemas/StatsWindow' }
+            '30d': { $ref: '#/components/schemas/StatsWindow' }
+    GameStatsRow:
+      type: object
+      additionalProperties: false
+      required: [gameId, period, rounds, sessions, uniquePlayers, amounts]
+      properties:
+        gameId:        { $ref: '#/components/schemas/GameCode' }
+        period:        { type: string, enum: [1d, 7d, 30d] }
+        rounds:        { type: integer }
+        sessions:      { type: integer }
+        uniquePlayers: { type: integer }
+        amounts:       { type: array, items: { $ref: '#/components/schemas/CurrencyAmounts' } }
+    Snapshot:
+      type: object
+      additionalProperties: false
+      required: [id, computedAt]
+      properties:
+        id:         { $ref: '#/components/schemas/Uuid' }
+        computedAt: { $ref: '#/components/schemas/DateTime', description: End of the windows; figures cover activity before this time. }
+    CountAmount:
+      type: object
+      additionalProperties: false
+      required: [count, amount]
+      properties:
+        count:  { type: integer, minimum: 0 }
+        amount: { $ref: '#/components/schemas/Money' }
+    PlayerAmounts:
+      type: object
+      additionalProperties: false
+      required: [currency, stake, win, ggr, deposits, withdrawals]
+      properties:
+        currency:    { $ref: '#/components/schemas/Currency' }
+        stake:       { $ref: '#/components/schemas/Money' }
+        win:         { $ref: '#/components/schemas/Money' }
+        ggr:         { $ref: '#/components/schemas/Money', description: stake minus win }
+        deposits:    { $ref: '#/components/schemas/CountAmount', description: Settled deposits. }
+        withdrawals: { $ref: '#/components/schemas/CountAmount', description: Completed withdrawals, by completion time. }
+    PlayerWindow:
+      type: object
+      additionalProperties: false
+      required: [rounds, sessions, games, amounts]
+      properties:
+        rounds:   { type: integer, minimum: 0, description: "Non-cancelled rounds created in the window, free-spins rounds included." }
+        sessions: { type: integer, minimum: 0 }
+        games:    { type: integer, minimum: 0, description: Distinct games among the counted rounds. }
+        amounts:  { type: array, items: { $ref: '#/components/schemas/PlayerAmounts' }, description: "Real-money play only; free spins and bonus-wallet play excluded. One entry per currency." }
+    PlayerStats:
+      type: object
+      additionalProperties: false
+      required: [playerId, lastActiveAt, windows]
+      properties:
+        playerId:     { $ref: '#/components/schemas/Uuid' }
+        snapshot:     { $ref: '#/components/schemas/Snapshot', description: Absent before the first computation for the brand. }
+        lastActiveAt: { type: [string, 'null'], format: date-time, description: Latest round or session start in the last 30 days. }
+        windows:
+          type: object
+          additionalProperties: false
+          required: ['1d', '7d', '30d']
+          properties:
+            '1d':  { $ref: '#/components/schemas/PlayerWindow' }
+            '7d':  { $ref: '#/components/schemas/PlayerWindow' }
+            '30d': { $ref: '#/components/schemas/PlayerWindow' }
+    PlayerRankingEntry:
+      type: object
+      additionalProperties: false
+      required: [rank, playerId, status, rounds, sessions, games, amounts]
+      properties:
+        rank:     { type: integer, minimum: 1, description: Position in the unfiltered ranking. Ties are ordered by player id. }
+        playerId: { $ref: '#/components/schemas/Uuid' }
+        status:   { $ref: '#/components/schemas/PlayerStatus', description: Status when the snapshot was computed. }
+        rounds:   { type: integer, minimum: 0 }
+        sessions: { type: integer, minimum: 0 }
+        games:    { type: integer, minimum: 0 }
+        amounts:  { type: array, items: { $ref: '#/components/schemas/PlayerAmounts' } }
+    PlayerRankingPage:
+      type: object
+      additionalProperties: false
+      required: [data, page, ranking]
+      properties:
+        data:     { type: array, items: { $ref: '#/components/schemas/PlayerRankingEntry' } }
+        page:     { $ref: '#/components/schemas/PageInfo' }
+        snapshot: { $ref: '#/components/schemas/Snapshot' }
+        ranking:
+          type: object
+          additionalProperties: false
+          required: [period, sort]
+          description: The ranking served, as resolved from the request.
+          properties:
+            period:   { type: string, enum: [1d, 7d, 30d] }
+            sort:     { type: string, enum: [rounds, sessions, stake, ggr, deposits] }
+            currency: { $ref: '#/components/schemas/Currency' }
+            status:   { type: array, items: { type: string, enum: [ACTIVE, SUSPENDED, CLOSED, SELF_EXCLUDED] } }
