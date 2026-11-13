@@ -2,7 +2,7 @@
   "name": "players",
   "service": {
     "image": "players:latest",
-    "runtime": "0.16.2",
+    "runtime": "0.16.3",
     "env": {
       "ANKKA_HTTP_PORT": "9003",
       "CASINO_BRAND": "goldvibe",

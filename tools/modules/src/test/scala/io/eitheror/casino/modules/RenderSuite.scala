@@ -63,7 +63,7 @@ class RenderSuite extends munit.FunSuite:
    * platform 0.16.3 runs no 0.13 runtime.
    */
   private val NewRuntimes = Map("engagement" -> "0.16.0", "reporting" -> "0.16.0", "support-agent" -> "0.16.2") ++
-    Seq("wallet", "players", "kyc", "responsible-gambling", "payouts", "attribution", "game-provider", "rewards").map(_ -> "0.16.2")
+    Seq("wallet", "players", "kyc", "responsible-gambling", "payouts", "attribution", "game-provider", "rewards").map(_ -> "0.16.3")
 
   /**
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
