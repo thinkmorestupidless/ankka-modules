@@ -91,10 +91,11 @@ class RequestSuite extends munit.FunSuite with LogCapturing:
         }
       }, 5.minutes)
       assertEquals(timed.map(_._1).distinct, Vector(201), timed.find(_._1 != 201).map(_._3).getOrElse(""))
-      val p99 = timed.map(_._2).sorted.apply((timed.size * 99) / 100 - 1)
-      assert(p99 < 2000L, s"p99 $p99 ms")
       // The catalogue's own refresh lists the terminals; a request asks the gateway nothing.
-      assertEquals(kit.gateway.received.filterNot(_.path == "/v1/payments/withdrawal-terminals").size, 0)
+      val asked = kit.gateway.received.filterNot(_.path == "/v1/payments/withdrawal-terminals")
+      assertEquals(asked.size, 0, asked.map(r => s"${r.method} ${r.path}").groupBy(identity).view.mapValues(_.size).toMap.toString)
       val calls = kit.wallet.received.map(r => if r.path.endsWith("/holds/preview") then "preview" else if r.path.endsWith("/holds") then "hold" else r.path)
       assertEquals(calls.groupBy(identity).view.mapValues(_.size).toMap, Map("preview" -> 1000, "hold" -> 1000))
+      val p99 = timed.map(_._2).sorted.apply((timed.size * 99) / 100 - 1)
+      assert(p99 < 2000L, s"p99 $p99 ms")
     finally pool.shutdown()
