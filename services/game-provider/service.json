@@ -2,7 +2,7 @@
   "name": "game-provider",
   "service": {
     "image": "game-provider:latest",
-    "runtime": "0.16.2",
+    "runtime": "0.16.3",
     "env": {
       "CASINO_BRAND": "goldvibe"
     }
