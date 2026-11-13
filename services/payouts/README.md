@@ -7,7 +7,7 @@ A brand's withdrawals (spec 007):
 - the provider's outcome, settled exactly once, by its delivered answer or a status read;
 - the brand's queue and limits, and erasure.
 
-An ankka 0.13 service in Scala, one sbt build.
+An ankka 0.16 service in Scala, one sbt build.
 
 ## What it is
 

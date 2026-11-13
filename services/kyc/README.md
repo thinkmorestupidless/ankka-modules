@@ -4,7 +4,7 @@ A brand's identity verification (spec 009): the player's documents, uploaded str
 document store through signed links; the operator's review of each; the account's KYC status, derived
 from the documents and the profile or set by an operator; the brand's KYC policy; the deposit and play
 gates the brand's other services ask; the verification window and its suspension; the queue the
-compliance team works from; and erasure. An ankka 0.13 service in Scala, one sbt build.
+compliance team works from; and erasure. An ankka 0.16 service in Scala, one sbt build.
 
 ## What it is
 
