@@ -223,7 +223,7 @@ class RenderSuite extends munit.FunSuite:
     val d   = p.services.find(_.name == "public-api").get.service
     val env = d.env.map(e => e.name -> e.value).toMap
     assertEquals(d.hosting, ServiceSpec.Embedded)
-    assertEquals(d.runtime, Some("0.16.0"))
+    assertEquals(d.runtime, Some("0.16.3"))
     assertEquals(env.get("ANKKA_AUTH_ISSUERS"), Some(Some("staff")))
     assertEquals(env.get("CASINO_BRAND"), Some(Some("goldvibe")))
     assert(!env.keySet.exists(_.startsWith("ANKKA_AUTH_PLAYER_")), env.keySet.toString)

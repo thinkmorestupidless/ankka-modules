@@ -3,9 +3,9 @@
 // ankka's libraries come from Maven Central (or ~/.ivy2/local while the platform is being
 // developed). The same version is declared in service.json as `runtime`: change both together
 // when upgrading — see README.md, "Upgrading ankka".
-val ankkaVersion = "0.16.0"
+val ankkaVersion = "0.16.3"
 
-// pekko-serialization-jackson's, which ankka 0.16.0 brings; the YAML module must match it.
+// pekko-serialization-jackson's, which ankka 0.16.3 brings; the YAML module must match it.
 val jacksonVersion = "2.21.6"
 
 // The casino's contract (facts, money, route classes, personal markers, the recording replayer),
@@ -35,10 +35,10 @@ val serviceNameChecked: String = {
   serviceName
 }
 
-// The contract is built on ankka 0.13.0 and runs here on 0.16.0, whose `Personal` seals what this
+// The contract is built on ankka 0.13.0 and runs here on 0.16.3, whose `Personal` seals what this
 // service stores (spec 016 research R1, as spec 015 R2): sbt's early-semver check calls that a
 // conflict, so it is lifted for ankka's artifacts alone, as the predictions services do. The
-// contract's suites pass on 0.16.0 (`sbt -Dankka.version=0.16.0 contract/test`).
+// contract's suites pass on 0.16.3 (`sbt -Dankka.version=0.16.3 contract/test`).
 ThisBuild / libraryDependencySchemes ++= Seq("core", "sdk", "http", "runtime", "auth-oidc", "telemetry-otlp", "testkit")
   .map(m => "com.thinkmorestupidless" %% s"ankka-$m" % VersionScheme.Always)
 

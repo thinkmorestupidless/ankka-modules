@@ -18,7 +18,7 @@
       "descriptor": {
         "image": "europe-west1-docker.pkg.dev/eitheror/casino/public-api:0.0.0",
         "expose": true,
-        "runtime": "0.16.0",
+        "runtime": "0.16.3",
         "env": [
           {
             "name": "CASINO_PROJECT",
