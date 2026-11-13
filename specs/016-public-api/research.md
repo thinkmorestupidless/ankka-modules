@@ -488,6 +488,16 @@ Applied on this branch:
   are built on ankka 0.13.0. Platform 0.14.2 refused public-api (0.16.0) the other way. The person
   chose (2026-11-13) to move those eight services to ankka 0.16 first, on a branch of its own, and
   to deploy goldvibe with public-api (T095) after it.
+- **T095 stopped on kind's capacity (2026-11-13).** With the upgrade (PR #38, merged into this
+  branch) applied, wallet, players, kyc, responsible-gambling, payouts and attribution reached Ready on
+  runtime 0.16.2 in goldvibe on platform 0.16.3. game-provider and rewards could not sign in to the
+  database: each ankka service opens Pekko R2DBC's default pool of 20 connections, ankka exposes no
+  setting for it, and the project's Postgres keeps the default `max_connections` of 100 (97 for
+  roles that aren't superusers). A brand of nine services needs up to 180. That's an ankka finding. Raising
+  `max_connections` to 300 on goldvibe's kind database by hand restarted it, and the single kind node
+  then locked up: load average ~260, 12 of 16 GiB, the API server and ankka's Keycloak timing out.
+  Scaling deployments to zero is undone by ankka's operator. The person chose to stop T095 there. The
+  deployed scenario check is unmet; the suites over Postgres (`just public-api-it`) stand for it.
 
 ## Declined remediations
 
