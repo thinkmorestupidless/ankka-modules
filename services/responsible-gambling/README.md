@@ -3,7 +3,7 @@
 A brand's player protections (spec 010): deposit, loss and session limits with the 24-hour wait on a
 loosening, breaks, self-exclusion and the return from it, reality checks, an operator's cases, and the
 four checks the brand's other services ask before they let a player deposit, sign in, launch or bet. An
-ankka 0.13 service in Scala, one sbt build.
+ankka 0.16 service in Scala, one sbt build.
 
 ## What it is
 

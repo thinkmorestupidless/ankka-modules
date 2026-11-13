@@ -4,10 +4,15 @@
 // One sbt build of its own, as every service under services/ is (spec 001): it depends on the
 // published contract (`sbt contract/publishLocal` at the repository root first) and on ankka.
 // The same ankka version is service.json's `runtime`; change both together.
-val ankkaVersion = "0.13.0"
+val ankkaVersion = "0.16.2"
 val serviceName  = "players"
 // The root build's `version`; a mismatch resolves nothing in CI, where only this commit's is published.
 val contractVersion = sys.env.getOrElse("CASINO_VERSION", "0.2.0-SNAPSHOT")
+
+// The contract is built on ankka 0.13.0 and runs here on 0.16.2, as audit does: sbt's early-semver
+// check calls that a conflict, so it is lifted for ankka's artifacts alone.
+ThisBuild / libraryDependencySchemes ++= Seq("core", "sdk", "http", "runtime", "auth-oidc", "telemetry-otlp", "testkit")
+  .map(m => "com.thinkmorestupidless" %% s"ankka-$m" % VersionScheme.Always)
 
 ThisBuild / scalaVersion := "3.9.0"
 
