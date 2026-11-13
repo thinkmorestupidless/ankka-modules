@@ -473,6 +473,21 @@ Applied on this branch:
 - **The order of the last tasks.** The dev-kind deploy (T095) needs ankka's control plane, and the
   original's kind stack (T091) needs it stopped. The person chose (2026-11-12) to deploy first, then
   record, with the parity suites (T092) written against the real recordings.
+- **The dev-kind installation was at platform 0.14.2** (runtimes 0.13–0.14). public-api is built on
+  ankka 0.16.0, so it was applied but `Unavailable` ("runtime 0.16.0 is outside the platform's
+  supported range"), and engagement had been unavailable for the same reason. The person chose
+  (2026-11-12) to rebuild kind-ankka at v0.16.3. The first apply on the 016 contract also showed
+  an ordering trap in the modules tool. Core waits for `players` to be Ready, but players reads
+  `casino.rounds` and `casino.rewards`, whose new schemas only the `casino` module declares, after
+  core. So players was refused at start ("reads 'casino.rounds' as … project declares …"). Pausing
+  players, applying, then resuming it got past it. A finding for spec 021's tool: declare every
+  module's topics before waiting for any module's services.
+- **No one installation runs the brand stack beside public-api.** On the rebuilt kind-ankka
+  (platform 0.16.3, runtimes 0.15–0.16) every service of the `core` and `casino` modules (wallet,
+  players, kyc, responsible-gambling, payouts, attribution, game-provider, rewards) is refused: they
+  are built on ankka 0.13.0. Platform 0.14.2 refused public-api (0.16.0) the other way. The person
+  chose (2026-11-13) to move those eight services to ankka 0.16 first, on a branch of its own, and
+  to deploy goldvibe with public-api (T095) after it.
 
 ## Declined remediations
 
