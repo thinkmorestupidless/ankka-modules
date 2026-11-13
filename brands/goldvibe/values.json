@@ -14,6 +14,7 @@
   "values": {
     "player-site-base": "https://goldvibe.127.0.0.1.sslip.io:8443",
     "game-provider-mode": "demo",
+    "casino-providers": "st8:st8,eitheror:st8",
     "st8-operator-id": "op-1234",
     "reporting-zone": "Africa/Johannesburg",
     "predictions-categories": "politics,sports,economics",

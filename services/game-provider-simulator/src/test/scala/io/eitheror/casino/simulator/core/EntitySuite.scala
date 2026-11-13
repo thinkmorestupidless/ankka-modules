@@ -1,8 +1,10 @@
 package io.eitheror.casino.simulator.core
 
+import io.eitheror.casino.provider.core.*
+
 import com.thinkmorestupidless.ankka.core.Done
 import com.thinkmorestupidless.ankka.testkit.{EventSourcedTestKit, KeyValueEntityTestKit, LogCapturing}
-import io.eitheror.casino.simulator.st8.{Bonus, BonusBook, Instance}
+import io.eitheror.casino.provider.st8.{Bonus, BonusBook, Instance}
 
 /** The entities with no runtime (research R5): their rules, their idempotency, their folds. */
 class EntitySuite extends munit.FunSuite with LogCapturing:

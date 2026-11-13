@@ -76,10 +76,34 @@ merchant-it:
 merchant-run brands='[{"slug":"goldvibe","name":"Goldvibe"}]':
     cd services/merchant && MERCHANT_BRANDS='{{brands}}' sbt run
 
-# Run sbt in one service's own build: `just service game-provider test`. The contract is published first.
+# Run sbt in one service's own build: `just service game-provider test`. The contract and the
+# provider core (spec 026) are published first. `just service <game> client` builds a game service's
+# browser client instead (spec 026 contracts/game-client.md): `npm ci && npm run build` in
+# `services/<game>/client/`, writing `src/main/resources/client/`; a service with no client has nothing to build.
 service name +args:
-    sbt contract/publishLocal
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ '{{args}}' = 'client' ]; then
+      if [ -d services/{{name}}/client ]; then cd services/{{name}}/client && npm ci && npm run build
+      else echo "services/{{name}} has no client: nothing to build"; fi
+      exit 0
+    fi
+    sbt contract/publishLocal providerCore/publishLocal
     cd services/{{name}} && sbt {{args}}
+
+# The house provider's suites (spec 026): the product rule, the parity replay, the bound features of
+# features/games/ and the integration suite over Postgres in Docker.
+provider-test:
+    sbt contract/publishLocal providerCore/publishLocal
+    cd services/provider && sbt test
+
+# The house provider's integration suite only (Docker): a late, failing and silent brand (SC-004).
+provider-it:
+    cd services/provider && sbt "testOnly io.eitheror.casino.provider.edge.ProviderIntegrationSuite"
+
+# The house provider's launch and check latency against the fake brand and the test game (SC-003).
+provider-perf:
+    cd services/provider && PROVIDER_PERF=1 sbt "testOnly io.eitheror.casino.provider.edge.PerfSuite"
 
 # psp-gateway's suites (spec 005; Docker for the integration kit and psp-stub's image). The contract is published first.
 psp-gateway-test:

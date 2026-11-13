@@ -28,7 +28,7 @@ final case class ProviderConfiguration(
   /** What an operator reads back: everything but the private key. */
   def view(provider: String): ProviderConfigurationView =
     ProviderConfigurationView(provider, apiUrl, site, providerPublicKey, providerKeyDocumentUrl, jurisdiction, lobbyUrl,
-      depositUrl, walletUrl, updatedAt)
+      depositUrl, walletUrl, updatedAt, St8Signature.publicKeyOf(operatorPrivateKey).toOption)
 
   /** The refusal a write is answered with, or none (contracts/routes.md, operator). */
   def problem(realMoney: Boolean): Option[String] =
@@ -52,7 +52,9 @@ final case class ProviderConfigurationView(
     lobbyUrl: String,
     depositUrl: String,
     walletUrl: Option[String],
-    updatedAt: Option[Instant]
+    updatedAt: Option[Instant],
+    /** The public half of the operator key (spec 026), for the provider's brand entry; the private half is never answered. */
+    operatorPublicKey: Option[String] = None
 )
 
 object ProviderConfiguration:

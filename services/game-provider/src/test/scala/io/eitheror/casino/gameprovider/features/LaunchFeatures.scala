@@ -234,3 +234,36 @@ class LaunchFeatures extends ProviderFeatures("launch.feature"):
     assertEquals(last.json.text("freeSpinsGrantRef"), Some("grant-oldest"), last.text)
     assertEquals(ticketState(last.json.text("launchToken").get).freeRoundsGrant, Some("grant-oldest"))
   }
+
+  // ---- a second provider of the same protocol under its own name (spec 026 R11) -------------------
+
+  private var houseTicket = ""
+  private var houseBody: com.fasterxml.jackson.databind.JsonNode = null
+  private var served: Reply = null
+
+  Given("a brand that holds credentials for two game providers of the same protocol, the second named {string}") { (name: String) =>
+    assertEquals(kit.configureSt8().status, 204)
+    assertEquals(kit.configure(name, kit.acme, keyDocument = false).status, 204)
+    val player = s"p-house-${System.nanoTime()}"
+    houseTicket = kit.sessionTicket(player, provider = name)
+    kit.wallet.set(player, "EUR", 700)
+    houseBody = kit.money("token" -> houseTicket, "player" -> player, "currency" -> "EUR")
+  }
+
+  When("the second game provider sends a provider call under its own name") { () =>
+    served = kit.callback("balance", houseBody, path = Some("/eitheror/balance"))
+  }
+
+  Then("it is served under that name") { () =>
+    assertEquals(served.word, "ok", served.text)
+    assertEquals(served.json.text("balance"), Some("7.00"))
+    // And under the brand-segmented prefix, as the wallet URL names it.
+    assertEquals(kit.callback("balance", houseBody, path = Some(s"/v1/casino/brands/${kit.brand}/eitheror/balance")).word, "ok")
+  }
+
+  Then("a provider call of the second game provider sent under the first's name or under none is not served") { () =>
+    Vector("/st8/balance", "/balance", s"/v1/casino/brands/${kit.brand}/st8/balance").foreach { path =>
+      val r = kit.callback("balance", houseBody, path = Some(path))
+      assert(!r.text.contains("7.00"), s"$path answered the house provider's call with the balance: ${r.text}")
+    }
+  }

@@ -80,7 +80,9 @@ object Parity:
     Divergence("The player's read shows each category's current document", Seq(".body.documents"),
       "a category shows its current document, not the one it replaced", (_, s) => superseded(s)),
     Divergence("Another player's id is `player_id_mismatch`", Seq(".body.error"), "another player's id is player_id_mismatch",
-      at("TestScenario28_KYCDocuments_PlayerViewingAnotherPlayersDocumentRefused")("GET", "/view-url"))
+      at("TestScenario28_KYCDocuments_PlayerViewingAnotherPlayersDocumentRefused")("GET", "/view-url")),
+    Divergence("The known profiles name `ANJOUAN` (spec 026 US7)", Seq(".body.knownProfiles"), "the known profiles name ANJOUAN",
+      at("TestScenario29_KYCPolicy_UnknownProfileRefused")("POST", "/kyc-policy/profile"))
   )
 
   def diverging(recording: Recording): Vector[Divergence] = divergences.filter(_.reached(recording))

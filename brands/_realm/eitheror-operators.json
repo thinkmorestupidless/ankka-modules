@@ -49,6 +49,9 @@
         "name": "api_keys"
       },
       {
+        "name": "games"
+      },
+      {
         "name": "affiliate"
       },
       {

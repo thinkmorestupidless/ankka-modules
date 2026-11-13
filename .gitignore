@@ -11,3 +11,6 @@ __pycache__/
 .akka-license-key
 .lightbend-commercial-credentials-token
 tests/stubs/bin/
+
+# A game service's built browser client (spec 026 contracts/game-client.md): `just service <game> client` writes it.
+services/*/src/main/resources/client/

@@ -64,6 +64,30 @@ lazy val contract = project
     Compile / run / baseDirectory := (ThisBuild / repoRoot).value
   )
 
+/**
+ * The game provider's core (spec 026 FR-005): sessions, rounds, scheduled and signed callbacks,
+ * delivery with retries, key rotation, the ST8 protocol adapter and the outbound sender, shared by
+ * the simulator (`tools`) and the house provider (`games`). Scenarios stay in the simulator, so
+ * nothing scripted is on the provider's classpath. Its test kit (`FakeBrand`, `TestGame`) is
+ * published as the `tests` classifier for both services' suites.
+ */
+lazy val providerCore = project
+  .in(file("provider-core"))
+  .dependsOn(contract)
+  .settings(commonTest)
+  .settings(
+    name := "casino-provider-core",
+    libraryDependencies ++= Seq(
+      "com.thinkmorestupidless" %% "ankka-sdk"     % ankkaVersion,
+      "com.thinkmorestupidless" %% "ankka-runtime" % ankkaVersion,
+      "com.thinkmorestupidless" %% "ankka-http"    % ankkaVersion,
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.18.2",
+      "com.thinkmorestupidless" %% "ankka-testkit" % ankkaVersion % Test,
+      "org.scalameta"           %% "munit"         % munitVersion % Test
+    ),
+    Test / publishArtifact := true
+  )
+
 lazy val schemas = taskKey[Unit]("Writes contract/schemas/<topic>.v1.json from the families")
 
 lazy val modules = project
@@ -123,5 +147,5 @@ lazy val tlFixtures = project
 
 lazy val root = project
   .in(file("."))
-  .aggregate(contract, modules)  // modulesIt and tlFixtures are not aggregated: each runs on purpose
+  .aggregate(contract, providerCore, modules)  // modulesIt and tlFixtures are not aggregated: each runs on purpose
   .settings(publish / skip := true, name := "ankka-casino")

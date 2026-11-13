@@ -55,6 +55,7 @@ same for every brand and are literals in the descriptors, not keys.
 | casino-modules | core | string | no | | | `CASINO_MODULES` |
 | erasure-targets | core | string | no | | | `ERASURE_TARGETS` |
 | game-provider-mode | casino | string | no | | | `GAME_PROVIDER_MODE` |
+| casino-providers | casino | string | no | | | `CASINO_PROVIDERS` |
 | st8-operator-id | casino | string | no | | | `ST8_OPERATOR_ID` |
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
 | rewards-code-document-url | casino | string | no | | | `REWARDS_CODE_DOCUMENT_URL` |
@@ -96,6 +97,19 @@ of its own, so a brand entitled to `public-api` writes it.
 `rewards-code-document-url` (spec 011 R13) is where `rewards` fetches the programme's bonus code
 document for the brand. It is `none` when a brand writes none, and `rewards` then matches brand codes
 only, until spec 013 publishes a document.
+
+## The house provider's settings
+
+The `games` shared project (spec 026) is no module and has no brand values; its one service,
+`provider`, reads these from `shared/games/manifest.json`. Its staff issuer is rendered by the
+modules tool as every shared service's is.
+
+| Setting | Type | Secret | Default | Meaning |
+|---|---|---|---|---|
+| `PROVIDER_EXTERNAL_URL` | URL | no | (required) | the address brands and players reach; `game_url` and the key document are under it |
+| `PROVIDER_RETENTION_DAYS` | days | no | `90` | how long an ended session and its callbacks are kept |
+| `PROVIDER_RETRY_SCHEDULE` | JSON | no | `{"intervals":[{"every":"30s","for":"10m"},{"every":"10m"}],"cap":"8h"}` | when an unanswered callback is sent again; the scenario schema's `schedule` without `wait` |
+| `PROVIDER_LOCAL_CA` | PEM | yes, `games-provider/LOCAL_CA` | none | a local installation's CA, named by a brand entry's `caPem: env:PROVIDER_LOCAL_CA` |
 
 ## Not yet built
 

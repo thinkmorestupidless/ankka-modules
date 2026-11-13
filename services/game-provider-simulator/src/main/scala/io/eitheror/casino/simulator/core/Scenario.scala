@@ -1,5 +1,7 @@
 package io.eitheror.casino.simulator.core
 
+import io.eitheror.casino.provider.core.*
+
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.networknt.schema.{JsonSchemaFactory, SpecVersion}

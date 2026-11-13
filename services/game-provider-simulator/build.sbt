@@ -46,6 +46,10 @@ lazy val root = project
       // The contract's route recipes, recording replayer and layout: `sbt contract/publishLocal` at the
       // repository root first (spec 001 R4).
       "io.eitheror"             %% "casino-contract" % contractVersion,
+      // The core shared with the house provider (spec 026): sessions, callbacks, the ST8 adapter,
+      // the sender. `sbt providerCore/publishLocal` at the repository root, beside the contract.
+      "io.eitheror"             %% "casino-provider-core" % contractVersion,
+      "io.eitheror"             %% "casino-provider-core" % contractVersion % Test classifier "tests",
       "com.thinkmorestupidless" %% "ankka-auth-oidc" % ankkaVersion,
       // Scenarios are data validated against specs/020-.../contracts/scenario.schema.json (FR-019).
       "com.networknt"            % "json-schema-validator" % "1.5.8",
