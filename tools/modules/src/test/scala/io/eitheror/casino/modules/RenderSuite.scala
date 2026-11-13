@@ -56,8 +56,12 @@ class RenderSuite extends munit.FunSuite:
     "reporting"     -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "CLOSE_GRACE", "REPORTING_GENERATION")
   )
 
-  /** Services that run on a later ankka than spec 001's 0.13.0, for the `Personal` they store. */
-  private val NewRuntimes = Map("engagement" -> "0.16.0", "reporting" -> "0.16.0")
+  /**
+   * Services that run on a later ankka than spec 001's 0.13.0: engagement and reporting for the `Personal`
+   * they store, the rest of core and casino since platform 0.16.3 runs no 0.13 runtime.
+   */
+  private val NewRuntimes = Map("engagement" -> "0.16.0", "reporting" -> "0.16.0") ++
+    Seq("wallet", "players", "kyc", "responsible-gambling", "payouts", "attribution", "game-provider", "rewards").map(_ -> "0.16.2")
 
   /**
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
@@ -82,7 +86,7 @@ class RenderSuite extends munit.FunSuite:
         assertEquals(d.service.resources.instanceType, size, d.name)
         d.copy(service = d.service.copy(resources = before.service.resources))
       }
-      // engagement (spec 014) and reporting (spec 015 R2) run on ankka 0.16.0 for their `Personal`; spec 001 on 0.13.0.
+      // A later runtime than spec 001's 0.13.0 (NewRuntimes).
       val runtime = NewRuntimes.get(d.name).fold(resized) { v =>
         assertEquals(resized.service.runtime, Some(v), d.name)
         resized.copy(service = resized.service.copy(runtime = before.service.runtime))
