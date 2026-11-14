@@ -25,13 +25,13 @@ Decisions and evidence are in [research.md](research.md), R1–R16.
 
 ## Technical Context
 
-**Language/Version**: Scala 3.9.0 on ankka **0.16.0** (R1), the contract evicted to it as specs 014,
+**Language/Version**: Scala 3.9.0 on ankka **0.16.3** (R1; planned on 0.16.0, built on 0.16.3, the latest release), the contract evicted to it as specs 014,
 015 and 018 do. Go for the recording driver, in the original's toolchain.
 
 **Primary Dependencies**:
 
 - ankka: `ankka-sdk`, `ankka-runtime`, `ankka-http`, `ankka-auth-oidc`, `ankka-telemetry-otlp`,
-  `ankka-testkit`, all 0.16.0;
+  `ankka-testkit`, all 0.16.3;
 - `io.eitheror:casino-contract`;
 - `com.fasterxml.jackson.dataformat:jackson-dataformat-yaml`, at ankka's Jackson version (R2);
 - `com.networknt:json-schema-validator`, as `services/game-provider-simulator` (R2);
