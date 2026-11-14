@@ -22,9 +22,10 @@ final class Usage(components: ComponentClient):
     val t = components.forKeyValueEntity(EntityId(key.keyId)).call(KeyWindow.take).invoke(Take(now, key.requestsPerMinute))
     Option.unless(t.allowed)(Refusals.quotaExceeded(t.retryAfter.toLong))
 
-  def served(now: () => Instant)(call: Call, key: Admitted, answer: Respond[Bytes], ms: Long, disclosed: Vector[(String, Vector[String])]): Unit =
+  def served(now: () => Instant)(call: Call, key: Admitted, answer: Respond[Bytes], ms: Long, disclosed: Vector[(String, Vector[String])],
+      unrecorded: Int): Unit =
     val entry = keys.Served(UUID.randomUUID().toString, Usage.operation(call), answer.status, KeyLog.outcome(answer.status), ms,
-      disclosed.map((p, f) => Disclosed(p, f)), now())
+      disclosed.map((p, f) => Disclosed(p, f)), now(), unrecorded)
     try components.forEventSourcedEntity(EntityId(key.keyId)).call(KeyLog.served).invoke(entry): Unit
     catch case scala.util.control.NonFatal(e) => log.warn("public_api_key_log_failed key={} {}", key.keyId, e.getMessage)
 

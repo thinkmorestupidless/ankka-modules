@@ -20,7 +20,9 @@ final case class Served(call: Call, key: Admitted, ids: Map[String, String]):
  * contracts/routes.md's pipeline, steps 2 to 5, for every keyed `/v1` operation, all under the request budget
  * (`Deadline`): the key presented and admitted, its rate (`rate`, step 4), the path ids, then the handler by operation
  * id. After every answer to a request that named a key of this brand, `served` is told of it (step 6, the key's log); a key
- * id no key was created under is recorded nowhere, so a made-up key costs the brand no write (FR-036). A refusal never
+ * id no key was created under is recorded nowhere, so a made-up key costs the brand no write, and a key's refusals are
+ * recorded up to `RefusalCap`'s bound a minute (FR-036). The pipeline is built once per endpoint: its budget's threads
+ * and the cap's counts are its own. A refusal never
  * carries what a handler held, and only a `2xx` answer reports the players it disclosed.
  */
 final class Pipeline(
@@ -30,9 +32,10 @@ final class Pipeline(
     now: () => Instant,
     handlers: Map[String, Served => Respond[Bytes]],
     rate: (Admitted, Instant) => Option[Refusal] = (_, _) => None,
-    served: (Call, Admitted, Respond[Bytes], Long, Vector[(String, Vector[String])]) => Unit = (_, _, _, _, _) => ()
+    served: (Call, Admitted, Respond[Bytes], Long, Vector[(String, Vector[String])], Int) => Unit = (_, _, _, _, _, _) => ()
 ):
   private val deadline = Deadline(settings.budget)
+  private val cap      = RefusalCap(RefusalCap.PerMinute, now)
   private val all      = Pipeline.builtIn(contract) ++ handlers
 
   def apply(op: Operation, call: Call): Respond[Bytes] =
@@ -40,11 +43,12 @@ final class Pipeline(
     // FR-036: a request that named a key of this brand is recorded, refused or not; one refused before a key is named,
     // or naming a key id no key was created under, is not. One whose admission outlived the budget is not known to name one.
     val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](None)
+    val refused  = java.util.concurrent.atomic.AtomicBoolean(false)
     val request  = java.util.concurrent.atomic.AtomicReference[Option[Served]](None)
     val answer = deadline.run {
       Admission.admit(clients.componentClient, call.authorization, now()) match
         case Left(rejected) =>
-          rejected.key.foreach(id => admitted.set(Some(Admitted(id, Set.empty, 0))))
+          rejected.key.foreach { id => refused.set(true); admitted.set(Some(Admitted(id, Set.empty, 0))) }
           rejected.refusal.respond
         case Right(key) =>
           admitted.set(Some(key))
@@ -55,7 +59,11 @@ final class Pipeline(
           }
     }
     val shown = Pipeline.disclosed(answer, request.get)
-    admitted.get.foreach(k => Try(served(call, k, answer, (System.nanoTime() - started) / 1000000, shown)))
+    // A key's refusals are recorded up to the cap a minute, the rest counted onto its next recorded one (FR-036).
+    admitted.get.foreach { k =>
+      val unrecorded = if refused.get then cap.refused(k.keyId) else Some(0)
+      unrecorded.foreach(n => Try(served(call, k, answer, (System.nanoTime() - started) / 1000000, shown, n)))
+    }
     answer
 
 object Pipeline:
