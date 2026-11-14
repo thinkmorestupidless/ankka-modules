@@ -524,6 +524,28 @@ Applied on this branch:
   sessions, rounds, bets, transactions and bonus awards from real producers, which need ST8's
   callbacks and a deposit through the payments project.
 
+- **The recordings (T091, 2026-11-14).** Recorded on the original at `7630feb0` (the rewards worktree),
+  on a freshly built `eitheror-dev`: the original's statistics and rankings count every player on the
+  stack, so a run on a stack that held earlier runs answered three runs' figures (381 rounds where the
+  seed made 127) and ranks that skipped other runs' players. Only a run on a fresh stack can be
+  replayed. Two driver defects were fixed on the way: the seed's own player-statistics run put the
+  brand inside the original's 30-minute retention guard, so `player-ranking` could never be recorded
+  with `-retention-wait 0` (now 31m by default); and the original merges `gameOverrides`, so the games
+  recording's restore left the disabled game off (it now turns it back on by name). The recipe wrote
+  under the driver's package directory (`go test` runs there); `EITHEROR_RECORD_TO` is absolute now.
+  The MinIO server and `mc` images pull from nowhere public; built from their release tags and loaded.
+- **What the original answers that the parity suites mark (T092).** Each is a decision this spec
+  already took, named in `port/Parity.scala`'s divergences: a deposit and a bonus credit are `settled`
+  there and `completed` here (fields.md Enums); a loss row copies the stake there and has no amount here;
+  a lost round's bet record says `settled` there and `loss` here (fields.md Bet.status); a bet record has
+  its own id and time there, here it is its BET transaction; an award's `value` is `face_value` cents
+  rendered as major units there ("5000.00" for a 50.00 deposit match), here the reward's amount; free
+  rounds with no offer are counted in a player's `bonus-awards` total there and never served (R16.5),
+  here they are an award; and the OpenAPI document and reference page are the amended contract. Two more
+  of the original's answers need no marking, because the comparison is by role: its `Transaction.roundId`
+  is the provider's round id, not the round record's, and its players list answers a `total` above the
+  records it serves (18 for 9 on the stack that held earlier runs).
+
 ## Declined remediations
 
 ## Design finished
