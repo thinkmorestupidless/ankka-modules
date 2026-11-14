@@ -42,7 +42,7 @@ just public-api-perf           # StatsPerfSuite, SC-008
 | identifying fields and erasure (US4) | `IdentifyingFieldsSuite`, `ErasureSuite`, `DiagnosticsSuite` |
 | games and game statistics (US5) | `CatalogueSuite`, `CatalogueCacheSuite`, `GamesSuite`, `GameStatsSuite`, `StatsRunSuite` |
 | player statistics and snapshots (US6) | `PlayerFiguresSuite`, `PlayerStatsSuite`, `PlayerRankingSuite`, `RankingCrawlSuite` |
-| audit, rate and the budget (US8) | `AuditSuite`, `QuotaSuite` (two instances, one database), `BudgetSuite` |
+| audit, rate and the budget (US8) | `AuditSuite`, `QuotaSuite` (two instances, one database), `BudgetSuite`; SC-006 is `perf.QuotaPerfSuite` |
 
 ## 4. Run it
 

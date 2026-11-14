@@ -70,7 +70,7 @@ curl -s localhost:9016/v1/players -H "Authorization: Bearer <secret>"
 - Features (`features`): `features/public-api/*.feature`, bound against the kit.
 - Parity (`port`): the original's recordings replayed; each suite skips, naming its recording, while
   `tests/port/public-api/` lacks it.
-- Perf (`perf`): `StatsPerfSuite` (SC-002, SC-003, SC-008).
+- Perf (`perf`): `StatsPerfSuite` (SC-002, SC-003, SC-008) and `QuotaPerfSuite` (SC-006: another key not slowed, a latency comparison kept off shared runners).
 
 ## The contract
 
