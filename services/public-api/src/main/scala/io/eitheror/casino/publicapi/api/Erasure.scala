@@ -11,12 +11,17 @@ import io.eitheror.casino.publicapi.records.{ErasePlayer, PlayerRecord}
  * also destroys the subject's key, which every stored copy then reads as erased. Ids, statuses and amounts stay.
  */
 object Erasure:
+  /** The player's record erased; true when it held anything to erase, so a second erasure finds nothing. */
+  def erasePlayer(components: ComponentClient, player: String): Boolean =
+    components.forKeyValueEntity(EntityId(player)).call(PlayerRecord.erase).invoke(ErasePlayer(player))
+
   def erase(components: ComponentClient, player: String): String =
-    components.forKeyValueEntity(EntityId(player)).call(PlayerRecord.erase).invoke(ErasePlayer(player)): Unit
+    erasePlayer(components, player): Unit
     s"""{"service":"public-api","subject":"player/$player"}"""
 
-  val handler: ErasureHandler = ErasureHandler { ctx => subject =>
-    val name = subject.value
-    if name.startsWith("player/") && name.length > "player/".length then erase(ctx.client, name.stripPrefix("player/")): Unit
-    ErasureReport(0)
-  }
+  /** The objects an erasure of `subject` erased here: the player's record, once; nothing for any other subject. */
+  def erased(components: ComponentClient, subject: String): Long =
+    val player = subject.stripPrefix("player/")
+    if subject.startsWith("player/") && player.nonEmpty && erasePlayer(components, player) then 1L else 0L
+
+  val handler: ErasureHandler = ErasureHandler(ctx => subject => ErasureReport(erased(ctx.client, subject.value)))

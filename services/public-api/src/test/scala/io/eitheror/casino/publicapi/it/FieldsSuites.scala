@@ -73,7 +73,8 @@ class ErasureSuite extends munit.FunSuite:
     kit.eventually("the deposit kept")(Option.when(
       kit.v1(s"/players/$pl/transactions", Some(all.secret)).json.path("data").path(0).path("amount").asText() == "12.50")(()))
     kit.publish(f.CasinoPlayers, f.PlayerEmailChanged(pl, FactSet.p("again@example.com"), at.plusSeconds(5)))
-    Thread.sleep(500)
+    val next = Identifying.player(kit, at, "after-erasure@example.com") // waits for a later fact on the topic to be served
+    assert(kit.v1(s"/players/$next", Some(all.secret)).json.has("email"))
     assert(!kit.v1(s"/players/$pl", Some(all.secret)).json.has("email"))
   }
 
@@ -85,6 +86,13 @@ class ErasureSuite extends munit.FunSuite:
     Identifying.Names.foreach(n => assert(!kit.v1(s"/players/$pl", Some(all.secret)).json.has(n), n))
     // Values of two or three letters ("SP", "Ana") turn up by chance in other rows' ciphertext, as base64 or hex.
     kit.testKit.assertNoPersonalValue(Identifying.values("platform-erased@example.com").filter(_.length >= 5)*)
+  }
+
+  test("the installation's erasure reports the player's record as one object erased, then none; another subject none") {
+    val pl = Identifying.player(kit, at, "counted@example.com")
+    assertEquals(io.eitheror.casino.publicapi.api.Erasure.erased(kit.components, s"player/$pl"), 1L)
+    assertEquals(io.eitheror.casino.publicapi.api.Erasure.erased(kit.components, s"player/$pl"), 0L, "a rerun erases nothing")
+    assertEquals(io.eitheror.casino.publicapi.api.Erasure.erased(kit.components, s"operator/$pl"), 0L)
   }
 
   test("only players may call it; another brand's segment is 404") {
