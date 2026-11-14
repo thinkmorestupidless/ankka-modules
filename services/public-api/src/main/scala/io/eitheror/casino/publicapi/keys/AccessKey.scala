@@ -44,8 +44,12 @@ final case class Change(name: Option[String] = None, expiresAt: Option[Instant] 
 final case class By(by: String, at: Instant)
 final case class Admit(digest: String, now: Instant)
 
-/** `admit`'s answer: a refusal's code, or the key's fields and rate. */
-final case class Admission(refused: Option[String] = None, identifyingFields: Set[String] = Set.empty, requestsPerMinute: Int = 0):
+/**
+ * `admit`'s answer: a refusal's code, or the key's fields and rate. `known` is false only for a key id no key was ever
+ * created under, whose refusal is recorded nowhere (FR-036); a deleted key is known.
+ */
+final case class Admission(refused: Option[String] = None, identifyingFields: Set[String] = Set.empty, requestsPerMinute: Int = 0,
+    known: Boolean = true):
   def admitted: Boolean = refused.isEmpty
 
 final class AccessKey(context: EventSourcedEntityContext) extends EventSourcedEntity[KeyState, KeyEvent]:
@@ -142,7 +146,8 @@ object AccessKey extends EventSourcedEntity.Companion[AccessKey, KeyState, KeyEv
    * secret never learns whether the key is disabled or expired; then expired, then disabled.
    */
   def admission(s: KeyState, a: Admit): Admission =
-    if !s.exists || s.deleted || !s.digest.exists(RawKeys.same(_, a.digest)) then Admission(Some("key_invalid"))
+    if !s.exists then Admission(Some("key_invalid"), known = false)
+    else if s.deleted || !s.digest.exists(RawKeys.same(_, a.digest)) then Admission(Some("key_invalid"))
     else if s.expiresAt.exists(x => !a.now.isBefore(x)) then Admission(Some("key_expired"))
     else if !s.enabled then Admission(Some("key_disabled"))
     else Admission(None, s.identifyingFields, s.requestsPerMinute)

@@ -19,8 +19,9 @@ final case class Served(call: Call, key: Admitted, ids: Map[String, String]):
 /**
  * contracts/routes.md's pipeline, steps 2 to 5, for every keyed `/v1` operation, all under the request budget
  * (`Deadline`): the key presented and admitted, its rate (`rate`, step 4), the path ids, then the handler by operation
- * id. After every answer to a request that named a key, `served` is told of it (step 6, the key's log). A refusal never carries what a
- * handler held.
+ * id. After every answer to a request that named a key of this brand, `served` is told of it (step 6, the key's log); a key
+ * id no key was created under is recorded nowhere, so a made-up key costs the brand no write (FR-036). A refusal never
+ * carries what a handler held, and only a `2xx` answer reports the players it disclosed.
  */
 final class Pipeline(
     settings: Settings,
@@ -36,13 +37,15 @@ final class Pipeline(
 
   def apply(op: Operation, call: Call): Respond[Bytes] =
     val started = System.nanoTime()
-    // FR-036: a request that named a key is recorded, refused or not; one refused before a key is named is not.
-    val named   = Admission.presented(call.authorization).toOption.map((keyId, _) => Admitted(keyId, Set.empty, 0))
-    val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](named)
+    // FR-036: a request that named a key of this brand is recorded, refused or not; one refused before a key is named,
+    // or naming a key id no key was created under, is not. One whose admission outlived the budget is not known to name one.
+    val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](None)
     val request  = java.util.concurrent.atomic.AtomicReference[Option[Served]](None)
     val answer = deadline.run {
       Admission.admit(clients.componentClient, call.authorization, now()) match
-        case Left(refusal) => refusal.respond
+        case Left(rejected) =>
+          rejected.key.foreach(id => admitted.set(Some(Admitted(id, Set.empty, 0))))
+          rejected.refusal.respond
         case Right(key) =>
           admitted.set(Some(key))
           rate(key, now()).map(_.respond).getOrElse {
@@ -51,11 +54,19 @@ final class Pipeline(
             })
           }
     }
-    admitted.get.foreach(k =>
-      Try(served(call, k, answer, (System.nanoTime() - started) / 1000000, request.get.fold(Vector.empty)(_.disclosed.toVector))))
+    val shown = Pipeline.disclosed(answer, request.get)
+    admitted.get.foreach(k => Try(served(call, k, answer, (System.nanoTime() - started) / 1000000, shown)))
     answer
 
 object Pipeline:
+  /**
+   * The players an answer disclosed, for the audit. A `2xx` answer is the handler's own, finished before the budget's
+   * `run` returned; any other may be the budget's `503` with the handler still running and still adding to its list,
+   * so it discloses nothing (FR-036: only identifying fields served are recorded).
+   */
+  def disclosed(answer: Respond[Bytes], request: Option[Served]): Vector[(String, Vector[String])] =
+    if answer.status / 100 == 2 then request.fold(Vector.empty)(_.disclosed.toVector) else Vector.empty
+
   /** The contract's identifier formats: `Uuid` and `GameCode` (original `rest/router.ts` VALIDATORS). */
   private val Uuid     = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".r
   private val GameCode = "^[A-Za-z0-9._-]{1,64}$".r

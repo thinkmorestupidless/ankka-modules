@@ -105,6 +105,15 @@ sessions below; the rest are superseded by the rewrite.
   this spec go? → A: It amends every producer, additively: `players`, `game-provider`, `wallet` and
   `rewards` (Trevor). The amendments are listed in the plan's `contracts/facts.md`.
 
+### Session 2026-11-14
+
+- Q: Is a request presenting a well-formed key id that no key was created under recorded (review of
+  the build)? → A: No. Only a key of the brand is recorded, deleted or not, with a wrong secret; an
+  unknown id would let anyone write to the brand's journal and audit without limit (FR-036).
+- Q: Does "neither repeated nor skipped" hold for a record arriving late with an earlier time? → A:
+  No: it holds for records later than the last one read, as offset paging in the original gives
+  (FR-014).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - An operator creates a key and a caller reads the brand with it (Priority: P1)
@@ -394,8 +403,10 @@ past its rate while another reads.
   page past the end, or an empty collection, with an empty page and the true total. *Original 255
   FR-010, FR-011, `paging` and `boundaries` suites.*
 - **FR-014**: A collection's order MUST be fixed and ascending by registration, start, creation or
-  grant time, and by game code for games, with the record id breaking ties, so a record arriving
-  while a caller pages is neither repeated nor skipped. *Original 255 FR-012; the tie-break is new,
+  grant time, and by game code for games, with the record id breaking ties, so a record later than
+  the last one read, arriving while a caller pages, is neither repeated nor skipped. A record that
+  arrives late with an earlier time, or one no longer served, can shift a later page by one: paging
+  is by offset, as the original's is. *Original 255 FR-012; the tie-break is new,
   under* Changes.
 
 **Keys**
@@ -477,10 +488,13 @@ past its rate while another reads.
 - **FR-035**: A request the service cannot answer within five seconds MUST be refused with
   `unavailable`, distinguishable from `not_found` and `invalid_request`. *Original 255 edge case,
   `REQUEST_TIMEOUT_MS`.*
-- **FR-036**: Every request that named a key MUST produce one audit record on the brand's
+- **FR-036**: Every request that named a key of the brand MUST produce one audit record on the brand's
   `platform.audit` topic naming the key, the operation, the ids of players whose identifying fields
   were served with the field names, the duration, the time and the outcome, and never a value. A
-  request refused before a key is named (no key, a malformed key) names none and is not recorded.
+  key of the brand is one an operator created, deleted or not, so a wrong secret for it is recorded
+  against it. A request refused before a key is named (no key, a malformed key), or naming a key id
+  no key was created under, names none of the brand's and is not recorded: an unknown key costs the
+  brand no write.
   *Original `audit.ts`, `server.ts:181-193`, `audit` suite; the Loki line replaced.*
 - **FR-037**: Each player whose identifying fields a request served MUST also be the subject of an
   audit record naming the key, the field names and the time, so a subject access request answers from

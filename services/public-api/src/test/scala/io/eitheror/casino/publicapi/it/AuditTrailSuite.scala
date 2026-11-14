@@ -28,17 +28,22 @@ class AuditTrailSuite extends munit.FunSuite:
     texts.foreach(t => assert(!t.contains("trail-a@example.com") && !t.contains("trail-b@example.com") && !t.contains(k.secret), t))
   }
 
-  test("a refusal with a key named is recorded with its outcome; one without a key or with a malformed key is not") {
+  test("a refusal of a key of the brand is recorded with its outcome; no key, a malformed key or a made-up key id is not") {
     val d = Keys.disabled(kit)
-    val before = records.count(_.action == "public_api.read")
     assertEquals(kit.v1("/contract", Some(d.secret)).status, 403)
     val r = kit.eventually("the refusal recorded")(reads(d.id).headOption)
     assertEquals((r.outcome, r.changes.find(_.field == "status").flatMap(_.after)), ("refused", Some("403")))
+    val (madeUp, madeUpKey) = io.eitheror.casino.publicapi.keys.RawKeys.mint()
+    val wrongSecret          = s"ak_${d.id}_${madeUpKey.stripPrefix(s"ak_${madeUp}_")}"
     assertEquals(kit.v1("/contract").status, 401)
     assertEquals(kit.v1("/contract", Some("ak_nope")).status, 401)
-    Thread.sleep(500)
-    val later = records.filter(_.action == "public_api.read").drop(before)
-    assert(later.forall(_.actorId == d.id), later.toString)
+    assertEquals(kit.v1("/contract", Some(madeUpKey)).status, 401)
+    assertEquals(kit.v1("/contract", Some(wrongSecret)).status, 401)
+    // The wrong secret names the disabled key, and is its second record: once it is published, the made-up key's
+    // record, had there been one, was written before it (each key's log is written within its request).
+    val both = kit.eventually("the wrong secret recorded under its key")(Option(reads(d.id)).filter(_.size == 2))
+    assertEquals(both.map(_.changes.find(_.field == "status").flatMap(_.after)), Vector(Some("403"), Some("401")))
+    assertEquals(records.filter(_.actorId == madeUp), Vector.empty)
   }
 
   test("each request record carries status, outcome and duration, so a key's volume, errors and latency are its records (FR-038)") {

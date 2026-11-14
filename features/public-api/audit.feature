@@ -1,5 +1,5 @@
 Feature: Every read is recorded, and each access key's limits are kept
-  Every request that presents an access key leaves one audit record naming the key, the operation, the
+  Every request that presents an access key of the brand leaves one audit record naming the key, the operation, the
   players and field names served, the duration and the outcome, and never a value. A key over its
   requests per minute is refused with when to retry, and no other key is slowed.
 
