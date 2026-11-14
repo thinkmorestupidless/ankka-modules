@@ -496,6 +496,9 @@ func TestTheSeedAndEveryRecordingWriteNoCredentialAndNameEveryTokenTheyCarry(t *
 			if a, ok := s.Request.Headers["Authorization"]; ok && a != "Bearer not-a-token" && !(strings.HasPrefix(a, "Bearer {") && strings.HasSuffix(a, "}")) {
 				t.Errorf("%s: step %q: Authorization %q", rec.Scenario, s.Name, a)
 			}
+			if answer := string(s.Response.Body); strings.Contains(answer, "secretpart") || strings.Contains(answer, "lt-") {
+				t.Errorf("%s: step %q answers a credential as it was issued: %s", rec.Scenario, s.Name, answer)
+			}
 			if strings.Contains(sent, "@example.test") {
 				t.Errorf("%s: step %q carries an address as it is: %s", rec.Scenario, s.Name, sent)
 			}

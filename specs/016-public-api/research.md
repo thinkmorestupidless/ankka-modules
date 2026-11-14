@@ -216,7 +216,7 @@ Decisions for [plan.md](plan.md), each with what was read. Paths under `original
   This branch adds `GET /v1/casino/brands/{brand}/game-provider/games` to its `BrandsEndpoint` under
   `Routes.serviceOf("rewards", "public-api")` ([contracts/facts.md](contracts/facts.md) G8). The
   service reads the brand's available games from it, applies the original's release-date gate
-  (`browse` gates on deprecation, not release), and holds them and holds them in a
+  (`browse` gates on deprecation, not release), and holds them in a
   cache for at most five minutes, loading once at a time and serving the last value while
   revalidating. A failed load is not cached (original `src/games/ttlCache.ts`). This is a command
   answered in the request path by the owner (constitution IV), not a read of its store.
@@ -544,7 +544,9 @@ Applied on this branch:
   here they are an award; and the OpenAPI document and reference page are the amended contract. Two more
   of the original's answers need no marking, because the comparison is by role: its `Transaction.roundId`
   is the provider's round id, not the round record's, and its players list answers a `total` above the
-  records it serves (18 for 9 on the stack that held earlier runs).
+  records it serves (6 for 3 on a fresh stack, 18 for 9 on one that held earlier runs), which the
+  parity suites mark; and it served a game disabled by the operator as `404` within about a minute,
+  where the five minutes of R9 is the bound here (the replay moves its clock past it).
 
 ## Declined remediations
 

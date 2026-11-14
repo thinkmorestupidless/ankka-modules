@@ -595,9 +595,35 @@ func (s *Session) write() {
 		return
 	}
 	b, _ := json.MarshalIndent(File{Recording: *s.rec, Roles: s.Roles()}, "", "  ")
-	if err := os.WriteFile(path, append(b, '\n'), 0o644); err != nil {
+	if err := os.WriteFile(path, append([]byte(s.redact(string(b))), '\n'), 0o644); err != nil {
 		s.t.Errorf("recording %s: %v", s.rec.Scenario, err)
 	}
+}
+
+// Credentials are the names of what the original issued a player: sign-in and refresh tokens, the
+// verification link and the launch token. Requests carry them as `{name}` already (template); the
+// answers that issued them carry them as they were, so the file names them there too. Ids stay as
+// they are in answers: a replay reads them by role.
+var Credentials = []string{"token-", "refresh-of-", "link-of-", "launch-"}
+
+// redact replaces every credential this run holds with its `{name}`, anywhere in the file.
+func (s *Session) redact(text string) string {
+	names := make([]string, 0, len(s.order))
+	for _, n := range s.order {
+		for _, p := range Credentials {
+			if strings.HasPrefix(n, p) && s.ids[n] != "" {
+				names = append(names, n)
+			}
+		}
+	}
+	sort.SliceStable(names, func(i, j int) bool { return len(s.ids[names[i]]) > len(s.ids[names[j]]) })
+	for _, n := range names {
+		v := s.ids[n]
+		for _, form := range []string{v, url.QueryEscape(v), url.PathEscape(v)} {
+			text = strings.ReplaceAll(text, form, "{"+n+"}")
+		}
+	}
+	return text
 }
 
 // FileName is a recording's file name: its words, with anything a path cannot hold made a dash.
