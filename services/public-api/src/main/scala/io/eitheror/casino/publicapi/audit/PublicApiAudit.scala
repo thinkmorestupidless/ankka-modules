@@ -9,7 +9,8 @@ import io.eitheror.casino.publicapi.keys.{AccessKey, IdentifyingFields, KeyEvent
 
 /**
  * contracts/facts.md's *Published* records on `platform.audit` (research R6). Each record's id is derived from the
- * event it reports, so a redelivered event is the same record (spec 018 stores a record id once). No record carries
+ * event it reports (a key change from the key and the event's sequence number, a read from its request id), so a
+ * redelivered event is the same record (spec 018 stores a record id once) and two events are never one. No record carries
  * an identifying value, the key or its digest: a key change names the fields it changed, a read the names of the
  * fields it served.
  */
@@ -20,9 +21,9 @@ object Audit:
       outcome: String, changes: Vector[AuditChange], recordClass: String, at: java.time.Instant): AuditRecord =
     AuditRecord(id, brand, Service, action, actorKind, actorId, None, subjectKind, subjectId, outcome, None, changes, id, id, recordClass, at)
 
-  def key(brand: String, keyId: String, e: KeyEvent): AuditRecord =
+  def key(brand: String, keyId: String, sequenceNumber: Long, e: KeyEvent): AuditRecord =
     def r(kind: String, by: String, at: java.time.Instant, changes: Vector[AuditChange]) =
-      record(brand, s"access-key/$keyId/$kind/${at.toEpochMilli}", s"access_key.$kind", "operator", by, "access_key", keyId, "done", changes,
+      record(brand, s"access-key/$keyId/$sequenceNumber", s"access_key.$kind", "operator", by, "access_key", keyId, "done", changes,
         "security", at)
     e match
       case KeyEvent.KeyCreated(_, name, _, expires, fields, rate, by, at) =>
@@ -38,12 +39,12 @@ object Audit:
 
   private def names(fields: Set[String]): String = IdentifyingFields.Names.filter(fields).mkString(",")
 
-  /** A request's record, and one per player whose identifying fields it served (FR-037, FR-038). */
+  /** A request's record, naming the players whose identifying fields it served, and one record per such player (FR-036–FR-038). */
   def read(brand: String, keyId: String, s: Served): Vector[AuditRecord] =
     val request = record(brand, s"public-api/${s.requestId}", "public_api.read", "access_key", keyId, "access_key", keyId, s.outcome,
       Vector(AuditChange("operation", None, Some(s.operation)), AuditChange("status", None, Some(s.status.toString)),
         AuditChange("duration_ms", None, Some(s.durationMs.toString))) ++
-        s.players.map(p => AuditChange(s"player:${p.playerId}", None, Some(p.fields.mkString(",")))),
+        s.players.filter(_.fields.nonEmpty).map(p => AuditChange(s"player:${p.playerId}", None, Some(p.fields.mkString(",")))),
       "system", s.at)
     val disclosed = s.players.filter(_.fields.nonEmpty).map { p =>
       record(brand, s"public-api/${s.requestId}/${p.playerId}", "public_api.identifying_fields_served", "access_key", keyId, "player",
@@ -57,7 +58,7 @@ object Audit:
     else effects.produceAll(records.map(r => effects.message(r: PlatformAuditFact).withKey(r.key).withMetadata(Metadata.empty.set("ce-id", r.recordId))))
 
 final class KeyAuditConsumer(brand: String) extends Consumer[KeyEvent, PlatformAuditFact]:
-  def onMessage(e: KeyEvent): Effect = Audit.produce(effects, Vector(Audit.key(brand, messageContext.subject, e)))
+  def onMessage(e: KeyEvent): Effect = Audit.produce(effects, Vector(Audit.key(brand, messageContext.subject, messageContext.sequenceNumber, e)))
 
 final class KeyAudit(brand: String) extends AuditCompanion[KeyAuditConsumer, KeyEvent]("access-key-audit", ChangeSource.eventsOf(AccessKey)):
   def create(ctx: ConsumerContext) = new KeyAuditConsumer(brand)
