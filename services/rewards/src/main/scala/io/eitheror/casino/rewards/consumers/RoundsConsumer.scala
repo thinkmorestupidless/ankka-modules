@@ -2,7 +2,7 @@ package io.eitheror.casino.rewards.consumers
 
 import com.thinkmorestupidless.ankka.core.{ComponentId, EntityId}
 import com.thinkmorestupidless.ankka.sdk.*
-import io.eitheror.casino.contract.facts.{CasinoRounds, CasinoRoundsFact, RoundSettled}
+import io.eitheror.casino.contract.facts.{CasinoRounds, CasinoRoundsFact, RoundOpened, RoundSettled}
 import io.eitheror.casino.rewards.player.{PlayerRewards, RecordUnmatchedRound, UnmatchedRound}
 import io.eitheror.casino.rewards.reward
 import io.eitheror.casino.rewards.reward.{Reward, WalletSteps}
@@ -39,3 +39,4 @@ object RoundsConsumer
   def round(fact: CasinoRoundsFact): Option[(String, reward.RoundSettled, RoundSettled)] = fact match
     case f: RoundSettled =>
       f.freeRoundsGrant.map(_.trim).filter(_.nonEmpty).map(g => (g, reward.RoundSettled(f.roundId, f.winCents.value, f.occurredAt), f))
+    case _: RoundOpened => None

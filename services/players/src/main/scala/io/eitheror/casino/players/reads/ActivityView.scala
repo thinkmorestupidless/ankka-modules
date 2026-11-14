@@ -69,6 +69,7 @@ object ActivityLines:
   def round(fact: CasinoRoundsFact): Option[ActivityRow] = fact match
     case r: RoundSettled =>
       line(r.playerId, r.occurredAt, Games, "round_settled", "player", s"Round settled: ${r.outcome}", Some(r.netResultCents.value), Some(r.currency.code))
+    case _: RoundOpened => None
 
   def reward(fact: CasinoRewardsFact): Option[ActivityRow] =
     def bonus(at: Instant, eventType: String, actor: String, description: String, amount: Option[Long] = None, currency: Option[String] = None) =
