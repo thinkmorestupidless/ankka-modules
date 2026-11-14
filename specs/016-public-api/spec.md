@@ -497,7 +497,8 @@ past its rate while another reads.
   key of the brand is one an operator created, deleted or not, so a wrong secret for it is recorded
   against it. A request refused before a key is named (no key, a malformed key), or naming a key id
   no key was created under, names none of the brand's and is not recorded: an unknown key costs the
-  brand no write. Each instance records at most 60 refusals of one key a minute; the refusals beyond
+  brand no write. Each instance records at most 60 refusals of one key a minute (any `4xx`: at
+  admission, over its quota, a bad id); the refusals beyond
   are counted, and the count is named on the key's next recorded refusal (`refused_unrecorded`).
   *Original `audit.ts`, `server.ts:181-193`, `audit` suite; the Loki line replaced.*
 - **FR-037**: Each player whose identifying fields a request served MUST also be the subject of an

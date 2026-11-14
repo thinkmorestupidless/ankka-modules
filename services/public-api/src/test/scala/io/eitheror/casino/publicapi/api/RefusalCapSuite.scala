@@ -22,7 +22,7 @@ class RefusalCapSuite extends munit.FunSuite:
     assertEquals(c.refused("k1"), Some(0))
   }
 
-  test("refusals over the cap in several minutes add up until one is recorded") {
+  test("a later minute's first refusal names the earlier minute's count, and that minute's own excess waits for the next") {
     at = Instant.parse("2026-11-14T11:00:00Z")
     val c = cap
     (1 to 4).foreach(_ => c.refused("k1"))

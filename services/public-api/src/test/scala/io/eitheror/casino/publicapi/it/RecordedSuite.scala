@@ -33,6 +33,22 @@ class RecordedSuite extends munit.FunSuite:
     finally Kit.stopPeer(peer)
   }
 
+  test("a key over its quota is refused 429, and those refusals are recorded up to the cap too") {
+    val told = java.util.concurrent.ConcurrentLinkedQueue[(String, Int, Int)]()
+    val (peer, at) = kit.peer(Seq(clients =>
+      val usage = io.eitheror.casino.publicapi.api.Usage(clients.componentClient)
+      V1Endpoint(kit.contract, Pipeline(kit.settings, kit.contract, clients, () => kit.now, Map.empty, usage.rate,
+        served = (_, k, answer, _, _, unrecorded) => told.add((k.keyId, answer.status, unrecorded)): Unit).apply,
+        _ => Refusals.notFound.respond)))
+    try
+      val k = Keys.create(kit, "one-a-minute", rate = Some(1))
+      assertEquals(kit.v1("/contract", Some(k.secret), at = at).status, 200)
+      (1 to 62).foreach(_ => assertEquals(kit.v1("/contract", Some(k.secret), at = at).status, 429))
+      val mine = told.asScala.toVector
+      assertEquals(mine.map(_._2), Vector(200) ++ Vector.fill(io.eitheror.casino.publicapi.api.RefusalCap.PerMinute)(429))
+    finally Kit.stopPeer(peer)
+  }
+
   test("requests share the service's pipeline: its budget's threads stop at its workers, however many requests") {
     val k = Keys.noFields(kit)
     def threads = Thread.getAllStackTraces.keySet.asScala.count(_.getName == "public-api-request")

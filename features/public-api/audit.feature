@@ -1,6 +1,7 @@
 Feature: Every read is recorded, and each access key's limits are kept
   Every request that presents an access key of the brand leaves one audit record naming the key, the operation, the
-  players and field names served, the duration and the outcome, and never a value. A key over its
+  players and field names served, the duration and the outcome, and never a value; past 60 refusals of
+  one key in a minute, the rest are counted on the key's next recorded refusal. A key over its
   requests per minute is refused with when to retry, and no other key is slowed.
 
   Scenario: a request that served identifying fields leaves one audit record naming the key, the operation, the players and the field names, and no value
