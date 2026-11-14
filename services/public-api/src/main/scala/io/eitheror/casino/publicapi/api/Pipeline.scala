@@ -43,12 +43,11 @@ final class Pipeline(
     // FR-036: a request that named a key of this brand is recorded, refused or not; one refused before a key is named,
     // or naming a key id no key was created under, is not. One whose admission outlived the budget is not known to name one.
     val admitted = java.util.concurrent.atomic.AtomicReference[Option[Admitted]](None)
-    val refused  = java.util.concurrent.atomic.AtomicBoolean(false)
     val request  = java.util.concurrent.atomic.AtomicReference[Option[Served]](None)
     val answer = deadline.run {
       Admission.admit(clients.componentClient, call.authorization, now()) match
         case Left(rejected) =>
-          rejected.key.foreach { id => refused.set(true); admitted.set(Some(Admitted(id, Set.empty, 0))) }
+          rejected.key.foreach(id => admitted.set(Some(Admitted(id, Set.empty, 0))))
           rejected.refusal.respond
         case Right(key) =>
           admitted.set(Some(key))
@@ -59,9 +58,10 @@ final class Pipeline(
           }
     }
     val shown = Pipeline.disclosed(answer, request.get)
-    // A key's refusals are recorded up to the cap a minute, the rest counted onto its next recorded one (FR-036).
+    // A key's refusals (every 4xx: at admission, its quota's 429, a bad id) are recorded up to the cap a minute, the rest
+    // counted onto its next recorded one (FR-036). A 4xx discloses no one, so the cap loses no disclosure.
     admitted.get.foreach { k =>
-      val unrecorded = if refused.get then cap.refused(k.keyId) else Some(0)
+      val unrecorded = if answer.status / 100 == 4 then cap.refused(k.keyId) else Some(0)
       unrecorded.foreach(n => Try(served(call, k, answer, (System.nanoTime() - started) / 1000000, shown, n)))
     }
     answer

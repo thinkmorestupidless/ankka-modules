@@ -6,8 +6,9 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * FR-036's bound on a key's refusals: this instance records at most `perMinute` refusals of one key a minute; the
  * refusals beyond are counted, and the count is named on the key's next recorded refusal, so a leaked key retried in a
- * loop costs the brand a bounded number of writes and the audit still says how often it was tried. In memory, per
- * instance: the bound is `perMinute` times the instances, and costs no write of its own.
+ * loop costs the brand a bounded number of writes. The count is in memory, per instance: it is lost when the instance
+ * stops or the key is never refused again, and the cap's warning names the key but not the count. The bound is
+ * `perMinute` times the instances, and costs no write of its own.
  */
 final class RefusalCap(perMinute: Int, now: () => Instant):
   import RefusalCap.*
