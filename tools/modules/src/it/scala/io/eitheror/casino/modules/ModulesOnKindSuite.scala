@@ -48,7 +48,8 @@ class ModulesOnKindSuite extends munit.FunSuite:
     if cp.project(slug).isEmpty then cp.createProject(slug, slug, sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"))
     // Every key the brand's values leave to `secrets` (a provider's key), or the module is held and nothing runs.
     val p = plan(named)
-    cp.setSecret(slug, BrandRender.TenantValues, (p.modules ++ p.held).flatMap(_.missing).distinct.map(_ -> "it-not-a-key").toMap)
+    val keys = ((p.modules ++ p.held).flatMap(_.missing) :+ "st8-api-key").distinct
+    cp.setSecret(slug, BrandRender.TenantValues, keys.map(_ -> "it-not-a-key").toMap)
     val result = LocalApply.run(p, values, Some(installation), cp,
       LocalApply.Options(sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"), ready = LocalApply.poll(within = java.time.Duration.ofMinutes(15))))
     println(s"apply ${named.mkString(",")}: ${(result.changes ++ result.notes).mkString("; ")}")
