@@ -722,3 +722,13 @@ jobs:
           ANKKA_CA: /home/runner/.ankka/local-ca.crt
           ANKKA_ORGANIZATION: eitheror
         run: sbt modulesIt/test
+      # What the cluster was short of when a brand did not come up: pods not running and the node's requests.
+      - name: The cluster, on failure
+        if: failure()
+        run: |
+          k="kubectl --context kind-ankka"
+          $k get pods -A -o wide | grep -v -E 'Running|Completed' || true
+          $k describe node ankka-control-plane | sed -n '/Allocated resources/,/Events/p'
+          for p in $($k get pods -A --no-headers | grep -v -E 'Running|Completed' | awk '{print $1"/"$2}' | head -10); do
+            echo "== $p"; $k -n "${p%%/*}" describe pod "${p#*/}" | sed -n '/^Events/,$p'
+          done
