@@ -117,7 +117,7 @@ class ContractResponsesSuite extends munit.FunSuite:
     val held = peered.contract.operations.map(o => o.operationId -> ((_: Served) => { Thread.sleep(800); Refusals.json(200, "{}") })).toMap
     val (peer, at) = peered.peer(Seq(clients =>
       V1Endpoint(peered.contract, Pipeline(peered.settings.copy(budget = java.time.Duration.ofMillis(300)), peered.contract, clients, () => peered.now,
-        held)(_, _), _ => Refusals.notFound.respond)))
+        held).apply, _ => Refusals.notFound.respond)))
     try
       val k = Keys.noFields(peered)
       probes.filter(p => ContractSchemas.statuses(p.template)(503)).foreach { p =>

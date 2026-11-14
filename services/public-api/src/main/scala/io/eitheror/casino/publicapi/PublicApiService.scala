@@ -55,7 +55,8 @@ object PublicApiService:
         val handlers = api.RecordRoutes(settings.brand, contract, clients.viewClient).handlers ++
           api.GameRoutes(settings.brand, contract, catalogue, clients.componentClient, clients.viewClient).handlers ++
           api.PlayerStatsRoutes(contract, clients.componentClient, clients.viewClient).handlers
-        V1Endpoint(contract, Pipeline(settings, contract, clients, now, handlers, usage.rate, usage.served(now))(_, _),
+        val pipeline = Pipeline(settings, contract, clients, now, handlers, usage.rate, usage.served(now))
+        V1Endpoint(contract, pipeline.apply,
           c => if c.authorization.isEmpty then Refusals.keyMissing.respond else Refusals.notFound.respond,
           (brand, player) =>
             if brand != settings.brand then Refusals.notFound.respond
