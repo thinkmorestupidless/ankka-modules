@@ -6,8 +6,9 @@ import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 
 /**
- * SC-002 on a local installation (quickstart step 2, the `kind` job): a brand applied with the core
- * alone runs the core and serves no game route; with `--modules casino` it runs game-provider beside
+ * SC-002 on a local installation (quickstart step 2), a laptop's: a 4-CPU CI runner cannot schedule the
+ * core. A brand applied with the core alone runs the core and serves no game route; with
+ * `--modules casino` it runs game-provider beside
  * the core, and the core's services are not touched. It creates projects, and a deleted project's id is
  * never reusable, so it runs only on purpose: `CASINO_IT=1 just it`, with ANKKA_URL (or `ankka config`)
  * naming an installation with no vendor.
@@ -46,10 +47,11 @@ class ModulesOnKindSuite extends munit.FunSuite:
 
   private def apply(cp: ControlPlane, named: Vector[String]): ApplyResult =
     if cp.project(slug).isEmpty then cp.createProject(slug, slug, sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"))
-    // Every key the brand's values leave to `secrets` (a provider's key), or the module is held and nothing runs.
+    // Every key a module names, as `secrets` would set them, or the module is held and nothing runs; the
+    // apply writes the brand's own values over these.
     val p = plan(named)
-    val keys = ((p.modules ++ p.held).flatMap(_.missing) :+ "st8-api-key").distinct
-    cp.setSecret(slug, BrandRender.TenantValues, keys.map(_ -> "it-not-a-key").toMap)
+    val keys = ((p.modules ++ p.held).flatMap(_.configuration) :+ "st8-api-key").distinct
+    cp.setSecret(slug, BrandRender.TenantValues, keys.map(_ -> "it-not-a-key").toMap ++ Fixtures.CoreSecrets)
     val result = LocalApply.run(p, values, Some(installation), cp,
       LocalApply.Options(sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"), ready = LocalApply.poll(within = java.time.Duration.ofMinutes(15))))
     println(s"apply ${named.mkString(",")}: ${(result.changes ++ result.notes).mkString("; ")}")
