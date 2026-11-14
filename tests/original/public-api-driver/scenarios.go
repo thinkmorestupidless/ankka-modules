@@ -244,6 +244,14 @@ func (s *Session) Disable(letter, game string) {
 	o := overrides(was.Body["gameOverrides"])
 	o[game] = false
 	changed["gameOverrides"] = o
+	// The original merges `gameOverrides` into what the brand holds, so an override left out is kept:
+	// putting back the configuration as it was would leave the game disabled for the next run. The
+	// game is put back on by name, unless the brand had its own override for it.
+	back := overrides(was.Body["gameOverrides"])
+	if _, had := back[game]; !had {
+		back[game] = true
+	}
+	restore["gameOverrides"] = back
 	s.ok(s.Setup("disable "+game+" for the brand", "casino", http.MethodPut, path, changed, Operator))
 	s.Cleanup(func() {
 		s.Setup("put the brand's catalogue configuration back", "casino", http.MethodPut, path, restore, Operator)
