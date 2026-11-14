@@ -77,6 +77,14 @@ class RoundCheckSuite extends munit.FunSuite:
     assertEquals((sent.day, sent.figures.gameName, sent.figures.session), ("2026-11-09", Some("Book of Gold"), "gs-1"))
   }
 
+  test("rounds-facts passes over an opened round: only a settlement is checked") {
+    val r   = Recorded()
+    val kit = ConsumerTestKit.of(RoundsFacts(Settings("goldvibe", modules = Set("casino"))), client = r.client)
+    val opened = f.RoundOpened("p-1", eur, "r-1", "st8", "pr-1", "g-1", "gs-1", None, java.time.Instant.parse("2026-11-08T22:00:00Z"))
+    assertEquals(kit.onMessage(Some(opened)).effect, ConsumerEffect.Ignore)
+    assert(r.calls.isEmpty, r.calls.toString)
+  }
+
   test("round-legs sends the casino round legs of this generation's books, on the round's day") {
     val r   = Recorded()
     val kit = ConsumerTestKit.of(RoundLegs(Settings("goldvibe")), client = r.client)
