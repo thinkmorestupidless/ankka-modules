@@ -171,7 +171,7 @@ object ModuleManifest:
 
   object ContractView:
     /** The modules data-model.md names, by kind; a manifest's dependency is checked against these. */
-    val ProductModules: Set[String] = Set("casino", "engagement", "reporting", "support", "partner", "predictions")
+    val ProductModules: Set[String] = Set("casino", "engagement", "reporting", "support", "public-api", "predictions")
     val SharedModules: Set[String]  = Set("pool")
 
     /**
@@ -217,8 +217,8 @@ object ModuleManifest:
     val across   = this.across(valid)
     (valid, if across.isEmpty then refused else refused :+ (root.resolve("modules") -> across))
 
-  /** The one product module allowed to depend on another (FR-002): `partner` on `casino`. */
-  val ProductOnProduct: Set[(String, String)] = Set("partner" -> "casino")
+  /** The one product module allowed to depend on another (FR-002): `public-api` on `casino` (its games are `game-provider`'s, spec 016). */
+  val ProductOnProduct: Set[(String, String)] = Set("public-api" -> "casino")
 
   /** The vendor's secret patterns (vendor 004 `contracts/manifest.md`, "looks like a secret"). */
   private val SecretLiteral = "sk_live_|sk_test_|whsec_|-----BEGIN|AKIA[0-9A-Z]{16}".r

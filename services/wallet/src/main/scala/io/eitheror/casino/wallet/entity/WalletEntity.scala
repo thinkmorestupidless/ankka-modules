@@ -192,6 +192,10 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
   private def transactionId(key: String): String = io.eitheror.casino.wallet.Ids.transactionId(walletId, key)
 
   /** The open bets a settlement closes: the one named, or every open bet of the round. */
+  /** The session a settling move names (spec 016 G4): the caller's, else the session its first bet was placed in. */
+  private def sessionOf(sent: Option[String], bets: Vector[Bet]): Option[String] =
+    sent.orElse(bets.map(_.sessionId).find(_.nonEmpty))
+
   private def betsToSettle(s: WalletState, roundId: String, betKey: Option[String]): Vector[Bet] =
     betKey.fold(s.openBetsOf(roundId))(k => s.openBetsOf(roundId).filter(_.key == k))
 
@@ -282,7 +286,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
             conversions = plan.converting, balanceBefore = Some(plan.balanceBefore), balanceAfter = Some(plan.balanceAfter),
             parts = Some(plan.parts))
           effects.persist(BetPlaced(c.key, digest, bet, c.provider, conversions, plan.recordUpdates, reduced, plan.balanceBefore,
-            plan.balanceAfter, plan.newRealBalance, restricted, c.at, outcome, pools.deposit, pools.converted)).thenReply(_ => outcome)
+            plan.balanceAfter, plan.newRealBalance, restricted, c.at, outcome, pools.deposit, pools.converted, c.gameRoundId))
+            .thenReply(_ => outcome)
   }
 
   def creditWin(c: CreditWin): Effect[Outcome] = keyed(c, "credit-win") { digest =>
@@ -304,7 +309,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
               balanceBefore = Some(before), balanceAfter = Some(after), parts = Some(plan.parts))
           effects.persist(WinCredited(c.key, digest, txId, c.roundId, bets.head.gameId, c.amount, plan.realShare, plan.recordShares,
             plan.walletType, bets.map(_.key), updates, plan.newRealBalance, restricted, c.at, outcome, plan.parts, pools.deposit,
-            pools.converted, s.closesTurnover(pools.deposit, s.openBets.size - bets.size))).thenReply(_ => outcome)
+            pools.converted, s.closesTurnover(pools.deposit, s.openBets.size - bets.size), c.gameRoundId,
+            sessionOf(c.gameSessionId, bets))).thenReply(_ => outcome)
   }
 
   def rollbackBet(c: RollbackBet): Effect[Outcome] = keyed(c, "rollback-bet") { digest =>
@@ -347,7 +353,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
             realLeg = Some(realRestored), recordLegs = restored, walletType = Some(walletType),
             balanceBefore = Some(before), balanceAfter = Some(after))
           effects.persist(BetRolledBack(c.key, digest, txId, c.roundId, amount, realRestored, restored, targets.map(_.key), updates,
-            w.realBalance, restricted, c.at, outcome, parts, pools.deposit, pools.converted)).thenReply(_ => outcome)
+            w.realBalance, restricted, c.at, outcome, parts, pools.deposit, pools.converted, c.gameRoundId,
+            sessionOf(c.gameSessionId, targets))).thenReply(_ => outcome)
   }
 
   def settleLoss(c: SettleLoss): Effect[Outcome] = keyed(c, "settle-loss") { digest =>
@@ -375,7 +382,8 @@ final class WalletEntity(context: EventSourcedEntityContext) extends EventSource
           val outcome    = accepted("settle-loss", c, Some(txId), s.realBalance, restricted)
             .copy(forfeited = forfeitedIds, walletType = Some(walletType))
           effects.persist(RoundSettledAsLoss(c.key, digest, txId, c.roundId, bets.map(_.key), forfeits, updates, s.realBalance,
-            restricted, c.at, outcome, s.depositPool, s.convertedPool, s.closesTurnover(s.depositPool, s.openBets.size - bets.size)))
+            restricted, c.at, outcome, s.depositPool, s.convertedPool, s.closesTurnover(s.depositPool, s.openBets.size - bets.size),
+            c.gameRoundId, sessionOf(c.gameSessionId, bets)))
             .thenReply(_ => outcome)
   }
 

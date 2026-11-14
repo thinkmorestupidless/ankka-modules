@@ -14,6 +14,7 @@ import java.time.{Duration as JDuration, LocalDate}
 import java.util.UUID
 import scala.collection.mutable
 import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 
 abstract class SharedKitSuite extends munit.FunSuite with LogCapturing:
   override val munitTimeout: Duration = 300.seconds
@@ -240,6 +241,29 @@ class RewardsEndpointSuite extends SharedKitSuite:
     assertEquals(game(code, "players").status, 403, "another service of the project is refused")
     val unknown = game(s"$run-nope", "rewards")
     assertEquals((unknown.status, unknown.json.text("error")), (404, Some("game_not_found")))
+  }
+
+  test("the brand's listed games, for rewards and public-api alone, with removedFromFeed and releaseDate; a disabled game absent (spec 016 G8)") {
+    val (listed, disabled) = (s"$run-listed", s"$run-disabled")
+    kit.testKit.componentClient.forKeyValueEntity(EntityId(Game.entityId("st8", listed))).call(Game.upsert)
+      .invoke(UpsertGame("st8", listed, GameFields("Listed", "d", "D", "slots", releaseDate = Some("2026-12-01")), kit.clock)): Unit
+    kit.testKit.componentClient.forKeyValueEntity(EntityId(Game.entityId("st8", disabled))).call(Game.upsert)
+      .invoke(UpsertGame("st8", disabled, GameFields("Disabled", "d", "D", "slots", enabled = false), kit.clock)): Unit
+    kit.eventually("both games in the view")(
+      kit.testKit.service.viewClient.forView(Catalogue).get(s"st8/$disabled").flatMap(_ => kit.testKit.service.viewClient.forView(Catalogue).get(s"st8/$listed")))
+    CatalogueReads.shared(kit.testKit.service.viewClient, kit.brand, kit.testKit.componentClient).invalidate()
+    def games(caller: String) =
+      kit.request("GET", s"/v1/casino/brands/${kit.brand}/game-provider/games", None, Seq(LocalCallers.header(Caller.Service("local", caller))))
+
+    val read = games("public-api")
+    assertEquals(read.status, 200, read.text)
+    val rows = read.json.get("games").elements().asScala.toVector
+    val game = rows.find(_.text("gameId").contains(listed)).getOrElse(fail(s"$listed not served: ${read.text}"))
+    assertEquals((game.text("provider"), game.text("name"), game.text("releaseDate")), (Some("st8"), Some("Listed"), Some("2026-12-01")))
+    assertEquals(game.bool("removedFromFeed"), Some(false))
+    assertEquals(rows.find(_.text("gameId").contains(disabled)), None, "a game the brand does not list is absent")
+    assertEquals(games("rewards").status, 200)
+    assertEquals(games("engagement").status, 403, "another service of the project is refused")
   }
 
   test("make-known answers no content and the profile then answers") {

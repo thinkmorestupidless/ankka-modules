@@ -1,5 +1,5 @@
 Feature: Every change to a reward is a fact
-  Each reward transition is a fact, so the brand's attribution, engagement, partner facts and
+  Each reward transition is a fact, so the brand's attribution, engagement, public API and
   reporting learn of it without a call.
 
   Background:

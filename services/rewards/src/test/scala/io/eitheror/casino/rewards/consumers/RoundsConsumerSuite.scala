@@ -2,7 +2,7 @@ package io.eitheror.casino.rewards.consumers
 
 import com.thinkmorestupidless.ankka.core.effect.ConsumerEffect
 import com.thinkmorestupidless.ankka.testkit.{ConsumerTestKit, LogCapturing}
-import io.eitheror.casino.contract.facts.RoundSettled
+import io.eitheror.casino.contract.facts.{RoundOpened, RoundSettled}
 import io.eitheror.casino.contract.money.{Currency, MinorUnits, SignedMinorUnits}
 import io.eitheror.casino.rewards.reward
 
@@ -25,6 +25,11 @@ class RoundsConsumerSuite extends munit.FunSuite with LogCapturing:
     assertEquals(RoundsConsumer.round(settled(None)), None)
     assertEquals(RoundsConsumer.round(settled(Some("  "))), None)
     assertEquals(ConsumerTestKit.of(RoundsConsumer).onMessage(Some(settled(None))).effect, ConsumerEffect.Ignore)
+
+  test("an opened round is not read, even one naming free rounds"):
+    val opened = RoundOpened("p-1", Eur, "rd-1", "st8", "prd-1", "g-1", "s-1", Some("fr-1"), at)
+    assertEquals(RoundsConsumer.round(opened), None)
+    assertEquals(ConsumerTestKit.of(RoundsConsumer).onMessage(Some(opened)).effect, ConsumerEffect.Ignore)
 
   test("a fact that cannot be read is ignored"):
     assertEquals(ConsumerTestKit.of(RoundsConsumer).onMessage(None).effect, ConsumerEffect.Ignore)

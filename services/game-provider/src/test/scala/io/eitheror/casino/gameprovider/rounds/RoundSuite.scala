@@ -201,3 +201,61 @@ class RoundSuite extends munit.FunSuite with LogCapturing:
     assert(k.currentState.cancelled("t-1"))
     assert(!k.currentState.cancelled("t-2"))
   }
+
+  // ── spec 016 G3, G7 ─────────────────────────────────────────────────────────────────────────────
+
+  private def realDebit(id: String, amount: Long, real: Option[Long]) =
+    RecordTransaction(opening, ProviderTransaction(id, "debit", amount, None,
+      Vector(Movement(Movement.Bet, id, Some(id), amount, s"w-$id", real)), ok(1000), at), opened = Some(OpenBet(id, id, amount, id)))
+
+  test("the settlement carries the round's opening time (spec 016 G3)") {
+    val k      = kit
+    val opened = at.minusSeconds(30)
+    k.call(Round.record)(debit("t-1", 100, 900).copy(opening = opening.copy(at = opened)))
+    val r = k.call(Round.record)(credit("c-1", 0, Vector("t-1"), Vector(Movement(Movement.Loss, "c-1/t-1", Some("t-1"), 0, "w-c1", Some(0))), 900))
+    assertEquals(r.eventOfType[RoundEvent.RoundSettled].summary.openedAt, Some(opened))
+  }
+
+  test("the real stake and win are the wallet's real parts of the bets and wins, a bonus-funded part left out (spec 016 G7)") {
+    val k = kit
+    k.call(Round.record)(realDebit("t-1", 100, Some(100)))
+    k.call(Round.record)(realDebit("t-2", 200, Some(50)))
+    val r = k.call(Round.record)(credit("c-1", 500, Vector("t-1", "t-2"), Vector(
+      Movement(Movement.Win, "c-1/t-1", Some("t-1"), 500, "w-c1", Some(400)),
+      Movement(Movement.Loss, "c-1/t-2", Some("t-2"), 0, "w-c2", Some(0))), 1200))
+    val s = r.eventOfType[RoundEvent.RoundSettled].summary
+    assertEquals((s.stake, s.win), (300L, 500L))
+    assertEquals((s.realStake, s.realWin), (Some(150L), Some(400L)))
+  }
+
+  test("a standalone provider credit counts as a real win when it landed on real balance (spec 016 G7)") {
+    val k = kit
+    val r = k.call(Round.record)(credit("c-1", 300, Vector.empty, Vector(Movement(Movement.ProviderCredit, "c-1", None, 300, "w-c1", Some(300))), 1300))
+    val s = r.eventOfType[RoundEvent.RoundSettled].summary
+    assertEquals((s.realStake, s.realWin), (Some(0L), Some(300L)))
+  }
+
+  test("a rolled-back bet's real part comes off the real stake, and a cancelled credit's off the real win (spec 016 G7)") {
+    val k = kit
+    k.call(Round.record)(realDebit("t-1", 100, Some(100)))
+    k.call(Round.record)(realDebit("t-2", 200, Some(200)))
+    k.call(Round.record)(cancel("x-1", "t-1", Vector("t-1"), 100, 0, Vector(Movement(Movement.Rollback, "x-1", Some("t-1"), 100, "w-x1", Some(100)))))
+    k.call(Round.record)(credit("c-1", 500, Vector("t-2"), Vector(Movement(Movement.Win, "c-1/t-2", Some("t-2"), 500, "w-c1", Some(500))), 1300))
+    assertEquals(k.currentState.realStakeAndWin, (Some(200L), Some(500L)))
+    k.call(Round.record)(cancel("x-2", "c-1", Vector.empty, 0, 500, Vector(Movement(Movement.Bet, "x-2", Some("x-2"), 500, "w-x2", Some(500)))))
+    assertEquals(k.currentState.realStakeAndWin, (Some(200L), Some(0L)))
+  }
+
+  test("a movement recorded without its real part leaves the real figure out rather than guess it (spec 016 G7)") {
+    val k = kit
+    k.call(Round.record)(debit("t-1", 100, 900))
+    val r = k.call(Round.record)(credit("c-1", 200, Vector("t-1"), Vector(Movement(Movement.Win, "c-1/t-1", Some("t-1"), 200, "w-c1", Some(200))), 1100))
+    val s = r.eventOfType[RoundEvent.RoundSettled].summary
+    assertEquals((s.realStake, s.realWin), (None, Some(200L)))
+  }
+
+  test("a free round's opening, recorded by its tag, names the grant for round_opened (spec 016 G3)") {
+    val k = kit
+    val r = k.call(Round.tagFreeRounds)(TagFreeRounds(opening, "grant-1"))
+    assertEquals(r.events.collect { case RoundOpened(o) => o.freeRoundsGrant }, Vector(Some("grant-1")))
+  }

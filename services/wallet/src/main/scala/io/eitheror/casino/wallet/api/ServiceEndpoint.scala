@@ -63,6 +63,9 @@ final class ServiceEndpoint(
   private def key(k: Option[String]): Either[Respond[Bytes], String] = Key.from(k).map(_.value).left.map(_ => Wire.missingKey)
   private def amount(a: AmountText): Either[Respond[Bytes], Long]   = a.minorUnits.map(_.value).left.map(Wire.invalidAmount)
 
+  /** A label for the facts (spec 016 G4); an empty one is none. */
+  private def label(value: Option[String]): Option[String] = value.map(_.trim).filter(_.nonEmpty)
+
   // ── bets (game-provider) ──────────────────────────────────────────────────
 
   postBody("/wallets/{player}/{currency}/bets") { (player: String, currency: String, r: BetRequest) =>
@@ -70,20 +73,21 @@ final class ServiceEndpoint(
       for k <- key(r.key); a <- amount(r.amount) yield
         val switches = brandConfig.switchesFor(r.gameType)
         wallet(player, currency).call(WalletEntity.placeBet)
-          .invoke(PlaceBet(k, r.roundId, r.gameId, r.sessionId, r.provider, r.category, a, r.allowNegative.getOrElse(false), switches, clock()))
+          .invoke(PlaceBet(k, r.roundId, r.gameId, r.sessionId, r.provider, r.category, a, r.allowNegative.getOrElse(false), switches, clock(),
+            label(r.gameRoundId)))
     }
   }
 
   postBody("/wallets/{player}/{currency}/wins") { (player: String, currency: String, r: WinRequest) =>
-    money(currency)(for k <- key(r.key); a <- amount(r.amount) yield wallet(player, currency).call(WalletEntity.creditWin).invoke(CreditWin(k, r.roundId, a, clock(), r.betKey)))
+    money(currency)(for k <- key(r.key); a <- amount(r.amount) yield wallet(player, currency).call(WalletEntity.creditWin).invoke(CreditWin(k, r.roundId, a, clock(), r.betKey, label(r.gameRoundId), label(r.sessionId))))
   }
 
   postBody("/wallets/{player}/{currency}/rollbacks") { (player: String, currency: String, r: RollbackRequest) =>
-    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.rollbackBet).invoke(RollbackBet(k, r.roundId, r.betKey, clock()))))
+    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.rollbackBet).invoke(RollbackBet(k, r.roundId, r.betKey, clock(), label(r.gameRoundId), label(r.sessionId)))))
   }
 
   postBody("/wallets/{player}/{currency}/losses") { (player: String, currency: String, r: LossRequest) =>
-    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.settleLoss).invoke(SettleLoss(k, r.roundId, clock(), r.betKey))))
+    money(currency)(key(r.key).map(k => wallet(player, currency).call(WalletEntity.settleLoss).invoke(SettleLoss(k, r.roundId, clock(), r.betKey, label(r.gameRoundId), label(r.sessionId)))))
   }
 
   postBody("/wallets/{player}/{currency}/provider-credits") { (player: String, currency: String, r: ProviderCreditRequest) =>

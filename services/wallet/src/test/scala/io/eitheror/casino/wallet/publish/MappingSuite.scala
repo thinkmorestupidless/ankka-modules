@@ -349,3 +349,74 @@ class MappingSuite extends munit.FunSuite with LogCapturing:
     assertEquals(result.recordKeys, Vector(Some(wallet)))
     assertEquals(result.messages.head.metadata.get("ce-id"), Some("t-r"))
   }
+
+  // ── spec 016 G4: the game round and the session on every bet's fact ─────────
+
+  private val gameRound = "st8/round-77"
+
+  private def labelsOf(fact: f.MoneyTransactionsFact): (Option[String], Option[String]) = fact match
+    case x: f.BetPlaced          => (x.gameRoundId, x.sessionId)
+    case x: f.WinCredited        => (x.gameRoundId, x.sessionId)
+    case x: f.BetRolledBack      => (x.gameRoundId, x.sessionId)
+    case x: f.RoundSettledAsLoss => (x.gameRoundId, x.sessionId)
+    case other                   => fail(s"not a bet's fact: $other")
+
+  private def factOf(events: Vector[WalletEvent]): f.MoneyTransactionsFact =
+    Facts.moneyTransactions(wallet, events.last).head.fact.asInstanceOf[f.MoneyTransactionsFact]
+
+  private def placing(key: String, round: String, gameRoundId: Option[String]) =
+    PlaceBet(key, round, "slot-a", "s1", "pragmatic", "slots", 1000, allowNegative = false, BetSwitches(), t0, gameRoundId)
+
+  private def funded(id: String) =
+    val kit = com.thinkmorestupidless.ankka.testkit.EventSourcedTestKit.of(WalletEntity, id)
+    kit.call(WalletEntity.deposit)(Deposit("pay-1", 10000, "dreamzpay", "t1", "dreamzpay", "card", TurnoverTerms(0, "gross_wagered"), t0))
+    kit
+
+  test("G4: bet_placed, win_credited, bet_rolled_back and round_settled_as_loss carry the game round's id exactly and the session") {
+    val kit = funded("g4/EUR")
+    val placed = kit.call(WalletEntity.placeBet)(placing("b-1", "b-1", Some(gameRound)))
+    assertEquals(labelsOf(factOf(placed.events)), (Some(gameRound), Some("s1")))
+    val won = kit.call(WalletEntity.creditWin)(CreditWin("w-1", "b-1", 500, t0, None, Some(gameRound), Some("s1")))
+    assertEquals(labelsOf(factOf(won.events)), (Some(gameRound), Some("s1")))
+    val rolled = kit.call(WalletEntity.rollbackBet)(RollbackBet("rb-1", "b-1", None, t0, Some(gameRound), Some("s1")))
+    assertEquals(labelsOf(factOf(rolled.events)), (Some(gameRound), Some("s1")))
+    kit.call(WalletEntity.placeBet)(placing("b-2", "b-2", Some(gameRound))): Unit
+    val lost = kit.call(WalletEntity.settleLoss)(SettleLoss("l-1", "b-2", t0, None, Some(gameRound), Some("s1")))
+    assertEquals(labelsOf(factOf(lost.events)), (Some(gameRound), Some("s1")))
+  }
+
+  test("G4: a settling move that names no session carries the session its bet was placed in") {
+    val kit = funded("g4-session/EUR")
+    kit.call(WalletEntity.placeBet)(placing("b-1", "b-1", Some(gameRound))): Unit
+    val won = kit.call(WalletEntity.creditWin)(CreditWin("w-1", "b-1", 500, t0, None, Some(gameRound)))
+    assertEquals(labelsOf(factOf(won.events)), (Some(gameRound), Some("s1")))
+  }
+
+  test("G4: a move from a caller that sends no round carries none, and a bet placed with no session carries none") {
+    val kit = funded("g4-none/EUR")
+    val placed = kit.call(WalletEntity.placeBet)(
+      PlaceBet("b-1", "b-1", "slot-a", "", "pragmatic", "slots", 1000, allowNegative = false, BetSwitches(), t0))
+    assertEquals(labelsOf(factOf(placed.events)), (None, None))
+    val lost = kit.call(WalletEntity.settleLoss)(SettleLoss("l-1", "b-1", t0))
+    assertEquals(labelsOf(factOf(lost.events)), (None, None))
+  }
+
+  test("G4: the labels never enter the digest, so a retry that now carries them is a repeat, not KEY_REUSED") {
+    val kit   = funded("g4-digest/EUR")
+    val first = kit.call(WalletEntity.placeBet)(placing("b-1", "b-1", None))
+    val again = kit.call(WalletEntity.placeBet)(placing("b-1", "b-1", Some(gameRound)))
+    assertEquals((again.replyValue, again.persisted), (first.replyValue, false))
+    assertEquals(MoneyCommand.digest("credit-win", CreditWin("w", "b-1", 5, t0)),
+      MoneyCommand.digest("credit-win", CreditWin("w", "b-1", 5, t0, None, Some(gameRound), Some("s1"))))
+  }
+
+  test("G4: an event stored before the labels existed reads back with none") {
+    given com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec[WalletEvent] = io.eitheror.casino.wallet.WalletCodecs.stored[WalletEvent]
+    import com.github.plokhotnyuk.jsoniter_scala.core.{readFromString, writeToString}
+    val loss: RoundSettledAsLoss = RoundSettledAsLoss("l-1", "d", "t-l", "r1", Vector("tx-1"), Vector.empty, Vector.empty, 10000, 0, t0, ok)
+    val written = writeToString[WalletEvent](loss)
+    assert(!written.contains("gameRoundId") && !written.contains("sessionId"), written)
+    assertEquals(readFromString[WalletEvent](written), loss)
+    val labelled = loss.copy(gameRoundId = Some(gameRound), sessionId = Some("s1"))
+    assertEquals(readFromString[WalletEvent](writeToString[WalletEvent](labelled)), labelled)
+  }

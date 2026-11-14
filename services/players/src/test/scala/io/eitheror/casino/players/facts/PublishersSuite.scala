@@ -93,6 +93,26 @@ class PublishersSuite extends munit.FunSuite with LogCapturing:
     assertEquals((dob.changedFields, dob.dateOfBirth.map(_.reveal)), (Vector("dateOfBirth"), Some("1990-01-03")))
   }
 
+  // spec 016 G1, G2: the profile's language and state or province, for the public API
+  private val withRegion = Profile(profile.fields ++ Map("language" -> Personal("pt-BR"), "stateProv" -> Personal("SP")))
+
+  private def registered(p: Profile) =
+    players(Registered("p-1", p, Personal("a@b.test"), "EUR", Consents(), registration, at)).payloads.collectFirst { case r: PlayerRegistered => r }.get
+
+  private def updated(p: Profile) = players(ProfileEdited(p, Set("city"), at)).payloads.head.asInstanceOf[PlayerProfileUpdated]
+
+  test("player_registered and player_profile_updated carry the profile's language, absent when it has none (G1)") {
+    assertEquals(registered(withRegion).language, Some("pt-BR"))
+    assertEquals(updated(withRegion).language, Some("pt-BR"))
+    assertEquals((registered(profile).language, updated(profile).language), (None, None))
+  }
+
+  test("player_registered and player_profile_updated carry the profile's stateProv as personal, absent when it has none (G2)") {
+    assertEquals(registered(withRegion).stateProvince, Some(Personal("SP")))
+    assertEquals(updated(withRegion).stateProvince, Some(Personal("SP")))
+    assertEquals((registered(profile).stateProvince, updated(profile).stateProvince), (None, None))
+  }
+
   test("the events contracts/facts.md does not publish produce nothing") {
     Seq[PlayerEvent](EmailVerified(at), EmailAdded(Personal("x@y.test"), at), CookieDecisionRecorded(Personal("d"), CookieDecision(true, true, "v", "t", at), at),
       FavouriteAdded("g-1", at), Erased(at), StatusImported(Status.Blocked, at), SignedIn(at), KycVerified(at))

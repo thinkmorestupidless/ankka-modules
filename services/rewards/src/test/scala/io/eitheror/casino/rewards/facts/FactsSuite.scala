@@ -14,6 +14,7 @@ import java.time.Instant
 /** contracts/facts.md and research R11: each event to at most one family, the audit's operator actions, and no personal value. */
 class FactsSuite extends munit.FunSuite:
   private val at     = Instant.parse("2026-11-01T12:00:00Z")
+  private val expires = Instant.parse("2026-11-08T12:00:00Z")
   private val eur    = Currency.unsafe("EUR")
   private val secret = Personal("the player told me on the phone")
 
@@ -61,14 +62,31 @@ class FactsSuite extends munit.FunSuite:
     assert(fact(RewardEvent.Closed(CloseReason.FreeSpinsFinalised, afterConversion = false, at), rounds).exists(_.fact.isInstanceOf[f.BonusCompleted]))
 
   test("bonus_granted carries the reward, the offer, the amount, the currency, the source, the code and the tag; keyed by the player"):
-    val Some(Facts.Published(g: f.BonusGranted, id)) = fact(Activated(None, at, None, at), funds): @unchecked
+    val Some(Facts.Published(g: f.BonusGranted, id)) = fact(Activated(None, expires, None, at), funds): @unchecked
     assertEquals(g, f.BonusGranted("p-1", "r-1", "Welcome", "o-1", "DEPOSIT_MATCH", MinorUnits.unsafe(5000L), eur, Some("welcome"), at,
-      Some("affiliate_code"), Some("welcome"), Some("aff-7")))
+      Some("affiliate_code"), Some("welcome"), Some("aff-7"), expiresAt = Some(expires)))
     assertEquals((g.key, id), ("p-1", "r-1/4"))
 
-  test("free_spins_granted carries the rounds and the game"):
-    val Some(Facts.Published(g: f.FreeSpinsGranted, _)) = fact(Activated(None, at, None, at), rounds): @unchecked
+  test("bonus_granted's expiresAt is the activation's deadline, not the state's"):
+    val Some(Facts.Published(g: f.BonusGranted, _)) = fact(Activated(None, expires, None, at), funds.copy(expiresAt = Some(at))): @unchecked
+    assertEquals(g.expiresAt, Some(expires))
+
+  test("free_spins_granted carries the rounds, the game, the expiry, and spin value × rounds in the reward's currency (G5, G6)"):
+    val Some(Facts.Published(g: f.FreeSpinsGranted, _)) = fact(Activated(None, expires, None, at), rounds): @unchecked
     assertEquals((g.rounds, g.gameIds), (10, Vector("g-1")))
+    assertEquals((g.expiresAt, g.amountCents, g.currency), (Some(expires), Some(MinorUnits.unsafe(200L)), Some(eur)))
+
+  test("free_spins_granted with no spin value is 0 in the reward's currency (research R16.5)"):
+    val noValue = rounds.copy(currency = "BRL",
+      freeRounds = Some(FreeRoundsState(FreeRoundsTerms("g-1", "st8", 25, 0L, Destination.RealBalance), Tally(25))))
+    val Some(Facts.Published(g: f.FreeSpinsGranted, _)) = fact(Activated(None, expires, None, at), noValue): @unchecked
+    assertEquals((g.amountCents, g.currency), (Some(MinorUnits.unsafe(0L)), Some(Currency.unsafe("BRL"))))
+
+  test("the expiry and the value are on the wire"):
+    val Some(Facts.Published(g: f.FreeSpinsGranted, _)) = fact(Activated(None, expires, None, at), rounds): @unchecked
+    val wire = bytes(g)
+    assert(wire.contains("\"expires_at\":\"2026-11-08T12:00:00Z\"") && wire.contains("\"amount_cents\":200") && wire.contains("\"currency\":\"EUR\""), wire)
+    assertEquals(f.CasinoRewards.serializer.fromBytes(f.CasinoRewards.serializer.toBytes(g)), g)
 
   test("bonus_cancelled carries the clawback and the reason: the player's cancel, the provider's failure, the revoke's mode"):
     def cancelled(e: RewardEvent, s: RewardState) = fact(e, s).map(_.fact).collect { case c: f.BonusCancelled => (c.amountCents.value, c.reason) }
