@@ -6,7 +6,7 @@ package publicapidriver
 // stack with casino-public-api, casino-service, Keycloak and fake-st8 reachable from this machine, and
 // wallet-service's internal API port-forwarded:
 //
-//	cd tests && go test -tags e2e ./original/public-api-driver/... -count=1 -timeout 90m -args \
+//	cd tests && go test -tags e2e ./original/public-api-driver/... -count=1 -timeout 150m -args \
 //	    -casino-url http://localhost:8091 -keycloak-url http://localhost:8180 -api-url http://localhost:8097 \
 //	    -fake-st8-url http://localhost:8096 -wallet-internal-url http://localhost:19001
 //
@@ -19,11 +19,11 @@ package publicapidriver
 // secret in EMAIL_TOKEN_SIGNING_SECRET. Secrets and passwords are read from the environment only, never
 // flags, so they stay out of the shell's history.
 //
-// The run takes up to an hour and a half: the original's statistics count only whole hours before the
-// run (see Config.StatsWait), so the seed waits for the next hour before running them. Pass
-// `-stats-wait=false` to record at once, with figures that hold none of the seed's activity. A brand
-// whose players' statistics ran in the last 30 minutes is skipped by the original's retention guard;
-// `-retention-wait 31m` waits it out.
+// The run takes up to two hours: the original's statistics count only whole hours before the run (see
+// Config.StatsWait), so the seed waits for the next hour before running them. Pass `-stats-wait=false`
+// to record at once, with figures that hold none of the seed's activity. A brand whose players'
+// statistics ran in the last 30 minutes is skipped by the original's retention guard, and the seed's
+// own run is one, so `player-ranking` waits it out (`-retention-wait`, 31m by default; 0 fails instead).
 //
 // # Two steps the original offers no route for
 //
@@ -81,7 +81,7 @@ var (
 	operatorApp   = flag.String("operator-client", "casino-backoffice", "the backoffice's client in that realm")
 	operatorUser  = flag.String("operator-user", os.Getenv("EITHEROR_OPERATOR_USER"), "an operator holding brand_admin or platform_admin at both brands")
 	statsWait     = flag.Bool("stats-wait", true, "wait for the next full hour before the statistics runs")
-	retentionWait = flag.Duration("retention-wait", 0, "how long a players' statistics run skipped for retention may wait")
+	retentionWait = flag.Duration("retention-wait", 31*time.Minute, "how long a players' statistics run skipped for retention may wait")
 	writeGrants   = flag.String("write-grants", "", "write the run's grants as a Helm values file here, and stop")
 )
 
