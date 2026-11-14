@@ -480,7 +480,7 @@ snapshot.
   with goldvibe entitled to `public-api`); create a key through the operator route; run `ankka-inspect`
   over the spec's scenarios against the deployed service; keep each met scenario as an integration
   test
-- [ ] T096 Run `just features`, `just test`, `just public-api-test`, `just public-api-it` and every
+- [X] T096 Run `just features`, `just test`, `just public-api-test`, `just public-api-it` and every
   amended producer's suites; all green
 
 ---
