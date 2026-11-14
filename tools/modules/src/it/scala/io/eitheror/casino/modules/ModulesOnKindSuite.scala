@@ -6,8 +6,9 @@ import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 
 /**
- * SC-002 on a local installation (quickstart step 2, the `kind` job): a brand applied with the core
- * alone runs the core and serves no game route; with `--modules casino` it runs game-provider beside
+ * SC-002 on a local installation (quickstart step 2), a laptop's: a 4-CPU CI runner cannot schedule the
+ * core. A brand applied with the core alone runs the core and serves no game route; with
+ * `--modules casino` it runs game-provider beside
  * the core, and the core's services are not touched. It creates projects, and a deleted project's id is
  * never reusable, so it runs only on purpose: `CASINO_IT=1 just it`, with ANKKA_URL (or `ankka config`)
  * naming an installation with no vendor.
@@ -46,9 +47,15 @@ class ModulesOnKindSuite extends munit.FunSuite:
 
   private def apply(cp: ControlPlane, named: Vector[String]): ApplyResult =
     if cp.project(slug).isEmpty then cp.createProject(slug, slug, sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"))
-    cp.setSecret(slug, BrandRender.TenantValues, Map("st8-api-key" -> "it-not-a-key"))
-    LocalApply.run(plan(named), values, Some(installation), cp,
+    // Every key a module names, as `secrets` would set them, or the module is held and nothing runs; the
+    // apply writes the brand's own values over these.
+    val p = plan(named)
+    val keys = ((p.modules ++ p.held).flatMap(_.configuration) :+ "st8-api-key").distinct
+    cp.setSecret(slug, BrandRender.TenantValues, keys.map(_ -> "it-not-a-key").toMap ++ Fixtures.CoreSecrets)
+    val result = LocalApply.run(p, values, Some(installation), cp,
       LocalApply.Options(sys.env.getOrElse("ANKKA_ORGANIZATION", "eitheror"), ready = LocalApply.poll(within = java.time.Duration.ofMinutes(15))))
+    println(s"apply ${named.mkString(",")}: ${(result.changes ++ result.notes).mkString("; ")}")
+    result
 
   private val http = HttpClient.newHttpClient()
 
@@ -58,6 +65,9 @@ class ModulesOnKindSuite extends munit.FunSuite:
       http.send(HttpRequest.newBuilder(URI.create(s"${host.stripSuffix("/")}$path")).GET().build(), HttpResponse.BodyHandlers.discarding()).statusCode
     }
 
+  private def notReady(cp: ControlPlane, project: String): String =
+    cp.services(project).filter(_.lifecycle != ServiceLifecycle.Ready).map(s => s"${s.name} ${s.lifecycle}").mkString("not ready: ", ", ", "")
+
   private def unproven(p: BrandPlan): Vector[String] = p.services.map(_.name).filterNot(built.contains)
 
   test("the core alone runs the core and no game route; casino then adds game-provider and leaves the core's services alone (SC-002)") {
@@ -66,8 +76,8 @@ class ModulesOnKindSuite extends munit.FunSuite:
 
     val core = apply(cp, Vector.empty)
     assert(core.ok, core.failure.toString)
-    assertEquals(cp.services(slug).map(_.name).toSet, manifests.find(_.name == "core").get.services.map(_.name).toSet)
-    assert(cp.services(slug).forall(_.lifecycle == ServiceLifecycle.Ready))
+    assertEquals(cp.services(slug).map(_.name).toSet, manifests.find(_.name == "core").get.services.map(_.name).toSet, core.notes.mkString("; "))
+    assert(cp.services(slug).forall(_.lifecycle == ServiceLifecycle.Ready), notReady(cp, slug))
     assertEquals(answer(cp, "game-provider", s"/v1/casino/catalog/games?brand=$slug"), None, "no game-provider, so no game route")
     val wallet = answer(cp, "wallet", s"/v1/casino/brands/$slug/wallets/p-1/EUR/balance")
     assert(wallet.exists(c => c != 404 && c < 500), s"the wallet answers on its route: $wallet")

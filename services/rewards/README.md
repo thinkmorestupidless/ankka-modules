@@ -7,7 +7,7 @@ A brand's offers and the rewards they grant (spec 011):
 - free rounds at the game provider, counted from the rounds it settles;
 - the `casino.rewards` facts, and each operator action on `platform.audit`.
 
-An ankka 0.13 service in Scala, one sbt build.
+An ankka 0.16 service in Scala, one sbt build.
 
 ## What it is
 
