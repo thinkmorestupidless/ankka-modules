@@ -14,7 +14,7 @@ final case class Disclosed(playerId: String, fields: Vector[String])
  * `outcome` is `done`, `refused` or `failed`. No value, no key, no digest.
  */
 final case class Served(requestId: String, operation: String, status: Int, outcome: String, durationMs: Long,
-    players: Vector[Disclosed], at: Instant)
+    players: Vector[Disclosed], at: Instant, unrecorded: Int = 0)
 
 /** The state is the count since the last snapshot: the journal is the log, read by the audit's consumer. */
 final case class LogState(count: Long = 0L)

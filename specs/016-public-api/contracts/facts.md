@@ -39,7 +39,7 @@ fields describe nothing a player or an operator observes there.
 
 | Action | Actor | Subject | `changes` |
 |---|---|---|---|
-| `public_api.read` | `access_key/<keyId>` | `access_key/<keyId>` | `operation`, `status`, `duration_ms`, and `player:<id>` → the field names served |
+| `public_api.read` | `access_key/<keyId>` | `access_key/<keyId>` | `operation`, `status`, `duration_ms`, `player:<id>` → the field names served (only players served an identifying field), and `refused_unrecorded` → the refusals of the key not recorded before this one (FR-036's cap), when there were any |
 | `public_api.identifying_fields_served` | `access_key/<keyId>` | `player/<id>` | `fields` → the field names; `operation` |
 | `access_key.created`, `.changed`, `.disabled`, `.enabled`, `.deleted` | `operator/<sub>` | `access_key/<keyId>` | the fields changed, before and after; never the key or its digest |
 

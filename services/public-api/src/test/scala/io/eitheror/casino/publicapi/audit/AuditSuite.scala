@@ -45,3 +45,9 @@ class AuditSuite extends munit.FunSuite:
   test("a redelivered event is the same record") {
     assertEquals(Audit.read("goldvibe", "k1", served(200)).map(_.recordId), Audit.read("goldvibe", "k1", served(200)).map(_.recordId))
   }
+
+  test("a refusal recorded after the cap names how many before it were not; one with none names nothing") {
+    def unrecorded(n: Int) = Audit.read("goldvibe", "k1", served(401).copy(unrecorded = n)).head.changes.find(_.field == "refused_unrecorded")
+    assertEquals(unrecorded(3).flatMap(_.after), Some("3"))
+    assertEquals(unrecorded(0), None)
+  }

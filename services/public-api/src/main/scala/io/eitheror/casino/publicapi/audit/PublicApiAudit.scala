@@ -44,6 +44,7 @@ object Audit:
     val request = record(brand, s"public-api/${s.requestId}", "public_api.read", "access_key", keyId, "access_key", keyId, s.outcome,
       Vector(AuditChange("operation", None, Some(s.operation)), AuditChange("status", None, Some(s.status.toString)),
         AuditChange("duration_ms", None, Some(s.durationMs.toString))) ++
+        Option.when(s.unrecorded > 0)(AuditChange("refused_unrecorded", None, Some(s.unrecorded.toString))) ++
         s.players.filter(_.fields.nonEmpty).map(p => AuditChange(s"player:${p.playerId}", None, Some(p.fields.mkString(",")))),
       "system", s.at)
     val disclosed = s.players.filter(_.fields.nonEmpty).map { p =>

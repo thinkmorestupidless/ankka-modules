@@ -113,6 +113,9 @@ sessions below; the rest are superseded by the rewrite.
 - Q: Does "neither repeated nor skipped" hold for a record arriving late with an earlier time? → A:
   No: it holds for records later than the last one read, as offset paging in the original gives
   (FR-014).
+- Q: Must every refusal of a key of the brand be recorded, when a leaked key may be retried in a loop
+  (second review round)? → A: Up to 60 a minute for each key on each instance; the rest are counted
+  and named on the key's next recorded refusal (FR-036).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -494,7 +497,8 @@ past its rate while another reads.
   key of the brand is one an operator created, deleted or not, so a wrong secret for it is recorded
   against it. A request refused before a key is named (no key, a malformed key), or naming a key id
   no key was created under, names none of the brand's and is not recorded: an unknown key costs the
-  brand no write.
+  brand no write. Each instance records at most 60 refusals of one key a minute; the refusals beyond
+  are counted, and the count is named on the key's next recorded refusal (`refused_unrecorded`).
   *Original `audit.ts`, `server.ts:181-193`, `audit` suite; the Loki line replaced.*
 - **FR-037**: Each player whose identifying fields a request served MUST also be the subject of an
   audit record naming the key, the field names and the time, so a subject access request answers from
