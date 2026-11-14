@@ -15,6 +15,8 @@ class ApplyOnKindSuite extends munit.FunSuite:
 
   private val enabled = sys.env.get("CASINO_IT").contains("1")
   private val image   = sys.env.getOrElse("CASINO_IT_IMAGE", "shopping-cart:latest")
+  /** The runtime CASINO_IT_IMAGE is built on: the fixture's 0.13.0 is refused by a 0.16 platform. */
+  private val runtime = sys.env.getOrElse("CASINO_IT_RUNTIME", "0.16.3")
   private val suffix  = java.lang.Long.toString(System.currentTimeMillis() / 1000, 36)
 
   override def munitTests() = if enabled then super.munitTests() else Seq.empty
@@ -23,6 +25,7 @@ class ApplyOnKindSuite extends munit.FunSuite:
     val pilot = Fixtures.brand("goldvibe")
     pilot.copy(
       slug = slug,
+      runtime = runtime,
       services = pilot.services.map(s => s.copy(image = image, env = s.env.filterNot(_._2.startsWith("secret:")))),
       grantsReceived = pilot.grantsReceived.map(g => g.copy(principal = g.principal.replace("goldvibe", slug))),
       secrets = Vector.empty
@@ -41,7 +44,8 @@ class ApplyOnKindSuite extends munit.FunSuite:
     waitReady(cp, a.slug, started + 15 * 60 * 1000)
     val elapsed = (System.currentTimeMillis() - started) / 1000
     println(s"brand ${a.slug} ready in ${elapsed}s")
-    assert(cp.services(a.slug).forall(_.lifecycle == ServiceLifecycle.Ready))
+    assert(cp.services(a.slug).forall(_.lifecycle == ServiceLifecycle.Ready),
+      cp.services(a.slug).filter(_.lifecycle != ServiceLifecycle.Ready).map(s => s"${s.name} ${s.lifecycle}").mkString("not ready: ", ", ", ""))
     assertEquals(cp.topics(a.slug).map(_.name).toSet, a.topics.map(_.name).toSet, "every topic declared, dotted names included")
     assertEquals(Apply.run(Render.plan(a, Some(Fixtures.devKind)), cp, Apply.Options("eitheror")).changes, Vector.empty)
   }
