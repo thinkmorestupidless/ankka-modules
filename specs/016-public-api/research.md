@@ -498,6 +498,31 @@ Applied on this branch:
   then locked up: load average ~260, 12 of 16 GiB, the API server and ankka's Keycloak timing out.
   Scaling deployments to zero is undone by ankka's operator. The person chose to stop T095 there. The
   deployed scenario check is unmet; the suites over Postgres (`just public-api-it`) stand for it.
+- **T095 on a rebuilt kind-ankka (2026-11-14).** The cluster was rebuilt at v0.16.3, and every
+  deployed service moved to runtime 0.16.3 (the eight of core and casino on PR #38, public-api here).
+  goldvibe's database was raised to `max_connections` 300 as it appeared (by hand: ankka renders the
+  Cluster and has no setting for it). All nine services reached Ready, one instance each. Found and
+  fixed: public-api had no `logback.xml` (DEBUG everything) and was OOM-killed at `small`; it now
+  logs at INFO and runs `medium`. The dev secrets named the realm's admin client `goldvibe-admin`;
+  the realm's client is always `players-admin`, so registration answered 503 until it was corrected.
+  On a 10-CPU node the brand's requests fill 93–98%, so a rolling restart of a `medium` service
+  cannot schedule beside its old pod; pausing and resuming it does. payouts was paused for room.
+  Checked against the deployed service (a script in the session's scratchpad, 41 checks, all met):
+  `/health` and `/v1/openapi.json` without a key, the document the committed file with
+  `servers[0].url` the brand's address; `key_missing`, `key_invalid`, `405` for other methods, `404`
+  for an unknown path with a key, `400` for a bad id and for `limit` above 100; the operator routes
+  (`401` without a token, `404 wrong_brand` for another brand, `400` for an empty name, the secret
+  only at creation, list, read with `lastUsedAt`, disable → `403 key_disabled`, enable, delete →
+  refused, change a deleted key → `409 key_deleted`); `429 quota_exceeded` with `Retry-After: 60`
+  at 2 a minute; the status route. A player registered through the deployed players appeared in
+  `/v1/players` within seconds, with no identifying field for a key allowed none, and exactly
+  `email`, `firstName`, `lastName` for a key allowed those; its status ACTIVE as fields.md maps a
+  pending player. `goldvibe.platform.audit` held 53 `public_api.read`, every `access_key.*` change,
+  and one `public_api.identifying_fields_served` naming the player, the key and the field names,
+  with no value. Every check has an integration test already (KeysSuite, KeyChangeSuite, AdmissionSuite,
+  FieldsSuites, IdentifyingFieldsFeatures, AuditTrailSuite, StatusSuite, ContractResponsesSuite). Not exercised on kind:
+  sessions, rounds, bets, transactions and bonus awards from real producers, which need ST8's
+  callbacks and a deposit through the payments project.
 
 ## Declined remediations
 
