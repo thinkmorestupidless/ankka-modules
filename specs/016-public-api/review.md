@@ -224,3 +224,69 @@
 - **Language skills:** `pr-review-scala` (bundled) groups were applied from the first round's reading: concurrency (executors, interruption, visibility), types and totality (exhaustive matches), tests and fixtures. The repository has no `pr-review-scala` of its own. The summary listed `specs/016-public-api/REVIEW.md` as a review checklist. That is this file, `review.md`, on a case-insensitive filesystem, and it is not a checklist.
 - **Project rules read:** `CLAUDE.md` and `../CLAUDE.md`. There are no `.claude/rules`.
 - **Tests:** not run. The suites need sbt with a published contract snapshot, and the integration suites need Docker, beyond the review's budget. The one claim that rested on language semantics, the placeholder expansion behind Blocking 1, was checked by compiling and running a five-line reproduction with scalac 3.8.4. That gave three constructions for three calls.
+
+## Third round
+
+# Review: public-api (spec 016), the second round's fixes, 2ae8ff48...HEAD
+
+**Verdict:** Approve with comments. The one should-fix below is expected before merge, as a code change or as a sentence in FR-036. The nits are optional.
+**What it does:** Builds the `/v1` pipeline once per endpoint, so its request budget's pool is shared. Caps the recorded refusals of a key of the brand at 60 a minute per instance, and names the refusals left unrecorded on the key's next recorded refusal (`refused_unrecorded`). Makes an erasure of a player the service never held report nothing erased. Adds RecordedSuite, RefusalCapSuite and the AuditSuite and ErasureSuite cases, and amends FR-036, its clarification and contracts/facts.md.
+**Should it exist:** Yes. Each commit answers a named second-round finding, and the cap is the person's recorded decision.
+**Read:** In full: every hunk in the range (14 code and test files, about 150 hand-written lines), plus the spec, facts.md and research.md diffs and the second-round report. Outside the diff I opened all of `Pipeline.scala`, `Admission.scala` (`Rejected.key` is `Some` only for a known key), `KeyWindow` (a request over the rate writes no state), `KeyLog.outcome` (any `4xx` is `refused`), `PublicApiCodecs.stored` (jsoniter with `withTransientDefault`, unknown fields skipped), `PlayerRecord`'s fold (every fact sets `id`), the it `Kit` (a `MovableClock`, so the 62 requests cannot straddle a minute), `Deadline`'s pool and thread name, the build's `Test / fork` (one forked JVM, suites in sequence), and `features/public-api/audit.feature`. I also grepped for every `Pipeline(` construction.
+**Size:** 16 files, +262 −15, of which about 150 lines are Scala. That is small, so the light procedure applied.
+
+### Resolutions of the second round
+
+- **Blocking 1** (pipeline built per request), 12e814b4: **holds.**
+  - `PublicApiService.endpoints` binds `val pipeline` inside the endpoint factory, which ankka's `HttpServer` calls once at start. The `Deadline` pool, the `RefusalCap` counts and `builtIn ++ handlers` are therefore built once per service.
+  - A grep finds no other `Pipeline(…)(_, _)`. The three suites that build their own pipeline pass `.apply` on one instance.
+  - RecordedSuite's thread test can fail. A pool per request adds one thread per request (100 here), and those threads outlive the test by their 60 s keep-alive, well past the 64 the assertion allows. The implementer's run with the old construction (63 to 163) confirms it. Suites run in sequence in the one forked JVM, so no other suite's pools inflate the count.
+- **Should fix 1** (refusals of a known key unthrottled), 01825e8f: **holds for refusals at admission, not for every refusal FR-036 now caps.**
+  - `RefusalCap.refused` is atomic per key: `ConcurrentHashMap.compute` runs its function once, on the caller's thread, so the captured `var`s are safe.
+  - The carried count resets once it is named. The warn line comes once per key per minute per instance. The map holds only known key ids.
+  - `refused.set(true)` comes before `admitted.set`, so a reader that sees the key also sees that it was refused.
+  - A refusal after admission is not capped: the quota's `429`, or a `400` path id. See Should fix 1.
+- **Should fix 2** (AuditTrailSuite could pass while broken), 01825e8f: **holds.** RecordedSuite reads `served` where `Pipeline.apply` calls it, synchronously before the answer returns. It asserts that a made-up key id is told nothing, and that a known key's wrong secret is told exactly 60 times out of 62, each `(d.id, 401, 0)`. Both assertions fail if `Rejected.key` or the cap is broken. The clock is the kit's `MovableClock`, so the cap's minute cannot roll during the test.
+- **Should fix 3** (`ErasureReport(1)` for a subject never held), c40ceb32: **holds.** Every fact's fold sets `id`, so `currentState.id.nonEmpty` is exactly "a fact has named this player". A never-held subject still gets the erased mark written, but its reply is `false`, and ErasureSuite asserts 0 for a fresh id. A rerun after a late fact still reports 0, because `withErased` on an erased record changes nothing.
+- **Nits 1 to 3:** left, as recorded. That is acceptable.
+- **Question** (suites run after the fixes): **answered.** The research.md T096 note says so.
+
+`KeyLog.Served` gains `unrecorded: Int = 0`, a stored event type. That change is compatible in both directions:
+- an old event decodes to 0;
+- a new event with 0 omits the field (`withTransientDefault`);
+- an older node reading a new event with a count skips the unknown field.
+
+### Should fix
+
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/api/Pipeline.scala:64`. Issue (non-blocking): the cap applies only to refusals at admission (`refused` is set only in the `Left(rejected)` branch). A refusal of an admitted key is still recorded once per request: the quota's `429` at `:55`, or a `notAnIdentifier` `400`.
+  - FR-036 as amended says "each instance records at most 60 refusals of one key a minute", and `KeyLog.outcome` calls a `429` `refused`, so the code does not do what the spec says.
+  - It is also the same amplification the cap closes, in its other shape. A leaked key the operator has not yet disabled, or a misbehaving client, retried past its rate, costs the brand a `KeyLog` event and a `platform.audit` record per request. `KeyWindow.take` itself writes nothing once over the rate.
+  - Suggestion: cap on the outcome, not the branch. In the `admitted.get.foreach` block, use `val unrecorded = if answer.status / 100 == 4 then cap.refused(k.keyId) else Some(0)` and drop the `refused` flag. Add a case to RecordedSuite: a key with `requestsPerMinute = 1` sends 62 requests, and `served` is told 61 times (1 done and 60 refused).
+  - If the person wants every `429` recorded, amend FR-036 to "refusals at admission" instead.
+
+  Resolved: any 4xx answer of a key goes through the cap, not only refusals at admission; RecordedSuite checks a one-a-minute key's 62 `429`s are recorded 60 times; FR-036 names the 4xx. 324fbb49
+
+### Nits
+
+- `features/public-api/audit.feature:2`. Nitpick (non-blocking): the feature still says "Every request that presents an access key of the brand leaves one audit record". That is no longer true past the cap. The constitution keeps acceptance in the living features, and FR-036's new sentence has no scenario. Amend the prose. If wanted, add a scenario such as "a key refused more than 60 times in a minute has the rest counted on its next record" (`/speckit-bdd-features`).
+
+  Resolved: the feature's prose says a key's refusals past 60 a minute are counted on its next recorded refusal. Left: a scenario of its own, nit; RecordedSuite and RefusalCapSuite hold it. 324fbb49
+
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/api/RefusalCap.scala:9`. Nitpick (non-blocking): "the audit still says how often it was tried" holds only if the key is refused again later. The count is in memory: a burst that stops after the cap, or an instance that stops, never writes the count anywhere, and the `public_api_refusals_capped` warn line carries no count.
+  - Either say so in the comment, or log the count when a capped window rolls over.
+  - In the same file's suite, the third test's name ("add up … in several minutes") describes a case that cannot happen, because any minute's first refusal is recorded. Its assertions are right.
+
+  Resolved: the comment says the count is in memory and lost when the instance stops or the key is not refused again, and that the warning carries no count; the misnamed test is renamed. 324fbb49
+
+### Praise
+
+- `services/public-api/src/test/scala/io/eitheror/casino/publicapi/it/RecordedSuite.scala`. Praise: it moves the proof from the sliced audit consumer to the point where the pipeline decides. Both halves of FR-036's rule, and the thread bound, are asserted synchronously, and each assertion fails with the defect it guards against.
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/api/RefusalCap.scala`. Praise: a per-instance, in-memory cap that costs no write of its own. The bound is stated honestly as `perMinute` times the instances, and the warn is limited to one per key per minute.
+
+### Checks applied
+
+- **General checklist groups applied:** Correctness, Design and scope, Error handling, Concurrency and state (the `compute` closure, the order of the atomics, one pool per service), Security (the amplification path), Data and migrations (the `KeyLog.Served` field), Tests, Observability (the capped warn line), API and compatibility, Documentation, and Commit and PR hygiene. The commits are `type(016): …`, each names the finding it answers, and each has the trailer.
+- **Skipped:** Dependencies and build (no build change) and Performance, apart from the pool construction.
+- **Language skills:** `pr-review-scala` (bundled; the repository has none of its own), applied from its summary to concurrency, types and totality, codecs on stored types, and munit fixtures, as the light procedure allows.
+- **Project rules read:** `CLAUDE.md`, `../CLAUDE.md` and the constitution's features rule. There are no `.claude/rules`.
+- **Tests:** not run by the reviewer. The integration suites need Docker. I relied on the implementer's runs: 111/111 unit tests and 171/171 in `just public-api-it`. The RecordedSuite thread test failed with the old construction and passes with the fix.
