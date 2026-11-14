@@ -465,9 +465,9 @@ snapshot.
   contracts/recording.md's 11 recordings into `tests/port/public-api/` with `contract.port.Recording`.
   Check what the original writes as a free-spins claim's `face_value` and whether its `bonus-claims`
   list holds unactivated rewards, and record both in research.md (R16.5, fields.md §6)
-- [ ] T091 Run the driver against a local original on kind (`just public-api-record`); commit the
+- [X] T091 Run the driver against a local original on kind (`just public-api-record`); commit the
   recordings
-- [ ] T092 Write the parity suites of contracts/recording.md in `p-test/port/` with its comparison
+- [X] T092 Write the parity suites of contracts/recording.md in `p-test/port/` with its comparison
   rules (ids by role, the authentication code classes, `computedAt` by shape), each skipping and
   naming its recording when absent; `just public-api-parity` green
 - [X] T093 [P] Write `p-test/perf/StatsPerfSuite.scala`: a run over one million rounds within five
