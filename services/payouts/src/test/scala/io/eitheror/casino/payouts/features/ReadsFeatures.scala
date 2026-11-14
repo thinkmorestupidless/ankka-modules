@@ -40,7 +40,9 @@ class ReadsFeatures extends PayoutsFeatures("reads.feature"):
   }
 
   When("the player lists them") { () =>
-    rows = eventually("three listed")(Some(requests().objects("requests")).filter(_.size == 3))
+    // The view takes the cancel and the reject after the rows themselves: wait until only the newest is pending.
+    rows = eventually("three listed, the first two settled")(Some(requests().objects("requests"))
+      .filter(rs => rs.size == 3 && rs.flatMap(_.text("status")).count(_ == "PENDING_REVIEW") == 1))
   }
 
   Then("all three are shown newest first with amount, terminal, time and status") { () =>
