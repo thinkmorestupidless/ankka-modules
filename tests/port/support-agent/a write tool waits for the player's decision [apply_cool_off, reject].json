@@ -1,0 +1,121 @@
+{
+ "scenario": "a write tool waits for the player's decision [apply_cool_off, reject]",
+ "requirement": "017/FR-013",
+ "recorded_at": "2026-11-11T11:44:05.630631Z",
+ "original": {
+  "commit": "7630feb0"
+ },
+ "runs": 2,
+ "service": "support-agent",
+ "steps": [
+  {
+   "name": "setup: register the player",
+   "request": {
+    "method": "POST",
+    "path": "/v1/casino/players/spinvibe/register",
+    "service": "casino",
+    "body": {
+     "email": "{email}",
+     "password": "<redacted>",
+     "currency": "EUR",
+     "country": "GB",
+     "language": "en",
+     "dateOfBirth": "1990-01-01"
+    }
+   },
+   "response": {
+    "status": 201,
+    "body": {
+     "playerId": "{playerId}",
+     "status": "pending_email_verification"
+    }
+   }
+  },
+  {
+   "name": "setup: deposit 50.00 to the player",
+   "request": {
+    "method": "POST",
+    "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+    "service": "wallet",
+    "body": {
+     "paymentRef": "{paymentRef}",
+     "amount": "50.00",
+     "terminalId": "support-recorder",
+     "pspId": "support-recorder-psp",
+     "scheme": "card"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "bonusBalance": "0.00",
+     "currency": "EUR",
+     "realBalance": "50.00",
+     "txnId": "transaction/11dabfa8-6091-47f5-a8a2-e2383dcf7ecd"
+    }
+   },
+   "vary": {
+    "$.txnId": "differs between two runs of the original"
+   }
+  },
+  {
+   "name": "chat: tool_apply_cool_off",
+   "request": {
+    "method": "POST",
+    "path": "/run/chat_with_player",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "message": "script:{\"tool\": \"tool_apply_cool_off\", \"args\": {\"cool_off_until\": \"2026-11-14T11:43:41Z\"}}",
+     "session_id": "{session}"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": [
+     {
+      "event": "confirm_action",
+      "data": {
+       "action_name": "apply_cool_off",
+       "summary": "Apply a cool-off period until 2026-11-14T11:43:41Z. This cannot be shortened once it is in effect.",
+       "session_id": "{session}"
+      }
+     },
+     {
+      "event": "delta",
+      "data": {
+       "token": "result: \"Cool-off request cancelled.\""
+      }
+     },
+     {
+      "event": "done",
+      "data": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "resume: reject",
+   "request": {
+    "method": "POST",
+    "path": "/resume/{session}",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "action": "reject",
+     "feedback": "not now"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "ok": true
+    }
+   }
+  }
+ ]
+}

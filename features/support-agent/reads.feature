@@ -39,3 +39,14 @@ Feature: A player asks the support agent about their account and is answered fro
     When the player asks the support agent for their balance
     Then the reply says the balance cannot be read right now
     And the turn does not fail
+
+  Scenario: by default the only personal field the model is given is the player's display name
+    Given the brand's configuration names no further personal field
+    When the player asks the support agent about their account
+    Then the model is given the player's display name and no other personal field
+
+  Scenario: a personal field the brand's configuration names is given to the model in conversations started after the change, and the change is audited
+    Given an operator names the player's email address in the brand's configuration
+    When the player starts a new conversation
+    Then the model may be given the player's email address
+    And the configuration's change is audited

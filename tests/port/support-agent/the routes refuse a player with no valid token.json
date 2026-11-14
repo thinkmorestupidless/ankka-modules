@@ -1,0 +1,51 @@
+{
+ "scenario": "the routes refuse a player with no valid token",
+ "requirement": "017/FR-002",
+ "recorded_at": "2026-11-11T11:44:09.618311Z",
+ "original": {
+  "commit": "7630feb0"
+ },
+ "runs": 2,
+ "service": "support-agent",
+ "steps": [
+  {
+   "name": "chat with no token",
+   "request": {
+    "method": "POST",
+    "path": "/run/chat_with_player",
+    "service": "agent",
+    "body": {
+     "message": "hi",
+     "session_id": "s"
+    }
+   },
+   "response": {
+    "status": 401,
+    "body": {
+     "detail": "Authorization header required"
+    }
+   }
+  },
+  {
+   "name": "chat with a token signed by another secret",
+   "request": {
+    "method": "POST",
+    "path": "/run/chat_with_player",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "message": "hi",
+     "session_id": "s"
+    }
+   },
+   "response": {
+    "status": 401,
+    "body": {
+     "detail": "Invalid token: Signature verification failed"
+    }
+   }
+  }
+ ]
+}

@@ -43,6 +43,7 @@ jobs:
       engagement: ${{ steps.filter.outputs.engagement }}
       audit: ${{ steps.filter.outputs.audit }}
       reporting: ${{ steps.filter.outputs.reporting }}
+      support-agent: ${{ steps.filter.outputs.support-agent }}
       markets: ${{ steps.filter.outputs.markets }}
       exchange: ${{ steps.filter.outputs.exchange }}
     steps:
@@ -157,6 +158,11 @@ jobs:
               - services/reporting/**
               - features/reporting/**
               - tests/port/reporting/**
+            support-agent:
+              - *build
+              - services/support-agent/**
+              - features/support-agent/**
+              - tests/port/support-agent/**
             markets:
               - *build
               - services/markets/**
@@ -578,6 +584,30 @@ jobs:
       - name: reporting's integration, parity and feature suites
         working-directory: services/reporting
         run: sbt -Dit=true "testOnly io.eitheror.casino.reporting.it.* io.eitheror.casino.reporting.port.* io.eitheror.casino.reporting.features.*"
+
+  # support-agent (spec 017): its own sbt build, on ankka 0.16.2, against the contract published from this
+  # commit. `sbt test` runs the unit suites; the integration, parity and feature suites start Postgres in
+  # Docker and run with -Dit=true. Every model and judge is scripted: no key is needed.
+  support-agent:
+    needs: changes
+    if: github.event_name != 'pull_request' || needs.changes.outputs.support-agent == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: sbt
+      - uses: sbt/setup-sbt@v1
+      - name: Publish the contract locally
+        run: sbt contract/publishLocal
+      - name: support-agent's suites
+        working-directory: services/support-agent
+        run: sbt test
+      - name: support-agent's integration, parity and feature suites
+        working-directory: services/support-agent
+        run: sbt -Dit=true "testOnly io.eitheror.casino.support.it.* io.eitheror.casino.support.port.* io.eitheror.casino.support.features.*"
 
   # markets (spec 023): its own sbt build against the contract published from this commit, on
   # ankka-predictions from Maven Central; its integration suites run on the runner's Docker.

@@ -1,0 +1,8 @@
+{
+  "name": "support-agent",
+  "service": {
+    "image": "support-agent:latest",
+    "runtime": "0.16.2",
+    "personal": true
+  }
+}

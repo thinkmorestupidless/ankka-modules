@@ -1,0 +1,92 @@
+{
+ "scenario": "a read tool answers the model [get_player_state]",
+ "requirement": "017/FR-010",
+ "recorded_at": "2026-11-11T11:43:45.086513Z",
+ "original": {
+  "commit": "7630feb0"
+ },
+ "runs": 2,
+ "service": "support-agent",
+ "steps": [
+  {
+   "name": "setup: register the player",
+   "request": {
+    "method": "POST",
+    "path": "/v1/casino/players/spinvibe/register",
+    "service": "casino",
+    "body": {
+     "email": "{email}",
+     "password": "<redacted>",
+     "currency": "EUR",
+     "country": "GB",
+     "language": "en",
+     "dateOfBirth": "1990-01-01"
+    }
+   },
+   "response": {
+    "status": 201,
+    "body": {
+     "playerId": "{playerId}",
+     "status": "pending_email_verification"
+    }
+   }
+  },
+  {
+   "name": "setup: deposit 50.00 to the player",
+   "request": {
+    "method": "POST",
+    "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+    "service": "wallet",
+    "body": {
+     "paymentRef": "{paymentRef}",
+     "amount": "50.00",
+     "terminalId": "support-recorder",
+     "pspId": "support-recorder-psp",
+     "scheme": "card"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "bonusBalance": "0.00",
+     "currency": "EUR",
+     "realBalance": "50.00",
+     "txnId": "transaction/a2a625a0-aa36-412b-bacd-44ae4ec6dd0b"
+    }
+   },
+   "vary": {
+    "$.txnId": "differs between two runs of the original"
+   }
+  },
+  {
+   "name": "chat: {'tool': 'tool_get_player_state', 'args': {}}",
+   "request": {
+    "method": "POST",
+    "path": "/run/chat_with_player",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "message": "script:{\"tool\": \"tool_get_player_state\", \"args\": {}}",
+     "session_id": "{session}"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": [
+     {
+      "event": "delta",
+      "data": {
+       "token": "result: {\"brand_id\": \"\", \"created_at\": \"\", \"email\": \"\", \"full_name\": \"\", \"kyc_status\": \"unknown\", \"player_id\": \"{playerId}\", \"status\": \"unknown\"}"
+      }
+     },
+     {
+      "event": "done",
+      "data": {}
+     }
+    ]
+   }
+  }
+ ]
+}

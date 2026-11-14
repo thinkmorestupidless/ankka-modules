@@ -90,7 +90,9 @@ object Values:
     // spec 023 R13: no erasure target beyond core's own unless a planned module's service serves one
     "erasure-targets" -> "none",
     // spec 011 R13: no programme code document until spec 013 publishes one
-    "rewards-code-document-url" -> "none")
+    "rewards-code-document-url" -> "none",
+    // spec 017 R8: no judgment provider, so the judged guardrails are off and the status says so
+    "judgment-provider" -> "none")
 
   /** Every non-secret value a module may read: the defaults, the brand's own and the derived. */
   def all(v: Values, project: String, installation: Option[Installation]): Map[String, String] =

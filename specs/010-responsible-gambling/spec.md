@@ -357,7 +357,9 @@ CRM events and exports RGCase twins.
   active limit (a smaller value, or any value where none applies) and MUST cancel a pending change
   of that type; it MUST be staged as pending with applies-at 24 hours from now when it is less
   restrictive (a larger value, or a removal); a further change to a pending type MUST replace the
-  pending change and its time. Established from `RgRoutes.isMoreRestrictive`.
+  pending change and its time. Established from `RgRoutes.isMoreRestrictive`. `support-agent` MAY
+  make the player's change for a player who approved it in the chat, under the player's rules and a
+  key (spec 017 amendment R2; contracts/routes.md, `SupportEndpoint`).
 - **FR-003**: A `SESSION_MINUTES` value from a player MUST be a positive whole number and MUST be at
   or above the brand's minimum (a brand setting, default 60), refused naming the minimum otherwise;
   an operator's value MUST only be a positive whole number. Established from `RgRoutes` and
@@ -421,7 +423,8 @@ CRM events and exports RGCase twins.
 - **FR-014**: A player MUST be able to set a break until a moment at least one hour and at most the
   brand's maximum ahead (installation setting, default 42 days); the break MUST apply at once, open
   a case of type cool-off with trigger player and that end, and schedule a timer at the end.
-  Established from `RgRoutes` cooling-off; the bounds are new.
+  Established from `RgRoutes` cooling-off; the bounds are new. `support-agent` MAY set it for the
+  player, as the player, under a key (spec 017 amendment R3).
 - **FR-015**: A player MUST NOT be able to end, shorten or replace an active break; a request to do
   so MUST be refused naming that only an operator may. Established from spec 104 FR-013 and the
   absence of a player route.
@@ -437,7 +440,8 @@ CRM events and exports RGCase twins.
   `players` within the project to set the account status `self_excluded` (spec 008 FR-032), which
   ends every session of the player and produces `player_self_excluded`; this service produces
   `rg_case_opened`. Established from `RgRoutes` permanent-exclusion and spec 104 FR-001 to FR-005;
-  ending sessions is new.
+  ending sessions is new. `support-agent` MAY exclude the player, as the player, under a key; an
+  exclusion already in place answers it 200 `self_excluded` (spec 017 amendment R4).
 - **FR-019**: An operator MUST be able to exclude a player for a period of at least 183 whole days
   or permanently, trigger operator, on this service's route — `players` has no exclusion action of
   its own (spec 008 FR-032) — with the same command to `players` as FR-018; a shorter period MUST be
@@ -473,6 +477,8 @@ CRM events and exports RGCase twins.
 
 - **FR-025**: The service MUST serve the operator the player's full state: limits with usage,
   pending changes, break, exclusion, reality-check interval, open and closed cases, and history.
+  `support-agent` MUST be served the player's own status, as the player route answers it (spec 017
+  amendment R1).
 - **FR-026**: A case MUST have a type (self-exclusion, cool-off, deposit-limit, loss-limit,
   session-limit, reality-check, account-block), a trigger (player, operator, third party, system), a
   status (open, closed), opened-at, closes-at where it has an end, closed-at and a close reason

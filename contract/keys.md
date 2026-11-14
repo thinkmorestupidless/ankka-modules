@@ -60,6 +60,7 @@ same for every brand and are literals in the descriptors, not keys.
 | st8-api-key | casino | string | yes | `<slug>-st8/API_KEY` | | `ST8_API_KEY` |
 | rewards-code-document-url | casino | string | no | | | `REWARDS_CODE_DOCUMENT_URL` |
 | model-provider-key | support | string | yes | `<slug>-model/API_KEY` | | `MODEL_PROVIDER_KEY` |
+| judgment-provider | support | string | no | | | `AGENT_JUDGE` |
 | predictions-categories | predictions | string | no | | | `PREDICTIONS_CATEGORIES` |
 | predictions-currencies | predictions | string | no | | | `PREDICTIONS_CURRENCIES` |
 | predictions-max-order-cost | predictions | string | no | | | `PREDICTIONS_MAX_ORDER_COST` |
@@ -115,4 +116,5 @@ any publish while a manifest it publishes names one of these (contracts/release.
 
 | Service | Module | Spec |
 |---|---|---|
-| support-agent | support | 017 |
+
+None: every service a manifest names has its build.

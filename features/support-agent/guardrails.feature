@@ -24,19 +24,25 @@ Feature: Guardrails, limits and hand-off keep the support agent inside its remit
     Then the player is told the support agent is unavailable
     And the turn is not refused
 
-  Scenario: a turn judged to express self-harm on a brand that opted in is answered with the safeguarding reply, no tool runs, and it is audited
-    Given the brand opted into the self-harm guardrail
+  Scenario: a turn judged to express self-harm at a brand that takes real money is answered with the safeguarding reply, no tool runs, and it is audited
+    Given the brand takes real money
     When a turn is judged to express self-harm
     Then the reply is the brand's configured safeguarding reply with the support chat and the helpline
     And no tool runs
     And an audit record is written
+
+  Scenario: a turn expressing self-harm at a brand that takes no real money and has not opted in is not judged by the safeguarding guardrail
+    Given the brand takes no real money and has not opted into the self-harm guardrail
+    When a turn expresses self-harm
+    Then no safeguarding guardrail judges it
+    And the turn runs as any other
 
   Scenario: a reply containing what looks like another player's id or an internal address is rejected by the output guardrail and the model asked again
     Given a reply that contains a value that looks like another player's id or an internal address
     When the output guardrail runs
     Then the reply is rejected
     And the model is asked again
-    And on a streamed reply the rejection follows the text
+    And no part of the rejected reply reaches the player
 
   Scenario: a player sending more than the brand's turns per minute has the next turn refused as too many, with when they may send again
     Given the player sent more than the brand's turns per minute

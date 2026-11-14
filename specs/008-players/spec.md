@@ -125,7 +125,9 @@ Settled with specs 014, 015 and 017.
 - Q: What does `support-agent` ask of `players`? → A: The status and display name
   (`get_player_state`), the game sessions (`get_session_history`), and the end of one game session
   (`close_active_session`, FR-017), each by `support-agent`'s identity within the project (spec 017
-  FR-009, FR-010); it reads no `Personal` field but the display name.
+  FR-009, FR-010); it reads no `Personal` field but the display name. Amended by spec 017: the status
+  also names the currency (P2), the end is keyed by the approval id (P1), and `agent-profile` serves
+  the personal fields a brand names for its model, and no others (P3, spec 017 FR-018).
 
 ### Session 2026-10-25
 
@@ -450,7 +452,10 @@ store and `payments` for a personal field; fetch the response.
   game, currency, start, end, duration in whole minutes, status and end reason (`player`, `limit`,
   `forced`, `logout`, `expired`, `suspended`, `superseded`); `players` MUST open one on `game-provider`'s request
   within the project (001 FR-020 service class) and MUST refuse when the account status bars play
-  (FR-018) or the player has no active player session (`session_expired`).
+  (FR-018) or the player has no active player session (`session_expired`). `support-agent`'s forced
+  end MUST name an approval id, which is claimed once as the end's key: the same session under it
+  again ends nothing and answers as the first did; another session under it is `key_reused` (spec 017
+  amendment P1).
 - **FR-018**: `players` MUST answer `game-provider` the account status at launch (spec 003 FR-007):
   refused for `suspended`, `self_excluded`, `blocked` or `closed`, naming the status; the KYC play
   gate is `kyc`'s query (spec 009 FR-020) and a break, an exclusion or the session minutes are

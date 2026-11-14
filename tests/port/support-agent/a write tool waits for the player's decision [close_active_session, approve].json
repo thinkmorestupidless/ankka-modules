@@ -1,0 +1,128 @@
+{
+ "scenario": "a write tool waits for the player's decision [close_active_session, approve]",
+ "requirement": "017/FR-013",
+ "recorded_at": "2026-11-11T11:43:55.194419Z",
+ "original": {
+  "commit": "7630feb0"
+ },
+ "runs": 2,
+ "service": "support-agent",
+ "steps": [
+  {
+   "name": "setup: register the player",
+   "request": {
+    "method": "POST",
+    "path": "/v1/casino/players/spinvibe/register",
+    "service": "casino",
+    "body": {
+     "email": "{email}",
+     "password": "<redacted>",
+     "currency": "EUR",
+     "country": "GB",
+     "language": "en",
+     "dateOfBirth": "1990-01-01"
+    }
+   },
+   "response": {
+    "status": 201,
+    "body": {
+     "playerId": "{playerId}",
+     "status": "pending_email_verification"
+    }
+   }
+  },
+  {
+   "name": "setup: deposit 50.00 to the player",
+   "request": {
+    "method": "POST",
+    "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+    "service": "wallet",
+    "body": {
+     "paymentRef": "{paymentRef}",
+     "amount": "50.00",
+     "terminalId": "support-recorder",
+     "pspId": "support-recorder-psp",
+     "scheme": "card"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "bonusBalance": "0.00",
+     "currency": "EUR",
+     "realBalance": "50.00",
+     "txnId": "transaction/b00ada1e-07a6-46e7-b5bc-782bceacdf1c"
+    }
+   },
+   "vary": {
+    "$.txnId": "differs between two runs of the original"
+   }
+  },
+  {
+   "name": "chat: tool_close_active_session",
+   "request": {
+    "method": "POST",
+    "path": "/run/chat_with_player",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "message": "script:{\"tool\": \"tool_close_active_session\", \"args\": {\"game_session_id\": \"04bb9c7a-2917-4051-960b-7690ff0be778\"}}",
+     "session_id": "{session}"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": [
+     {
+      "event": "confirm_action",
+      "data": {
+       "action_name": "close_active_session",
+       "summary": "Close your active game session (session ID: 04bb9c7a-2917-4051-960b-7690ff0be778)",
+       "session_id": "{session}"
+      }
+     },
+     {
+      "event": "action_result",
+      "data": {
+       "action_name": "close_active_session",
+       "success": true,
+       "detail": "Session 04bb9c7a-2917-4051-960b-7690ff0be778 closed"
+      }
+     },
+     {
+      "event": "delta",
+      "data": {
+       "token": "result: \"Game session closed.\""
+      }
+     },
+     {
+      "event": "done",
+      "data": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "resume: approve",
+   "request": {
+    "method": "POST",
+    "path": "/resume/{session}",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "action": "approve"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "ok": true
+    }
+   }
+  }
+ ]
+}

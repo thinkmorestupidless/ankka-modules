@@ -1,0 +1,439 @@
+# Research: support-agent
+
+Planned 2026-11-09. `EP` is `~/Documents/projects/eitheror/eitheror-platform`; `ankka` is
+`~/Documents/projects/thinkmorestupidless/ankka`. Each decision says what was chosen, why, and what
+else was weighed.
+
+## R1. The original, read whole
+
+The agent is `EP/starter-packs/casino/agent/` (PydanticAI, FastAPI), `claude-sonnet-4-6`
+(`agents/motoko.py:61`).
+
+- **Routes** (`main.py:52-73`): `POST /run/chat_with_player` `{message, session_id}`, Bearer hand-off
+  token; `POST /resume/{session_id}` `{action: approve|reject, feedback?}`; `GET /healthz`;
+  `GET /mcp/manifest`.
+- **Answers**: run is 409 "Session already active" while a confirmation awaits; resume is 200
+  `{ok: true}`, 404 when nothing awaits, 409 when already decided, 422 for another action, 403 when
+  the token's `session_id` is not the path's (`routes/resume.py:18-51`, `auth.py:45-53`).
+- **Frames** (`sse.py:19-33`): `event: <name>` and `data: <json>`.
+  - `delta` `{token}`. The whole output is sent as one delta (`run.py:58-61`).
+  - `confirm_action` `{action_name, summary, session_id}`.
+  - `action_result` `{action_name, success: true, detail}`; `success: false` is never sent.
+  - `done` `{}`.
+  - `error` `{message}`.
+- **The open stream**: a write tool blocks on an in-process future, so the run's stream stays open
+  through the confirmation and later carries `action_result` and `done`. The widget reads them there
+  and ignores the resume's answer (`MotokoChat.tsx:209-222`).
+- **The session id** comes from `crypto.randomUUID()` in the widget, kept for the component's life
+  (`MotokoChat.tsx:138-139`). Only the pause uses it. No history is kept.
+- **The system prompt** is quoted in [contracts/tools.md](contracts/tools.md), with every tool, its
+  parameters, what it returns and its summary and detail texts (`motoko.py:30-47, 67-144`,
+  `tools/casino/read.py`, `tools/casino/write.py`).
+- **Tests** (`tests/`): read-tool mappings; each write tool's confirm payload on approve and reject;
+  the cool-off and exclusion statements, suspended exactly once; 401s on the run route; resume's 200,
+  403, 404 and 422; live-key integration tests, skipped. Two are stale (a wrong arity, missing
+  fields).
+- **Playwright** `16-motoko-chat.spec.ts`: skipped unconditionally (line 10).
+  - T043 opens the chat, asks "What is my balance?", and expects a non-empty reply within 15 s.
+  - T044 sends "I want to withdraw 10", expects "Confirm action" with Confirm and Cancel, confirms,
+    expects a reply, and expects the card to go within 5 s.
+- **The proxy** (`casino-player-frontend-next/src/app/api/motoko/…`) mints an HS256 token
+  `{session_id, tool, player_id, brand_id, currency, iat, exp: +900 s}` from cookies. It forwards
+  the body as is and streams the answer back. The widget is gated by the Unleash flag
+  `player-motoko-chat` and hidden while a game plays.
+- **Absent in the original**: rate limits, timeouts on a pending confirmation, retries beyond the
+  substrate client's one.
+
+Corrections to the spec, made with this plan:
+
+- the resume body's note is `feedback`, not `note`;
+- 404 when nothing awaits;
+- one `delta` in the original (here, text streams as produced: a divergence the widget absorbs, since
+  it appends);
+- `action_result.success` may be `false` here, when the service refuses.
+
+## R2. ankka: what ships, and the version
+
+| Feature | First release |
+|---|---|
+| Streaming, compaction, `TestModelProvider`, judged guardrails | ≤ 0.13.0 |
+| 029 approvals and tool→service calls | 0.13.0 |
+| 032 timers | 0.13.0 |
+| 036 blueprints | 0.13.0 |
+| 038 secret stores | 0.13.0 |
+| 042 a session with a data subject | **0.16.0** |
+
+`ankka/specs/*/tasks.md`: 029's open T082 is a manual quickstart check, and 038's open T065 is GKE
+access logs; neither touches this service. Everything is merged on ankka's main.
+
+**Decision: ankka 0.16.0**, as `engagement` and `audit`. FR-019 needs `forAgent(id, subject = Some(DataSubject(...)))`
+(`AgentRuntime.scala:1281`). The `support` module's descriptor moves to runtime 0.16.0. The
+consequence is the one engagement carries: a platform runs its minor and the one below, so the
+module cannot deploy beside a `core` on 0.13 until `core` reaches 0.15 (spec 014's known gap).
+
+**Rejected: 0.13.0 with a hand-rolled subject key.** It would duplicate 042, against constitution
+*Scope*: an ankka gap is an ankka spec, not a workaround.
+
+## R3. The stream, the gateway and the decision (settled with the user, 2026-11-09)
+
+ankka's gateway ends every response at 15 s, SSE included (`reference/limitations.md`,
+*Networking*). A decision is not pushed to a stream still open (029). `AgentPart` has only `Text`
+and `AwaitingApproval`.
+
+**Decision: the run stream ends at `confirm_action`, and the resume route answers as a stream.**
+
+- The run stream carries `delta` for each `AgentPart.Text`, then one of:
+  - `confirm_action` and `done` on `AgentPart.AwaitingApproval`;
+  - `done` when the turn answers.
+- The resume route calls `decide`, then streams `action_result` (from the tool's recorded outcome),
+  a `delta` with the reply, and `done`.
+- The widget reads the resume's answer instead of waiting on the first stream. That is a frontend
+  change beyond the base URL, carried by spec 019's runbook beside the token forwarding.
+
+**Rejected: the original's open stream.** It cannot outlive the gateway's 15 s, and a human
+decision takes longer. Lifting that would be an ankka spec, and 017 would wait on it.
+
+**Turn length.** A turn with several tool calls can pass 15 s. The turn completes in the session
+anyway (029: a turn is the session's, not the request's). A cut stream's next request reads the
+reply from memory (the spec's edge case). SC-002 (first `delta` within 5 s) is unaffected.
+
+## R4. Tools call by identity; three neighbours gain service routes (settled with the user, 2026-11-09)
+
+Read from the code, 2026-11-09:
+
+| Tool | Route | Admits `support-agent` today |
+|---|---|---|
+| `get_player_state` | players `GET /players/{playerId}/status` | yes, `serviceOf("game-provider","support-agent","exchange")` (`players/api/Endpoints.scala:150`) |
+| `get_wallet_balance` | wallet `GET /wallets/{player}/{currency}/balance` | yes, `Routes.service()` |
+| `get_transaction_history` | wallet `GET /wallets/{player}/{currency}/transactions` | yes |
+| hold preview (`request_withdrawal`'s summary) | wallet `GET /wallets/{player}/{currency}/holds/preview?amount=` | yes |
+| `get_active_bonuses` | rewards `GET /rewards/{playerId}/grants` | yes, by name (`rewards/api/PlayerGrants.scala:24-39`) |
+| `get_session_history` | players `GET /players/{playerId}/game-sessions` | yes, `serviceOf("support-agent")` |
+| `close_active_session` | players `POST /players/game-sessions/{sessionId}/end` `{approvalId}` | yes, but `approvalId` is only the actor |
+| `request_withdrawal` | payouts `POST /players/{playerId}/withdrawal-requests` | **no**: `Routes.player` and `mine` |
+| `get_rg_status`, `set_deposit_limit`, `apply_cool_off`, `apply_self_exclusion` | responsible-gambling `GET …/limits`, `PUT …/limits/{type}`, `PUT …/cooling-off`, `PUT …/permanent-exclusion` | **no**: player routes only, and no key |
+
+**Decision: amend the neighbours** ([contracts/neighbours.md](contracts/neighbours.md)).
+
+- **payouts**: a service route for the withdrawal request, admitting `support-agent` only, with the
+  player id in the path and the body's `key` as today.
+- **responsible-gambling**: service routes for the status, a deposit limit, a break and an
+  exclusion, admitting `support-agent` only, each command taking a `key`. A repeat answers the first
+  outcome (constitution II's rule applied to RG's commands).
+- **players**:
+  - the session end takes `approvalId` as its key (a repeat answers the first outcome);
+  - the status answers the player's `currency`;
+  - a read of the personal fields a brand names (R9), admitting `support-agent` only.
+
+Each route runs the same command the player route runs. Only the admission differs, and the player
+id comes from the path, never from the model (FR-011).
+
+**Rejected: forwarding the player's realm token.** It breaks call-by-identity (029 FR-010). An
+approved tool resumed after a restart, or after the token's five minutes, would have no valid token.
+
+## R5. The switch: the entitlement runs the service, the configuration turns the agent on
+
+Spec 021 made the entitlement to the `support` module the switch: "No `SUPPORT_AGENT_ENABLED`
+switch" (`specs/021-core-and-modules/contracts/module-manifests.md:78`). The spec's scenarios still
+need the agent off in a running service:
+
+- a brand whose agent is off answers "not available";
+- a brand that takes real money cannot turn it on without a safeguarding reply.
+
+**Decision: both.**
+
+- A brand not entitled to `support` does not run the service, so the routes do not exist. The
+  player site's Unleash flag already hides the widget.
+- A brand entitled runs it, with `AgentConfiguration.enabled` false until an operator turns it on.
+- FR-001 is amended to say so.
+
+## R6. Conversations: an event sourced entity beside ankka's session memory
+
+ankka's session memory holds the transcript, encrypted under the subject (042). Four things it does
+not hold:
+
+- the session's player binding (FR-004);
+- the configuration version the conversation started on (FR-029);
+- whether it has ended (FR-017);
+- the last activity (FR-027).
+
+The audit also needs a durable trail of tool calls, requests, decisions, rejections and hand-offs
+(FR-028).
+
+**Decision: `Conversation`, event sourced, id = the session id.**
+
+- Its events are the trail, and `AuditPublisher` reads them.
+- They carry no message text and no personal value, only names, redacted arguments and outcomes,
+  so erasure has nothing to do here. The transcript in session memory is what 042 erases.
+- A tool appends `ToolCalled` with its outcome. That is how the resume route knows `action_result`'s
+  success and detail.
+
+**Rejected: a key value entity per conversation.** The trail would be overwritten, and the audit
+would have to diff states.
+
+## R7. The approval's time limit
+
+FR-010 asks for "the player session's remaining life". The access token's `exp` is minutes, and
+the realm session's life is not in the token. **Decision: a configured limit, default 15 minutes**,
+the original's hand-off token life (900 s). A decision after the player's token expires is refused
+anyway as unauthenticated. FR-010, FR-016 and the edge case are amended. `requiresApproval(within)`
+needs `TimerRuntime` registered, which R10 registers anyway.
+
+## R8. Guardrails, and what the runtime does not do
+
+- **Input, in FR-021's order**:
+  - `Guardrail.maxInputLength(configured)`;
+  - `Guardrail.forbidding("other-player", …)`: a UUID, an email address or an internal hostname
+    (`*.svc`, `*.cluster.local`, `*.internal`);
+  - `Guardrail.judged("override").onInput(Refuse.ifYes(…, atLeast = 0.7))`.
+- **Safeguarding**: `Guardrail.judged("safeguarding")`, on a brand that takes real money or opted in
+  (FR-023). It refuses, and the endpoint answers the configured safeguarding reply instead of the
+  refusal, then records `GuardrailRejected(safeguarding)`.
+- **Output**:
+  - `other-player`: a UUID that is not the player's own, or an internal address;
+  - `softening`: a reply about a break or an exclusion carrying a phrase from the list in
+    [contracts/tools.md](contracts/tools.md) (*Softening*).
+- **Summaries**: the summary of a break or an exclusion is composed by `Summaries` from the tool's
+  arguments, never by the model, so it carries its statement by construction. `softening` guards
+  the model's own words around it.
+- **A judge that is unreachable** is `Unavailable`, answered with the unavailable reply and never as
+  a refusal (029, `build/judgments.md`).
+- **No retry in the runtime** ("the agent loop does not retry", `concepts/designing-agents.md`). A
+  rejected turn writes nothing. The chat endpoint asks again, at most twice (FR-022). The text is
+  held until the output guardrails pass ("Found during implementation"), so a rejected reply is not
+  sent.
+
+## R9. Personal fields a brand names (FR-018)
+
+The status route answers `status`, `displayName` and `verification`.
+
+**Decision**: a brand's configuration lists the personal fields its model may see. `get_player_state`
+reads them through players' new route `GET /players/{playerId}/agent-profile?fields=`. That route
+admits `support-agent` only and answers only fields named personal by spec 001 FR-023, refusing any
+other name (`unknown_field`). With no field named, nothing is read. Every change to the list is a
+configuration version and an audit record naming the fields. Wallet rows' `reason` (a `Personal`)
+is never returned (`TransactionHistory` projects it out).
+
+## R10. Rate, budget, retention
+
+ankka has no rate limit, budget or session expiry (`reference/limitations.md`;
+`concepts/designing-agents.md`, *Failure and cost*).
+
+- **Turns per minute**: `TurnWindow`, a key value entity per player holding the minute's turn
+  times. It must hold across nodes, so it cannot live in instance memory. Past the limit the answer
+  is 429 `too_many_turns` with `retryAfter`.
+- **Daily budget**: `Budget`, a key value entity per day (`<yyyy-mm-dd>`). After each turn the
+  endpoint reads the session's `usage` from `forSessionMemory(id).history` and adds the increase
+  since `Conversation`'s last count. Past the brand's tokens, every turn answers the fixed
+  unavailable reply, and the status says `budgetSpent`.
+- **Retention**: a timer `forget-<session>` at the last activity plus the brand's retention, set
+  again on every turn. When it fires it checks the last activity: if the conversation was touched
+  since, it sets itself again; otherwise it calls `forSessionMemory(id).clear` and records
+  `Forgotten`. The audit records remain.
+- **Payload**: the timer carries the session id alone, within the 1,024 bytes allowed.
+
+## R11. Configuration
+
+`AgentConfiguration` is a key value entity, id = slug, in engagement's shape: a version, the last 16
+change notes, and the brand's role to change it (`Routes.operatorHolding`).
+
+- **Versions**: each version's content is an immutable `ConfigVersion` (id `<slug>/<version>`), so a
+  conversation reads the version it started on (FR-029).
+- **What a version holds**:
+  - the prompt;
+  - the hand-off, unavailable, closing and safeguarding messages, and the helpline;
+  - the support chat's hours;
+  - the personal fields;
+  - the model name;
+  - the limits: input length, turns per minute, daily tokens, approval time;
+  - the retention;
+  - `safeguardingOptIn`;
+  - `enabled`.
+- **Turning it on**: a `PUT` that sets `enabled` on a brand that takes real money
+  (`CASINO_REAL_MONEY`) with no safeguarding message or helpline is refused, 422
+  `safeguarding_not_configured`.
+- **The model provider's key** is the module's existing `model-provider-key` secret, read from the
+  secret store as the manifest declares.
+- **Compaction is a service setting, not a version field.** ankka sets it on the runtime at start
+  (`AgentRuntime.withCompaction`). Its two numbers become settings (`AGENT_COMPACTION_BYTES`,
+  `AGENT_COMPACTION_RECENT`), defaults 100 000 and 10, applied on restart. FR-005 and FR-029 are
+  amended.
+- **Rejected: rebuilding the runtime on a change.** The runtime is registered once.
+
+## R12. The hand-off
+
+FR-025 says the reply ends with the hand-off message "when the model answers that it cannot help".
+The tool set is fixed (spec: "Not carried over: nothing"), so the signal is not a tool.
+
+**Decision**: the prompt tells the model to end such a reply with the marker `⟦handoff⟧`. The
+endpoint holds back a trailing partial marker while streaming, replaces the marker with the
+configured hand-off message, and records `HandedOff`.
+
+**Rejected: a `hand_off` tool.** It would add a tool the original does not have.
+
+## R13. Recordings and the oracle
+
+No Go end-to-end exists for the agent. The constitution's oracle is the agent's own suite and
+T043/T044.
+
+- **The recording run** needs the user: the original on kind with `casinoAgent.enabled: true` and
+  PydanticAI's `FunctionModel` scripted in place of Anthropic. ankka-port records:
+  - T043's and T044's HTTP exchanges against the agent;
+  - each write tool's confirm and result on approve and reject.
+- **The recordings** go under `tests/port/support-agent/`.
+- **`ParitySuite`** replays them, with frame names, fields and the summary and detail texts held
+  exact. Every divergence is named in plan.md, *Divergences*.
+- **The original's own tests** are ported case by case into the unit suites, as engagement did.
+
+## R14. Testing
+
+- `TestModelProvider` scripts each scenario's tool calls and text. It fails when its script runs
+  out (FR-008).
+- `TestJudgmentProvider` answers the judged guardrails, with `failNext` for an unreachable judge.
+- `AnkkaTestKit.start` over Postgres:
+  - `AgentRuntime.descriptors` and `ProjectionRuntime()`;
+  - `TimerRuntime` with a `MovableClock`;
+  - `InMemoryBroker` for `platform.audit`.
+- The fakes: `FakeWallet`, `FakePayouts`, `FakePlayers`, `FakeRewards` and `FakeRg`, under
+  `localServices`, each recording the caller and the key.
+- SSE is read over `java.net.http`, as in engagement.
+
+## R15. Tool timeouts (settled with the user, 2026-11-09, at analyze)
+
+Each neighbour call times out at 5 s and is retried once on a timeout, as the original's substrate
+client (`tools/platform/client.py:40-71`); a tool answers at most 10 s after it is called. FR-012 is
+amended. A turn with several slow tools may pass the gateway's 15 s; it completes in the session
+(R3). **Rejected:** 5 s with no retry, which keeps turns shorter but drops the original's tolerance
+of a blip.
+
+## Found during implementation
+
+- **2026-11-09, `RgKeys`' expired keys.** To answer `key_expired` for a key older than the last 64
+  (contracts/neighbours.md), `RgKeys` keeps the evicted keys as 64-bit digests, with no outcome. They
+  grow by 8 bytes for each change past the 64th, and keys are approval ids, a handful per player.
+  Two duplicates that run together both run the player's command; each command is the same change
+  twice (a limit to the same value, a break to the same end, an exclusion answered 200), and the
+  first answer is the one kept. A 5xx answer is not kept, so its repeat runs again.
+- **2026-11-09, a tool cannot see its approval id.** ankka 0.16's `FunctionTool` handler is not
+  given the approval it ran under. The endpoint records `Decided(approvalId)` on the `Conversation`
+  before it calls `decide`, and an approved tool reads the conversation's approved id as its key.
+- **2026-11-09, a withdrawal's terminal (settled with the user).** The contract sent
+  `terminalId: "support-agent"`, which payouts' gates refuse as `TERMINAL_NOT_ELIGIBLE`: no
+  terminal has that id. The original named none; its platform action chose. Payouts now chooses
+  (amendment A1): the player's default active destination and the first eligible terminal paying
+  to it that is neither crypto nor Gigadat, or 409 `NO_WITHDRAWAL_ROUTE`, which the tool tells
+  the model. **Rejected:** a `terminal_id` parameter the player picks in the chat (more turns,
+  terminal names shown to the model); handing every withdrawal to the cashier (drops what the
+  original did).
+- **2026-11-09, players' end is keyed by `AgentEndKey`.** A key value entity per approval id
+  holding the session it ended (amendment P1); `approvalId` is now required on that route.
+- **2026-11-10, compaction never runs on a session about a person (ankka 0.16; settled with the user:
+  stop for an ankka fix).** After a session's first call names a data subject, every session memory
+  event is persisted as `SessionMemoryEvent.Sealed` (`SessionMemoryEntity.scala`, "Every event after
+  it is `Sealed`"), and `SessionCompactor.onMessage` acts only on `AiMessageAdded`
+  (`compaction.scala`), so it ignores them all. In the kit, a session of 14 messages and 100 103
+  characters drew no summariser call and no recorded failure. FR-005 needs both the data subject and
+  compaction. 017 is paused at T039 until ankka's compactor also reacts to a sealed AI message, and
+  then moves to the release that carries the fix. **Rejected:** the service compacting after each
+  turn itself, which would duplicate ankka's rule; and leaving FR-005's compaction unmet.
+  **Resolved 2026-11-11:** ankka 064 (#264) shipped in 0.16.2, and 017 moves to it (build,
+  `service.json`, the module's runtime). 0.16.2 also carries #263, whose route builders take no type
+  arguments, so `ChatEndpoint`'s two `sseEventsBody` handlers type their parameters instead.
+- **2026-11-10, what an ended conversation answers.** The brand's `closingMessage` says the account
+  is excluded, which is wrong for a break. A turn during a break answers 409 `conversation_ended`
+  with "You are on a break until {until}. This conversation is closed until then.", and the
+  exclusion keeps the closing message. The resume stream that applies an exclusion ends with the
+  closing message as its last `delta` (FR-017's closing reply). A break's own reply is the model's,
+  told the break's end by the tool.
+- **2026-11-10, the deposit limit's summary reads responsible gambling first (settled with the user).**
+  FR-013 says the summary states whether a limit applies at once or after 24 hours, as responsible
+  gambling answers. contracts/tools.md carried the original's fixed text, which always warns of a
+  delay, wrong for a first or lower limit (spec 010 applies those at once). The summary now reads
+  RG's current limits (the R1 read) and says which; when they cannot be read, the original's text
+  is kept. **Rejected:** the original's text always, with FR-013 and actions.feature amended.
+- **2026-11-10, the 409 names the request (settled with the user).** FR-015 says a new message
+  while an approval awaits is refused as a conflict naming the request, and contracts/routes.md's
+  409 carried only `Session already active`. The 409 keeps that code and adds
+  `details: {approvalId, action_name}`, so a widget that checks the code still works.
+  **Rejected:** the code alone, with FR-015 and actions.feature amended to drop the naming.
+- **2026-11-09, FR-011's refusal before approval.** ankka 0.16 records an approval request for every
+  call to an approval-gated tool, before any code of the tool's can look at the arguments. So the
+  chat route checks a request's arguments when its turn stops (`Actions.check`: the player's own
+  currency, an amount above zero, a known period, a break that ends later). A request that fails is
+  decided at once as refused by `support-agent`, with the reason as the note. The player is shown
+  no `confirm_action`, the model is told the reason and answers, nothing is called, and the trail
+  records `ToolCalled(refused: invalid_arguments)` rather than `ApprovalRequested`. A response that
+  asks for two writes has the second refused ("one action at a time"). The tool checks its arguments
+  again when it runs.
+- **2026-11-09, a fake cannot see the caller.** ankka 0.16's service client sends no identity on a
+  call to a local service address (deployed, the identity is the workload's certificate), so the kit's
+  fakes cannot record `support-agent` as the caller. They assert that no player token is forwarded,
+  and the neighbours' own suites hold their `serviceOf("support-agent")` ACLs (T013).
+- **2026-11-11, what the forget timer reads and leaves (T040).** Nothing recorded a turn: `turned`
+  had no caller, so `lastActivity` stopped at a session's first turn and the timer would have
+  forgotten a conversation still in use. The chat route now records `TurnTaken` at each turn's end,
+  with the session's token total after it, and sets `forget-<session>` from it; a first turn also
+  sets it before the stream, so a first turn cut short is still forgotten. The retention is read
+  when the timer fires, so a shorter one applies at the next firing. Forgetting clears the
+  transcript but keeps an `Ended` status, so a break or an exclusion still closes the conversation.
+  The next turn on a forgotten conversation, by its own player, persists `Started` again on the
+  configuration version now, with a fresh trail. **Rejected:** forgetting an ended conversation into
+  `Forgotten`, which would reopen an excluded player's chat.
+- **2026-11-11, what the limits read (T045).** The turns per minute, the daily tokens and the
+  unavailable message are the brand's configuration as it is now, not the version the
+  conversation reads: they are operating limits, not the conversation's terms. `Budget.add` takes
+  the conversation's count before the turn as well as the session's usage after it
+  (`AddTokens(session, from, upTo)`), so a session's first turn of a UTC day adds that turn's
+  tokens rather than everything it used on the days before. A turn refused for the budget binds
+  no session and records nothing.
+- **2026-11-11, a turn's end is read after ankka writes it (T045).** Two things made the chat
+  route read a turn before it had happened. Pekko's `concat`, and `concatLazy` too, pulls its
+  second source when the stream starts, so the `ending` (the hand-off's held text, `TurnTaken`,
+  the budget, the forget timer) ran when the turn started. The ending is now built in a
+  `flatMapConcat` over the turn's frames, which are emitted only once the turn has passed, so a
+  refused turn records no turn (found in T050). And on 0.16.2 a streamed turn's source can complete a
+  moment before session memory holds the turn, so the ending reads the session until it differs
+  from what it held before the turn (messages, usage, a suspended turn, or erased), for at most
+  3 s. **Rejected:** counting each turn's tokens at the next turn, which leaves a session's last
+  turn uncounted.
+- **2026-11-11, a turn's text is held until it is checked (T047; settled with the user).** ankka runs
+  output guardrails on a stream after the text is sent, and the original client stops reading at the
+  first `error`, so the contract had no way to show FR-022's retry. The chat route now holds each
+  turn's text and sends it only once the output guardrails pass: a rejected reply reaches no one,
+  is recorded as `GuardrailRejected` with `retried`, and the model is asked again, at most twice;
+  the third rejection is `error` naming the guardrail. Token-by-token streaming is given up for the
+  turn; SC-002 still holds with a scripted model. A rejected attempt writes nothing to memory, so
+  its tokens are not in the session's usage and not counted against the day's budget. The resume
+  route's reply comes from `decide` whole and is not retried: a decision cannot be made twice.
+  routes.md and `guardrails.feature` say so.
+- **2026-11-11, who changes the prompt (T049).** routes.md says changing the prompt or the fields is
+  the brand admin's, with no refusal for it. A `PUT` that changes `prompt` or `personalFields` from
+  a principal holding neither `brand_admin` nor `platform_admin` is 403 with the contract's
+  `forbidden` code (`Routes.Forbidden`) and the field; the other fields are open to every role the
+  ACL admits. The operator routes write every field, an absent one as `null`
+  (`SupportCodecs.shown`), so a default is shown, not left out.
+
+### The quickstart walk (T059)
+
+The walk on `just support-agent-run` needs the local ankka installation's realms for a player's and a
+brand admin's tokens; on 2026-11-11 the installation was down. The user chose to close T059 on the integration
+kit, which drives quickstart steps 1–6 over the service's HTTP routes: `ConfigSuite` (1, 5),
+`ChatSuite` (2), `ResumeSuite` (3, 4), `AuditSuite` and `operators.feature` (6). No local run was walked.
+
+## For ankka
+
+Nothing blocks this service, and each item below is noted for an ankka spec.
+
+- A streamed turn's source completes before session memory holds the turn, so a caller cannot
+  read the turn's usage when its stream ends.
+
+- No budget or rate primitive: R10 builds both from entities.
+- No retry of a rejected output.
+- No push of a decision to an open stream.
+- The gateway's 15 s cut.
+- A `FunctionTool` handler is not given the approval id it runs under, so the decision is recorded
+  on `Conversation` before ankka is told, and the two are reconciled by hand.
+
+## Design finished
+
+2026-11-09: analyze reported nothing above LOW.

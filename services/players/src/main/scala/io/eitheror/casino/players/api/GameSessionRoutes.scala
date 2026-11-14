@@ -70,25 +70,53 @@ final class GameSessionRoutes(ctx: Ctx):
                   answer.minutesLeft.foreach(left => SessionLimits.schedule(PlayersRuntime.timers(), sessionId, playerId, left))
                   json(201, Json.obj("sessionId" -> sessionId))
 
-  /** `GET /{playerId}/status` for `game-provider` and `support-agent`. */
+  /** `GET /{playerId}/status` for `game-provider`, `support-agent` and `exchange`; the currency for spec 017's tools (P2). */
   def status(playerId: String): Reply =
     val p = stateOf(playerId)
     if !p.exists then refusal(404, "player_not_found", "No such player")
     else ok(Json.obj("status" -> p.status, "displayName" -> p.profile.get("displayName").orNull,
-      "verification" -> (if p.kycVerified then "verified" else "unverified")))
+      "verification" -> (if p.kycVerified then "verified" else "unverified"), "currency" -> p.currency))
+
+  /**
+   * `GET /{playerId}/agent-profile?fields=a,b` for `support-agent` (spec 017 amendment P3, FR-018): only the personal
+   * fields a brand names for its model, of those spec 001 FR-023 names personal and players holds. Any other name is
+   * 400 `unknown_field`; a field with no value is absent.
+   */
+  def agentProfile(playerId: String, fields: Option[String]): Reply =
+    val named = fields.toVector.flatMap(_.split(',')).map(_.trim).filter(_.nonEmpty).distinct
+    named.find(f => !GameSessionRoutes.AgentFields(f)) match
+      case Some(unknown) => refusal(400, "unknown_field", s"$unknown is not a field this route serves", "field" -> unknown)
+      case None =>
+        val p = stateOf(playerId)
+        if !p.exists then refusal(404, "player_not_found", "No such player")
+        else
+          val values = named.flatMap { f =>
+            (if f == "email" then p.primary.map(_.address.reveal) else p.profile.get(f)).map(f -> _)
+          }
+          ok(Json.obj(values*))
 
   /** `GET /{playerId}/game-sessions` for `support-agent`: the history, newest first. */
   def history(playerId: String, offset: Option[String]): Reply =
     ok(Json.obj("sessions" -> sessions(playerId, offset.flatMap(_.toIntOption).getOrElse(0))))
 
-  /** `POST /game-sessions/{sessionId}/end` for `support-agent`: forced, the approval named as the actor. */
+  /**
+   * `POST /game-sessions/{sessionId}/end` for `support-agent`: forced, the approval named as the actor and claimed as
+   * the end's key (spec 017 amendment P1). The same session under the key again answers as the first did, ending
+   * nothing; another session under it is 409 `key_reused`.
+   */
   def endByAgent(sessionId: String, text: String): Reply =
-    val approval = Json.parse(text).flatMap(_.text("approvalId")).getOrElse("support-agent")
-    val s        = gameOf(sessionId)
-    if !s.exists then refusal(404, "session_not_found", "No such session")
-    else
-      end(sessionId, s, "forced", Some(approval))
-      ok(Json.obj("sessionId" -> sessionId, "status" -> GameSessionState.Ended))
+    Json.parse(text).flatMap(_.text("approvalId")) match
+      case None => refusal(400, "missing_fields", "approvalId is required", "fields" -> Json.arr("approvalId"))
+      case Some(approval) =>
+        val s = gameOf(sessionId)
+        if !s.exists then refusal(404, "session_not_found", "No such session")
+        else
+          components.forKeyValueEntity(EntityId(approval)).call(AgentEndKey.claim).invoke(sessionId) match
+            case EndKeyClaim.Reused => refusal(409, "key_reused", "The approval already ended another session")
+            case EndKeyClaim.Repeat => ok(Json.obj("sessionId" -> sessionId, "status" -> GameSessionState.Ended))
+            case EndKeyClaim.Fresh =>
+              end(sessionId, s, "forced", Some(approval))
+              ok(Json.obj("sessionId" -> sessionId, "status" -> GameSessionState.Ended))
 
   // ── SessionEndpoint ────────────────────────────────────────────────────────────────────────────
 
@@ -143,6 +171,9 @@ final class GameSessionRoutes(ctx: Ctx):
     Json.arr(rows.map(GameSessionRoutes.wire)*)
 
 object GameSessionRoutes:
+  /** The personal fields `agent-profile` serves (spec 001 FR-023; spec 017 R9): the sign-in address and the profile's. */
+  val AgentFields: Set[String] = Set("email", "firstName", "lastName", "country", "language", "dateOfBirth")
+
   /** The original's session body: the status `completed` for a player's own end, `ended` for any other. */
   def status(state: String, reason: Option[String]): String =
     if state == GameSessionState.Ended && reason.contains("player") then "completed" else state

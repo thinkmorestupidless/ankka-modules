@@ -177,9 +177,10 @@ In-project callers by certificate; no route here is granted to a shared project.
 
 | Route | Caller | Does | Answers |
 |---|---|---|---|
-| `GET /{playerId}/status` | `game-provider` (003 FR-007), `support-agent` (017 `get_player_state`), `exchange` (023 FR-002) | `PlayerEntity.status`, display name, verification status from the kyc facts | 200 `{status, displayName, verification}`; 404 |
+| `GET /{playerId}/status` | `game-provider` (003 FR-007), `support-agent` (017 `get_player_state`), `exchange` (023 FR-002) | `PlayerEntity.status`, display name, verification status from the kyc facts, currency (017 amendment P2) | 200 `{status, displayName, verification, currency}`; 404 |
 | `POST /{playerId}/game-sessions` | `game-provider` (003 FR-009) | body `gameId`, `currency`, `demo`, `playerSessionId`; opens the game session, schedules the limit (R5) | 201 `{sessionId}`; 403 `account_restricted`; 403 `session_limit_reached` + `limitMinutes`, `usedMinutes`; 409 `session_expired` |
-| `GET /{playerId}/game-sessions`, `POST /game-sessions/{sessionId}/end` | `support-agent` (017 `get_session_history`, `close_active_session`) | `SessionsView`; `End(forced)` with the approval id as the key | 200 |
+| `GET /{playerId}/game-sessions`, `POST /game-sessions/{sessionId}/end` | `support-agent` (017 `get_session_history`, `close_active_session`) | `SessionsView`; `End(forced)`, body `approvalId` required, claimed as the end's key (017 amendment P1) | 200 `{sessionId, status}`, the same again under the same key; 400 `missing_fields`; 404 `session_not_found`; 409 `key_reused` for another session under the key |
+| `GET /{playerId}/agent-profile?fields=a,b` | `support-agent` (017 amendment P3, FR-018) | the named fields of `email`, `firstName`, `lastName`, `country`, `language`, `dateOfBirth`; one without a value is absent | 200 `{field: value}`; 400 `unknown_field` + `field`; 404 `player_not_found` |
 | `POST /{playerId}/suspend` | `kyc` (009 FR-025) | body `reason` (`kyc_window_expired`), `deadline`; idempotent under player and deadline | 200 |
 | `PUT /{playerId}/exclusion` | `responsible-gambling` (010 FR-018, FR-019) | body `at`; `SetSelfExcluded`; sessions end `suspended`; revoke | 200 |
 | `DELETE /{playerId}/exclusion` | `responsible-gambling` (010 FR-020) | `LiftExclusion` | 200; 409 `not_excluded` |

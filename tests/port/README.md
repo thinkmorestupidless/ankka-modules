@@ -17,6 +17,15 @@ Not recorded yet. `programme/README.md` says what the directory will hold: thirt
 `tests/original/programme-driver/`, one per driver scenario of
 `specs/013-affiliate-programme/contracts/recording.md`, how they are made, and the marked divergences.
 
+## support-agent (spec 017, T055)
+
+Recorded 2026-11-11 from the original at `7630feb0`, twice, on fresh players. The original's agent
+ran on the host against its kind stack, with PydanticAI's `FunctionModel` scripted in place of
+Anthropic, by `tests/original/support-agent-recorder.py`. There are 19 recordings: the six read
+tools, a text reply, each write tool's approve and reject, the routes around a pending decision, and
+the refused tokens. `support-agent/README.md` says how they were made and what they show about the
+original.
+
 ## engagement (spec 014, T051)
 
 Recorded 2026-11-08 from the original at `7630feb0`, twice on fresh ids. The run used its kind stack

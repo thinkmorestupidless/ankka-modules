@@ -267,6 +267,34 @@ engagement-run brand="goldvibe":
       ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
       sbt -Dankka.local-services.players=http://127.0.0.1:9003 -Dankka.local-services.rewards=http://127.0.0.1:9008 run
 
+# support-agent's unit suites (spec 017). The contract is published first.
+support-agent-test:
+    sbt contract/publishLocal
+    cd services/support-agent && sbt test
+
+# support-agent's integration, parity and feature suites only (Docker); every model is scripted.
+support-agent-it:
+    cd services/support-agent && sbt -Dit=true "testOnly io.eitheror.casino.support.it.* io.eitheror.casino.support.port.* io.eitheror.casino.support.features.*"
+
+# support-agent, locally on 9020 as brand goldvibe (`sbt schema && docker compose up -d` first, in
+# services/support-agent: Postgres on 5444). Its neighbours are their own local runs: wallet 9000,
+# players 9003, payouts 9004, responsible-gambling 9006, rewards 9008. AGENT_MODEL_PROVIDER=scripted:<file>
+# answers from a script, with no key. Tokens are verified against the kind installation's casino Keycloak.
+support-agent-run brand="goldvibe":
+    cd services/support-agent && CASINO_BRAND={{brand}} CASINO_PROJECT={{brand}} CASINO_REAL_MONEY=false \
+      ANKKA_HTTP_PORT=9020 ANKKA_DB_PORT=5444 \
+      AGENT_MODEL_PROVIDER=${AGENT_MODEL_PROVIDER:-anthropic} AGENT_COMPACTION_BYTES=100000 AGENT_COMPACTION_RECENT=10 \
+      ANKKA_AUTH_ISSUERS=player,staff ANKKA_AUTH_REALM=casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}} \
+      ANKKA_AUTH_PLAYER_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/casino-{{brand}}/protocol/openid-connect/certs \
+      ANKKA_AUTH_PLAYER_AUDIENCE=casino-{{brand}} ANKKA_AUTH_PLAYER_CA=$HOME/.ankka/local-ca.crt \
+      ANKKA_AUTH_STAFF_ISSUER=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror \
+      ANKKA_AUTH_STAFF_JWKS_URL=https://auth-casino.127.0.0.1.sslip.io:8443/realms/eitheror/protocol/openid-connect/certs \
+      ANKKA_AUTH_STAFF_AUDIENCE=eitheror-casino ANKKA_AUTH_STAFF_CA=$HOME/.ankka/local-ca.crt \
+      sbt -Dankka.local-services.wallet=http://127.0.0.1:9000 -Dankka.local-services.players=http://127.0.0.1:9003 \
+        -Dankka.local-services.payouts=http://127.0.0.1:9004 -Dankka.local-services.responsible-gambling=http://127.0.0.1:9006 \
+        -Dankka.local-services.rewards=http://127.0.0.1:9008 run
+
 # players' suites (spec 008; Docker for the integration kit). The contract is published first.
 players-test:
     sbt contract/publishLocal
@@ -284,7 +312,7 @@ players-perf:
 # first: Postgres on 5435 and the brand's Keycloak on 8080). The services it calls are the fakes
 # (`sbt "Test/runMain io.eitheror.casino.players.it.fakes"` in services/players): responsible-gambling
 # 9011, kyc 9012, engagement 9013, ingest 9014, wallet 9015, ip-api 9016, the vendor's agent 9017
-# (FakeRealm on 9010 stands in for Keycloak when KEYCLOAK_URL points at it).
+# (FakeRealm on 9010 stands in for Keycloak when KEYCLOAK_URL points at it). support-agent's own run is on 9020.
 players-run:
     cd services/players && ANKKA_HTTP_PORT=9003 ANKKA_DB_PORT=5435 CASINO_BRAND=goldvibe CASINO_REAL_MONEY=false \
       KEYCLOAK_URL=http://127.0.0.1:8080 PLAYER_SITE_BASE=http://localhost:3000 \

@@ -156,6 +156,7 @@ final class ServiceEndpoint(ctx: Ctx) extends HttpEndpoint(s"/v1/casino/brands/$
   withAcl(Routes.serviceOf("support-agent")) {
     get("/{playerId}/game-sessions") { (playerId: String) => games.history(playerId, query.raw("offset")) }
     postBody("/game-sessions/{sessionId}/end") { (sessionId: String, text: String) => games.endByAgent(sessionId, text) }
+    get("/{playerId}/agent-profile") { (playerId: String) => games.agentProfile(playerId, query.raw("fields")) }
   }
   withAcl(Routes.serviceOf("kyc")) {
     postBody("/{playerId}/suspend") { (id: String, text: String) => OperatorStatusRoutes(ctx).suspendByKyc(id, text) }

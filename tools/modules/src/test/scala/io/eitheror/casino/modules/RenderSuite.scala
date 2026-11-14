@@ -49,7 +49,8 @@ class RenderSuite extends munit.FunSuite:
     "rewards"       -> Set("REWARDS_CODE_DOCUMENT_URL"),
     // spec 014 R12: the Customer.io secrets enter through the configuration route, not the manifest.
     "engagement"    -> Set(),
-    "support-agent" -> Set("MODEL_PROVIDER_KEY"),
+    // spec 017 R11, R8: the model provider, compaction and the judge are the service's settings.
+    "support-agent" -> Set("MODEL_PROVIDER_KEY", "AGENT_MODEL_PROVIDER", "AGENT_COMPACTION_BYTES", "AGENT_COMPACTION_RECENT", "AGENT_JUDGE"),
     // spec 012 plan research R12, R7, R5, R3, R10, R15: attribution's own settings.
     "attribution"   -> Set("CASINO_REPORTING_ZONE", "CASINO_MODULES", "COUNTRY_HEADER", "DOCUMENT_TIMEOUT", "CLOSE_GRACE", "WEBHOOK_TIMEOUT"),
     // spec 015 research R14: reporting's zone, modules, grace and generation.
@@ -57,7 +58,7 @@ class RenderSuite extends munit.FunSuite:
   )
 
   /** Services that run on a later ankka than spec 001's 0.13.0, for the `Personal` they store. */
-  private val NewRuntimes = Map("engagement" -> "0.16.0", "reporting" -> "0.16.0")
+  private val NewRuntimes = Map("engagement" -> "0.16.0", "reporting" -> "0.16.0", "support-agent" -> "0.16.2")
 
   /**
    * Sizes spec 001 did not set: players and attribution outgrow `small`'s 512Mi on kind (spec 008 T077,
@@ -82,7 +83,8 @@ class RenderSuite extends munit.FunSuite:
         assertEquals(d.service.resources.instanceType, size, d.name)
         d.copy(service = d.service.copy(resources = before.service.resources))
       }
-      // engagement (spec 014) and reporting (spec 015 R2) run on ankka 0.16.0 for their `Personal`; spec 001 on 0.13.0.
+      // engagement (spec 014) and reporting (spec 015 R2) run on ankka 0.16.0 for their `Personal`, and support-agent on
+      // 0.16.2 for its sessions' data subject (spec 017 R2); spec 001 on 0.13.0.
       val runtime = NewRuntimes.get(d.name).fold(resized) { v =>
         assertEquals(resized.service.runtime, Some(v), d.name)
         resized.copy(service = resized.service.copy(runtime = before.service.runtime))

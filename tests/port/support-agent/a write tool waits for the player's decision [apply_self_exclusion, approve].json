@@ -1,0 +1,128 @@
+{
+ "scenario": "a write tool waits for the player's decision [apply_self_exclusion, approve]",
+ "requirement": "017/FR-013",
+ "recorded_at": "2026-11-11T11:44:07.135609Z",
+ "original": {
+  "commit": "7630feb0"
+ },
+ "runs": 2,
+ "service": "support-agent",
+ "steps": [
+  {
+   "name": "setup: register the player",
+   "request": {
+    "method": "POST",
+    "path": "/v1/casino/players/spinvibe/register",
+    "service": "casino",
+    "body": {
+     "email": "{email}",
+     "password": "<redacted>",
+     "currency": "EUR",
+     "country": "GB",
+     "language": "en",
+     "dateOfBirth": "1990-01-01"
+    }
+   },
+   "response": {
+    "status": 201,
+    "body": {
+     "playerId": "{playerId}",
+     "status": "pending_email_verification"
+    }
+   }
+  },
+  {
+   "name": "setup: deposit 50.00 to the player",
+   "request": {
+    "method": "POST",
+    "path": "/internal/v1/wallet/spinvibe/{playerId}/EUR/deposit",
+    "service": "wallet",
+    "body": {
+     "paymentRef": "{paymentRef}",
+     "amount": "50.00",
+     "terminalId": "support-recorder",
+     "pspId": "support-recorder-psp",
+     "scheme": "card"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "bonusBalance": "0.00",
+     "currency": "EUR",
+     "realBalance": "50.00",
+     "txnId": "transaction/e374f0da-6bc9-4530-954b-c10126328722"
+    }
+   },
+   "vary": {
+    "$.txnId": "differs between two runs of the original"
+   }
+  },
+  {
+   "name": "chat: tool_apply_self_exclusion",
+   "request": {
+    "method": "POST",
+    "path": "/run/chat_with_player",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "message": "script:{\"tool\": \"tool_apply_self_exclusion\", \"args\": {}}",
+     "session_id": "{session}"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": [
+     {
+      "event": "confirm_action",
+      "data": {
+       "action_name": "apply_self_exclusion",
+       "summary": "Self-exclude your account permanently. This is permanent and cannot be reversed.",
+       "session_id": "{session}"
+      }
+     },
+     {
+      "event": "action_result",
+      "data": {
+       "action_name": "apply_self_exclusion",
+       "success": true,
+       "detail": "Self-exclusion applied at "
+      }
+     },
+     {
+      "event": "delta",
+      "data": {
+       "token": "result: \"Your account has been permanently self-excluded as of .\""
+      }
+     },
+     {
+      "event": "done",
+      "data": {}
+     }
+    ]
+   }
+  },
+  {
+   "name": "resume: approve",
+   "request": {
+    "method": "POST",
+    "path": "/resume/{session}",
+    "service": "agent",
+    "headers": {
+     "Authorization": "Bearer {token}"
+    },
+    "body": {
+     "action": "approve"
+    }
+   },
+   "response": {
+    "status": 200,
+    "body": {
+     "ok": true
+    }
+   }
+  }
+ ]
+}

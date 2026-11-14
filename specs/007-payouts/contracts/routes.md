@@ -42,6 +42,15 @@ Each R4 refusal carries its own fields:
 `WITHDRAWAL_BLOCKED_TURNOVER` and `WITHDRAWAL_REQUIRES_BONUS_FORFEIT_CONFIRMATION` also carry the request's
 `currency`, as the original's did (research, *Found during implementation*, 2026-10-31).
 
+## `SupportEndpoint`: `/v1/casino/payouts-service/<slug>` (spec 017 amendment A1)
+
+ACL: `Routes.serviceOf("support-agent")`. `support-agent` asks for a withdrawal the player approved in
+the chat.
+
+| Method and path | Body | Answer | Refusals |
+|---|---|---|---|
+| `POST /players/{playerId}/withdrawal-requests` | the player route's body, `key` required; `terminalId` and `destinationId` may be left out | the player route's answer: the same gates, the same workflow, and the same request under the same key, from either route. With no `terminalId`: the player's default active destination and the first eligible terminal that pays to a saved destination and is neither crypto nor Gigadat | the player route's, `MISSING_KEY` and `KEY_REUSED` included; 409 `NO_WITHDRAWAL_ROUTE` when there is no such destination and terminal |
+
 ## `OperatorEndpoint`: `/v1/casino/brands/<slug>/withdrawal-requests`
 
 ACL: `Routes.operator(slug)`. The handler also checks a role: `brand_admin`, `brand_finance`,
