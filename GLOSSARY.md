@@ -24,6 +24,7 @@ arguments, budget, compaction, composed, contains, control, explains, express, f
 agreed, approver, causation, database, declined, entity, format, ingest, inside, joins, lookup, occurrence, officer, performed, principal, re-read, recursively, regulator, survives
 advertises, began, begin, begins, decremented, defect, doubled, elapsed, evidence, expected, fake, finding, instants, instructs, observed, percentile, production, projection, proposed, reconciliation, retired, runbook, scaled, schedule, shape, snapshot, snapshots, spends, step, study, sweep, th, took, verdict
 another, try
+descending, null, parameter, temporarily
 attempt, attempts, instance, instances, abandons, deregisters, deregister, acknowledge, acknowledges, acknowledged, decremented, either, demo, exponent, loads, protocol, registered, registers, spends, sweep, younger
 
 ## Terms
@@ -407,7 +408,7 @@ The brand's facts for one network served in the order they were emitted, from a 
 An opaque position in a brand's feed; reading from the same cursor twice returns the same page.
 
 ### page cursor
-An opaque position in a partner's paging of a collection; one that is malformed, expired or another partner's is refused and leaks nothing.
+An opaque position in a caller's paging of a collection; one that is malformed, expired or another caller's is refused and leaks nothing.
 
 ### webhook
 A payment provider's post of a payment's outcome to the gateway, verified by its signature or, for a provider that does not sign, by the secret in its address; acknowledged even when it moves nothing.
@@ -993,29 +994,37 @@ An export for a regulator of the brand's cases or KYC decisions over a period, o
 ### test account
 A player flagged as the brand's own test account, counted in every figure as the original counts it and shown with its flag.
 
-### partner
-An outside company a brand lets read its records under a partner entitlement: it signs in with a client id and secret for one brand and queries that brand's players, transactions, bets, rounds, sessions and rewards, and nothing of any other brand. It can write nothing.
+### access key
+A brand's credential for the public API, created by an operator holding the access keys permission: a name, the start of the key shown in lists, a secret shown once, enabled or not, an optional expiry, the identifying fields it may read (none by default) and its requests per minute (600 by default). A disabled, deleted or expired key is refused from the next request. It is the brand's, whoever it is given to; there is no partner record.
 
-### partner entitlement
-What an operator creates for a partner at one brand: enabled or not, the identifying fields the partner may read, the agreement that permits them, the requests per minute and the cost ceiling; a change takes effect within a minute and is recorded with who made it.
+Avoid: API key, partner, partner token, partner entitlement, partner grant, client secret
 
-Avoid: partner grant
+### access keys permission
+The realm role (`api_keys`) an operator holds beside the brand's own role to create, list, change, disable, enable and delete that brand's access keys; ordinary operator access is not enough.
 
-### partner contract
-The published description of what a partner may query, complete enough to generate a client from; byte-identical across internal changes, and a new version beside the old for at least six months when a change breaks it.
+### public API
+A brand's read-only API over its players, their activity, its games and its statistics, reached with an access key at the brand's own hostname.
 
-Avoid: schema, GraphQL schema
+Avoid: partner API
+
+### public contract
+The published description of the public API, complete enough to generate a client from; unchanged across internal changes, and a new version beside the old for at least six months when a change breaks it.
+
+Avoid: schema, partner contract, OpenAPI spec
+
+### snapshot
+One hourly computation's game and player figures and rankings, named by an id and its computation time; a player ranking is paged through one snapshot, readable for at least 30 minutes after a newer one replaces it, then refused as expired.
 
 ### identifying field
-A field of personal data a partner may be entitled to read under its partner entitlement when an agreement is recorded; absent from every answer, not empty, when not entitled or when the player is erased.
+A field of personal data that names a player (email, names, date of birth, telephone, address); served through the public API only to an access key allowed it, and absent from every answer, not empty, otherwise or when the player is erased.
 
 ### subject access request
-A player's ask of what was read about them: every partner that was served an identifying field of theirs, with the fields and the times.
+A player's ask of what was read about them: every access key that was served an identifying field of theirs, with the fields and the times.
 
 Avoid: SAR
 
 ### freshness
-What a partner reads to tell how far a brand's views lag its facts: the time between the newest fact published and the newest applied, and whether the views are degraded, rebuilding, catching up or missing history; a degraded answer is provisional.
+What a caller reads to tell how far a brand's views lag its facts: the time between the newest fact published and the newest applied, and whether the views are degraded, rebuilding, catching up or missing history; a degraded answer is provisional.
 
 Avoid: read model status, readModelStatus
 

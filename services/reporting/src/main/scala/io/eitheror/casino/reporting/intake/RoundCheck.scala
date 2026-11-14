@@ -125,6 +125,7 @@ final class RoundsFactsConsumer(client: ComponentClient, settings: Settings) ext
         .invoke(ProviderSettled(r.playerId, r.currency.code, r.roundId, figures, Days.dayOf(r.occurredAt, settings.reportingZone))): Unit
       Coverage.observed(client, settings, f.CasinoRounds.name, r.occurredAt)
       effects.done()
+    case Some(_: f.RoundOpened) => effects.ignore()
 
 final class RoundsFacts(settings: Settings) extends Consumer.Companion[RoundsFactsConsumer, Option[f.CasinoRoundsFact], Nothing](
       Generation.componentId("rounds-facts", settings.generation), Lenient.from(f.CasinoRounds)):

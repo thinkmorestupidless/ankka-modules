@@ -3,7 +3,7 @@ package io.eitheror.casino.rewards.facts
 import io.eitheror.casino.contract.facts as f
 import io.eitheror.casino.contract.money.MinorUnits
 import io.eitheror.casino.rewards.offers.{Bodies, Offer, OfferEvent}
-import io.eitheror.casino.rewards.reward.{RewardEvent, RewardState, RewardStatus, Source}
+import io.eitheror.casino.rewards.reward.{FreeRoundsTerms, RewardEvent, RewardState, RewardStatus, Source}
 import io.eitheror.casino.rewards.reward.RewardEvent.*
 
 import java.time.Instant
@@ -31,6 +31,13 @@ object Facts:
     case e: LatePaid            => e.win > 0
     case _                      => false
 
+  /**
+   * A free-spins grant's value (spec 016 G6, research R16.5): the spin value, resolved for the reward's currency, times
+   * the rounds, as the original's back office values a free-spins claim (`BonusRoutes.freeSpinsSummaryJson`: its stored
+   * `face_value` is `0`). No spin value is `0`.
+   */
+  def freeSpinsValue(terms: FreeRoundsTerms): Long = math.max(0L, terms.spinValue) * terms.spinCount.toLong
+
   /** The revoke's `reason` on `bonus_cancelled` (research R11): its mode, or `free_spins_revoked` for free rounds. */
   val FreeSpinsRevoked = "free_spins_revoked"
 
@@ -48,10 +55,11 @@ object Facts:
         s.freeRounds match
           case Some(r) =>
             f.FreeSpinsGranted(s.playerId, id, s.offerName, s.offerId, s.offerType, r.terms.spinCount, Vector(r.terms.gameId), e.at,
-              source, s.code, s.tag)
+              source, s.code, s.tag, expiresAt = Some(e.expiresAt), amountCents = Some(money(freeSpinsValue(r.terms))),
+              currency = Some(currency))
           case None =>
             f.BonusGranted(s.playerId, id, s.offerName, s.offerId, s.offerType, money(s.faceValue), currency, s.code, e.at, source, s.code,
-              s.tag)
+              s.tag, expiresAt = Some(e.expiresAt))
       case e: Converted => f.BonusCompleted(s.playerId, id, s.offerName, s.offerId, s.offerType, e.at, source, s.code, s.tag)
       case e: RewardEvent.Closed => f.BonusCompleted(s.playerId, id, s.offerName, s.offerId, s.offerType, e.at, source, s.code, s.tag)
       case e: RewardEvent.Forfeited =>

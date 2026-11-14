@@ -54,23 +54,31 @@ final case class DepositConfirmed(playerId: String, currency: Currency, transact
 final case class BetPlaced(playerId: String, currency: Currency, transactionId: String, roundId: String, gameId: String,
     amountCents: MinorUnits, walletType: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
     occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
-    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
+    records: Option[Vector[RecordProgress]] = None, gameRoundId: Option[String] = None, sessionId: Option[String] = None)
+    extends MoneyTransactionsFact
 
 @named("win_credited")
 final case class WinCredited(playerId: String, currency: Currency, transactionId: String, roundId: String, gameId: String,
     amountCents: MinorUnits, walletType: String, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits,
     occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
-    records: Option[Vector[RecordProgress]] = None) extends MoneyTransactionsFact
+    records: Option[Vector[RecordProgress]] = None, gameRoundId: Option[String] = None, sessionId: Option[String] = None)
+    extends MoneyTransactionsFact
 
 @named("bet_rolled_back")
 final case class BetRolledBack(playerId: String, currency: Currency, transactionId: String, roundId: String,
     amountCents: MinorUnits, realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None, depositPartCents: Option[MinorUnits] = None, convertedPartCents: Option[MinorUnits] = None,
-    records: Option[Vector[RecordProgress]] = None)
+    records: Option[Vector[RecordProgress]] = None, gameRoundId: Option[String] = None, sessionId: Option[String] = None)
     extends MoneyTransactionsFact
 
+/**
+ * `game_round_id` and `session_id` on the four round movements (spec 016 G4): the round's `round_id` exactly as
+ * `casino.rounds` carries it, and the game session's id, so the public API ties a bet to its round and session
+ * before the round settles. `round_id` stays the wallet's round key. Absent on a fact written before spec 016.
+ */
 @named("round_settled_as_loss")
 final case class RoundSettledAsLoss(playerId: String, currency: Currency, transactionId: String, roundId: String,
-    realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None) extends MoneyTransactionsFact
+    realBalanceAfter: SignedMinorUnits, restrictedBalanceAfter: MinorUnits, occurredAt: Instant, depositPoolAfter: Option[SignedMinorUnits] = None, convertedPoolAfter: Option[SignedMinorUnits] = None,
+    gameRoundId: Option[String] = None, sessionId: Option[String] = None) extends MoneyTransactionsFact
 
 @named("restricted_funds_awarded")
 final case class RestrictedFundsAwarded(playerId: String, currency: Currency, transactionId: String, awardId: String,

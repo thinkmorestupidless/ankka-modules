@@ -118,9 +118,15 @@ class RoutesSuite extends munit.FunSuite:
     assert(outcome(Routes.affiliate(verified), Request(token = Some(operatorWith("brand_goldvibe")))).isInstanceOf[Outcome.Refused])
   }
 
-  test("a partner reaches only the brand it is entitled to") {
-    assertEquals(outcome(Routes.partner("goldvibe", verified), Request(token = Some(operatorWith("partner_goldvibe")))), Outcome.Served)
-    assert(outcome(Routes.partner("spinvibe", verified), Request(token = Some(operatorWith("partner_goldvibe")))).isInstanceOf[Outcome.Refused])
+  test("spec 016: an operator of the brand holding api_keys, or a platform administrator, manages its access keys") {
+    assertEquals(outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_goldvibe", "api_keys")))), Outcome.Served)
+    assertEquals(outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("platform_admin")))), Outcome.Served)
+    outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_goldvibe")))) match
+      case Outcome.Refused(_, body) => assert(body.contains("forbidden"), body)
+      case other                    => fail(s"admitted without api_keys: $other")
+    outcome(Routes.accessKeys("goldvibe", verified), Request(token = Some(operatorWith("brand_spinvibe", "api_keys")))) match
+      case Outcome.Refused(_, body) => assert(body.contains("brand_not_in_roles"), body)
+      case other                    => fail(s"admitted at another brand: $other")
   }
 
   test("a service of the project is admitted by its identity, with no token; one of another project is not") {

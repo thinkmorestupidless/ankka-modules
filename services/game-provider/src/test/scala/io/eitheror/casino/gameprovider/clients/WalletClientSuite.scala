@@ -22,7 +22,7 @@ class WalletClientSuite extends munit.FunSuite with LogCapturing:
   test("a bet moves money and answers the wallet's transaction id and balances") {
     wallet.set("p-1", "EUR", 1000, 500)
     bet("t-1", 200) match
-      case WalletAnswer.Moved(id, Some(b)) => assert(id.nonEmpty); assertEquals(b.total, 1300L)
+      case WalletAnswer.Moved(id, Some(b), _) => assert(id.nonEmpty); assertEquals(b.total, 1300L)
       case other                          => fail(other.toString)
   }
 
@@ -105,6 +105,43 @@ class WalletClientSuite extends munit.FunSuite with LogCapturing:
     assert(client.providerCredit("p-1", "EUR", "pc-1", 50, "pc-1", "standalone credit").isInstanceOf[WalletAnswer.Moved])
     assertEquals(wallet.openBets("p-1", "EUR"), Vector.empty)
     assertEquals(wallet.balance("p-1", "EUR")._1, 1000L - 300 + 500 + 100 + 50)
+  }
+
+  test("each round movement carries the round's id and the game session's id for the wallet's facts (spec 016 G4)") {
+    wallet.set("p-1", "EUR", 1000)
+    val round = RoundRef("st8/r-1", "gs-1")
+    client.placeBet("p-1", "EUR", "t-1", "t-1", "book-of-ra", "gs-1", 100, false, Some("slots"), "st8", Some(round.gameRoundId))
+    client.placeBet("p-1", "EUR", "t-2", "t-2", "book-of-ra", "gs-1", 100, false, Some("slots"), "st8", Some(round.gameRoundId))
+    client.placeBet("p-1", "EUR", "t-3", "t-3", "book-of-ra", "gs-1", 100, false, Some("slots"), "st8", Some(round.gameRoundId))
+    client.creditWin("p-1", "EUR", "c/t-1", "t-1", 500, Some(round))
+    client.settleLoss("p-1", "EUR", "c/t-2", "t-2", Some(round))
+    client.rollbackBet("p-1", "EUR", "x/t-3", "t-3", Some(round))
+    for route <- Seq("bets", "wins", "losses", "rollbacks") do
+      val body = wallet.calls(route).head.json.get
+      assertEquals((body.text("gameRoundId"), body.text("sessionId")), (Some("st8/r-1"), Some("gs-1")), route)
+    assertEquals(wallet.calls("wins").head.json.get.text("roundId"), Some("t-1"), "roundId stays the wallet's round key")
+  }
+
+  test("a round with no game session sends no session id on a win, loss or rollback (spec 016 G4)") {
+    wallet.set("p-1", "EUR", 1000)
+    bet("t-1", 100)
+    client.creditWin("p-1", "EUR", "c/t-1", "t-1", 500, Some(RoundRef("st8/r-1", "")))
+    val body = wallet.calls("wins").head.json.get
+    assertEquals((body.text("gameRoundId"), Option(body.get("sessionId"))), (Some("st8/r-1"), None))
+  }
+
+  test("the real-money part of a movement is read from the wallet's answer (spec 016 G7)") {
+    wallet.set("p-1", "EUR", 100, 500)
+    def real(a: WalletAnswer) = a match
+      case WalletAnswer.Moved(_, _, r) => r
+      case other                       => fail(other.toString)
+    assertEquals(real(bet("t-1", 300)), Some(100L), "the bonus-funded 200 is not real money")
+    assertEquals(real(client.creditWin("p-1", "EUR", "c/t-1", "t-1", 400)), Some(400L))
+    assertEquals(real(client.providerCredit("p-1", "EUR", "pc-1", 50, "pc-1", "standalone credit")), Some(50L), "landed on real balance")
+    bet("t-2", 10)
+    assertEquals(real(client.settleLoss("p-1", "EUR", "c/t-2", "t-2")), Some(0L))
+    bet("t-3", 30)
+    assertEquals(real(client.rollbackBet("p-1", "EUR", "x/t-3", "t-3")), Some(30L))
   }
 
   test("the neighbour fakes serve the paths the clients call") {

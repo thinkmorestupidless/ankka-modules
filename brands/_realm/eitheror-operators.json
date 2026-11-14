@@ -46,6 +46,9 @@
         "name": "markets"
       },
       {
+        "name": "api_keys"
+      },
+      {
         "name": "games"
       },
       {

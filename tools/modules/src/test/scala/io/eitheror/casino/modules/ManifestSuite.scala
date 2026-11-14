@@ -11,7 +11,7 @@ class ManifestSuite extends munit.FunSuite:
     val brand = Fixtures.brand("goldvibe")
     assertEquals(brand.slug, "goldvibe")
     assertEquals(brand.services.size, 11)
-    assert(!brand.services.exists(_.name == "partner-api"), "the pilot excludes partner-api (FR-007)")
+    assert(!brand.services.exists(_.name == "public-api"), "the pilot excludes public-api (FR-007)")
     assertEquals(brand.topics.size, 10)
   }
 

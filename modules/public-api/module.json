@@ -1,0 +1,95 @@
+{
+  "name": "public-api",
+  "kind": "product",
+  "description": "The brand's read-only REST API over its players' records, admitted by access keys its operators create",
+  "dependencies": [
+    {
+      "module": "core",
+      "range": ">=0.4.0 <1.0.0"
+    },
+    {
+      "module": "casino",
+      "range": ">=0.4.0 <1.0.0"
+    }
+  ],
+  "services": [
+    {
+      "name": "public-api",
+      "descriptor": {
+        "image": "europe-west1-docker.pkg.dev/eitheror/casino/public-api:0.0.0",
+        "expose": true,
+        "runtime": "0.16.3",
+        "resources": {
+          "instanceType": "medium"
+        },
+        "env": [
+          {
+            "name": "CASINO_PROJECT",
+            "key": "casino-project"
+          },
+          {
+            "name": "CASINO_BRAND",
+            "key": "casino-brand"
+          },
+          {
+            "name": "PUBLIC_API_HOST",
+            "key": "public-api-host"
+          },
+          {
+            "name": "ANKKA_AUTH_ISSUERS",
+            "value": "staff"
+          },
+          {
+            "name": "ANKKA_AUTH_REALM",
+            "key": "auth-realm"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_ISSUER",
+            "key": "auth-staff-issuer"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_JWKS_URL",
+            "key": "auth-staff-jwks-url"
+          },
+          {
+            "name": "ANKKA_AUTH_STAFF_AUDIENCE",
+            "value": "eitheror-casino"
+          }
+        ]
+      }
+    }
+  ],
+  "configuration": [
+    {
+      "key": "casino-project",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "casino-brand",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "public-api-host",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "auth-realm",
+      "type": "string",
+      "secret": false
+    },
+    {
+      "key": "auth-staff-issuer",
+      "type": "url",
+      "secret": false
+    },
+    {
+      "key": "auth-staff-jwks-url",
+      "type": "url",
+      "secret": false
+    }
+  ],
+  "retention": "30d"
+}

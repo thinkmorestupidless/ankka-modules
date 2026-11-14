@@ -78,7 +78,8 @@ object Facts:
         val parts = e.bet.parts.getOrElse(Parts.zero)
         val bet = one(f.BetPlaced(playerId, currency, e.bet.transactionId, e.bet.roundKey, e.bet.gameId, units(e.bet.amount),
           e.bet.walletType, real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
-          part(parts.deposit), part(parts.converted), progress(e.recordUpdates)), e.bet.transactionId)
+          part(parts.deposit), part(parts.converted), progress(e.recordUpdates), e.gameRoundId,
+          Option(e.bet.sessionId).filter(_.nonEmpty)), e.bet.transactionId)
         bet ++ e.conversions.map { c =>
           Published(f.RestrictedFundsConverted(playerId, currency, e.bet.transactionId, grantOf(e.recordUpdates, c.recordId),
             units(c.amount), real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter),
@@ -88,16 +89,16 @@ object Facts:
       case e: WinCredited =>
         one(f.WinCredited(playerId, currency, e.transactionId, e.roundKey, e.gameId, units(e.amount), e.walletType,
           real(e.realAfter), units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
-          part(e.parts.converted), progress(e.recordUpdates)), e.transactionId)
+          part(e.parts.converted), progress(e.recordUpdates), e.gameRoundId, e.sessionId), e.transactionId)
 
       case e: BetRolledBack =>
         one(f.BetRolledBack(playerId, currency, e.transactionId, e.roundKey, units(e.amount), real(e.realAfter),
           units(e.restrictedAfter), e.at, dep(e.depositAfter), dep(e.convertedAfter), part(e.parts.deposit),
-          part(e.parts.converted), progress(e.recordUpdates)), e.transactionId)
+          part(e.parts.converted), progress(e.recordUpdates), e.gameRoundId, e.sessionId), e.transactionId)
 
       case e: RoundSettledAsLoss =>
         one(f.RoundSettledAsLoss(playerId, currency, e.transactionId, e.roundKey, real(e.realAfter), units(e.restrictedAfter), e.at,
-          dep(e.depositAfter), dep(e.convertedAfter)), e.transactionId) ++
+          dep(e.depositAfter), dep(e.convertedAfter), gameRoundId = e.gameRoundId, sessionId = e.sessionId), e.transactionId) ++
           forfeited(e.transactionId, e.forfeited, "loss", 0L, Parts.zero, e.recordUpdates, e.realAfter, e.restrictedAfter,
             e.depositAfter, e.convertedAfter, e.at)
 

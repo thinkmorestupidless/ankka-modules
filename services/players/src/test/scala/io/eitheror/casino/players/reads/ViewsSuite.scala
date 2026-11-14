@@ -55,6 +55,10 @@ class ViewsSuite extends munit.FunSuite with LogCapturing:
     assertEquals(ActivityCategory.all.map(ActivityCategory.wire), Vector("Transactions", "Games", "Bonus", "Account", "RG"))
   }
 
+  test("activity: an opened round is no line; its settlement is") {
+    assertEquals(ActivityLines.round(RoundOpened("p-1", eur, "st8/r-1", "st8", "r-1", "g-1", "s-1", None, at)), None)
+  }
+
   test("activity: an operator's reinstatement is a line, a lifted self-exclusion none, as before") {
     def reinstated(reason: Option[String]) =
       ActivityLines.player(PlayerReinstated("p-1", "self_excluded", "active", "system", None, reason, at))

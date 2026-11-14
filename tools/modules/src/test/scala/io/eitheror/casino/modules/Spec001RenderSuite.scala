@@ -20,9 +20,9 @@ class Spec001RenderSuite extends munit.FunSuite:
     }
   }
 
-  test("Scala services are embedded; the TypeScript ones are processes") {
+  test("every service is embedded: none is a process") {
     assertEquals(plan.descriptors.find(_.name == "wallet").get.service.hosting, ServiceSpec.Embedded)
-    assertEquals(Render.ProcessHosted, Set("partner-api"))
+    assertEquals(Render.ProcessHosted, Set.empty[String])
     val shared = Render.plan(Fixtures.load("shared-payments"), None)
     // Scala since spec 005 R1: as a process it ran in the sidecar's 128Mi process allowance and was OOM-killed (T072).
     assertEquals(shared.descriptors.find(_.name == "psp-gateway").get.service.hosting, ServiceSpec.Embedded)

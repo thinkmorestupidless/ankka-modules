@@ -1,0 +1,8 @@
+{
+  "name": "public-api",
+  "service": {
+    "image": "public-api:latest",
+    "runtime": "0.16.3",
+    "personal": true
+  }
+}

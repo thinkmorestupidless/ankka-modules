@@ -1,0 +1,2832 @@
+{
+  "scenario": "contract",
+  "requirement": "016/FR-040",
+  "recorded_at": "2026-11-14T11:04:34.253479Z",
+  "original": {
+    "brand": "spinvibe",
+    "commit": "7630feb0a",
+    "otherBrand": "goldvibe"
+  },
+  "runs": 1,
+  "service": "public-api",
+  "steps": [
+    {
+      "name": "the OpenAPI document",
+      "request": {
+        "method": "GET",
+        "path": "/v1/openapi.json",
+        "service": "public-api"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "openapi": "3.1.0",
+          "info": {
+            "title": "eitheror casino partner API",
+            "version": "1.0.0",
+            "description": "Read-only access to one casino brand's players, their play and money movements, the games\ncatalogue, and precomputed game statistics. Every endpoint is a `GET`.\n\n## Authentication\n\nRequest an access token with the OAuth 2.0 client-credentials grant, using the client id and\nsecret you were issued, then send it on every call as `Authorization: Bearer \u003ctoken\u003e`.\n\n```\ncurl -s https://auth.pre.eitheror.io/realms/eitheror/protocol/openid-connect/token \\\n  -d grant_type=client_credentials -d client_id=\u003cid\u003e -d client_secret=\u003csecret\u003e\n```\n\nTokens last 5 minutes. Fetch a new one when it expires or when a call answers `401` with\n`jwt_expired`; there is no refresh token. `/v1/openapi.json` needs no token.\n\n## Scope\n\nA credential belongs to exactly one brand, and every response is limited to that brand. A\nrecord of another brand answers `404`, exactly as a record that does not exist. To read\nseveral brands, use one credential per brand.\n\nIdentifying player fields (name, email, date of birth, phone, address) are returned only where\nyour agreement covers them. A field you are not entitled to is absent from the response, never\n`null`.\n\n## Formats\n\n- Money is an exact decimal string in major units with two decimal places (`\"12.50\"`), always\n  alongside a `currency` (ISO 4217). Never parse it as a float.\n- Timestamps are ISO 8601 with an explicit offset.\n- Objects carry only the fields documented here. Optional fields are omitted when unknown.\n\n## Paging\n\nCollections return `{ \"data\": [...], \"page\": { \"limit\", \"offset\", \"total\", \"hasMore\" } }`,\nordered oldest first. Page with `limit` (1–100, default 100) and `offset`; keep going while\n`hasMore` is true. The newest records are on the last page, at `offset = total - limit`.\n\n## Quotas\n\nEach credential has an agreed number of requests per minute (600 unless agreed otherwise).\nOver it, calls answer `429` with a `Retry-After` header in seconds; wait that long and retry.\n\n## Errors\n\nEvery error is JSON, `{ \"error\": \"\u003ccode\u003e\", \"message\": \"...\" }`. Branch on `error`, not on\n`message`.\n\n| Status | Codes | Meaning |\n|---|---|---|\n| 400 | `invalid_request`, `limit_exceeded`, `scope_invalid` | A parameter or identifier is malformed or out of range |\n| 401 | `jwt_missing`, `jwt_invalid`, `jwt_expired`, `jwt_issuer_mismatch`, `jwt_verification_failed` | No usable token: fetch a new one |\n| 401 | `actor_type_invalid`, `scope_missing`, `scope_invalid` | The credential itself is misconfigured: contact us, a new token will not help |\n| 403 | `grant_absent`, `grant_disabled`, `scope_mismatch` | The credential is valid but has no access to this brand: contact us |\n| 404 | `not_found` | No such record in your brand |\n| 410 | `snapshot_expired` | The ranking snapshot you named has been retired: start again from page 1 without `snapshot` |\n| 429 | `quota_exceeded` | Over your per-minute quota: wait `Retry-After` seconds |\n| 503 | `unavailable` | Temporary: retry with backoff |\n\n## Game statistics\n\nStatistics are recomputed every hour, a few minutes past the hour, over rolling windows of the\nlast 1, 7 and 30 days ending at `computedAt`. They are not live: expect figures up to an hour\nold. Cancelled rounds are excluded. Rounds, sessions and unique players include free-spins\nplay; stake, win and GGR (stake minus win) are real money only, one entry per currency. Each\nwindow is a total, not a time series: to chart a trend, store each day's figures yourself.\n"
+          },
+          "servers": [
+            {
+              "url": "https://partners.pre.eitheror.io/v1",
+              "description": "Pre-production. Test data only."
+            }
+          ],
+          "tags": [
+            {
+              "name": "Players",
+              "description": "Players of your brand and everything that belongs to one player."
+            },
+            {
+              "name": "Activity",
+              "description": "Sessions, rounds, bets, transactions and bonus awards, read by identifier."
+            },
+            {
+              "name": "Games",
+              "description": "The games catalogue as enabled on your brand."
+            },
+            {
+              "name": "Statistics",
+              "description": "Hourly precomputed figures per game and per player, and rankings of both."
+            },
+            {
+              "name": "Contract",
+              "description": "Version information and this document."
+            }
+          ],
+          "security": [
+            {
+              "bearerAuth": []
+            }
+          ],
+          "paths": {
+            "/players": {
+              "get": {
+                "operationId": "listPlayers",
+                "tags": [
+                  "Players"
+                ],
+                "summary": "Players of the partner's brand, oldest registration first",
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/PlayerPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/players/{playerId}": {
+              "get": {
+                "operationId": "getPlayer",
+                "summary": "One player",
+                "tags": [
+                  "Players"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/playerId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The player",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/Player"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/players/{playerId}/sessions": {
+              "get": {
+                "operationId": "listPlayerSessions",
+                "tags": [
+                  "Players"
+                ],
+                "summary": "Game sessions of a player, oldest first",
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/playerId"
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/SessionPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/players/{playerId}/rounds": {
+              "get": {
+                "operationId": "listPlayerRounds",
+                "summary": "Rounds a player has played, oldest first",
+                "tags": [
+                  "Players"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/playerId"
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/RoundPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/players/{playerId}/bets": {
+              "get": {
+                "operationId": "listPlayerBets",
+                "summary": "Bets a player has placed, oldest first",
+                "tags": [
+                  "Players"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/playerId"
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/BetPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/players/{playerId}/transactions": {
+              "get": {
+                "operationId": "listPlayerTransactions",
+                "summary": "Wallet transactions of a player, oldest first",
+                "tags": [
+                  "Players"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/playerId"
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/TransactionPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/players/{playerId}/bonus-awards": {
+              "get": {
+                "operationId": "listPlayerBonusAwards",
+                "summary": "Bonuses awarded to a player, oldest first",
+                "tags": [
+                  "Players"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/playerId"
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/BonusAwardPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/sessions/{sessionId}": {
+              "get": {
+                "operationId": "getSession",
+                "summary": "One game session",
+                "tags": [
+                  "Activity"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/sessionId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The session",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/Session"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/sessions/{sessionId}/rounds": {
+              "get": {
+                "operationId": "listSessionRounds",
+                "summary": "Rounds played in a session, oldest first",
+                "tags": [
+                  "Activity"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/sessionId"
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/RoundPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/rounds/{roundId}": {
+              "get": {
+                "operationId": "getRound",
+                "summary": "One round",
+                "tags": [
+                  "Activity"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/roundId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The round",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/Round"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/rounds/{roundId}/bets": {
+              "get": {
+                "operationId": "listRoundBets",
+                "summary": "Bets placed in a round, oldest first",
+                "tags": [
+                  "Activity"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/roundId"
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/BetPage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/bets/{betId}": {
+              "get": {
+                "operationId": "getBet",
+                "summary": "One bet",
+                "tags": [
+                  "Activity"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/betId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The bet",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/Bet"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/transactions/{transactionId}": {
+              "get": {
+                "operationId": "getTransaction",
+                "summary": "One wallet transaction",
+                "tags": [
+                  "Activity"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/transactionId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The transaction",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/Transaction"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/bonus-awards/{bonusAwardId}": {
+              "get": {
+                "operationId": "getBonusAward",
+                "summary": "One bonus award",
+                "tags": [
+                  "Activity"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/bonusAwardId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The bonus award",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/BonusAward"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/games": {
+              "get": {
+                "operationId": "listGames",
+                "tags": [
+                  "Games"
+                ],
+                "summary": "Games available on the partner's brand, by game code",
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/GamePage"
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/games/{gameId}": {
+              "get": {
+                "operationId": "getGame",
+                "summary": "One game from the catalogue",
+                "tags": [
+                  "Games"
+                ],
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/gameId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The game",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/Game"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/games/{gameId}/stats": {
+              "get": {
+                "operationId": "getGameStats",
+                "tags": [
+                  "Statistics"
+                ],
+                "summary": "Precomputed statistics for one game, every window",
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/gameId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The game's statistics",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/GameStats"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/game-stats": {
+              "get": {
+                "operationId": "rankGames",
+                "tags": [
+                  "Statistics"
+                ],
+                "summary": "Games of the brand ranked by one statistic in one window",
+                "parameters": [
+                  {
+                    "name": "period",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "1d",
+                        "7d",
+                        "30d"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "sort",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "rounds",
+                        "sessions",
+                        "players",
+                        "stake",
+                        "ggr"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "currency",
+                    "in": "query",
+                    "required": false,
+                    "description": "ISO 4217 code. Required when `sort` is `stake` or `ggr`; ignored otherwise.",
+                    "schema": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{3}$"
+                    }
+                  },
+                  {
+                    "name": "limit",
+                    "in": "query",
+                    "schema": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100,
+                      "default": 100
+                    }
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Games in descending order of the chosen statistic. Games with no activity in the window are absent.",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "required": [
+                            "data"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/GameStatsRow"
+                              }
+                            },
+                            "computedAt": {
+                              "description": "When the figures were computed. Absent when never computed for this brand.",
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/players/{playerId}/stats": {
+              "get": {
+                "operationId": "getPlayerStats",
+                "tags": [
+                  "Statistics"
+                ],
+                "summary": "One player's figures for the last 1, 7 and 30 days",
+                "description": "From the current snapshot. A player of your brand with no activity reports zeros. Status is not repeated here; read it from the player record.\n",
+                "parameters": [
+                  {
+                    "$ref": "#/components/parameters/playerId"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "The player's figures",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/PlayerStats"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "404": {
+                    "$ref": "#/components/responses/NotFound"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/player-stats": {
+              "get": {
+                "operationId": "rankPlayers",
+                "tags": [
+                  "Statistics"
+                ],
+                "summary": "Players of the brand ranked by one figure in one window",
+                "description": "Rankings are recomputed every hour and published as snapshots. The first page names its snapshot; pass `snapshot` on every later page to read one fixed ranking start to finish. A snapshot stays readable for at least 30 minutes after a newer one replaces it; after that the request is refused with 410 `snapshot_expired` and you start again from page 1 without `snapshot`. `status` is the player's status when the snapshot was computed. The `status` filter is for reporting: a player who self-excludes after the snapshot keeps their old status until the next one, so check the player record before contacting anyone.\n",
+                "parameters": [
+                  {
+                    "name": "period",
+                    "in": "query",
+                    "required": true,
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "1d",
+                        "7d",
+                        "30d"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "sort",
+                    "in": "query",
+                    "required": true,
+                    "description": "Ranked descending. `deposits` ranks by deposited amount.",
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "rounds",
+                        "sessions",
+                        "stake",
+                        "ggr",
+                        "deposits"
+                      ]
+                    }
+                  },
+                  {
+                    "name": "currency",
+                    "in": "query",
+                    "required": false,
+                    "description": "Required when `sort` is `stake`, `ggr` or `deposits`; ignored otherwise. Only players with figures in this currency are ranked.",
+                    "schema": {
+                      "$ref": "#/components/schemas/Currency"
+                    }
+                  },
+                  {
+                    "name": "status",
+                    "in": "query",
+                    "required": false,
+                    "description": "Comma-separated statuses to include, e.g. `ACTIVE,SUSPENDED`. Omit for every status. Ranks are unchanged by the filter, so they can have gaps.",
+                    "style": "form",
+                    "explode": false,
+                    "schema": {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "ACTIVE",
+                          "SUSPENDED",
+                          "CLOSED",
+                          "SELF_EXCLUDED"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "name": "snapshot",
+                    "in": "query",
+                    "required": false,
+                    "description": "The snapshot id from the first page. Omit for the current snapshot.",
+                    "schema": {
+                      "$ref": "#/components/schemas/Uuid"
+                    }
+                  },
+                  {
+                    "$ref": "#/components/parameters/limit"
+                  },
+                  {
+                    "$ref": "#/components/parameters/offset"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "description": "A page of the ranking. Before the first computation for the brand, an empty page with no `snapshot`.\n",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "$ref": "#/components/schemas/PlayerRankingPage"
+                        }
+                      }
+                    }
+                  },
+                  "400": {
+                    "$ref": "#/components/responses/BadRequest"
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "410": {
+                    "$ref": "#/components/responses/SnapshotExpired"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  },
+                  "503": {
+                    "$ref": "#/components/responses/Unavailable"
+                  }
+                }
+              }
+            },
+            "/contract": {
+              "get": {
+                "operationId": "getContractInfo",
+                "summary": "Contract version and page-size cap",
+                "tags": [
+                  "Contract"
+                ],
+                "responses": {
+                  "200": {
+                    "description": "Contract version and page-size cap",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "required": [
+                            "version",
+                            "maxPageSize"
+                          ],
+                          "properties": {
+                            "version": {
+                              "type": "string",
+                              "const": "v1"
+                            },
+                            "maxPageSize": {
+                              "type": "integer",
+                              "const": 100
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "401": {
+                    "$ref": "#/components/responses/Unauthorized"
+                  },
+                  "403": {
+                    "$ref": "#/components/responses/Forbidden"
+                  },
+                  "429": {
+                    "$ref": "#/components/responses/TooManyRequests"
+                  }
+                }
+              }
+            },
+            "/openapi.json": {
+              "get": {
+                "operationId": "getOpenApi",
+                "summary": "This document, as JSON. No credential needed",
+                "tags": [
+                  "Contract"
+                ],
+                "security": [],
+                "responses": {
+                  "200": {
+                    "description": "This document as JSON",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "securitySchemes": {
+              "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "description": "Access token from the client-credentials grant; see Authentication above."
+              }
+            },
+            "parameters": {
+              "limit": {
+                "name": "limit",
+                "in": "query",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "default": 100
+                }
+              },
+              "offset": {
+                "name": "offset",
+                "in": "query",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0
+                }
+              },
+              "playerId": {
+                "name": "playerId",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              },
+              "sessionId": {
+                "name": "sessionId",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              },
+              "roundId": {
+                "name": "roundId",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              },
+              "betId": {
+                "name": "betId",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              },
+              "transactionId": {
+                "name": "transactionId",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              },
+              "bonusAwardId": {
+                "name": "bonusAwardId",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "$ref": "#/components/schemas/Uuid"
+                }
+              },
+              "gameId": {
+                "name": "gameId",
+                "in": "path",
+                "required": true,
+                "schema": {
+                  "$ref": "#/components/schemas/GameCode"
+                }
+              }
+            },
+            "responses": {
+              "PlayerPage": {
+                "description": "A page of players",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageEnvelope"
+                        },
+                        {
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Player"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "SessionPage": {
+                "description": "A page of sessions",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageEnvelope"
+                        },
+                        {
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Session"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "RoundPage": {
+                "description": "A page of rounds",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageEnvelope"
+                        },
+                        {
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Round"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "BetPage": {
+                "description": "A page of bets",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageEnvelope"
+                        },
+                        {
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Bet"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "TransactionPage": {
+                "description": "A page of transactions",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageEnvelope"
+                        },
+                        {
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Transaction"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "BonusAwardPage": {
+                "description": "A page of bonus awards",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageEnvelope"
+                        },
+                        {
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/BonusAward"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "GamePage": {
+                "description": "A page of games",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/PageEnvelope"
+                        },
+                        {
+                          "properties": {
+                            "data": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/Game"
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "BadRequest": {
+                "description": "Invalid parameter or identifier",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "Unauthorized": {
+                "description": "Missing, malformed, expired or untrusted credential",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "Forbidden": {
+                "description": "Grant absent or disabled, or credential scope does not match the grant's brand",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "NotFound": {
+                "description": "No such record in the partner's brand",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "TooManyRequests": {
+                "description": "Partner quota exceeded",
+                "headers": {
+                  "Retry-After": {
+                    "schema": {
+                      "type": "integer"
+                    },
+                    "description": "Seconds to wait"
+                  }
+                },
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "Unavailable": {
+                "description": "The platform store is unreachable or exceeded the request budget",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              },
+              "SnapshotExpired": {
+                "description": "The named snapshot has been retired; restart from page 1 without `snapshot`",
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  }
+                }
+              }
+            },
+            "schemas": {
+              "Uuid": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "GameCode": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9._-]{1,64}$"
+              },
+              "Money": {
+                "type": "string",
+                "pattern": "^-?[0-9]+\\.[0-9]{2}$",
+                "description": "Exact decimal in major units, two decimal places, as a string."
+              },
+              "Currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "DateTime": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "Date": {
+                "type": "string",
+                "format": "date"
+              },
+              "Error": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "error"
+                ],
+                "properties": {
+                  "error": {
+                    "type": "string",
+                    "enum": [
+                      "invalid_request",
+                      "limit_exceeded",
+                      "jwt_missing",
+                      "jwt_invalid",
+                      "jwt_expired",
+                      "jwt_issuer_mismatch",
+                      "jwt_verification_failed",
+                      "actor_type_invalid",
+                      "scope_missing",
+                      "scope_invalid",
+                      "scope_mismatch",
+                      "grant_absent",
+                      "grant_disabled",
+                      "not_found",
+                      "snapshot_expired",
+                      "quota_exceeded",
+                      "unavailable"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                }
+              },
+              "PageInfo": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "limit",
+                  "offset",
+                  "total",
+                  "hasMore"
+                ],
+                "properties": {
+                  "limit": {
+                    "type": "integer"
+                  },
+                  "offset": {
+                    "type": "integer"
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "hasMore": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "PageEnvelope": {
+                "type": "object",
+                "required": [
+                  "data",
+                  "page"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "array"
+                  },
+                  "page": {
+                    "$ref": "#/components/schemas/PageInfo"
+                  }
+                }
+              },
+              "PlayerStatus": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "ACTIVE",
+                  "SUSPENDED",
+                  "CLOSED",
+                  "SELF_EXCLUDED",
+                  null
+                ]
+              },
+              "KycStatus": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "UNVERIFIED",
+                  "PENDING",
+                  "VERIFIED",
+                  "REJECTED",
+                  null
+                ]
+              },
+              "TransactionType": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "DEPOSIT",
+                  "WITHDRAWAL",
+                  "BET",
+                  "WIN",
+                  "BONUS",
+                  "ROLLBACK",
+                  "LOSS",
+                  "ADMIN_ADJUSTMENT",
+                  "GAME_PROVIDER_CREDIT",
+                  null
+                ]
+              },
+              "WalletType": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "MAIN",
+                  "BONUS",
+                  "SPLIT",
+                  null
+                ]
+              },
+              "SessionStatus": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "OPEN",
+                  "CLOSED",
+                  null
+                ]
+              },
+              "BonusStatus": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "ACTIVE",
+                  "WAGERING",
+                  "COMPLETED",
+                  "EXPIRED",
+                  "CANCELLED",
+                  "FORFEITED",
+                  "CONVERTED_PENDING_CAP",
+                  "CLOSED",
+                  null
+                ]
+              },
+              "Player": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "brandId",
+                  "status",
+                  "kycStatus",
+                  "registeredAt"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "brandId": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/PlayerStatus"
+                  },
+                  "kycStatus": {
+                    "$ref": "#/components/schemas/KycStatus"
+                  },
+                  "registeredAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "currency": {
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "language": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Identifying. Present only where the grant entitles it."
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "Identifying."
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "description": "Identifying."
+                  },
+                  "dateOfBirth": {
+                    "$ref": "#/components/schemas/Date"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Identifying."
+                  },
+                  "addressLine1": {
+                    "type": "string",
+                    "description": "Identifying."
+                  },
+                  "city": {
+                    "type": "string",
+                    "description": "Identifying."
+                  },
+                  "stateProv": {
+                    "type": "string",
+                    "description": "Identifying."
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "description": "Identifying."
+                  }
+                }
+              },
+              "Session": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "brandId",
+                  "playerId",
+                  "startedAt",
+                  "status"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "brandId": {
+                    "type": "string"
+                  },
+                  "playerId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "gameId": {
+                    "$ref": "#/components/schemas/GameCode"
+                  },
+                  "startedAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  },
+                  "endedAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/SessionStatus"
+                  },
+                  "closeReason": {
+                    "type": "string"
+                  }
+                }
+              },
+              "Round": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "brandId",
+                  "playerId",
+                  "gameId",
+                  "startedAt",
+                  "stakeTotal",
+                  "winTotal",
+                  "currency"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "brandId": {
+                    "type": "string"
+                  },
+                  "playerId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "sessionId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "gameId": {
+                    "$ref": "#/components/schemas/GameCode"
+                  },
+                  "startedAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  },
+                  "settledAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  },
+                  "stakeTotal": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "winTotal": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "currency": {
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "settled",
+                      "cancelled"
+                    ]
+                  }
+                }
+              },
+              "Bet": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "brandId",
+                  "playerId",
+                  "amount",
+                  "currency",
+                  "fundedFrom",
+                  "placedAt"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "brandId": {
+                    "type": "string"
+                  },
+                  "playerId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "roundId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "sessionId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "amount": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "currency": {
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "fundedFrom": {
+                    "$ref": "#/components/schemas/WalletType"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "placedAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  }
+                }
+              },
+              "Transaction": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "brandId",
+                  "playerId",
+                  "type",
+                  "amount",
+                  "currency",
+                  "createdAt"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "brandId": {
+                    "type": "string"
+                  },
+                  "playerId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "type": {
+                    "$ref": "#/components/schemas/TransactionType"
+                  },
+                  "amount": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "currency": {
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "walletType": {
+                    "$ref": "#/components/schemas/WalletType"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "createdAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  },
+                  "roundId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "gameId": {
+                    "$ref": "#/components/schemas/GameCode"
+                  },
+                  "paymentRef": {
+                    "type": "string",
+                    "description": "Originating cashier payment id. Deposits only."
+                  }
+                }
+              },
+              "BonusAward": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "brandId",
+                  "playerId",
+                  "offerId",
+                  "value",
+                  "currency",
+                  "status",
+                  "grantedAt"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "brandId": {
+                    "type": "string"
+                  },
+                  "playerId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "offerId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "currency": {
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "wageringRequirement": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "wageredAmount": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/BonusStatus"
+                  },
+                  "grantedAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  },
+                  "expiresAt": {
+                    "$ref": "#/components/schemas/DateTime"
+                  }
+                }
+              },
+              "Game": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "name",
+                  "category",
+                  "developerId",
+                  "developerName",
+                  "funMode",
+                  "bonusTypes",
+                  "features",
+                  "themes",
+                  "tags",
+                  "restrictedTerritories",
+                  "prohibitedTerritories"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/GameCode"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "developerId": {
+                    "type": "string"
+                  },
+                  "developerName": {
+                    "type": "string"
+                  },
+                  "funMode": {
+                    "type": "boolean"
+                  },
+                  "bonusTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "themes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Lower-cased union of bonusTypes, features and themes."
+                  },
+                  "restrictedTerritories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "prohibitedTerritories": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "thumbnailUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "rtp": {
+                    "type": "string"
+                  },
+                  "volatility": {
+                    "type": "integer"
+                  },
+                  "hitRatio": {
+                    "type": "string"
+                  },
+                  "maxPayoutCoeff": {
+                    "type": "string"
+                  },
+                  "releaseDate": {
+                    "$ref": "#/components/schemas/Date"
+                  },
+                  "deprecationDate": {
+                    "$ref": "#/components/schemas/Date"
+                  }
+                }
+              },
+              "CurrencyAmounts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "currency",
+                  "stake",
+                  "win",
+                  "ggr"
+                ],
+                "properties": {
+                  "currency": {
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "stake": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "win": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "ggr": {
+                    "$ref": "#/components/schemas/Money",
+                    "description": "stake minus win"
+                  }
+                }
+              },
+              "StatsWindow": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "rounds",
+                  "sessions",
+                  "uniquePlayers",
+                  "amounts"
+                ],
+                "properties": {
+                  "rounds": {
+                    "type": "integer",
+                    "description": "Non-cancelled rounds created in the window, free-spins rounds included."
+                  },
+                  "sessions": {
+                    "type": "integer"
+                  },
+                  "uniquePlayers": {
+                    "type": "integer"
+                  },
+                  "amounts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CurrencyAmounts"
+                    },
+                    "description": "Real-money figures only; free-spins rounds and bonus-wallet play excluded. One entry per currency."
+                  }
+                }
+              },
+              "GameStats": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "gameId",
+                  "brandId",
+                  "windows"
+                ],
+                "properties": {
+                  "gameId": {
+                    "$ref": "#/components/schemas/GameCode"
+                  },
+                  "brandId": {
+                    "type": "string"
+                  },
+                  "computedAt": {
+                    "$ref": "#/components/schemas/DateTime",
+                    "description": "Absent when statistics have never been computed for this game."
+                  },
+                  "windows": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "1d",
+                      "7d",
+                      "30d"
+                    ],
+                    "properties": {
+                      "1d": {
+                        "$ref": "#/components/schemas/StatsWindow"
+                      },
+                      "7d": {
+                        "$ref": "#/components/schemas/StatsWindow"
+                      },
+                      "30d": {
+                        "$ref": "#/components/schemas/StatsWindow"
+                      }
+                    }
+                  }
+                }
+              },
+              "GameStatsRow": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "gameId",
+                  "period",
+                  "rounds",
+                  "sessions",
+                  "uniquePlayers",
+                  "amounts"
+                ],
+                "properties": {
+                  "gameId": {
+                    "$ref": "#/components/schemas/GameCode"
+                  },
+                  "period": {
+                    "type": "string",
+                    "enum": [
+                      "1d",
+                      "7d",
+                      "30d"
+                    ]
+                  },
+                  "rounds": {
+                    "type": "integer"
+                  },
+                  "sessions": {
+                    "type": "integer"
+                  },
+                  "uniquePlayers": {
+                    "type": "integer"
+                  },
+                  "amounts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/CurrencyAmounts"
+                    }
+                  }
+                }
+              },
+              "Snapshot": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "computedAt"
+                ],
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "computedAt": {
+                    "$ref": "#/components/schemas/DateTime",
+                    "description": "End of the windows; figures cover activity before this time."
+                  }
+                }
+              },
+              "CountAmount": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "count",
+                  "amount"
+                ],
+                "properties": {
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "amount": {
+                    "$ref": "#/components/schemas/Money"
+                  }
+                }
+              },
+              "PlayerAmounts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "currency",
+                  "stake",
+                  "win",
+                  "ggr",
+                  "deposits",
+                  "withdrawals"
+                ],
+                "properties": {
+                  "currency": {
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "stake": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "win": {
+                    "$ref": "#/components/schemas/Money"
+                  },
+                  "ggr": {
+                    "$ref": "#/components/schemas/Money",
+                    "description": "stake minus win"
+                  },
+                  "deposits": {
+                    "$ref": "#/components/schemas/CountAmount",
+                    "description": "Settled deposits."
+                  },
+                  "withdrawals": {
+                    "$ref": "#/components/schemas/CountAmount",
+                    "description": "Completed withdrawals",
+                    "by completion time.": null
+                  }
+                }
+              },
+              "PlayerWindow": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "rounds",
+                  "sessions",
+                  "games",
+                  "amounts"
+                ],
+                "properties": {
+                  "rounds": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Non-cancelled rounds created in the window, free-spins rounds included."
+                  },
+                  "sessions": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "games": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Distinct games among the counted rounds."
+                  },
+                  "amounts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PlayerAmounts"
+                    },
+                    "description": "Real-money play only; free spins and bonus-wallet play excluded. One entry per currency."
+                  }
+                }
+              },
+              "PlayerStats": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "playerId",
+                  "lastActiveAt",
+                  "windows"
+                ],
+                "properties": {
+                  "playerId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "snapshot": {
+                    "$ref": "#/components/schemas/Snapshot",
+                    "description": "Absent before the first computation for the brand."
+                  },
+                  "lastActiveAt": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time",
+                    "description": "Latest round or session start in the last 30 days."
+                  },
+                  "windows": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "1d",
+                      "7d",
+                      "30d"
+                    ],
+                    "properties": {
+                      "1d": {
+                        "$ref": "#/components/schemas/PlayerWindow"
+                      },
+                      "7d": {
+                        "$ref": "#/components/schemas/PlayerWindow"
+                      },
+                      "30d": {
+                        "$ref": "#/components/schemas/PlayerWindow"
+                      }
+                    }
+                  }
+                }
+              },
+              "PlayerRankingEntry": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "rank",
+                  "playerId",
+                  "status",
+                  "rounds",
+                  "sessions",
+                  "games",
+                  "amounts"
+                ],
+                "properties": {
+                  "rank": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Position in the unfiltered ranking. Ties are ordered by player id."
+                  },
+                  "playerId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "status": {
+                    "$ref": "#/components/schemas/PlayerStatus",
+                    "description": "Status when the snapshot was computed."
+                  },
+                  "rounds": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sessions": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "games": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "amounts": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PlayerAmounts"
+                    }
+                  }
+                }
+              },
+              "PlayerRankingPage": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "data",
+                  "page",
+                  "ranking"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PlayerRankingEntry"
+                    }
+                  },
+                  "page": {
+                    "$ref": "#/components/schemas/PageInfo"
+                  },
+                  "snapshot": {
+                    "$ref": "#/components/schemas/Snapshot"
+                  },
+                  "ranking": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "period",
+                      "sort"
+                    ],
+                    "description": "The ranking served, as resolved from the request.",
+                    "properties": {
+                      "period": {
+                        "type": "string",
+                        "enum": [
+                          "1d",
+                          "7d",
+                          "30d"
+                        ]
+                      },
+                      "sort": {
+                        "type": "string",
+                        "enum": [
+                          "rounds",
+                          "sessions",
+                          "stake",
+                          "ggr",
+                          "deposits"
+                        ]
+                      },
+                      "currency": {
+                        "$ref": "#/components/schemas/Currency"
+                      },
+                      "status": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "ACTIVE",
+                            "SUSPENDED",
+                            "CLOSED",
+                            "SELF_EXCLUDED"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "the contract's version",
+      "request": {
+        "method": "GET",
+        "path": "/v1/contract",
+        "service": "public-api",
+        "headers": {
+          "Authorization": "Bearer {fullToken}"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "version": "v1",
+          "maxPageSize": 100
+        }
+      }
+    },
+    {
+      "name": "the reference page",
+      "request": {
+        "method": "GET",
+        "path": "/v1/docs",
+        "service": "public-api"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "text/html; charset=utf-8"
+        },
+        "body": "\u003c!doctype html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003cmeta charset=\"utf-8\"\u003e\n\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\n\u003ctitle\u003eCasino Partner API\u003c/title\u003e\n\u003clink rel=\"preconnect\" href=\"https://fonts.googleapis.com\"\u003e\n\u003clink rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin\u003e\n\u003clink rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=DM+Serif+Display\u0026family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600\u0026family=JetBrains+Mono:wght@400;500\u0026display=swap\"\u003e\n\u003cstyle\u003e\n/* Layout: a reference manual. A fixed index rail on the left, one long reading column of\n   endpoints on the right; under 900px the rail folds into a collapsible index above the column.\n   Palette and faces are eitheror's own (website/brand/tokens.css): dark-first, red only on the mark. */\n:root {\n  --bg: #0C0B0A; --raised: #161412; --elev: #232120;\n  --line: rgba(245, 242, 238, 0.08); --line-strong: rgba(245, 242, 238, 0.16);\n  --fg: #F5F2EE; --muted: #A8A29A; --faint: #8A837A;\n  --mark: #C41C1C; --link: #E8E4DF;\n  --ok: #6FB283; --warn: #D2A35A; --err: #EE6A6A;\n  --display: 'DM Serif Display', Georgia, serif;\n  --body: 'DM Sans', system-ui, -apple-system, sans-serif;\n  --mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;\n  --rail: 264px;\n  color-scheme: dark;\n}\n@media (prefers-color-scheme: light) {\n  :root:not([data-theme=\"dark\"]) {\n    --bg: #F5F2EE; --raised: #FFFFFF; --elev: #ECE8E2;\n    --line: rgba(30, 26, 22, 0.10); --line-strong: rgba(30, 26, 22, 0.20);\n    --fg: #1E1A16; --muted: #605C58; --faint: #7A7672;\n    --mark: #A01414; --link: #1E1A16;\n    --ok: #2A6B3A; --warn: #8A6020; --err: #A01414;\n    color-scheme: light;\n  }\n}\n:root[data-theme=\"light\"] {\n  --bg: #F5F2EE; --raised: #FFFFFF; --elev: #ECE8E2;\n  --line: rgba(30, 26, 22, 0.10); --line-strong: rgba(30, 26, 22, 0.20);\n  --fg: #1E1A16; --muted: #605C58; --faint: #7A7672;\n  --mark: #A01414; --link: #1E1A16;\n  --ok: #2A6B3A; --warn: #8A6020; --err: #A01414;\n  color-scheme: light;\n}\n\nbody { background: var(--bg); color: var(--fg); font: 400 15px/1.6 var(--body); }\nbody::before { content: \"\"; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }\na { color: var(--link); text-decoration-color: var(--line-strong); text-underline-offset: 3px; }\na:hover { text-decoration-color: currentColor; }\n:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 3px; }\ncode, pre, .mono { font-family: var(--mono); font-size: 0.86em; }\nh1, h2, h3, h4 { text-wrap: balance; margin: 0; }\n\n.shell { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); }\n\n/* Rail */\n.rail {\n  position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; overflow-y: auto;\n  border-right: 1px solid var(--line); background: var(--raised);\n  padding-block: 28px 40px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: 16px;\n}\n.wordmark { font: 400 22px/1 var(--display); letter-spacing: -0.01em; display: block; color: var(--fg); text-decoration: none; }\n.wordmark span { color: var(--mark); }\n.rail summary { list-style: none; }\n.rail summary::-webkit-details-marker { display: none; }\n.rail .index-toggle { display: none; }\n.rail nav { display: grid; gap: 22px; margin-top: 28px; }\n.rail h5 { margin: 0 0 6px; font: 600 11px/1.4 var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); }\n.rail ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }\n.rail li a { display: flex; gap: 8px; align-items: baseline; padding: 3px 8px; margin-left: -8px; border-radius: 5px; text-decoration: none; color: var(--muted); font-size: 13.5px; min-width: 0; }\n.rail li a:hover { background: var(--elev); color: var(--fg); }\n.rail li a .p { font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n\n/* Main column */\n.main { min-width: 0; padding-block: 56px 120px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }\n.col { max-width: 860px; margin: 0 auto; display: grid; gap: 64px; }\n\n.masthead { display: grid; gap: 18px; padding-bottom: 40px; border-bottom: 1px solid var(--line); }\n.eyebrow { font: 600 11px/1.4 var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }\n.masthead h1 { font: 400 clamp(36px, 6vw, 56px)/1.04 var(--display); letter-spacing: -0.02em; }\n.masthead .lede { font-size: 17px; color: var(--muted); max-width: 62ch; margin: 0; }\n.facts { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 6px 0 0; padding: 0; }\n.facts div { display: grid; gap: 2px; min-width: 0; }\n.facts dt { font: 600 11px/1.4 var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); }\n.facts dd { margin: 0; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }\n.actions { display: flex; flex-wrap: wrap; gap: 10px; }\n\nbutton.btn, a.btn {\n  font: 500 13px/1 var(--body); color: var(--fg); background: var(--elev); border: 1px solid var(--line-strong);\n  border-radius: 6px; padding: 9px 13px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;\n}\nbutton.btn:hover, a.btn:hover { border-color: var(--fg); }\n\n/* Prose sections from the contract's own description */\n.prose { display: grid; gap: 14px; max-width: 70ch; }\n.prose h2 { font: 400 28px/1.15 var(--display); letter-spacing: -0.01em; scroll-margin-top: 24px; margin-top: 18px; }\n.prose p, .prose ul { margin: 0; }\n.prose ul { padding-left: 20px; display: grid; gap: 6px; }\n.prose code { background: var(--elev); padding: 1px 5px; border-radius: 4px; }\n.prose pre { margin: 0; }\n.section-title { font: 400 34px/1.1 var(--display); letter-spacing: -0.015em; scroll-margin-top: 24px; }\n.section-intro { color: var(--muted); margin: 6px 0 0; max-width: 66ch; }\n\n.scroll { overflow-x: auto; max-width: 100%; }\ntable { border-collapse: collapse; width: 100%; font-size: 13.5px; }\nth { text-align: left; font: 600 11px/1.4 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line-strong); }\ntd { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }\ntd:first-child { white-space: nowrap; }\ntd code { background: none; padding: 0; }\n\npre.block, .snippet pre {\n  background: var(--raised); border: 1px solid var(--line); border-radius: 8px;\n  padding: 14px 16px; overflow-x: auto; font-size: 12.5px; line-height: 1.65; margin: 0;\n}\n.snippet { position: relative; min-width: 0; }\n.snippet .copy { position: absolute; top: 8px; right: 8px; padding: 6px 9px; font-size: 12px; }\n\n/* Endpoint groups */\n.group { display: grid; gap: 28px; }\n.op { display: grid; gap: 16px; padding-top: 28px; border-top: 1px solid var(--line); scroll-margin-top: 16px; min-width: 0; }\n.op-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; min-width: 0; }\n.verb { font: 500 11.5px/1 var(--mono); letter-spacing: 0.06em; padding: 5px 7px 4px; border-radius: 4px; border: 1px solid var(--line-strong); color: var(--fg); }\n.path { font: 500 16px/1.4 var(--mono); overflow-wrap: anywhere; min-width: 0; }\n.path .pp { color: var(--muted); }\n.op h3 { font: 500 17px/1.4 var(--body); color: var(--fg); }\n.op h4 { font: 600 11px/1.4 var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin-bottom: -6px; }\n.op p { margin: 0; color: var(--muted); max-width: 70ch; }\n.req { font: 600 10px/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--warn); margin-left: 6px; }\n.type { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }\n.type a { color: var(--fg); }\n.enum { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }\n.enum code { font-size: 11.5px; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; color: var(--muted); }\n.note { color: var(--muted); font-size: 13px; }\n\n.responses { display: grid; gap: 8px; }\n.resp { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }\n.status { font: 500 13px/1.5 var(--mono); }\n.s2 { color: var(--ok); } .s4 { color: var(--warn); } .s5 { color: var(--err); }\n.errs { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 13px/1.5 var(--mono); }\n.errs a { text-decoration: none; }\n\n/* Object reference */\n.obj { display: grid; gap: 10px; padding-top: 24px; border-top: 1px solid var(--line); scroll-margin-top: 16px; min-width: 0; }\n.obj h3 { font: 500 16px/1.3 var(--mono); }\n.scalars td:first-child code { font-weight: 500; }\n\n@media (max-width: 900px) {\n  .shell { grid-template-columns: minmax(0, 1fr); }\n  .rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); padding-block: 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }\n  .rail .index-toggle { display: inline-flex; margin-top: 14px; }\n  .rail details:not([open]) nav { display: none; }\n  .main { padding-block: 32px 80px; }\n}\n@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }\n\u003c/style\u003e\n\n\u003cdiv class=\"shell\"\u003e\n  \u003caside class=\"rail\"\u003e\n    \u003ca class=\"wordmark\" href=\"#top\"\u003eeither\u003cspan\u003eor\u003c/span\u003e\u003c/a\u003e\n    \u003cdetails id=\"index\" open\u003e\n      \u003csummary class=\"btn index-toggle\"\u003eIndex\u003c/summary\u003e\n      \u003cnav id=\"nav\" aria-label=\"Index\"\u003e\u003c/nav\u003e\n    \u003c/details\u003e\n  \u003c/aside\u003e\n\n  \u003cmain class=\"main\" id=\"top\"\u003e\n    \u003cdiv class=\"col\" id=\"col\"\u003e\n      \u003cheader class=\"masthead\"\u003e\n        \u003cdiv class=\"eyebrow\"\u003eAPI reference · \u003cspan id=\"ver\"\u003e\u003c/span\u003e\u003c/div\u003e\n        \u003ch1 id=\"title\"\u003e\u003c/h1\u003e\n        \u003cp class=\"lede\" id=\"lede\"\u003e\u003c/p\u003e\n        \u003cdl class=\"facts\" id=\"facts\"\u003e\u003c/dl\u003e\n        \u003cdiv class=\"actions\"\u003e\n          \u003ca class=\"btn\" href=\"openapi.json\" target=\"_blank\" rel=\"noopener\"\u003eopenapi.json\u003c/a\u003e\n          \u003cbutton class=\"btn\" type=\"button\" id=\"copy-spec\"\u003eCopy OpenAPI JSON\u003c/button\u003e\n        \u003c/div\u003e\n      \u003c/header\u003e\n      \u003csection class=\"prose\" id=\"intro\"\u003e\u003c/section\u003e\n      \u003csection class=\"group\" id=\"recipes\"\u003e\u003c/section\u003e\n      \u003cdiv id=\"groups\" class=\"col\" style=\"gap:64px\"\u003e\u003c/div\u003e\n      \u003csection class=\"group\" id=\"objects\"\u003e\u003c/section\u003e\n    \u003c/div\u003e\n  \u003c/main\u003e\n\u003c/div\u003e\n\n\u003cscript src=\"https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js\"\u003e\u003c/script\u003e\n\u003cscript\u003e\nconst SPEC = {\"openapi\":\"3.1.0\",\"info\":{\"title\":\"eitheror casino partner API\",\"version\":\"1.0.0\",\"description\":\"Read-only access to one casino brand's players, their play and money movements, the games\\ncatalogue, and precomputed game statistics. Every endpoint is a `GET`.\\n\\n## Authentication\\n\\nRequest an access token with the OAuth 2.0 client-credentials grant, using the client id and\\nsecret you were issued, then send it on every call as `Authorization: Bearer \u003ctoken\u003e`.\\n\\n```\\ncurl -s https://auth.pre.eitheror.io/realms/eitheror/protocol/openid-connect/token \\\\\\n  -d grant_type=client_credentials -d client_id=\u003cid\u003e -d client_secret=\u003csecret\u003e\\n```\\n\\nTokens last 5 minutes. Fetch a new one when it expires or when a call answers `401` with\\n`jwt_expired`; there is no refresh token. `/v1/openapi.json` needs no token.\\n\\n## Scope\\n\\nA credential belongs to exactly one brand, and every response is limited to that brand. A\\nrecord of another brand answers `404`, exactly as a record that does not exist. To read\\nseveral brands, use one credential per brand.\\n\\nIdentifying player fields (name, email, date of birth, phone, address) are returned only where\\nyour agreement covers them. A field you are not entitled to is absent from the response, never\\n`null`.\\n\\n## Formats\\n\\n- Money is an exact decimal string in major units with two decimal places (`\\\"12.50\\\"`), always\\n  alongside a `currency` (ISO 4217). Never parse it as a float.\\n- Timestamps are ISO 8601 with an explicit offset.\\n- Objects carry only the fields documented here. Optional fields are omitted when unknown.\\n\\n## Paging\\n\\nCollections return `{ \\\"data\\\": [...], \\\"page\\\": { \\\"limit\\\", \\\"offset\\\", \\\"total\\\", \\\"hasMore\\\" } }`,\\nordered oldest first. Page with `limit` (1–100, default 100) and `offset`; keep going while\\n`hasMore` is true. The newest records are on the last page, at `offset = total - limit`.\\n\\n## Quotas\\n\\nEach credential has an agreed number of requests per minute (600 unless agreed otherwise).\\nOver it, calls answer `429` with a `Retry-After` header in seconds; wait that long and retry.\\n\\n## Errors\\n\\nEvery error is JSON, `{ \\\"error\\\": \\\"\u003ccode\u003e\\\", \\\"message\\\": \\\"...\\\" }`. Branch on `error`, not on\\n`message`.\\n\\n| Status | Codes | Meaning |\\n|---|---|---|\\n| 400 | `invalid_request`, `limit_exceeded`, `scope_invalid` | A parameter or identifier is malformed or out of range |\\n| 401 | `jwt_missing`, `jwt_invalid`, `jwt_expired`, `jwt_issuer_mismatch`, `jwt_verification_failed` | No usable token: fetch a new one |\\n| 401 | `actor_type_invalid`, `scope_missing`, `scope_invalid` | The credential itself is misconfigured: contact us, a new token will not help |\\n| 403 | `grant_absent`, `grant_disabled`, `scope_mismatch` | The credential is valid but has no access to this brand: contact us |\\n| 404 | `not_found` | No such record in your brand |\\n| 410 | `snapshot_expired` | The ranking snapshot you named has been retired: start again from page 1 without `snapshot` |\\n| 429 | `quota_exceeded` | Over your per-minute quota: wait `Retry-After` seconds |\\n| 503 | `unavailable` | Temporary: retry with backoff |\\n\\n## Game statistics\\n\\nStatistics are recomputed every hour, a few minutes past the hour, over rolling windows of the\\nlast 1, 7 and 30 days ending at `computedAt`. They are not live: expect figures up to an hour\\nold. Cancelled rounds are excluded. Rounds, sessions and unique players include free-spins\\nplay; stake, win and GGR (stake minus win) are real money only, one entry per currency. Each\\nwindow is a total, not a time series: to chart a trend, store each day's figures yourself.\\n\"},\"servers\":[{\"url\":\"https://partners.pre.eitheror.io/v1\",\"description\":\"Pre-production. Test data only.\"}],\"tags\":[{\"name\":\"Players\",\"description\":\"Players of your brand and everything that belongs to one player.\"},{\"name\":\"Activity\",\"description\":\"Sessions, rounds, bets, transactions and bonus awards, read by identifier.\"},{\"name\":\"Games\",\"description\":\"The games catalogue as enabled on your brand.\"},{\"name\":\"Statistics\",\"description\":\"Hourly precomputed figures per game and per player, and rankings of both.\"},{\"name\":\"Contract\",\"description\":\"Version information and this document.\"}],\"security\":[{\"bearerAuth\":[]}],\"paths\":{\"/players\":{\"get\":{\"operationId\":\"listPlayers\",\"tags\":[\"Players\"],\"summary\":\"Players of the partner's brand, oldest registration first\",\"parameters\":[{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/PlayerPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/players/{playerId}\":{\"get\":{\"operationId\":\"getPlayer\",\"summary\":\"One player\",\"tags\":[\"Players\"],\"parameters\":[{\"$ref\":\"#/components/parameters/playerId\"}],\"responses\":{\"200\":{\"description\":\"The player\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Player\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/players/{playerId}/sessions\":{\"get\":{\"operationId\":\"listPlayerSessions\",\"tags\":[\"Players\"],\"summary\":\"Game sessions of a player, oldest first\",\"parameters\":[{\"$ref\":\"#/components/parameters/playerId\"},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/SessionPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/players/{playerId}/rounds\":{\"get\":{\"operationId\":\"listPlayerRounds\",\"summary\":\"Rounds a player has played, oldest first\",\"tags\":[\"Players\"],\"parameters\":[{\"$ref\":\"#/components/parameters/playerId\"},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/RoundPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/players/{playerId}/bets\":{\"get\":{\"operationId\":\"listPlayerBets\",\"summary\":\"Bets a player has placed, oldest first\",\"tags\":[\"Players\"],\"parameters\":[{\"$ref\":\"#/components/parameters/playerId\"},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/BetPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/players/{playerId}/transactions\":{\"get\":{\"operationId\":\"listPlayerTransactions\",\"summary\":\"Wallet transactions of a player, oldest first\",\"tags\":[\"Players\"],\"parameters\":[{\"$ref\":\"#/components/parameters/playerId\"},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/TransactionPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/players/{playerId}/bonus-awards\":{\"get\":{\"operationId\":\"listPlayerBonusAwards\",\"summary\":\"Bonuses awarded to a player, oldest first\",\"tags\":[\"Players\"],\"parameters\":[{\"$ref\":\"#/components/parameters/playerId\"},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/BonusAwardPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/sessions/{sessionId}\":{\"get\":{\"operationId\":\"getSession\",\"summary\":\"One game session\",\"tags\":[\"Activity\"],\"parameters\":[{\"$ref\":\"#/components/parameters/sessionId\"}],\"responses\":{\"200\":{\"description\":\"The session\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Session\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/sessions/{sessionId}/rounds\":{\"get\":{\"operationId\":\"listSessionRounds\",\"summary\":\"Rounds played in a session, oldest first\",\"tags\":[\"Activity\"],\"parameters\":[{\"$ref\":\"#/components/parameters/sessionId\"},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/RoundPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/rounds/{roundId}\":{\"get\":{\"operationId\":\"getRound\",\"summary\":\"One round\",\"tags\":[\"Activity\"],\"parameters\":[{\"$ref\":\"#/components/parameters/roundId\"}],\"responses\":{\"200\":{\"description\":\"The round\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Round\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/rounds/{roundId}/bets\":{\"get\":{\"operationId\":\"listRoundBets\",\"summary\":\"Bets placed in a round, oldest first\",\"tags\":[\"Activity\"],\"parameters\":[{\"$ref\":\"#/components/parameters/roundId\"},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/BetPage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/bets/{betId}\":{\"get\":{\"operationId\":\"getBet\",\"summary\":\"One bet\",\"tags\":[\"Activity\"],\"parameters\":[{\"$ref\":\"#/components/parameters/betId\"}],\"responses\":{\"200\":{\"description\":\"The bet\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Bet\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/transactions/{transactionId}\":{\"get\":{\"operationId\":\"getTransaction\",\"summary\":\"One wallet transaction\",\"tags\":[\"Activity\"],\"parameters\":[{\"$ref\":\"#/components/parameters/transactionId\"}],\"responses\":{\"200\":{\"description\":\"The transaction\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Transaction\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/bonus-awards/{bonusAwardId}\":{\"get\":{\"operationId\":\"getBonusAward\",\"summary\":\"One bonus award\",\"tags\":[\"Activity\"],\"parameters\":[{\"$ref\":\"#/components/parameters/bonusAwardId\"}],\"responses\":{\"200\":{\"description\":\"The bonus award\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/BonusAward\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/games\":{\"get\":{\"operationId\":\"listGames\",\"tags\":[\"Games\"],\"summary\":\"Games available on the partner's brand, by game code\",\"parameters\":[{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"$ref\":\"#/components/responses/GamePage\"},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/games/{gameId}\":{\"get\":{\"operationId\":\"getGame\",\"summary\":\"One game from the catalogue\",\"tags\":[\"Games\"],\"parameters\":[{\"$ref\":\"#/components/parameters/gameId\"}],\"responses\":{\"200\":{\"description\":\"The game\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Game\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/games/{gameId}/stats\":{\"get\":{\"operationId\":\"getGameStats\",\"tags\":[\"Statistics\"],\"summary\":\"Precomputed statistics for one game, every window\",\"parameters\":[{\"$ref\":\"#/components/parameters/gameId\"}],\"responses\":{\"200\":{\"description\":\"The game's statistics\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/GameStats\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/game-stats\":{\"get\":{\"operationId\":\"rankGames\",\"tags\":[\"Statistics\"],\"summary\":\"Games of the brand ranked by one statistic in one window\",\"parameters\":[{\"name\":\"period\",\"in\":\"query\",\"required\":true,\"schema\":{\"type\":\"string\",\"enum\":[\"1d\",\"7d\",\"30d\"]}},{\"name\":\"sort\",\"in\":\"query\",\"required\":true,\"schema\":{\"type\":\"string\",\"enum\":[\"rounds\",\"sessions\",\"players\",\"stake\",\"ggr\"]}},{\"name\":\"currency\",\"in\":\"query\",\"required\":false,\"description\":\"ISO 4217 code. Required when `sort` is `stake` or `ggr`; ignored otherwise.\",\"schema\":{\"type\":\"string\",\"pattern\":\"^[A-Z]{3}$\"}},{\"name\":\"limit\",\"in\":\"query\",\"schema\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":100,\"default\":100}}],\"responses\":{\"200\":{\"description\":\"Games in descending order of the chosen statistic. Games with no activity in the window are absent.\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"object\",\"required\":[\"data\"],\"additionalProperties\":false,\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/GameStatsRow\"}},\"computedAt\":{\"description\":\"When the figures were computed. Absent when never computed for this brand.\",\"type\":\"string\",\"format\":\"date-time\"}}}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/players/{playerId}/stats\":{\"get\":{\"operationId\":\"getPlayerStats\",\"tags\":[\"Statistics\"],\"summary\":\"One player's figures for the last 1, 7 and 30 days\",\"description\":\"From the current snapshot. A player of your brand with no activity reports zeros. Status is not repeated here; read it from the player record.\\n\",\"parameters\":[{\"$ref\":\"#/components/parameters/playerId\"}],\"responses\":{\"200\":{\"description\":\"The player's figures\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/PlayerStats\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"404\":{\"$ref\":\"#/components/responses/NotFound\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/player-stats\":{\"get\":{\"operationId\":\"rankPlayers\",\"tags\":[\"Statistics\"],\"summary\":\"Players of the brand ranked by one figure in one window\",\"description\":\"Rankings are recomputed every hour and published as snapshots. The first page names its snapshot; pass `snapshot` on every later page to read one fixed ranking start to finish. A snapshot stays readable for at least 30 minutes after a newer one replaces it; after that the request is refused with 410 `snapshot_expired` and you start again from page 1 without `snapshot`. `status` is the player's status when the snapshot was computed. The `status` filter is for reporting: a player who self-excludes after the snapshot keeps their old status until the next one, so check the player record before contacting anyone.\\n\",\"parameters\":[{\"name\":\"period\",\"in\":\"query\",\"required\":true,\"schema\":{\"type\":\"string\",\"enum\":[\"1d\",\"7d\",\"30d\"]}},{\"name\":\"sort\",\"in\":\"query\",\"required\":true,\"description\":\"Ranked descending. `deposits` ranks by deposited amount.\",\"schema\":{\"type\":\"string\",\"enum\":[\"rounds\",\"sessions\",\"stake\",\"ggr\",\"deposits\"]}},{\"name\":\"currency\",\"in\":\"query\",\"required\":false,\"description\":\"Required when `sort` is `stake`, `ggr` or `deposits`; ignored otherwise. Only players with figures in this currency are ranked.\",\"schema\":{\"$ref\":\"#/components/schemas/Currency\"}},{\"name\":\"status\",\"in\":\"query\",\"required\":false,\"description\":\"Comma-separated statuses to include, e.g. `ACTIVE,SUSPENDED`. Omit for every status. Ranks are unchanged by the filter, so they can have gaps.\",\"style\":\"form\",\"explode\":false,\"schema\":{\"type\":\"array\",\"minItems\":1,\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"enum\":[\"ACTIVE\",\"SUSPENDED\",\"CLOSED\",\"SELF_EXCLUDED\"]}}},{\"name\":\"snapshot\",\"in\":\"query\",\"required\":false,\"description\":\"The snapshot id from the first page. Omit for the current snapshot.\",\"schema\":{\"$ref\":\"#/components/schemas/Uuid\"}},{\"$ref\":\"#/components/parameters/limit\"},{\"$ref\":\"#/components/parameters/offset\"}],\"responses\":{\"200\":{\"description\":\"A page of the ranking. Before the first computation for the brand, an empty page with no `snapshot`.\\n\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/PlayerRankingPage\"}}}},\"400\":{\"$ref\":\"#/components/responses/BadRequest\"},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"410\":{\"$ref\":\"#/components/responses/SnapshotExpired\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"},\"503\":{\"$ref\":\"#/components/responses/Unavailable\"}}}},\"/contract\":{\"get\":{\"operationId\":\"getContractInfo\",\"summary\":\"Contract version and page-size cap\",\"tags\":[\"Contract\"],\"responses\":{\"200\":{\"description\":\"Contract version and page-size cap\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"object\",\"required\":[\"version\",\"maxPageSize\"],\"properties\":{\"version\":{\"type\":\"string\",\"const\":\"v1\"},\"maxPageSize\":{\"type\":\"integer\",\"const\":100}}}}}},\"401\":{\"$ref\":\"#/components/responses/Unauthorized\"},\"403\":{\"$ref\":\"#/components/responses/Forbidden\"},\"429\":{\"$ref\":\"#/components/responses/TooManyRequests\"}}}},\"/openapi.json\":{\"get\":{\"operationId\":\"getOpenApi\",\"summary\":\"This document, as JSON. No credential needed\",\"tags\":[\"Contract\"],\"security\":[],\"responses\":{\"200\":{\"description\":\"This document as JSON\",\"content\":{\"application/json\":{\"schema\":{\"type\":\"object\"}}}}}}}},\"components\":{\"securitySchemes\":{\"bearerAuth\":{\"type\":\"http\",\"scheme\":\"bearer\",\"bearerFormat\":\"JWT\",\"description\":\"Access token from the client-credentials grant; see Authentication above.\"}},\"parameters\":{\"limit\":{\"name\":\"limit\",\"in\":\"query\",\"schema\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":100,\"default\":100}},\"offset\":{\"name\":\"offset\",\"in\":\"query\",\"schema\":{\"type\":\"integer\",\"minimum\":0,\"default\":0}},\"playerId\":{\"name\":\"playerId\",\"in\":\"path\",\"required\":true,\"schema\":{\"$ref\":\"#/components/schemas/Uuid\"}},\"sessionId\":{\"name\":\"sessionId\",\"in\":\"path\",\"required\":true,\"schema\":{\"$ref\":\"#/components/schemas/Uuid\"}},\"roundId\":{\"name\":\"roundId\",\"in\":\"path\",\"required\":true,\"schema\":{\"$ref\":\"#/components/schemas/Uuid\"}},\"betId\":{\"name\":\"betId\",\"in\":\"path\",\"required\":true,\"schema\":{\"$ref\":\"#/components/schemas/Uuid\"}},\"transactionId\":{\"name\":\"transactionId\",\"in\":\"path\",\"required\":true,\"schema\":{\"$ref\":\"#/components/schemas/Uuid\"}},\"bonusAwardId\":{\"name\":\"bonusAwardId\",\"in\":\"path\",\"required\":true,\"schema\":{\"$ref\":\"#/components/schemas/Uuid\"}},\"gameId\":{\"name\":\"gameId\",\"in\":\"path\",\"required\":true,\"schema\":{\"$ref\":\"#/components/schemas/GameCode\"}}},\"responses\":{\"PlayerPage\":{\"description\":\"A page of players\",\"content\":{\"application/json\":{\"schema\":{\"allOf\":[{\"$ref\":\"#/components/schemas/PageEnvelope\"},{\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/Player\"}}}}]}}}},\"SessionPage\":{\"description\":\"A page of sessions\",\"content\":{\"application/json\":{\"schema\":{\"allOf\":[{\"$ref\":\"#/components/schemas/PageEnvelope\"},{\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/Session\"}}}}]}}}},\"RoundPage\":{\"description\":\"A page of rounds\",\"content\":{\"application/json\":{\"schema\":{\"allOf\":[{\"$ref\":\"#/components/schemas/PageEnvelope\"},{\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/Round\"}}}}]}}}},\"BetPage\":{\"description\":\"A page of bets\",\"content\":{\"application/json\":{\"schema\":{\"allOf\":[{\"$ref\":\"#/components/schemas/PageEnvelope\"},{\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/Bet\"}}}}]}}}},\"TransactionPage\":{\"description\":\"A page of transactions\",\"content\":{\"application/json\":{\"schema\":{\"allOf\":[{\"$ref\":\"#/components/schemas/PageEnvelope\"},{\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/Transaction\"}}}}]}}}},\"BonusAwardPage\":{\"description\":\"A page of bonus awards\",\"content\":{\"application/json\":{\"schema\":{\"allOf\":[{\"$ref\":\"#/components/schemas/PageEnvelope\"},{\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/BonusAward\"}}}}]}}}},\"GamePage\":{\"description\":\"A page of games\",\"content\":{\"application/json\":{\"schema\":{\"allOf\":[{\"$ref\":\"#/components/schemas/PageEnvelope\"},{\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/Game\"}}}}]}}}},\"BadRequest\":{\"description\":\"Invalid parameter or identifier\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Error\"}}}},\"Unauthorized\":{\"description\":\"Missing, malformed, expired or untrusted credential\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Error\"}}}},\"Forbidden\":{\"description\":\"Grant absent or disabled, or credential scope does not match the grant's brand\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Error\"}}}},\"NotFound\":{\"description\":\"No such record in the partner's brand\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Error\"}}}},\"TooManyRequests\":{\"description\":\"Partner quota exceeded\",\"headers\":{\"Retry-After\":{\"schema\":{\"type\":\"integer\"},\"description\":\"Seconds to wait\"}},\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Error\"}}}},\"Unavailable\":{\"description\":\"The platform store is unreachable or exceeded the request budget\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Error\"}}}},\"SnapshotExpired\":{\"description\":\"The named snapshot has been retired; restart from page 1 without `snapshot`\",\"content\":{\"application/json\":{\"schema\":{\"$ref\":\"#/components/schemas/Error\"}}}}},\"schemas\":{\"Uuid\":{\"type\":\"string\",\"format\":\"uuid\"},\"GameCode\":{\"type\":\"string\",\"pattern\":\"^[A-Za-z0-9._-]{1,64}$\"},\"Money\":{\"type\":\"string\",\"pattern\":\"^-?[0-9]+\\\\.[0-9]{2}$\",\"description\":\"Exact decimal in major units, two decimal places, as a string.\"},\"Currency\":{\"type\":\"string\",\"pattern\":\"^[A-Z]{3}$\"},\"DateTime\":{\"type\":\"string\",\"format\":\"date-time\"},\"Date\":{\"type\":\"string\",\"format\":\"date\"},\"Error\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"error\"],\"properties\":{\"error\":{\"type\":\"string\",\"enum\":[\"invalid_request\",\"limit_exceeded\",\"jwt_missing\",\"jwt_invalid\",\"jwt_expired\",\"jwt_issuer_mismatch\",\"jwt_verification_failed\",\"actor_type_invalid\",\"scope_missing\",\"scope_invalid\",\"scope_mismatch\",\"grant_absent\",\"grant_disabled\",\"not_found\",\"snapshot_expired\",\"quota_exceeded\",\"unavailable\"]},\"message\":{\"type\":\"string\"}}},\"PageInfo\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"limit\",\"offset\",\"total\",\"hasMore\"],\"properties\":{\"limit\":{\"type\":\"integer\"},\"offset\":{\"type\":\"integer\"},\"total\":{\"type\":\"integer\"},\"hasMore\":{\"type\":\"boolean\"}}},\"PageEnvelope\":{\"type\":\"object\",\"required\":[\"data\",\"page\"],\"properties\":{\"data\":{\"type\":\"array\"},\"page\":{\"$ref\":\"#/components/schemas/PageInfo\"}}},\"PlayerStatus\":{\"type\":[\"string\",\"null\"],\"enum\":[\"ACTIVE\",\"SUSPENDED\",\"CLOSED\",\"SELF_EXCLUDED\",null]},\"KycStatus\":{\"type\":[\"string\",\"null\"],\"enum\":[\"UNVERIFIED\",\"PENDING\",\"VERIFIED\",\"REJECTED\",null]},\"TransactionType\":{\"type\":[\"string\",\"null\"],\"enum\":[\"DEPOSIT\",\"WITHDRAWAL\",\"BET\",\"WIN\",\"BONUS\",\"ROLLBACK\",\"LOSS\",\"ADMIN_ADJUSTMENT\",\"GAME_PROVIDER_CREDIT\",null]},\"WalletType\":{\"type\":[\"string\",\"null\"],\"enum\":[\"MAIN\",\"BONUS\",\"SPLIT\",null]},\"SessionStatus\":{\"type\":[\"string\",\"null\"],\"enum\":[\"OPEN\",\"CLOSED\",null]},\"BonusStatus\":{\"type\":[\"string\",\"null\"],\"enum\":[\"ACTIVE\",\"WAGERING\",\"COMPLETED\",\"EXPIRED\",\"CANCELLED\",\"FORFEITED\",\"CONVERTED_PENDING_CAP\",\"CLOSED\",null]},\"Player\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"brandId\",\"status\",\"kycStatus\",\"registeredAt\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/Uuid\"},\"brandId\":{\"type\":\"string\"},\"status\":{\"$ref\":\"#/components/schemas/PlayerStatus\"},\"kycStatus\":{\"$ref\":\"#/components/schemas/KycStatus\"},\"registeredAt\":{\"$ref\":\"#/components/schemas/DateTime\"},\"country\":{\"type\":\"string\"},\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"language\":{\"type\":\"string\"},\"email\":{\"type\":\"string\",\"description\":\"Identifying. Present only where the grant entitles it.\"},\"firstName\":{\"type\":\"string\",\"description\":\"Identifying.\"},\"lastName\":{\"type\":\"string\",\"description\":\"Identifying.\"},\"dateOfBirth\":{\"$ref\":\"#/components/schemas/Date\"},\"phone\":{\"type\":\"string\",\"description\":\"Identifying.\"},\"addressLine1\":{\"type\":\"string\",\"description\":\"Identifying.\"},\"city\":{\"type\":\"string\",\"description\":\"Identifying.\"},\"stateProv\":{\"type\":\"string\",\"description\":\"Identifying.\"},\"postalCode\":{\"type\":\"string\",\"description\":\"Identifying.\"}}},\"Session\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"brandId\",\"playerId\",\"startedAt\",\"status\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/Uuid\"},\"brandId\":{\"type\":\"string\"},\"playerId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"gameId\":{\"$ref\":\"#/components/schemas/GameCode\"},\"startedAt\":{\"$ref\":\"#/components/schemas/DateTime\"},\"endedAt\":{\"$ref\":\"#/components/schemas/DateTime\"},\"status\":{\"$ref\":\"#/components/schemas/SessionStatus\"},\"closeReason\":{\"type\":\"string\"}}},\"Round\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"brandId\",\"playerId\",\"gameId\",\"startedAt\",\"stakeTotal\",\"winTotal\",\"currency\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/Uuid\"},\"brandId\":{\"type\":\"string\"},\"playerId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"sessionId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"gameId\":{\"$ref\":\"#/components/schemas/GameCode\"},\"startedAt\":{\"$ref\":\"#/components/schemas/DateTime\"},\"settledAt\":{\"$ref\":\"#/components/schemas/DateTime\"},\"stakeTotal\":{\"$ref\":\"#/components/schemas/Money\"},\"winTotal\":{\"$ref\":\"#/components/schemas/Money\"},\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"status\":{\"type\":\"string\",\"enum\":[\"open\",\"settled\",\"cancelled\"]}}},\"Bet\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"brandId\",\"playerId\",\"amount\",\"currency\",\"fundedFrom\",\"placedAt\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/Uuid\"},\"brandId\":{\"type\":\"string\"},\"playerId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"roundId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"sessionId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"amount\":{\"$ref\":\"#/components/schemas/Money\"},\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"fundedFrom\":{\"$ref\":\"#/components/schemas/WalletType\"},\"status\":{\"type\":\"string\"},\"placedAt\":{\"$ref\":\"#/components/schemas/DateTime\"}}},\"Transaction\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"brandId\",\"playerId\",\"type\",\"amount\",\"currency\",\"createdAt\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/Uuid\"},\"brandId\":{\"type\":\"string\"},\"playerId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"type\":{\"$ref\":\"#/components/schemas/TransactionType\"},\"amount\":{\"$ref\":\"#/components/schemas/Money\"},\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"walletType\":{\"$ref\":\"#/components/schemas/WalletType\"},\"status\":{\"type\":\"string\"},\"createdAt\":{\"$ref\":\"#/components/schemas/DateTime\"},\"roundId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"gameId\":{\"$ref\":\"#/components/schemas/GameCode\"},\"paymentRef\":{\"type\":\"string\",\"description\":\"Originating cashier payment id. Deposits only.\"}}},\"BonusAward\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"brandId\",\"playerId\",\"offerId\",\"value\",\"currency\",\"status\",\"grantedAt\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/Uuid\"},\"brandId\":{\"type\":\"string\"},\"playerId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"offerId\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"type\":{\"type\":\"string\"},\"value\":{\"$ref\":\"#/components/schemas/Money\"},\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"wageringRequirement\":{\"$ref\":\"#/components/schemas/Money\"},\"wageredAmount\":{\"$ref\":\"#/components/schemas/Money\"},\"status\":{\"$ref\":\"#/components/schemas/BonusStatus\"},\"grantedAt\":{\"$ref\":\"#/components/schemas/DateTime\"},\"expiresAt\":{\"$ref\":\"#/components/schemas/DateTime\"}}},\"Game\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"name\",\"category\",\"developerId\",\"developerName\",\"funMode\",\"bonusTypes\",\"features\",\"themes\",\"tags\",\"restrictedTerritories\",\"prohibitedTerritories\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/GameCode\"},\"name\":{\"type\":\"string\"},\"category\":{\"type\":\"string\"},\"developerId\":{\"type\":\"string\"},\"developerName\":{\"type\":\"string\"},\"funMode\":{\"type\":\"boolean\"},\"bonusTypes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"features\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"themes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"tags\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Lower-cased union of bonusTypes, features and themes.\"},\"restrictedTerritories\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"prohibitedTerritories\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},\"thumbnailUrl\":{\"type\":\"string\",\"format\":\"uri\"},\"rtp\":{\"type\":\"string\"},\"volatility\":{\"type\":\"integer\"},\"hitRatio\":{\"type\":\"string\"},\"maxPayoutCoeff\":{\"type\":\"string\"},\"releaseDate\":{\"$ref\":\"#/components/schemas/Date\"},\"deprecationDate\":{\"$ref\":\"#/components/schemas/Date\"}}},\"CurrencyAmounts\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"currency\",\"stake\",\"win\",\"ggr\"],\"properties\":{\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"stake\":{\"$ref\":\"#/components/schemas/Money\"},\"win\":{\"$ref\":\"#/components/schemas/Money\"},\"ggr\":{\"$ref\":\"#/components/schemas/Money\",\"description\":\"stake minus win\"}}},\"StatsWindow\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"rounds\",\"sessions\",\"uniquePlayers\",\"amounts\"],\"properties\":{\"rounds\":{\"type\":\"integer\",\"description\":\"Non-cancelled rounds created in the window, free-spins rounds included.\"},\"sessions\":{\"type\":\"integer\"},\"uniquePlayers\":{\"type\":\"integer\"},\"amounts\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/CurrencyAmounts\"},\"description\":\"Real-money figures only; free-spins rounds and bonus-wallet play excluded. One entry per currency.\"}}},\"GameStats\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"gameId\",\"brandId\",\"windows\"],\"properties\":{\"gameId\":{\"$ref\":\"#/components/schemas/GameCode\"},\"brandId\":{\"type\":\"string\"},\"computedAt\":{\"$ref\":\"#/components/schemas/DateTime\",\"description\":\"Absent when statistics have never been computed for this game.\"},\"windows\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"1d\",\"7d\",\"30d\"],\"properties\":{\"1d\":{\"$ref\":\"#/components/schemas/StatsWindow\"},\"7d\":{\"$ref\":\"#/components/schemas/StatsWindow\"},\"30d\":{\"$ref\":\"#/components/schemas/StatsWindow\"}}}}},\"GameStatsRow\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"gameId\",\"period\",\"rounds\",\"sessions\",\"uniquePlayers\",\"amounts\"],\"properties\":{\"gameId\":{\"$ref\":\"#/components/schemas/GameCode\"},\"period\":{\"type\":\"string\",\"enum\":[\"1d\",\"7d\",\"30d\"]},\"rounds\":{\"type\":\"integer\"},\"sessions\":{\"type\":\"integer\"},\"uniquePlayers\":{\"type\":\"integer\"},\"amounts\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/CurrencyAmounts\"}}}},\"Snapshot\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"id\",\"computedAt\"],\"properties\":{\"id\":{\"$ref\":\"#/components/schemas/Uuid\"},\"computedAt\":{\"$ref\":\"#/components/schemas/DateTime\",\"description\":\"End of the windows; figures cover activity before this time.\"}}},\"CountAmount\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"count\",\"amount\"],\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":0},\"amount\":{\"$ref\":\"#/components/schemas/Money\"}}},\"PlayerAmounts\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"currency\",\"stake\",\"win\",\"ggr\",\"deposits\",\"withdrawals\"],\"properties\":{\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"stake\":{\"$ref\":\"#/components/schemas/Money\"},\"win\":{\"$ref\":\"#/components/schemas/Money\"},\"ggr\":{\"$ref\":\"#/components/schemas/Money\",\"description\":\"stake minus win\"},\"deposits\":{\"$ref\":\"#/components/schemas/CountAmount\",\"description\":\"Settled deposits.\"},\"withdrawals\":{\"$ref\":\"#/components/schemas/CountAmount\",\"description\":\"Completed withdrawals\",\"by completion time.\":null}}},\"PlayerWindow\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"rounds\",\"sessions\",\"games\",\"amounts\"],\"properties\":{\"rounds\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Non-cancelled rounds created in the window, free-spins rounds included.\"},\"sessions\":{\"type\":\"integer\",\"minimum\":0},\"games\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Distinct games among the counted rounds.\"},\"amounts\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/PlayerAmounts\"},\"description\":\"Real-money play only; free spins and bonus-wallet play excluded. One entry per currency.\"}}},\"PlayerStats\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"playerId\",\"lastActiveAt\",\"windows\"],\"properties\":{\"playerId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"snapshot\":{\"$ref\":\"#/components/schemas/Snapshot\",\"description\":\"Absent before the first computation for the brand.\"},\"lastActiveAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\",\"description\":\"Latest round or session start in the last 30 days.\"},\"windows\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"1d\",\"7d\",\"30d\"],\"properties\":{\"1d\":{\"$ref\":\"#/components/schemas/PlayerWindow\"},\"7d\":{\"$ref\":\"#/components/schemas/PlayerWindow\"},\"30d\":{\"$ref\":\"#/components/schemas/PlayerWindow\"}}}}},\"PlayerRankingEntry\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"rank\",\"playerId\",\"status\",\"rounds\",\"sessions\",\"games\",\"amounts\"],\"properties\":{\"rank\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"Position in the unfiltered ranking. Ties are ordered by player id.\"},\"playerId\":{\"$ref\":\"#/components/schemas/Uuid\"},\"status\":{\"$ref\":\"#/components/schemas/PlayerStatus\",\"description\":\"Status when the snapshot was computed.\"},\"rounds\":{\"type\":\"integer\",\"minimum\":0},\"sessions\":{\"type\":\"integer\",\"minimum\":0},\"games\":{\"type\":\"integer\",\"minimum\":0},\"amounts\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/PlayerAmounts\"}}}},\"PlayerRankingPage\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"data\",\"page\",\"ranking\"],\"properties\":{\"data\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/PlayerRankingEntry\"}},\"page\":{\"$ref\":\"#/components/schemas/PageInfo\"},\"snapshot\":{\"$ref\":\"#/components/schemas/Snapshot\"},\"ranking\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"period\",\"sort\"],\"description\":\"The ranking served, as resolved from the request.\",\"properties\":{\"period\":{\"type\":\"string\",\"enum\":[\"1d\",\"7d\",\"30d\"]},\"sort\":{\"type\":\"string\",\"enum\":[\"rounds\",\"sessions\",\"stake\",\"ggr\",\"deposits\"]},\"currency\":{\"$ref\":\"#/components/schemas/Currency\"},\"status\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[\"ACTIVE\",\"SUSPENDED\",\"CLOSED\",\"SELF_EXCLUDED\"]}}}}}}}}};\n\nconst $ = (sel) =\u003e document.querySelector(sel);\nconst esc = (s) =\u003e String(s ?? '').replace(/[\u0026\u003c\u003e\"]/g, (c) =\u003e ({ '\u0026': '\u0026amp;', '\u003c': '\u0026lt;', '\u003e': '\u0026gt;', '\"': '\u0026quot;' }[c]));\nconst slug = (s) =\u003e String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');\nconst md = (s) =\u003e (window.marked ? marked.parse(s || '') : '\u003cp\u003e' + esc(s) + '\u003c/p\u003e');\nconst mdInline = (s) =\u003e (window.marked ? marked.parseInline(s || '') : esc(s));\nconst refName = (ref) =\u003e ref.split('/').pop();\nconst deref = (o) =\u003e {\n  let cur = o;\n  while (cur \u0026\u0026 cur.$ref) cur = cur.$ref.split('/').slice(1).reduce((a, k) =\u003e a[k], SPEC);\n  return cur;\n};\nconst BASE = SPEC.servers[0].url;\n\nfunction copyText(text, btn) {\n  const done = () =\u003e { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() =\u003e (btn.textContent = t), 1400); };\n  const fallback = () =\u003e {\n    const ta = document.createElement('textarea');\n    ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';\n    document.body.appendChild(ta); ta.select();\n    try { document.execCommand('copy'); done(); } catch (_) { /* text stays selected for a manual copy */ }\n    ta.remove();\n  };\n  try { navigator.clipboard.writeText(text).then(done, fallback); } catch (_) { fallback(); }\n}\nfunction snippet(code) {\n  return `\u003cdiv class=\"snippet\"\u003e\u003cpre\u003e\u003ccode\u003e${esc(code)}\u003c/code\u003e\u003c/pre\u003e\u003cbutton class=\"btn copy\" type=\"button\" data-copy=\"${esc(code)}\"\u003eCopy\u003c/button\u003e\u003c/div\u003e`;\n}\n\n// One-line type for a schema: a link for named schemas, an inline description otherwise.\nfunction typeOf(s) {\n  if (!s) return '';\n  if (s.$ref) { const n = refName(s.$ref); return `\u003ca href=\"#schema-${n}\"\u003e${n}\u003c/a\u003e`; }\n  if (s.const !== undefined) return `${esc(s.type || '')} = \u003ccode\u003e${esc(JSON.stringify(s.const))}\u003c/code\u003e`;\n  if (s.type === 'array') return typeOf(s.items) + '[]';\n  const t = Array.isArray(s.type) ? s.type.filter((x) =\u003e x !== 'null').join(' | ') + (s.type.includes('null') ? ' | null' : '') : (s.type || 'object');\n  const bits = [];\n  if (s.format) bits.push(s.format);\n  if (s.minimum !== undefined \u0026\u0026 s.maximum !== undefined) bits.push(`${s.minimum}–${s.maximum}`);\n  else if (s.minimum !== undefined) bits.push(`≥ ${s.minimum}`);\n  if (s.default !== undefined) bits.push(`default ${s.default}`);\n  if (s.pattern) bits.push(`\u003cspan title=\"${esc(s.pattern)}\"\u003epattern\u003c/span\u003e`);\n  return esc(t) + (bits.length ? ` \u003cspan class=\"note\"\u003e· ${bits.join(' · ')}\u003c/span\u003e` : '');\n}\nfunction enumOf(s) {\n  const e = (s \u0026\u0026 s.enum) ? s.enum.filter((v) =\u003e v !== null) : null;\n  return e \u0026\u0026 e.length ? `\u003cdiv class=\"enum\"\u003e${e.map((v) =\u003e `\u003ccode\u003e${esc(v)}\u003c/code\u003e`).join('')}\u003c/div\u003e` : '';\n}\nfunction propsTable(obj) {\n  const req = new Set(obj.required || []);\n  const rows = Object.entries(obj.properties || {}).map(([name, p]) =\u003e {\n    const r = p.$ref ? deref(p) : p;\n    const desc = p.description || (p.$ref ? '' : r.description) || '';\n    return `\u003ctr\u003e\u003ctd\u003e\u003ccode\u003e${esc(name)}\u003c/code\u003e${req.has(name) ? '\u003cspan class=\"req\"\u003ealways\u003c/span\u003e' : ''}\u003c/td\u003e\n      \u003ctd class=\"type\"\u003e${typeOf(p)}${p.$ref ? '' : enumOf(p)}\u003c/td\u003e\n      \u003ctd class=\"note\"\u003e${mdInline(desc)}\u003c/td\u003e\u003c/tr\u003e`;\n  }).join('');\n  return `\u003cdiv class=\"scroll\"\u003e\u003ctable\u003e\u003cthead\u003e\u003ctr\u003e\u003cth\u003eField\u003c/th\u003e\u003cth\u003eType\u003c/th\u003e\u003cth\u003eNotes\u003c/th\u003e\u003c/tr\u003e\u003c/thead\u003e\u003ctbody\u003e${rows}\u003c/tbody\u003e\u003c/table\u003e\u003c/div\u003e`;\n}\nfunction bodyOf(resp) {\n  const r = deref(resp);\n  const s = r.content \u0026\u0026 r.content['application/json'] \u0026\u0026 r.content['application/json'].schema;\n  if (!s) return '';\n  if (s.$ref) return `\u003cspan class=\"type\"\u003e${typeOf(s)}\u003c/span\u003e`;\n  if (s.allOf) {\n    const items = s.allOf.map(deref).find((x) =\u003e x.properties \u0026\u0026 x.properties.data \u0026\u0026 x.properties.data.items);\n    return `\u003cspan class=\"type\"\u003e\u003ca href=\"#paging\"\u003ePage\u003c/a\u003e of ${typeOf(items.properties.data.items)}\u003c/span\u003e`;\n  }\n  if (s.properties) return propsTable(s);\n  return `\u003cspan class=\"type\"\u003e${typeOf(s)}\u003c/span\u003e`;\n}\nfunction curlFor(path, op) {\n  const params = (op.parameters || []).map(deref);\n  const q = params.filter((p) =\u003e p.in === 'query' \u0026\u0026 p.required)\n    .map((p) =\u003e `${p.name}=${p.schema.enum ? p.schema.enum[p.name === 'period' ? 1 : 0] : '\u003c' + p.name + '\u003e'}`);\n  if (params.some((p) =\u003e p.name === 'currency')) q.push('currency=EUR');\n  const url = BASE + path.replace(/\\{(\\w+)\\}/g, '\u003c$1\u003e') + (q.length ? '?' + q.join('\u0026') : '');\n  return op.security \u0026\u0026 op.security.length === 0\n    ? `curl -s \"${url}\"`\n    : `curl -s \"${url}\" \\\\\\n  -H \"Authorization: Bearer $TOKEN\"`;\n}\n\n// Masthead\n$('#title').textContent = 'Casino partner API';\n$('#ver').textContent = `v${SPEC.info.version} · OpenAPI ${SPEC.openapi}`;\nconst [lede, ...rest] = SPEC.info.description.split(/\\n(?=## )/);\n$('#lede').innerHTML = mdInline(lede.trim().replace(/\\n/g, ' '));\n$('#facts').innerHTML = [\n  ['Base URL', BASE],\n  ['Environment', SPEC.servers[0].description],\n  ['Method', 'GET only'],\n  ['Live contract', BASE + '/openapi.json'],\n].map(([k, v]) =\u003e `\u003cdiv\u003e\u003cdt\u003e${k}\u003c/dt\u003e\u003cdd\u003e${esc(v)}\u003c/dd\u003e\u003c/div\u003e`).join('');\n\n// Intro sections from the contract description; give each h2 an anchor for the index\n$('#intro').innerHTML = md(rest.join('\\n'));\nconst introLinks = [];\ndocument.querySelectorAll('#intro h2').forEach((h) =\u003e { h.id = slug(h.textContent); introLinks.push([h.id, h.textContent]); });\ndocument.querySelectorAll('#intro pre').forEach((pre) =\u003e {\n  const code = pre.textContent.replace(/\\n$/, '');\n  pre.outerHTML = snippet(code);\n});\n\n// Common reads: the questions an analytics consumer asks first\nconst recipes = [\n  ['Top 20 games by GGR, last 7 days', `curl -s \"${BASE}/game-stats?period=7d\u0026sort=ggr\u0026currency=EUR\u0026limit=20\" \\\\\\n  -H \"Authorization: Bearer $TOKEN\"`,\n   'Use your brand\\'s currency. Swap \u003ccode\u003esort\u003c/code\u003e for \u003ccode\u003erounds\u003c/code\u003e, \u003ccode\u003esessions\u003c/code\u003e, \u003ccode\u003eplayers\u003c/code\u003e or \u003ccode\u003estake\u003c/code\u003e, and \u003ccode\u003eperiod\u003c/code\u003e for \u003ccode\u003e1d\u003c/code\u003e or \u003ccode\u003e30d\u003c/code\u003e. \u003ccode\u003ecomputedAt\u003c/code\u003e says how fresh the figures are.'],\n  ['Every window for one game', `curl -s \"${BASE}/games/\u003cgameId\u003e/stats\" \\\\\\n  -H \"Authorization: Bearer $TOKEN\"`,\n   'Returns the 1, 7 and 30-day windows together. A game with no activity reports zeros.'],\n  ['All players, page by page', `for offset in 0 100 200; do   # continue while page.hasMore is true\\n  curl -s \"${BASE}/players?limit=100\u0026offset=$offset\" \\\\\\n    -H \"Authorization: Bearer $TOKEN\"\\ndone`,\n   'Oldest registration first. Stay inside your per-minute quota when walking large collections.'],\n  ['A player\\'s most recent rounds', `curl -s \"${BASE}/players/\u003cplayerId\u003e/rounds?limit=1\" -H \"Authorization: Bearer $TOKEN\"   # read page.total\\ncurl -s \"${BASE}/players/\u003cplayerId\u003e/rounds?limit=100\u0026offset=\u003ctotal - 100\u003e\" \\\\\\n  -H \"Authorization: Bearer $TOKEN\"`,\n   'Collections are oldest first, so the newest records are on the last page.'],\n];\n$('#recipes').innerHTML = `\u003cdiv\u003e\u003ch2 class=\"section-title\" id=\"common-reads\"\u003eCommon reads\u003c/h2\u003e\n  \u003cp class=\"section-intro\"\u003eRequests worth starting from. Each assumes \u003ccode\u003e$TOKEN\u003c/code\u003e holds a current access token.\u003c/p\u003e\u003c/div\u003e` +\n  recipes.map(([t, code, note]) =\u003e `\u003cdiv class=\"op\" style=\"gap:12px\"\u003e\u003ch3\u003e${t}\u003c/h3\u003e${snippet(code)}\u003cp class=\"note\"\u003e${note}\u003c/p\u003e\u003c/div\u003e`).join('');\n\n// Endpoints, grouped by tag in the contract's tag order\nconst ops = [];\nfor (const [path, item] of Object.entries(SPEC.paths)) for (const [verb, op] of Object.entries(item)) ops.push({ path, verb, op });\nconst groupsHtml = SPEC.tags.map((tag) =\u003e {\n  const mine = ops.filter((o) =\u003e (o.op.tags || []).includes(tag.name));\n  const body = mine.map(({ path, verb, op }) =\u003e {\n    const params = (op.parameters || []).map(deref);\n    const paramRows = params.map((p) =\u003e `\u003ctr\u003e\u003ctd\u003e\u003ccode\u003e${esc(p.name)}\u003c/code\u003e${p.required ? '\u003cspan class=\"req\"\u003erequired\u003c/span\u003e' : ''}\u003c/td\u003e\n      \u003ctd class=\"note\"\u003e${p.in}\u003c/td\u003e\u003ctd class=\"type\"\u003e${typeOf(p.schema)}${enumOf(p.schema)}\u003c/td\u003e\u003ctd class=\"note\"\u003e${mdInline(p.description || '')}\u003c/td\u003e\u003c/tr\u003e`).join('');\n    const codes = Object.keys(op.responses);\n    const ok = codes.filter((c) =\u003e c.startsWith('2'));\n    const errs = codes.filter((c) =\u003e !c.startsWith('2'));\n    return `\u003carticle class=\"op\" id=\"op-${op.operationId}\"\u003e\n      \u003cdiv class=\"op-line\"\u003e\u003cspan class=\"verb\"\u003e${verb.toUpperCase()}\u003c/span\u003e\u003ccode class=\"path\"\u003e${esc(path).replace(/\\{(\\w+)\\}/g, '\u003cspan class=\"pp\"\u003e{$1}\u003c/span\u003e')}\u003c/code\u003e\u003c/div\u003e\n      ${op.summary ? `\u003ch3\u003e${esc(op.summary)}\u003c/h3\u003e` : ''}\n      ${op.description ? `\u003cp\u003e${mdInline(op.description)}\u003c/p\u003e` : ''}\n      ${snippet(curlFor(path, op))}\n      ${params.length ? `\u003ch4\u003eParameters\u003c/h4\u003e\u003cdiv class=\"scroll\"\u003e\u003ctable\u003e\u003cthead\u003e\u003ctr\u003e\u003cth\u003eName\u003c/th\u003e\u003cth\u003eIn\u003c/th\u003e\u003cth\u003eType\u003c/th\u003e\u003cth\u003eNotes\u003c/th\u003e\u003c/tr\u003e\u003c/thead\u003e\u003ctbody\u003e${paramRows}\u003c/tbody\u003e\u003c/table\u003e\u003c/div\u003e` : ''}\n      \u003ch4\u003eResponse\u003c/h4\u003e\n      \u003cdiv class=\"responses\"\u003e\n        ${ok.map((c) =\u003e { const r = deref(op.responses[c]); return `\u003cdiv class=\"resp\"\u003e\u003cspan class=\"status s2\"\u003e${c}\u003c/span\u003e\u003cdiv style=\"min-width:0;display:grid;gap:8px\"\u003e\u003cspan class=\"note\"\u003e${mdInline(r.description || '')}\u003c/span\u003e${bodyOf(op.responses[c])}\u003c/div\u003e\u003c/div\u003e`; }).join('')}\n        ${errs.length ? `\u003cdiv class=\"resp\"\u003e\u003cspan class=\"status note\"\u003eerrors\u003c/span\u003e\u003cdiv class=\"errs\"\u003e${errs.map((c) =\u003e `\u003ca href=\"#errors\" class=\"s${c[0]}\" title=\"${esc(deref(op.responses[c]).description || '')}\"\u003e${c}\u003c/a\u003e`).join('')}\u003c/div\u003e\u003c/div\u003e` : ''}\n      \u003c/div\u003e\n    \u003c/article\u003e`;\n  }).join('');\n  return `\u003csection class=\"group\" id=\"tag-${slug(tag.name)}\"\u003e\u003cdiv\u003e\u003ch2 class=\"section-title\"\u003e${esc(tag.name)}\u003c/h2\u003e\u003cp class=\"section-intro\"\u003e${esc(tag.description || '')}\u003c/p\u003e\u003c/div\u003e${body}\u003c/section\u003e`;\n}).join('');\n$('#groups').innerHTML = groupsHtml;\n\n// Object reference: objects as field tables, scalars and enums in one table\nconst schemas = SPEC.components.schemas;\nconst isObj = (s) =\u003e s.type === 'object' \u0026\u0026 s.properties;\nconst hidden = new Set(['PageEnvelope']);\nconst objHtml = Object.entries(schemas).filter(([n, s]) =\u003e isObj(s) \u0026\u0026 !hidden.has(n)).map(([n, s]) =\u003e\n  `\u003cdiv class=\"obj\" id=\"schema-${n}\"\u003e\u003ch3\u003e${n}\u003c/h3\u003e${s.description ? `\u003cp class=\"note\"\u003e${mdInline(s.description)}\u003c/p\u003e` : ''}${propsTable(s)}\u003c/div\u003e`).join('');\nconst scalarRows = Object.entries(schemas).filter(([n, s]) =\u003e !isObj(s) \u0026\u0026 !hidden.has(n)).map(([n, s]) =\u003e\n  `\u003ctr id=\"schema-${n}\"\u003e\u003ctd\u003e\u003ccode\u003e${n}\u003c/code\u003e\u003c/td\u003e\u003ctd class=\"type\"\u003e${typeOf(s)}${enumOf(s)}\u003c/td\u003e\u003ctd class=\"note\"\u003e${mdInline(s.description || '')}\u003c/td\u003e\u003c/tr\u003e`).join('');\n$('#objects').innerHTML = `\u003cdiv\u003e\u003ch2 class=\"section-title\" id=\"objects-ref\"\u003eObjects\u003c/h2\u003e\n  \u003cp class=\"section-intro\"\u003eFields marked \u003cspan class=\"req\" style=\"margin:0\"\u003ealways\u003c/span\u003e are present on every record; the rest are omitted when unknown or not covered by your agreement.\u003c/p\u003e\u003c/div\u003e\n  \u003cdiv class=\"obj\" id=\"schema-PageEnvelope\"\u003e\u003ch3\u003ePage\u003c/h3\u003e${propsTable({ properties: { data: { type: 'array', description: 'The records on this page.' }, page: { $ref: '#/components/schemas/PageInfo' } }, required: ['data', 'page'] })}\u003c/div\u003e\n  ${objHtml}\n  \u003cdiv class=\"obj\" id=\"types\"\u003e\u003ch3\u003eTypes and enumerations\u003c/h3\u003e\u003cdiv class=\"scroll scalars\"\u003e\u003ctable\u003e\u003cthead\u003e\u003ctr\u003e\u003cth\u003eName\u003c/th\u003e\u003cth\u003eDefinition\u003c/th\u003e\u003cth\u003eNotes\u003c/th\u003e\u003c/tr\u003e\u003c/thead\u003e\u003ctbody\u003e${scalarRows}\u003c/tbody\u003e\u003c/table\u003e\u003c/div\u003e\u003c/div\u003e`;\n// Paging links point at the intro's Paging section\ndocument.querySelectorAll('a[href=\"#paging\"]').forEach((a) =\u003e { if (!document.getElementById('paging')) a.href = '#schema-PageEnvelope'; });\n\n// Index rail\nconst navGroups = [\n  ['Guide', introLinks.map(([id, t]) =\u003e `\u003cli\u003e\u003ca href=\"#${id}\"\u003e${esc(t)}\u003c/a\u003e\u003c/li\u003e`).join('') + '\u003cli\u003e\u003ca href=\"#common-reads\"\u003eCommon reads\u003c/a\u003e\u003c/li\u003e'],\n  ...SPEC.tags.map((tag) =\u003e [tag.name, ops.filter((o) =\u003e (o.op.tags || []).includes(tag.name))\n    .map((o) =\u003e `\u003cli\u003e\u003ca href=\"#op-${o.op.operationId}\"\u003e\u003cspan class=\"p\"\u003e${esc(o.path)}\u003c/span\u003e\u003c/a\u003e\u003c/li\u003e`).join('')]),\n  ['Reference', '\u003cli\u003e\u003ca href=\"#objects-ref\"\u003eObjects\u003c/a\u003e\u003c/li\u003e\u003cli\u003e\u003ca href=\"#types\"\u003eTypes and enumerations\u003c/a\u003e\u003c/li\u003e'],\n];\n$('#nav').innerHTML = navGroups.map(([h, items]) =\u003e `\u003cdiv\u003e\u003ch5\u003e${esc(h)}\u003c/h5\u003e\u003cul\u003e${items}\u003c/ul\u003e\u003c/div\u003e`).join('');\nif (window.matchMedia('(max-width: 900px)').matches) $('#index').open = false;\n$('#nav').addEventListener('click', (e) =\u003e { if (e.target.closest('a') \u0026\u0026 window.matchMedia('(max-width: 900px)').matches) $('#index').open = false; });\n\n// Copy buttons\ndocument.addEventListener('click', (e) =\u003e {\n  const b = e.target.closest('button[data-copy]');\n  if (b) copyText(b.getAttribute('data-copy'), b);\n});\n$('#copy-spec').addEventListener('click', (e) =\u003e copyText(JSON.stringify(SPEC, null, 2), e.currentTarget));\n\u003c/script\u003e\n\u003c/html\u003e"
+      }
+    },
+    {
+      "name": "health",
+      "request": {
+        "method": "GET",
+        "path": "/health",
+        "service": "public-api"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "name": "a POST",
+      "request": {
+        "method": "POST",
+        "path": "/v1/players",
+        "service": "public-api",
+        "headers": {
+          "Authorization": "Bearer {fullToken}",
+          "Content-Type": "application/json"
+        },
+        "body": {}
+      },
+      "response": {
+        "status": 405,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "error": "invalid_request",
+          "message": "Only GET is supported"
+        }
+      }
+    }
+  ],
+  "roles": {
+    "award-1-of-player-1-of-A": "11c9a290-b7e7-40fb-88a4-3849467734b5",
+    "award-1-of-player-1-of-B": "c816179c-8676-420e-9b05-323aa8cede93",
+    "bet-1-of-round-1-of-session-1-of-A": "d5ffb411-33f5-3a1e-9726-48cb80f60662",
+    "bet-1-of-round-1-of-session-1-of-B": "a1e290c8-0aa1-3091-80c1-a00b0cf356f6",
+    "bet-1-of-round-1-of-session-2-of-A": "d9665bdc-debf-3905-af8c-ea45f5d3e0f4",
+    "bet-1-of-round-2-of-session-1-of-A": "ea8467a2-ce62-3ad0-98b4-319d9352134e",
+    "bet-1-of-round-2-of-session-1-of-B": "5be4b162-44d0-3721-b45c-27c8d183f1b0",
+    "bet-1-of-round-2-of-session-2-of-A": "bf61187b-d314-328b-a2c7-fdec70d34087",
+    "bet-1-of-round-3-of-session-1-of-A": "bb255cdb-09cd-315e-be62-c3e8722d4400",
+    "game-1": "book-of-ra",
+    "game-2": "fake-slot-002",
+    "offer-of-A": "814b41c4-7065-423c-aa3b-7c826e7a1526",
+    "offer-of-B": "0d6b9fad-d407-42ac-83dd-d2d43e551421",
+    "player-1-of-A": "0512d609-5ac3-356d-973a-a6e3ae0d0257",
+    "player-1-of-B": "d406713d-f462-3a1f-a4e6-ccb9b9dd4a03",
+    "player-2-of-A": "c6cf47e4-9eac-36b2-8893-e21b33376fa5",
+    "player-3-of-A": "f61b1486-e627-3b53-b55d-77a47c5a42fa",
+    "round-1-of-session-1-of-A": "d282ff63-7a0a-314d-ad97-4e365acd53ca",
+    "round-1-of-session-1-of-B": "abfb2f60-99ee-3e9b-9fe4-82ee0a4b3838",
+    "round-1-of-session-2-of-A": "2aec7aba-4ea7-3907-b3c0-f92696cdb612",
+    "round-2-of-session-1-of-A": "dd098bac-03d4-3e38-9a0a-11b649fc9aee",
+    "round-2-of-session-1-of-B": "eda4115d-ab47-3884-9b98-1d91d4afaa37",
+    "round-2-of-session-2-of-A": "0777ebf9-6a6f-3354-a6b2-929ac0a449d8",
+    "round-3-of-session-1-of-A": "8607152a-81e1-37f3-ad5f-3d0d7fae346e",
+    "session-1-of-A": "89422fad-7820-4813-bdf5-9e02f043af4f",
+    "session-1-of-B": "716d6192-cbae-4402-94b5-4d94343daf92",
+    "session-2-of-A": "94a0bf05-68da-4663-a80b-9fca7172bb0f",
+    "session-3-of-A": "4d35111e-fd72-4583-a57a-171c3f227598",
+    "snapshot-1-of-A": "39c0e36e-12ba-4323-976b-9731338e4c7d",
+    "snapshot-1-of-B": "8215b184-8ecf-477f-98e3-4779ce189c04",
+    "transaction-1-of-player-1-of-A": "96ab7271-1c0d-42ec-8fa3-1f89e16fd983",
+    "transaction-1-of-player-1-of-B": "492f1b4f-6a93-478b-8b36-cca60d064f16",
+    "transaction-1-of-player-2-of-A": "abb49473-c083-4aec-8cb9-e938a5330242",
+    "transaction-10-of-player-1-of-A": "730f4d67-0f0d-472a-a940-08262bc2060b",
+    "transaction-10-of-player-2-of-A": "807752d2-3d74-434e-8d1b-fcf5a16de132",
+    "transaction-100-of-player-2-of-A": "73d95232-1785-456d-8ecf-031020bfd79e",
+    "transaction-101-of-player-2-of-A": "8d13f1a9-7195-4ced-bcc4-c67778c4b3b9",
+    "transaction-102-of-player-2-of-A": "c9cad04f-dca0-4c58-a98f-5d6d395816ce",
+    "transaction-103-of-player-2-of-A": "a8ad5b52-5d7d-4aa8-9adb-53a144f6802c",
+    "transaction-104-of-player-2-of-A": "e4b6d5ef-2193-4fb2-a927-82f9f0227740",
+    "transaction-105-of-player-2-of-A": "2778d053-fafa-4fe4-b6cb-479edb919985",
+    "transaction-106-of-player-2-of-A": "2017f179-58ff-4a0d-a845-01ad342e6b6f",
+    "transaction-107-of-player-2-of-A": "cb1d05c1-a06a-4221-8b18-7d39ec04b5d4",
+    "transaction-108-of-player-2-of-A": "2a231807-d012-4d96-8c5e-3e3e6b0cc5a7",
+    "transaction-109-of-player-2-of-A": "11130d72-1290-42f8-9890-47af7e550baf",
+    "transaction-11-of-player-1-of-A": "bb6cbd0f-a631-4604-9e67-2a8385657561",
+    "transaction-11-of-player-2-of-A": "80798621-4683-41e9-8dc1-5e4d5590219b",
+    "transaction-110-of-player-2-of-A": "540682bd-428c-44aa-9659-4cf15a03a6b5",
+    "transaction-111-of-player-2-of-A": "f27fd498-a7eb-4255-8de7-1cfff7ddf977",
+    "transaction-112-of-player-2-of-A": "554b049b-422f-4bff-be73-d15f0a04a4bc",
+    "transaction-113-of-player-2-of-A": "b88c0eb4-6664-46b5-ae5a-49ea15b6c17d",
+    "transaction-114-of-player-2-of-A": "7fdb6775-e6ab-4cdd-8b89-567674d59805",
+    "transaction-115-of-player-2-of-A": "348aca59-5614-4564-bf29-995cc3ace727",
+    "transaction-116-of-player-2-of-A": "7fb44fca-6327-4d75-b0a1-ac4429797864",
+    "transaction-117-of-player-2-of-A": "84d45402-c04d-412c-a529-d65ad2467c87",
+    "transaction-118-of-player-2-of-A": "1031b67b-1465-4cdb-9ff3-dabf1203ad11",
+    "transaction-119-of-player-2-of-A": "d8436d79-281b-4b83-b11d-0271e776d530",
+    "transaction-12-of-player-1-of-A": "2afc9605-e06b-407f-a7f8-6cb21e066dc5",
+    "transaction-12-of-player-2-of-A": "6960d8ff-3096-495f-af4c-7cd29e69088f",
+    "transaction-120-of-player-2-of-A": "efcf84bf-2310-403c-9d6b-9943b9cb91e1",
+    "transaction-121-of-player-2-of-A": "eaea4053-b150-4589-957e-6945caccbe1f",
+    "transaction-122-of-player-2-of-A": "dddf92b5-4037-4a60-9e19-cd16148a871c",
+    "transaction-123-of-player-2-of-A": "59f07a2e-d2f7-496a-83ce-49f2825b76d1",
+    "transaction-124-of-player-2-of-A": "f63252ab-e69e-4747-8dce-9ae22354ab5a",
+    "transaction-125-of-player-2-of-A": "ec47978e-2b7f-42f5-871b-b8b2833aad49",
+    "transaction-126-of-player-2-of-A": "b47cdb18-691f-4a8d-8279-9f69034cc91f",
+    "transaction-127-of-player-2-of-A": "6e53f983-6497-47bd-92ed-b87899f5b291",
+    "transaction-128-of-player-2-of-A": "aa51fb5d-5788-4e06-90b0-8d6561547c65",
+    "transaction-129-of-player-2-of-A": "3899cb3f-1b14-4aaf-9586-5695e18f9363",
+    "transaction-13-of-player-2-of-A": "0780810b-d1a8-4ba1-afc1-406c60a3355c",
+    "transaction-130-of-player-2-of-A": "883593d1-d991-4572-b572-709770b060c6",
+    "transaction-131-of-player-2-of-A": "b9b4a3d2-6102-4a64-8eef-d5a13a71af18",
+    "transaction-132-of-player-2-of-A": "20d0ad17-fc13-4191-9f29-bd1ff6631406",
+    "transaction-133-of-player-2-of-A": "63d11ee0-d9fc-4979-a632-e1b4b5df41d2",
+    "transaction-134-of-player-2-of-A": "d92fc25e-c441-4b3d-89fc-2404c851bdd5",
+    "transaction-135-of-player-2-of-A": "2c0253e8-d48f-4268-941f-5bd8f7c25cc8",
+    "transaction-136-of-player-2-of-A": "55f61f8a-ac58-49bc-854a-871c55f8e02e",
+    "transaction-137-of-player-2-of-A": "f535ccf7-0ff7-4f7e-bc88-bbed81767eec",
+    "transaction-138-of-player-2-of-A": "389170cf-902d-419a-aba8-a71d2d7b4008",
+    "transaction-139-of-player-2-of-A": "65c86564-8a59-46fa-8f03-393a447eaa4c",
+    "transaction-14-of-player-2-of-A": "0ba7ff84-8b32-41b0-b44b-c1adc657be9c",
+    "transaction-140-of-player-2-of-A": "b523849b-926f-468c-aae3-735cbe4ec084",
+    "transaction-141-of-player-2-of-A": "de339bd4-a509-4162-a459-b88bfc1a8dcb",
+    "transaction-142-of-player-2-of-A": "9c64b002-bfcc-4611-8c4e-d287b02e3b4f",
+    "transaction-143-of-player-2-of-A": "c900be51-3c22-4c78-8cf3-ba91fe47ce3e",
+    "transaction-144-of-player-2-of-A": "bbf8da2f-dd33-4d07-ba45-f143c5350de6",
+    "transaction-145-of-player-2-of-A": "69e75e91-273b-4e12-8887-e81a64688fe7",
+    "transaction-146-of-player-2-of-A": "6ef8fa05-cb9b-4eb9-bcad-42c694035240",
+    "transaction-147-of-player-2-of-A": "6a1ca8a0-8930-462a-813d-908b47288187",
+    "transaction-148-of-player-2-of-A": "83f7e1e2-4421-429c-b415-9bb4276615dd",
+    "transaction-149-of-player-2-of-A": "5def2767-4810-4dbd-8e89-4adaaf8e24ec",
+    "transaction-15-of-player-2-of-A": "ae87b0fe-2b42-4fe1-a591-d5341aa3b51b",
+    "transaction-150-of-player-2-of-A": "14bb4b33-71de-4b61-ace1-07add7545fb0",
+    "transaction-151-of-player-2-of-A": "4c2e5214-f8ac-440d-a82c-41ac2004fbfe",
+    "transaction-152-of-player-2-of-A": "7a4a21ba-d94e-4157-a0d4-c63b3076504c",
+    "transaction-153-of-player-2-of-A": "a565dda9-507e-45cf-ac66-68f62fb19e10",
+    "transaction-154-of-player-2-of-A": "4fe46857-1acc-4b1a-9886-93e0bbc0683b",
+    "transaction-155-of-player-2-of-A": "f912b4c9-9e50-428a-8811-4c09ff38c4da",
+    "transaction-156-of-player-2-of-A": "e416f941-8b73-446d-9ccb-e4e91aa64b6f",
+    "transaction-157-of-player-2-of-A": "715dd6de-0c8e-4b91-ae4c-f1a554b19803",
+    "transaction-158-of-player-2-of-A": "fcc91fad-3d39-4483-a5e8-90fcca236864",
+    "transaction-159-of-player-2-of-A": "1b6326c4-f6fa-4d63-8c55-86359fd9dddb",
+    "transaction-16-of-player-2-of-A": "51cd1104-5bc3-45f6-b07a-0f56248945d1",
+    "transaction-160-of-player-2-of-A": "1fda6bf0-db2d-401a-a637-101ec1e3c993",
+    "transaction-161-of-player-2-of-A": "13363fad-a0a3-4f62-bd7b-c26a640f694a",
+    "transaction-162-of-player-2-of-A": "ee0e10e9-d162-41f9-ac32-93c1b7cc50f7",
+    "transaction-163-of-player-2-of-A": "aae47c5b-4f72-4272-a589-e24c537f670c",
+    "transaction-164-of-player-2-of-A": "666c0451-0cb9-4237-8982-b8fc296cf29e",
+    "transaction-165-of-player-2-of-A": "cc266d4c-db38-458d-98a2-c058f3b5d93d",
+    "transaction-166-of-player-2-of-A": "d185b7f4-2ae4-49ea-aad5-d0321ac17ac4",
+    "transaction-167-of-player-2-of-A": "c53947cd-6e8f-4834-9fc3-002f500032ef",
+    "transaction-168-of-player-2-of-A": "91a07b56-6f73-494b-9a23-66fc27541323",
+    "transaction-169-of-player-2-of-A": "39341c4b-5e8a-4f3b-84a1-fe1882f74581",
+    "transaction-17-of-player-2-of-A": "e756ab6b-f980-42c1-af6f-d83164955678",
+    "transaction-170-of-player-2-of-A": "edac5fe5-e483-4dc8-aebc-f462f16d775a",
+    "transaction-171-of-player-2-of-A": "ef87fc9d-862b-40d5-8b14-27cd9c92c945",
+    "transaction-172-of-player-2-of-A": "6e21395c-e1c3-4d0b-8896-408f293ffdb1",
+    "transaction-173-of-player-2-of-A": "5098985b-84e4-464f-bdb3-c85c8b9b4edb",
+    "transaction-174-of-player-2-of-A": "e8240c3d-7997-4b43-8014-162e2bb30096",
+    "transaction-175-of-player-2-of-A": "75851ed8-7b60-4a20-ae53-595094059730",
+    "transaction-176-of-player-2-of-A": "8519b1f4-90c5-4c9d-9e00-a47a81af58b7",
+    "transaction-177-of-player-2-of-A": "980df2ba-3ebd-4009-95b1-41e08f398ed0",
+    "transaction-178-of-player-2-of-A": "89683548-f801-4389-b286-929b63546105",
+    "transaction-179-of-player-2-of-A": "2aff3bdc-2236-4a68-b4eb-3a1beffe3dc9",
+    "transaction-18-of-player-2-of-A": "d5f7b37a-03d0-4c71-8ee6-a6a308e776a0",
+    "transaction-180-of-player-2-of-A": "22be9417-cf45-4881-b4a4-b96017e5c007",
+    "transaction-181-of-player-2-of-A": "c04bc99d-6ca1-48a6-bad1-8e7ee87579cb",
+    "transaction-182-of-player-2-of-A": "8a10834e-ef83-4175-a19f-16ddaec5aa19",
+    "transaction-183-of-player-2-of-A": "ff20ac70-50b3-4d50-aff3-ea353df2cad9",
+    "transaction-184-of-player-2-of-A": "b959a3c0-2a8f-44b7-8ae8-f501ca1c0666",
+    "transaction-185-of-player-2-of-A": "d0948fb1-e551-4a94-8e0f-cdba12126634",
+    "transaction-186-of-player-2-of-A": "fb6958ce-0200-4d91-ab10-28af74f868c8",
+    "transaction-187-of-player-2-of-A": "b9c25893-76fd-4cc1-b7ba-ddc2028dbb91",
+    "transaction-188-of-player-2-of-A": "cecdb5ca-67ec-4569-ad0d-0841d937e65b",
+    "transaction-189-of-player-2-of-A": "b05a0733-ad28-43d2-b4c7-509f9e2dd26a",
+    "transaction-19-of-player-2-of-A": "e73bf598-2ea0-4f51-a2ac-9b0bb44d86ea",
+    "transaction-190-of-player-2-of-A": "5192e2da-dab7-48d6-a6ed-a2f87f046cdd",
+    "transaction-191-of-player-2-of-A": "e3f3a64a-8680-4fe7-99e7-680b34239193",
+    "transaction-192-of-player-2-of-A": "1cff27fc-5bd2-4222-bea3-41b734907f5a",
+    "transaction-193-of-player-2-of-A": "224ae940-7a6b-4c9b-9ac3-4d0f7c1703dd",
+    "transaction-194-of-player-2-of-A": "22e114f7-c727-4d60-a5ea-741366b4effd",
+    "transaction-195-of-player-2-of-A": "7ec52011-0d1c-494c-8597-9900d1fd844c",
+    "transaction-196-of-player-2-of-A": "1a1d861d-a2bd-4d3e-8b66-10177c73543e",
+    "transaction-197-of-player-2-of-A": "00b2a9b7-743b-4206-80b6-1035756e8619",
+    "transaction-198-of-player-2-of-A": "8f79fa8c-9520-46a1-88c2-0c0790b10344",
+    "transaction-199-of-player-2-of-A": "bb93ca09-8199-4f8a-b6b2-729934a8fa6e",
+    "transaction-2-of-player-1-of-A": "fb5a92c3-b613-46e2-ad80-50373607de46",
+    "transaction-2-of-player-1-of-B": "41ae6f64-92df-4898-b7f0-cc584950b37d",
+    "transaction-2-of-player-2-of-A": "1cd7132e-9fca-4869-ae6f-beb8e71768fa",
+    "transaction-20-of-player-2-of-A": "f0d90dbd-ab8d-474f-beb7-119766a85c84",
+    "transaction-200-of-player-2-of-A": "dda41e8f-c058-4427-978e-5d738641ceb7",
+    "transaction-201-of-player-2-of-A": "2f5532ee-b2e1-475a-b703-8d3b7775e7e6",
+    "transaction-202-of-player-2-of-A": "04ad8c3b-d300-43f1-9b4b-2fe90122193a",
+    "transaction-203-of-player-2-of-A": "1a77206e-829c-43f8-a80f-0e85effadd9d",
+    "transaction-204-of-player-2-of-A": "dcede1ff-ce35-47a2-8dcf-92f24326c5cd",
+    "transaction-205-of-player-2-of-A": "447432df-7f01-4501-b877-f7a15924a947",
+    "transaction-206-of-player-2-of-A": "dd239e9a-f849-4e51-bc21-9a6d4e839c1e",
+    "transaction-207-of-player-2-of-A": "c74f5fc5-6e38-4459-a7ec-2101c30613de",
+    "transaction-208-of-player-2-of-A": "cef770ae-87f8-45c2-af5c-902c2de2e4b7",
+    "transaction-209-of-player-2-of-A": "640656dc-f83e-48d4-935b-05f4c281e8f5",
+    "transaction-21-of-player-2-of-A": "8135a36e-9810-4502-a878-3419a41b875b",
+    "transaction-210-of-player-2-of-A": "1c511914-e276-41a5-8d07-4b5f568b2c04",
+    "transaction-211-of-player-2-of-A": "2da68ba9-6efb-4a97-bd57-20c234f6ec5e",
+    "transaction-212-of-player-2-of-A": "bc0839d4-6d3a-4b77-85e3-6a38f30559f9",
+    "transaction-213-of-player-2-of-A": "3258d1fd-0751-4988-8abc-dd10ef73b0b8",
+    "transaction-214-of-player-2-of-A": "ca2e9514-ad72-4c42-a620-41d5bf915f32",
+    "transaction-215-of-player-2-of-A": "fbae70a8-4cf8-454e-a839-c66d983cb165",
+    "transaction-216-of-player-2-of-A": "27ea6861-17af-407c-b212-b0f8e3c76fb9",
+    "transaction-217-of-player-2-of-A": "22d0464c-7432-4927-9a81-5a8b2fd399ec",
+    "transaction-218-of-player-2-of-A": "d8cf90b1-e982-43f6-96e2-9b02b12b841c",
+    "transaction-219-of-player-2-of-A": "90a06511-76d7-49c3-b95e-62f4e6d9848a",
+    "transaction-22-of-player-2-of-A": "4a67861a-d878-4d98-a4c4-b63f7812bf32",
+    "transaction-220-of-player-2-of-A": "78c39752-f904-49eb-a542-962cea54d244",
+    "transaction-221-of-player-2-of-A": "bb274fa7-dcac-4ea4-b5ac-8efe812f116a",
+    "transaction-222-of-player-2-of-A": "bef54a2a-d4b3-495f-88ce-d4e126ee740a",
+    "transaction-223-of-player-2-of-A": "adb4f158-0b7c-4556-983d-2c172fae1892",
+    "transaction-224-of-player-2-of-A": "296968ef-44b7-4f21-9cc4-c377c9185b8a",
+    "transaction-225-of-player-2-of-A": "b05b8a60-38d5-4ed3-b2e4-bda35c0d459e",
+    "transaction-226-of-player-2-of-A": "5fd5755b-40eb-442c-b921-32d92273a9c0",
+    "transaction-227-of-player-2-of-A": "407de85b-0255-4746-9a6a-2807f348125f",
+    "transaction-228-of-player-2-of-A": "a11eae76-005b-4971-85c1-9c318211dbef",
+    "transaction-229-of-player-2-of-A": "dc02bbad-9c91-4755-bcf3-a625898136a7",
+    "transaction-23-of-player-2-of-A": "c7295d03-8c18-4002-b032-07a868c1b9f1",
+    "transaction-230-of-player-2-of-A": "82a88913-75e3-469e-82ad-b5a4cabb5e1f",
+    "transaction-231-of-player-2-of-A": "2859dbeb-f3b9-4bc2-9164-8caad46749db",
+    "transaction-232-of-player-2-of-A": "a2f691bc-1969-4206-80ed-3939cc013b90",
+    "transaction-233-of-player-2-of-A": "314dc82c-1daa-4d77-b51c-f209646838dc",
+    "transaction-234-of-player-2-of-A": "50647f8a-a295-4b4b-b139-7b1f1f220d56",
+    "transaction-235-of-player-2-of-A": "918a0cc1-4d52-45bc-b2cd-2eeca3301e21",
+    "transaction-236-of-player-2-of-A": "47a72493-0f82-4dbf-a191-02f708ba3a23",
+    "transaction-237-of-player-2-of-A": "f0f348a2-9fe7-4fac-be6d-710e55146466",
+    "transaction-238-of-player-2-of-A": "034af503-a6b1-44cf-acec-0a6663ac3614",
+    "transaction-239-of-player-2-of-A": "aec1ba3d-8978-43a3-ab3f-2b5de2ca9b3f",
+    "transaction-24-of-player-2-of-A": "1ba924ba-4595-4eca-9f55-5274395caa25",
+    "transaction-240-of-player-2-of-A": "b6e1feb9-7707-432b-b46a-3a035c093dce",
+    "transaction-241-of-player-2-of-A": "8477f3bd-603b-4d76-8121-c92f09618d90",
+    "transaction-242-of-player-2-of-A": "7d368a60-f81e-402f-8c45-00c74a951329",
+    "transaction-243-of-player-2-of-A": "0a3a1438-87cc-40b2-9bc8-1f74ee704f88",
+    "transaction-244-of-player-2-of-A": "35c1150d-b26d-404b-a16d-b0c723c1b475",
+    "transaction-245-of-player-2-of-A": "36d355bb-234b-435b-9b77-53b21e0edee7",
+    "transaction-246-of-player-2-of-A": "e573b6bf-2767-4f98-a72c-2337d599a78d",
+    "transaction-247-of-player-2-of-A": "1e7dcdad-5e10-444c-a59e-7fb1089d4cf5",
+    "transaction-248-of-player-2-of-A": "7569895f-6d12-4262-9e39-726bfa15bddb",
+    "transaction-249-of-player-2-of-A": "fd3e50d9-9b7f-443c-9687-693c2e765784",
+    "transaction-25-of-player-2-of-A": "ea9d4564-1798-4ec2-ad9e-41e58e9cd369",
+    "transaction-250-of-player-2-of-A": "38ff40a5-1195-41f0-82d3-6f5905f92902",
+    "transaction-26-of-player-2-of-A": "7af93ab1-453c-40f0-b952-bf105c871711",
+    "transaction-27-of-player-2-of-A": "c91a472c-29a9-4b11-8b99-fec71c05d43a",
+    "transaction-28-of-player-2-of-A": "241eccfe-28f4-42dc-a070-bdcce5b8364f",
+    "transaction-29-of-player-2-of-A": "66b563b0-a1d9-4468-ad21-a283f6841c70",
+    "transaction-3-of-player-1-of-A": "fa5ceb84-c45f-4d43-9c66-e2d1b55a835e",
+    "transaction-3-of-player-1-of-B": "b8837f36-a2e1-41ad-897e-6254a31d1733",
+    "transaction-3-of-player-2-of-A": "8520c2aa-0f84-4648-9048-ed8d0935983d",
+    "transaction-30-of-player-2-of-A": "77cb197e-55fb-41b3-99e4-9d5c6448b6a5",
+    "transaction-31-of-player-2-of-A": "463a5f8a-2ae4-4518-bf36-0da0006e4bf7",
+    "transaction-32-of-player-2-of-A": "683defd6-f79d-428c-97e8-7bbe77024bb9",
+    "transaction-33-of-player-2-of-A": "85b81150-452c-4667-8260-fddfb9fef1cc",
+    "transaction-34-of-player-2-of-A": "9e3b9560-c3ac-4a11-b8b9-e8293fcc6996",
+    "transaction-35-of-player-2-of-A": "1dba8cf3-16a3-4567-8559-34838568a37e",
+    "transaction-36-of-player-2-of-A": "1dffcead-0b47-4438-b0d4-f7fdc19d5910",
+    "transaction-37-of-player-2-of-A": "5b04b3eb-da79-4ff1-b069-e21ebd88daf4",
+    "transaction-38-of-player-2-of-A": "c9d67c93-f025-41dc-a0d3-30c74f3d8089",
+    "transaction-39-of-player-2-of-A": "1104462b-a6b9-4f9f-8ee8-4a672d0d9319",
+    "transaction-4-of-player-1-of-A": "1f62f3ca-37f7-4a43-ba19-b82510e2686a",
+    "transaction-4-of-player-1-of-B": "9497eef7-e46a-47d5-8efb-da6dd1a2d69f",
+    "transaction-4-of-player-2-of-A": "58a89cd3-0ce8-4010-867b-14ab66ac0f28",
+    "transaction-40-of-player-2-of-A": "dc68d25c-b5a0-41b8-9a99-220ed411d070",
+    "transaction-41-of-player-2-of-A": "35517190-feed-4313-b7ea-e0cfc11d7e03",
+    "transaction-42-of-player-2-of-A": "64f01921-f87b-4ef1-ba8e-fad1a11f898e",
+    "transaction-43-of-player-2-of-A": "39b42357-f89a-4a5f-a870-804267570c03",
+    "transaction-44-of-player-2-of-A": "d3a1e91d-18a8-4b04-86fc-1bc086048a7a",
+    "transaction-45-of-player-2-of-A": "3ed94ce6-4e73-4cf8-b7d4-21cf16aebcf2",
+    "transaction-46-of-player-2-of-A": "5028a14d-06e3-4a3c-b762-0edd4ebd70d3",
+    "transaction-47-of-player-2-of-A": "b9c91289-0ab2-4c11-bac7-0ba0230e4a0c",
+    "transaction-48-of-player-2-of-A": "90bf02fc-5d21-4a38-8e87-292069292053",
+    "transaction-49-of-player-2-of-A": "977f409f-cf17-4bbe-88d4-36de0b37d660",
+    "transaction-5-of-player-1-of-A": "a337d526-a445-45e7-a15b-5f77c7281f3a",
+    "transaction-5-of-player-1-of-B": "4bf186d8-0020-40f4-a2b7-74639cafdc37",
+    "transaction-5-of-player-2-of-A": "a77d81bd-a333-4d7b-8718-5bec90244664",
+    "transaction-50-of-player-2-of-A": "e0b0588d-d6de-4064-960f-6291c053a15d",
+    "transaction-51-of-player-2-of-A": "fba26163-12da-472e-a984-9e275ed7b510",
+    "transaction-52-of-player-2-of-A": "8f57d370-7d1a-43e5-8f36-2dac422eed2d",
+    "transaction-53-of-player-2-of-A": "4e73960f-40a7-4ac7-abd1-0fc2c5bd49e6",
+    "transaction-54-of-player-2-of-A": "f8c68473-3432-4439-8c09-f7e4e0fac866",
+    "transaction-55-of-player-2-of-A": "ec165f21-555c-451f-b075-a2d8b709ef86",
+    "transaction-56-of-player-2-of-A": "ba3da7ec-947c-4913-b79e-b0294034cdc7",
+    "transaction-57-of-player-2-of-A": "2bfcac97-825e-4ba1-9e79-e5e2190ba895",
+    "transaction-58-of-player-2-of-A": "61ee6fcb-7c96-4964-ba75-57a2da40cd44",
+    "transaction-59-of-player-2-of-A": "0d0f4f8a-b9aa-4141-9160-996e90fa40fa",
+    "transaction-6-of-player-1-of-A": "f108fe9e-2e1f-43d0-96b9-93c0657f4a10",
+    "transaction-6-of-player-1-of-B": "daa1c77c-8dcd-4e78-9db8-735e156326da",
+    "transaction-6-of-player-2-of-A": "c697430d-7f90-45d8-b7e5-f0ed647e9fc8",
+    "transaction-60-of-player-2-of-A": "5b417e58-764f-440c-ba4c-817d578ccdcd",
+    "transaction-61-of-player-2-of-A": "942008c1-78ca-4b63-853d-fb46990739a8",
+    "transaction-62-of-player-2-of-A": "6971e14e-557e-4318-9aa6-051d863ad4ed",
+    "transaction-63-of-player-2-of-A": "f4549aff-50bd-4e0d-8598-d5ccd5e26234",
+    "transaction-64-of-player-2-of-A": "04910905-1298-46dd-a6a7-7a30142bb516",
+    "transaction-65-of-player-2-of-A": "96e917c3-9eb4-4f29-bd2f-7be1e57c3afb",
+    "transaction-66-of-player-2-of-A": "2f92d4eb-b547-4304-87ce-8744e0fd7160",
+    "transaction-67-of-player-2-of-A": "ce7b5d97-dbb9-4665-ab7c-2f742f01a50f",
+    "transaction-68-of-player-2-of-A": "72096940-35aa-4c4f-ac72-5557d4dbe8c5",
+    "transaction-69-of-player-2-of-A": "1a543584-eec4-41d3-94c9-4472a909d640",
+    "transaction-7-of-player-1-of-A": "8f1651c4-aad3-4a1b-b5a6-4e862864fef4",
+    "transaction-7-of-player-2-of-A": "6e2973de-b319-4c87-8001-e0262f99bf71",
+    "transaction-70-of-player-2-of-A": "404a2194-07fc-474b-9bdf-548ed8f6370c",
+    "transaction-71-of-player-2-of-A": "2def3ed0-96dd-4e35-a619-17fbf4c14010",
+    "transaction-72-of-player-2-of-A": "5bf9060c-4896-4bf4-85e0-30dd8f12ab22",
+    "transaction-73-of-player-2-of-A": "d5845c76-7326-4723-a9f3-8f0314706529",
+    "transaction-74-of-player-2-of-A": "86466f5e-eda0-4648-8ce3-28a33c2419fc",
+    "transaction-75-of-player-2-of-A": "6c95d731-36b3-4a96-b0ad-f31e217612ca",
+    "transaction-76-of-player-2-of-A": "ac3a7acd-fcd2-43c3-b0ce-a499ac96d87b",
+    "transaction-77-of-player-2-of-A": "45c2d2be-fdc2-4b92-befd-678cded65dca",
+    "transaction-78-of-player-2-of-A": "2844de5b-0c14-4a27-8d4d-448d2419ab5e",
+    "transaction-79-of-player-2-of-A": "1fc037e7-08e4-458d-bec8-7da4022f5b2d",
+    "transaction-8-of-player-1-of-A": "3e59a821-3e8b-4f44-8cd6-c5cd40b290f7",
+    "transaction-8-of-player-2-of-A": "4ec99b89-a968-4643-963c-547d22e84041",
+    "transaction-80-of-player-2-of-A": "5b1a21b7-5b1e-4164-8818-04eb77be5e06",
+    "transaction-81-of-player-2-of-A": "13523ae9-8596-4464-a1f4-67f79b0ba889",
+    "transaction-82-of-player-2-of-A": "52925387-717a-4450-b165-021ba124bb5b",
+    "transaction-83-of-player-2-of-A": "a007d05e-7898-4871-911c-2c01cd7a7912",
+    "transaction-84-of-player-2-of-A": "3f22f2a2-bedf-4ee5-a940-ad88e9e35eb0",
+    "transaction-85-of-player-2-of-A": "1734e182-6439-46d7-8447-48f16d2d52dd",
+    "transaction-86-of-player-2-of-A": "9926c781-a902-401e-ab85-2a0d4863544b",
+    "transaction-87-of-player-2-of-A": "cc00e14e-777b-4433-9a53-fbdd8e75d1b4",
+    "transaction-88-of-player-2-of-A": "c0886f9d-a3a9-4747-a7c4-e9788ac21687",
+    "transaction-89-of-player-2-of-A": "f94fa296-a06d-4d37-a6dd-7a111dd2383c",
+    "transaction-9-of-player-1-of-A": "c1887b9e-4ab7-455e-962b-39b618955dbb",
+    "transaction-9-of-player-2-of-A": "089022b1-dd8e-4ccf-bfd8-84931b52583e",
+    "transaction-90-of-player-2-of-A": "31b64ffb-506b-45e7-91ac-6df36cfa4573",
+    "transaction-91-of-player-2-of-A": "4c9ee8bd-57f8-4706-9f27-814a595ba641",
+    "transaction-92-of-player-2-of-A": "dd4c3fae-a4b4-455d-8a0e-477ce7287317",
+    "transaction-93-of-player-2-of-A": "d2930596-9647-4fcd-938e-c6943e32df2b",
+    "transaction-94-of-player-2-of-A": "45f006b0-ffd4-4ebd-89af-224a80156b37",
+    "transaction-95-of-player-2-of-A": "e3c46595-ac32-463f-9056-03979afa7760",
+    "transaction-96-of-player-2-of-A": "9de035f9-f5b1-4083-b497-5e04c6cd95d3",
+    "transaction-97-of-player-2-of-A": "08b9e854-7329-4493-89a9-745d0d79ec12",
+    "transaction-98-of-player-2-of-A": "ac7e2ad8-d9d7-42f4-bfaa-9bc2bbe2220e",
+    "transaction-99-of-player-2-of-A": "ac7c7e24-27e8-4e10-b871-7e8849b5e0c2"
+  }
+}

@@ -47,7 +47,8 @@ object Facts:
         Some(f.PlayerRegistered(playerId, e.at, e.registration.tag, e.registration.clickId, e.registration.bonusCode,
           e.profile.get("country"), Some(e.currency).filter(_.nonEmpty), None, e.at, personal("firstName"), personal("lastName"),
           personal("dateOfBirth"), personal("phone"), personal("addressLine1"), personal("city"), personal("postalCode"),
-          Some(e.address), testAccount = Some(false)))
+          Some(e.address), testAccount = Some(false), language = e.profile.get("language"),
+          stateProvince = personal("stateProv")))
       // spec 015 R11: a registration is never a test account; an operator's profile update flags one later
       case e: TestAccountSet => Some(f.PlayerTestAccountChanged(playerId, e.testAccount, e.actorId, e.at))
       case e: Suspended =>
@@ -83,13 +84,14 @@ object Facts:
   /**
    * The profile as `player_profile_updated` carries it (spec 009 FR-016): the eight fields `kyc` reads,
    * personal ones as `Personal`; every one the player holds is sent, so `kyc` can judge completeness from the
-   * fact alone, and `changed_fields` names what this change moved (profile.feature).
+   * fact alone, and `changed_fields` names what this change moved (profile.feature). `language` and
+   * `stateProv` are the profile's too, for the public API (spec 016 G1, G2).
    */
   private def profileUpdated(playerId: String, p: Profile, changed: Vector[String], at: Instant): f.PlayerProfileUpdated =
     def personal(field: String) = p.get(field).map(Personal(_))
     f.PlayerProfileUpdated(playerId, changed, personal("firstName"), personal("lastName"), personal("dateOfBirth"),
       personal("phone"), personal("addressLine1"), personal("city"), personal("postalCode"),
-      p.get("country"), at)
+      p.get("country"), at, language = p.get("language"), stateProvince = personal("stateProv"))
 
   /** `player_message_*` on `casino.players`, keyed by the player. */
   def messages(messageId: String, sequence: Long, event: MessageEvent): Option[Published[f.CasinoPlayersFact]] =

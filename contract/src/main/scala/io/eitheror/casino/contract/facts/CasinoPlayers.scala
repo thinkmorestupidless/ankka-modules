@@ -22,7 +22,8 @@ sealed trait CasinoPlayersFact extends Fact:
  * Carries the tag, click id and bonus code as presented, unverified, so attribution binds from facts (spec 012),
  * and the profile the player registered with, as `player_profile_updated` carries a later one, so `kyc` judges
  * completeness from registration on (spec 009 FR-016). `test_account` (spec 015 R11) is the operator's flag;
- * absent means not a test account.
+ * absent means not a test account. `language` and `state_province` are the profile's, for the public API (spec
+ * 016 G1, G2); absent on a fact written before it.
  */
 @named("player_registered")
 final case class PlayerRegistered(playerId: String, registeredAt: Instant, btag: Option[String], clickId: Option[String],
@@ -30,7 +31,8 @@ final case class PlayerRegistered(playerId: String, registeredAt: Instant, btag:
     givenName: Option[Personal[String]] = None, familyName: Option[Personal[String]] = None,
     dateOfBirth: Option[Personal[String]] = None, telephone: Option[Personal[String]] = None,
     addressLine: Option[Personal[String]] = None, city: Option[Personal[String]] = None, postCode: Option[Personal[String]] = None,
-    email: Option[Personal[String]] = None, testAccount: Option[Boolean] = None)
+    email: Option[Personal[String]] = None, testAccount: Option[Boolean] = None,
+    language: Option[String] = None, stateProvince: Option[Personal[String]] = None)
     extends CasinoPlayersFact
 
 /** An operator's profile update changed the player's test-account flag (spec 015 R11), so reporting can exclude them. */
@@ -84,7 +86,8 @@ final case class VipTierChanged(playerId: String, previousTier: Option[String], 
 final case class PlayerProfileUpdated(playerId: String, changedFields: Vector[String], givenName: Option[Personal[String]],
     familyName: Option[Personal[String]], dateOfBirth: Option[Personal[String]], telephone: Option[Personal[String]],
     addressLine: Option[Personal[String]], city: Option[Personal[String]], postCode: Option[Personal[String]],
-    country: Option[String], occurredAt: Instant) extends CasinoPlayersFact
+    country: Option[String], occurredAt: Instant, language: Option[String] = None,
+    stateProvince: Option[Personal[String]] = None) extends CasinoPlayersFact
 
 @named("player_consent_changed")
 final case class PlayerConsentChanged(playerId: String, channel: String, consented: Boolean, source: String,
