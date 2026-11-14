@@ -651,9 +651,15 @@ jobs:
 
   # The integration suites, on a kind installation of ankka. Manual only: it takes the time a full
   # platform install takes, and it needs the ankka repository's local installer.
+  # The modules tool's suites on a local installation (tools/modules/src/it): ankka installed on the
+  # runner's kind cluster as deploy-local.sh installs it on a laptop, then brands applied to it. On
+  # demand only: it takes most of an hour and creates projects.
   kind:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CASINO_VERSION: 0.2.0-kind-SNAPSHOT
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -661,19 +667,58 @@ jobs:
           repository: thinkmorestupidless/ankka
           ref: v0.16.3
           path: ankka
+          fetch-depth: 0   # sbt-dynver takes the platform's version from the tag
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
           cache: sbt
       - uses: sbt/setup-sbt@v1
+      # ankka's images, the services' images and the kind node do not fit the runner's free disk.
+      - name: Free disk
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
+      # deploy-local.sh refuses a cluster without kind.yaml's port mappings.
       - uses: helm/kind-action@v1
         with:
           cluster_name: ankka
+          config: ankka/kustomization/kind.yaml
       - name: Install ankka locally
         working-directory: ankka
-        run: ./deploy-local.sh
+        run: ./kustomization/deploy-local.sh
+      # The services with builds run their own images, under the manifests' names (ModulesOnKindSuite).
+      - name: Build and load the services' images
+        env:
+          DOCKER_REPOSITORY: europe-west1-docker.pkg.dev/eitheror/casino
+          SERVICE_VERSION: 0.0.0
+        run: |
+          sbt contract/publishLocal providerCore/publishLocal
+          for s in wallet players kyc responsible-gambling payouts attribution game-provider rewards; do
+            (cd "services/$s" && sbt -batch Docker/publishLocal)
+            kind load docker-image "$DOCKER_REPOSITORY/$s:$SERVICE_VERSION" --name ankka
+          done
+      # deploy-local.sh's service account (platform-admin), and the organization the suites apply into.
+      # The tool never renews a given ANKKA_TOKEN and the realm's tokens last five minutes, so this
+      # client's are given two hours, longer than the suites run.
+      - name: Control plane credentials
+        run: |
+          kc="kubectl --context kind-ankka -n ankka-auth exec statefulset/ankka-keycloak -- /opt/keycloak/bin/kcadm.sh"
+          secret() { kubectl --context kind-ankka -n ankka-auth get secret ankka-keycloak-admin -o jsonpath="{.data.$1}" | base64 -d; }
+          $kc config credentials --server http://localhost:8080 --realm master --user "$(secret username)" --password "$(secret password)"
+          id="$($kc get clients -r ankka -q clientId=ankka-local-smoke --fields id --format csv --noquotes)"
+          $kc update "clients/$id" -r ankka -s 'attributes."access.token.lifespan"=7200'
+          token="$(curl -sf --cacert "$HOME/.ankka/local-ca.crt" -d grant_type=client_credentials \
+            -d client_id=ankka-local-smoke -d client_secret=local-smoke-secret \
+            https://auth.127.0.0.1.sslip.io:8443/realms/ankka/protocol/openid-connect/token | jq -r .access_token)"
+          echo "::add-mask::$token"
+          echo "ANKKA_TOKEN=$token" >> "$GITHUB_ENV"
+          curl -sf --cacert "$HOME/.ankka/local-ca.crt" -H "Authorization: Bearer $token" \
+            -H 'content-type: application/json' -d '{"name":"eitheror"}' \
+            https://api.127.0.0.1.sslip.io:8443/organizations/eitheror
       - name: Integration suites
         env:
           CASINO_IT: "1"
+          CASINO_IT_IMAGE: sample-shopping-cart:latest
+          ANKKA_URL: https://api.127.0.0.1.sslip.io:8443
+          ANKKA_CA: /home/runner/.ankka/local-ca.crt
+          ANKKA_ORGANIZATION: eitheror
         run: sbt modulesIt/test
