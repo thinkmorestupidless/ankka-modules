@@ -12,7 +12,7 @@ class BudgetSuite extends munit.FunSuite:
     val (peer, at) = kit.peer(Seq(clients =>
       val held = Map("listPlayers" -> ((_: io.eitheror.casino.publicapi.api.Served) =>
         Thread.sleep(7000); clients.viewClient.forView(io.eitheror.casino.publicapi.records.Players).get("none"); Refusals.json(200, "{}")))
-      V1Endpoint(kit.contract, Pipeline(kit.settings, kit.contract, clients, () => kit.now, held)(_, _), _ => Refusals.notFound.respond)))
+      V1Endpoint(kit.contract, Pipeline(kit.settings, kit.contract, clients, () => kit.now, held).apply, _ => Refusals.notFound.respond)))
     try
       val k = Keys.noFields(kit)
       val started = System.nanoTime()

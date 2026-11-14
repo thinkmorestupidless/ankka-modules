@@ -88,7 +88,7 @@ class AuditFeatures extends PublicApiFeatures("audit.feature"):
     val k = SharedKit.peered
     peer = Some(k.peer(Seq(clients =>
       val held = Map("listPlayers" -> ((_: Served) => { Thread.sleep(7000); Refusals.json(200, "{}") }))
-      V1Endpoint(k.contract, Pipeline(k.settings, k.contract, clients, () => k.now, held)(_, _), _ => Refusals.notFound.respond))))
+      V1Endpoint(k.contract, Pipeline(k.settings, k.contract, clients, () => k.now, held).apply, _ => Refusals.notFound.respond))))
     keys = Vector(Keys.noFields(k))
   }
   When("the budget is spent") { () =>
