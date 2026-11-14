@@ -115,3 +115,112 @@
 - **Project rules read:** the root `CLAUDE.md` and the workspace `../CLAUDE.md`. There is no REVIEW.md and there are no `.claude/rules`.
 - **Enforced by tooling and not reviewed:** `-Wunused:all` (unused code). No scalafmt configuration was found.
 - **Tests:** not run. The service and producer suites need sbt with a published contract snapshot, and the integration suites need Docker. Each takes several minutes, beyond the one-minute budget for a run during review. The first blocking finding rests on reading the three consumers' matches against the new sealed family. A run of each consumer with a `RoundOpened` fact would confirm it.
+
+## Second round
+
+# Review: public-api (spec 016), the fixes, 19037014...HEAD
+
+**Verdict:** Request changes
+**What it does:** Applies the first round's findings: the three `casino.rounds` consumers pass over `round_opened`; a refusal is recorded only for a key that was ever created; disclosures are reported only for a `2xx`; the request budget runs on a bounded pool and interrupts late work; key-change audit ids come from the event's sequence number; the erasure handler reports a count; and several tests replace sleeps with later facts. It also records T095 and T096 as done and amends FR-014, FR-036 and SC-002.
+**Should it exist:** Yes. Each commit answers a named finding, and the spec amendments record the person's decisions.
+**Read:** In full: every hand-written hunk in the range (24 Scala files, about 340 lines), and the spec, tasks, research, quickstart, README and feature diffs. Outside the diff I opened `PublicApiService.endpoints` and `V1Endpoint` (how `Pipeline` is built), `Usage.scala`, `PlayerRecord.erase` and `PlayerState`, `AccessKey`'s `Admission` serializer, the it `Kit` (its broker is ankka's `InMemoryBroker`: one partition, in order), the contract's `AuditCompanion`, and in ankka 0.16: `ChangeContext.sequenceNumber` (per entity), `ProjectionRuntime` and `Consumer`/`View` `parallelism` (4 slice ranges by default), and `ErasureReport`. Not re-reviewed: the first round's files that no fix commit touched.
+**Size:** 31 files, +415 −100, of which about 340 lines are Scala. The size is fine for a fix round.
+
+### Resolutions of the first round
+
+- **Blocking 1** (`round_opened` consumers), 72dbf02b: **holds.** All three matches are now exhaustive over `CasinoRoundsFact`. Each consumer has a test feeding it a `RoundOpened`: rewards through `round` and the consumer kit, players through `ActivityLines.round`, and reporting through the consumer kit with no calls recorded.
+- **Blocking 2** (made-up key ids write), 5663f7ea: **holds for made-up ids.** `AccessKey.admission` answers `known = false` only when `!s.exists`, and `Pipeline` sets `admitted` only from `Rejected.key`. The `known = true` default is the safe direction for a reply from an older node during a rolling deploy. Two gaps remain: a refusal of a *known* key is still an unthrottled write (Should fix 1), and the integration test that proves the fix can pass while the fix is broken (Should fix 2).
+- **Should fix 1** (bounded deadline pool), e75d3bab: **does not hold.** `Deadline` itself is right, and DeadlineSuite proves both properties on one instance. But `Pipeline` is now built once per request, so every request gets a pool of its own (Blocking 1). This leaves the service worse than before the fix.
+- **Should fix 2** (disclosed buffer read after a timeout), 5663f7ea: **holds.** A `2xx` answer can only come from `task.get` returning, which makes the handler's appends visible to this thread. Every other answer reports nothing. DisclosedSuite covers both cases. The buffer is still a mutable field on `Served` rather than a returned value, but the race is gone.
+- **Should fix 3** (SC-002 marked deferred), e674dc3c: **holds.** The spec, T093 and research.md's T096 note all say it.
+- **Should fix 4** (SC-006 off shared runners), 52d3ebd4: **holds.** `perf.QuotaPerfSuite` is ignored unless `PUBLIC_API_PERF=1`, and QuotaSuite keeps the shared-count half. README and quickstart name the new suite.
+- **Should fix 5** (absences after a sleep), 52d3ebd4, 4331516d, 5663f7ea: **holds in part.**
+  - The later fact proves the topic intake read the earlier one. That holds because the kit's broker is one ordered partition.
+  - It does not prove the `stateOf` view or the audit consumer processed it. Both are sliced by entity id, and the later fact is on another entity.
+  - AuditTrailSuite is the one that matters (Should fix 2). RecordSuites and FieldsSuites are a nit (Nits 1).
+- **Should fix 6** (key-change id collisions), 41be8b43: **holds.** `messageContext.sequenceNumber` is the source entity's own sequence number in ankka 0.16 (`ChangeContext`), so `access-key/<key>/<seq>` is unique per change and stable under redelivery. KeyAuditSuite checks both. Changing the id format is safe only because no key-change record has been published by a deployed brand. Please confirm that the dev-kind run in T095 does not matter here.
+- **Nit 1** (`createdAt` sort), 1260bf44: **holds.** The query now casts to `timestamptz`. The 1000-row cap stays, with a reason given.
+- **Nit 2** (empty `player:` changes), 41be8b43: **holds.** The request record filters on `fields.nonEmpty`, and AuditSuite asserts both directions.
+- **Nit 3** (`null` default, global pool), 1260bf44: **holds.** The default is an `Option`, and the catalogue has a named pool of two daemon threads.
+- **Question 1** (FR-014 and late records): **answered.** FR-014 now says what offset paging gives.
+- **Question 2** (`ErasureReport(0)`), 4331516d: **answered, with an edge case.** A subject the service never held reports 1 (Should fix 3).
+- **Thought** (write load per request): **answered.**
+- **Out of scope** (`-Werror`): **left for an issue, as agreed.**
+
+### Blocking
+
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/PublicApiService.scala:58`. Issue (blocking): `Pipeline(settings, contract, clients, now, handlers, usage.rate, usage.served(now))(_, _)` expands to `(op, call) => Pipeline(...)(op, call)`. The placeholder's scope is the whole expression, so the constructor runs on every request.
+  - Since e75d3bab, `Deadline` owns its pool (`private val pool = ThreadPoolExecutor(...)` per instance, where it was `Deadline.pool` on the companion). So every request now builds a `ThreadPoolExecutor`, starts one thread in it, and leaves that thread idle for 60 s (`allowCoreThreadTimeOut`, keep-alive 60 s). The executor is never shut down.
+  - The 64/256 bound therefore never applies. At 100 requests a second the service holds about 6,000 idle threads, where the old cached pool reused its threads. The finding the commit set out to fix is now worse, on the common path.
+  - I confirmed the expansion with scalac 3.8.4: `E(P(1)(_, _))` called three times constructs `P` three times. DeadlineSuite cannot see this, because it builds one `Deadline` and calls it repeatedly.
+  - The same expansion also rebuilds `Pipeline.builtIn(contract) ++ handlers` on every request. That was already the case before this range.
+  - Suggestion:
+
+    ```scala
+    val pipeline = Pipeline(settings, contract, clients, now, handlers, usage.rate, usage.served(now))
+    V1Endpoint(contract, pipeline.apply, ...)
+    ```
+
+    Add a test that holds the endpoint's pipeline fixed. For example, count `Deadline` or `Pipeline` constructions across two requests in PipelineSuite, or assert that `public-api-request` threads stay at or below `Deadline.Workers` after more requests than that.
+
+  Resolved: the endpoint builds the pipeline once and passes `pipeline.apply`; the three suites that build their own do the same. RecordedSuite sends 100 requests and checks the budget's threads stop at its 64 workers; with the old construction it fails (163 threads after, from 63). 12e814b4
+
+### Should fix
+
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/api/Pipeline.scala:46`. Issue (non-blocking): a refusal of a *known* key still writes a `KeyLog` event and a `platform.audit` record per request with no throttle, because `rate` runs only for an admitted key.
+  - The key id travels inside the key. The likeliest holder of a real key id that is not admitted is whoever holds a leaked key the operator has just deleted or disabled. That holder can still make the brand write without bound, which is the amplification Blocking 2 closed for made-up ids.
+  - FR-036, as amended, asks for every such refusal to be recorded, so this needs a decision as well as code.
+  - Suggestion: take from the key's `KeyWindow` for refusals too, at the key's rate or a fixed refusal rate. Past it, answer as now but record nothing, or record one summary per window. Amend FR-036 to "recorded up to the key's rate".
+
+  Resolved: the person chose (2026-11-14) a cap: each instance records at most 60 refusals of one key a minute, and names the count of the rest on the key's next recorded refusal (`refused_unrecorded`); FR-036 and contracts/facts.md say so. RefusalCapSuite and AuditSuite cover it. 01825e8f
+
+- `services/public-api/src/test/scala/io/eitheror/casino/publicapi/it/AuditTrailSuite.scala:46`. Issue (non-blocking): this is the only test of the Pipeline-level half of Blocking 2, and it can pass while that half is broken.
+  - `ReadAudit` is a consumer of `eventsOf(KeyLog)` with ankka's default `parallelism` of 4. Its slice ranges are split by entity id, so a record for `madeUp` and the second record for `d.id` are processed by independent projection instances.
+  - Once `d.id`'s record is published, nothing guarantees that a `madeUp` record would already be published. The comment's reasoning ("written before it") holds for the journal, not for the topic.
+  - AccessKeySuite proves `known = false`, but nothing proves `Pipeline` acts on it.
+  - Suggestion: in the it `PipelineSuite`, build a `Pipeline` with a recording `served` and assert it is never invoked for a made-up key id. Then assert it is invoked once for a wrong secret on a real key. `served` runs inside `apply`, so the assertion is synchronous. Keep the AuditTrailSuite case as the end-to-end check.
+
+  Resolved: RecordedSuite builds a pipeline with a recording `served` and reads what it is told directly: nothing for a made-up key id, and a known key's wrong secret up to the cap (60 of 62). 01825e8f
+
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/records/PlayerRecord.scala:98-100` (via `Erasure.erased`). Issue (non-blocking, if-minor): for a player the service never held, `currentState.copy(id = c.playerId).withErased` differs from the empty state, because `id` and `erased` change. So the first erasure replies `true`, and the installation's certificate is told 1 object was erased for a subject this service held nothing of.
+  - Writing the erased marker is right: later facts must read as erased. Counting it as an erased object is not.
+  - ErasureSuite's new test only erases a player it registered first.
+  - Suggestion: reply with whether the record held anything before, for example `currentState.registeredAt.isDefined || currentState.email.isDefined || …`, or `currentState != emptyState && !currentState.erased`. Add the unknown-subject case to the test, expecting 0.
+
+  Resolved: `erase` reports true only when the record held the player; the erased mark is still kept for one it never held. ErasureSuite checks a never-held player reports 0. c40ceb32
+
+### Nits
+
+- `services/public-api/src/test/scala/io/eitheror/casino/publicapi/it/RecordSuites.scala:73`, `:239`, `FieldsSuites.scala:76`. Nitpick (non-blocking): the later fact is on a different entity. It proves the topic intake read the earlier fact, but not that the `stateOf` view, which is sliced by entity id, wrote or deleted the earlier row. A broken build passes only within a slice range's lag, which is small. Where the subject allows it, put the later fact on the same entity:
+  - in FieldsSuites, a status change for `pl`, then wait for that status to be served;
+  - in RecordSuites, a later fact on the same round record.
+
+  Left: nit. The topic's intake is checked to have read the earlier fact; the remaining window is one view slice's lag.
+
+- `services/public-api/src/test/scala/io/eitheror/casino/publicapi/api/DeadlineSuite.scala:49`. Nitpick (non-blocking): `Thread.sleep(100)` waits for the second submission to be queued. On a slow runner the third call queues instead of being rejected, then fails the timing assertion after the 5 s budget. This is a flake that fails safe, not a false pass. A `Deadline` constructor parameter that exposes a queued count, or a latch counted in a wrapping task, removes the sleep.
+
+  Left: nit. It fails safe (a flake, never a false pass), as the finding says.
+
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/api/Deadline.scala:51`. Nitpick (non-blocking): `public_api_busy` logs at warn once per rejected request. Under the overload it exists for, that is one line per request. Log the first in each interval, or count it as a metric.
+
+  Left: nit. A brand at that overload is an incident whose logs say so; a metric waits on the service's metrics.
+
+### Questions
+
+- `specs/016-public-api/tasks.md` (T096 `[X]`), `research.md` (*The suites*). Question: the green run that T096 records was made before the fix commits (72dbf02b onward). None of their messages says `just public-api-it` or the rewards, players and reporting suites were run again. Were they? If they were, say so in the T096 note. If not, a run is what would settle it, and it would also be the first run of the new `DeadlineSuite`, `DisclosedSuite` and consumer tests.
+
+  Answered: yes. After the first round's fixes: rewards' RoundsConsumerSuite, players' ViewsSuite and reporting's RoundCheckSuite, then reporting's whole unit suite (176) and public-api's units (108) and `just public-api-it` (169). After the second round's: public-api's units (111) and `just public-api-it` (171), all green; research.md's T096 note says so. On Should fix 6's note: no deployed brand published a key-change record; the dev-kind records of T095 are a test installation's.
+
+### Praise
+
+- `services/public-api/src/main/scala/io/eitheror/casino/publicapi/api/Pipeline.scala` (`Pipeline.disclosed`). Praise: the disclosure rule is a pure function, with the happens-before reasoning written beside it, and it has a test of its own. It is the right size of fix for a data race.
+- `services/public-api/src/test/scala/io/eitheror/casino/publicapi/audit/KeyAuditSuite.scala` (new last test). Praise: it states both halves of the id's contract, distinct per change and equal under redelivery, in two lines.
+- `services/rewards/.../consumers/RoundsConsumerSuite.scala`. Praise: the opened-round case names free rounds (`Some("fr-1")`), so it checks that an opened round is skipped for its kind, not merely for lacking a grant.
+
+### Checks applied
+
+- **General checklist groups applied:** Correctness, Design and scope, Error handling, Concurrency and state, Security, Data and migrations (audit record ids, the `Admission` reply's new field), Tests, Observability, API and compatibility, Documentation, and Commit and PR hygiene. The commits follow `type(016): …`, each names the findings it answers, and each has the trailer.
+- **Skipped:** Dependencies and build (no build change) and Performance, apart from the blocking finding.
+- **Language skills:** `pr-review-scala` (bundled) groups were applied from the first round's reading: concurrency (executors, interruption, visibility), types and totality (exhaustive matches), tests and fixtures. The repository has no `pr-review-scala` of its own. The summary listed `specs/016-public-api/REVIEW.md` as a review checklist. That is this file, `review.md`, on a case-insensitive filesystem, and it is not a checklist.
+- **Project rules read:** `CLAUDE.md` and `../CLAUDE.md`. There are no `.claude/rules`.
+- **Tests:** not run. The suites need sbt with a published contract snapshot, and the integration suites need Docker, beyond the review's budget. The one claim that rested on language semantics, the placeholder expansion behind Blocking 1, was checked by compiling and running a five-line reproduction with scalac 3.8.4. That gave three constructions for three calls.

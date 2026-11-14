@@ -559,6 +559,9 @@ Applied on this branch:
   service; after the review it moved to `perf.QuotaPerfSuite`, run on purpose only. The perf suites
   (`just public-api-perf`) are not among these: `StatsPerfSuite` fails on SC-002's full pages until
   ankka views declare indexes (SC-002, deferred).
+  After the review's fixes (both rounds), public-api's units (111) and `just public-api-it` (171), and
+  the changed consumers' suites in rewards, players and reporting (reporting's whole unit suite, 176),
+  ran again, all green.
 
 ## Declined remediations
 
