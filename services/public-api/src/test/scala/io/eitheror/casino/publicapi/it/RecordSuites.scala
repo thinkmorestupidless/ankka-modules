@@ -70,7 +70,9 @@ class PlayersSuite extends munit.FunSuite:
   test("a player with no registration yet is not served") {
     val pl = FactSet.id()
     kit.publish(f.CasinoPlayers, f.PlayerEmailChanged(pl, FactSet.p("x@example.com"), at))
-    Thread.sleep(500)
+    val next = FactSet.id() // a later fact on the topic: once it is served, the change before it was read
+    kit.publish(f.CasinoPlayers, FactSet.registered(next, at))
+    kit.eventually("the next registration served")(Option.when(get(s"/players/$next").status == 200)(()))
     assertEquals(get(s"/players/$pl").status, 404)
   }
 
@@ -234,6 +236,9 @@ class ProjectionRefusalSuite extends munit.FunSuite with com.thinkmorestupidless
     val k = s"st8/r-${FactSet.id()}"
     kit.publish(f.CasinoRounds, FactSet.settled(s.players(1), k, "", at, 100, 0, "loss", game = ""))
     val id = io.eitheror.casino.publicapi.records.Records.roundId(k)
-    Thread.sleep(1000)
+    val next = s"st8/r-${FactSet.id()}" // a later round on the topic: once it is served, the one before it was read
+    kit.publish(f.CasinoRounds, FactSet.settled(s.players(1), next, "", at.plusSeconds(1), 100, 0, "loss"))
+    kit.eventually("the next round served")(Option.when(
+      get(s"/rounds/${io.eitheror.casino.publicapi.records.Records.roundId(next)}").status == 200)(()))
     assertEquals(get(s"/rounds/$id").status, 404)
   }
