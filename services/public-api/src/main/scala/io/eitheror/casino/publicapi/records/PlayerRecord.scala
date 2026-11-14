@@ -94,10 +94,15 @@ final class PlayerRecord(@scala.annotation.unused context: KeyValueEntityContext
 
   def record(c: PlayerFact): Effect[Boolean] = once(c.factId)(PlayerFold(_, c.fact))
 
-  /** The player's identifying fields erased here (FR-025): absent with every key from now on, facts read again included. */
+  /**
+   * The player's identifying fields erased here (FR-025): absent with every key from now on, facts read again included.
+   * A player no fact has named yet keeps the mark, so a late fact brings nothing back. True only when the record held
+   * the player and changed: what an erasure reports as erased.
+   */
   def erase(c: ErasePlayer): Effect[Boolean] =
+    val held = currentState.id.nonEmpty
     val next = currentState.copy(id = c.playerId).withErased
-    if next == currentState then effects.reply(false) else effects.updateState(next).thenReply(_ => true)
+    if next == currentState then effects.reply(false) else effects.updateState(next).thenReply(_ => held)
   def get: ReadOnlyEffect[PlayerState]       = effects.reply(currentState)
 
 object PlayerRecord extends KeyValueEntity.Companion[PlayerRecord, PlayerState](

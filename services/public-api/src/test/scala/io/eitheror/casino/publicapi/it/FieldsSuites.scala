@@ -93,6 +93,7 @@ class ErasureSuite extends munit.FunSuite:
     assertEquals(io.eitheror.casino.publicapi.api.Erasure.erased(kit.components, s"player/$pl"), 1L)
     assertEquals(io.eitheror.casino.publicapi.api.Erasure.erased(kit.components, s"player/$pl"), 0L, "a rerun erases nothing")
     assertEquals(io.eitheror.casino.publicapi.api.Erasure.erased(kit.components, s"operator/$pl"), 0L)
+    assertEquals(io.eitheror.casino.publicapi.api.Erasure.erased(kit.components, s"player/${FactSet.id()}"), 0L, "a player never held")
   }
 
   test("only players may call it; another brand's segment is 404") {
