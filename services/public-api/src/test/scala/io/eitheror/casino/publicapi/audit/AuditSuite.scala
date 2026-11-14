@@ -21,7 +21,7 @@ class AuditSuite extends munit.FunSuite:
     assertEquals(changes("status"), Some("200"))
     assertEquals(changes("duration_ms"), Some("12"))
     assert(changes("operation").exists(_.startsWith("GET /v1/players/{playerId}")))
-    assertEquals(changes(s"player:$p1"), Some(""))
+    assert(!changes.contains(s"player:$p1"), "a player served no identifying field is not named")
   }
 
   test("each player whose identifying fields were served is the subject of public_api.identifying_fields_served") {
@@ -30,6 +30,8 @@ class AuditSuite extends munit.FunSuite:
     assertEquals(subjects, Vector(p1 -> Some("email"), p2 -> Some("email,phone")))
     assert(records.forall(r => r.actorKind == "access_key" && r.actorId == "k1"))
     assertEquals(records.map(_.recordId).distinct.size, 3)
+    assertEquals(records.head.changes.filter(_.field.startsWith("player:")).map(c => c.field -> c.after),
+      Vector(s"player:$p1" -> Some("email"), s"player:$p2" -> Some("email,phone")))
   }
 
   test("a player served no identifying field makes no disclosure record") {
