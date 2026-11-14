@@ -476,7 +476,7 @@ snapshot.
   (SC-003); if the run is too slow, fold one day at a time in parallel (research R16.3)
 - [X] T094 [P] Finish `services/public-api/README.md`: components, routes, suites, how to create a key
   locally, the recipes
-- [ ] T095 Deploy to the dev-kind installation (`just modules apply goldvibe --installation dev-kind`
+- [X] T095 Deploy to the dev-kind installation (`just modules apply goldvibe --installation dev-kind`
   with goldvibe entitled to `public-api`); create a key through the operator route; run `ankka-inspect`
   over the spec's scenarios against the deployed service; keep each met scenario as an integration
   test

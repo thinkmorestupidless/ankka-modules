@@ -523,6 +523,8 @@ Applied on this branch:
   FieldsSuites, IdentifyingFieldsFeatures, AuditTrailSuite, StatusSuite, ContractResponsesSuite). Not exercised on kind:
   sessions, rounds, bets, transactions and bonus awards from real producers, which need ST8's
   callbacks and a deposit through the payments project.
+  The person chose (2026-11-14) to count T095 met with that gap: the Postgres integration suites
+  (`just public-api-it`) and the parity suites over the original's recordings cover those records.
 
 - **The recordings (T091, 2026-11-14).** Recorded on the original at `7630feb0` (the rewards worktree),
   on a freshly built `eitheror-dev`: the original's statistics and rankings count every player on the
