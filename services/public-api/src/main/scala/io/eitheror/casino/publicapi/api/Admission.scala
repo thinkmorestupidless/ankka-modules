@@ -23,12 +23,16 @@ object Admission:
         Option(h).filter(_.startsWith("Bearer ")).flatMap(v => RawKeys.parse(v.stripPrefix("Bearer ")))
           .map(p => p.keyId -> RawKeys.digest(p.whole)).toRight(Refusals.keyInvalid)
 
-  def admit(components: ComponentClient, authorization: Option[String], now: Instant): Either[Refusal, Admitted] =
-    presented(authorization).flatMap { (keyId, digest) =>
-      val a = components.forEventSourcedEntity(EntityId(keyId)).call(AccessKey.admit).invoke(Admit(digest, now))
+  /** A refusal, with the id of the key it refused when a key was ever created under that id (FR-036 records those). */
+  final case class Rejected(refusal: Refusal, key: Option[String])
+
+  def admit(components: ComponentClient, authorization: Option[String], now: Instant): Either[Rejected, Admitted] =
+    presented(authorization).left.map(Rejected(_, None)).flatMap { (keyId, digest) =>
+      val a     = components.forEventSourcedEntity(EntityId(keyId)).call(AccessKey.admit).invoke(Admit(digest, now))
+      val known = Option.when(a.known)(keyId)
       a.refused match
-        case Some("key_expired")  => Left(Refusals.keyExpired)
-        case Some("key_disabled") => Left(Refusals.keyDisabled)
-        case Some(_)              => Left(Refusals.keyInvalid)
+        case Some("key_expired")  => Left(Rejected(Refusals.keyExpired, known))
+        case Some("key_disabled") => Left(Rejected(Refusals.keyDisabled, known))
+        case Some(_)              => Left(Rejected(Refusals.keyInvalid, known))
         case None                 => Right(Admitted(keyId, a.identifyingFields, a.requestsPerMinute))
     }

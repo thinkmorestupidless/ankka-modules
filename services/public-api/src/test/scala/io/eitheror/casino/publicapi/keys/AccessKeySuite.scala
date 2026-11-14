@@ -72,6 +72,13 @@ class AccessKeySuite extends munit.FunSuite:
     assertEquals(admit(k, now = at.plusSeconds(30)), Some("key_invalid"))
   }
 
+  test("admit says whether a key was ever created under the id: an unknown one is not known, a deleted one is") {
+    assertEquals(kit.call(AccessKey.admit)(Admit(digest, at)).replyValue, Admission(Some("key_invalid"), known = false))
+    val k = created()
+    k.call(AccessKey.delete)(By("op", at)): Unit
+    assertEquals(k.call(AccessKey.admit)(Admit(digest, at)).replyValue, Admission(Some("key_invalid")))
+  }
+
   test("no event carries the key; only KeyCreated carries the digest") {
     val k = created(Some(at.plusSeconds(60)))
     k.call(AccessKey.change)(Change(name = Some("y"), by = "op", at = at)): Unit
