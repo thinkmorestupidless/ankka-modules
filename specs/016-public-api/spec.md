@@ -536,6 +536,10 @@ past its rate while another reads.
   `not_found`, verified on every release.
 - **SC-002**: 95% of single-record reads answer within 500 ms and 95% of full pages within one
   second, on a brand with twelve months of history and a player with 10,000 transactions.
+  *Deferred for full pages* (2026-11-12): by-id reads are met (7 ms p95); a player's rounds page
+  over a million rounds is 2.66 s p95, because ankka 0.16 views declare no index (research.md,
+  *The brand at its size*; the finding for ankka: indexes declared on a view). `StatsPerfSuite`
+  keeps the 1 s limit, so it fails until then.
 - **SC-003**: A fact is visible through the API within 30 seconds for 95% of facts.
 - **SC-004**: An operator creates a key and a caller reads with it within five minutes, with no
   realm change and no release.

@@ -556,7 +556,9 @@ Applied on this branch:
   SC-006 check (p95 5.3 ms alone, 16.0 ms beside a busy key) with the original's kind cluster still up
   and the machine's load at 16 on 10 CPUs; with that cluster stopped, it passed three runs of three. The
   check compares latencies on the machine that runs it, so it fails under contention from outside the
-  service.
+  service; after the review it moved to `perf.QuotaPerfSuite`, run on purpose only. The perf suites
+  (`just public-api-perf`) are not among these: `StatsPerfSuite` fails on SC-002's full pages until
+  ankka views declare indexes (SC-002, deferred).
 
 ## Declined remediations
 

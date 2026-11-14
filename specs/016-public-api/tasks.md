@@ -474,6 +474,8 @@ snapshot.
   minutes (SC-008), and 95% of by-id reads within 500 ms and full pages within one second (SC-002) on
   the perf data set; and 95% of facts visible through the API within 30 seconds of being published
   (SC-003); if the run is too slow, fold one day at a time in parallel (research R16.3)
+  *Done with SC-002 deferred for full pages: the suite runs, and fails on the rounds page until ankka
+  views declare indexes (research.md, The brand at its size).*
 - [X] T094 [P] Finish `services/public-api/README.md`: components, routes, suites, how to create a key
   locally, the recipes
 - [X] T095 Deploy to the dev-kind installation (`just modules apply goldvibe --installation dev-kind`
