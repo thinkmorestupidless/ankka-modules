@@ -541,12 +541,20 @@ Applied on this branch:
   its own id and time there, here it is its BET transaction; an award's `value` is `face_value` cents
   rendered as major units there ("5000.00" for a 50.00 deposit match), here the reward's amount; free
   rounds with no offer are counted in a player's `bonus-awards` total there and never served (R16.5),
-  here they are an award; and the OpenAPI document and reference page are the amended contract. Two more
-  of the original's answers need no marking, because the comparison is by role: its `Transaction.roundId`
-  is the provider's round id, not the round record's, and its players list answers a `total` above the
-  records it serves (6 for 3 on a fresh stack, 18 for 9 on one that held earlier runs), which the
-  parity suites mark; and it served a game disabled by the operator as `404` within about a minute,
-  where the five minutes of R9 is the bound here (the replay moves its clock past it).
+  here they are an award; its players list answers a `total` above the records it serves (6 for 3 on a
+  fresh stack, 18 for 9 on one that held earlier runs), here the records served; and the OpenAPI
+  document and reference page are the amended contract. Two more of the original's answers need no
+  marking: its `Transaction.roundId` is the provider's round id, not the round record's, which the
+  comparison by role absorbs; and it served a game disabled by the operator as `404` within about a
+  minute, where the five minutes of R9 is the bound here (the replay moves its clock past it).
+- **The suites (T096, 2026-11-14).** `just features`, `just test`, `just public-api-test`,
+  `just public-api-it` and the suites of every amended producer (wallet, players, rewards and
+  game-provider, units and integration) are green. The parity suites pass on recordings whose sign-in,
+  refresh and launch tokens are written as their `{name}`. One run of `public-api-it` failed QuotaSuite's
+  SC-006 check (p95 5.3 ms alone, 16.0 ms beside a busy key) with the original's kind cluster still up
+  and the machine's load at 16 on 10 CPUs; with that cluster stopped, it passed three runs of three. The
+  check compares latencies on the machine that runs it, so it fails under contention from outside the
+  service.
 
 ## Declined remediations
 
