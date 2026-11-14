@@ -30,14 +30,22 @@ object PublicApiService:
     stats.StatsRuntime.brand.set(settings.brand)
     stats.ComputeStats.schedule(timers, now)
 
+  private lazy val catalogueThreads: scala.concurrent.ExecutionContext =
+    scala.concurrent.ExecutionContext.fromExecutorService(java.util.concurrent.Executors.newFixedThreadPool(2, { r =>
+      val t = Thread(r, "public-api-catalogue")
+      t.setDaemon(true)
+      t
+    }))
+
   /** The contract the settings' address is served in, or why the service cannot start. */
   def contract(settings: Settings): Contract = Contract.load(settings.serverUrl).fold(e => throw IllegalStateException(e), identity)
 
   def endpoints(settings: Settings, contract: Contract, authenticate: () => Acl = () => Oidc.authenticate(),
       now: () => Instant = () => Instant.now(),
-      catalogueOf: EndpointClients => () => Vector[io.eitheror.casino.publicapi.games.CatalogueGame] = null): Seq[EndpointClients => HttpEndpoint] =
-    given scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
-    val load = Option(catalogueOf).getOrElse((c: EndpointClients) => io.eitheror.casino.publicapi.games.Catalogue.fromProvider(c.services, settings.brand))
+      catalogueOf: Option[EndpointClients => () => Vector[io.eitheror.casino.publicapi.games.CatalogueGame]] = None): Seq[EndpointClients => HttpEndpoint] =
+    // The catalogue's load is a blocking call to the provider: two threads of its own, never the global pool's.
+    given scala.concurrent.ExecutionContext = PublicApiService.catalogueThreads
+    val load = catalogueOf.getOrElse((c: EndpointClients) => io.eitheror.casino.publicapi.games.Catalogue.fromProvider(c.services, settings.brand))
     Seq(
       clients => KeysEndpoint(settings.brand, clients, authenticate, now),
       clients =>

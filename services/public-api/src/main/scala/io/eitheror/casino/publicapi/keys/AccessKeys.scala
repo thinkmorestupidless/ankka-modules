@@ -39,4 +39,4 @@ object AccessKeys extends View.Companion[AccessKeysView, KeyEvent, KeyRow](
 
   /** Every key, oldest first, deleted ones only when asked (`:deleted` is `true` or `false`). */
   val listed = query("listed")(
-    s"SELECT payload FROM $table WHERE (:deleted = 'true' OR payload::jsonb->>'deleted' = 'false') ORDER BY payload::jsonb->>'createdAt', row_key")
+    s"SELECT payload FROM $table WHERE (:deleted = 'true' OR payload::jsonb->>'deleted' = 'false') ORDER BY (payload::jsonb->>'createdAt')::timestamptz, row_key")
