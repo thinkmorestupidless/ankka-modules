@@ -392,6 +392,30 @@ endpoint code of all 17 services with an operator route; its results are in
 | V5 | the proxy streams server-sent events from the process unbuffered through the gateway | long polling on `/api/events` |
 | V6 | an ACL refinement may decide `Unavailable` | the endpoint answers `503` itself before its handler |
 
+## Found during implementation
+
+### V1, 2026-11-15 (T001)
+
+On `dev-kind` (platform 0.16.3), the probe `tests/spikes/backoffice-v1/` ran as a web-hosted service
+in goldvibe's project and called `players`' `GET /v1/casino/backoffice/goldvibe/players` at
+`ANKKA_SERVICES_URL`, with no grant:
+
+| Call | Answer | Answered by |
+|---|---|---|
+| (a) no token | `401 authentication required` | `players` |
+| (a) a malformed token | `401 authentication required` | `players` |
+| (a) a `brand_goldvibe` operator's token | `200`, the brand's players | `players` |
+| (b) `merchant.payments`, no token | `503 no service 'merchant' in the project 'payments'` | the proxy |
+
+(a) holds: the owner judges the person by the token, and the caller being the web-hosted service
+changes nothing. The build goes on.
+
+(b) is not yet known: this installation has no `payments` project, so the call never reached
+merchant. The proxy's own answer shows the calling address does route `<service>.<project>`. It is
+checked again when the shared projects are applied to `dev-kind`. Until then the backoffice's calls into shared projects (T071's reads, the shared rows of T108, T112,
+T113, T117 to T119) are built against the doubles and wait on it for their checks against real
+services.
+
 ## Design finished
 
 2026-11-15: reworked after the first finish, on three decisions made in review: one backoffice per
