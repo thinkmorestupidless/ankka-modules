@@ -54,6 +54,8 @@ class CatalogueCacheSuite extends munit.FunSuite:
     val load  = () => { loads.incrementAndGet(); gate.await(5, TimeUnit.SECONDS); 2 }
     assertEquals(Vector.fill(3)(c.get(load, 5.seconds)), Vector(1, 1, 1))
     gate.countDown()
+    // The reload runs on another thread: wait for its value before counting its loads.
+    eventually(c.get(load, 5.seconds) == 2)
     assertEquals(loads.get, 1)
   }
 
@@ -63,7 +65,6 @@ class CatalogueCacheSuite extends munit.FunSuite:
     c.get(() => 1, 5.seconds): Unit
     now.set(start.plusMillis(1500))
     assertEquals(c.get(() => throw IllegalStateException("down"), 5.seconds), 1)
-    Thread.sleep(100)
-    assertEquals(c.get(() => 2, 5.seconds), 1)
-    eventually(c.get(() => 9, 5.seconds) == 2)
+    // Until the failed reload has ended a read joins it and is served the old value; one after it loads again.
+    eventually(c.get(() => 2, 5.seconds) == 2)
   }
